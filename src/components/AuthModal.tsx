@@ -55,7 +55,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
       const isAdminEmail = user.email === "dadumeer469@gmail.com";
 
       if (userDocSnap.exists()) {
-        const profile = userDocSnap.data() as UserProfile;
+        const profile = { uid: user.uid, ...userDocSnap.data() } as UserProfile;
         // Keep role updated for admin
         if (isAdminEmail && profile.role !== "admin") {
           const updated = { ...profile, role: "admin" as const };
@@ -236,7 +236,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
           await setDoc(doc(db, "users", user.uid), cleanObject(fallbackProfile));
           onAuthSuccess(fallbackProfile);
         } else {
-          const profile = userDocSnap.data() as UserProfile;
+          const profile = { uid: user.uid, ...userDocSnap.data() } as UserProfile;
           
           // Make sure that if it is the admin credentials, they always have the admin name and role!
           if (isAdminCreds && (profile.role !== "admin" || profile.name !== "meerali120")) {

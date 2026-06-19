@@ -35,7 +35,7 @@ export default function FoodpandaHeader({
   const unreadNotifications = notifications.filter(n => !n.read);
 
   // Unified WhatsApp link formatter
-  const whatsAppLink = "https://wa.me/9232770071";
+  const whatsAppLink = "https://wa.me/923277004471";
 
   return (
     <header className="sticky top-0 z-40 bg-zinc-900 text-zinc-100 shadow-md border-b border-zinc-800">
@@ -83,7 +83,7 @@ export default function FoodpandaHeader({
           >
             <span className="animate-pulse h-2 w-2 rounded-full bg-emerald-500"></span>
             <span className="hidden leading-none lg:inline">Help:</span>
-            <span className="leading-none text-[11px]">032770071</span>
+            <span className="leading-none text-[11px]">03277004471</span>
           </a>
 
           {/* In-App Notifications Center Dropdown */}

@@ -98,7 +98,7 @@ export default function App() {
         const profileSnap = await getDoc(profileRef);
 
         if (profileSnap.exists()) {
-          setCurrentUser(profileSnap.data() as UserProfile);
+          setCurrentUser({ uid: authUser.uid, ...profileSnap.data() } as UserProfile);
         } else {
           // Fallback
           const isMeerali = authUser.email === "03277004471@dadu247.com";
@@ -392,7 +392,7 @@ export default function App() {
       
       {/* Dynamic Floating WhatsApp Helpline Button (Bottom corner) */}
       <a
-        href="https://wa.me/9232770071"
+        href="https://wa.me/923277004471"
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-6 left-6 z-50 bg-[#25D366] text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform cursor-pointer flex items-center justify-center border-2 border-white/20 animate-bounce"
@@ -754,8 +754,8 @@ export default function App() {
       <footer className="max-w-7xl mx-auto px-4 mt-12 pt-8 border-t border-zinc-800 text-center space-y-4">
         <p className="text-xs text-zinc-500 font-semibold">
           © {new Date().getFullYear()} Dadu24#7 Platforms Inc. All Rights Reserved. Support helpline:{" "}
-          <a href="https://wa.me/9232770071" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 transition hover:underline">
-            032770071 (WhatsApp Support)
+          <a href="https://wa.me/923277004471" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 transition hover:underline">
+            03277004471 (WhatsApp Support)
           </a>
         </p>
       </footer>

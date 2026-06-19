@@ -100,7 +100,7 @@ export default function OrderTracker({ order, onClose }: OrderTrackerProps) {
           <div className="bg-red-950/20 border border-red-900/40 text-red-400 rounded-2xl p-4 text-center shadow-xs">
             <span className="font-extrabold text-sm block">🚫 Order Cancelled</span>
             <p className="text-xs text-zinc-400 mt-1 leading-normal font-semibold">
-              This order has been cancelled by the administrator. For assistance, reach out directly to our WhatsApp Hotline 032770071.
+              This order has been cancelled by the administrator. For assistance, reach out directly to our WhatsApp Hotline 03277004471.
             </p>
           </div>
         ) : (
