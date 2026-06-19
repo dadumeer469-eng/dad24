@@ -1,0 +1,102 @@
+{
+  "entities": {
+    "Dish": {
+      "title": "Dish",
+      "description": "Represents a menu food item or a home service in dadu24#7.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "category": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "isAvailable": { "type": "boolean" },
+        "type": { "type": "string" }
+      },
+      "required": ["id", "name", "price", "category", "isAvailable", "type"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Standard buyer profiles and admin credentials mapped in Firestore.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "role": { "type": "string" },
+        "ordersCount": { "type": "number" }
+      },
+      "required": ["uid", "name", "phone", "address", "role", "ordersCount"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Client placement records for both food deliveries and home services.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userPhone": { "type": "string" },
+        "userAddress": { "type": "string" },
+        "items": { "type": "array" },
+        "totalPrice": { "type": "number" },
+        "deliveryFee": { "type": "number" },
+        "grandTotal": { "type": "number" },
+        "status": { "type": "string" },
+        "riderName": { "type": "string" },
+        "eta": { "type": "string" },
+        "createdAt": { "type": "object" },
+        "paymentMethod": { "type": "string" },
+        "orderType": { "type": "string" }
+      },
+      "required": ["id", "userId", "userName", "userPhone", "userAddress", "items", "totalPrice", "deliveryFee", "grandTotal", "status", "paymentMethod", "orderType"]
+    },
+    "SystemSettings": {
+      "title": "SystemSettings",
+      "description": "Dynamic layout configuration toggles like deliveryFee rates.",
+      "type": "object",
+      "properties": {
+        "deliveryFee": { "type": "number" }
+      },
+      "required": ["deliveryFee"]
+    },
+    "AppNotification": {
+      "title": "AppNotification",
+      "description": "Real-time chime push notification logs mapped to specific user ID directories.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "createdAt": { "type": "object" },
+        "read": { "type": "boolean" }
+      },
+      "required": ["id", "userId", "title", "message", "createdAt", "read"]
+    }
+  },
+  "firestore": {
+    "menu/{dishId}": {
+      "schema": "Dish",
+      "description": "The shared list of food and service items."
+    },
+    "users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Authentication users metadata registry."
+    },
+    "orders/{orderId}": {
+      "schema": "Order",
+      "description": "Collection storing live active and finished client delivery bookings."
+    },
+    "settings/{settingId}": {
+      "schema": "SystemSettings",
+      "description": "Host-accessible parameter overrides such as custom delivery rate values."
+    },
+    "notifications/{notificationId}": {
+      "schema": "AppNotification",
+      "description": "Alert elements targeting specific profile identifiers."
+    }
+  }
+}
