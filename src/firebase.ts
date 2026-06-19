@@ -32,4 +32,23 @@ export function handleFirestoreError(err: any): string {
   return err?.message || "Something went wrong in real-time communication. Please reload.";
 }
 
+// Recursively remove undefined fields to avoid Firestore "Unsupported field value: undefined" validation errors
+export function cleanObject<T = any>(obj: any): T {
+  if (obj === null || obj === undefined) return obj;
+  if (Array.isArray(obj)) {
+    return obj.map(v => cleanObject(v)) as any;
+  }
+  if (typeof obj === 'object') {
+    const cleaned: any = {};
+    for (const key of Object.keys(obj)) {
+      const val = obj[key];
+      if (val !== undefined) {
+        cleaned[key] = cleanObject(val);
+      }
+    }
+    return cleaned;
+  }
+  return obj;
+}
+
 export { app, db, auth };

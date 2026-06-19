@@ -3,7 +3,7 @@ import { onAuthStateChanged, signOut } from "firebase/auth";
 import { 
   collection, doc, onSnapshot, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, getDocs 
 } from "firebase/firestore";
-import { auth, db, handleFirestoreError } from "./firebase";
+import { auth, db, handleFirestoreError, cleanObject } from "./firebase";
 import { Dish, Order, UserProfile, SystemSettings, AppNotification, OrderItem } from "./types";
 import { INITIAL_MENU_ITEMS } from "./data";
 
@@ -330,7 +330,7 @@ export default function App() {
 
     try {
       // 1. Save new Order
-      await setDoc(doc(db, "orders", uniqueOrderId), orderModel);
+      await setDoc(doc(db, "orders", uniqueOrderId), cleanObject(orderModel));
 
       // 2. Clear customer cart
       setCartItems([]);
@@ -344,7 +344,7 @@ export default function App() {
         address: details.address,
         ordersCount: (currentUser.ordersCount || 0) + 1,
       };
-      await setDoc(doc(db, "users", currentUser.uid), updatedProfile);
+      await setDoc(doc(db, "users", currentUser.uid), cleanObject(updatedProfile));
       setCurrentUser(updatedProfile);
 
       // 4. Alert success

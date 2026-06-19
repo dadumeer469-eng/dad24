@@ -6,7 +6,7 @@ import {
   GoogleAuthProvider 
 } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
-import { auth, db } from "../firebase";
+import { auth, db, cleanObject } from "../firebase";
 import { UserProfile } from "../types";
 import { X, Phone, Lock, User, MapPin, Loader2, AlertCircle, LogIn } from "lucide-react";
 import { motion } from "motion/react";
@@ -59,7 +59,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
         // Keep role updated for admin
         if (isAdminEmail && profile.role !== "admin") {
           const updated = { ...profile, role: "admin" as const };
-          await setDoc(userDocRef, updated);
+          await setDoc(userDocRef, cleanObject(updated));
           onAuthSuccess(updated);
         } else {
           onAuthSuccess(profile);
@@ -116,7 +116,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
         ordersCount: 0,
       };
 
-      await setDoc(doc(db, "users", user.uid), newProfile);
+      await setDoc(doc(db, "users", user.uid), cleanObject(newProfile));
       onAuthSuccess(newProfile);
       onClose();
     } catch (err: any) {
@@ -180,7 +180,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
           ordersCount: 0,
         };
 
-        await setDoc(doc(db, "users", user.uid), newProfile);
+        await setDoc(doc(db, "users", user.uid), cleanObject(newProfile));
         onAuthSuccess(newProfile);
         onClose();
       } else {
@@ -205,7 +205,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
               role: "admin",
               ordersCount: 0,
             };
-            await setDoc(doc(db, "users", user.uid), newAdminProfile);
+            await setDoc(doc(db, "users", user.uid), cleanObject(newAdminProfile));
             onAuthSuccess(newAdminProfile);
             onClose();
             setLoading(false);
@@ -233,7 +233,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
             role: finalRoleValue as "admin" | "buyer",
             ordersCount: 0,
           };
-          await setDoc(doc(db, "users", user.uid), fallbackProfile);
+          await setDoc(doc(db, "users", user.uid), cleanObject(fallbackProfile));
           onAuthSuccess(fallbackProfile);
         } else {
           const profile = userDocSnap.data() as UserProfile;
@@ -241,7 +241,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
           // Make sure that if it is the admin credentials, they always have the admin name and role!
           if (isAdminCreds && (profile.role !== "admin" || profile.name !== "meerali120")) {
             const updatedProfile = { ...profile, role: "admin" as const, name: "meerali120" };
-            await setDoc(doc(db, "users", user.uid), updatedProfile);
+            await setDoc(doc(db, "users", user.uid), cleanObject(updatedProfile));
             onAuthSuccess(updatedProfile);
           } else {
             onAuthSuccess(profile);
