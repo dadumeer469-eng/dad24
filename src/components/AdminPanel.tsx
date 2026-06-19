@@ -278,75 +278,78 @@ export default function AdminPanel({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#0A0A0A] text-gray-200 overflow-y-auto font-sans flex flex-col">
+    <div className="fixed inset-0 z-50 bg-gradient-to-b from-[#050505] via-[#09090b] to-[#030303] text-zinc-100 overflow-y-auto font-sans flex flex-col antialiased">
       
       {/* Header Admin Strip */}
-      <div className="bg-[#121212] border-b border-zinc-900 p-4 sticky top-0 z-20 flex items-center justify-between shadow-md">
-        <div className="flex items-center gap-3">
-          <div className="bg-amber-500 text-black px-3 py-1 text-xs font-black rounded-lg">
-            SYS ADMIN
+      <div className="bg-[#09090b]/90 backdrop-blur-md border-b border-zinc-800/60 p-5 sticky top-0 z-20 flex items-center justify-between shadow-xl">
+        <div className="flex items-center gap-4">
+          <div className="bg-gradient-to-r from-amber-500 to-amber-600 text-black px-3.5 py-1.5 text-[10.5px] font-black uppercase tracking-widest rounded-lg shadow-lg shadow-amber-500/10">
+            Console Active
           </div>
           <div>
-            <h2 className="text-base font-extrabold tracking-tight text-white flex items-center gap-1.5">
-              Dadu24#7 Admin Suite Console
-              <span className="text-amber-500 text-xs">@{adminUsername}</span>
+            <h2 className="text-base font-black tracking-tight text-white flex items-center gap-2">
+              Dadu24#7 System Hub
+              <span className="text-amber-500 font-mono text-xs select-all bg-amber-500/5 px-2 py-0.5 rounded border border-amber-500/20">@{adminUsername}</span>
             </h2>
-            <span className="text-[11px] text-zinc-500">Business Control Center & Live Logistics Monitor</span>
+            <span className="text-[11px] text-zinc-400 font-medium font-sans">Enterprise Business Management Control & Live Logistics Telemetry</span>
           </div>
         </div>
 
         <button
           onClick={onClose}
-          className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs text-gray-300 px-4 py-2 rounded-xl transition cursor-pointer"
+          className="bg-zinc-900/90 hover:bg-zinc-850 border border-zinc-800 text-xs font-bold text-zinc-200 px-5 py-2.5 rounded-2xl transition-all hover:scale-[1.02] cursor-pointer flex items-center gap-1.5 shadow-md active:scale-95"
         >
           Exit Console 🚪
         </button>
       </div>
 
       {/* Main Container Dashboard */}
-      <div className="max-w-7xl mx-auto w-full px-4 py-6 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 pb-20">
+      <div className="max-w-7xl mx-auto w-full px-4 py-8 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8 pb-24">
         
         {/* Navigation Admin Side Rail */}
-        <div className="col-span-1 lg:col-span-3 space-y-3">
-          <div className="bg-[#121212] border border-zinc-920 p-4 rounded-3xl space-y-2 shadow-lg">
-            <span className="text-[10px] font-bold text-zinc-500 block uppercase tracking-wider">Console sections</span>
+        <div className="col-span-1 lg:col-span-3 space-y-4">
+          <div className="bg-[#0b0b0d]/90 border border-zinc-800/80 p-4.5 rounded-[24px] space-y-2.5 shadow-2xl relative overflow-hidden">
+            {/* Ambient golden top line */}
+            <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
+            
+            <span className="text-[9.5px] font-black text-zinc-500 block uppercase tracking-widest pl-1 mb-1">Navigation Terminals</span>
             
             <button
               onClick={() => setActiveSubTab("analytics")}
-              className={`w-full font-bold text-xs px-4 py-3 rounded-2xl transition flex items-center gap-3 cursor-pointer ${
+              className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
                 activeSubTab === "analytics" 
-                  ? "bg-amber-500/10 border border-amber-500/20 text-amber-500 shadow-xs" 
-                  : "hover:bg-zinc-900 text-zinc-400"
+                  ? "bg-amber-500/5 border-amber-500/30 text-amber-500 font-extrabold shadow-[0_0_20px_rgba(245,158,11,0.04)]" 
+                  : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-zinc-200"
               }`}
             >
-              <LayoutDashboard className="w-4 h-4" />
+              <LayoutDashboard className="w-4 h-4 shrink-0" />
               Realtime Analytics
             </button>
 
             <button
               onClick={() => setActiveSubTab("items")}
-              className={`w-full font-bold text-xs px-4 py-3 rounded-2xl transition flex items-center gap-3 cursor-pointer ${
+              className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
                 activeSubTab === "items" 
-                  ? "bg-amber-500/10 border border-amber-500/20 text-amber-500 shadow-xs" 
-                  : "hover:bg-zinc-900 text-zinc-400"
+                  ? "bg-amber-500/5 border-amber-500/30 text-amber-500 font-extrabold shadow-[0_0_20px_rgba(245,158,11,0.04)]" 
+                  : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-zinc-200"
               }`}
             >
-              <ListCollapse className="w-4 h-4" />
+              <ListCollapse className="w-4 h-4 shrink-0" />
               Manage Items Directory
             </button>
 
             <button
               onClick={() => setActiveSubTab("orders")}
-              className={`w-full font-bold text-xs px-4 py-3 rounded-2xl transition flex items-center gap-3 cursor-pointer ${
+              className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
                 activeSubTab === "orders" 
-                  ? "bg-amber-500/10 border border-amber-500/20 text-amber-500 shadow-xs" 
-                  : "hover:bg-zinc-900 text-zinc-400"
+                  ? "bg-amber-500/5 border-amber-500/30 text-amber-500 font-extrabold shadow-[0_0_20px_rgba(245,158,11,0.04)]" 
+                  : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-zinc-200"
               }`}
             >
-              <ShoppingCart className="w-4 h-4" />
+              <ShoppingCart className="w-4 h-4 shrink-0" />
               Live Orders Manager
               {totalActiveCount > 0 && (
-                <span className="ml-auto bg-amber-500 text-neutral-950 font-black px-2 py-0.5 text-[10px] rounded-full">
+                <span className="ml-auto bg-[#FF5C00] text-zinc-950 font-black px-2.5 py-0.5 text-[9.5px] rounded-full shadow-[0_2px_10px_rgba(255,92,0,0.2)]">
                   {totalActiveCount}
                 </span>
               )}
@@ -354,48 +357,49 @@ export default function AdminPanel({
           </div>
 
           {/* Quick Stats overview panel */}
-          <div className="bg-[#121212] border border-zinc-920 p-5 rounded-3xl space-y-4 shadow-lg text-xs">
-            <h3 className="font-extrabold text-[10px] uppercase text-zinc-500 tracking-wider">Financial Coordinates</h3>
-            <div className="grid grid-cols-2 gap-3.5">
-              <div className="bg-[#1c1c1c] border border-zinc-900 p-3 rounded-2xl">
-                <span className="text-zinc-500 block">Gross Revenue</span>
-                <span className="text-base font-black text-amber-500 mt-1 block">Rs. {totalRevenue}</span>
+          <div className="bg-[#0b0b0d]/90 border border-zinc-800/80 p-5 rounded-[24px] space-y-4 shadow-2xl relative overflow-hidden text-xs">
+            <span className="text-[9.5px] font-black text-zinc-500 block uppercase tracking-widest">Financial Coordinates</span>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-zinc-950/80 border border-zinc-900/80 p-3 rounded-2xl hover:border-amber-500/20 transition-all group">
+                <span className="text-zinc-500 block text-[9.5px] font-bold uppercase tracking-wider">Gross Rev</span>
+                <span className="text-[15px] font-black text-amber-500 mt-1 block">Rs. {totalRevenue}</span>
               </div>
-              <div className="bg-[#1c1c1c] border border-zinc-900 p-3 rounded-2xl">
-                <span className="text-zinc-500 block">Delivered</span>
-                <span className="text-base font-black text-emerald-400 mt-1 block">{totalCompletedCount}</span>
+              <div className="bg-zinc-950/80 border border-zinc-900/80 p-3 rounded-2xl hover:border-emerald-500/20 transition-all">
+                <span className="text-zinc-500 block text-[9.5px] font-bold uppercase tracking-wider">Completed</span>
+                <span className="text-[15px] font-black text-emerald-400 mt-1 block">{totalCompletedCount}</span>
               </div>
-              <div className="bg-[#1c1c1c] border border-zinc-900 p-3 rounded-2xl">
-                <span className="text-zinc-500 block">Active Triggers</span>
-                <span className="text-base font-black text-[#FF5C00] mt-1 block">{totalActiveCount}</span>
+              <div className="bg-zinc-950/80 border border-zinc-900/80 p-3 rounded-2xl hover:border-orange-500/20 transition-all">
+                <span className="text-zinc-500 block text-[9.5px] font-bold uppercase tracking-wider">Active</span>
+                <span className="text-[15px] font-black text-[#FF5C00] mt-1 block">{totalActiveCount}</span>
               </div>
-              <div className="bg-[#1c1c1c] border border-zinc-900 p-3 rounded-2xl">
-                <span className="text-zinc-500 block">Cancelled</span>
-                <span className="text-base font-black text-red-500 mt-1 block">{totalCancelledCount}</span>
+              <div className="bg-zinc-950/80 border border-zinc-900/80 p-3 rounded-2xl hover:border-red-500/20 transition-all">
+                <span className="text-zinc-500 block text-[9.5px] font-bold uppercase tracking-wider">Declined</span>
+                <span className="text-[15px] font-black text-red-500 mt-1 block">{totalCancelledCount}</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Dashboard Panels Area */}
-        <div className="col-span-1 lg:col-span-9 space-y-6">
+        <div className="col-span-1 lg:col-span-9 space-y-8">
 
           {/* TAB 1: Real-time Analytics Dashboard */}
           {activeSubTab === "analytics" && (
-            <div className="space-y-6">
+            <div className="space-y-8 animate-fade-in">
               
               {/* Graphical Recharts Visual Analytics blocks */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 
                 {/* Gross revenue timeline Recharts Area scale */}
-                <div className="bg-[#121212] border border-zinc-920 p-5 rounded-3xl shadow-lg">
-                  <div className="flex items-center justify-between mb-4">
+                <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl relative">
+                  <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-500/10 to-transparent" />
+                  <div className="flex items-center justify-between mb-6">
                     <div>
-                      <h4 className="font-extrabold text-sm text-zinc-100 flex items-center gap-1">
+                      <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 tracking-wide uppercase">
                         <TrendingUp className="w-4 h-4 text-amber-500" />
                         Delivered Order Revenue Pipeline
                       </h4>
-                      <span className="text-[10px] text-zinc-500">Delivered order totals mapped chronologically</span>
+                      <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Gross delivered totals mapped chronologically</span>
                     </div>
                   </div>
                   <div className="h-56 w-full">
@@ -407,10 +411,10 @@ export default function AdminPanel({
                             <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#222"/>
-                        <XAxis dataKey="date" stroke="#666" fontSize={10}/>
-                        <YAxis stroke="#666" fontSize={10}/>
-                        <Tooltip contentStyle={{ backgroundColor: "#1c1c1c", border: "1px solid #333", borderRadius: "10px", fontSize: "11px" }}/>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#222" opacity={0.3}/>
+                        <XAxis dataKey="date" stroke="#666" fontSize={9} fontStyle="bold"/>
+                        <YAxis stroke="#666" fontSize={9} fontStyle="bold"/>
+                        <Tooltip contentStyle={{ backgroundColor: "#0b0b0d", border: "1px solid #333", borderRadius: "14px", fontSize: "11px", color: "#fff" }}/>
                         <Area type="monotone" dataKey="revenue" stroke="#f59e0b" strokeWidth={2.5} fillOpacity={1} fill="url(#colorRevenue)" />
                       </AreaChart>
                     </ResponsiveContainer>
@@ -418,23 +422,24 @@ export default function AdminPanel({
                 </div>
 
                 {/* Categories demand distribution Recharts bar plot */}
-                <div className="bg-[#121212] border border-zinc-920 p-5 rounded-3xl shadow-lg">
-                  <div className="flex items-center justify-between mb-4">
+                <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl relative">
+                  <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-orange-500/10 to-transparent" />
+                  <div className="flex items-center justify-between mb-6">
                     <div>
-                      <h4 className="font-extrabold text-sm text-zinc-100 flex items-center gap-1">
+                      <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 tracking-wide uppercase">
                         <Package className="w-4 h-4 text-[#FF5C00]" />
                         Category Quantity Demand Analytics
                       </h4>
-                      <span className="text-[10px] text-zinc-500">Volume of products purchased from database</span>
+                      <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Volume of products purchased from database</span>
                     </div>
                   </div>
                   <div className="h-56 w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={getCategoryChartData()}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#222"/>
-                        <XAxis dataKey="name" stroke="#666" fontSize={10}/>
-                        <YAxis stroke="#666" fontSize={10}/>
-                        <Tooltip contentStyle={{ backgroundColor: "#1c1c1c", border: "1px solid #333", borderRadius: "10px", fontSize: "11px" }}/>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#222" opacity={0.3}/>
+                        <XAxis dataKey="name" stroke="#666" fontSize={9} fontStyle="bold"/>
+                        <YAxis stroke="#666" fontSize={9} fontStyle="bold"/>
+                        <Tooltip contentStyle={{ backgroundColor: "#0b0b0d", border: "1px solid #333", borderRadius: "14px", fontSize: "11px", color: "#fff" }}/>
                         <Bar dataKey="sales" fill="#FF5C00" radius={[6, 6, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
@@ -444,74 +449,76 @@ export default function AdminPanel({
               </div>
 
               {/* Delivery Charge Setup Card & Broadcast Manager */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
                 {/* Delivery Fee Adjustment form */}
-                <div className="bg-[#121212] border border-zinc-920 p-5 rounded-3xl shadow-lg space-y-4">
+                <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl space-y-5 relative">
+                  <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-500/10 to-transparent" />
                   <div>
-                    <h4 className="font-extrabold text-sm text-zinc-100 flex items-center gap-1.5">
+                    <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 uppercase tracking-wide">
                       <Settings className="w-4 h-4 text-amber-500" />
-                      Dynamic Delivery Charges Controller
+                      Delivery Charges Controller
                     </h4>
-                    <p className="text-[11px] text-zinc-500 mt-1">
+                    <p className="text-[11px] text-zinc-400 mt-2.5 leading-relaxed font-medium">
                       Overwrite the default delivery charges for food deliveries instantly on user screens. (Services are automatically forced to Rs. 0).
                     </p>
                   </div>
 
-                  <div className="space-y-3 pt-2">
-                    <div className="flex gap-2.5">
+                  <div className="space-y-4 pt-1">
+                    <div className="flex gap-3">
                       <input
                         type="number"
                         value={deliveryChargeInput}
                         onChange={(e) => setDeliveryChargeInput(Number(e.target.value))}
                         placeholder="e.g. 100"
-                        className="flex-1 p-2.5 bg-[#1c1c1c] border border-zinc-850 rounded-2xl text-sm outline-none text-white focus:border-amber-500"
+                        className="flex-1 p-3 bg-zinc-950 border border-zinc-800/80 rounded-2xl text-xs sm:text-sm outline-none text-white focus:border-amber-500/60 transition focus:ring-1 focus:ring-amber-500/10"
                       />
                       <button
                         onClick={handleSaveDeliveryConfig}
-                        className="bg-amber-500 hover:bg-amber-600 font-bold px-4 py-2.5 rounded-2xl text-xs text-black cursor-pointer shadow-md flex items-center gap-1.5 shrink-0"
+                        className="bg-amber-500 hover:bg-amber-600 transition-all text-black font-black px-5 py-3 rounded-2xl text-[11px] uppercase tracking-wider cursor-pointer shadow-lg shadow-amber-500/10 flex items-center gap-2 shrink-0 hover:scale-[1.02] active:scale-95"
                       >
                         <Save className="w-4 h-4" />
                         Save Rate
                       </button>
                     </div>
-                    <span className="text-[10px] text-zinc-500 block leading-relaxed">
-                      💡 Stored coordinates: **settings/delivery_config** with Firestore. Automatically updates user carts in real-time.
+                    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block leading-relaxed">
+                      💡 Stored coordinates: settings/delivery_config with Firestore.
                     </span>
                   </div>
                 </div>
 
                 {/* Chime trigger in-app broadcaster */}
-                <div className="bg-[#121212] border border-zinc-920 p-5 rounded-3xl shadow-lg space-y-4">
+                <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl space-y-5 relative">
+                  <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-emerald-500/10 to-transparent" />
                   <div>
-                    <h4 className="font-extrabold text-sm text-zinc-100 flex items-center gap-1.5">
-                      <Smartphone className="w-4 h-4 text-emerald-400" />
-                      In-App Notification Dispatcher
+                    <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 uppercase tracking-wide">
+                      <Smartphone className="w-4 h-4 text-emerald-400 animate-pulse" />
+                      In-App Broadcast Dispatcher
                     </h4>
-                    <p className="text-[11px] text-zinc-500 mt-1">
+                    <p className="text-[11px] text-zinc-400 mt-2.5 leading-relaxed font-medium">
                       Broadcasting triggers a text alert banner accompanied by a musical sound on customer screens!
                     </p>
                   </div>
 
-                  <div className="space-y-2 pt-1 text-xs">
+                  <div className="space-y-3 pt-1 text-xs">
                     <input
                       type="text"
                       placeholder="Notification Title"
                       value={alertTitle}
                       onChange={(e) => setAlertTitle(e.target.value)}
-                      className="w-full p-2 bg-[#1c1c1c] border border-zinc-850 rounded-xl outline-none focus:border-amber-500"
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl outline-none text-white focus:border-emerald-500/40 focus:ring-1 focus:ring-emerald-500/10 transition"
                     />
                     <textarea
                       rows={2}
                       placeholder="Notification Message body text..."
                       value={alertMessage}
                       onChange={(e) => setAlertMessage(e.target.value)}
-                      className="w-full p-2 bg-[#1c1c1c] border border-zinc-850 rounded-xl outline-none focus:border-amber-500 resize-none"
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl outline-none text-white focus:border-emerald-500/40 focus:ring-1 focus:ring-emerald-500/10 transition resize-none"
                     />
                     <div className="flex justify-end pt-1">
                       <button
                         onClick={handleTriggerBroadcasterNotifications}
-                        className="bg-emerald-500 hover:bg-emerald-600 text-black font-extrabold text-xs py-2 px-5 rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer"
+                        className="bg-emerald-500 hover:bg-emerald-600 text-black font-black text-[10.5px] uppercase tracking-wider py-2.5 px-5 rounded-xl shadow-lg shadow-emerald-500/10 transition-all flex items-center gap-1.5 cursor-pointer hover:scale-[1.02] active:scale-95"
                       >
                         <Send className="w-3.5 h-3.5" />
                         Fire Broadcast Call
@@ -527,34 +534,35 @@ export default function AdminPanel({
 
           {/* TAB 2: Manage Items Directory */}
           {activeSubTab === "items" && (
-            <div className="space-y-6">
+            <div className="space-y-8 animate-fade-in">
               
               {/* Add New Dish / Home Service Product Form */}
-              <form onSubmit={handleAddNewItem} className="bg-[#121212] border border-zinc-920 p-5 rounded-3xl shadow-lg space-y-4">
-                <h4 className="font-extrabold text-sm text-zinc-100 flex items-center gap-2 pb-2 border-b border-zinc-900">
+              <form onSubmit={handleAddNewItem} className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl space-y-5 relative">
+                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-500/10 to-transparent" />
+                <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 pb-3 border-b border-zinc-800/50 uppercase tracking-wide">
                   <Plus className="w-4 h-4 text-amber-500" />
-                  Add New Dish or Home Service
+                  Register New Dish / Home Service Product
                 </h4>
 
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 text-xs">
-                  <div className="md:col-span-4 space-y-1">
-                    <label className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Title Name</label>
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-5 text-xs">
+                  <div className="md:col-span-4 space-y-1.5">
+                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Title Name</label>
                     <input
                       type="text"
                       required
                       value={newItemName}
                       onChange={(e) => setNewItemName(e.target.value)}
                       placeholder="e.g. Premium Beef Cheese Burger"
-                      className="w-full p-2.5 bg-[#1c1c1c] border border-zinc-850 rounded-xl text-white outline-none focus:border-amber-500"
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 transition focus:ring-1 focus:ring-amber-500/10 animate-pulse-subtle"
                     />
                   </div>
 
-                  <div className="md:col-span-3 space-y-1">
-                    <label className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Catalog Category</label>
+                  <div className="md:col-span-3 space-y-1.5">
+                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Catalog Category</label>
                     <select
                       value={newItemCategory}
                       onChange={(e) => setNewItemCategory(e.target.value as Dish["category"])}
-                      className="w-full p-2.5 bg-[#1c1c1c] border border-zinc-850 rounded-xl text-white outline-none focus:border-amber-500 cursor-pointer"
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 cursor-pointer transition focus:ring-1 focus:ring-amber-500/10"
                     >
                       <option value="Burgers">Burgers 🍔</option>
                       <option value="Pizzas">Pizzas 🍕</option>
@@ -565,26 +573,26 @@ export default function AdminPanel({
                     </select>
                   </div>
 
-                  <div className="md:col-span-2 space-y-1">
-                    <label className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Base Price (Rs.)</label>
+                  <div className="md:col-span-2 space-y-1.5">
+                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Base Price (Rs.)</label>
                     <input
                       type="number"
                       required
                       value={newItemPrice}
                       onChange={(e) => setNewItemPrice(Number(e.target.value))}
                       placeholder="e.g. 500"
-                      className="w-full p-2.5 bg-[#1c1c1c] border border-zinc-850 rounded-xl text-white outline-none focus:border-amber-500"
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 transition focus:ring-1 focus:ring-amber-500/10"
                     />
                   </div>
 
-                  <div className="md:col-span-3 space-y-1">
-                    <label className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Service / Product Type</label>
-                    <div className="grid grid-cols-2 gap-1 bg-[#1c1c1c] border border-zinc-850 rounded-xl p-1">
+                  <div className="md:col-span-3 space-y-1.5">
+                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Service / Product Type</label>
+                    <div className="grid grid-cols-2 gap-1 bg-zinc-950 border border-zinc-800/80 rounded-xl p-1">
                       <button
                         type="button"
                         onClick={() => setNewItemType("food")}
-                        className={`py-1 rounded-lg font-bold text-[10px] uppercase cursor-pointer ${
-                          newItemType === "food" ? "bg-amber-500 text-black shadow-xs" : "text-zinc-400 hover:text-white"
+                        className={`py-1.5 rounded-lg font-black text-[9px] uppercase cursor-pointer transition-all ${
+                          newItemType === "food" ? "bg-amber-500 text-black font-extrabold shadow-sm" : "text-zinc-400 hover:text-white"
                         }`}
                       >
                         Food 🍔
@@ -592,8 +600,8 @@ export default function AdminPanel({
                       <button
                         type="button"
                         onClick={() => setNewItemType("service")}
-                        className={`py-1 rounded-lg font-bold text-[10px] uppercase cursor-pointer ${
-                          newItemType === "service" ? "bg-amber-500 text-black shadow-xs" : "text-zinc-400 hover:text-white"
+                        className={`py-1.5 rounded-lg font-black text-[9px] uppercase cursor-pointer transition-all ${
+                          newItemType === "service" ? "bg-amber-500 text-black font-extrabold shadow-sm" : "text-zinc-400 hover:text-white"
                         }`}
                       >
                         Service 🛠️
@@ -601,48 +609,48 @@ export default function AdminPanel({
                     </div>
                   </div>
 
-                  <div className="md:col-span-4 space-y-1">
-                    <label className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Description Information</label>
+                  <div className="md:col-span-4 space-y-1.5">
+                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Description Information</label>
                     <input
                       type="text"
                       value={newItemDescription}
                       onChange={(e) => setNewItemDescription(e.target.value)}
                       placeholder="Brief descriptive labels shown to customers"
-                      className="w-full p-2.5 bg-[#1c1c1c] border border-zinc-850 rounded-xl text-white outline-none focus:border-amber-500"
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 transition focus:ring-1 focus:ring-amber-500/10"
                     />
                   </div>
 
-                  <div className="md:col-span-4 space-y-1 font-mono">
-                    <label className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Image URL (Optional)</label>
+                  <div className="md:col-span-4 space-y-1.5 font-mono">
+                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Image URL (Optional)</label>
                     <input
                       type="text"
                       value={newItemImageUrl}
                       onChange={(e) => setNewItemImageUrl(e.target.value)}
                       placeholder="Blank for auto high quality Unsplash"
-                      className="w-full p-2.5 bg-[#1c1c1c] border border-zinc-850 rounded-xl text-white outline-none focus:border-amber-500"
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 transition focus:ring-1 focus:ring-amber-500/10"
                     />
                   </div>
 
-                  <div className="md:col-span-4 space-y-1">
-                    <label className="text-amber-500 font-bold uppercase tracking-wider text-[10px]">Restaurant / Partner Shop Name</label>
+                  <div className="md:col-span-4 space-y-1.5">
+                    <label className="text-amber-500 font-bold uppercase tracking-widest text-[9px]">Restaurant / Partner Shop Name</label>
                     <input
                       type="text"
                       value={newItemRestaurantName}
                       onChange={(e) => setNewItemRestaurantName(e.target.value)}
                       placeholder="e.g. KFC, Savour Foods, Dadu Tea House"
-                      className="w-full p-2.5 bg-[#1c1c1c] border border-zinc-850 rounded-xl text-white outline-none focus:border-amber-500"
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 transition focus:ring-1 focus:ring-amber-500/10"
                     />
                   </div>
 
                   {newItemType === "service" && (
-                    <div className="md:col-span-12 space-y-1">
-                      <label className="text-amber-500 font-bold uppercase tracking-wider text-[10px]">Service Duration / Timing</label>
+                    <div className="md:col-span-12 space-y-1.5">
+                      <label className="text-amber-500 font-bold uppercase tracking-widest text-[9px]">Service Duration / Timing</label>
                       <input
                         type="text"
                         value={newItemServiceDuration}
                         onChange={(e) => setNewItemServiceDuration(e.target.value)}
                         placeholder="e.g. Expected arrival within 1 hour"
-                        className="w-full p-2.5 bg-[#1c1c1c] border border-zinc-850 rounded-xl text-white outline-none focus:border-amber-500"
+                        className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 transition focus:ring-1 focus:ring-amber-500/10"
                       />
                     </div>
                   )}
@@ -651,7 +659,7 @@ export default function AdminPanel({
                 <div className="flex justify-end pt-2">
                   <button
                     type="submit"
-                    className="bg-amber-500 hover:bg-amber-600 font-extrabold text-xs tracking-wide text-black uppercase py-2.5 px-6 rounded-2xl flex items-center gap-1.5 cursor-pointer shadow-md"
+                    className="bg-amber-500 hover:bg-amber-600 transition-all font-black text-xs tracking-widest text-black uppercase py-3.5 px-6 rounded-2xl flex items-center gap-1.5 cursor-pointer shadow-lg shadow-amber-500/10 hover:scale-[1.02] active:scale-95"
                   >
                     <Plus className="w-4 h-4" />
                     Dispatch Item to Database
@@ -660,27 +668,28 @@ export default function AdminPanel({
               </form>
 
               {/* Items Table List */}
-              <div className="bg-[#121212] border border-zinc-920 rounded-3xl overflow-hidden shadow-lg">
-                <div className="p-4 border-b border-zinc-900 bg-zinc-900/40">
-                  <h4 className="font-extrabold text-sm text-zinc-100">Operational Catalog Directory</h4>
-                  <span className="text-[10px] text-zinc-500">Enable availability controls and edit prices instantly</span>
+              <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 rounded-[24px] overflow-hidden shadow-2xl relative">
+                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-500/10 to-transparent" />
+                <div className="p-5 border-b border-zinc-800/50 bg-zinc-900/15">
+                  <h4 className="font-black text-sm text-zinc-100 uppercase tracking-wide">Operational Catalog Directory</h4>
+                  <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Enable availability controls and edit prices instantly</span>
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full text-xs text-left text-zinc-400 font-medium">
-                    <thead className="bg-[#1c1c1c] text-zinc-500 uppercase font-black text-[9px] border-b border-zinc-850">
+                  <table className="w-full text-xs text-left text-zinc-455 font-medium">
+                    <thead className="bg-zinc-950/70 text-zinc-500 uppercase font-black tracking-widest text-[9px] border-b border-zinc-850/40">
                       <tr>
-                        <th className="p-4">Item Name</th>
-                        <th className="p-4">Category</th>
-                        <th className="p-4">Type</th>
-                        <th className="p-4">Price (Rs.)</th>
-                        <th className="p-4 text-center">ON/OFF Toggle</th>
-                        <th className="p-4 text-center">Actions</th>
+                        <th className="p-4.5">Item Name</th>
+                        <th className="p-4.5">Category</th>
+                        <th className="p-4.5">Type</th>
+                        <th className="p-4.5">Price (Rs.)</th>
+                        <th className="p-4.5 text-center">ON/OFF Toggle</th>
+                        <th className="p-4.5 text-center">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-900">
+                    <tbody className="divide-y divide-zinc-900/40">
                       {dishes.map((dish) => (
-                        <tr key={dish.id} className="hover:bg-zinc-900/35 transition">
+                        <tr key={dish.id} className="hover:bg-zinc-900/20 transition-colors">
                           <td className="p-4 font-bold text-gray-200">
                             <div className="flex items-center gap-3">
                               <img src={dish.imageUrl} alt={dish.name} className="w-8 h-8 rounded-lg object-cover bg-zinc-950 shrink-0"/>
@@ -774,17 +783,18 @@ export default function AdminPanel({
 
           {/* TAB 3: Live Orders Manager */}
           {activeSubTab === "orders" && (
-            <div className="space-y-6">
+            <div className="space-y-8 animate-fade-in">
 
-              <div className="bg-[#121212] border border-zinc-920 rounded-3xl overflow-hidden shadow-lg">
-                <div className="p-4 border-b border-zinc-900 bg-zinc-900/40">
-                  <h4 className="font-extrabold text-sm text-zinc-100">Live Operational Orders Pipeline</h4>
-                  <span className="text-[10px] text-zinc-500">Monitor order transactions and assign dispatchers in real-time</span>
+              <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 rounded-[24px] overflow-hidden shadow-2xl relative">
+                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-500/10 to-transparent" />
+                <div className="p-6 border-b border-zinc-800/50 bg-zinc-900/15">
+                  <h4 className="font-black text-sm text-zinc-100 uppercase tracking-wide">Live Operational Orders Pipeline</h4>
+                  <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Monitor order transactions and assign dispatchers in real-time</span>
                 </div>
 
-                <div className="divide-y divide-zinc-900">
+                <div className="divide-y divide-zinc-900/30">
                   {orders.length === 0 ? (
-                    <div className="p-12 text-center text-xs text-zinc-500 font-medium">
+                    <div className="p-16 text-center text-xs text-zinc-500 font-bold uppercase tracking-wider">
                       Logs directory is blank. Waiting for live user transactions...
                     </div>
                   ) : (
@@ -793,83 +803,90 @@ export default function AdminPanel({
                       const isActive = order.status !== "delivered" && order.status !== "completed" && order.status !== "cancelled";
 
                       return (
-                        <div key={order.id} className="p-5 hover:bg-zinc-900/25 transition space-y-4">
+                        <div key={order.id} className="p-6 hover:bg-zinc-900/10 transition-all space-y-5">
                           
                           {/* Top metadata strip */}
-                          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-[#111] p-3 rounded-2xl border border-zinc-920">
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-zinc-950 p-4 rounded-2xl border border-zinc-900">
                             <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-mono text-xs font-black text-white uppercase bg-zinc-900 border border-zinc-800 py-1 px-2.5 rounded-lg">
+                              <div className="flex items-center gap-2.5">
+                                <span className="font-mono text-xs font-black text-white uppercase bg-zinc-900 border border-zinc-800 py-1.5 px-3 rounded-lg shadow-inner">
                                   dadu-{order.id.substring(0, 8)}
                                 </span>
-                                <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider ${
-                                  isSvc ? "bg-amber-950 border border-amber-900/40 text-amber-500" : "bg-orange-950/45 border border-orange-900/30 text-[#FF5C00]"
+                                <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${
+                                  isSvc ? "bg-amber-950/80 border border-amber-900/40 text-amber-500" : "bg-orange-950/80 border border-orange-900/40 text-[#FF5C00]"
                                 }`}>
                                   {order.orderType}
                                 </span>
                               </div>
-                              <div className="flex flex-wrap gap-2.5 items-center mt-2.5 text-xs text-zinc-400">
-                                <span className="font-bold text-zinc-200">{order.userName}</span>
-                                <span className="text-zinc-650">|</span>
-                                <span>Phone: {order.userPhone}</span>
-                                <span className="text-zinc-650">|</span>
-                                <span>Total: <span className="font-extrabold text-white">Rs. {order.grandTotal}</span></span>
+                              <div className="flex flex-wrap gap-3 items-center mt-3 text-xs text-zinc-400">
+                                <span className="font-extrabold text-zinc-200">{order.userName}</span>
+                                <span className="text-zinc-700">|</span>
+                                <span className="font-medium text-zinc-300">Phone: <span className="font-bold text-white">{order.userPhone}</span></span>
+                                <span className="text-zinc-700">|</span>
+                                <span className="font-medium text-zinc-300">Total: <span className="font-black text-amber-500">Rs. {order.grandTotal}</span></span>
                               </div>
                             </div>
 
                             {/* Status label banner */}
-                            <div>
-                              <span className="text-[10px] uppercase tracking-wider font-extrabold text-zinc-550 block">Current Status</span>
-                              <span className={`text-xs font-black uppercase mt-1 inline-block ${
+                            <div className="text-left sm:text-right">
+                              <span className="text-[10px] uppercase tracking-widest font-black text-zinc-500 block">Current Status</span>
+                              <span className={`text-xs font-black uppercase mt-1.5 inline-flex items-center gap-1.5 py-1 px-2.5 rounded-lg bg-zinc-900/60 ${
                                 order.status === "delivered" || order.status === "completed" 
-                                  ? "text-emerald-400" 
+                                  ? "text-emerald-400 border border-emerald-950/65" 
                                   : order.status === "cancelled" 
-                                    ? "text-red-500"
-                                    : "text-amber-500"
+                                    ? "text-red-500 border border-red-950/65"
+                                    : "text-amber-500 border border-amber-950/65"
                               }`}>
+                                <span className={`w-1.5 h-1.5 rounded-full animate-ping ${
+                                  order.status === "delivered" || order.status === "completed" 
+                                    ? "bg-emerald-400" 
+                                    : order.status === "cancelled" 
+                                      ? "bg-red-500"
+                                      : "bg-amber-500"
+                                }`} />
                                 {order.status}
                               </span>
                             </div>
                           </div>
 
                           {/* Items descriptions and customer address */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-medium">
-                            <div className="bg-[#181818] p-3.5 rounded-2xl border border-zinc-920 space-y-2">
-                              <span className="text-[10px] font-extrabold text-zinc-550 uppercase tracking-widest block">Cart Summary</span>
-                              <div className="divide-y divide-zinc-900/80">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs font-medium">
+                            <div className="bg-zinc-950 p-4 rounded-2xl border border-zinc-900 space-y-3">
+                              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block">Cart Summary</span>
+                              <div className="divide-y divide-zinc-900/60">
                                 {order.items.map((item, id) => (
-                                  <div key={id} className="py-1.5 flex justify-between">
-                                    <span className="text-gray-200">
+                                  <div key={id} className="py-2 flex justify-between">
+                                    <span className="text-gray-300 font-medium">
                                       {item.name}{" "}
                                       <span className="text-xs text-[#FF5C00] font-black font-sans">
                                         ({item.restaurantName || (item.type === "service" ? "Dadu Home Services" : "Dadu Fast Food")})
                                       </span>{" "}
-                                      <span className="text-zinc-600 font-bold">x{item.quantity}</span>
+                                      <span className="text-zinc-500 font-bold">x{item.quantity}</span>
                                     </span>
-                                    <span className="font-bold text-gray-400">Rs. {item.price * item.quantity}</span>
+                                    <span className="font-extrabold text-zinc-400">Rs. {item.price * item.quantity}</span>
                                   </div>
                                 ))}
                               </div>
-                              <div className="text-[10px] text-zinc-500 pt-1.5 border-t border-zinc-900 leading-normal">
+                              <div className="text-[10px] text-zinc-500 pt-2 border-t border-zinc-900/60 leading-normal font-bold uppercase tracking-wider">
                                 {isSvc ? (
-                                  <span className="text-amber-500/80 font-bold">🛠️ Service inspection visit - PAY ON VISIT</span>
+                                  <span className="text-amber-500/80">🛠️ Service inspection visit - PAY ON VISIT</span>
                                 ) : (
-                                  <span>🍔 Fast food parcel dispatch - CASH ON DELIVERY</span>
+                                  <span className="text-orange-500/80">🍔 Fast food parcel dispatch - CASH ON DELIVERY</span>
                                 )}
                               </div>
                             </div>
 
-                            <div className="bg-[#181818] p-3.5 rounded-2xl border border-zinc-920 space-y-2">
-                              <span className="text-[10px] font-extrabold text-zinc-550 uppercase tracking-widest block">Destination address Coordinates</span>
-                              <p className="text-gray-300 leading-relaxed bg-[#121212] p-2 rounded-xl border border-zinc-900 truncate">
+                            <div className="bg-zinc-950 p-4 rounded-2xl border border-zinc-900 space-y-3">
+                              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block">Destination address Coordinates</span>
+                              <p className="text-gray-300 leading-relaxed bg-zinc-900/20 p-3 rounded-xl border border-zinc-900 truncate">
                                 📍 {order.userAddress}
                               </p>
 
                               {/* Logistics parameters inputs (Save Rider / saved ETA) */}
                               {isActive && (
-                                <div className="pt-2 border-t border-zinc-900 flex gap-2">
+                                <div className="pt-2.5 border-t border-zinc-900/60 flex gap-3">
                                   <div className="flex-1 space-y-1">
-                                    <span className="text-[8.5px] font-black text-zinc-500 tracking-wider block uppercase">
+                                    <span className="text-[8.5px] font-black text-zinc-500 tracking-widest block uppercase">
                                       {isSvc ? "Technician Name" : "Delivery Rider"}
                                     </span>
                                     <input
@@ -877,12 +894,12 @@ export default function AdminPanel({
                                       placeholder={isSvc ? "e.g. Asif (Tech)" : "e.g. Ali (Rider)"}
                                       value={riderNames[order.id] || order.riderName || ""}
                                       onChange={(e) => setRiderNames({ ...riderNames, [order.id]: e.target.value })}
-                                      className="w-full text-xs p-1.5 bg-zinc-950 border border-zinc-850 rounded-lg text-white"
+                                      className="w-full text-xs p-2 bg-zinc-900 border border-zinc-800 rounded-lg text-white font-medium outline-none focus:border-amber-500"
                                     />
                                   </div>
 
                                   <div className="flex-1 space-y-1">
-                                    <span className="text-[8.5px] font-black text-zinc-500 tracking-wider block uppercase">
+                                    <span className="text-[8.5px] font-black text-zinc-500 tracking-widest block uppercase">
                                       {isSvc ? "Arrival ETA" : "Duration ETA"}
                                     </span>
                                     <input
@@ -890,13 +907,13 @@ export default function AdminPanel({
                                       placeholder={isSvc ? "1 Hour" : "25 mins"}
                                       value={orderEtas[order.id] || order.eta || ""}
                                       onChange={(e) => setOrderEtas({ ...orderEtas, [order.id]: e.target.value })}
-                                      className="w-full text-xs p-1.5 bg-zinc-950 border border-zinc-850 rounded-lg text-white"
+                                      className="w-full text-xs p-2 bg-zinc-900 border border-zinc-800 rounded-lg text-white font-medium outline-none focus:border-amber-500"
                                     />
                                   </div>
 
                                   <button
                                     onClick={() => handleSaveRiderAndEta(order.id)}
-                                    className="bg-amber-500 hover:bg-amber-600 text-black font-black p-2 rounded-lg self-end text-[10px] uppercase tracking-wide cursor-pointer h-8 shadow-xs inline-flex items-center justify-center shrink-0"
+                                    className="bg-amber-500 hover:bg-amber-600 text-black font-black p-2 px-3 rounded-lg self-end text-[10px] uppercase tracking-wider cursor-pointer h-9 shadow-md transition-all flex items-center justify-center shrink-0 hover:scale-[1.02] active:scale-95"
                                   >
                                     Apply
                                   </button>
@@ -907,33 +924,33 @@ export default function AdminPanel({
 
                           {/* Interactive order dispatch pipelines selectors */}
                           {isActive && (
-                            <div className="pt-2 flex flex-wrap gap-2 items-center">
-                              <span className="text-[10px] font-extrabold uppercase text-amber-500/80 tracking-wider">Execute Next State:</span>
+                            <div className="pt-2 flex flex-wrap gap-2.5 items-center">
+                              <span className="text-[9.5px] font-black uppercase text-amber-500/90 tracking-widest mr-1">Configure Next State:</span>
                               
                               {/* FOOD SPECIFIC DISPATCH BUTTONS */}
                               {!isSvc && (
                                 <>
                                   <button
                                     onClick={() => handleUpdateOrderStatus(order.id, "confirmed")}
-                                    className="bg-zinc-900 border border-zinc-800 text-gray-300 px-3 py-1.5 rounded-xl hover:bg-zinc-850 hover:text-white transition cursor-pointer text-[10.5px] font-extrabold"
+                                    className="bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-gray-300 px-3.5 py-2 rounded-xl transition cursor-pointer text-[10px] font-black uppercase tracking-wider hover:scale-[1.02] active:scale-95"
                                   >
                                     🤝 Confirmed
                                   </button>
                                   <button
                                     onClick={() => handleUpdateOrderStatus(order.id, "preparing")}
-                                    className="bg-purple-950/20 border border-purple-900/40 text-purple-400 px-3 py-1.5 rounded-xl hover:bg-purple-950/50 transition cursor-pointer text-[10.5px] font-extrabold"
+                                    className="bg-purple-950/20 border border-purple-900/40 text-purple-400 px-3.5 py-2 rounded-xl hover:bg-purple-950/50 transition cursor-pointer text-[10px] font-black uppercase tracking-wider hover:scale-[1.02] active:scale-95"
                                   >
-                                    👩‍🍳 Prep/Cooking
+                                    👩‍🍳 Cooking
                                   </button>
                                   <button
                                     onClick={() => handleUpdateOrderStatus(order.id, "out_for_delivery")}
-                                    className="bg-teal-950/20 border border-teal-900/40 text-teal-400 px-3 py-1.5 rounded-xl hover:bg-teal-950/50 transition cursor-pointer text-[10.5px] font-extrabold"
+                                    className="bg-teal-950/20 border border-teal-900/40 text-teal-400 px-3.5 py-2 rounded-xl hover:bg-teal-950/50 transition cursor-pointer text-[10px] font-black uppercase tracking-wider hover:scale-[1.02] active:scale-95"
                                   >
-                                    🛵 Dispatch Out
+                                    🛵 Dispatched
                                   </button>
                                   <button
                                     onClick={() => handleUpdateOrderStatus(order.id, "delivered")}
-                                    className="bg-emerald-950/30 border border-emerald-500/30 text-emerald-400 px-4 py-1.5 rounded-xl hover:bg-emerald-950/60 transition cursor-pointer text-[10.5px] font-black"
+                                    className="bg-emerald-950/40 border border-emerald-500/40 text-emerald-400 px-4 py-2 rounded-xl hover:bg-emerald-950/60 transition cursor-pointer text-[10.5px] font-black uppercase tracking-wider hover:scale-[1.02] active:scale-95 shadow-md shadow-emerald-500/5"
                                   >
                                     ✅ Delivered Done
                                   </button>
@@ -945,25 +962,25 @@ export default function AdminPanel({
                                 <>
                                   <button
                                     onClick={() => handleUpdateOrderStatus(order.id, "confirmed")}
-                                    className="bg-zinc-900 border border-zinc-800 text-gray-300 px-3 py-1.5 rounded-xl hover:bg-zinc-850 hover:text-white transition cursor-pointer text-[10.5px] font-extrabold"
+                                    className="bg-zinc-900 border border-zinc-800 hover:border-zinc-750 text-gray-300 px-3.5 py-2 rounded-xl transition cursor-pointer text-[10px] font-black uppercase tracking-wider hover:scale-[1.02] active:scale-95"
                                   >
                                     🤝 Confirm Booking
                                   </button>
                                   <button
                                     onClick={() => handleUpdateOrderStatus(order.id, "diagnostic_on_way")}
-                                    className="bg-sky-950/20 border border-sky-900/40 text-sky-450 px-3 py-1.5 rounded-xl hover:bg-sky-950/50 transition cursor-pointer text-[10.5px] font-extrabold"
+                                    className="bg-sky-950/20 border border-sky-900/40 text-sky-400 px-3.5 py-2 rounded-xl hover:bg-sky-950/50 transition cursor-pointer text-[10px] font-black uppercase tracking-wider hover:scale-[1.02] active:scale-95"
                                   >
                                     🛵 Mechanic Out
                                   </button>
                                   <button
                                     onClick={() => handleUpdateOrderStatus(order.id, "diagnostic_underway")}
-                                    className="bg-yellow-950/20 border border-yellow-900/40 text-yellow-500 px-3 py-1.5 rounded-xl hover:bg-yellow-950/50 transition cursor-pointer text-[10.5px] font-extrabold"
+                                    className="bg-yellow-950/20 border border-yellow-900/40 text-yellow-500 px-3.5 py-2 rounded-xl hover:bg-yellow-950/50 transition cursor-pointer text-[10px] font-black uppercase tracking-wider hover:scale-[1.02] active:scale-95"
                                   >
-                                    🛠️ Diagnostics Underway
+                                    🛠️ Underway
                                   </button>
                                   <button
                                     onClick={() => handleUpdateOrderStatus(order.id, "completed")}
-                                    className="bg-emerald-950/30 border border-emerald-500/30 text-emerald-400 px-4 py-1.5 rounded-xl hover:bg-emerald-950/60 transition cursor-pointer text-[10.5px] font-black"
+                                    className="bg-emerald-950/40 border border-emerald-500/40 text-emerald-400 px-4 py-2 rounded-xl hover:bg-emerald-950/60 transition cursor-pointer text-[10.5px] font-black uppercase tracking-wider hover:scale-[1.02] active:scale-95 shadow-md shadow-emerald-500/5"
                                   >
                                     ✅ Job Completed
                                   </button>
@@ -973,7 +990,7 @@ export default function AdminPanel({
                               {/* CANCEL COMMON ACTIONS */}
                               <button
                                 onClick={() => handleUpdateOrderStatus(order.id, "cancelled")}
-                                className="ml-auto bg-red-950/10 border border-red-900/30 text-red-500 px-3 py-1.5 rounded-xl hover:bg-red-950/30 transition cursor-pointer text-[10.5px] font-extrabold"
+                                className="ml-auto bg-red-950/20 border border-red-900/30 text-red-500 px-3.5 py-2 rounded-xl hover:bg-red-950/40 transition cursor-pointer text-[10px] font-black uppercase tracking-wider hover:scale-[1.02] active:scale-95"
                               >
                                 Cancel Order
                               </button>
