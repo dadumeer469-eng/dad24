@@ -14,6 +14,7 @@ import CartDrawer from "./components/CartDrawer";
 import OrderTracker from "./components/OrderTracker";
 import AdminPanel from "./components/AdminPanel";
 import AuthModal from "./components/AuthModal";
+import RiderPanel from "./components/RiderPanel";
 
 // Icons
 import { 
@@ -321,7 +322,7 @@ export default function App() {
       totalPrice: itemsTotal,
       deliveryFee: finalFee,
       grandTotal: finalGrandTotal,
-      status: details.orderType === "service" ? "booked" : "placed",
+      status: details.orderType === "service" ? "booked" : "pending",
       paymentMethod: details.paymentMethod as any,
       orderType: details.orderType,
       serviceTiming: computedServiceTiming,
@@ -416,8 +417,9 @@ export default function App() {
         onClearNotifications={handleClearNotificationsAll}
       />
 
-      {/* TAB 1: Shopping Layout */}
-      {!isAdminConsoleOpen ? (
+      {currentUser?.role === "rider" ? (
+        <RiderPanel currentUser={currentUser} onLogout={() => signOut(auth)} />
+      ) : !isAdminConsoleOpen ? (
         <div className="flex-1">
           {/* Billboard / category selectors */}
           <FoodpandaHero activeCategory={activeCategory} setActiveCategory={setActiveCategory} />

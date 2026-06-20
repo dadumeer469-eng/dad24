@@ -4,6 +4,10 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --color-zinc-950: #020a05;
+  --color-zinc-900: #05140b;
+  --color-zinc-850: #0a2114;
+  --color-zinc-800: #0f2d1c;
 }
 
 @layer utilities {
@@ -47,7 +51,7 @@
 
 /* General Layout Adjustments */
 body {
-  background-color: #09090b;
+  background-color: #020a05;
   color: #f4f4f5;
   font-family: var(--font-sans);
   overflow-x: hidden;

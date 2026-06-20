@@ -51,4 +51,4 @@ export function cleanObject<T = any>(obj: any): T {
   return obj;
 }
 
-export { app, db, auth };
+export { app, db, auth, firebaseConfig };

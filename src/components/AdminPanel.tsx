@@ -1,13 +1,18 @@
-import React, { useState } from "react";
-import { Dish, Order, SystemSettings, AppNotification } from "../types";
-import { doc, setDoc, deleteDoc, collection, addDoc, updateDoc } from "firebase/firestore";
-import { db } from "../firebase";
+import React, { useState, useEffect } from "react";
+import { UserProfile, Dish, Order, SystemSettings, AppNotification } from "../types";
+import { 
+  doc, setDoc, deleteDoc, collection, addDoc, updateDoc, query, where, onSnapshot, getDocs
+} from "firebase/firestore";
+import { db, firebaseConfig } from "../firebase";
+import { initializeApp, deleteApp } from "firebase/app";
+import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import { 
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area
 } from "recharts";
 import { 
   Plus, Settings, LayoutDashboard, ShoppingCart, ListCollapse, ToggleLeft, ToggleRight, Trash2, 
-  HelpCircle, RefreshCw, Smartphone, TrendingUp, DollarSign, Package, CheckCheck, Save, Send, EyeOff, Wrench
+  HelpCircle, RefreshCw, Smartphone, TrendingUp, DollarSign, Package, CheckCheck, Save, Send, EyeOff, Wrench,
+  UserPlus, User, Loader2, Key, Truck, Compass
 } from "lucide-react";
 
 interface AdminPanelProps {
@@ -25,7 +30,7 @@ export default function AdminPanel({
   adminUsername,
   deliverySettings,
 }: AdminPanelProps) {
-  const [activeSubTab, setActiveSubTab] = useState<"analytics" | "items" | "orders">("analytics");
+  const [activeSubTab, setActiveSubTab] = useState<"analytics" | "items" | "orders" | "riders">("analytics");
   
   // Delivery config state
   const [deliveryChargeInput, setDeliveryChargeInput] = useState(deliverySettings?.deliveryFee || 50);
@@ -51,6 +56,131 @@ export default function AdminPanel({
   // Alert dispatcher state
   const [alertTitle, setAlertTitle] = useState("Dadu Specials Alert!");
   const [alertMessage, setAlertMessage] = useState("A new professional is ready to deliver hot burgers and help!");
+
+  // Rider registration form states
+  const [riderNameInput, setRiderNameInput] = useState("");
+  const [riderPhoneInput, setRiderPhoneInput] = useState("");
+  const [riderVehicleInput, setRiderVehicleInput] = useState("");
+  const [riderEmailInput, setRiderEmailInput] = useState("");
+  const [riderPasswordInput, setRiderPasswordInput] = useState("");
+  const [riderRegLoading, setRiderRegLoading] = useState(false);
+  const [ridersSubset, setRidersSubset] = useState<UserProfile[]>([]);
+
+  // Real-time listen to registered riders list
+  useEffect(() => {
+    const q = query(collection(db, "users"), where("role", "==", "rider"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const list: UserProfile[] = [];
+      snapshot.forEach((doc) => {
+        list.push({ uid: doc.id, ...doc.data() } as UserProfile);
+      });
+      setRidersSubset(list);
+    }, (err) => {
+      console.error("Failed to fetch real-time riders:", err);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Secure Rider Creator
+  const handleRegisterRiderSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!riderNameInput.trim() || !riderPhoneInput.trim() || !riderVehicleInput.trim() || !riderEmailInput.trim() || !riderPasswordInput) {
+      alert("All fields are required!");
+      return;
+    }
+    if (riderPasswordInput.length < 6) {
+      alert("Password must be at least 6 characters long!");
+      return;
+    }
+
+    setRiderRegLoading(true);
+    let tempApp;
+    try {
+      // 1. First, check if there is an existing database profile with this exact phone number
+      const phoneQuery = query(collection(db, "users"), where("phone", "==", riderPhoneInput.trim()));
+      const querySnapshot = await getDocs(phoneQuery);
+      if (!querySnapshot.empty) {
+        const existingDoc = querySnapshot.docs[0];
+        const existingData = existingDoc.data() as UserProfile;
+        const confirmResult = window.confirm(
+          `Profile MATCH detected:\n\nA user named "${existingData.name}" is already registered database-wide with the phone number: ${riderPhoneInput}.\nTheir current system role is: "${existingData.role}".\n\nWould you like to directly PROMOTE this existing customer/user to standard "rider" duty and assign the vehicle number "${riderVehicleInput}"? (This saves you from creating a duplicate authentication account!)`
+        );
+        if (confirmResult) {
+          await updateDoc(doc(db, "users", existingDoc.id), {
+            role: "rider",
+            vehicleNumber: riderVehicleInput,
+            address: "Dadu Riders HQ"
+          });
+          alert(`Success! "${existingData.name}" has been upgraded to Rider duty successfully.`);
+          setRiderNameInput("");
+          setRiderPhoneInput("");
+          setRiderVehicleInput("");
+          setRiderEmailInput("");
+          setRiderPasswordInput("");
+          setRiderRegLoading(false);
+          return;
+        }
+      }
+
+      // 2. Otherwise launch secondary Auth registration pipeline
+      const uniqueAppName = `RiderApp_${Date.now()}`;
+      tempApp = initializeApp(firebaseConfig, uniqueAppName);
+      const tempAuth = getAuth(tempApp);
+
+      // Create new Auth credential
+      const userCredential = await createUserWithEmailAndPassword(tempAuth, riderEmailInput, riderPasswordInput);
+      const createdUid = userCredential.user.uid;
+
+      // Create database record with role "rider"
+      const newRiderProfile: UserProfile = {
+        uid: createdUid,
+        name: riderNameInput,
+        phone: riderPhoneInput,
+        address: "Dadu Riders HQ",
+        role: "rider",
+        ordersCount: 0,
+        vehicleNumber: riderVehicleInput,
+      };
+
+      await setDoc(doc(db, "users", createdUid), newRiderProfile);
+
+      alert(`Success! Rider ${riderNameInput} registered under UID: ${createdUid}`);
+
+      // Clear states
+      setRiderNameInput("");
+      setRiderPhoneInput("");
+      setRiderVehicleInput("");
+      setRiderEmailInput("");
+      setRiderPasswordInput("");
+    } catch (err: any) {
+      if (err.code === "auth/email-already-in-use" || String(err.message || err).includes("email-already-in-use")) {
+        console.warn("Secured Rider Auth Creation warning (Email in Use):", err);
+      } else {
+        console.error("Secured Rider Auth Creation failure:", err);
+      }
+      
+      const errMsg = err.message || String(err);
+      if (err.code === "auth/email-already-in-use" || errMsg.includes("email-already-in-use")) {
+        const emailAliasSuggested = riderEmailInput.includes("@") 
+          ? riderEmailInput.replace("@", `+rider_${Date.now().toString().slice(-4)}@`) 
+          : "rider.alias@dadu247.com";
+        alert(
+          `Registration Conflict (Email in Use):\n\nThe email account "${riderEmailInput}" is already registered in our systems.\n\nRECOMMENDED ACTIONS:\n1. If they are already a customer, try promoting them by typing their Phone Number so our smart backend upgrades them directly!\n2. Otherwise, use an email alias like "${emailAliasSuggested}" or a unique email address to register this new driver profile.`
+        );
+      } else {
+        alert("Rider registration failed: " + errMsg);
+      }
+    } finally {
+      if (tempApp) {
+        try {
+          await deleteApp(tempApp);
+        } catch (e) {
+          console.error("Error deleting temp secondary app instance:", e);
+        }
+      }
+      setRiderRegLoading(false);
+    }
+  };
 
   // --- BUSINESS LOGIC MATH FOR ANALYTICS ---
   // Calculates live numbers
@@ -353,6 +483,18 @@ export default function AdminPanel({
                   {totalActiveCount}
                 </span>
               )}
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab("riders")}
+              className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
+                activeSubTab === "riders" 
+                  ? "bg-amber-500/5 border-amber-500/30 text-amber-500 font-extrabold shadow-[0_0_20px_rgba(245,158,11,0.04)]" 
+                  : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              <User className="w-4 h-4 shrink-0" />
+              Manage Riders Directory
             </button>
           </div>
 
@@ -1000,6 +1142,242 @@ export default function AdminPanel({
                         </div>
                       );
                     })
+                  )}
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* TAB 4: Manage Riders Directory */}
+          {activeSubTab === "riders" && (
+            <div className="space-y-8 animate-fade-in text-zinc-100 col-span-1 lg:col-span-9">
+              
+              {/* Top Row: General Settings & Status Metrics */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* Global Delivery Charge Config */}
+                <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl relative space-y-4">
+                  <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-500/10 to-transparent" />
+                  <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 pb-2.5 border-b border-zinc-805/50 uppercase tracking-wide">
+                    <Truck className="w-4 h-4 text-[#FF5C00]" />
+                    Set Global Delivery Charges
+                  </h4>
+                  <p className="text-[10.5px] text-zinc-400 font-medium leading-relaxed">
+                    This setting governs the base delivery rate added to checkout carts across Dadu24#7 dynamically.
+                  </p>
+                  
+                  <div className="flex items-center gap-3 text-xs pt-1">
+                    <div className="relative flex-grow">
+                      <span className="absolute left-3.5 top-3.5 text-zinc-500 font-bold">Rs.</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={deliveryChargeInput}
+                        onChange={(e) => setDeliveryChargeInput(Number(e.target.value))}
+                        className="w-full pl-10 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-white font-extrabold focus:border-amber-500 transition"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleSaveDeliveryConfig}
+                      className="bg-[#FF5C00] text-zinc-950 font-black px-5 py-3 rounded-xl hover:scale-[1.02] active:scale-95 transition cursor-pointer text-xs uppercase"
+                    >
+                      Update Rate
+                    </button>
+                  </div>
+                </div>
+
+                {/* Live assigned deliveries summary stats */}
+                <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl relative space-y-4">
+                  <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-green-500/10 to-transparent" />
+                  <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 pb-2.5 border-b border-zinc-805/50 uppercase tracking-wide">
+                    <TrendingUp className="w-4 h-4 text-emerald-450" />
+                    Delivery Fleet Statistics
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4 text-xs pt-2">
+                    <div className="bg-zinc-950/40 border border-zinc-850 p-3.5 rounded-xl text-center">
+                      <span className="text-[9px] text-[#FF5C00] uppercase tracking-widest font-black block">active shipments</span>
+                      <span className="text-xl font-black text-white block mt-1">
+                        {orders.filter((o) => o.riderId && o.status !== "delivered" && o.status !== "cancelled").length}
+                      </span>
+                    </div>
+                    <div className="bg-zinc-950/40 border border-zinc-850 p-3.5 rounded-xl text-center">
+                      <span className="text-[9px] text-zinc-400 uppercase tracking-widest font-black block">rider registry</span>
+                      <span className="text-xl font-black text-white block mt-1">{ridersSubset.length} Riders</span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Secure Registration form */}
+              <form onSubmit={handleRegisterRiderSubmit} className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl space-y-5 relative">
+                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#FF5C00]/20 to-transparent" />
+                <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 pb-3 border-b border-zinc-800/50 uppercase tracking-wide">
+                  <UserPlus className="w-4 h-4 text-[#FF5C00]" />
+                  Rider Registry Form (Manual Credentials Creation)
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-5 text-xs">
+                  <div className="md:col-span-4 space-y-1.5">
+                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Full Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={riderNameInput}
+                      onChange={(e) => setRiderNameInput(e.target.value)}
+                      placeholder="e.g. Ali Haider Meer"
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 transition"
+                    />
+                  </div>
+
+                  <div className="md:col-span-4 space-y-1.5">
+                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Phone Number</label>
+                    <input
+                      type="tel"
+                      required
+                      value={riderPhoneInput}
+                      onChange={(e) => setRiderPhoneInput(e.target.value)}
+                      placeholder="e.g. 03277004471"
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 transition"
+                    />
+                  </div>
+
+                  <div className="md:col-span-4 space-y-1.5">
+                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Vehicle License Number</label>
+                    <input
+                      type="text"
+                      required
+                      value={riderVehicleInput}
+                      onChange={(e) => setRiderVehicleInput(e.target.value)}
+                      placeholder="e.g. DADU-7729"
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 transition"
+                    />
+                  </div>
+
+                  <div className="md:col-span-6 space-y-1.5">
+                    <label className="text-zinc-400 font-black uppercase tracking-widest text-[9px] flex items-center gap-1">
+                      <Send className="w-3 h-3 text-[#FF5C00]" /> Corporate Email Account
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={riderEmailInput}
+                      onChange={(e) => setRiderEmailInput(e.target.value)}
+                      placeholder="e.g. ali.rider@dadu247.com"
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 transition"
+                    />
+                  </div>
+
+                  <div className="md:col-span-6 space-y-1.5">
+                    <label className="text-zinc-400 font-black uppercase tracking-widest text-[9px] flex items-center gap-1">
+                      <Key className="w-3 h-3 text-[#FF5C00]" /> Access Password
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={riderPasswordInput}
+                      onChange={(e) => setRiderPasswordInput(e.target.value)}
+                      placeholder="• • • • • • (Min 6 tokens)"
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 transition"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="submit"
+                    disabled={riderRegLoading}
+                    className="bg-[#FF5C00] hover:bg-orange-600 text-zinc-950 font-black text-xs uppercase tracking-wider py-3.5 px-6 rounded-xl shadow-lg shadow-orange-500/10 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-55"
+                  >
+                    {riderRegLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Provisioning Auth credentials...
+                      </>
+                    ) : (
+                      <>
+                        <UserPlus className="w-4 h-4" />
+                        Execute Rider Provisioning
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+
+              {/* Live shipments assignment status dashboard */}
+              <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl relative space-y-5">
+                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#FF5C00]/20 to-transparent" />
+                <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 pb-3 border-b border-zinc-800/50 uppercase tracking-wide">
+                  <Compass className="w-4 h-4 text-[#FF5C00] animate-spin-slow" />
+                  Fleet Live Assignments Tracker
+                </h4>
+
+                <div className="space-y-4 max-h-[350px] overflow-y-auto scrollbar-none">
+                  {orders.filter((o) => o.riderId).length === 0 ? (
+                    <div className="text-center p-8 text-zinc-500 text-xs font-semibold">
+                      📦 No accepted shipments currently on active duty route.
+                    </div>
+                  ) : (
+                    orders.filter((o) => o.riderId).map((order) => (
+                      <div key={order.id} className="bg-zinc-950 border border-zinc-850 p-4.5 rounded-2xl flex items-center justify-between gap-4 flex-wrap text-xs">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-extrabold text-[#FF5C00]">dadu-{order.id.substring(0, 8)}</span>
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest ${
+                              order.status === "delivered" 
+                                ? "bg-emerald-500/10 text-emerald-400" 
+                                : "bg-amber-500/10 text-amber-500 animate-pulse"
+                            }`}>
+                              {order.status}
+                            </span>
+                          </div>
+                          <p className="text-zinc-400 text-[11px] font-semibold mt-1">Customer: {order.userName} ({order.userAddress})</p>
+                        </div>
+
+                        <div className="bg-zinc-900 border border-zinc-850 p-3 rounded-xl min-w-[200px] text-right text-xs">
+                          <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-black block">assigned driver</span>
+                          <span className="text-zinc-100 font-extrabold block text-xs mt-0.5">{order.riderName}</span>
+                          <span className="text-emerald-450 block font-mono text-[10px]">{order.riderPhone}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Master directory list */}
+              <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl relative space-y-4">
+                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-zinc-500/20 to-transparent" />
+                <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 pb-3 border-b border-zinc-800/50 uppercase tracking-wide">
+                  <User className="w-4 h-4 text-zinc-450" />
+                  Riders Directory Registry ({ridersSubset.length} Profiles)
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {ridersSubset.length === 0 ? (
+                    <div className="text-center p-8 col-span-2 text-zinc-500 text-xs font-semibold">
+                      📋 No active riders provisioned.
+                    </div>
+                  ) : (
+                    ridersSubset.map((rider) => (
+                      <div key={rider.uid} className="bg-zinc-950 border border-zinc-850 p-4.5 rounded-2xl space-y-3 shadow-xs">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <span className="text-[10.5px] font-black tracking-wider text-white block">{rider.name}</span>
+                            <span className="text-[9px] text-[#FF5C00] font-bold block bg-[#FF5C00]/5 border border-[#FF5C00]/20 px-2.5 py-0.5 rounded-full w-max mt-1 uppercase">
+                              License: {rider.vehicleNumber || "N/A"}
+                            </span>
+                          </div>
+                          <span className="font-mono text-[9px] text-zinc-500">{rider.uid.substring(0, 10)}...</span>
+                        </div>
+                        <div className="border-t border-zinc-900 pt-2 text-[11px] font-semibold text-zinc-400 font-sans">
+                          <div>📞 Contact Phone: <span className="font-mono text-zinc-200">{rider.phone}</span></div>
+                          <div>📍 Logged-in HQ Status: <span className="text-emerald-440 font-bold uppercase text-[9px]">ONLINE DUTY</span></div>
+                        </div>
+                      </div>
+                    ))
                   )}
                 </div>
               </div>

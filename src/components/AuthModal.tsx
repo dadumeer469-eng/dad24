@@ -193,23 +193,32 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
           userCredential = await signInWithEmailAndPassword(auth, virtualEmail, password);
         } catch (err: any) {
           // If admin user is not registered yet, register them on first login attempt!
-          if (isAdminCreds && err.code === "auth/user-not-found") {
-            // Register Admin automatically
-            userCredential = await createUserWithEmailAndPassword(auth, virtualEmail, password);
-            const user = userCredential.user;
-            const newAdminProfile: UserProfile = {
-              uid: user.uid,
-              name: "meerali120",
-              phone: "03277004471",
-              address: "Main Dadu Admin Office",
-              role: "admin",
-              ordersCount: 0,
-            };
-            await setDoc(doc(db, "users", user.uid), cleanObject(newAdminProfile));
-            onAuthSuccess(newAdminProfile);
-            onClose();
-            setLoading(false);
-            return;
+          if (isAdminCreds && (err.code === "auth/user-not-found" || err.code === "auth/invalid-credential")) {
+            try {
+              // Register Admin automatically
+              userCredential = await createUserWithEmailAndPassword(auth, virtualEmail, password);
+              const user = userCredential.user;
+              const newAdminProfile: UserProfile = {
+                uid: user.uid,
+                name: "meerali120",
+                phone: "03277004471",
+                address: "Main Dadu Admin Office",
+                role: "admin",
+                ordersCount: 0,
+              };
+              await setDoc(doc(db, "users", user.uid), cleanObject(newAdminProfile));
+              onAuthSuccess(newAdminProfile);
+              onClose();
+              setLoading(false);
+              return;
+            } catch (createErr: any) {
+              if (createErr.code === "auth/email-already-in-use") {
+                // Already registered previously, meaning password entered is actually incorrect!
+                throw new Error("Incorrect Admin password entered. Please check your credentials.");
+              } else {
+                throw createErr;
+              }
+            }
           } else {
             throw err;
           }
@@ -251,7 +260,16 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
         onClose();
       }
     } catch (error: any) {
-      console.error("Authentication error during processing:", error);
+      if (
+        error.code === "auth/invalid-credential" ||
+        error.code === "auth/wrong-password" ||
+        error.code === "auth/user-not-found" ||
+        error.code === "auth/email-already-in-use"
+      ) {
+        console.warn("Expected Auth rejection during processing:", error.code || error.message);
+      } else {
+        console.error("Authentication error during processing:", error);
+      }
       
       // Strict friendly translations for errors
       if (error.code === "auth/email-already-in-use") {

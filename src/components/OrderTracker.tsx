@@ -41,8 +41,8 @@ export default function OrderTracker({ order, onClose }: OrderTrackerProps) {
       if (status === "completed") return 4;
       return 0;
     } else {
-      if (status === "placed") return 0;
-      if (status === "confirmed") return 1;
+      if (status === "placed" || status === "pending") return 0;
+      if (status === "accepted" || status === "confirmed") return 1;
       if (status === "preparing") return 2;
       if (status === "out_for_delivery") return 3;
       if (status === "delivered") return 4;
@@ -165,8 +165,19 @@ export default function OrderTracker({ order, onClose }: OrderTrackerProps) {
           </div>
           <div>
             <span className="text-zinc-500 block font-semibold">{isService ? "Expert Assigned:" : "Active Rider:"}</span>
-            <span className="text-zinc-100 font-extrabold">
-              {order.riderName || (isService ? "Assigning Mechanic..." : "Assigning Driver...")}
+            <span className="text-zinc-100 font-extrabold text-[11px] block mt-0.5">
+              {order.riderName ? (
+                <>
+                  {order.riderName}
+                  {order.riderPhone && (
+                    <span className="text-emerald-400 block font-mono">
+                      (Contact: {order.riderPhone})
+                    </span>
+                  )}
+                </>
+              ) : (
+                isService ? "Assigning Mechanic..." : "Assigning Driver..."
+              )}
             </span>
           </div>
           <div className="col-span-2">
