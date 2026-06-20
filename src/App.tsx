@@ -40,6 +40,7 @@ export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAdminConsoleOpen, setIsAdminConsoleOpen] = useState(false);
   const [activeDetailDish, setActiveDetailDish] = useState<Dish | null>(null);
+  const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
 
   // Visual notify states
   const [toastNotification, setToastNotification] = useState<{ title: string; message: string } | null>(null);
@@ -351,7 +352,7 @@ export default function App() {
       setCurrentUser(updatedProfile);
 
       // 4. Alert success
-      alert("Success! Your DAUAFOOD order or service appointment was successfully placed!");
+      alert("Success! Your DADUFOOD order or service appointment was successfully placed!");
     } catch (err: any) {
       console.error(err);
       alert(handleFirestoreError(err));
@@ -427,6 +428,54 @@ export default function App() {
         <div className="flex-1">
           {/* Billboard / category selectors */}
           <FoodpandaHero activeCategory={activeCategory} setActiveCategory={setActiveCategory} />
+
+          {/* Active Order Banner Card */}
+          {(() => {
+            const activeOrderForBanner = orders.find(
+              (o) => o.status !== "delivered" && o.status !== "completed" && o.status !== "cancelled"
+            );
+            if (!currentUser || !activeOrderForBanner) return null;
+
+            return (
+              <div className="max-w-7xl mx-auto px-4 mt-6">
+                <div 
+                  onClick={() => {
+                    setActiveTrackingOrder(activeOrderForBanner);
+                    setIsTrackingModalOpen(true);
+                  }}
+                  className="bg-zinc-950 border-2 border-[#FF5C00] p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 cursor-pointer hover:bg-zinc-900/80 transition-all shadow-xl shadow-orange-500/5 group"
+                >
+                  <div className="flex items-center gap-4.5 w-full sm:w-auto">
+                    <div className="w-12 h-12 rounded-full bg-[#FF5C00]/10 border border-[#FF5C00]/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition duration-300">
+                      🛵
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-[#FF5C00] block">Active Placed Order Tracking Live</span>
+                      <h4 className="text-xs sm:text-sm font-black text-white mt-1 leading-normal truncate">
+                        Your Order <span className="font-mono text-zinc-400">dadu-{activeOrderForBanner.id.substring(0, 5)}...</span> is currently <span className="text-[#FF5C00] uppercase font-bold">{activeOrderForBanner.status === "out_for_delivery" ? "With Foodpanda Rider" : activeOrderForBanner.status === "preparing" ? "Cooking in Kitchen" : "Confirmed & Accepted"}</span>
+                      </h4>
+                      {activeOrderForBanner.riderName ? (
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                          <span className="text-[10px] text-zinc-400 font-extrabold truncate">
+                            Rider assigned: <span className="text-green-400">{activeOrderForBanner.riderName}</span> ({activeOrderForBanner.riderPhone})
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-zinc-500 font-bold block mt-1">
+                          ⏳ Assigning driver to your neighborhood...
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <button className="w-full sm:w-auto bg-[#FF5C00] text-zinc-950 text-xs font-black uppercase tracking-widest px-5 py-3 rounded-xl group-hover:bg-[#d44d00] transition active:scale-95 shrink-0 shadow-md">
+                    Track Live Map 🧭
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Catalog Listing */}
           <main className="max-w-7xl mx-auto px-4 py-6">
@@ -753,6 +802,28 @@ export default function App() {
         </div>
       )}
 
+      {/* Dynamic Pop-up Full-Screen Tracking Modal */}
+      {isTrackingModalOpen && activeTrackingOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/90 p-4 overflow-y-auto backdrop-blur-md">
+          <div className="w-full max-w-2xl bg-zinc-900 rounded-2xl border border-zinc-800 shadow-2xl relative overflow-hidden my-8">
+            {/* Top close button */}
+            <button
+              onClick={() => setIsTrackingModalOpen(false)}
+              className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-zinc-950/80 hover:bg-zinc-950 text-zinc-400 hover:text-white flex items-center justify-center border border-zinc-800 transition cursor-pointer"
+            >
+              ✕
+            </button>
+            
+            <div className="p-2 sm:p-4 max-h-[90vh] overflow-y-auto scrollbar-none">
+              <OrderTracker 
+                order={activeTrackingOrder} 
+                onClose={() => setIsTrackingModalOpen(false)} 
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* sliding push alerts toast widget */}
       {toastNotification && (
         <div className="fixed bottom-6 right-6 z-50 p-4 max-w-sm bg-zinc-900 border-2 border-[#FF5C00]/40 text-zinc-100 rounded-2xl shadow-2xl flex items-start gap-3 animate-slide-in">
@@ -790,7 +861,7 @@ export default function App() {
       {/* Footer support details */}
       <footer className="max-w-7xl mx-auto px-4 mt-12 pt-8 border-t border-zinc-800 text-center space-y-4">
         <p className="text-xs text-zinc-500 font-semibold">
-          © {new Date().getFullYear()} DAUAFOOD Delivery Services. All Rights Reserved. Support helpline:{" "}
+          © {new Date().getFullYear()} DADUFOOD Delivery Services. All Rights Reserved. Support helpline:{" "}
           <a href="https://wa.me/923277004471" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 transition hover:underline">
             03277004471 (WhatsApp Support)
           </a>

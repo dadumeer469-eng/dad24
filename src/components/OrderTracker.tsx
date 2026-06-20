@@ -92,6 +92,91 @@ export default function OrderTracker({ order, onClose }: OrderTrackerProps) {
     );
   };
 
+  const renderFoodpandaRiderCard = () => {
+    if (isService) {
+      // If it is a service order, we can also style it nicely
+      return null;
+    }
+    
+    const hasRider = !!order.riderName;
+
+    return (
+      <div className="mt-6 bg-[#161618] border border-zinc-800 rounded-2xl p-4 space-y-4 shadow-xl relative overflow-hidden">
+        {/* Top header */}
+        <div className="flex items-center justify-between border-b border-zinc-900 pb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm">🚴</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-[#FF5C00]">Rider Assigned Details</span>
+          </div>
+          <span className="text-[8px] bg-[#FF5C00]/10 text-[#FF5C00] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+            {order.status === "out_for_delivery" ? "On The Way" : "Preparing Package"}
+          </span>
+        </div>
+
+        {hasRider ? (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              {/* Foodpanda styled pink-themed avatar circle */}
+              <div className="relative shrink-0">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#FF5C00] via-orange-400 to-pink-500 p-0.5 shadow-md">
+                  <div className="w-full h-full rounded-full bg-zinc-900 flex items-center justify-center text-white font-extrabold text-sm font-mono">
+                    {order.riderName.charAt(0).toUpperCase()}
+                  </div>
+                </div>
+                <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-zinc-950 flex items-center justify-center">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
+                </span>
+              </div>
+
+              {/* Rider Info text */}
+              <div>
+                <span className="text-zinc-500 text-[9px] uppercase font-black tracking-wider block">Your Delivery Hero</span>
+                <span className="text-xs font-black text-white block mt-0.5">{order.riderName}</span>
+                <span className="inline-flex items-center gap-1.5 text-[9px] font-extrabold text-[#FF5C00] mt-1 bg-[#FF5C00]/5 border border-[#FF5C00]/10 py-0.5 px-2 rounded-lg">
+                  🛵 Standard Delivery Bike
+                </span>
+              </div>
+            </div>
+
+            {/* Quick Contact controls */}
+            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+              {order.riderPhone && (
+                <>
+                  <a
+                    href={`tel:${order.riderPhone}`}
+                    className="flex-1 sm:flex-initial bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-100 py-1.5 px-3 rounded-xl transition text-center font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
+                  >
+                    📞 Call Rider
+                  </a>
+                  <a
+                    href={`https://wa.me/${order.riderPhone.replace(/\D/g, "")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 sm:flex-initial bg-[#FF5C00] hover:bg-[#d44d00] text-zinc-950 py-1.5 px-3 rounded-xl transition text-center font-black text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
+                  >
+                    💬 Chat on WA
+                  </a>
+                </>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 py-1">
+            <div className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 animate-pulse shrink-0">
+              🚴
+            </div>
+            <div>
+              <span className="text-xs font-black text-zinc-350 block uppercase tracking-wide">Looking for a Rider...</span>
+              <span className="text-[10px] text-zinc-500 font-semibold block mt-1 leading-snug">
+                Your order is being compiled & prepared in the kitchen. A premier rider is standing by to accept dispatch!
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderLocationTracking = () => {
     if (!order.userCoords) return null;
 
@@ -290,6 +375,9 @@ export default function OrderTracker({ order, onClose }: OrderTrackerProps) {
           </div>
         )}
       </div>
+
+      {/* Foodpanda Style Rider Detail Card */}
+      {renderFoodpandaRiderCard()}
 
       {/* Live Coordinate Pin-point Tracking section */}
       {renderLocationTracking()}

@@ -61,7 +61,7 @@ export default function FoodpandaHeader({
             DF
           </div>
           <span className="text-base sm:text-xl font-black tracking-tight text-white">
-            DAUA<span className="text-[#FF5C00]">FOOD</span>
+            DADU<span className="text-[#FF5C00]">FOOD</span>
           </span>
         </div>
 
