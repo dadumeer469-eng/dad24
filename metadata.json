@@ -1,6 +1,6 @@
 {
-  "name": "Dadu24#7",
-  "description": "Custom Food and Home Service Delivery Web Application for dadu24#7 with Real-time Tracking and Secure Admin Suite.",
+  "name": "DAUAFOOD",
+  "description": "DAUAFOOD Food and Service Delivery Web Application",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

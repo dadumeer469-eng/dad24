@@ -349,7 +349,7 @@ export default function App() {
       setCurrentUser(updatedProfile);
 
       // 4. Alert success
-      alert("Success! Your dadu24#7 order or service appointment was successfully placed!");
+      alert("Success! Your DAUAFOOD order or service appointment was successfully placed!");
     } catch (err: any) {
       console.error(err);
       alert(handleFirestoreError(err));
@@ -389,7 +389,7 @@ export default function App() {
   const cartPriceTotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 relative pb-10 flex flex-col font-sans">
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 relative pb-28 md:pb-12 flex flex-col font-sans">
       
       {/* Dynamic Floating WhatsApp Helpline Button (Bottom corner) */}
       <a
@@ -415,6 +415,8 @@ export default function App() {
         setSearchQuery={setSearchQuery}
         notifications={notifications}
         onClearNotifications={handleClearNotificationsAll}
+        activeCategory={activeCategory}
+        setActiveCategory={setActiveCategory}
       />
 
       {currentUser?.role === "rider" ? (
@@ -499,25 +501,25 @@ export default function App() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
                   {filteredDishes.map((dish) => {
                     const isSvc = dish.type === "service";
                     return (
                       <div
                         key={dish.id}
-                        className="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden shadow-xs hover:border-zinc-700/80 hover:shadow-md hover:shadow-orange-500/5 transition-all flex flex-col group relative text-zinc-100"
+                        className="bg-zinc-900 border border-zinc-800 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs hover:border-zinc-700/80 hover:shadow-md hover:shadow-orange-500/5 transition-all flex flex-col group relative text-zinc-100"
                       >
                         {/* Sold Out Overlay */}
                         {!dish.isAvailable && (
-                          <div className="absolute inset-0 bg-zinc-950/95 z-20 flex flex-col items-center justify-center text-center p-4">
-                            <BadgeAlert className="w-8 h-8 text-zinc-500 mb-2" />
-                            <span className="font-extrabold text-sm uppercase tracking-widest text-[#FF5C00]">SOLD OUT</span>
-                            <span className="text-[10px] text-zinc-400 mt-1 font-bold">Available soon. Tap to notify!</span>
+                          <div className="absolute inset-0 bg-zinc-950/95 z-20 flex flex-col items-center justify-center text-center p-2 sm:p-4">
+                            <BadgeAlert className="w-5 h-5 sm:w-8 sm:h-8 text-zinc-500 mb-1" />
+                            <span className="font-extrabold text-[10px] sm:text-sm uppercase tracking-widest text-[#FF5C00]">SOLD OUT</span>
+                            <span className="text-[8px] sm:text-[10px] text-zinc-400 mt-0.5 font-bold">Soon</span>
                           </div>
                         )}
 
                         {/* Card Image */}
-                        <div className="relative h-44 bg-zinc-800 overflow-hidden shrink-0 cursor-pointer" onClick={() => setActiveDetailDish(dish)}>
+                        <div className="relative h-28 sm:h-44 bg-zinc-800 overflow-hidden shrink-0 cursor-pointer" onClick={() => setActiveDetailDish(dish)}>
                           <img
                             referrerPolicy="no-referrer"
                             src={dish.imageUrl}
@@ -527,8 +529,8 @@ export default function App() {
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
                           
                           {/* Top Tag */}
-                          <div className="absolute top-3 left-3 flex gap-1">
-                            <span className={`text-[10px] font-black uppercase tracking-wider py-1 px-2.5 rounded-lg shadow-md ${
+                          <div className="absolute top-2 left-2 flex gap-1">
+                            <span className={`text-[8px] sm:text-[10px] font-black uppercase tracking-wider py-0.5 sm:py-1 px-1.5 sm:px-2.5 rounded-md sm:rounded-lg shadow-md ${
                               isSvc ? "bg-amber-500 text-neutral-950 font-extrabold" : "bg-[#FF5C00] text-zinc-950"
                             }`}>
                               {isSvc ? "🛠️ Service" : "🍔 Food"}
@@ -537,26 +539,26 @@ export default function App() {
                         </div>
 
                         {/* Card Contents */}
-                        <div className="p-4 flex-1 flex flex-col justify-between space-y-3.5 bg-zinc-900">
-                          <div className="space-y-1.5 flex-1 cursor-pointer" onClick={() => setActiveDetailDish(dish)}>
-                            <div className="text-[10.5px] text-zinc-500 font-extrabold tracking-wider uppercase flex items-center gap-1">
+                        <div className="p-2.5 sm:p-4 flex-1 flex flex-col justify-between space-y-2 sm:space-y-3.5 bg-zinc-900">
+                          <div className="space-y-1 sm:space-y-1.5 flex-1 cursor-pointer" onClick={() => setActiveDetailDish(dish)}>
+                            <div className="text-[8.5px] sm:text-[10.5px] text-zinc-500 font-extrabold tracking-wider uppercase flex items-center gap-1 truncate max-w-full">
                               <span>🏪</span> {dish.restaurantName || (dish.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen")}
                             </div>
-                            <div className="flex items-start justify-between gap-1.5">
-                              <h4 className="font-bold text-zinc-100 text-sm tracking-tight leading-snug group-hover:text-[#FF5C00] transition truncate max-w-[200px]">
+                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-1 sm:gap-1.5">
+                              <h4 className="font-bold text-zinc-100 text-xs sm:text-sm tracking-tight leading-snug group-hover:text-[#FF5C00] transition truncate max-w-full">
                                 {dish.name}
                               </h4>
-                              <span className={`font-black text-sm shrink-0 whitespace-nowrap ${isSvc ? "text-amber-500" : "text-[#FF5C00]"}`}>
+                              <span className={`font-black text-xs sm:text-sm shrink-0 whitespace-nowrap ${isSvc ? "text-amber-500" : "text-[#FF5C00]"}`}>
                                 Rs. {dish.price}
                               </span>
                             </div>
-                            <p className="text-[11.5px] text-zinc-400 line-clamp-3 leading-relaxed font-semibold">
+                            <p className="text-[10px] sm:text-[11.5px] text-zinc-400 line-clamp-1 sm:line-clamp-3 leading-relaxed font-semibold">
                               {dish.description}
                             </p>
                           </div>
 
-                          {/* Detail Badging - CUSTOMIZED FOR SERVICES */}
-                          <div className="flex items-center gap-2 border-t border-zinc-850 pt-3 text-[10.5px] font-semibold text-zinc-400">
+                          {/* Detail Badging - CUSTOMIZED FOR SERVICES (Hidden on mobile grid for cleanliness) */}
+                          <div className="hidden sm:flex items-center gap-2 border-t border-zinc-850 pt-3 text-[10.5px] font-semibold text-zinc-400">
                             {isSvc ? (
                               <>
                                 <Wrench className="w-3.5 h-3.5 text-amber-500 shrink-0" />
@@ -573,17 +575,27 @@ export default function App() {
                           </div>
 
                           {/* Add to checkout CTAs */}
-                          <div className="pt-1.5 shrink-0">
+                          <div className="pt-1 shrink-0">
                             <button
                               onClick={() => handleAddToCart(dish)}
                               disabled={!dish.isAvailable}
-                              className={`w-full py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer ${
+                              className={`w-full py-1.5 sm:py-2.5 rounded-xl sm:rounded-2xl text-[9px] sm:text-xs font-black uppercase tracking-wider transition shadow-xs flex items-center justify-center gap-1 cursor-pointer ${
                                 isSvc 
-                                  ? "bg-amber-500 hover:bg-amber-600 text-[#121212] font-extrabold" 
+                                  ? "bg-amber-500 hover:bg-amber-600 text-[#121212] font-semibold" 
                                   : "bg-[#FF5C00] hover:bg-[#d44d00] text-zinc-950"
                               }`}
                             >
-                              {isSvc ? "Book Diagnosis (Rs. 500)" : "Add To Dadu Cart"}
+                              {isSvc ? (
+                                <>
+                                  <span className="sm:hidden">+ Book</span>
+                                  <span className="hidden sm:inline">Book Diagnosis (Rs. 500)</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span className="sm:hidden">+ Add</span>
+                                  <span className="hidden sm:inline">Add To Dadu Cart</span>
+                                </>
+                              )}
                             </button>
                           </div>
                         </div>
@@ -752,10 +764,31 @@ export default function App() {
         </div>
       )}
 
+      {/* Floating Bottom Cart for mobile screens */}
+      {cartCountTotal > 0 && (
+        <div className="fixed bottom-4 left-4 right-4 z-40 md:hidden bg-zinc-900/95 border border-zinc-805 p-3 rounded-2xl shadow-2xl flex items-center justify-between gap-3 backdrop-blur-md">
+          <div className="flex items-center gap-2">
+            <div className="bg-[#FF5C00] text-zinc-950 px-2 rounded-lg font-black text-xs h-7 flex items-center justify-center min-w-[28px]">
+              {cartCountTotal}
+            </div>
+            <div className="text-left">
+              <span className="text-[10px] text-zinc-400 font-bold block leading-none">TOTAL PRICE</span>
+              <span className="text-zinc-100 font-extrabold text-xs sm:text-sm font-mono mt-1 block leading-none">Rs. {cartPriceTotal}</span>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsCartOpen(true)}
+            className="bg-[#FF5C00] text-zinc-950 font-black text-xs uppercase tracking-wider py-2 px-3.5 rounded-xl hover:bg-[#d44d00] transition active:scale-95 shadow-md flex items-center gap-1 shrink-0"
+          >
+            Review & Order 🛍
+          </button>
+        </div>
+      )}
+
       {/* Footer support details */}
       <footer className="max-w-7xl mx-auto px-4 mt-12 pt-8 border-t border-zinc-800 text-center space-y-4">
         <p className="text-xs text-zinc-500 font-semibold">
-          © {new Date().getFullYear()} Dadu24#7 Platforms Inc. All Rights Reserved. Support helpline:{" "}
+          © {new Date().getFullYear()} DAUAFOOD Delivery Services. All Rights Reserved. Support helpline:{" "}
           <a href="https://wa.me/923277004471" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 transition hover:underline">
             03277004471 (WhatsApp Support)
           </a>

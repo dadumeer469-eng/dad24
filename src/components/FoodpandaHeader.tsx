@@ -14,6 +14,8 @@ interface FoodpandaHeaderProps {
   setSearchQuery: (query: string) => void;
   notifications: AppNotification[];
   onClearNotifications: () => void;
+  activeCategory?: string;
+  setActiveCategory?: (cat: string) => void;
 }
 
 export default function FoodpandaHeader({
@@ -28,6 +30,8 @@ export default function FoodpandaHeader({
   setSearchQuery,
   notifications,
   onClearNotifications,
+  activeCategory,
+  setActiveCategory,
 }: FoodpandaHeaderProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -37,17 +41,27 @@ export default function FoodpandaHeader({
   // Unified WhatsApp link formatter
   const whatsAppLink = "https://wa.me/923277004471";
 
+  const categories = [
+    { name: "All", emoji: "🍽️" },
+    { name: "Burgers", emoji: "🍔" },
+    { name: "Pizzas", emoji: "🍕" },
+    { name: "Chicken & Rice", emoji: "🍗" },
+    { name: "Only Tea", emoji: "🍵" },
+    { name: "Specials", emoji: "⭐️" },
+    { name: "Home Services", emoji: "🛠️" }
+  ];
+
   return (
     <header className="sticky top-0 z-40 bg-zinc-900 text-zinc-100 shadow-md border-b border-zinc-800">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
         
         {/* Logo and Brand */}
         <div className="flex items-center gap-2 shrink-0">
-          <div className="bg-[#FF5C00] text-zinc-950 p-2 rounded-xl font-black text-xl tracking-tight shadow-md flex items-center justify-center">
-            D24
+          <div className="bg-[#FF5C00] text-zinc-950 p-2 rounded-xl font-black text-xs sm:text-sm tracking-tight shadow-md flex items-center justify-center">
+            DF
           </div>
-          <span className="text-xl font-black tracking-tight text-white hidden sm:inline">
-            Dadu <span className="text-[#FF5C00]">24#7</span>
+          <span className="text-base sm:text-xl font-black tracking-tight text-white">
+            DAUA<span className="text-[#FF5C00]">FOOD</span>
           </span>
         </div>
 
@@ -235,6 +249,31 @@ export default function FoodpandaHeader({
           />
         </div>
       </div>
+
+      {/* Mobile-only Categories Horizontal Row */}
+      {activeCategory && setActiveCategory && (
+        <div className="p-2 pt-0 pb-3 bg-zinc-950 block sm:hidden px-4 border-b border-zinc-900">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] scroll-smooth">
+            {categories.map((cat) => {
+              const isSelected = activeCategory === cat.name;
+              return (
+                <button
+                  key={cat.name}
+                  onClick={() => setActiveCategory(cat.name)}
+                  className={`flex items-center gap-1.5 py-1.5 px-3 rounded-full text-[11px] font-black shrink-0 transition-all border outline-none select-none ${
+                    isSelected 
+                      ? "bg-[#FF5C00] text-zinc-950 border-[#FF5C00]" 
+                      : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-zinc-200"
+                  }`}
+                >
+                  <span className="text-xs">{cat.emoji}</span>
+                  <span>{cat.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </header>
   );
 }
