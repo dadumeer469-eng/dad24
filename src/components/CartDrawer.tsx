@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { UserProfile, OrderItem } from "../types";
-import { X, ShoppingBag, MapPin, Phone, User, AlertTriangle, ShieldCheck, Heart, Edit2 } from "lucide-react";
+import { X, ShoppingBag, MapPin, Phone, User, AlertTriangle, ShieldCheck, Heart, Edit2, Compass } from "lucide-react";
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -11,7 +11,7 @@ interface CartDrawerProps {
   currentUser: UserProfile | null;
   onOpenAuth: () => void;
   deliveryFee: number; // Stored inside Firestore settings!
-  onPlaceOrder: (details: { name: string; phone: string; address: string; paymentMethod: string; orderType: "food" | "service" }) => Promise<void>;
+  onPlaceOrder: (details: { name: string; phone: string; address: string; paymentMethod: string; orderType: "food" | "service"; userCoords?: { latitude: number; longitude: number } }) => Promise<void>;
 }
 
 export default function CartDrawer({
@@ -30,6 +30,7 @@ export default function CartDrawer({
   const [addressInput, setAddressInput] = useState("");
   const [editingAddress, setEditingAddress] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [userCoords, setUserCoords] = useState<{ latitude: number; longitude: number } | null>(null);
 
   if (!isOpen) return null;
 
@@ -67,6 +68,33 @@ export default function CartDrawer({
     const orderTypeValue = hasService && !hasFood ? "service" : "food";
     const paymentMethodValue = orderTypeValue === "service" ? "Pay on Appointment" : "COD";
 
+    let activeCoords = userCoords;
+
+    // Checks if first-order condition applies to prompt user for GPS pinpoint map coordinates
+    const isFirstTime = !currentUser || !currentUser.ordersCount || currentUser.ordersCount === 0;
+    if (isFirstTime && !activeCoords) {
+      const wantGPS = window.confirm(
+        "📢 PINPOINT YOUR LOCATION VIA GPS! (First-Time User)\n\nSetting a precise GPS pin helper helps our delivery riders navigate directly to your doorstep using Google Maps without confusing path directions.\n\nWould you like to auto-detect your delivery coordinates right now?"
+      );
+      if (wantGPS) {
+        try {
+          alert("Getting high precision coordinates... Please permit browser prompts if any.");
+          const coords = await new Promise<{ latitude: number, longitude: number }>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+              (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+              (err) => reject(err),
+              { enableHighAccuracy: true, timeout: 8000 }
+            );
+          });
+          activeCoords = coords;
+          setUserCoords(coords);
+          alert("📍 GPS coordinates locked successfully! Your rider is routed turn-by-turn.");
+        } catch (err: any) {
+          alert("Note: Could not fetch GPS location. No problem, we will ship directly to your written address!");
+        }
+      }
+    }
+
     try {
       await onPlaceOrder({
         name: finalName,
@@ -74,6 +102,7 @@ export default function CartDrawer({
         address: finalAddress,
         paymentMethod: paymentMethodValue,
         orderType: orderTypeValue,
+        userCoords: activeCoords || undefined,
       });
       setEditingAddress(false);
     } catch (err) {
@@ -317,6 +346,64 @@ export default function CartDrawer({
                   The Rs. 500 charge is purely the diagnostic/visitation fee (Aane ke charges). Complete material and secondary repair estimates will be evaluated and quoted on-site by the technician once they inspect the job at your home.
                 </p>
               </div>
+            </div>
+          )}
+
+          {/* GPS Location Pinpoint Widget for buyers */}
+          {cartItems.length > 0 && (
+            <div className="bg-zinc-900 border border-zinc-850 p-4 rounded-3xl space-y-2 mt-4">
+              <div className="flex items-center justify-between border-b border-zinc-850 pb-2">
+                <span className="text-[10px] font-black uppercase text-orange-400 tracking-wider flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5" /> GPS PINPOINT TRACKING
+                </span>
+                {userCoords ? (
+                  <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[8px] font-black uppercase px-2 py-0.5 rounded-full">Locked</span>
+                ) : (
+                  <span className="bg-amber-500/10 text-amber-500 border border-amber-500/20 text-[8px] font-black uppercase px-2 py-0.5 rounded-full">Missing</span>
+                )}
+              </div>
+              
+              {userCoords ? (
+                <div className="text-zinc-300 text-xs font-semibold flex items-center justify-between">
+                  <span>📍 Doorstep Pin Coordinates Locked ({userCoords.latitude.toFixed(5)}, {userCoords.longitude.toFixed(5)})</span>
+                  <button
+                    type="button"
+                    onClick={() => setUserCoords(null)}
+                    className="text-red-400 text-[10px] hover:underline font-bold cursor-pointer"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <p className="text-[10.5px] text-zinc-400 font-semibold leading-normal">
+                    Recommended: Lock your high-accuracy GPS coordinates so our delivery riders can locate you directly on the Google Map directions!
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      alert("Requesting high-precision GPS coordinate signal... Please accept browser permissions.");
+                      if (!navigator.geolocation) {
+                        alert("Geolocation is not supported by your browser status.");
+                        return;
+                      }
+                      navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                          setUserCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+                          alert("📍 Pinpoint GPS Coordinates Locked successfully!");
+                        },
+                        (err) => {
+                          alert(`GPS Signal Retrieval Fail: ${err.message}. Please input address manually.`);
+                        },
+                        { enableHighAccuracy: true, timeout: 8000 }
+                      );
+                    }}
+                    className="bg-zinc-950 hover:bg-zinc-850 border border-zinc-800 text-[#FF5C00] font-black text-[10px] uppercase py-2 px-3.5 rounded-xl w-full transition cursor-pointer text-center block"
+                  >
+                    🛰️ Auto-Detect & Pinpoint Current GPS Location
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

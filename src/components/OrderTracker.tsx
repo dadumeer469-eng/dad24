@@ -1,6 +1,6 @@
 import React from "react";
 import { Order } from "../types";
-import { Check, ClipboardList, Clock, ShieldCheck, Heart, ArrowRight, Server, Wrench, User, CalendarDays } from "lucide-react";
+import { Check, ClipboardList, Clock, ShieldCheck, Heart, ArrowRight, Server, Wrench, User, CalendarDays, MapPin, Compass } from "lucide-react";
 
 interface OrderTrackerProps {
   order: Order;
@@ -54,6 +54,145 @@ export default function OrderTracker({ order, onClose }: OrderTrackerProps) {
   const activeIndex = getActiveIndex();
   const isCancelled = order.status === "cancelled";
 
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371; // km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return (R * c).toFixed(2);
+  };
+
+  const getStatusBadge = (status: string) => {
+    const map: Record<string, { bg: string, text: string, label: string }> = {
+      placed: { bg: "bg-amber-500/10 border-amber-500/20", text: "text-amber-500", label: "Placed" },
+      pending: { bg: "bg-amber-500/10 border-amber-500/20", text: "text-amber-500", label: "Pending" },
+      accepted: { bg: "bg-sky-500/10 border-sky-500/20", text: "text-sky-400", label: "Accepted" },
+      confirmed: { bg: "bg-blue-500/10 border-blue-500/20", text: "text-blue-400", label: "Confirmed" },
+      preparing: { bg: "bg-purple-500/10 border-purple-500/20", text: "text-purple-400", label: "Cooking" },
+      out_for_delivery: { bg: "bg-pink-500/10 border-pink-500/20", text: "text-pink-400", label: "Out For Delivery" },
+      delivered: { bg: "bg-emerald-500/10 border-emerald-500/20", text: "text-emerald-400", label: "Delivered" },
+      cancelled: { bg: "bg-red-500/10 border-red-500/20", text: "text-red-400", label: "Cancelled x" },
+      
+      booked: { bg: "bg-yellow-500/10 border-yellow-500/20", text: "text-yellow-500", label: "Booked" },
+      diagnostic_on_way: { bg: "bg-[#FF5C00]/10 border-[#FF5C00]/20", text: "text-[#FF5C00]", label: "Traveling" },
+      diagnostic_underway: { bg: "bg-indigo-500/10 border-indigo-500/20", text: "text-indigo-400", label: "Inspecting" },
+      completed: { bg: "bg-emerald-500/10 border-emerald-500/20", text: "text-emerald-400", label: "Completed" },
+    };
+
+    const item = map[status] || { bg: "bg-zinc-800 border-zinc-700", text: "text-zinc-400", label: status };
+    return (
+      <span className={`inline-flex items-center gap-1 py-0.5 px-2 rounded-sm border text-[9px] font-black uppercase tracking-wider ${item.bg} ${item.text}`}>
+        <span className="w-1 h-1 rounded-full bg-current animate-pulse shrink-0"></span>
+        {item.label}
+      </span>
+    );
+  };
+
+  const renderLocationTracking = () => {
+    if (!order.userCoords) return null;
+
+    const userLat = order.userCoords.latitude;
+    const userLng = order.userCoords.longitude;
+    const riderLat = order.riderCoords?.latitude;
+    const riderLng = order.riderCoords?.longitude;
+
+    let distanceText = "Awaiting rider GPS tracking signal...";
+    if (userLat && userLng && riderLat && riderLng) {
+      const d = calculateDistance(userLat, userLng, riderLat, riderLng);
+      if (parseFloat(d) < 1) {
+        distanceText = `Rider is extremely nearby! About ${(parseFloat(d) * 1000).toFixed(0)} meters away.`;
+      } else {
+        distanceText = `Rider is currently ${d} km away from your pinpoint.`;
+      }
+    }
+
+    return (
+      <div className="mt-6 bg-zinc-950/80 border border-zinc-800 rounded-3xl p-4.5 space-y-4">
+        <div className="flex items-center justify-between border-b border-zinc-900 pb-2.5">
+          <div>
+            <span className="text-[9px] font-black uppercase text-[#FF5C00] tracking-widest block">Live GPS Coordinates Delivery tracker</span>
+            <span className="text-[11px] text-zinc-400 font-semibold block mt-0.5">{distanceText}</span>
+          </div>
+          <MapPin className="w-4 h-4 text-[#FF5C00]" />
+        </div>
+
+        {/* Visual map trajectory simulator */}
+        <div className="relative h-24 bg-zinc-900/40 border border-zinc-850 rounded-2xl overflow-hidden flex items-center justify-between px-8 select-none">
+          {/* Animated grid background */}
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f1f23_1px,transparent_1px),linear-gradient(to_bottom,#1f1f23_1px,transparent_1px)] bg-[size:16px_16px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-20"></div>
+
+          {/* Path line */}
+          <div className="absolute left-[20%] right-[20%] h-0.5 bg-gradient-to-r from-emerald-500 via-orange-500 to-[#FF5C00] opacity-40"></div>
+
+          {/* Start / Rider Node */}
+          <div className="relative flex flex-col items-center">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center border shadow-lg ${
+              riderLat ? "bg-emerald-950 border-emerald-500/50 text-emerald-400 animate-pulse" : "bg-zinc-800 border-zinc-700 text-zinc-500"
+            }`}>
+              <Compass className={`w-4.5 h-4.5 ${riderLat ? "animate-spin" : ""}`} style={{ animationDuration: "12s" }} />
+            </div>
+            <span className="text-[9px] font-black text-zinc-400 mt-1 uppercase tracking-wider">
+              {riderLat ? "RIDER GPS" : "Awaiting Dispatch"}
+            </span>
+          </div>
+
+          {/* Signal Indicator */}
+          {riderLat && (
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
+              <span className="text-[8px] uppercase tracking-widest text-emerald-400 font-black bg-emerald-950/50 border border-emerald-900/40 px-2 py-0.5 rounded-full animate-bounce">
+                Live Signal
+              </span>
+            </div>
+          )}
+
+          {/* End / Customer Destination Node */}
+          <div className="relative flex flex-col items-center">
+            <div className="w-10 h-10 rounded-full bg-orange-950/40 border border-[#FF5C00] text-[#FF5C00] flex items-center justify-center shadow-lg relative">
+              <MapPin className="w-4.5 h-4.5" />
+              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#FF5C00] animate-ping scale-150 opacity-20"></span>
+            </div>
+            <span className="text-[9px] font-black text-[#FF5C00] mt-1 uppercase tracking-wider">
+              YOUR DOORSTEP
+            </span>
+          </div>
+        </div>
+
+        {/* Map Action triggers */}
+        <div className="grid grid-cols-2 gap-2 text-[10.5px]">
+          <a
+            href={`https://www.google.com/maps/search/?api=1&query=${userLat},${userLng}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 py-2 px-3 rounded-xl transition text-center font-extrabold text-zinc-200 block shadow-xs"
+          >
+            📍 Pinpoint Google Map
+          </a>
+          {riderLat ? (
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${riderLat},${riderLng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-[#FF5C00] text-zinc-950 py-2 px-3 rounded-xl hover:bg-[#d44d00] transition text-center font-extrabold block shadow-md"
+            >
+              🧭 Track Rider on Map
+            </a>
+          ) : (
+            <button
+              disabled
+              className="bg-zinc-900 border border-zinc-805 text-zinc-500 py-2 rounded-xl text-center font-extrabold block opacity-50 cursor-not-allowed"
+            >
+              🧭 GPS Pending Signal
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-3.5xl p-5 sm:p-6 shadow-xs relative overflow-hidden text-zinc-100">
       
@@ -68,8 +207,9 @@ export default function OrderTracker({ order, onClose }: OrderTrackerProps) {
           <span className="text-[10px] font-black uppercase tracking-widest text-[#FF5C00] block">
             {isService ? "🛠️ Active Service Live Track" : "☕ Live Tea & Food Tracker"}
           </span>
-          <h3 className="font-extrabold text-sm text-zinc-100 mt-0.5">
+          <h3 className="font-extrabold text-sm text-zinc-100 mt-1 flex items-center gap-1.5 flex-wrap">
             Booking ID: <span className="font-mono text-xs text-zinc-400">dadu-{order.id.substring(0, 8)}</span>
+            {getStatusBadge(order.status)}
           </h3>
           <p className="text-[11px] text-zinc-400 mt-1 font-semibold">
             Date Placed: {order.createdAt?.seconds ? new Date(order.createdAt.seconds * 1000).toLocaleTimeString() : "Just Now"}
@@ -150,6 +290,9 @@ export default function OrderTracker({ order, onClose }: OrderTrackerProps) {
           </div>
         )}
       </div>
+
+      {/* Live Coordinate Pin-point Tracking section */}
+      {renderLocationTracking()}
 
       {/* Details Footer Card */}
       <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 mt-8 space-y-3 font-medium text-xs">

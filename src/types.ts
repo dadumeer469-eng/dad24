@@ -19,6 +19,7 @@ export interface UserProfile {
   role: "admin" | "buyer" | "rider" | "customer";
   ordersCount: number;
   vehicleNumber?: string;
+  riderCoords?: { latitude: number; longitude: number; lastUpdated?: number };
 }
 
 export interface OrderItem {
@@ -53,6 +54,8 @@ export interface Order {
   createdAt: any; // Firestore Timestamp
   paymentMethod: "COD" | "Pay on Appointment";
   orderType: "food" | "service";
+  userCoords?: { latitude: number; longitude: number };
+  riderCoords?: { latitude: number; longitude: number; lastUpdated?: number };
 }
 
 export interface SystemSettings {

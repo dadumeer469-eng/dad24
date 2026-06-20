@@ -295,6 +295,7 @@ export default function App() {
     address: string;
     paymentMethod: string;
     orderType: "food" | "service";
+    userCoords?: { latitude: number; longitude: number };
   }) => {
     if (!currentUser) {
       alert("Please Sign In or Register to submit your order!");
@@ -327,6 +328,7 @@ export default function App() {
       orderType: details.orderType,
       serviceTiming: computedServiceTiming,
       createdAt: { seconds: Date.now() / 1000 },
+      userCoords: details.userCoords || undefined,
     };
 
     try {

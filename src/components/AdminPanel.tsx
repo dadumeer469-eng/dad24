@@ -182,6 +182,19 @@ export default function AdminPanel({
     }
   };
 
+  const handleDeleteRider = async (uid: string, name: string) => {
+    const isConfirmed = window.confirm(`Are you absolutely sure you want to PERMANENTLY delete and revoke Rider "${name}" access?`);
+    if (!isConfirmed) return;
+
+    try {
+      await deleteDoc(doc(db, "users", uid));
+      alert(`Success: Rider profile "${name}" has been permanently deleted.`);
+    } catch (err) {
+      console.error("Failed to delete rider profile:", err);
+      alert("Error: Database permission denied or insufficient administrative credentials.");
+    }
+  };
+
   // --- BUSINESS LOGIC MATH FOR ANALYTICS ---
   // Calculates live numbers
   const deliveredOrders = orders.filter((o) => o.status === "delivered" || o.status === "completed");
@@ -1370,11 +1383,53 @@ export default function AdminPanel({
                               License: {rider.vehicleNumber || "N/A"}
                             </span>
                           </div>
-                          <span className="font-mono text-[9px] text-zinc-500">{rider.uid.substring(0, 10)}...</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono text-[9px] text-zinc-550">{rider.uid.substring(0, 8)}</span>
+                            <button
+                              onClick={() => handleDeleteRider(rider.uid, rider.name)}
+                              className="text-red-400 hover:text-red-300 p-1.5 rounded-lg hover:bg-red-500/10 transition cursor-pointer shrink-0"
+                              title="Delete Rider Permanent"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </div>
-                        <div className="border-t border-zinc-900 pt-2 text-[11px] font-semibold text-zinc-400 font-sans">
+                        <div className="border-t border-zinc-900 pt-2 text-[11px] font-semibold text-zinc-400 font-sans space-y-1">
                           <div>📞 Contact Phone: <span className="font-mono text-zinc-200">{rider.phone}</span></div>
-                          <div>📍 Logged-in HQ Status: <span className="text-emerald-440 font-bold uppercase text-[9px]">ONLINE DUTY</span></div>
+                          <div className="flex items-center justify-between gap-2">
+                            <span>📍 Logged-in HQ Status:</span>
+                            <span className="text-emerald-440 font-bold uppercase text-[9px]">ONLINE DUTY</span>
+                          </div>
+                          {rider.riderCoords ? (
+                            <div className="bg-emerald-950/10 border border-emerald-950 p-2.5 rounded-xl mt-1.5 space-y-1.5 text-zinc-300">
+                              <div className="flex items-center justify-between text-[10px]">
+                                <span className="text-emerald-400 font-black flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                  LIVE GPS SIGNAL
+                                </span>
+                                <span className="text-[9px] text-zinc-500">
+                                  {rider.riderCoords.lastUpdated ? `${Math.round((Date.now() - rider.riderCoords.lastUpdated) / 1000)}s ago` : "Active"}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between gap-1">
+                                <span className="font-mono text-[9.5px] text-zinc-400">
+                                  {rider.riderCoords.latitude.toFixed(5)}, {rider.riderCoords.longitude.toFixed(5)}
+                                </span>
+                                <a
+                                  href={`https://www.google.com/maps/search/?api=1&query=${rider.riderCoords.latitude},${rider.riderCoords.longitude}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="bg-emerald-500 text-zinc-950 font-black text-[9px] px-2.5 py-1 rounded-lg hover:bg-emerald-400 transition uppercase tracking-widest leading-none block shrink-0"
+                                >
+                                  Open Map 🗺️
+                                </a>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-zinc-500 text-[10px] italic mt-2 bg-zinc-900/30 p-2 rounded-xl border border-zinc-900 text-center">
+                              📡 Awaiting active GPS tracking signal...
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))

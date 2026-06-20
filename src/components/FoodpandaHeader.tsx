@@ -88,18 +88,6 @@ export default function FoodpandaHeader({
         {/* Action Widgets Grid */}
         <div className="flex items-center gap-2.5 shrink-0">
           
-          {/* Active green click-to-WhatsApp badge */}
-          <a
-            href={whatsAppLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 bg-emerald-950/40 border border-emerald-900/50 text-emerald-400 hover:bg-emerald-900/30 py-1.5 px-3.5 rounded-full text-xs font-bold shadow-xs transition-all"
-          >
-            <span className="animate-pulse h-2 w-2 rounded-full bg-emerald-500"></span>
-            <span className="hidden leading-none lg:inline">Help:</span>
-            <span className="leading-none text-[11px]">03277004471</span>
-          </a>
-
           {/* In-App Notifications Center Dropdown */}
           <div className="relative">
             <button

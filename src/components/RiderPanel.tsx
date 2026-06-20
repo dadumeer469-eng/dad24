@@ -20,28 +20,85 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
   const [myOrders, setMyOrders] = useState<Order[]>([]);
   const [selectedHistoryDate, setSelectedHistoryDate] = useState<string | null>(null);
   const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
+  const [isMuted, setIsMuted] = useState(false);
 
   // sound buzzer for notification when new available order arrives
-  const playPing = () => {
+  const playContinuousAlarm = () => {
+    if (isMuted) return;
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioCtx) return;
       const ctx = new AudioCtx();
       const now = ctx.currentTime;
+      
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(880, now);
-      gain.gain.setValueAtTime(0.1, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      osc.type = "sawtooth"; // dramatic siren sound!
+      osc.frequency.setValueAtTime(800, now);
+      osc.frequency.exponentialRampToValueAtTime(1100, now + 0.3);
+      
+      gain.gain.setValueAtTime(0.35, now); // loud "zor se"
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.55);
+      
       osc.connect(gain);
       gain.connect(ctx.destination);
+      
       osc.start(now);
-      osc.stop(now + 0.3);
+      osc.stop(now + 0.6);
     } catch (e) {
       // Ignored
     }
   };
+
+  // Continuous loop siren effect for unaccepted pending orders
+  useEffect(() => {
+    if (availableOrders.length === 0) return;
+
+    playContinuousAlarm();
+
+    const interval = setInterval(() => {
+      playContinuousAlarm();
+    }, 1600);
+
+    return () => clearInterval(interval);
+  }, [availableOrders.length, isMuted]);
+
+  // Real-time Driver GPS Live tracking update
+  useEffect(() => {
+    const riderActiveOrder = myOrders.find((o) => o.status === "accepted" || o.status === "preparing" || o.status === "out_for_delivery");
+    if (!riderActiveOrder) return;
+    if (!navigator.geolocation) {
+      console.warn("Geolocation API offline/unsupported.");
+      return;
+    }
+
+    const success = async (pos: GeolocationPosition) => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      try {
+        await updateDoc(doc(db, "orders", riderActiveOrder.id), {
+          riderCoords: { latitude: lat, longitude: lng, lastUpdated: Date.now() }
+        });
+        await updateDoc(doc(db, "users", currentUser.uid), {
+          riderCoords: { latitude: lat, longitude: lng, lastUpdated: Date.now() }
+        });
+      } catch (err) {
+        console.error("Failed to commit rider coordinates:", err);
+      }
+    };
+
+    const error = (err: GeolocationPositionError) => {
+      console.warn("Rider background geolocation fail:", err.message);
+    };
+
+    const watchId = navigator.geolocation.watchPosition(success, error, {
+      enableHighAccuracy: true,
+      timeout: 8000,
+      maximumAge: 0
+    });
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [myOrders, currentUser?.uid]);
 
   // 1. Subscribe to Available Orders (unaccepted status === "pending" or "placed" for food deliveries)
   useEffect(() => {
@@ -63,7 +120,7 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
       
       setAvailableOrders((prev) => {
         if (list.length > prev.length) {
-          playPing();
+          playContinuousAlarm();
         }
         return list;
       });
@@ -266,6 +323,32 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
         {activeTab === "dashboard" && (
           <div className="space-y-8 animate-fade-in">
             
+            {/* Continuous Loud Alarm status indicator */}
+            {availableOrders.length > 0 && (
+              <div className="bg-red-950/40 border border-red-900/40 p-5 rounded-3.5xl flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-2xl pointer-events-none -mt-8 -mr-8 bg-red-500/10"></div>
+                <div className="flex items-center gap-3 text-center md:text-left relative z-10">
+                  <span className="text-2xl animate-bounce shrink-0">🚨</span>
+                  <div>
+                    <span className="text-xs font-black uppercase tracking-widest text-[#FF5C00] block">New Dispatch Alert Siren Active</span>
+                    <span className="text-xs text-zinc-300 font-semibold block mt-0.5">
+                      {availableOrders.length} unassigned order{availableOrders.length !== 1 ? "s" : ""} waiting in queue! Accept before someone else does.
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsMuted(prev => !prev)}
+                  className={`py-2.5 px-6 rounded-xl text-xs font-black uppercase tracking-wider transition shrink-0 cursor-pointer ${
+                    isMuted
+                      ? "bg-zinc-805 hover:bg-zinc-750 text-zinc-400 border border-zinc-700"
+                      : "bg-[#FF5C00] hover:bg-[#d44d00] text-zinc-950 font-black shadow-md shadow-[#FF5C00]/20"
+                  }`}
+                >
+                  {isMuted ? "🔇 Unmute Alarm Siren" : "🔊 Mute Alarm Tone"}
+                </button>
+              </div>
+            )}
+
             {/* 1. Analytics Widgets Grid */}
             <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
               
@@ -381,6 +464,26 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
                         </div>
                       </div>
                     </div>
+
+                    {/* Pin-point user Delivery Destination GPS tracking */}
+                    {riderActiveOrder.userCoords && (
+                      <div className="bg-emerald-950/20 border border-emerald-900/40 p-4.5 rounded-2xl flex flex-col gap-2 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/5 rounded-full blur-xl pointer-events-none"></div>
+                        <span className="text-[9.5px] text-emerald-400 font-extrabold uppercase tracking-widest block flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                          🎯 Pinpoint Delivery GPS coordinates provided!
+                        </span>
+                        <a
+                          href={`https://www.google.com/maps/dir/?api=1&destination=${riderActiveOrder.userCoords.latitude},${riderActiveOrder.userCoords.longitude}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-black text-xs uppercase tracking-wider py-2.5 px-4 rounded-xl text-center shadow-md flex items-center justify-center gap-1.5 transition cursor-pointer"
+                        >
+                          <Compass className="w-4 h-4 animate-spin shrink-0" style={{ animationDuration: "12s" }} />
+                          Navigate Doorstep on Google Maps 🗺️
+                        </a>
+                      </div>
+                    )}
 
                     {/* Order contents summary */}
                     <div className="space-y-2.5">
