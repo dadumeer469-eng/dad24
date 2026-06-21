@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { UserProfile, AppNotification, Order } from "../types";
 import { Search, ShoppingBag, User, LogOut, Phone, Bell, ShieldAlert, BadgeCheck } from "lucide-react";
 
@@ -36,9 +36,79 @@ export default function FoodpandaHeader({
   setActiveCategory,
   orders = [],
   onTrackOrder,
-}: FoodpandaHeaderProps) {
+ }: FoodpandaHeaderProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+
+  // PWA & Installation state
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [canInstall, setCanInstall] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
+  const [showIosTooltip, setShowIosTooltip] = useState(false);
+  const [isIos, setIsIos] = useState(false);
+
+  useEffect(() => {
+    // 1. Detect standalone mode (already installed & running)
+    const standaloneCheck = 
+      window.matchMedia("(display-mode: standalone)").matches || 
+      (navigator as any).standalone === true;
+    setIsStandalone(standaloneCheck);
+
+    // 2. Detect iOS devices
+    const iosCheck = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    setIsIos(iosCheck);
+
+    // 3. Listen to chrome/android auto installer prompt event
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setCanInstall(true);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+
+    // 4. Listen to successful installations to reset the icons
+    const handleAppInstalled = () => {
+      console.log("Dadu Food application installed successfully!");
+      setDeferredPrompt(null);
+      setCanInstall(false);
+      setIsStandalone(true);
+    };
+
+    window.addEventListener("appinstalled", handleAppInstalled);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
+  }, []);
+
+  const handleLogoClick = async () => {
+    if (deferredPrompt) {
+      try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === "accepted") {
+          console.log("User accepted the installation prompt!");
+          setDeferredPrompt(null);
+          setCanInstall(false);
+        } else {
+          console.log("User dismissed the installation prompt.");
+        }
+      } catch (err) {
+        console.error("Installation prompting failed:", err);
+      }
+    } else if (isIos && !isStandalone) {
+      setShowIosTooltip(true);
+    } else {
+      // Normal Logo Behavior: Reset search, category and soft scroll home
+      setSearchQuery("");
+      if (setActiveCategory) {
+        setActiveCategory("All");
+      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
 
   const unreadNotifications = notifications.filter(n => !n.read);
 
@@ -60,9 +130,24 @@ export default function FoodpandaHeader({
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
         
         {/* Logo and Brand */}
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="bg-[#D70F64] text-white p-2 rounded-xl font-black text-xs sm:text-sm tracking-tight shadow-md flex items-center justify-center">
+        <div 
+          onClick={handleLogoClick}
+          className="flex items-center gap-2 shrink-0 cursor-pointer group select-none"
+          title={canInstall ? "Tap to Install Dadu Food App" : isIos && !isStandalone ? "Tap to see how to Install App" : "Dadu Food Home"}
+        >
+          <div className={`p-2 rounded-xl font-black text-xs sm:text-sm tracking-tight shadow-md flex items-center justify-center transition-all duration-300 relative ${
+            (canInstall || (isIos && !isStandalone))
+              ? "bg-[#D70F64] text-white shadow-[0_0_15px_rgba(215,15,100,0.65)] ring-2 ring-pink-500/50 scale-105 active:scale-95 border border-pink-300/40"
+              : "bg-[#D70F64] text-white group-hover:scale-105 active:scale-95"
+          }`}>
             DF
+            {/* Pulsing indicator when install is available */}
+            {(canInstall || (isIos && !isStandalone)) && (
+              <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </span>
+            )}
           </div>
           <span className="text-base sm:text-xl font-black tracking-tight text-zinc-900">
             DADU<span className="text-[#D70F64]">FOOD</span>
@@ -291,6 +376,57 @@ export default function FoodpandaHeader({
                 </button>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* iOS Safari PWA Installation Instructions Modal */}
+      {showIosTooltip && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-4">
+          <div className="bg-white text-zinc-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl relative border border-zinc-100 animate-in fade-in slide-in-from-bottom duration-300">
+            {/* Close button top corner */}
+            <button
+              onClick={() => setShowIosTooltip(false)}
+              className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-600 transition p-1 cursor-pointer select-none"
+            >
+              ✕
+            </button>
+
+            {/* Logo highlight */}
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 bg-[#D70F64] text-white rounded-2xl font-black text-2xl flex items-center justify-center shadow-lg relative">
+                DF
+              </div>
+            </div>
+
+            <h3 className="text-center font-black text-lg text-zinc-950 tracking-tight">
+              Install Dadu Food
+            </h3>
+            <p className="text-center text-xs text-zinc-500 mt-1 font-semibold">
+              Add to your Home Screen for full-screen experience!
+            </p>
+
+            <div className="mt-5 space-y-4 bg-zinc-50 p-4 rounded-2xl border border-zinc-150 text-xs text-zinc-700 leading-relaxed font-semibold">
+              <div className="flex items-start gap-3">
+                <span className="bg-white w-6 h-6 rounded-lg text-xs flex items-center justify-center border border-zinc-200 shadow-sm shrink-0 font-bold">1</span>
+                <span>Tap the <span className="font-bold text-[#D70F64] inline-flex items-center gap-0.5">Share <svg className="w-3.5 h-3.5 inline text-[#D70F64]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="10" rx="2" /><path d="M12 2v12M9 5l3-3 3 3" /></svg></span> button in the bottom bar of Safari.</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="bg-white w-6 h-6 rounded-lg text-xs flex items-center justify-center border border-zinc-200 shadow-sm shrink-0 font-bold">2</span>
+                <span>Scroll down and select <span className="font-bold text-[#D70F64]">"Add to Home Screen"</span> from the list.</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="bg-white w-6 h-6 rounded-lg text-xs flex items-center justify-center border border-zinc-200 shadow-sm shrink-0 font-bold">3</span>
+                <span>Give the shortcut a name or tap <span className="font-bold text-zinc-800">"Add"</span> on top-right. Done! 📲</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowIosTooltip(false)}
+              className="mt-6 w-full py-3 bg-[#D70F64] hover:bg-[#b00c50] text-white font-black text-xs uppercase tracking-widest rounded-xl transition cursor-pointer select-none active:scale-98 shadow-md"
+            >
+              Start ordering
+            </button>
           </div>
         </div>
       )}
