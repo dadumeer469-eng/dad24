@@ -250,6 +250,54 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
     }
   };
 
+  // Rider Action: Preparing status tracker update
+  const handleMarkAsPreparing = async (orderId: string) => {
+    setLoadingActionId(orderId);
+    try {
+      const orderRef = doc(db, "orders", orderId);
+      await updateDoc(orderRef, {
+        status: "preparing"
+      });
+      if (riderActiveOrder) {
+        await addDoc(collection(db, "notifications"), {
+          userId: riderActiveOrder.userId,
+          title: "🍳 Order is being Prepared!",
+          message: `Your dadufood order is currently cooking & compiling in the kitchen!`,
+          createdAt: { seconds: Date.now() / 1000 },
+          read: false,
+        });
+      }
+    } catch (err) {
+      alert("Preparing change failed: " + handleFirestoreError(err));
+    } finally {
+      setLoadingActionId(null);
+    }
+  };
+
+  // Rider Action: Out for Delivery status tracker update
+  const handleMarkAsOutForDelivery = async (orderId: string) => {
+    setLoadingActionId(orderId);
+    try {
+      const orderRef = doc(db, "orders", orderId);
+      await updateDoc(orderRef, {
+        status: "out_for_delivery"
+      });
+      if (riderActiveOrder) {
+        await addDoc(collection(db, "notifications"), {
+          userId: riderActiveOrder.userId,
+          title: "🛵 Order Out for Delivery!",
+          message: `Your delivery hero ${currentUser.name} has picked up your food and is on the way!`,
+          createdAt: { seconds: Date.now() / 1000 },
+          read: false,
+        });
+      }
+    } catch (err) {
+      alert("Out for delivery change failed: " + handleFirestoreError(err));
+    } finally {
+      setLoadingActionId(null);
+    }
+  };
+
   // Find active accepted order for this rider if any
   const riderActiveOrder = myOrders.find((o) => o.status === "accepted" || o.status === "preparing" || o.status === "out_for_delivery");
 
@@ -466,25 +514,45 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
                       </div>
                     </div>
 
-                    {/* Pin-point user Delivery Destination GPS tracking */}
-                    {riderActiveOrder.userCoords && (
-                      <div className="bg-emerald-950/20 border border-emerald-900/40 p-4.5 rounded-2xl flex flex-col gap-2 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/5 rounded-full blur-xl pointer-events-none"></div>
-                        <span className="text-[9.5px] text-emerald-400 font-extrabold uppercase tracking-widest block flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-                          🎯 Pinpoint Delivery GPS coordinates provided!
-                        </span>
-                        <a
-                          href={`https://www.google.com/maps/dir/?api=1&destination=${riderActiveOrder.userCoords.latitude},${riderActiveOrder.userCoords.longitude}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="w-full bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-black text-xs uppercase tracking-wider py-2.5 px-4 rounded-xl text-center shadow-md flex items-center justify-center gap-1.5 transition cursor-pointer"
-                        >
-                          <Compass className="w-4 h-4 animate-spin shrink-0" style={{ animationDuration: "12s" }} />
-                          Navigate Doorstep on Google Maps 🗺️
-                        </a>
-                      </div>
-                    )}
+                     {/* Pin-point user Delivery Destination GPS tracking */}
+                     {riderActiveOrder.userCoords && (
+                       <div className="bg-zinc-950 border border-zinc-800 p-4 rounded-2xl flex flex-col gap-3.5 relative overflow-hidden">
+                         <span className="text-[9.5px] text-emerald-400 font-extrabold uppercase tracking-widest block flex items-center gap-1.5 pb-1 border-b border-zinc-900">
+                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                           🎯 Customer Pinpoint Map Destination
+                         </span>
+
+                         <div className="relative w-full h-56 rounded-xl overflow-hidden border border-zinc-800 bg-zinc-900 shadow-inner">
+                           <iframe
+                             title="Customer Pinpoint Location"
+                             width="100%"
+                             height="100%"
+                             frameBorder="0"
+                             scrolling="no"
+                             marginHeight={0}
+                             marginWidth={0}
+                             src={`https://www.openstreetmap.org/export/embed.html?bbox=${riderActiveOrder.userCoords.longitude - 0.003}%2C${riderActiveOrder.userCoords.latitude - 0.003}%2C${riderActiveOrder.userCoords.longitude + 0.003}%2C${riderActiveOrder.userCoords.latitude + 0.003}&layer=mapnik&marker=${riderActiveOrder.userCoords.latitude}%2C${riderActiveOrder.userCoords.longitude}`}
+                             style={{ filter: "invert(90%) hue-rotate(180deg) brightness(95%) contrast(90%)" }}
+                             className="w-full h-full rounded-xl"
+                           ></iframe>
+                           <div className="absolute bottom-2.5 right-2.5 bg-zinc-950/90 border border-zinc-850 py-1.5 px-3 rounded-lg text-[9px] font-black tracking-wider text-emerald-450 shadow flex items-center gap-1.5 pointer-events-none backdrop-blur-md">
+                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                             CUSTOMER DOORSTEP
+                           </div>
+                         </div>
+
+                         <a
+                           href={`https://www.google.com/maps/dir/?api=1&destination=${riderActiveOrder.userCoords.latitude},${riderActiveOrder.userCoords.longitude}`}
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           className="w-full bg-[#D70F64] hover:bg-[#b00c50] text-white font-black text-xs uppercase tracking-wider py-2.5 px-4 rounded-xl text-center shadow-md flex items-center justify-center gap-1.5 transition cursor-pointer"
+                           id="google-maps-dir-button"
+                         >
+                           <Compass className="w-4 h-4 animate-spin shrink-0" style={{ animationDuration: "12s" }} />
+                           Open in Google Maps Navigation 🗺️
+                         </a>
+                       </div>
+                     )}
 
                     {/* Order contents summary */}
                     <div className="space-y-2.5">
@@ -501,8 +569,40 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
                       </div>
                     </div>
 
+                    {/* Active Shipment Status Controller Options */}
+                    <div className="bg-zinc-950 border border-zinc-850 p-4 rounded-2xl space-y-3">
+                      <span className="text-[9.5px] font-black text-zinc-400 uppercase tracking-widest block border-b border-zinc-900 pb-1.5">
+                        ⚙️ Update CURRENT PHASE Status
+                      </span>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <button
+                          onClick={() => handleMarkAsPreparing(riderActiveOrder.id)}
+                          disabled={loadingActionId !== null || riderActiveOrder.status === "preparing"}
+                          className={`py-2.5 px-3 rounded-xl font-black uppercase text-[10px] tracking-wider transition cursor-pointer ${
+                            riderActiveOrder.status === "preparing" 
+                              ? "bg-amber-500/20 text-amber-400 border border-amber-500/30 font-black cursor-default" 
+                              : "bg-zinc-900 text-zinc-300 border border-zinc-800 hover:bg-zinc-850"
+                          }`}
+                        >
+                          🍳 Cook: Preparing
+                        </button>
+                        
+                        <button
+                          onClick={() => handleMarkAsOutForDelivery(riderActiveOrder.id)}
+                          disabled={loadingActionId !== null || riderActiveOrder.status === "out_for_delivery"}
+                          className={`py-2.5 px-3 rounded-xl font-black uppercase text-[10px] tracking-wider transition cursor-pointer ${
+                            riderActiveOrder.status === "out_for_delivery" 
+                              ? "bg-sky-500/20 text-sky-400 border border-sky-500/30 font-black cursor-default" 
+                              : "bg-zinc-900 text-zinc-300 border border-zinc-800 hover:bg-zinc-850"
+                          }`}
+                        >
+                          🛵 Out For Delivery
+                        </button>
+                      </div>
+                    </div>
+
                     {/* Dynamic ETA settings */}
-                    <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4.5 space-y-3.5">
+                    <div className="bg-zinc-950 border border-zinc-805 rounded-2xl p-4.5 space-y-3.5">
                       <div className="flex items-center gap-1.5 text-[10px] font-black uppercase text-[#FF5C00] tracking-wider">
                         <Clock className="w-3.5 h-3.5 text-orange-500 animate-pulse" /> Set Delivery/Arrival Time (ETA)
                       </div>

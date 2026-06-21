@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { Order } from "../types";
 import { Check, ClipboardList, Clock, ShieldCheck, Heart, ArrowRight, Server, Wrench, User, CalendarDays, MapPin, Compass } from "lucide-react";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "../firebase";
 
 interface OrderTrackerProps {
   order: Order;
@@ -193,22 +195,55 @@ export default function OrderTracker({ order, onClose }: OrderTrackerProps) {
     );
   };
 
-  const renderLocationTracking = () => {
-    if (!order.userCoords) return null;
+  const [updatingLocation, setUpdatingLocation] = useState(false);
 
-    const userLat = order.userCoords.latitude;
-    const userLng = order.userCoords.longitude;
+  const handleUpdateCurrentLocation = async () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser status.");
+      return;
+    }
+    setUpdatingLocation(true);
+    try {
+      alert("Fetching high-precision GPS signal... Please accept browser location prompts.");
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const coords = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+          const orderRef = doc(db, "orders", order.id);
+          await updateDoc(orderRef, {
+            userCoords: coords
+          });
+          alert("🎯 Success! Precise GPS coordinates updated and synchronized. Your delivery hero can see your exact pinpoint live on the map!");
+          setUpdatingLocation(false);
+        },
+        (err) => {
+          alert(`GPS Retrieval Fail: ${err.message}. Please try again close to a window.`);
+          setUpdatingLocation(false);
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    } catch (error: any) {
+      alert("Error: " + error.message);
+      setUpdatingLocation(false);
+    }
+  };
+
+  const renderLocationTracking = () => {
+    const hasCoordinates = !!order.userCoords;
+    const userLat = order.userCoords?.latitude || 26.7321; // fallback to general Dadu, Pakistan coords
+    const userLng = order.userCoords?.longitude || 67.7781;
     const riderLat = order.riderCoords?.latitude;
     const riderLng = order.riderCoords?.longitude;
 
     let distanceText = "Awaiting rider GPS tracking signal...";
-    if (userLat && userLng && riderLat && riderLng) {
+    if (hasCoordinates && riderLat && riderLng) {
       const d = calculateDistance(userLat, userLng, riderLat, riderLng);
       if (parseFloat(d) < 1) {
         distanceText = `Rider is extremely nearby! About ${(parseFloat(d) * 1000).toFixed(0)} meters away.`;
       } else {
         distanceText = `Rider is currently ${d} km away from your pinpoint.`;
       }
+    } else if (!hasCoordinates) {
+      distanceText = "GPS Pin not locked! Pointing to written address area.";
     }
 
     return (
@@ -220,6 +255,25 @@ export default function OrderTracker({ order, onClose }: OrderTrackerProps) {
           </div>
           <MapPin className="w-4 h-4 text-[#D70F64]" />
         </div>
+
+        {!hasCoordinates && (
+          <div className="bg-amber-500/10 border border-amber-500/20 p-3.5 rounded-2xl space-y-2.5 text-xs">
+            <span className="text-amber-500 font-black flex items-center gap-1 uppercase tracking-wider text-[10px]">
+              ⚠️ GPS Pinpoint Missing
+            </span>
+            <p className="text-[10px] text-zinc-350 leading-relaxed font-semibold">
+              Rider will navigate to your written address: <span className="text-zinc-105 font-extrabold font-mono underline">"{order.userAddress}"</span>. 
+              Applying your precise live GPS doorstep helper coordinates ensures 100% accurate foodpanda delivery right to your door!
+            </p>
+            <button
+              onClick={handleUpdateCurrentLocation}
+              disabled={updatingLocation}
+              className="bg-[#D70F64] hover:bg-[#b00c50] text-white font-black text-[9.5px] uppercase tracking-wider py-1.5 px-3 rounded-lg transition active:scale-95 disabled:opacity-50 cursor-pointer"
+            >
+              {updatingLocation ? "Locking Location..." : "📍 Lock My Precise GPS Doorstep Pin Now"}
+            </button>
+          </div>
+        )}
 
         {/* 100% Inline Interactive Night-themed OpenStreetMap tracker, eliminates opening external page! */}
         <div className="relative w-full h-80 rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl bg-zinc-950">
@@ -265,7 +319,7 @@ export default function OrderTracker({ order, onClose }: OrderTrackerProps) {
             )}
             <div className="flex items-center gap-1 border-t border-zinc-900 pt-1 mt-1 font-extrabold text-[8.5px]">
               <span className="text-orange-500 text-xs">🏠</span>
-              <span>Your Doorstep Pinpoint</span>
+              <span>{hasCoordinates ? "Your Doorstep Pinpoint" : "Written Address Area"}</span>
             </div>
           </div>
           
@@ -314,7 +368,10 @@ export default function OrderTracker({ order, onClose }: OrderTrackerProps) {
         {/* External fallback triggers */}
         <div className="grid grid-cols-2 gap-2 text-[10.5px]">
           <a
-            href={`https://www.google.com/maps/search/?api=1&query=${userLat},${userLng}`}
+            href={hasCoordinates 
+              ? `https://www.google.com/maps/search/?api=1&query=${userLat},${userLng}`
+              : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.userAddress)}`
+            }
             target="_blank"
             rel="noopener noreferrer"
             className="bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 py-2 px-3 rounded-xl transition text-center font-extrabold text-zinc-250 block shadow-xs"
