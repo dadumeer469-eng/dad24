@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { 
-  collection, query, where, onSnapshot, doc, updateDoc, Timestamp 
+  collection, query, where, onSnapshot, doc, updateDoc, Timestamp, addDoc
 } from "firebase/firestore";
 import { db, handleFirestoreError } from "../firebase";
 import { Order, UserProfile } from "../types";
@@ -21,6 +21,7 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
   const [selectedHistoryDate, setSelectedHistoryDate] = useState<string | null>(null);
   const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
+  const [etaInputs, setEtaInputs] = useState<{ [orderId: string]: string }>({});
 
   // sound buzzer for notification when new available order arrives
   const playContinuousAlarm = () => {
@@ -497,6 +498,49 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
                             <span className="text-zinc-400 font-mono">Rs. {item.price * item.quantity}</span>
                           </div>
                         ))}
+                      </div>
+                    </div>
+
+                    {/* Dynamic ETA settings */}
+                    <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4.5 space-y-3.5">
+                      <div className="flex items-center gap-1.5 text-[10px] font-black uppercase text-[#FF5C00] tracking-wider">
+                        <Clock className="w-3.5 h-3.5 text-orange-500 animate-pulse" /> Set Delivery/Arrival Time (ETA)
+                      </div>
+                      <p className="text-[10px] text-zinc-400 font-semibold leading-relaxed">
+                        Let the customer know when they can expect their food/repair arrival! Updates the live map dashboard instantly.
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          placeholder="e.g. 15 mins, 25 mins, 9:30 PM"
+                          value={etaInputs[riderActiveOrder.id] !== undefined ? etaInputs[riderActiveOrder.id] : (riderActiveOrder.eta || "")}
+                          onChange={(e) => setEtaInputs({ ...etaInputs, [riderActiveOrder.id]: e.target.value })}
+                          className="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-[#FF5C00] transition"
+                        />
+                        <button
+                          onClick={async () => {
+                            const value = etaInputs[riderActiveOrder.id] !== undefined ? etaInputs[riderActiveOrder.id] : (riderActiveOrder.eta || "");
+                            try {
+                              await updateDoc(doc(db, "orders", riderActiveOrder.id), {
+                                eta: value
+                              });
+                              // Also dispatch an in-app notification to buyer
+                              await addDoc(collection(db, "notifications"), {
+                                userId: riderActiveOrder.userId,
+                                title: "🛵 Delivery ETA Time Updated!",
+                                message: `Your rider ${currentUser.name} updated the order arrival ETA: ${value}`,
+                                createdAt: { seconds: Date.now() / 1000 },
+                                read: false,
+                              });
+                              alert("⏱️ Delivery ETA updated & synchronized with customer profile!");
+                            } catch (err: any) {
+                              alert("Failed to update ETA: " + err.message);
+                            }
+                          }}
+                          className="bg-[#FF5C00] hover:bg-[#d44d00] text-zinc-950 font-black text-xs uppercase px-4 py-2 rounded-xl transition cursor-pointer active:scale-95"
+                        >
+                          Update Time
+                        </button>
                       </div>
                     </div>
 

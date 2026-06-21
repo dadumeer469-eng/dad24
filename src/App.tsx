@@ -420,6 +420,11 @@ export default function App() {
         onClearNotifications={handleClearNotificationsAll}
         activeCategory={activeCategory}
         setActiveCategory={setActiveCategory}
+        orders={orders.filter(o => o.status !== "delivered" && o.status !== "completed" && o.status !== "cancelled")}
+        onTrackOrder={(order) => {
+          setActiveTrackingOrder(order);
+          setIsTrackingModalOpen(true);
+        }}
       />
 
       {currentUser?.role === "rider" ? (

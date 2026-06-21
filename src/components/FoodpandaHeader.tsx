@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { UserProfile, AppNotification } from "../types";
+import { UserProfile, AppNotification, Order } from "../types";
 import { Search, ShoppingBag, User, LogOut, Phone, Bell, ShieldAlert, BadgeCheck } from "lucide-react";
 
 interface FoodpandaHeaderProps {
@@ -16,6 +16,8 @@ interface FoodpandaHeaderProps {
   onClearNotifications: () => void;
   activeCategory?: string;
   setActiveCategory?: (cat: string) => void;
+  orders?: Order[];
+  onTrackOrder?: (order: Order) => void;
 }
 
 export default function FoodpandaHeader({
@@ -32,6 +34,8 @@ export default function FoodpandaHeader({
   onClearNotifications,
   activeCategory,
   setActiveCategory,
+  orders = [],
+  onTrackOrder,
 }: FoodpandaHeaderProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -191,6 +195,34 @@ export default function FoodpandaHeader({
                     Orders Placed: {user.ordersCount || 0}
                   </div>
                 </div>
+
+                {/* Active Placed Orders List inside User profile dropdown */}
+                {orders && orders.length > 0 && (
+                  <div className="p-2 border-b border-zinc-800 bg-zinc-950/40">
+                    <span className="text-[8.5px] uppercase font-black tracking-widest text-[#D70F64] px-1.5 block mb-1">
+                      Live Delivery Tracker
+                    </span>
+                    <div className="max-h-36 overflow-y-auto space-y-1">
+                      {orders.map((o) => (
+                        <button
+                          key={o.id}
+                          onClick={() => {
+                            setShowUserMenu(false);
+                            if (onTrackOrder) onTrackOrder(o);
+                          }}
+                          className="w-full text-left p-1.5 rounded-lg hover:bg-zinc-800/80 transition text-[10.5px] font-bold flex items-center justify-between border border-zinc-850 cursor-pointer"
+                        >
+                          <span className="truncate max-w-[110px] text-zinc-300">
+                            dadu-{o.id.substring(0, 5)}
+                          </span>
+                          <span className="text-[8px] font-black uppercase text-pink-400 bg-pink-950/30 px-1 py-0.5 rounded leading-none shrink-0 border border-pink-900/30">
+                            {o.status === "out_for_delivery" ? "Transit 🛵" : o.status === "preparing" ? "Kitchen 🍳" : o.status === "accepted" ? "Cook 🍳" : "Placed"}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="p-1 bg-zinc-900">
                   {user.role === "admin" && (

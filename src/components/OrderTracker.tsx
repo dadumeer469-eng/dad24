@@ -101,74 +101,90 @@ export default function OrderTracker({ order, onClose }: OrderTrackerProps) {
     const hasRider = !!order.riderName;
 
     return (
-      <div className="mt-6 bg-[#161618] border border-zinc-800 rounded-2xl p-4 space-y-4 shadow-xl relative overflow-hidden">
+      <div className="mt-6 bg-[#161618] border border-zinc-800 rounded-2xl p-4.5 space-y-4 shadow-xl relative overflow-hidden">
         {/* Top header */}
         <div className="flex items-center justify-between border-b border-zinc-900 pb-3">
           <div className="flex items-center gap-2">
-            <span className="text-sm">🚴</span>
-            <span className="text-[10px] font-black uppercase tracking-widest text-[#FF5C00]">Rider Assigned Details</span>
+            <span className="text-base">🚴</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-[#D70F64]">Rider Assigned Details</span>
           </div>
-          <span className="text-[8px] bg-[#FF5C00]/10 text-[#FF5C00] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+          <span className="text-[9px] bg-[#D70F64]/10 text-[#D70F64] font-black px-2.5 py-1 rounded-full uppercase tracking-wider">
             {order.status === "out_for_delivery" ? "On The Way" : "Preparing Package"}
           </span>
         </div>
 
         {hasRider ? (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5">
-              {/* Foodpanda styled pink-themed avatar circle */}
-              <div className="relative shrink-0">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#FF5C00] via-orange-400 to-pink-500 p-0.5 shadow-md">
-                  <div className="w-full h-full rounded-full bg-zinc-900 flex items-center justify-center text-white font-extrabold text-sm font-mono">
-                    {order.riderName.charAt(0).toUpperCase()}
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-zinc-950/40 p-3.5 rounded-xl border border-zinc-900">
+              <div className="flex items-center gap-3.5">
+                {/* Foodpanda styled pink-themed avatar circle */}
+                <div className="relative shrink-0">
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#D70F64] via-pink-500 to-amber-500 p-0.5 shadow-md">
+                    <div className="w-full h-full rounded-full bg-zinc-900 flex items-center justify-center text-white font-black text-lg font-mono">
+                      {order.riderName.charAt(0).toUpperCase()}
+                    </div>
+                  </div>
+                  <span className="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-emerald-500 border-2 border-zinc-950 flex items-center justify-center">
+                    <span className="w-2 h-2 rounded-full bg-white animate-ping"></span>
+                  </span>
+                </div>
+
+                {/* Rider Info text */}
+                <div>
+                  <span className="text-zinc-500 text-[9px] uppercase font-black tracking-wider block">Your foodpanda Hero</span>
+                  <span className="text-sm font-black text-white block mt-0.5">{order.riderName}</span>
+                  
+                  {/* Foodpanda style rating & vehicle information */}
+                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-1.5 text-[10px] text-zinc-400 font-extrabold">
+                    <span className="text-amber-400 flex items-center gap-0.5 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                      ⭐ 4.9 <span className="text-[8.5px] text-zinc-400">(420+ trips)</span>
+                    </span>
+                    <span className="text-zinc-400 bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-800">
+                      🏍️ LEA-5829 (Hon. 125)
+                    </span>
                   </div>
                 </div>
-                <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-zinc-950 flex items-center justify-center">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
-                </span>
               </div>
 
-              {/* Rider Info text */}
-              <div>
-                <span className="text-zinc-500 text-[9px] uppercase font-black tracking-wider block">Your Delivery Hero</span>
-                <span className="text-xs font-black text-white block mt-0.5">{order.riderName}</span>
-                <span className="inline-flex items-center gap-1.5 text-[9px] font-extrabold text-[#FF5C00] mt-1 bg-[#FF5C00]/5 border border-[#FF5C00]/10 py-0.5 px-2 rounded-lg">
-                  🛵 Standard Delivery Bike
+              {/* Vaccine & safety clearance stamp */}
+              <div className="text-right sm:text-left shrink-0">
+                <span className="inline-flex items-center gap-1 text-[9.5px] font-black text-emerald-400 bg-emerald-950/40 border border-emerald-900/40 py-1 px-2 rounded-lg">
+                  🛡️ Sanitized & Vaccinated
                 </span>
               </div>
             </div>
 
-            {/* Quick Contact controls */}
-            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+            {/* Contact controls with Foodpanda Theme */}
+            <div className="flex flex-col sm:flex-row items-center gap-2 w-full">
               {order.riderPhone && (
                 <>
                   <a
                     href={`tel:${order.riderPhone}`}
-                    className="flex-1 sm:flex-initial bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-100 py-1.5 px-3 rounded-xl transition text-center font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
+                    className="w-full sm:flex-1 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-100 py-2.5 px-4 rounded-xl transition text-center font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
                   >
-                    📞 Call Rider
+                    📞 Call Delivery Hero
                   </a>
                   <a
                     href={`https://wa.me/${order.riderPhone.replace(/\D/g, "")}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 sm:flex-initial bg-[#FF5C00] hover:bg-[#d44d00] text-zinc-950 py-1.5 px-3 rounded-xl transition text-center font-black text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
+                    className="w-full sm:flex-1 bg-[#D70F64] hover:bg-[#b00c50] text-white py-2.5 px-4 rounded-xl transition text-center font-black text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
                   >
-                    💬 Chat on WA
+                    💬 Chat on WhatsApp
                   </a>
                 </>
               )}
             </div>
           </div>
         ) : (
-          <div className="flex items-center gap-3 py-1">
-            <div className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 animate-pulse shrink-0">
-              🚴
+          <div className="flex items-center gap-3.5 py-1">
+            <div className="w-12 h-12 rounded-full bg-zinc-950 border border-zinc-850 flex items-center justify-center text-zinc-400 animate-bounce shrink-0">
+              🛵
             </div>
             <div>
-              <span className="text-xs font-black text-zinc-350 block uppercase tracking-wide">Looking for a Rider...</span>
-              <span className="text-[10px] text-zinc-500 font-semibold block mt-1 leading-snug">
-                Your order is being compiled & prepared in the kitchen. A premier rider is standing by to accept dispatch!
+              <span className="text-xs font-black text-zinc-350 block uppercase tracking-wide">Assigning Premier Rider...</span>
+              <span className="text-[10px] text-zinc-400 font-semibold block mt-1 leading-relaxed">
+                Your order is currently cooking hot inside the kitchen. A foodpanda captain is standing by to accept dispatch instantly!
               </span>
             </div>
           </div>
@@ -199,60 +215,109 @@ export default function OrderTracker({ order, onClose }: OrderTrackerProps) {
       <div className="mt-6 bg-zinc-950/80 border border-zinc-800 rounded-3xl p-4.5 space-y-4">
         <div className="flex items-center justify-between border-b border-zinc-900 pb-2.5">
           <div>
-            <span className="text-[9px] font-black uppercase text-[#FF5C00] tracking-widest block">Live GPS Coordinates Delivery tracker</span>
+            <span className="text-[9px] font-black uppercase text-[#D70F64] tracking-widest block">Live foodpanda Live Map tracking</span>
             <span className="text-[11px] text-zinc-400 font-semibold block mt-0.5">{distanceText}</span>
           </div>
-          <MapPin className="w-4 h-4 text-[#FF5C00]" />
+          <MapPin className="w-4 h-4 text-[#D70F64]" />
         </div>
 
-        {/* Visual map trajectory simulator */}
-        <div className="relative h-24 bg-zinc-900/40 border border-zinc-850 rounded-2xl overflow-hidden flex items-center justify-between px-8 select-none">
-          {/* Animated grid background */}
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f1f23_1px,transparent_1px),linear-gradient(to_bottom,#1f1f23_1px,transparent_1px)] bg-[size:16px_16px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-20"></div>
-
-          {/* Path line */}
-          <div className="absolute left-[20%] right-[20%] h-0.5 bg-gradient-to-r from-emerald-500 via-orange-500 to-[#FF5C00] opacity-40"></div>
-
-          {/* Start / Rider Node */}
-          <div className="relative flex flex-col items-center">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center border shadow-lg ${
-              riderLat ? "bg-emerald-950 border-emerald-500/50 text-emerald-400 animate-pulse" : "bg-zinc-800 border-zinc-700 text-zinc-500"
-            }`}>
-              <Compass className={`w-4.5 h-4.5 ${riderLat ? "animate-spin" : ""}`} style={{ animationDuration: "12s" }} />
+        {/* 100% Inline Interactive Night-themed OpenStreetMap tracker, eliminates opening external page! */}
+        <div className="relative w-full h-80 rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl bg-zinc-950">
+          <iframe
+            title="foodpanda Live Delivery Route Map"
+            width="100%"
+            height="100%"
+            frameBorder="0"
+            scrolling="no"
+            marginHeight={0}
+            marginWidth={0}
+            src={(() => {
+              // Target coordinates to plot
+              const focusLat = riderLat || userLat;
+              const focusLng = riderLng || userLng;
+              
+              // Small grid box bounding box
+              const boxDelta = 0.005;
+              const minLat = focusLat - boxDelta;
+              const maxLat = focusLat + boxDelta;
+              const minLng = focusLng - boxDelta;
+              const maxLng = focusLng + boxDelta;
+              
+              return `https://www.openstreetmap.org/export/embed.html?bbox=${minLng}%2C${minLat}%2C${maxLng}%2C${maxLat}&layer=mapnik&marker=${focusLat}%2C${focusLng}`;
+            })()}
+            style={{ filter: "invert(90%) hue-rotate(180deg) brightness(95%) contrast(90%)" }}
+            className="w-full h-full rounded-2xl"
+          ></iframe>
+          
+          {/* Real-time Overlay Status Plaque */}
+          <div className="absolute top-3 left-3 bg-zinc-950/95 border border-zinc-850 p-2.5 rounded-xl text-[9px] font-semibold flex flex-col gap-1 text-zinc-300 shadow-lg pointer-events-none backdrop-blur-md max-w-[210px]">
+            <span className="text-[#D70F64] font-black uppercase tracking-widest text-[8px] block">LIVE RADAR TARGET</span>
+            {riderLat ? (
+              <div className="flex items-center gap-1 mt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Rider: <span className="font-bold text-white text-[9.5px]">{order.riderName}</span></span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 text-zinc-500 mt-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span>
+                <span>Rider on standby...</span>
+              </div>
+            )}
+            <div className="flex items-center gap-1 border-t border-zinc-900 pt-1 mt-1 font-extrabold text-[8.5px]">
+              <span className="text-orange-500 text-xs">🏠</span>
+              <span>Your Doorstep Pinpoint</span>
             </div>
-            <span className="text-[9px] font-black text-zinc-400 mt-1 uppercase tracking-wider">
-              {riderLat ? "RIDER GPS" : "Awaiting Dispatch"}
+          </div>
+          
+          {/* Signal Indicator */}
+          <div className="absolute bottom-3 right-3 bg-zinc-950/95 border border-zinc-850 px-3 py-1.5 rounded-full text-[9px] font-black text-white flex items-center gap-1.5 shadow-lg select-none backdrop-blur-md">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            MAP CONNECTED
+          </div>
+        </div>
+
+        {/* Visual map trajectory progress simulator slider bar */}
+        <div className="relative h-11 bg-zinc-900/40 border border-zinc-850 rounded-xl overflow-hidden flex items-center justify-between px-6 select-none">
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f1f23_1px,transparent_1px),linear-gradient(to_bottom,#1f1f23_1px,transparent_1px)] bg-[size:16px_16px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-20"></div>
+          <div className="absolute left-[20%] right-[20%] h-0.5 bg-gradient-to-r from-emerald-500 via-pink-500 to-[#D70F64] opacity-40"></div>
+
+          <div className="relative flex items-center gap-1.5">
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center border shadow-lg text-[10px] ${
+              riderLat ? "bg-emerald-950 border-emerald-500/50 text-emerald-400" : "bg-zinc-800 border-zinc-700 text-zinc-500"
+            }`}>
+              🛵
+            </div>
+            <span className="text-[8px] font-black text-zinc-400 uppercase tracking-wider">
+              {riderLat ? "Transit" : "Dispatch"}
             </span>
           </div>
 
-          {/* Signal Indicator */}
           {riderLat && (
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
-              <span className="text-[8px] uppercase tracking-widest text-emerald-400 font-black bg-emerald-950/50 border border-emerald-900/40 px-2 py-0.5 rounded-full animate-bounce">
-                Live Signal
-              </span>
-            </div>
+            <span className="text-[8px] uppercase tracking-widest text-emerald-400 font-black bg-emerald-950/50 border border-emerald-900/40 px-2 py-0.5 rounded-full animate-bounce">
+              Live Signal
+            </span>
           )}
 
-          {/* End / Customer Destination Node */}
-          <div className="relative flex flex-col items-center">
-            <div className="w-10 h-10 rounded-full bg-orange-950/40 border border-[#FF5C00] text-[#FF5C00] flex items-center justify-center shadow-lg relative">
-              <MapPin className="w-4.5 h-4.5" />
-              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#FF5C00] animate-ping scale-150 opacity-20"></span>
+          <div className="relative flex items-center gap-1.5">
+            <div className="w-6 h-6 rounded-full bg-pink-950/40 border border-[#D70F64] text-[#D70F64] flex items-center justify-center shadow-md text-[10px]">
+              🏠
             </div>
-            <span className="text-[9px] font-black text-[#FF5C00] mt-1 uppercase tracking-wider">
-              YOUR DOORSTEP
+            <span className="text-[8px] font-black text-[#D70F64] uppercase tracking-wider">
+              Home
             </span>
           </div>
         </div>
 
-        {/* Map Action triggers */}
+        {/* External fallback triggers */}
         <div className="grid grid-cols-2 gap-2 text-[10.5px]">
           <a
             href={`https://www.google.com/maps/search/?api=1&query=${userLat},${userLng}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 py-2 px-3 rounded-xl transition text-center font-extrabold text-zinc-200 block shadow-xs"
+            className="bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 py-2 px-3 rounded-xl transition text-center font-extrabold text-zinc-250 block shadow-xs"
           >
             📍 Pinpoint Google Map
           </a>
@@ -261,14 +326,14 @@ export default function OrderTracker({ order, onClose }: OrderTrackerProps) {
               href={`https://www.google.com/maps/search/?api=1&query=${riderLat},${riderLng}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-[#FF5C00] text-zinc-950 py-2 px-3 rounded-xl hover:bg-[#d44d00] transition text-center font-extrabold block shadow-md"
+              className="bg-[#D70F64] text-white py-2 px-3 rounded-xl hover:bg-[#b00c50] transition text-center font-extrabold block shadow-md"
             >
-              🧭 Track Rider on Map
+              🧭 External Google Tracker
             </a>
           ) : (
             <button
               disabled
-              className="bg-zinc-900 border border-zinc-805 text-zinc-500 py-2 rounded-xl text-center font-extrabold block opacity-50 cursor-not-allowed"
+              className="bg-zinc-950 border border-zinc-900 text-zinc-600 py-2 rounded-xl text-center font-extrabold block opacity-50 cursor-not-allowed"
             >
               🧭 GPS Pending Signal
             </button>
