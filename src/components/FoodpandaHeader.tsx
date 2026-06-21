@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { UserProfile, AppNotification, Order } from "../types";
-import { Search, ShoppingBag, User, LogOut, Phone, Bell, ShieldAlert, BadgeCheck } from "lucide-react";
+import { Search, ShoppingBag, User, LogOut, Phone, Bell, ShieldAlert, BadgeCheck, Download } from "lucide-react";
 
 interface FoodpandaHeaderProps {
   user: UserProfile | null;
@@ -18,6 +18,10 @@ interface FoodpandaHeaderProps {
   setActiveCategory?: (cat: string) => void;
   orders?: Order[];
   onTrackOrder?: (order: Order) => void;
+  onOpenGroceryCart?: () => void;
+  groceryCartCount?: number;
+  activeModule?: "food" | "grocery";
+  setActiveModule?: (mode: "food" | "grocery") => void;
 }
 
 export default function FoodpandaHeader({
@@ -36,6 +40,10 @@ export default function FoodpandaHeader({
   setActiveCategory,
   orders = [],
   onTrackOrder,
+  onOpenGroceryCart = () => {},
+  groceryCartCount = 0,
+  activeModule = "food",
+  setActiveModule,
  }: FoodpandaHeaderProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -135,12 +143,20 @@ export default function FoodpandaHeader({
           className="flex items-center gap-2 shrink-0 cursor-pointer group select-none"
           title={canInstall ? "Tap to Install Dadu Food App" : isIos && !isStandalone ? "Tap to see how to Install App" : "Dadu Food Home"}
         >
-          <div className={`p-2 rounded-xl font-black text-xs sm:text-sm tracking-tight shadow-md flex items-center justify-center transition-all duration-300 relative ${
+          <div className={`p-2 sm:p-2.5 rounded-xl font-black text-xs sm:text-sm tracking-tight shadow-md flex items-center justify-center gap-1.5 transition-all duration-300 relative ${
             (canInstall || (isIos && !isStandalone))
-              ? "bg-[#D70F64] text-white shadow-[0_0_15px_rgba(215,15,100,0.65)] ring-2 ring-pink-500/50 scale-105 active:scale-95 border border-pink-300/40"
+              ? "bg-[#D70F64] text-white shadow-[0_0_20px_rgba(215,15,100,0.8)] ring-2 ring-pink-500/60 scale-105 active:scale-95 border border-pink-300/50"
               : "bg-[#D70F64] text-white group-hover:scale-105 active:scale-95"
           }`}>
-            DF
+            {canInstall || (isIos && !isStandalone) ? (
+              <>
+                <Download className="w-3.5 h-3.5 text-white animate-bounce shrink-0" />
+                <span className="text-[10px] font-black uppercase tracking-wider">Install</span>
+              </>
+            ) : (
+              "DF"
+            )}
+            
             {/* Pulsing indicator when install is available */}
             {(canInstall || (isIos && !isStandalone)) && (
               <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
@@ -152,6 +168,14 @@ export default function FoodpandaHeader({
           <span className="text-base sm:text-xl font-black tracking-tight text-zinc-900">
             DADU<span className="text-[#D70F64]">FOOD</span>
           </span>
+
+          {/* Quick inline pill so user understands they can download/install */}
+          {(canInstall || (isIos && !isStandalone)) && (
+            <span className="inline-flex items-center gap-1 bg-emerald-50/90 text-emerald-700 border border-emerald-200/60 py-0.5 px-2 rounded-full text-[9px] font-black uppercase tracking-wider animate-pulse shadow-xs shrink-0 select-none">
+              <Download className="w-2.5 h-2.5 text-emerald-600" />
+              Download App
+            </span>
+          )}
         </div>
 
         {/* Address and support info - desktop only */}
@@ -231,17 +255,23 @@ export default function FoodpandaHeader({
 
           {/* Dynamic Checkout Cart Trigger */}
           <button
-            onClick={onOpenCart}
-            className="flex items-center gap-1.5 bg-[#D70F64] hover:bg-[#b00c50] transition text-white py-2 px-3.5 rounded-xl text-xs font-black shadow-md cursor-pointer shrink-0"
+            onClick={activeModule === "grocery" ? onOpenGroceryCart : onOpenCart}
+            className={`flex items-center gap-1.5 transition py-2 px-3.5 rounded-xl text-xs font-black shadow-md cursor-pointer shrink-0 ${
+              activeModule === "grocery"
+                ? "bg-orange-600 hover:bg-orange-700 text-white shadow-orange-500/10"
+                : "bg-[#D70F64] hover:bg-[#b00c50] text-white"
+            }`}
           >
             <ShoppingBag className="w-4 h-4" />
-            <span className="hidden md:inline">Cart</span>
+            <span className="hidden md:inline">{activeModule === "grocery" ? "Basket" : "Cart"}</span>
             <span className="bg-white/20 px-1.5 py-0.5 rounded-md text-[10px] font-bold">
-              {cartCount}
+              {activeModule === "grocery" ? groceryCartCount : cartCount}
             </span>
-            <span className="hidden leading-none lg:inline ml-0.5 border-l border-white/20 pl-1.5">
-              Rs. {cartTotal}
-            </span>
+            {activeModule !== "grocery" && (
+              <span className="hidden leading-none lg:inline ml-0.5 border-l border-white/20 pl-1.5">
+                Rs. {cartTotal}
+              </span>
+            )}
           </button>
 
           {/* User Account Circle Dropdown */}

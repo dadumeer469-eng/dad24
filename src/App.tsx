@@ -4,7 +4,7 @@ import {
   collection, doc, onSnapshot, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, getDocs 
 } from "firebase/firestore";
 import { auth, db, handleFirestoreError, cleanObject } from "./firebase";
-import { Dish, Order, UserProfile, SystemSettings, AppNotification, OrderItem } from "./types";
+import { Dish, Order, UserProfile, SystemSettings, AppNotification, OrderItem, GroceryCategory, GroceryProduct, GroceryOrderItem, GroceryDeliveryConfig, GroceryOrder } from "./types";
 import { INITIAL_MENU_ITEMS } from "./data";
 
 // Import modules
@@ -15,6 +15,8 @@ import OrderTracker from "./components/OrderTracker";
 import AdminPanel from "./components/AdminPanel";
 import AuthModal from "./components/AuthModal";
 import RiderPanel from "./components/RiderPanel";
+import GroceryModule from "./components/GroceryModule";
+import GroceryCartDrawer from "./components/GroceryCartDrawer";
 
 // Icons & Motion
 import { 
@@ -30,6 +32,18 @@ export default function App() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [deliverySettings, setDeliverySettings] = useState<SystemSettings>({ deliveryFee: 50 });
+
+  // Standalone Grocery Module states
+  const [activeModule, setActiveModule] = useState<"food" | "grocery">("food");
+  const [groceryCategories, setGroceryCategories] = useState<GroceryCategory[]>([]);
+  const [groceryProducts, setGroceryProducts] = useState<GroceryProduct[]>([]);
+  const [groceryDeliveryConfig, setGroceryDeliveryConfig] = useState<GroceryDeliveryConfig>({
+    baseDeliveryFee: 40,
+    freeDeliveryAboveAmount: 1000,
+    allowMixedCart: false,
+  });
+  const [groceryCartItems, setGroceryCartItems] = useState<GroceryOrderItem[]>([]);
+  const [isGroceryCartOpen, setIsGroceryCartOpen] = useState(false);
 
   // Navigation / Toggles
   const [activeCategory, setActiveCategory] = useState<string>("All");
@@ -188,6 +202,71 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
+  // 3a. Real-time Grocery Categories Listening
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, "groceryCategories"), (snapshot) => {
+      const list: GroceryCategory[] = [];
+      snapshot.forEach((doc) => {
+        list.push(doc.data() as GroceryCategory);
+      });
+      list.sort((a, b) => (a.position || 0) - (b.position || 0));
+      setGroceryCategories(list);
+    }, (err) => {
+      console.error(handleFirestoreError(err));
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // 3b. Real-time Grocery Products Listening
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, "groceryProducts"), (snapshot) => {
+      const list: GroceryProduct[] = [];
+      snapshot.forEach((doc) => {
+        list.push(doc.data() as GroceryProduct);
+      });
+      setGroceryProducts(list);
+    }, (err) => {
+      console.error(handleFirestoreError(err));
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // 3c. Real-time Grocery Delivery Config Listening
+  useEffect(() => {
+    const unsubscribe = onSnapshot(doc(db, "settings", "groceryDeliveryConfig"), (docSnap) => {
+      if (docSnap.exists()) {
+        setGroceryDeliveryConfig(docSnap.data() as GroceryDeliveryConfig);
+      } else {
+        // Seed default
+        setDoc(doc(db, "settings", "groceryDeliveryConfig"), {
+          baseDeliveryFee: 40,
+          freeDeliveryAboveAmount: 1000,
+          allowMixedCart: false
+        }).catch(console.error);
+      }
+    }, (err) => {
+      console.error(handleFirestoreError(err));
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // 3d. Grocery cart LocalStorage Sync
+  useEffect(() => {
+    const saved = localStorage.getItem("dadu_grocery_cart");
+    if (saved) {
+      try {
+        setGroceryCartItems(JSON.parse(saved));
+      } catch (e) {
+        console.warn("Parsing grocery cart failed:", e);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("dadu_grocery_cart", JSON.stringify(groceryCartItems));
+  }, [groceryCartItems]);
+
+
   // 4. Real-time Orders & Notification Listeners
   useEffect(() => {
     if (!currentUser) {
@@ -282,6 +361,18 @@ export default function App() {
 
   // --- CART CONTROLLER OPERATIONS ---
   const handleAddToCart = (dish: Dish) => {
+    // Check if mixed cart is allowed
+    if (!groceryDeliveryConfig?.allowMixedCart && groceryCartItems.length > 0) {
+      const clearGrocery = window.confirm(
+        "🛒 DISALLOW MIXED BASKET!\n\nYour basket currently contains Grocery products. Dadu Food requires separate delivery runs for hot kitchen meals and retail groceries.\n\nWould you like to auto-clear your Grocery Basket to start your Food order?"
+      );
+      if (clearGrocery) {
+        setGroceryCartItems([]);
+      } else {
+        return;
+      }
+    }
+
     setCartItems((prev) => {
       const existing = prev.find((item) => item.dishId === dish.id);
       if (existing) {
@@ -302,6 +393,118 @@ export default function App() {
     // Open cart drawer for rapid visibility
     setIsCartOpen(true);
   };
+
+  const handleAddToGroceryCart = (product: GroceryProduct, quantity = 1) => {
+    // Check if mixed cart is allowed
+    if (!groceryDeliveryConfig?.allowMixedCart && cartItems.length > 0) {
+      const clearFood = window.confirm(
+        "🛒 DISALLOW MIXED BASKET!\n\nYour basket currently contains Food items. Dadu Food requires separate delivery runs for hot kitchen meals and retail groceries.\n\nWould you like to auto-clear your Food Cart to start your Grocery purchase?"
+      );
+      if (clearFood) {
+        setCartItems([]);
+      } else {
+        return;
+      }
+    }
+
+    setGroceryCartItems((prev) => {
+      const existingIdx = prev.findIndex((item) => item.productId === product.id);
+      if (existingIdx > -1) {
+        const updated = [...prev];
+        updated[existingIdx].quantity += quantity;
+        return updated;
+      } else {
+        return [
+          ...prev,
+          {
+            productId: product.id,
+            name: product.name,
+            imageUrl: product.imageUrl,
+            price: product.price,
+            discountPrice: product.discountPrice,
+            unit: product.unit,
+            stock: product.stock,
+            quantity: quantity,
+          },
+        ];
+      }
+    });
+
+    setToastNotification({
+      title: "Grocery Basket Updated! 🍏",
+      message: `${product.name} successfully packed into your cart.`,
+    });
+    setTimeout(() => setToastNotification(null), 3000);
+  };
+
+  const handleUpdateGroceryCartQuantity = (productId: string, quantity: number) => {
+    if (quantity <= 0) {
+      handleRemoveFromGroceryCart(productId);
+      return;
+    }
+    setGroceryCartItems((prev) =>
+      prev.map((item) => (item.productId === productId ? { ...item, quantity } : item))
+    );
+  };
+
+  const handleRemoveFromGroceryCart = (productId: string) => {
+    setGroceryCartItems((prev) => prev.filter((item) => item.productId !== productId));
+  };
+
+  const handlePlaceGroceryOrder = async (details: {
+    name: string;
+    phone: string;
+    address: string;
+    items: GroceryOrderItem[];
+    totalPrice: number;
+    deliveryFee: number;
+    grandTotal: number;
+    userCoords?: { latitude: number; longitude: number };
+  }) => {
+    try {
+      const generatedOrderId = `gorder_${Date.now()}`;
+      
+      // Adapt items array representation
+      const adaptedItems = details.items.map(item => ({
+        dishId: item.productId,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        restaurantName: "Dadu Grocery Store"
+      }));
+
+      const orderDoc = {
+        id: generatedOrderId,
+        userId: currentUser?.uid || "guest",
+        name: details.name,
+        phone: details.phone,
+        address: details.address,
+        items: adaptedItems,
+        totalPrice: details.totalPrice,
+        deliveryFee: details.deliveryFee,
+        grandTotal: details.grandTotal,
+        paymentMethod: "cod",
+        status: "placed",
+        orderType: "grocery",
+        createdAt: { seconds: Math.floor(Date.now() / 1000) },
+        userCoords: details.userCoords || null,
+      };
+
+      await setDoc(doc(db, "orders", generatedOrderId), orderDoc);
+      
+      // Clear grocery basket
+      setGroceryCartItems([]);
+      alert("🎉 ALHAMDULILLAH! Your express grocery order is placed successfully! Our staff is packing your fresh shipment.");
+      
+      // Open live package tracker
+      setActiveTrackingOrder(orderDoc as any);
+      setIsTrackingModalOpen(true);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to record grocery order details: " + err);
+    }
+  };
+
 
   const handleUpdateCartQuantity = (dishId: string, qty: number) => {
     if (qty <= 0) {
@@ -560,62 +763,111 @@ export default function App() {
           setActiveTrackingOrder(order);
           setIsTrackingModalOpen(true);
         }}
+        // Pass open cart triggers depending on current view mode
+        onOpenGroceryCart={() => setIsGroceryCartOpen(true)}
+        groceryCartCount={groceryCartItems.reduce((acc, i) => acc + i.quantity, 0)}
+        activeModule={activeModule}
+        setActiveModule={setActiveModule}
       />
 
       {currentUser?.role === "rider" ? (
         <RiderPanel currentUser={currentUser} onLogout={() => signOut(auth)} />
       ) : !isAdminConsoleOpen ? (
         <div className="flex-1">
-          {/* Billboard / category selectors */}
-          <FoodpandaHero activeCategory={activeCategory} setActiveCategory={setActiveCategory} />
+          
+          {/* Module Switcher Tabs - Direct & Tactile selection */}
+          <div className="max-w-7xl mx-auto px-4 mt-6">
+            <div className="bg-zinc-150 p-1 rounded-2xl flex gap-1.5 border border-zinc-200/60 shadow-xs relative overflow-hidden max-w-sm sm:max-w-md mx-auto">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveModule("food");
+                  setActiveCategory("All");
+                }}
+                className={`flex-1 py-2 sm:py-3 text-[10.5px] font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  activeModule === "food"
+                    ? "bg-[#D70F64] text-white shadow-md scale-[1.01]"
+                    : "text-zinc-600 hover:bg-zinc-200/50 hover:text-zinc-805"
+                }`}
+              >
+                <span className="text-sm">🍔</span>
+                <span>Dadu Kitchen</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveModule("grocery");
+                }}
+                className={`flex-1 py-2 sm:py-3 text-[10.5px] font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  activeModule === "grocery"
+                    ? "bg-orange-600 text-white shadow-md scale-[1.01]"
+                    : "text-zinc-650 hover:bg-zinc-200/50 hover:text-orange-600"
+                }`}
+              >
+                <span className="text-xs">🍏</span>
+                <span>Fresh Groceries</span>
+                {groceryCartItems.length > 0 && (
+                  <span className="bg-orange-500 text-white font-mono text-[9px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center animate-pulse leading-none shrink-0 font-black">
+                    {groceryCartItems.reduce((acc, i) => acc + i.quantity, 0)}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
 
-          {/* Active Order Banner Card */}
-          {(() => {
-            const activeOrderForBanner = orders.find(
-              (o) => o.status !== "delivered" && o.status !== "completed" && o.status !== "cancelled"
-            );
-            if (!currentUser || !activeOrderForBanner) return null;
+          {activeModule === "food" ? (
+            <>
+              {/* Billboard / category selectors */}
+              <FoodpandaHero activeCategory={activeCategory} setActiveCategory={setActiveCategory} />
 
-            return (
-              <div className="max-w-7xl mx-auto px-4 mt-6">
-                <div 
-                  onClick={() => {
-                    setActiveTrackingOrder(activeOrderForBanner);
-                    setIsTrackingModalOpen(true);
-                  }}
-                  className="bg-white border-2 border-[#D70F64] p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 cursor-pointer hover:bg-zinc-50 transition-all shadow-xl shadow-pink-500/5 group"
-                >
-                  <div className="flex items-center gap-4.5 w-full sm:w-auto">
-                    <div className="w-12 h-12 rounded-full bg-[#D70F64]/10 border border-[#D70F64]/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition duration-300">
-                      🛵
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-[#D70F64] block">Active Placed Order Tracking Live</span>
-                      <h4 className="text-xs sm:text-sm font-black text-zinc-800 mt-1 leading-normal truncate">
-                        Your Order <span className="font-mono text-zinc-500 font-bold">dadu-{activeOrderForBanner.id.substring(0, 5)}...</span> is currently <span className="text-[#D70F64] uppercase font-bold">{activeOrderForBanner.status === "out_for_delivery" ? "With Foodpanda Rider" : activeOrderForBanner.status === "preparing" ? "Cooking in Kitchen" : "Confirmed & Accepted"}</span>
-                      </h4>
-                      {activeOrderForBanner.riderName ? (
-                        <div className="flex items-center gap-1.5 mt-1">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                          <span className="text-[10px] text-zinc-500 font-extrabold truncate">
-                            Rider assigned: <span className="text-[#D70F64] font-black">{activeOrderForBanner.riderName}</span> ({activeOrderForBanner.riderPhone})
-                          </span>
+              {/* Active Order Banner Card */}
+              {(() => {
+                const activeOrderForBanner = orders.find(
+                  (o) => o.status !== "delivered" && o.status !== "completed" && o.status !== "cancelled"
+                );
+                if (!currentUser || !activeOrderForBanner) return null;
+
+                return (
+                  <div className="max-w-7xl mx-auto px-4 mt-6">
+                    <div 
+                      onClick={() => {
+                        setActiveTrackingOrder(activeOrderForBanner);
+                        setIsTrackingModalOpen(true);
+                      }}
+                      className="bg-white border-2 border-[#D70F64] p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 cursor-pointer hover:bg-zinc-50 transition-all shadow-xl shadow-pink-500/5 group"
+                    >
+                      <div className="flex items-center gap-4.5 w-full sm:w-auto">
+                        <div className="w-12 h-12 rounded-full bg-[#D70F64]/10 border border-[#D70F64]/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition duration-300">
+                          🛵
                         </div>
-                      ) : (
-                        <span className="text-[10px] text-zinc-400 font-bold block mt-1">
-                          ⏳ Assigning driver to your neighborhood...
-                        </span>
-                      )}
+                        <div className="flex-1 min-w-0">
+                          <span className="text-[9px] font-black uppercase tracking-widest text-[#D70F64] block">Active Placed Order Tracking Live</span>
+                          <h4 className="text-xs sm:text-sm font-black text-zinc-800 mt-1 leading-normal truncate">
+                            Your Order <span className="font-mono text-zinc-500 font-bold">dadu-{activeOrderForBanner.id.substring(0, 5)}...</span> is currently <span className="text-[#D70F64] uppercase font-bold">{activeOrderForBanner.status === "out_for_delivery" ? "With Foodpanda Rider" : activeOrderForBanner.status === "preparing" ? "Cooking in Kitchen" : "Confirmed & Accepted"}</span>
+                          </h4>
+                          {activeOrderForBanner.riderName ? (
+                            <div className="flex items-center gap-1.5 mt-1">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                              <span className="text-[10px] text-zinc-500 font-extrabold truncate">
+                                Rider assigned: <span className="text-[#D70F64] font-black">{activeOrderForBanner.riderName}</span> ({activeOrderForBanner.riderPhone})
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-zinc-400 font-bold block mt-1">
+                              ⏳ Assigning driver to your neighborhood...
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <button className="w-full sm:w-auto bg-[#D70F64] text-white text-xs font-black uppercase tracking-widest px-5 py-3 rounded-xl hover:bg-[#b00c50] transition active:scale-95 shrink-0 shadow-md">
+                        Track Live Map 🧭
+                      </button>
                     </div>
                   </div>
-                  
-                  <button className="w-full sm:w-auto bg-[#D70F64] text-white text-xs font-black uppercase tracking-widest px-5 py-3 rounded-xl hover:bg-[#b00c50] transition active:scale-95 shrink-0 shadow-md">
-                    Track Live Map 🧭
-                  </button>
-                </div>
-              </div>
-            );
-          })()}
+                );
+              })()}
+
 
           {/* Catalog Listing */}
           <main className="max-w-7xl mx-auto px-4 py-6">
@@ -850,7 +1102,19 @@ export default function App() {
 
             </div>
           </main>
-        </div>
+          </>
+        ) : (
+          <GroceryModule
+            categories={groceryCategories}
+            products={groceryProducts}
+            onAddToCart={handleAddToGroceryCart}
+            cartItems={groceryCartItems}
+            onUpdateCartQuantity={handleUpdateGroceryCartQuantity}
+            onRemoveFromCart={handleRemoveFromGroceryCart}
+            searchQuery={searchQuery}
+          />
+        )}
+      </div>
       ) : (
         /* TAB 2: Secure Administrative Console Overlay */
         <AdminPanel
@@ -859,6 +1123,9 @@ export default function App() {
           onClose={() => setIsAdminConsoleOpen(false)}
           adminUsername="meerali120"
           deliverySettings={deliverySettings}
+          groceryCategories={groceryCategories}
+          groceryProducts={groceryProducts}
+          groceryDeliveryConfig={groceryDeliveryConfig}
         />
       )}
 
@@ -874,6 +1141,20 @@ export default function App() {
         deliveryFee={deliverySettings.deliveryFee}
         onPlaceOrder={handlePlaceOrderSubmit}
       />
+
+      {/* Standalone Grocery Basket Drawer */}
+      <GroceryCartDrawer
+        isOpen={isGroceryCartOpen}
+        onClose={() => setIsGroceryCartOpen(false)}
+        cartItems={groceryCartItems}
+        onUpdateQuantity={handleUpdateGroceryCartQuantity}
+        onRemoveItem={handleRemoveFromGroceryCart}
+        currentUser={currentUser}
+        onOpenAuth={() => setIsAuthOpen(true)}
+        deliveryConfig={groceryDeliveryConfig}
+        onPlaceGroceryOrder={handlePlaceGroceryOrder}
+      />
+
 
       {/* Secure AuthModal logins */}
       <AuthModal

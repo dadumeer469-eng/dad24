@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { UserProfile, Dish, Order, SystemSettings, AppNotification } from "../types";
+import { UserProfile, Dish, Order, SystemSettings, AppNotification, GroceryCategory, GroceryProduct, GroceryDeliveryConfig } from "../types";
 import { 
   doc, setDoc, deleteDoc, collection, addDoc, updateDoc, query, where, onSnapshot, getDocs, getFirestore
 } from "firebase/firestore";
@@ -12,7 +12,7 @@ import {
 import { 
   Plus, Settings, LayoutDashboard, ShoppingCart, ListCollapse, ToggleLeft, ToggleRight, Trash2, 
   HelpCircle, RefreshCw, Smartphone, TrendingUp, DollarSign, Package, CheckCheck, Save, Send, EyeOff, Wrench,
-  UserPlus, User, Loader2, Key, Truck, Compass, Phone
+  UserPlus, User, Loader2, Key, Truck, Compass, Phone, ShoppingBasket
 } from "lucide-react";
 
 interface AdminPanelProps {
@@ -21,6 +21,9 @@ interface AdminPanelProps {
   onClose: () => void;
   adminUsername: string;
   deliverySettings: SystemSettings;
+  groceryCategories: GroceryCategory[];
+  groceryProducts: GroceryProduct[];
+  groceryDeliveryConfig: GroceryDeliveryConfig;
 }
 
 export default function AdminPanel({
@@ -29,11 +32,37 @@ export default function AdminPanel({
   onClose,
   adminUsername,
   deliverySettings,
+  groceryCategories = [],
+  groceryProducts = [],
+  groceryDeliveryConfig,
 }: AdminPanelProps) {
-  const [activeSubTab, setActiveSubTab] = useState<"analytics" | "items" | "orders" | "riders">("analytics");
+  const [activeSubTab, setActiveSubTab] = useState<"analytics" | "items" | "orders" | "riders" | "grocery">("analytics");
   
   // Delivery config state
   const [deliveryChargeInput, setDeliveryChargeInput] = useState(deliverySettings?.deliveryFee || 50);
+
+  // Grocery settings inputs
+  const [gBaseDeliveryFee, setGBaseDeliveryFee] = useState(groceryDeliveryConfig?.baseDeliveryFee || 40);
+  const [gFreeDeliveryAbove, setGFreeDeliveryAbove] = useState(groceryDeliveryConfig?.freeDeliveryAboveAmount || 1000);
+  const [gAllowMixed, setGAllowMixed] = useState(groceryDeliveryConfig?.allowMixedCart ?? false);
+
+  // Form states for adding grocery category
+  const [newCatName, setNewCatName] = useState("");
+  const [newCatPosition, setNewCatPosition] = useState(1);
+
+  // Form states for adding grocery product
+  const [newGProdName, setNewGProdName] = useState("");
+  const [newGProdImageUrl, setNewGProdImageUrl] = useState("");
+  const [newGProdPrice, setNewGProdPrice] = useState<number>(100);
+  const [newGProdDiscountPrice, setNewGProdDiscountPrice] = useState<number>(0);
+  const [newGProdUnit, setNewGProdUnit] = useState<"kg" | "litre" | "piece" | "pack">("kg");
+  const [newGProdStock, setNewGProdStock] = useState<number>(10);
+  const [newGProdCategoryId, setNewGProdCategoryId] = useState("");
+
+  // Edit grocery states
+  const [editingGProductId, setEditingGProductId] = useState<string | null>(null);
+  const [editingGProdPriceInput, setEditingGProdPriceInput] = useState<number>(0);
+  const [editingGProdStockInput, setEditingGProdStockInput] = useState<number>(0);
 
   // Form states for adding items
   const [newItemName, setNewItemName] = useState("");
@@ -78,6 +107,15 @@ export default function AdminPanel({
     });
     return () => unsubscribe();
   }, []);
+
+  // Sync state with incoming props real-time
+  useEffect(() => {
+    if (groceryDeliveryConfig) {
+      setGBaseDeliveryFee(groceryDeliveryConfig.baseDeliveryFee);
+      setGFreeDeliveryAbove(groceryDeliveryConfig.freeDeliveryAboveAmount);
+      setGAllowMixed(groceryDeliveryConfig.allowMixedCart);
+    }
+  }, [groceryDeliveryConfig]);
 
   // Secure Rider Creator - Simplified to Name, Phone/Username, and Password as requested by user
   const handleRegisterRiderSubmit = async (e: React.FormEvent) => {
@@ -300,6 +338,122 @@ export default function AdminPanel({
       alert("Permission denied or Firestore configuration missing while saving settings.");
     }
   };
+
+  // Grocery Settings update
+  const handleSaveGroceryConfig = async () => {
+    try {
+      await setDoc(doc(db, "settings", "groceryDeliveryConfig"), {
+        baseDeliveryFee: Number(gBaseDeliveryFee),
+        freeDeliveryAboveAmount: Number(gFreeDeliveryAbove),
+        allowMixedCart: Boolean(gAllowMixed)
+      });
+      alert("Grocery store settings saved successfully!");
+    } catch (err) {
+      console.error(err);
+      alert("Error saving grocery delivery settings.");
+    }
+  };
+
+  // Helper: Create Grocery category
+  const handleAddGroceryCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCatName.trim()) return;
+    try {
+      const generatedId = `gcat_${Date.now()}`;
+      await setDoc(doc(db, "groceryCategories", generatedId), {
+        id: generatedId,
+        name: newCatName.trim(),
+        isAvailable: true,
+        position: Number(newCatPosition)
+      });
+      setNewCatName("");
+      setNewCatPosition(prev => prev + 1);
+      alert(`Category "${newCatName}" added successfully!`);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to add grocery category.");
+    }
+  };
+
+  // Helper: Create Grocery product
+  const handleAddGroceryProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newGProdName.trim() || !newGProdCategoryId) {
+      alert("Please provide product name and choose a valid category.");
+      return;
+    }
+    try {
+      const generatedId = `gprod_${Date.now()}`;
+      const defaultImg = newGProdImageUrl.trim() || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400";
+      await setDoc(doc(db, "groceryProducts", generatedId), {
+        id: generatedId,
+        name: newGProdName.trim(),
+        imageUrl: defaultImg,
+        price: Number(newGProdPrice),
+        discountPrice: newGProdDiscountPrice ? Number(newGProdDiscountPrice) : undefined,
+        unit: newGProdUnit,
+        stock: Number(newGProdStock),
+        categoryId: newGProdCategoryId,
+        isAvailable: true
+      });
+      setNewGProdName("");
+      setNewGProdImageUrl("");
+      setNewGProdPrice(100);
+      setNewGProdDiscountPrice(0);
+      setNewGProdStock(10);
+      alert(`Product "${newGProdName}" added successfully!`);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to add grocery product.");
+    }
+  };
+
+  const handleToggleCategoryAvailable = async (catId: string, current: boolean) => {
+    try {
+      await updateDoc(doc(db, "groceryCategories", catId), { isAvailable: !current });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteCategory = async (catId: string) => {
+    if (!window.confirm("Are you sure you want to delete this grocery category? All products in it will be orphaned!")) return;
+    try {
+      await deleteDoc(doc(db, "groceryCategories", catId));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleToggleProductAvailable = async (prodId: string, current: boolean) => {
+    try {
+      await updateDoc(doc(db, "groceryProducts", prodId), { isAvailable: !current });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteProduct = async (prodId: string) => {
+    if (!window.confirm("Are you sure you want to delete this grocery product?")) return;
+    try {
+      await deleteDoc(doc(db, "groceryProducts", prodId));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSaveInlineGProductEdit = async (prodId: string) => {
+    try {
+      await updateDoc(doc(db, "groceryProducts", prodId), {
+        price: Number(editingGProdPriceInput),
+        stock: Number(editingGProdStockInput)
+      });
+      setEditingGProductId(null);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
 
   // Create new dish/service (Admin click handles)
   const handleAddNewItem = async (e: React.FormEvent) => {
@@ -554,6 +708,19 @@ export default function AdminPanel({
               <User className="w-4 h-4 shrink-0" />
               Manage Riders Directory
             </button>
+
+            <button
+              onClick={() => setActiveSubTab("grocery")}
+              className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
+                activeSubTab === "grocery" 
+                  ? "bg-orange-500/5 border-orange-500/35 text-orange-500 font-extrabold shadow-[0_0_20px_rgba(249,115,22,0.05)] scale-[1.01]" 
+                  : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-orange-400/90"
+              }`}
+            >
+              <ShoppingBasket className="w-4 h-4 text-orange-500 shrink-0" />
+              Manage Grocery Store
+            </button>
+
           </div>
 
           {/* Quick Stats overview panel */}
@@ -1549,6 +1716,392 @@ export default function AdminPanel({
 
             </div>
           )}
+
+          {activeSubTab === "grocery" && (
+            <div className="space-y-8 animate-fade-in text-zinc-100 col-span-1 lg:col-span-12 lg:col-start-4 font-sans">
+              
+              {/* Top Row: Grocery-specific store settings */}
+              <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl relative space-y-4">
+                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-orange-500/10 to-transparent" />
+                <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 pb-2.5 border-b border-zinc-805/50 uppercase tracking-widest text-orange-500">
+                  <ShoppingBasket className="w-4 h-4 text-orange-500" />
+                  Grocery Delivery Configuration Settings
+                </h4>
+                <p className="text-[10.5px] text-zinc-400 font-medium leading-relaxed">
+                  These metrics govern shipping charges, thresholds, and checkout policies for standalone retail groceries.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4.5 pt-1 text-xs">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Base Shipping Fee</label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-3.5 text-zinc-400 font-bold">Rs.</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={gBaseDeliveryFee}
+                        onChange={(e) => setGBaseDeliveryFee(Number(e.target.value))}
+                        className="w-full pl-10 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-white font-extrabold focus:border-orange-500 transition"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-zinc-405 font-sans">Free Delivery Above</label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-3.5 text-zinc-450 font-bold">Rs.</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={gFreeDeliveryAbove}
+                        onChange={(e) => setGFreeDeliveryAbove(Number(e.target.value))}
+                        className="w-full pl-10 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-white font-extrabold focus:border-orange-500 transition"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block font-sans">Mixed Basket Checkout Policy</span>
+                    <button
+                      type="button"
+                      onClick={() => setGAllowMixed(!gAllowMixed)}
+                      className="w-full py-3 px-4 bg-zinc-950 rounded-xl border border-zinc-800 hover:border-orange-500/20 transition flex items-center justify-between cursor-pointer"
+                    >
+                      <span className="font-semibold text-zinc-300">Allow Food + Grocery</span>
+                      {gAllowMixed ? (
+                        <ToggleRight className="w-6 h-6 text-orange-500 shrink-0" />
+                      ) : (
+                        <ToggleLeft className="w-6 h-6 text-zinc-650 shrink-0" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={handleSaveGroceryConfig}
+                    className="bg-orange-600 hover:bg-orange-700 text-white font-black px-6 py-3 rounded-xl hover:scale-[1.01] active:scale-95 transition cursor-pointer text-xs uppercase tracking-wide"
+                  >
+                    Save Grocery Settings 💾
+                  </button>
+                </div>
+              </div>
+
+              {/* Middle Row: Create Category, and list of current ones */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* 1. Category Form */}
+                <div className="bg-[#0b0b0d]/80 border border-zinc-800/80 p-6 rounded-[24px] space-y-4">
+                  <h4 className="font-black text-xs text-zinc-200 uppercase tracking-widest text-orange-500 flex items-center gap-2">
+                    <Plus className="w-4 h-4 text-orange-500" />
+                    Create Grocery Division
+                  </h4>
+                  <form onSubmit={handleAddGroceryCategory} className="space-y-3.5 text-xs">
+                    <div className="space-y-1">
+                      <label className="text-[9.5px] font-bold text-zinc-400 block uppercase">Division Category Name</label>
+                      <input
+                        type="text"
+                        required
+                        value={newCatName}
+                        onChange={(e) => setNewCatName(e.target.value)}
+                        placeholder="E.g., Fruits & Vegetables, Dairy, Household..."
+                        className="w-full p-3 bg-zinc-955 border border-zinc-800 rounded-xl outline-none focus:border-orange-500 transition text-white font-semibold"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9.5px] font-bold text-zinc-400 block uppercase">Display Order Position</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={newCatPosition}
+                        onChange={(e) => setNewCatPosition(Number(e.target.value))}
+                        className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl outline-none focus:border-orange-500 transition text-white font-mono font-bold"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="w-full py-3 bg-orange-600 hover:bg-orange-750 text-white font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer"
+                    >
+                      Save New Category +
+                    </button>
+                  </form>
+                </div>
+
+                {/* 2. Categories List */}
+                <div className="bg-[#0b0b0d]/80 border border-zinc-800/80 p-6 rounded-[24px] space-y-4">
+                  <h4 className="font-black text-xs text-zinc-200 uppercase tracking-widest text-orange-500">
+                    Active Categories Directory ({groceryCategories.length})
+                  </h4>
+                  <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                    {groceryCategories.map((cat) => (
+                      <div key={cat.id} className="bg-zinc-950 p-2.5 rounded-xl border border-zinc-900 w-full flex items-center justify-between text-xs font-semibold gap-3">
+                        <div className="min-w-0">
+                          <span className="text-zinc-500 pr-1.5 font-bold font-mono">#{cat.position || 0}</span>
+                          <span className="text-zinc-250 font-bold truncate inline-block">{cat.name}</span>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleCategoryAvailable(cat.id, cat.isAvailable)}
+                            className={`p-1 px-2 rounded text-[10px] font-black uppercase cursor-pointer ${
+                              cat.isAvailable ? "bg-orange-500/10 text-orange-400" : "bg-zinc-850 text-zinc-500"
+                            }`}
+                          >
+                            {cat.isAvailable ? "Available" : "Disabled"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteCategory(cat.id)}
+                            className="p-1 px-1.5 rounded bg-red-950/20 text-red-400 hover:text-red-300 transition"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    {groceryCategories.length === 0 && (
+                      <p className="text-[10px] italic text-zinc-500 text-center py-6">No custom grocery categories yet.</p>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Bottom Row: Create product, and product grid directory */}
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+                
+                {/* 1. Product creator column */}
+                <div className="bg-[#0b0b0d]/80 border border-zinc-800/85 p-6 rounded-[24px] col-span-1 md:col-span-5 space-y-4">
+                  <h4 className="font-black text-xs text-zinc-200 uppercase tracking-widest text-orange-500 flex items-center gap-2">
+                    <Plus className="w-4 h-4 text-orange-500" />
+                    Add Grocery Product
+                  </h4>
+                  <form onSubmit={handleAddGroceryProduct} className="space-y-3 text-xs">
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-zinc-400 block uppercase">Product Title / Name</label>
+                      <input
+                        type="text"
+                        required
+                        value={newGProdName}
+                        onChange={(e) => setNewGProdName(e.target.value)}
+                        placeholder="E.g., Farm Fresh Eggs, Cheddar Cheese..."
+                        className="w-full p-2.5 bg-zinc-950 border border-zinc-800 outline-none focus:border-orange-500 rounded-xl text-zinc-150 text-xs font-semibold"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-zinc-400 block uppercase font-sans">Price (Rs.)</label>
+                        <input
+                          type="number"
+                          required
+                          min="1"
+                          value={newGProdPrice}
+                          onChange={(e) => setNewGProdPrice(Number(e.target.value))}
+                          className="w-full p-2.5 bg-zinc-950 border border-zinc-800 rounded-xl outline-none focus:border-orange-500 text-white text-xs font-mono font-bold"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-zinc-400 block uppercase font-sans">Offered Price (Rs.)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={newGProdDiscountPrice}
+                          onChange={(e) => setNewGProdDiscountPrice(Number(e.target.value))}
+                          className="w-full p-2.5 bg-zinc-955 border border-zinc-800 rounded-xl outline-none focus:border-orange-500 text-white text-xs font-mono font-semibold"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-zinc-400 block uppercase font-sans">Unit Metric</label>
+                        <select
+                          value={newGProdUnit}
+                          onChange={(e: any) => setNewGProdUnit(e.target.value)}
+                          className="w-full p-2.5 bg-zinc-955 border border-zinc-800 rounded-xl text-white outline-none focus:border-orange-500 transition"
+                        >
+                          <option value="kg">kg (Kilo)</option>
+                          <option value="litre">litre (Liter)</option>
+                          <option value="piece">piece (Single)</option>
+                          <option value="pack">pack (Package)</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-bold text-zinc-450 block uppercase">Stock Count</label>
+                        <input
+                          type="number"
+                          required
+                          min="0"
+                          value={newGProdStock}
+                          onChange={(e) => setNewGProdStock(Number(e.target.value))}
+                          className="w-full p-2.5 bg-zinc-955 border border-zinc-800 rounded-xl outline-none focus:border-orange-500 text-white text-xs font-mono font-bold"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-zinc-450 block uppercase">Choose Category Division</label>
+                      <select
+                        required
+                        value={newGProdCategoryId}
+                        onChange={(e) => setNewGProdCategoryId(e.target.value)}
+                        className="w-full p-2.5 bg-zinc-955 border border-zinc-800 text-white outline-none focus:border-orange-500 rounded-xl text-xs font-semibold"
+                      >
+                        <option value="">-- Choose Segment --</option>
+                        {groceryCategories.map(c => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-zinc-400 block uppercase font-sans">Illustration Image URL</label>
+                      <input
+                        type="url"
+                        value={newGProdImageUrl}
+                        onChange={(e) => setNewGProdImageUrl(e.target.value)}
+                        placeholder="Paste image web address (https://...)"
+                        className="w-full p-2.5 bg-zinc-955 border border-zinc-800 rounded-xl outline-none focus:border-orange-500 transition text-white text-xs"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full py-3 bg-orange-600 hover:bg-orange-755 text-white font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer"
+                    >
+                      Save Grocery Product 📦
+                    </button>
+                  </form>
+                </div>
+
+                {/* 2. Product directory table column */}
+                <div className="bg-[#0b0b0d]/80 border border-zinc-800/80 p-6 rounded-[24px] col-span-1 md:col-span-12 lg:col-span-7 space-y-4">
+                  <h4 className="font-black text-xs text-zinc-200 uppercase tracking-widest text-orange-500 font-sans">
+                    Product Stock & Catalog Directory ({groceryProducts.length})
+                  </h4>
+                  <div className="overflow-x-auto select-none">
+                    <table className="w-full text-xs text-left text-zinc-400 font-medium border-collapse">
+                      <thead>
+                        <tr className="border-b border-zinc-850 uppercase text-[9px] tracking-wider text-zinc-500">
+                          <th className="py-2.5 px-2">Image & Product</th>
+                          <th className="py-2.5 px-2">Group</th>
+                          <th className="py-2.5 px-2">Pricing / Stock</th>
+                          <th className="py-2.5 px-2 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {groceryProducts.map((p) => {
+                          const catName = groceryCategories.find(c => c.id === p.categoryId)?.name || "Segment";
+                          const isEditing = editingGProductId === p.id;
+
+                          return (
+                            <tr key={p.id} className="border-b border-zinc-900 hover:bg-zinc-950/40 text-[11px] font-semibold">
+                              <td className="py-3 px-2 flex items-center gap-2 min-w-[150px]">
+                                <img src={p.imageUrl} alt={p.name} className="w-8 h-8 rounded-lg object-cover shrink-0 bg-zinc-900 border border-zinc-800" />
+                                <div className="truncate">
+                                  <span className="text-zinc-200 font-bold block truncate leading-tight">{p.name}</span>
+                                  <span className="text-[9px] text-zinc-500 block font-mono font-semibold">ID: {p.id.substring(0,6)}...</span>
+                                </div>
+                              </td>
+                              <td className="py-3 px-2 text-zinc-400">
+                                <span className="bg-zinc-950/80 px-2 py-0.5 rounded border border-zinc-900 text-[10px] uppercase font-bold">{catName}</span>
+                              </td>
+                              <td className="py-3 px-2 relational-price-box">
+                                {isEditing ? (
+                                  <div className="space-y-1 w-24">
+                                    <input
+                                      type="number"
+                                      value={editingGProdPriceInput}
+                                      onChange={(e) => setEditingGProdPriceInput(Number(e.target.value))}
+                                      placeholder="Price"
+                                      className="p-1 text-xs text-white bg-black border border-orange-500 rounded font-bold w-full"
+                                    />
+                                    <input
+                                      type="number"
+                                      value={editingGProdStockInput}
+                                      onChange={(e) => setEditingGProdStockInput(Number(e.target.value))}
+                                      placeholder="Stock"
+                                      className="p-1 text-xs text-white bg-black border border-orange-500 rounded font-semibold w-full"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div>
+                                    <span className="text-orange-550 font-bold block font-mono">Rs. {p.price} /{p.unit}</span>
+                                    {p.stock <= 0 ? (
+                                      <span className="text-red-500 text-[9px] uppercase font-black">Out of Stock</span>
+                                    ) : (
+                                      <span className="text-zinc-500 text-[9px] font-semibold">Stock: {p.stock} units</span>
+                                    )}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="py-3 px-2 text-right">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  {isEditing ? (
+                                    <>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleSaveInlineGProductEdit(p.id)}
+                                        className="bg-emerald-600 text-white font-black px-1.5 py-0.5 rounded text-[9.5px] uppercase cursor-pointer"
+                                      >
+                                        Save
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setEditingGProductId(null)}
+                                        className="bg-zinc-800 text-zinc-450 px-1.5 py-0.5 rounded text-[9.5px] cursor-pointer"
+                                      >
+                                        ✕
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setEditingGProductId(p.id);
+                                          setEditingGProdPriceInput(p.price);
+                                          setEditingGProdStockInput(p.stock);
+                                        }}
+                                        className="text-orange-500 hover:underline text-[10px] font-bold cursor-pointer"
+                                      >
+                                        Edit
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleToggleProductAvailable(p.id, p.isAvailable)}
+                                        className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase cursor-pointer ${
+                                          p.isAvailable ? "bg-orange-600/10 text-orange-400" : "bg-zinc-800 text-zinc-500"
+                                        }`}
+                                      >
+                                        {p.isAvailable ? "Live" : "Hold"}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDeleteProduct(p.id)}
+                                        className="p-1 px-1.5 bg-red-950/20 text-red-400 hover:text-red-300 transition shrink-0 cursor-pointer text-xs font-black rounded"
+                                      >
+                                        ✕
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+          )}
+
 
         </div>
 

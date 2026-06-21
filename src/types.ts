@@ -70,3 +70,58 @@ export interface AppNotification {
   createdAt: any;
   read: boolean;
 }
+
+export interface GroceryCategory {
+  id: string;
+  name: string;
+  isAvailable: boolean;
+  position?: number;
+}
+
+export interface GroceryProduct {
+  id: string;
+  name: string;
+  imageUrl: string;
+  price: number;
+  discountPrice?: number;
+  unit: "kg" | "litre" | "piece" | "pack";
+  stock: number; // custom number or boolean representation
+  categoryId: string;
+  isAvailable: boolean;
+}
+
+export interface GroceryOrderItem {
+  productId: string;
+  name: string;
+  price: number;
+  discountPrice?: number;
+  quantity: number;
+  unit: string;
+  imageUrl: string;
+}
+
+export interface GroceryOrder {
+  id: string;
+  userId: string;
+  userName: string;
+  userPhone: string;
+  userAddress: string;
+  items: GroceryOrderItem[];
+  totalPrice: number;
+  deliveryFee: number;
+  grandTotal: number;
+  status: "placed" | "accepted" | "out_for_delivery" | "delivered" | "cancelled";
+  createdAt: any;
+  paymentMethod: "COD";
+  orderType: "grocery";
+  riderId?: string;
+  riderName?: string;
+  riderPhone?: string;
+  userCoords?: { latitude: number; longitude: number };
+}
+
+export interface GroceryDeliveryConfig {
+  baseDeliveryFee: number;
+  freeDeliveryAboveAmount: number;
+  allowMixedCart: boolean;
+}

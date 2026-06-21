@@ -1,6 +1,11 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Global default-deny catch-all safety net rule
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
     // Helper function to check if the user is authenticated
     function isAuthenticated() {
       return request.auth != null;
@@ -39,17 +44,19 @@ service cloud.firestore {
     // Menu Collection rules
     match /menu/{dishId} {
       allow read: if true; // Publicly readable for browsing
-      allow write, delete: if isAdmin(); // Strictly restricted to admin
+      allow create: if true; // Allow client-side default auto-seeding if empty
+      allow update, delete: if isAdmin(); // Strictly restricted to admin
     }
 
     // Orders Collection rules
     match /orders/{orderId} {
-      allow create: if isAuthenticated();
+      allow create: if true; // Allow guest checkout and authenticated users
       
       // Separate allowed reads to guarantee static query safety for Firestore analyzer
       allow read: if isAdmin();
       allow read: if isRider() && resource.data.status == "pending";
       allow read: if isRider() && resource.data.riderId == request.auth.uid;
+      allow read: if resource.data.userId == "guest"; // Allow guest users tracking their own order
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
       
       // Separate/clean updates for simplicity
@@ -60,7 +67,7 @@ service cloud.firestore {
         // Case B: Rider updating metadata of their accepted order (e.g. marking complete/delivered)
         (resource.data.riderId == request.auth.uid)
       );
-      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid && request.resource.data.status == resource.data.status;
+      allow update: if (resource.data.userId == "guest" || (isAuthenticated() && resource.data.userId == request.auth.uid)) && request.resource.data.status == resource.data.status;
       
       allow delete: if isAdmin();
     }
@@ -68,7 +75,8 @@ service cloud.firestore {
     // Settings Collection rules
     match /settings/{settingId} {
       allow read: if true; // Any customer can retrieve the current delivery cost coefficient
-      allow write: if isAdmin();
+      allow create: if true; // Allow client-side default auto-seeding (e.g., delivery_config) if not exists
+      allow update, delete: if isAdmin(); // Strictly restricted to admin
     }
 
     // Notifications Collection rules
@@ -77,6 +85,36 @@ service cloud.firestore {
       allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
       allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
       allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // Grocery Categories rules
+    match /groceryCategories/{categoryId} {
+      allow read: if true;
+      allow create: if true; // Allow client-side auto-creation or seed
+      allow update, delete: if isAdmin();
+    }
+
+    // Grocery Products rules
+    match /groceryProducts/{productId} {
+      allow read: if true;
+      allow create: if true; // Allow client-side auto-creation or seed
+      allow update, delete: if isAdmin();
+    }
+
+    // Grocery Orders rules
+    match /groceryOrders/{orderId} {
+      allow create: if true; // Allow guest and auth checkouts
+      allow read: if isAdmin() || 
+                     (isRider() && (resource.data.status == "pending" || resource.data.riderId == request.auth.uid)) ||
+                     (resource.data.userId == "guest") ||
+                     (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow update: if isAdmin() ||
+                       (isRider() && (
+                         (resource.data.status == "pending" && request.resource.data.riderId == request.auth.uid && request.resource.data.status == "accepted") ||
+                         (resource.data.riderId == request.auth.uid)
+                       )) ||
+                       ((resource.data.userId == "guest" || (isAuthenticated() && resource.data.userId == request.auth.uid)) && request.resource.data.status == resource.data.status);
+      allow delete: if isAdmin();
     }
   }
 }

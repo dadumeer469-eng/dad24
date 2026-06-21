@@ -75,6 +75,55 @@
         "read": { "type": "boolean" }
       },
       "required": ["id", "userId", "title", "message", "createdAt", "read"]
+    },
+    "GroceryCategory": {
+      "title": "GroceryCategory",
+      "description": "A collection specifying grocery divisions (e.g. Dairy, Fruits & Vegetables).",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "isAvailable": { "type": "boolean" },
+        "position": { "type": "number" }
+      },
+      "required": ["id", "name", "isAvailable"]
+    },
+    "GroceryProduct": {
+      "title": "GroceryProduct",
+      "description": "Individual grocery catalog items stocked inside the warehouses for standalone checkout.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "price": { "type": "number" },
+        "discountPrice": { "type": "number" },
+        "unit": { "type": "string" },
+        "stock": { "type": "number" },
+        "categoryId": { "type": "string" },
+        "isAvailable": { "type": "boolean" }
+      },
+      "required": ["id", "name", "imageUrl", "price", "unit", "stock", "categoryId", "isAvailable"]
+    },
+    "GroceryOrder": {
+      "title": "GroceryOrder",
+      "description": "Orders made dynamically within the standalone Grocery Cart.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userPhone": { "type": "string" },
+        "userAddress": { "type": "string" },
+        "items": { "type": "array" },
+        "totalPrice": { "type": "number" },
+        "deliveryFee": { "type": "number" },
+        "grandTotal": { "type": "number" },
+        "status": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "orderType": { "type": "string" }
+      },
+      "required": ["id", "userId", "userName", "userPhone", "userAddress", "items", "totalPrice", "deliveryFee", "grandTotal", "status", "paymentMethod", "orderType"]
     }
   },
   "firestore": {
@@ -97,6 +146,18 @@
     "notifications/{notificationId}": {
       "schema": "AppNotification",
       "description": "Alert elements targeting specific profile identifiers."
+    },
+    "groceryCategories/{categoryId}": {
+      "schema": "GroceryCategory",
+      "description": "Standalone retail divisions for grocery items."
+    },
+    "groceryProducts/{productId}": {
+      "schema": "GroceryProduct",
+      "description": "Specific grocery catalog products for user order placement."
+    },
+    "groceryOrders/{orderId}": {
+      "schema": "GroceryOrder",
+      "description": "Standalone history log of user grocery checkouts."
     }
   }
 }
