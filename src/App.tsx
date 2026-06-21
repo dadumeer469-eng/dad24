@@ -16,12 +16,15 @@ import AdminPanel from "./components/AdminPanel";
 import AuthModal from "./components/AuthModal";
 import RiderPanel from "./components/RiderPanel";
 
-// Icons
+// Icons & Motion
 import { 
-  ShieldAlert, Clock, AlertTriangle, MessageSquare, BadgeAlert, Sparkles, CheckSquare, Wrench 
+  ShieldAlert, Clock, AlertTriangle, MessageSquare, BadgeAlert, Sparkles, CheckSquare, Wrench, HeartHandshake, UtensilsCrossed, Compass, MapPin
 } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 
 export default function App() {
+  const [showSplash, setShowSplash] = useState(true);
+  const [splashProgress, setSplashProgress] = useState(0);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -121,6 +124,25 @@ export default function App() {
     });
 
     return () => unsubscribe();
+  }, []);
+
+  // 1.5. Premium Foodpanda Splash Screen timer (approx 2.4s)
+  useEffect(() => {
+    const startTime = Date.now();
+    const duration = 2400; // 2.4 seconds total duration
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(100, Math.floor((elapsed / duration) * 100));
+      setSplashProgress(progress);
+      if (elapsed >= duration) {
+        clearInterval(interval);
+        setTimeout(() => {
+          setShowSplash(false);
+          playChimeSound(); // Trigger the melodic twin-tone synthesizer chime on entrance!
+        }, 350);
+      }
+    }, 35);
+    return () => clearInterval(interval);
   }, []);
 
   // 2. Real-time Menu Listening & Auto-Seeding
@@ -394,6 +416,113 @@ export default function App() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 relative pb-28 md:pb-12 flex flex-col font-sans">
       
+      {/* Welcome Foodpanda-style Intro Splash Animation Screen */}
+      <AnimatePresence mode="wait">
+        {showSplash && (
+          <motion.div
+            initial={{ opacity: 1 }}
+            exit={{ 
+              opacity: 0,
+              y: -80,
+              scale: 1.05,
+              transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] }
+            }}
+            className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#D70F64] text-white select-none overflow-hidden"
+          >
+            {/* Background floating abstract food & toolkit shapes */}
+            <div className="absolute inset-0 opacity-10 pointer-events-none">
+              <div className="absolute top-10 left-10 text-6xl animate-bounce" style={{ animationDuration: "5s" }}>🍔</div>
+              <div className="absolute top-24 right-1/4 text-5xl animate-pulse" style={{ animationDuration: "3.5s" }}>🔧</div>
+              <div className="absolute bottom-20 left-1/5 text-5xl animate-bounce" style={{ animationDuration: "4s" }}>🛵</div>
+              <div className="absolute bottom-16 right-16 text-6xl animate-pulse" style={{ animationDuration: "6s" }}>🍕</div>
+              <div className="absolute top-1/2 left-10 text-4xl animate-bounce" style={{ animationDuration: "5.5s" }}>🍩</div>
+              <div className="absolute top-1/3 right-10 text-5xl animate-pulse" style={{ animationDuration: "4.5s" }}>🛠️</div>
+            </div>
+
+            {/* Glowing ambient pink background flash */}
+            <div className="absolute w-[450px] h-[450px] bg-pink-400/20 rounded-full blur-3xl animate-pulse"></div>
+
+            <div className="flex flex-col items-center max-w-md px-6 text-center z-10 space-y-8">
+              {/* Modern bouncing round logo container */}
+              <motion.div
+                initial={{ scale: 0.5, rotate: -15, opacity: 0 }}
+                animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 120, damping: 15 }}
+                className="w-28 h-28 bg-white rounded-3xl flex items-center justify-center shadow-2xl relative"
+              >
+                {/* Visual badge highlight */}
+                <div className="absolute -top-2.5 -right-2.5 bg-[#FF5C00] text-white font-black text-[9px] uppercase tracking-widest py-1 px-2.5 rounded-full shadow-lg border border-white flex items-center gap-0.5 animate-pulse">
+                  <span className="w-1 h-1 bg-white rounded-full"></span>
+                  DADU CITY
+                </div>
+
+                {/* Main branding icon inside logo box */}
+                <span className="text-5xl drop-shadow-md select-none transform hover:scale-110 transition">🐼</span>
+              </motion.div>
+
+              {/* Title & Tagline with staggered animations */}
+              <div className="space-y-4">
+                <motion.h1
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.15, duration: 0.5 }}
+                  className="font-sans font-black text-3xl sm:text-4xl tracking-tight text-white uppercase drop-shadow-md flex flex-col sm:block"
+                >
+                  <span className="text-white">DADU</span>{" "}
+                  <span className="text-zinc-100 bg-white/10 px-3 py-0.5 rounded-xl border border-white/20">FOOD</span>
+                </motion.h1>
+
+                <motion.div
+                  initial={{ y: 15, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.3, duration: 0.5 }}
+                  className="inline-block bg-black/20 text-xs text-white/90 font-extrabold px-4 py-2 rounded-full border border-white/10 tracking-widest uppercase shadow-sm"
+                >
+                  &amp; HOME SERVICES 🛵🛠️
+                </motion.div>
+
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 0.85 }}
+                  transition={{ delay: 0.45, duration: 0.5 }}
+                  className="text-xs text-pink-100/90 font-bold max-w-xs mx-auto leading-relaxed h-8"
+                >
+                  {splashProgress < 30 && "Gathering hot kitchens..."}
+                  {splashProgress >= 30 && splashProgress < 65 && "Assigning fastest delivery riders..."}
+                  {splashProgress >= 65 && splashProgress < 90 && "Checking technical repair tools..."}
+                  {splashProgress >= 90 && "Starting delicious experience!"}
+                </motion.p>
+              </div>
+
+              {/* Infinite foodpanda-themed loading line status indicator */}
+              <div className="w-56 space-y-2">
+                <div className="h-1.5 w-full bg-white/20 rounded-full overflow-hidden relative border border-white/5">
+                  <div 
+                    className="h-full bg-white rounded-full transition-all duration-75"
+                    style={{ width: `${splashProgress}%` }}
+                  ></div>
+                </div>
+                <div className="flex items-center justify-between text-[11px] text-pink-100 font-extrabold tracking-widest uppercase font-mono">
+                  <span>LOADING applet</span>
+                  <span className="bg-white/15 px-1.5 py-0.5 rounded-md text-white">{splashProgress}%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom branding identifier credits */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.65 }}
+              transition={{ delay: 0.8, duration: 0.6 }}
+              className="absolute bottom-8 flex flex-col items-center gap-1 text-[9px] font-black uppercase text-pink-200 tracking-widest text-center leading-tight"
+            >
+              <span>SUPPORTED BY MEERALI</span>
+              <span className="text-xs text-white">❤️</span>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Dynamic Floating WhatsApp Helpline Button (Bottom corner) */}
       <a
         href="https://wa.me/923277004471"
