@@ -122,7 +122,7 @@ export default function CartDrawer({
         {/* Banner with close */}
         <div className="p-4 border-b border-zinc-800 bg-zinc-950 flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-2">
-            <ShoppingBag className="w-5 h-5 text-[#FF5C00]" />
+            <ShoppingBag className="w-5 h-5 text-[#D70F64]" />
             <h3 className="font-extrabold text-sm tracking-wide text-zinc-100 uppercase">Your Delivery Cart</h3>
           </div>
           <button
@@ -142,7 +142,7 @@ export default function CartDrawer({
               <p className="text-xs text-zinc-400 font-bold uppercase tracking-wider">Your Dadu Cart is empty!</p>
               <button
                 onClick={onClose}
-                className="bg-[#FF5C00] hover:bg-[#d44d00] transition text-zinc-950 font-black text-xs uppercase tracking-wider py-3 px-6 rounded-xl cursor-pointer shadow-xs"
+                className="bg-[#D70F64] hover:bg-[#b00c50] transition text-white font-black text-xs uppercase tracking-wider py-3 px-6 rounded-xl cursor-pointer shadow-xs"
               >
                 Go Add Tea & Food
               </button>
@@ -160,7 +160,7 @@ export default function CartDrawer({
                         </span>
                       )}
                     </div>
-                    <div className="text-[10px] text-[#FF5C00] font-black tracking-wider uppercase flex items-center gap-1 select-none mt-0.5">
+                    <div className="text-[10px] text-[#D70F64] font-black tracking-wider uppercase flex items-center gap-1 select-none mt-0.5">
                       <span>🏪</span> {item.restaurantName || (item.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen")}
                     </div>
                     <span className="text-xs text-zinc-400 font-bold block mt-0.5">Rs. {item.price} each</span>
@@ -185,7 +185,7 @@ export default function CartDrawer({
 
                   <button
                     onClick={() => onRemoveItem(item.dishId)}
-                    className="p-1 text-zinc-450 hover:text-[#FF5C00] shrink-0 transition cursor-pointer"
+                    className="p-1 text-zinc-450 hover:text-[#D70F64] shrink-0 transition cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -198,14 +198,14 @@ export default function CartDrawer({
           {cartItems.length > 0 && (
             <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-3xl mt-6 space-y-4 shadow-3xs">
               <h4 className="text-xs font-black uppercase tracking-wider text-zinc-300 border-b border-zinc-800 pb-2 flex items-center gap-1.5">
-                <MapPin className="w-4 h-4 text-[#FF5C00]" />
+                <MapPin className="w-4 h-4 text-[#D70F64]" />
                 Delivery Information Details
               </h4>
 
               {/* Secure Loyalty Indicator */}
               {currentUser && currentUser.ordersCount > 0 && (
-                <div className="bg-[#FF5C00]/10 border border-[#FF5C00]/20 text-[#FF5C00] text-[11px] p-2.5 rounded-2xl flex items-center gap-2 font-bold">
-                  <Heart className="w-4 h-4 fill-[#FF5C00] text-[#FF5C00] shrink-0 animate-pulse" />
+                <div className="bg-[#D70F64]/10 border border-[#D70F64]/20 text-[#D70F64] text-[11px] p-2.5 rounded-2xl flex items-center gap-2 font-bold">
+                  <Heart className="w-4 h-4 fill-[#D70F64] text-[#D70F64] shrink-0 animate-pulse" />
                   <span>
                     Thank you! You are a **Loyal Customer** with **{currentUser.ordersCount} previous orders!**
                   </span>
@@ -237,7 +237,7 @@ export default function CartDrawer({
                         value={nameInput}
                         onChange={(e) => setNameInput(e.target.value)}
                         placeholder="e.g. Ali Ahmed"
-                        className="w-full text-xs p-2.5 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-zinc-200 font-bold focus:border-[#FF5C00] focus:ring-1 focus:ring-[#FF5C00]"
+                        className="w-full text-xs p-2.5 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-zinc-200 font-bold focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64]"
                       />
                     </div>
                     <div className="space-y-1">
@@ -248,7 +248,7 @@ export default function CartDrawer({
                         value={phoneInput}
                         onChange={(e) => setPhoneInput(e.target.value)}
                         placeholder="e.g. 03277004471"
-                        className="w-full text-xs p-2.5 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-zinc-200 font-bold focus:border-[#FF5C00] focus:ring-1 focus:ring-[#FF5C00]"
+                        className="w-full text-xs p-2.5 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-zinc-200 font-bold focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64]"
                       />
                     </div>
                     <div className="space-y-1">
@@ -259,7 +259,7 @@ export default function CartDrawer({
                         value={addressInput}
                         onChange={(e) => setAddressInput(e.target.value)}
                         placeholder="Street, Sector, City"
-                        className="w-full text-xs p-2.5 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-zinc-200 font-bold focus:border-[#FF5C00] focus:ring-1 focus:ring-[#FF5C00] resize-none"
+                        className="w-full text-xs p-2.5 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-zinc-200 font-bold focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] resize-none"
                       />
                     </div>
                   </div>
@@ -279,7 +279,7 @@ export default function CartDrawer({
                         setEditingAddress(!editingAddress);
                         setAddressInput(currentUser.address);
                       }}
-                      className="text-[11px] text-[#FF5C00] font-bold hover:underline cursor-pointer flex items-center gap-1"
+                      className="text-[11px] text-[#D70F64] font-bold hover:underline cursor-pointer flex items-center gap-1"
                     >
                       <Edit2 className="w-3 h-3" />
                       change address
@@ -298,18 +298,18 @@ export default function CartDrawer({
 
                     {!editingAddress ? (
                       <div className="flex items-start gap-2 text-zinc-300 mt-1 sm:mt-0 font-bold leading-relaxed">
-                        <MapPin className="w-3.5 h-3.5 text-[#FF5C00] shrink-0 mt-0.5" />
+                        <MapPin className="w-3.5 h-3.5 text-[#D70F64] shrink-0 mt-0.5" />
                         <span>{currentUser.address}</span>
                       </div>
                     ) : (
                       <div className="space-y-1.5 pt-2 border-t border-zinc-800">
-                        <label className="text-[9px] font-black uppercase text-[#FF5C00] tracking-wider">Modify Current Address</label>
+                        <label className="text-[9px] font-black uppercase text-[#D70F64] tracking-wider">Modify Current Address</label>
                         <textarea
                           rows={2}
                           value={addressInput}
                           onChange={(e) => setAddressInput(e.target.value)}
                           placeholder="Type new custom location info..."
-                          className="w-full text-xs p-2 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-150 font-bold outline-none focus:border-[#FF5C00] focus:ring-1 focus:ring-[#FF5C00] resize-none"
+                          className="w-full text-xs p-2 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-150 font-bold outline-none focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] resize-none"
                         />
                         <div className="flex justify-end gap-1.5 pt-1">
                           <button
@@ -322,7 +322,7 @@ export default function CartDrawer({
                           <button
                             type="button"
                             onClick={() => setEditingAddress(false)}
-                            className="bg-[#FF5C00] text-[10px] font-bold py-1 px-3 rounded-lg text-zinc-950 cursor-pointer"
+                            className="bg-[#D70F64] text-[10px] font-bold py-1 px-3 rounded-lg text-white cursor-pointer"
                           >
                             Save Temp
                           </button>
@@ -398,7 +398,7 @@ export default function CartDrawer({
                         { enableHighAccuracy: true, timeout: 8000 }
                       );
                     }}
-                    className="bg-zinc-950 hover:bg-zinc-850 border border-zinc-800 text-[#FF5C00] font-black text-[10px] uppercase py-2 px-3.5 rounded-xl w-full transition cursor-pointer text-center block"
+                    className="bg-zinc-950 hover:bg-zinc-850 border border-zinc-800 text-[#D70F64] font-black text-[10px] uppercase py-2 px-3.5 rounded-xl w-full transition cursor-pointer text-center block"
                   >
                     🛰️ Auto-Detect & Pinpoint Current GPS Location
                   </button>
@@ -427,16 +427,16 @@ export default function CartDrawer({
                   )}
                 </span>
               </div>
-              <div className="flex justify-between text-zinc-100 text-sm font-black border-t border-zinc-805 pt-2.5">
+              <div className="flex justify-between text-zinc-100 text-sm font-black border-t border-zinc-855 pt-2.5">
                 <span>Grand Total:</span>
-                <span className="text-[#FF5C00] text-base font-bold font-mono">Rs. {grandTotal}</span>
+                <span className="text-[#D70F64] text-base font-bold font-mono">Rs. {grandTotal}</span>
               </div>
             </div>
 
             <button
               onClick={handleSubmitOrder}
               disabled={submitting}
-              className="w-full bg-[#FF5C00] hover:bg-[#d44d00] text-zinc-950 py-3 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75"
+              className="w-full bg-[#D70F64] hover:bg-[#b00c50] text-white py-3 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75"
             >
               {submitting ? (
                 <>Loading...</>

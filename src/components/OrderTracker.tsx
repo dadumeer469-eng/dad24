@@ -80,7 +80,7 @@ export default function OrderTracker({ order, onClose }: OrderTrackerProps) {
       cancelled: { bg: "bg-red-500/10 border-red-500/20", text: "text-red-400", label: "Cancelled x" },
       
       booked: { bg: "bg-yellow-500/10 border-yellow-500/20", text: "text-yellow-500", label: "Booked" },
-      diagnostic_on_way: { bg: "bg-[#FF5C00]/10 border-[#FF5C00]/20", text: "text-[#FF5C00]", label: "Traveling" },
+      diagnostic_on_way: { bg: "bg-[#D70F64]/10 border-[#D70F64]/20", text: "text-[#D70F64]", label: "Traveling" },
       diagnostic_underway: { bg: "bg-indigo-500/10 border-indigo-500/20", text: "text-indigo-400", label: "Inspecting" },
       completed: { bg: "bg-emerald-500/10 border-emerald-500/20", text: "text-emerald-400", label: "Completed" },
     };
@@ -227,191 +227,18 @@ export default function OrderTracker({ order, onClose }: OrderTrackerProps) {
     }
   };
 
-  const renderLocationTracking = () => {
-    const hasCoordinates = !!order.userCoords;
-    const userLat = order.userCoords?.latitude || 26.7321; // fallback to general Dadu, Pakistan coords
-    const userLng = order.userCoords?.longitude || 67.7781;
-    const riderLat = order.riderCoords?.latitude;
-    const riderLng = order.riderCoords?.longitude;
-
-    let distanceText = "Awaiting rider GPS tracking signal...";
-    if (hasCoordinates && riderLat && riderLng) {
-      const d = calculateDistance(userLat, userLng, riderLat, riderLng);
-      if (parseFloat(d) < 1) {
-        distanceText = `Rider is extremely nearby! About ${(parseFloat(d) * 1000).toFixed(0)} meters away.`;
-      } else {
-        distanceText = `Rider is currently ${d} km away from your pinpoint.`;
-      }
-    } else if (!hasCoordinates) {
-      distanceText = "GPS Pin not locked! Pointing to written address area.";
-    }
-
-    return (
-      <div className="mt-6 bg-zinc-950/80 border border-zinc-800 rounded-3xl p-4.5 space-y-4">
-        <div className="flex items-center justify-between border-b border-zinc-900 pb-2.5">
-          <div>
-            <span className="text-[9px] font-black uppercase text-[#D70F64] tracking-widest block">Live foodpanda Live Map tracking</span>
-            <span className="text-[11px] text-zinc-400 font-semibold block mt-0.5">{distanceText}</span>
-          </div>
-          <MapPin className="w-4 h-4 text-[#D70F64]" />
-        </div>
-
-        {!hasCoordinates && (
-          <div className="bg-amber-500/10 border border-amber-500/20 p-3.5 rounded-2xl space-y-2.5 text-xs">
-            <span className="text-amber-500 font-black flex items-center gap-1 uppercase tracking-wider text-[10px]">
-              ⚠️ GPS Pinpoint Missing
-            </span>
-            <p className="text-[10px] text-zinc-350 leading-relaxed font-semibold">
-              Rider will navigate to your written address: <span className="text-zinc-105 font-extrabold font-mono underline">"{order.userAddress}"</span>. 
-              Applying your precise live GPS doorstep helper coordinates ensures 100% accurate foodpanda delivery right to your door!
-            </p>
-            <button
-              onClick={handleUpdateCurrentLocation}
-              disabled={updatingLocation}
-              className="bg-[#D70F64] hover:bg-[#b00c50] text-white font-black text-[9.5px] uppercase tracking-wider py-1.5 px-3 rounded-lg transition active:scale-95 disabled:opacity-50 cursor-pointer"
-            >
-              {updatingLocation ? "Locking Location..." : "📍 Lock My Precise GPS Doorstep Pin Now"}
-            </button>
-          </div>
-        )}
-
-        {/* 100% Inline Interactive Night-themed OpenStreetMap tracker, eliminates opening external page! */}
-        <div className="relative w-full h-80 rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl bg-zinc-950">
-          <iframe
-            title="foodpanda Live Delivery Route Map"
-            width="100%"
-            height="100%"
-            frameBorder="0"
-            scrolling="no"
-            marginHeight={0}
-            marginWidth={0}
-            src={(() => {
-              // Target coordinates to plot
-              const focusLat = riderLat || userLat;
-              const focusLng = riderLng || userLng;
-              
-              // Small grid box bounding box
-              const boxDelta = 0.005;
-              const minLat = focusLat - boxDelta;
-              const maxLat = focusLat + boxDelta;
-              const minLng = focusLng - boxDelta;
-              const maxLng = focusLng + boxDelta;
-              
-              return `https://www.openstreetmap.org/export/embed.html?bbox=${minLng}%2C${minLat}%2C${maxLng}%2C${maxLat}&layer=mapnik&marker=${focusLat}%2C${focusLng}`;
-            })()}
-            style={{ filter: "invert(90%) hue-rotate(180deg) brightness(95%) contrast(90%)" }}
-            className="w-full h-full rounded-2xl"
-          ></iframe>
-          
-          {/* Real-time Overlay Status Plaque */}
-          <div className="absolute top-3 left-3 bg-zinc-950/95 border border-zinc-850 p-2.5 rounded-xl text-[9px] font-semibold flex flex-col gap-1 text-zinc-300 shadow-lg pointer-events-none backdrop-blur-md max-w-[210px]">
-            <span className="text-[#D70F64] font-black uppercase tracking-widest text-[8px] block">LIVE RADAR TARGET</span>
-            {riderLat ? (
-              <div className="flex items-center gap-1 mt-0.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>Rider: <span className="font-bold text-white text-[9.5px]">{order.riderName}</span></span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1 text-zinc-500 mt-0.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span>
-                <span>Rider on standby...</span>
-              </div>
-            )}
-            <div className="flex items-center gap-1 border-t border-zinc-900 pt-1 mt-1 font-extrabold text-[8.5px]">
-              <span className="text-orange-500 text-xs">🏠</span>
-              <span>{hasCoordinates ? "Your Doorstep Pinpoint" : "Written Address Area"}</span>
-            </div>
-          </div>
-          
-          {/* Signal Indicator */}
-          <div className="absolute bottom-3 right-3 bg-zinc-950/95 border border-zinc-850 px-3 py-1.5 rounded-full text-[9px] font-black text-white flex items-center gap-1.5 shadow-lg select-none backdrop-blur-md">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            MAP CONNECTED
-          </div>
-        </div>
-
-        {/* Visual map trajectory progress simulator slider bar */}
-        <div className="relative h-11 bg-zinc-900/40 border border-zinc-850 rounded-xl overflow-hidden flex items-center justify-between px-6 select-none">
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f1f23_1px,transparent_1px),linear-gradient(to_bottom,#1f1f23_1px,transparent_1px)] bg-[size:16px_16px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-20"></div>
-          <div className="absolute left-[20%] right-[20%] h-0.5 bg-gradient-to-r from-emerald-500 via-pink-500 to-[#D70F64] opacity-40"></div>
-
-          <div className="relative flex items-center gap-1.5">
-            <div className={`w-6 h-6 rounded-full flex items-center justify-center border shadow-lg text-[10px] ${
-              riderLat ? "bg-emerald-950 border-emerald-500/50 text-emerald-400" : "bg-zinc-800 border-zinc-700 text-zinc-500"
-            }`}>
-              🛵
-            </div>
-            <span className="text-[8px] font-black text-zinc-400 uppercase tracking-wider">
-              {riderLat ? "Transit" : "Dispatch"}
-            </span>
-          </div>
-
-          {riderLat && (
-            <span className="text-[8px] uppercase tracking-widest text-emerald-400 font-black bg-emerald-950/50 border border-emerald-900/40 px-2 py-0.5 rounded-full animate-bounce">
-              Live Signal
-            </span>
-          )}
-
-          <div className="relative flex items-center gap-1.5">
-            <div className="w-6 h-6 rounded-full bg-pink-950/40 border border-[#D70F64] text-[#D70F64] flex items-center justify-center shadow-md text-[10px]">
-              🏠
-            </div>
-            <span className="text-[8px] font-black text-[#D70F64] uppercase tracking-wider">
-              Home
-            </span>
-          </div>
-        </div>
-
-        {/* External fallback triggers */}
-        <div className="grid grid-cols-2 gap-2 text-[10.5px]">
-          <a
-            href={hasCoordinates 
-              ? `https://www.google.com/maps/search/?api=1&query=${userLat},${userLng}`
-              : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.userAddress)}`
-            }
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 py-2 px-3 rounded-xl transition text-center font-extrabold text-zinc-250 block shadow-xs"
-          >
-            📍 Pinpoint Google Map
-          </a>
-          {riderLat ? (
-            <a
-              href={`https://www.google.com/maps/search/?api=1&query=${riderLat},${riderLng}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bg-[#D70F64] text-white py-2 px-3 rounded-xl hover:bg-[#b00c50] transition text-center font-extrabold block shadow-md"
-            >
-              🧭 External Google Tracker
-            </a>
-          ) : (
-            <button
-              disabled
-              className="bg-zinc-950 border border-zinc-900 text-zinc-600 py-2 rounded-xl text-center font-extrabold block opacity-50 cursor-not-allowed"
-            >
-              🧭 GPS Pending Signal
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-3.5xl p-5 sm:p-6 shadow-xs relative overflow-hidden text-zinc-100">
       
       {/* Background Decorative Neon Light */}
       <div className={`absolute top-0 right-0 w-44 h-44 rounded-full blur-3xl pointer-events-none -mt-10 -mr-10 ${
-        isService ? "bg-amber-500/5" : "bg-[#FF5C00]/5"
+        isService ? "bg-amber-500/5" : "bg-[#D70F64]/5"
       }`}></div>
 
       {/* Header Info */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-zinc-800 pb-4">
         <div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-[#FF5C00] block">
+          <span className="text-[10px] font-black uppercase tracking-widest text-[#D70F64] block">
             {isService ? "🛠️ Active Service Live Track" : "☕ Live Tea & Food Tracker"}
           </span>
           <h3 className="font-extrabold text-sm text-zinc-100 mt-1 flex items-center gap-1.5 flex-wrap">
@@ -427,9 +254,9 @@ export default function OrderTracker({ order, onClose }: OrderTrackerProps) {
         <div className={`py-2 px-4 rounded-2xl flex items-center gap-2 border shadow-xs ${
           isService 
             ? "bg-amber-950/20 border border-amber-900/40 text-amber-500" 
-            : "bg-[#FF5C00]/10 border border-[#FF5C00]/20 text-[#FF5C00]"
+            : "bg-[#D70F64]/10 border border-[#D70F64]/20 text-[#D70F64]"
         }`}>
-          <Clock className={`w-4 h-4 shrink-0 ${isService ? "text-amber-550" : "text-[#FF5C00]"}`} />
+          <Clock className={`w-4 h-4 shrink-0 ${isService ? "text-amber-550" : "text-[#D70F64]"}`} />
           <div>
             <span className="text-[9px] uppercase tracking-wider font-extrabold text-zinc-400 block leading-none">
               {isService ? "Service Timing" : "Est. Delivery"}
@@ -462,11 +289,11 @@ export default function OrderTracker({ order, onClose }: OrderTrackerProps) {
                   {/* Step bullet dot */}
                   <div className={`absolute -left-[31px] top-0.5 w-4.5 h-4.5 rounded-full flex items-center justify-center border transition-all ${
                     isPast 
-                      ? "bg-[#FF5C00] border-[#FF5C00] text-zinc-950" 
+                      ? "bg-[#D70F64] border-[#D70F64] text-white" 
                       : isCurrent 
                         ? isService 
                           ? "bg-amber-500 text-neutral-950 border-amber-500 scale-125 shadow-md shadow-amber-500/20 font-black" 
-                          : "bg-[#FF5C00] text-zinc-950 border-[#FF5C00] scale-125 shadow-md shadow-orange-500/20 animate-pulse font-black"
+                          : "bg-[#D70F64] text-white border-[#D70F64] scale-125 shadow-md shadow-pink-500/20 animate-pulse font-black"
                         : "bg-zinc-950 text-zinc-500 border-zinc-800"
                   }`}>
                     {isPast ? (
@@ -484,7 +311,7 @@ export default function OrderTracker({ order, onClose }: OrderTrackerProps) {
                         : isCurrent 
                           ? isService 
                             ? "text-amber-500" 
-                            : "text-[#FF5C00]" 
+                            : "text-[#D70F64]" 
                           : "text-zinc-500"
                     }`}>
                       {step.label}
@@ -501,13 +328,10 @@ export default function OrderTracker({ order, onClose }: OrderTrackerProps) {
       {/* Foodpanda Style Rider Detail Card */}
       {renderFoodpandaRiderCard()}
 
-      {/* Live Coordinate Pin-point Tracking section */}
-      {renderLocationTracking()}
-
       {/* Details Footer Card */}
       <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 mt-8 space-y-3 font-medium text-xs">
         <h4 className="font-bold text-[10px] text-zinc-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-zinc-800 pb-2">
-          {isService ? <Wrench className="w-3.5 h-3.5 text-amber-500" /> : <User className="w-3.5 h-3.5 text-[#FF5C00]" />}
+          {isService ? <Wrench className="w-3.5 h-3.5 text-amber-500" /> : <User className="w-3.5 h-3.5 text-[#D70F64]" />}
           {isService ? "Assigned Professional Details" : "Delivery Logistics Details"}
         </h4>
         
@@ -539,7 +363,7 @@ export default function OrderTracker({ order, onClose }: OrderTrackerProps) {
           </div>
           <div>
             <span className="text-zinc-500 block font-semibold">Payment Mode:</span>
-            <span className={`font-extrabold uppercase ${isService ? "text-amber-500" : "text-[#FF5C00]"}`}>
+            <span className={`font-extrabold uppercase ${isService ? "text-amber-500" : "text-[#D70F64]"}`}>
               {isService ? "Pay on Visit" : "Cash on Delivery"}
             </span>
           </div>

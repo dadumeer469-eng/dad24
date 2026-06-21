@@ -22,6 +22,7 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
   const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [etaInputs, setEtaInputs] = useState<{ [orderId: string]: string }>({});
+  const [autoPinnedOrderId, setAutoPinnedOrderId] = useState<string>("");
 
   // sound buzzer for notification when new available order arrives
   const playContinuousAlarm = () => {
@@ -64,42 +65,47 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
     return () => clearInterval(interval);
   }, [availableOrders.length, isMuted]);
 
-  // Real-time Driver GPS Live tracking update
+  // Single Initial GPS Pinpoint update (only runs once per active order to optimize database writes/reads)
   useEffect(() => {
     const riderActiveOrder = myOrders.find((o) => o.status === "accepted" || o.status === "preparing" || o.status === "out_for_delivery");
-    if (!riderActiveOrder) return;
+    if (!riderActiveOrder) {
+      if (autoPinnedOrderId) {
+        setAutoPinnedOrderId("");
+      }
+      return;
+    }
+
+    // Direct exit if already auto-pinned for this active order
+    if (autoPinnedOrderId === riderActiveOrder.id) return;
+
     if (!navigator.geolocation) {
       console.warn("Geolocation API offline/unsupported.");
       return;
     }
 
-    const success = async (pos: GeolocationPosition) => {
-      const lat = pos.coords.latitude;
-      const lng = pos.coords.longitude;
-      try {
-        await updateDoc(doc(db, "orders", riderActiveOrder.id), {
-          riderCoords: { latitude: lat, longitude: lng, lastUpdated: Date.now() }
-        });
-        await updateDoc(doc(db, "users", currentUser.uid), {
-          riderCoords: { latitude: lat, longitude: lng, lastUpdated: Date.now() }
-        });
-      } catch (err) {
-        console.error("Failed to commit rider coordinates:", err);
-      }
-    };
-
-    const error = (err: GeolocationPositionError) => {
-      console.warn("Rider background geolocation fail:", err.message);
-    };
-
-    const watchId = navigator.geolocation.watchPosition(success, error, {
-      enableHighAccuracy: true,
-      timeout: 8000,
-      maximumAge: 0
-    });
-
-    return () => navigator.geolocation.clearWatch(watchId);
-  }, [myOrders, currentUser?.uid]);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        try {
+          await updateDoc(doc(db, "orders", riderActiveOrder.id), {
+            riderCoords: { latitude: lat, longitude: lng, lastUpdated: Date.now() }
+          });
+          await updateDoc(doc(db, "users", currentUser.uid), {
+            riderCoords: { latitude: lat, longitude: lng, lastUpdated: Date.now() }
+          });
+          setAutoPinnedOrderId(riderActiveOrder.id);
+          console.log("Rider initial location captured & updated.");
+        } catch (err) {
+          console.error("Failed to update initial rider location:", err);
+        }
+      },
+      (err) => {
+        console.warn("Initial rider GPS pinpoint fetch failed:", err.message);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, [myOrders, currentUser?.uid, autoPinnedOrderId]);
 
   // 1. Subscribe to Available Orders (unaccepted status === "pending" or "placed" for food deliveries)
   useEffect(() => {
@@ -316,8 +322,8 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
         <div className="max-w-7xl mx-auto px-4 py-4.5 flex items-center justify-between gap-4">
           
           <div className="flex items-center gap-2.5">
-            <div className="bg-[#FF5C00] text-zinc-950 p-2 rounded-2xl shadow-md">
-              <Compass className="w-6 h-6 animate-spin-slow text-zinc-950 shrink-0" />
+            <div className="bg-[#D70F64] text-white p-2 rounded-2xl shadow-md">
+              <Compass className="w-6 h-6 animate-spin-slow text-white shrink-0" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
@@ -326,7 +332,7 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
                   Active Duty
                 </span>
               </div>
-              <p className="text-[11px] text-[#FF5C00] font-bold mt-0.5">Logged in as {currentUser.name}</p>
+              <p className="text-[11px] text-[#D70F64] font-bold mt-0.5">Logged in as {currentUser.name}</p>
             </div>
           </div>
 
@@ -335,7 +341,7 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
               onClick={() => setActiveTab("dashboard")}
               className={`py-2 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition ${
                 activeTab === "dashboard"
-                  ? "bg-[#FF5C00] text-zinc-950"
+                  ? "bg-[#D70F64] text-white"
                   : "bg-zinc-950 text-zinc-400 hover:text-zinc-200 border border-zinc-800"
               }`}
             >
@@ -345,7 +351,7 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
               onClick={() => setActiveTab("history")}
               className={`py-2 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition ${
                 activeTab === "history"
-                  ? "bg-[#FF5C00] text-zinc-950"
+                  ? "bg-[#D70F64] text-white"
                   : "bg-zinc-950 text-zinc-400 hover:text-zinc-200 border border-zinc-800"
               }`}
             >
@@ -379,7 +385,7 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
                 <div className="flex items-center gap-3 text-center md:text-left relative z-10">
                   <span className="text-2xl animate-bounce shrink-0">🚨</span>
                   <div>
-                    <span className="text-xs font-black uppercase tracking-widest text-[#FF5C00] block">New Dispatch Alert Siren Active</span>
+                    <span className="text-xs font-black uppercase tracking-widest text-[#D70F64] block">New Dispatch Alert Siren Active</span>
                     <span className="text-xs text-zinc-300 font-semibold block mt-0.5">
                       {availableOrders.length} unassigned order{availableOrders.length !== 1 ? "s" : ""} waiting in queue! Accept before someone else does.
                     </span>
@@ -390,7 +396,7 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
                   className={`py-2.5 px-6 rounded-xl text-xs font-black uppercase tracking-wider transition shrink-0 cursor-pointer ${
                     isMuted
                       ? "bg-zinc-805 hover:bg-zinc-750 text-zinc-400 border border-zinc-700"
-                      : "bg-[#FF5C00] hover:bg-[#d44d00] text-zinc-950 font-black shadow-md shadow-[#FF5C00]/20"
+                      : "bg-[#D70F64] hover:bg-[#b00c50] text-white font-black shadow-md shadow-[#D70F64]/20"
                   }`}
                 >
                   {isMuted ? "🔇 Unmute Alarm Siren" : "🔊 Mute Alarm Tone"}
@@ -402,7 +408,7 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
             <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
               
               <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-3.5xl relative overflow-hidden flex flex-col justify-between shadow-sm">
-                <div className="absolute top-0 right-0 p-3 text-[#FF5C00] opacity-10">
+                <div className="absolute top-0 right-0 p-3 text-[#D70F64] opacity-10">
                   <ClipboardList className="w-16 h-16" />
                 </div>
                 <div>
@@ -437,7 +443,7 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
                   <span className="text-[10px] text-zinc-400 font-extrabold uppercase tracking-widest block">This Month's Orders</span>
                   <p className="text-3xl font-black text-white mt-1.5">{stats.thisMonthCount}</p>
                 </div>
-                <div className="border-t border-zinc-850 pt-2 flex items-center gap-1.5 text-[10.5px] text-[#FF5C00] mt-4.5 font-bold">
+                <div className="border-t border-zinc-850 pt-2 flex items-center gap-1.5 text-[10.5px] text-[#D70F64] mt-4.5 font-bold">
                   <Check className="w-3.5 h-3.5" />
                   <span>Monthly Total</span>
                 </div>
@@ -464,18 +470,18 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
               
               {/* Left Column: Active Order Assignment */}
               <section className="space-y-5">
-                <h2 className="text-sm font-black uppercase tracking-widest text-[#FF5C00] border-b border-zinc-800 pb-2">
+                <h2 className="text-sm font-black uppercase tracking-widest text-[#D70F64] border-b border-zinc-800 pb-2">
                   🛡️ Active Order Shipment
                 </h2>
 
                 {riderActiveOrder ? (
-                  <div className="bg-zinc-900 border-2 border-[#FF5C00]/40 rounded-3.5xl p-6 space-y-6 shadow-xl relative overflow-hidden animate-fade-in text-zinc-100">
-                    <div className="absolute top-0 right-0 bg-[#FF5C00] text-zinc-950 font-black tracking-widest text-[9.5px] py-1 px-4 rounded-bl-2xl uppercase">
+                  <div className="bg-zinc-900 border-2 border-[#D70F64]/40 rounded-3.5xl p-6 space-y-6 shadow-xl relative overflow-hidden animate-fade-in text-zinc-100">
+                    <div className="absolute top-0 right-0 bg-[#D70F64] text-white font-black tracking-widest text-[9.5px] py-1 px-4 rounded-bl-2xl uppercase">
                       In-Progress
                     </div>
 
                     <div className="space-y-1">
-                      <span className="text-[10px] text-[#FF5C00] font-black uppercase tracking-wider block">Currently Delivering</span>
+                      <span className="text-[10px] text-[#D70F64] font-black uppercase tracking-wider block">Currently Delivering</span>
                       <h3 className="text-base font-black">
                         Delivery ID: <span className="font-mono text-zinc-400">dadu-{riderActiveOrder.id.substring(0, 8)}</span>
                       </h3>
@@ -485,7 +491,7 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
                     {/* Customer Logistics details */}
                     <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 space-y-4 font-medium text-xs">
                       <div className="flex items-start gap-3">
-                        <User className="w-4 h-4 text-[#FF5C00] shrink-0 mt-0.5" />
+                        <User className="w-4 h-4 text-[#D70F64] shrink-0 mt-0.5" />
                         <div>
                           <span className="text-[10px] uppercase text-zinc-550 font-black tracking-wider block">Customer Name</span>
                           <span className="text-sm font-black text-zinc-100 block mt-0.5">{riderActiveOrder.userName}</span>
@@ -493,7 +499,7 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
                       </div>
 
                       <div className="flex items-start gap-3">
-                        <MapPin className="w-4 h-4 text-[#FF5C00] shrink-0 mt-0.5" />
+                        <MapPin className="w-4 h-4 text-[#D70F64] shrink-0 mt-0.5" />
                         <div>
                           <span className="text-[10px] uppercase text-zinc-550 font-black tracking-wider block">Delivery Destination</span>
                           <p className="text-xs text-zinc-305 font-bold leading-relaxed mt-0.5">{riderActiveOrder.userAddress}</p>
@@ -561,7 +567,7 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
                         {riderActiveOrder.items.map((item, idx) => (
                           <div key={idx} className="bg-zinc-950/40 border border-zinc-850 p-2.5 rounded-xl flex items-center justify-between text-xs font-semibold">
                             <span className="text-zinc-200">
-                              {item.name} <span className="text-[#FF5C00] font-black">×{item.quantity}</span>
+                              {item.name} <span className="text-[#D70F64] font-black">×{item.quantity}</span>
                             </span>
                             <span className="text-zinc-400 font-mono">Rs. {item.price * item.quantity}</span>
                           </div>
@@ -603,8 +609,8 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
 
                     {/* Dynamic ETA settings */}
                     <div className="bg-zinc-950 border border-zinc-805 rounded-2xl p-4.5 space-y-3.5">
-                      <div className="flex items-center gap-1.5 text-[10px] font-black uppercase text-[#FF5C00] tracking-wider">
-                        <Clock className="w-3.5 h-3.5 text-orange-500 animate-pulse" /> Set Delivery/Arrival Time (ETA)
+                      <div className="flex items-center gap-1.5 text-[10px] font-black uppercase text-[#D70F64] tracking-wider">
+                        <Clock className="w-3.5 h-3.5 text-[#D70F64] animate-pulse" /> Set Delivery/Arrival Time (ETA)
                       </div>
                       <p className="text-[10px] text-zinc-400 font-semibold leading-relaxed">
                         Let the customer know when they can expect their food/repair arrival! Updates the live map dashboard instantly.
@@ -615,7 +621,7 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
                           placeholder="e.g. 15 mins, 25 mins, 9:30 PM"
                           value={etaInputs[riderActiveOrder.id] !== undefined ? etaInputs[riderActiveOrder.id] : (riderActiveOrder.eta || "")}
                           onChange={(e) => setEtaInputs({ ...etaInputs, [riderActiveOrder.id]: e.target.value })}
-                          className="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-[#FF5C00] transition"
+                          className="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:border-[#D70F64] transition"
                         />
                         <button
                           onClick={async () => {
@@ -631,13 +637,13 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
                                 message: `Your rider ${currentUser.name} updated the order arrival ETA: ${value}`,
                                 createdAt: { seconds: Date.now() / 1000 },
                                 read: false,
-                              });
+                              }).catch(() => {});
                               alert("⏱️ Delivery ETA updated & synchronized with customer profile!");
                             } catch (err: any) {
                               alert("Failed to update ETA: " + err.message);
                             }
                           }}
-                          className="bg-[#FF5C00] hover:bg-[#d44d00] text-zinc-950 font-black text-xs uppercase px-4 py-2 rounded-xl transition cursor-pointer active:scale-95"
+                          className="bg-[#D70F64] hover:bg-[#b00c50] text-white font-black text-xs uppercase px-4 py-2 rounded-xl transition cursor-pointer active:scale-95"
                         >
                           Update Time
                         </button>
@@ -690,7 +696,7 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
               {/* Right Column: Available orders waiting for drivers */}
               <section className="space-y-5">
                 <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
-                  <h2 className="text-sm font-black uppercase tracking-widest text-[#FF5C00]">
+                  <h2 className="text-sm font-black uppercase tracking-widest text-[#D70F64]">
                     🔔 Available Food Shipments ({availableOrders.length})
                   </h2>
                   <span className="text-[9px] bg-red-500/10 text-red-400 py-0.5 px-2 rounded-full font-black uppercase animate-pulse">
@@ -711,7 +717,7 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
                       return (
                         <div 
                           key={order.id} 
-                          className="bg-zinc-900 border border-zinc-800 rounded-2.5xl p-5 hover:border-[#FF5C00]/40 transition space-y-4 shadow-xs relative text-zinc-100 group"
+                          className="bg-zinc-900 border border-zinc-800 rounded-2.5xl p-5 hover:border-[#D70F64]/40 transition space-y-4 shadow-xs relative text-zinc-100 group"
                         >
                           {/* Order metadata header */}
                           <div className="flex items-start justify-between gap-2">
@@ -720,7 +726,7 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
                                 Rs. {order.deliveryFee} Rider Fee
                               </span>
                               <h4 className="font-extrabold text-sm mt-2 text-zinc-200">
-                                Dadu Order: <span className="font-mono text-xs text-[#FF5C00]">dadu-{order.id.substring(0, 6)}</span>
+                                Dadu Order: <span className="font-mono text-xs text-[#D70F64]">dadu-{order.id.substring(0, 6)}</span>
                               </h4>
                             </div>
                             <span className="text-[10.5px] text-zinc-500 font-mono font-bold">
@@ -731,7 +737,7 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
                           {/* Order location and timing */}
                           <div className="bg-zinc-950/60 p-3 rounded-xl border border-zinc-850 space-y-1.5 text-[11px] font-semibold text-zinc-300">
                             <div className="flex items-center gap-1.5">
-                              <span className="text-[#FF5C00]">📍 Destination:</span>
+                              <span className="text-[#D70F64]">📍 Destination:</span>
                               <span className="truncate max-w-[220px]">{order.userAddress}</span>
                             </div>
                             <div className="flex items-center gap-1.5 justify-between">
@@ -747,7 +753,7 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
                             className={`w-full py-3 rounded-xl text-[11px] font-black uppercase tracking-wider transition flex items-center justify-center gap-2 cursor-pointer border ${
                               isDisabled
                                 ? "bg-zinc-950 text-zinc-600 border-zinc-850 cursor-not-allowed"
-                                : "bg-gradient-to-r from-[#FF5C00] to-orange-600 text-zinc-950 hover:from-orange-500 hover:to-orange-600 border-[#FF5C00] shadow-md shadow-orange-500/10"
+                                : "bg-gradient-to-r from-[#D70F64] to-pink-600 text-white hover:from-pink-500 hover:to-pink-600 border-[#D70F64] shadow-md shadow-pink-500/10"
                             }`}
                           >
                             {loadingActionId === order.id ? (
@@ -779,9 +785,9 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
             
             <section className="bg-zinc-900 border border-zinc-800 rounded-3.5xl p-6 space-y-6 shadow-sm">
               <div className="flex items-center gap-2.5 border-b border-zinc-800 pb-4">
-                <History className="w-5 h-5 text-[#FF5C00]" />
+                <History className="w-5 h-5 text-[#D70F64]" />
                 <div>
-                  <h3 className="text-sm font-black uppercase tracking-widest text-[#FF5C00]">Past Delivered Catalog</h3>
+                  <h3 className="text-sm font-black uppercase tracking-widest text-[#D70F64]">Past Delivered Catalog</h3>
                   <p className="text-[11px] text-zinc-400 font-semibold leading-relaxed">Grouped by delivery sequence complete dates. Select a date to view full catalog breakdown.</p>
                 </div>
               </div>
@@ -810,7 +816,7 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
                             onClick={() => setSelectedHistoryDate(dateKey)}
                             className={`w-full p-3 rounded-xl border text-left transition flex items-center justify-between gap-3 text-xs cursor-pointer ${
                               isSelected
-                                ? "bg-[#FF5C00] text-zinc-950 border-[#FF5C00]"
+                                ? "bg-[#D70F64] text-white border-[#D70F64]"
                                 : "bg-zinc-950 hover:bg-zinc-850 text-zinc-330 border-zinc-800"
                             }`}
                           >
@@ -837,7 +843,7 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
                       <div className="space-y-4">
                         <div className="bg-zinc-950 border border-zinc-800 rounded-2.5xl p-4.5 flex items-center justify-between gap-3 flex-wrap">
                           <div>
-                            <span className="text-[9px] uppercase tracking-wider text-[#FF5C00] font-black block">Log catalog details for</span>
+                            <span className="text-[9px] uppercase tracking-wider text-[#D70F64] font-black block">Log catalog details for</span>
                             <h4 className="font-extrabold text-sm text-zinc-150 mt-1">{formatNiceDate(selectedHistoryDate)}</h4>
                           </div>
                           
@@ -867,7 +873,7 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
                                 {/* metadata */}
                                 <div className="flex justify-between items-start border-b border-zinc-850 pb-2.5 gap-2 text-xs">
                                   <div>
-                                    <span className="text-[#FF5C00] font-black uppercase text-[9px] tracking-wider block">ID: dadu-{order.id.substring(0, 8)}</span>
+                                    <span className="text-[#D70F64] font-black uppercase text-[9px] tracking-wider block">ID: dadu-{order.id.substring(0, 8)}</span>
                                     <h5 className="font-extrabold text-zinc-200 mt-1">Buyer: {order.userName}</h5>
                                   </div>
                                   <div className="text-right font-mono">
@@ -879,9 +885,9 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
                                 {/* items */}
                                 <div className="space-y-1.5">
                                   {order.items.map((item, idx) => (
-                                    <div key={idx} className="flex justify-between items-center text-[11px] font-semibold text-zinc-400">
+                                    <div key={idx} className="flex justify-between items-center text-[11px] font-semibold text-[#b5b5b5]">
                                       <span>
-                                        {item.name} <span className="text-[#FF5C00] font-bold">×{item.quantity}</span>
+                                        {item.name} <span className="text-[#D70F64] font-bold">×{item.quantity}</span>
                                       </span>
                                       <span className="font-mono">Rs. {item.price * item.quantity}</span>
                                     </div>

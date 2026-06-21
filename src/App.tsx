@@ -181,6 +181,8 @@ export default function App() {
         // Seed default
         setDoc(doc(db, "settings", "delivery_config"), { deliveryFee: 50 }).catch(console.error);
       }
+    }, (err) => {
+      console.warn("Delivery config subscription error:", handleFirestoreError(err));
     });
 
     return () => unsubscribe();
@@ -222,6 +224,8 @@ export default function App() {
           setActiveTrackingOrder(list[0]);
         }
       }
+    }, (err) => {
+      console.warn("Orders live listening error:", handleFirestoreError(err));
     });
 
     // Notify listeners mapping
@@ -257,6 +261,8 @@ export default function App() {
       }
 
       setNotifications(list);
+    }, (err) => {
+      console.warn("Notifications live listening error:", handleFirestoreError(err));
     });
 
     return () => {
@@ -414,7 +420,7 @@ export default function App() {
   const cartPriceTotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 relative pb-28 md:pb-12 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#F9F8F9] text-zinc-800 relative pb-28 md:pb-12 flex flex-col font-sans">
       
       {/* Welcome Foodpanda-style Intro Splash Animation Screen */}
       <AnimatePresence mode="wait">
@@ -451,13 +457,13 @@ export default function App() {
                 className="w-28 h-28 bg-white rounded-3xl flex items-center justify-center shadow-2xl relative"
               >
                 {/* Visual badge highlight */}
-                <div className="absolute -top-2.5 -right-2.5 bg-[#FF5C00] text-white font-black text-[9px] uppercase tracking-widest py-1 px-2.5 rounded-full shadow-lg border border-white flex items-center gap-0.5 animate-pulse">
+                <div className="absolute -top-2.5 -right-2.5 bg-[#D70F64] text-white font-black text-[9px] uppercase tracking-widest py-1 px-2.5 rounded-full shadow-lg border border-white flex items-center gap-0.5 animate-pulse">
                   <span className="w-1 h-1 bg-white rounded-full"></span>
                   DADU CITY
                 </div>
 
                 {/* Main branding icon inside logo box */}
-                <span className="text-5xl drop-shadow-md select-none transform hover:scale-110 transition">🐼</span>
+                <UtensilsCrossed className="w-12 h-12 text-[#D70F64] stroke-[2.5] transform hover:rotate-12 transition duration-300" />
               </motion.div>
 
               {/* Title & Tagline with staggered animations */}
@@ -577,33 +583,33 @@ export default function App() {
                     setActiveTrackingOrder(activeOrderForBanner);
                     setIsTrackingModalOpen(true);
                   }}
-                  className="bg-zinc-950 border-2 border-[#FF5C00] p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 cursor-pointer hover:bg-zinc-900/80 transition-all shadow-xl shadow-orange-500/5 group"
+                  className="bg-white border-2 border-[#D70F64] p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 cursor-pointer hover:bg-zinc-50 transition-all shadow-xl shadow-pink-500/5 group"
                 >
                   <div className="flex items-center gap-4.5 w-full sm:w-auto">
-                    <div className="w-12 h-12 rounded-full bg-[#FF5C00]/10 border border-[#FF5C00]/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition duration-300">
+                    <div className="w-12 h-12 rounded-full bg-[#D70F64]/10 border border-[#D70F64]/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition duration-300">
                       🛵
                     </div>
                     <div className="flex-1 min-w-0">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-[#FF5C00] block">Active Placed Order Tracking Live</span>
-                      <h4 className="text-xs sm:text-sm font-black text-white mt-1 leading-normal truncate">
-                        Your Order <span className="font-mono text-zinc-400">dadu-{activeOrderForBanner.id.substring(0, 5)}...</span> is currently <span className="text-[#FF5C00] uppercase font-bold">{activeOrderForBanner.status === "out_for_delivery" ? "With Foodpanda Rider" : activeOrderForBanner.status === "preparing" ? "Cooking in Kitchen" : "Confirmed & Accepted"}</span>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-[#D70F64] block">Active Placed Order Tracking Live</span>
+                      <h4 className="text-xs sm:text-sm font-black text-zinc-800 mt-1 leading-normal truncate">
+                        Your Order <span className="font-mono text-zinc-500 font-bold">dadu-{activeOrderForBanner.id.substring(0, 5)}...</span> is currently <span className="text-[#D70F64] uppercase font-bold">{activeOrderForBanner.status === "out_for_delivery" ? "With Foodpanda Rider" : activeOrderForBanner.status === "preparing" ? "Cooking in Kitchen" : "Confirmed & Accepted"}</span>
                       </h4>
                       {activeOrderForBanner.riderName ? (
                         <div className="flex items-center gap-1.5 mt-1">
                           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                          <span className="text-[10px] text-zinc-400 font-extrabold truncate">
-                            Rider assigned: <span className="text-green-400">{activeOrderForBanner.riderName}</span> ({activeOrderForBanner.riderPhone})
+                          <span className="text-[10px] text-zinc-500 font-extrabold truncate">
+                            Rider assigned: <span className="text-[#D70F64] font-black">{activeOrderForBanner.riderName}</span> ({activeOrderForBanner.riderPhone})
                           </span>
                         </div>
                       ) : (
-                        <span className="text-[10px] text-zinc-500 font-bold block mt-1">
+                        <span className="text-[10px] text-zinc-400 font-bold block mt-1">
                           ⏳ Assigning driver to your neighborhood...
                         </span>
                       )}
                     </div>
                   </div>
                   
-                  <button className="w-full sm:w-auto bg-[#FF5C00] text-zinc-950 text-xs font-black uppercase tracking-widest px-5 py-3 rounded-xl group-hover:bg-[#d44d00] transition active:scale-95 shrink-0 shadow-md">
+                  <button className="w-full sm:w-auto bg-[#D70F64] text-white text-xs font-black uppercase tracking-widest px-5 py-3 rounded-xl hover:bg-[#b00c50] transition active:scale-95 shrink-0 shadow-md">
                     Track Live Map 🧭
                   </button>
                 </div>
@@ -628,19 +634,19 @@ export default function App() {
                     )
                   ) as string[];
                   return (
-                    <div className="bg-zinc-900 border border-zinc-850 p-4.5 rounded-3.5xl space-y-3.5 shadow-sm">
+                    <div className="bg-white border border-pink-100 p-4.5 rounded-3.5xl space-y-3.5 shadow-sm">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className="text-xl">🏪</span>
                           <div>
-                            <h4 className="text-xs font-black uppercase tracking-wider text-zinc-100">Browse Restaurants & Repair Shops</h4>
-                            <p className="text-[10px] text-zinc-500 font-semibold leading-tight">Filter menu items or choose a specific partner store on Dadu</p>
+                            <h4 className="text-xs font-black uppercase tracking-wider text-zinc-800">Browse Restaurants & Repair Shops</h4>
+                            <p className="text-[10px] text-zinc-400 font-bold leading-tight">Filter menu items or choose a specific partner store on Dadu</p>
                           </div>
                         </div>
                         {selectedRestaurant !== "All Restaurants" && (
                           <button
                             onClick={() => setSelectedRestaurant("All Restaurants")}
-                            className="text-[10px] text-[#FF5C00] font-black uppercase tracking-wider hover:underline cursor-pointer"
+                            className="text-[10px] text-[#D70F64] font-black uppercase tracking-wider hover:underline cursor-pointer"
                           >
                             Reset filter
                           </button>
@@ -652,8 +658,8 @@ export default function App() {
                           onClick={() => setSelectedRestaurant("All Restaurants")}
                           className={`py-2 px-3.5 rounded-xl text-xs font-black transition shrink-0 cursor-pointer border ${
                             selectedRestaurant === "All Restaurants"
-                              ? "bg-amber-500 text-black border-amber-500 font-black shadow-xs"
-                              : "bg-zinc-950 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850 border-zinc-800"
+                              ? "bg-[#D70F64] text-white border-[#D70F64] font-black shadow-xs shadow-pink-500/10 scale-[1.02]"
+                              : "bg-white text-zinc-505 hover:text-zinc-800 hover:bg-zinc-50 border-zinc-200"
                           }`}
                         >
                           🎪 All Kitchens & Shops
@@ -664,8 +670,8 @@ export default function App() {
                             onClick={() => setSelectedRestaurant(vendor)}
                             className={`py-2 px-3.5 rounded-xl text-xs font-black transition shrink-0 cursor-pointer border flex items-center gap-2 ${
                               selectedRestaurant === vendor
-                                ? "bg-[#FF5C00] text-zinc-950 border-[#FF5C00] font-black shadow-xs"
-                                : "bg-zinc-950 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850 border-zinc-800"
+                                ? "bg-[#D70F64] text-white border-[#D70F64] font-black shadow-xs shadow-pink-500/10 scale-[1.02]"
+                                : "bg-white text-zinc-505 hover:text-zinc-800 hover:bg-zinc-50 border-zinc-200"
                             }`}
                           >
                             <span className="opacity-90">{vendor.includes("Services") || vendor.includes("Pr") || vendor.includes("Re") ? "🛠️" : "🍔"}</span>
@@ -678,11 +684,11 @@ export default function App() {
                 })()}
 
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-extrabold tracking-wider text-zinc-200 uppercase border-b border-zinc-800 pb-2">
+                  <h3 className="text-sm font-extrabold tracking-wider text-zinc-750 uppercase border-b border-pink-100 pb-2">
                     {selectedRestaurant === "All Restaurants" ? activeCategory : selectedRestaurant} Delicacies ({filteredDishes.length})
                   </h3>
                   {searchQuery && (
-                    <span className="text-xs text-zinc-400 font-bold">Matching "{searchQuery}"</span>
+                    <span className="text-xs text-zinc-500 font-bold">Matching "{searchQuery}"</span>
                   )}
                 </div>
 
@@ -692,31 +698,31 @@ export default function App() {
                     return (
                       <div
                         key={dish.id}
-                        className="bg-zinc-900 border border-zinc-800 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs hover:border-zinc-700/80 hover:shadow-md hover:shadow-orange-500/5 transition-all flex flex-col group relative text-zinc-100"
+                        className="bg-white border border-zinc-200/80 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs hover:border-[#D70F64]/30 hover:shadow-md hover:shadow-pink-500/5 transition-all flex flex-col group relative text-zinc-800"
                       >
                         {/* Sold Out Overlay */}
                         {!dish.isAvailable && (
-                          <div className="absolute inset-0 bg-zinc-950/95 z-20 flex flex-col items-center justify-center text-center p-2 sm:p-4">
-                            <BadgeAlert className="w-5 h-5 sm:w-8 sm:h-8 text-zinc-500 mb-1" />
-                            <span className="font-extrabold text-[10px] sm:text-sm uppercase tracking-widest text-[#FF5C00]">SOLD OUT</span>
-                            <span className="text-[8px] sm:text-[10px] text-zinc-400 mt-0.5 font-bold">Soon</span>
+                          <div className="absolute inset-0 bg-white/95 z-20 flex flex-col items-center justify-center text-center p-2 sm:p-4">
+                            <BadgeAlert className="w-5 h-5 sm:w-8 sm:h-8 text-zinc-400 mb-1" />
+                            <span className="font-extrabold text-[10px] sm:text-sm uppercase tracking-widest text-[#D70F64]">SOLD OUT</span>
+                            <span className="text-[8px] sm:text-[10px] text-zinc-500 mt-0.5 font-bold">Soon</span>
                           </div>
                         )}
 
                         {/* Card Image */}
-                        <div className="relative h-28 sm:h-44 bg-zinc-800 overflow-hidden shrink-0 cursor-pointer" onClick={() => setActiveDetailDish(dish)}>
+                        <div className="relative h-28 sm:h-44 bg-zinc-100 overflow-hidden shrink-0 cursor-pointer" onClick={() => setActiveDetailDish(dish)}>
                           <img
                             referrerPolicy="no-referrer"
                             src={dish.imageUrl}
                             alt={dish.name}
                             className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent"></div>
                           
                           {/* Top Tag */}
                           <div className="absolute top-2 left-2 flex gap-1">
                             <span className={`text-[8px] sm:text-[10px] font-black uppercase tracking-wider py-0.5 sm:py-1 px-1.5 sm:px-2.5 rounded-md sm:rounded-lg shadow-md ${
-                              isSvc ? "bg-amber-500 text-neutral-950 font-extrabold" : "bg-[#FF5C00] text-zinc-950"
+                              isSvc ? "bg-amber-500 text-neutral-950 font-extrabold" : "bg-[#D70F64] text-white"
                             }`}>
                               {isSvc ? "🛠️ Service" : "🍔 Food"}
                             </span>
@@ -724,26 +730,26 @@ export default function App() {
                         </div>
 
                         {/* Card Contents */}
-                        <div className="p-2.5 sm:p-4 flex-1 flex flex-col justify-between space-y-2 sm:space-y-3.5 bg-zinc-900">
+                        <div className="p-2.5 sm:p-4 flex-1 flex flex-col justify-between space-y-2 sm:space-y-3.5 bg-white">
                           <div className="space-y-1 sm:space-y-1.5 flex-1 cursor-pointer" onClick={() => setActiveDetailDish(dish)}>
                             <div className="text-[8.5px] sm:text-[10.5px] text-zinc-500 font-extrabold tracking-wider uppercase flex items-center gap-1 truncate max-w-full">
                               <span>🏪</span> {dish.restaurantName || (dish.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen")}
                             </div>
                             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-1 sm:gap-1.5">
-                              <h4 className="font-bold text-zinc-100 text-xs sm:text-sm tracking-tight leading-snug group-hover:text-[#FF5C00] transition truncate max-w-full">
+                              <h4 className="font-bold text-zinc-800 text-xs sm:text-sm tracking-tight leading-snug group-hover:text-[#D70F64] transition truncate max-w-full">
                                 {dish.name}
                               </h4>
-                              <span className={`font-black text-xs sm:text-sm shrink-0 whitespace-nowrap ${isSvc ? "text-amber-500" : "text-[#FF5C00]"}`}>
+                              <span className={`font-black text-xs sm:text-sm shrink-0 whitespace-nowrap ${isSvc ? "text-amber-600" : "text-[#D70F64]"}`}>
                                 Rs. {dish.price}
                               </span>
                             </div>
-                            <p className="text-[10px] sm:text-[11.5px] text-zinc-400 line-clamp-1 sm:line-clamp-3 leading-relaxed font-semibold">
+                            <p className="text-[10px] sm:text-[11.5px] text-zinc-505 line-clamp-1 sm:line-clamp-3 leading-relaxed font-semibold">
                               {dish.description}
                             </p>
                           </div>
 
                           {/* Detail Badging - CUSTOMIZED FOR SERVICES (Hidden on mobile grid for cleanliness) */}
-                          <div className="hidden sm:flex items-center gap-2 border-t border-zinc-850 pt-3 text-[10.5px] font-semibold text-zinc-400">
+                          <div className="hidden sm:flex items-center gap-2 border-t border-zinc-100 pt-3 text-[10.5px] font-semibold text-zinc-500">
                             {isSvc ? (
                               <>
                                 <Wrench className="w-3.5 h-3.5 text-amber-500 shrink-0" />
@@ -753,8 +759,8 @@ export default function App() {
                               <>
                                 <Clock className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
                                 <span>Prep: 20-30m</span>
-                                <span className="text-zinc-700">•</span>
-                                <span className="text-emerald-500 font-bold">Fast Delivery</span>
+                                <span className="text-zinc-350">•</span>
+                                <span className="text-emerald-600 font-bold">Fast Delivery</span>
                               </>
                             )}
                           </div>
@@ -767,7 +773,7 @@ export default function App() {
                               className={`w-full py-1.5 sm:py-2.5 rounded-xl sm:rounded-2xl text-[9px] sm:text-xs font-black uppercase tracking-wider transition shadow-xs flex items-center justify-center gap-1 cursor-pointer ${
                                 isSvc 
                                   ? "bg-amber-500 hover:bg-amber-600 text-[#121212] font-semibold" 
-                                  : "bg-[#FF5C00] hover:bg-[#d44d00] text-zinc-950"
+                                  : "bg-[#D70F64] hover:bg-[#b00c50] text-white"
                               }`}
                             >
                               {isSvc ? (
@@ -829,7 +835,7 @@ export default function App() {
                           if (ord) setActiveTrackingOrder(ord);
                         }}
                         value={activeTrackingOrder.id}
-                        className="w-full p-2 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-zinc-200 font-mono text-xs focus:border-[#FF5C00] transition"
+                        className="w-full p-2 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-zinc-200 font-mono text-xs focus:border-[#D70F64] transition"
                       >
                         {orders.map((o) => (
                           <option key={o.id} value={o.id} className="bg-zinc-900 text-zinc-200">
@@ -896,7 +902,7 @@ export default function App() {
               <div>
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className={`text-[9px] font-black uppercase tracking-wider py-0.5 px-2 rounded ${
-                    activeDetailDish.type === "service" ? "bg-amber-530/20 text-amber-500 font-extrabold" : "bg-[#FF5C00]/10 text-[#FF5C00] font-black"
+                    activeDetailDish.type === "service" ? "bg-amber-530/20 text-amber-500 font-extrabold" : "bg-[#D70F64]/10 text-[#D70F64] font-black"
                   }`}>
                     {activeDetailDish.type === "service" ? "Licensed electrician visit" : "Kitchen direct"}
                   </span>
@@ -905,7 +911,7 @@ export default function App() {
                   </span>
                 </div>
                 <h3 className="font-extrabold text-zinc-100 text-base mt-2">{activeDetailDish.name}</h3>
-                <span className={`text-sm font-black mt-1 block ${activeDetailDish.type === "service" ? "text-amber-500" : "text-[#FF5C00]"}`}>Rs. {activeDetailDish.price}</span>
+                <span className={`text-sm font-black mt-1 block ${activeDetailDish.type === "service" ? "text-amber-500" : "text-[#D70F64]"}`}>Rs. {activeDetailDish.price}</span>
               </div>
 
               <p className="text-xs text-zinc-400 leading-normal font-medium">{activeDetailDish.description}</p>
@@ -926,7 +932,7 @@ export default function App() {
                   setActiveDetailDish(null);
                 }}
                 className={`w-full py-2.5 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer ${
-                  activeDetailDish.type === "service" ? "bg-amber-500 text-neutral-950 hover:bg-amber-600" : "bg-[#FF5C00] text-zinc-950 hover:bg-[#d44d00]"
+                  activeDetailDish.type === "service" ? "bg-amber-500 text-neutral-950 hover:bg-amber-600" : "bg-[#D70F64] text-white hover:bg-[#b00c50]"
                 }`}
               >
                 {activeDetailDish.type === "service" ? "Book visitation (Rs. 500)" : "Add to Checkout Cart"}
@@ -960,8 +966,8 @@ export default function App() {
 
       {/* sliding push alerts toast widget */}
       {toastNotification && (
-        <div className="fixed bottom-6 right-6 z-50 p-4 max-w-sm bg-zinc-900 border-2 border-[#FF5C00]/40 text-zinc-100 rounded-2xl shadow-2xl flex items-start gap-3 animate-slide-in">
-          <div className="bg-[#FF5C00] text-zinc-950 p-2.5 rounded-xl shrink-0">
+        <div className="fixed bottom-6 right-6 z-50 p-4 max-w-sm bg-zinc-900 border-2 border-[#D70F64]/40 text-zinc-100 rounded-2xl shadow-2xl flex items-start gap-3 animate-slide-in">
+          <div className="bg-[#D70F64] text-white p-2.5 rounded-xl shrink-0">
             <Sparkles className="w-5 h-5 animate-pulse" />
           </div>
           <div>
@@ -975,7 +981,7 @@ export default function App() {
       {cartCountTotal > 0 && (
         <div className="fixed bottom-4 left-4 right-4 z-40 md:hidden bg-zinc-900/95 border border-zinc-805 p-3 rounded-2xl shadow-2xl flex items-center justify-between gap-3 backdrop-blur-md">
           <div className="flex items-center gap-2">
-            <div className="bg-[#FF5C00] text-zinc-950 px-2 rounded-lg font-black text-xs h-7 flex items-center justify-center min-w-[28px]">
+            <div className="bg-[#D70F64] text-white px-2 rounded-lg font-black text-xs h-7 flex items-center justify-center min-w-[28px]">
               {cartCountTotal}
             </div>
             <div className="text-left">
@@ -985,7 +991,7 @@ export default function App() {
           </div>
           <button
             onClick={() => setIsCartOpen(true)}
-            className="bg-[#FF5C00] text-zinc-950 font-black text-xs uppercase tracking-wider py-2 px-3.5 rounded-xl hover:bg-[#d44d00] transition active:scale-95 shadow-md flex items-center gap-1 shrink-0"
+            className="bg-[#D70F64] text-white font-black text-xs uppercase tracking-wider py-2 px-3.5 rounded-xl hover:bg-[#b00c50] transition active:scale-95 shadow-md flex items-center gap-1 shrink-0"
           >
             Review & Order 🛍
           </button>

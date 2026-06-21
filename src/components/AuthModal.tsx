@@ -132,9 +132,21 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
     setErrorMessage("");
     setLoading(true);
 
-    const cleanPhone = sanitizePhone(phoneNumber);
-    if (cleanPhone.length < 10) {
+    // Support both username (contains letters or has short length) and standard phone numbers
+    const isUsername = /[a-zA-Z]/.test(phoneNumber) || (phoneNumber.trim().length > 0 && phoneNumber.trim().length < 10 && !/^\d+$/.test(phoneNumber.trim()));
+    const cleanIdentifier = isUsername 
+      ? phoneNumber.trim().toLowerCase() 
+      : sanitizePhone(phoneNumber);
+    const cleanPhone = cleanIdentifier;
+
+    if (!isUsername && cleanIdentifier.length < 10) {
       setErrorMessage("Please enter a valid Phone Number (Kam se kam 10 hindsay).");
+      setLoading(false);
+      return;
+    }
+
+    if (isUsername && cleanIdentifier.length < 3) {
+      setErrorMessage("Username must be at least 3 characters.");
       setLoading(false);
       return;
     }
@@ -145,8 +157,8 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
       return;
     }
 
-    // Convert phone to email representation so we can tap into Firebase Email/Password Auth
-    const virtualEmail = `${cleanPhone}@dadu247.com`;
+    // Convert to email representation so we can tap into Firebase Email/Password Auth
+    const virtualEmail = `${cleanIdentifier}@dadu247.com`;
 
     try {
       if (isSignUp) {
@@ -299,16 +311,16 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
         className="relative bg-zinc-900 border border-zinc-800 text-zinc-100 rounded-3xl shadow-xl w-full max-w-sm overflow-hidden"
       >
         {/* Brand Banner */}
-        <div className="bg-[#FF5C00] text-zinc-950 p-6 pb-8 text-center relative">
+        <div className="bg-[#D70F64] text-white p-6 pb-8 text-center relative">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 bg-black/10 hover:bg-black/25 text-zinc-950 transition-colors p-2 rounded-full cursor-pointer"
+            className="absolute top-4 right-4 bg-black/10 hover:bg-black/25 text-white transition-colors p-2 rounded-full cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
           
-          <h2 className="text-3xl font-extrabold tracking-tight text-zinc-950">Dadu24#7</h2>
-          <p className="text-zinc-900 text-sm font-bold mt-1">Authentic Food, Tea & Home Services</p>
+          <h2 className="text-3xl font-extrabold tracking-tight text-white">Dadu24#7</h2>
+          <p className="text-pink-100 text-sm font-bold mt-1">Authentic Food, Tea & Home Services</p>
         </div>
 
         {/* Form Body */}
@@ -317,7 +329,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
             /* Google Sign-in First-time profile creation */
             <div className="space-y-4">
               <div className="text-center mb-2">
-                <span className="text-xs bg-[#FF5C00]/10 text-[#FF5C00] py-1 px-3 rounded-full font-bold uppercase tracking-wider">
+                <span className="text-xs bg-[#D70F64]/10 text-[#D70F64] py-1 px-3 rounded-full font-bold uppercase tracking-wider">
                   One Final Step
                 </span>
                 <h3 className="text-lg font-black text-zinc-100 mt-2">Complete Your Profile</h3>
@@ -344,7 +356,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Enter full name"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-zinc-800 outline-none focus:border-[#FF5C00] focus:ring-1 focus:ring-[#FF5C00] transition text-sm bg-zinc-950 font-semibold text-zinc-200"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-zinc-800 outline-none focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition text-sm bg-zinc-950 font-semibold text-zinc-200"
                     />
                   </div>
                 </div>
@@ -359,7 +371,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
                       placeholder="e.g. 03277004471"
                       value={phoneNumber}
                       onChange={(e) => setPhoneNumber(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-zinc-800 outline-none focus:border-[#FF5C00] focus:ring-1 focus:ring-[#FF5C00] transition text-sm bg-zinc-950 font-semibold text-zinc-200"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-zinc-800 outline-none focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition text-sm bg-zinc-950 font-semibold text-zinc-200"
                     />
                   </div>
                 </div>
@@ -374,7 +386,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
                       placeholder="Complete home description, sector, street..."
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 rounded-2xl border border-zinc-800 outline-none focus:border-[#FF5C00] focus:ring-1 focus:ring-[#FF5C00] transition text-sm bg-zinc-950 font-semibold text-zinc-200 resize-none"
+                      className="w-full pl-10 pr-4 py-2 rounded-2xl border border-zinc-800 outline-none focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition text-sm bg-zinc-950 font-semibold text-zinc-200 resize-none"
                     />
                   </div>
                 </div>
@@ -382,7 +394,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-[#FF5C00] hover:bg-[#d44d00] text-zinc-950 py-3 rounded-2xl font-bold tracking-wider uppercase text-xs shadow-md transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-75 cursor-pointer"
+                  className="w-full bg-[#D70F64] hover:bg-[#b00c50] text-white py-3 rounded-2xl font-bold tracking-wider uppercase text-xs shadow-md transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-75 cursor-pointer"
                 >
                   {loading ? (
                     <>
@@ -403,7 +415,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
                 <button
                   onClick={() => { setIsSignUp(false); setErrorMessage(""); }}
                   className={`py-2 text-center text-sm font-black rounded-xl transition-all cursor-pointer ${
-                    !isSignUp ? "bg-[#FF5C00] text-zinc-950 shadow-xs" : "text-zinc-400 hover:text-zinc-200"
+                    !isSignUp ? "bg-[#D70F64] text-white shadow-xs" : "text-zinc-400 hover:text-zinc-200"
                   }`}
                 >
                   Sign In
@@ -411,7 +423,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
                 <button
                   onClick={() => { setIsSignUp(true); setErrorMessage(""); }}
                   className={`py-2 text-center text-sm font-black rounded-xl transition-all cursor-pointer ${
-                    isSignUp ? "bg-[#FF5C00] text-zinc-950 shadow-xs" : "text-zinc-400 hover:text-zinc-200"
+                    isSignUp ? "bg-[#D70F64] text-white shadow-xs" : "text-zinc-400 hover:text-zinc-200"
                   }`}
                 >
                   Register
@@ -431,9 +443,9 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
                   type="button"
                   onClick={handleGoogleSignIn}
                   disabled={loading}
-                  className="w-full bg-zinc-950 hover:bg-zinc-855 border border-zinc-800 transition text-[#FF5C00] py-3 rounded-2xl font-black text-xs uppercase tracking-wide shadow-md flex items-center justify-center gap-2.5 cursor-pointer"
+                  className="w-full bg-zinc-950 hover:bg-zinc-855 border border-zinc-800 transition text-[#D70F64] py-3 rounded-2xl font-black text-xs uppercase tracking-wide shadow-md flex items-center justify-center gap-2.5 cursor-pointer"
                 >
-                  <LogIn className="w-4 h-4 text-[#FF5C00] shrink-0" />
+                  <LogIn className="w-4 h-4 text-[#D70F64] shrink-0" />
                   <span>Sign In with Google</span>
                 </button>
                 <div className="relative flex py-3 items-center">
@@ -455,23 +467,23 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         placeholder="Enter full name"
-                        className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-zinc-800 outline-none focus:border-[#FF5C00] focus:ring-1 focus:ring-[#FF5C00] transition text-sm bg-zinc-950 text-zinc-200 font-semibold"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-zinc-800 outline-none focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition text-sm bg-zinc-950 text-zinc-200 font-semibold"
                       />
                     </div>
                   </div>
                 )}
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-zinc-400 block uppercase tracking-wider">Phone Number</label>
+                  <label className="text-xs font-bold text-zinc-400 block uppercase tracking-wider">Phone / Username</label>
                   <div className="relative">
                     <Phone className="absolute left-3.5 top-3 w-4 h-4 text-zinc-550" />
                     <input
                       type="text"
                       required
-                      placeholder="e.g. 03277004471"
+                      placeholder="e.g. 03277004471 or rider_username"
                       value={phoneNumber}
                       onChange={(e) => setPhoneNumber(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-zinc-800 outline-none focus:border-[#FF5C00] focus:ring-1 focus:ring-[#FF5C00] transition text-sm bg-zinc-950 text-zinc-200 font-semibold"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-zinc-800 outline-none focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition text-sm bg-zinc-950 text-zinc-200 font-semibold"
                     />
                   </div>
                 </div>
@@ -487,7 +499,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
                         placeholder="Complete home and street address"
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 rounded-2xl border border-zinc-800 outline-none focus:border-[#FF5C00] focus:ring-1 focus:ring-[#FF5C00] transition text-sm bg-zinc-950 text-zinc-200 font-semibold resize-none"
+                        className="w-full pl-10 pr-4 py-2 rounded-2xl border border-zinc-800 outline-none focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition text-sm bg-zinc-950 text-zinc-200 font-semibold resize-none"
                       />
                     </div>
                   </div>
@@ -503,7 +515,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Min 6 characters"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-zinc-800 outline-none focus:border-[#FF5C00] focus:ring-1 focus:ring-[#FF5C00] transition text-sm bg-zinc-950 text-zinc-200 font-semibold"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-zinc-800 outline-none focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition text-sm bg-zinc-950 text-zinc-200 font-semibold"
                     />
                   </div>
                 </div>
@@ -511,7 +523,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-[#FF5C00] hover:bg-[#d44d00] text-zinc-950 py-3 rounded-2xl font-black tracking-wide shadow-md transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-75 cursor-pointer text-xs uppercase"
+                  className="w-full bg-[#D70F64] hover:bg-[#b00c50] text-white py-3 rounded-2xl font-black tracking-wide shadow-md transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-75 cursor-pointer text-xs uppercase"
                 >
                   {loading ? (
                     <>

@@ -26,6 +26,9 @@ const auth = getAuth(app);
 // Graceful FireStore Error Mapper for diagnostics
 export function handleFirestoreError(err: any): string {
   console.error("Firestore operation failure:", err);
+  if (err?.code === "resource-exhausted" || err?.message?.includes("Quota")) {
+    return "Dadu's daily Firebase limits reached! Everything will continue to run beautifully offline.";
+  }
   if (err?.code === "permission-denied") {
     return "Database permission denied. (Database ke rules lagane/auth permissions check karein).";
   }
@@ -51,4 +54,4 @@ export function cleanObject<T = any>(obj: any): T {
   return obj;
 }
 
-export { app, db, auth, firebaseConfig };
+export { app, db, auth, firebaseConfig, databaseId };

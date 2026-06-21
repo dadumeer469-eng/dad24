@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { UserProfile, Dish, Order, SystemSettings, AppNotification } from "../types";
 import { 
-  doc, setDoc, deleteDoc, collection, addDoc, updateDoc, query, where, onSnapshot, getDocs
+  doc, setDoc, deleteDoc, collection, addDoc, updateDoc, query, where, onSnapshot, getDocs, getFirestore
 } from "firebase/firestore";
-import { db, firebaseConfig } from "../firebase";
+import { db, firebaseConfig, databaseId } from "../firebase";
 import { initializeApp, deleteApp } from "firebase/app";
-import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { 
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area
 } from "recharts";
 import { 
   Plus, Settings, LayoutDashboard, ShoppingCart, ListCollapse, ToggleLeft, ToggleRight, Trash2, 
   HelpCircle, RefreshCw, Smartphone, TrendingUp, DollarSign, Package, CheckCheck, Save, Send, EyeOff, Wrench,
-  UserPlus, User, Loader2, Key, Truck, Compass
+  UserPlus, User, Loader2, Key, Truck, Compass, Phone
 } from "lucide-react";
 
 interface AdminPanelProps {
@@ -60,8 +60,6 @@ export default function AdminPanel({
   // Rider registration form states
   const [riderNameInput, setRiderNameInput] = useState("");
   const [riderPhoneInput, setRiderPhoneInput] = useState("");
-  const [riderVehicleInput, setRiderVehicleInput] = useState("");
-  const [riderEmailInput, setRiderEmailInput] = useState("");
   const [riderPasswordInput, setRiderPasswordInput] = useState("");
   const [riderRegLoading, setRiderRegLoading] = useState(false);
   const [ridersSubset, setRidersSubset] = useState<UserProfile[]>([]);
@@ -81,95 +79,142 @@ export default function AdminPanel({
     return () => unsubscribe();
   }, []);
 
-  // Secure Rider Creator
+  // Secure Rider Creator - Simplified to Name, Phone/Username, and Password as requested by user
   const handleRegisterRiderSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!riderNameInput.trim() || !riderPhoneInput.trim() || !riderVehicleInput.trim() || !riderEmailInput.trim() || !riderPasswordInput) {
-      alert("All fields are required!");
+    const name = riderNameInput.trim();
+    const phoneOrUsername = riderPhoneInput.trim();
+    const password = riderPasswordInput;
+
+    if (!name || !phoneOrUsername || !password) {
+      alert("Name, Phone Number/Username and Password are required!");
       return;
     }
-    if (riderPasswordInput.length < 6) {
+    if (password.length < 6) {
       alert("Password must be at least 6 characters long!");
       return;
     }
 
+    const sanitizePhone = (phoneStr: string) => {
+      let cleaned = phoneStr.replace(/\D/g, "");
+      if (cleaned.startsWith("92")) {
+        cleaned = "0" + cleaned.substring(2);
+      }
+      return cleaned;
+    };
+
+    const isUsername = /[a-zA-Z]/.test(phoneOrUsername) || (phoneOrUsername.length > 0 && phoneOrUsername.length < 10 && !/^\d+$/.test(phoneOrUsername));
+    const cleanPhone = isUsername 
+      ? phoneOrUsername.toLowerCase() 
+      : sanitizePhone(phoneOrUsername);
+
     setRiderRegLoading(true);
     let tempApp;
     try {
-      // 1. First, check if there is an existing database profile with this exact phone number
-      const phoneQuery = query(collection(db, "users"), where("phone", "==", riderPhoneInput.trim()));
-      const querySnapshot = await getDocs(phoneQuery);
-      if (!querySnapshot.empty) {
-        const existingDoc = querySnapshot.docs[0];
+      const computedEmail = `${cleanPhone}@dadu247.com`;
+
+      // 1. Check if user already exists in standard Firestore database first
+      const q = query(
+        collection(db, "users"), 
+        where("phone", "==", cleanPhone)
+      );
+      const snap = await getDocs(q);
+      
+      if (!snap.empty) {
+        const existingDoc = snap.docs[0];
         const existingData = existingDoc.data() as UserProfile;
-        const confirmResult = window.confirm(
-          `Profile MATCH detected:\n\nA user named "${existingData.name}" is already registered database-wide with the phone number: ${riderPhoneInput}.\nTheir current system role is: "${existingData.role}".\n\nWould you like to directly PROMOTE this existing customer/user to standard "rider" duty and assign the vehicle number "${riderVehicleInput}"? (This saves you from creating a duplicate authentication account!)`
+        
+        if (existingData.role === "rider") {
+          alert(`Rider "${existingData.name}" with phone/username "${cleanPhone}" is already registered (UID: ${existingData.uid}).`);
+          setRiderNameInput("");
+          setRiderPhoneInput("");
+          setRiderPasswordInput("");
+          setRiderRegLoading(false);
+          return;
+        }
+
+        const confirmUpgrade = window.confirm(
+          `User "${existingData.name}" already exists in the system with role: "${existingData.role}".\nDo you want to escalate this user's profile to a Rider duty?`
         );
-        if (confirmResult) {
-          await updateDoc(doc(db, "users", existingDoc.id), {
+        if (confirmUpgrade) {
+          await updateDoc(doc(db, "users", existingData.uid), {
             role: "rider",
-            vehicleNumber: riderVehicleInput,
-            address: "Dadu Riders HQ"
+            vehicleNumber: "Active Rider",
           });
           alert(`Success! "${existingData.name}" has been upgraded to Rider duty successfully.`);
           setRiderNameInput("");
           setRiderPhoneInput("");
-          setRiderVehicleInput("");
-          setRiderEmailInput("");
           setRiderPasswordInput("");
+          setRiderRegLoading(false);
+          return;
+        } else {
           setRiderRegLoading(false);
           return;
         }
       }
 
-      // 2. Otherwise launch secondary Auth registration pipeline
+      // 2. Launch secondary Auth registration pipeline
       const uniqueAppName = `RiderApp_${Date.now()}`;
       tempApp = initializeApp(firebaseConfig, uniqueAppName);
       const tempAuth = getAuth(tempApp);
+      const tempDb = databaseId ? getFirestore(tempApp, databaseId) : getFirestore(tempApp);
 
-      // Create new Auth credential
-      const userCredential = await createUserWithEmailAndPassword(tempAuth, riderEmailInput, riderPasswordInput);
-      const createdUid = userCredential.user.uid;
+      let createdUid = "";
+      try {
+        // Create new Auth credential
+        const userCredential = await createUserWithEmailAndPassword(tempAuth, computedEmail, password);
+        createdUid = userCredential.user.uid;
+      } catch (authErr: any) {
+        console.warn("Rider Auth registration warning:", authErr);
+        const errCode = authErr?.code || "";
+        const errMsg = authErr?.message || String(authErr);
+        const joinedErr = `${errCode} ${errMsg}`.toLowerCase();
+        
+        const isEmailAlreadyInUse = 
+          errCode === "auth/email-already-in-use" || 
+          joinedErr.includes("already-in-use") || 
+          joinedErr.includes("already in use") || 
+          joinedErr.includes("email-already-in-use") ||
+          joinedErr.includes("already");
+
+        if (isEmailAlreadyInUse) {
+          // Attempt to log in with provided username and password to claim the already created account
+          try {
+            const userCredential = await signInWithEmailAndPassword(tempAuth, computedEmail, password);
+            createdUid = userCredential.user.uid;
+          } catch (signinErr: any) {
+            console.warn("Rider claiming sign-in mismatch warning:", signinErr);
+            // Authentication profile exists but matches with a different password
+            throw new Error(`This phone/username "${cleanPhone}" is already taken! Please choose a different unique phone or username.`);
+          }
+        } else {
+          throw authErr;
+        }
+      }
 
       // Create database record with role "rider"
       const newRiderProfile: UserProfile = {
         uid: createdUid,
-        name: riderNameInput,
-        phone: riderPhoneInput,
+        name: name,
+        phone: cleanPhone,
         address: "Dadu Riders HQ",
         role: "rider",
         ordersCount: 0,
-        vehicleNumber: riderVehicleInput,
+        vehicleNumber: "Active Rider",
       };
 
-      await setDoc(doc(db, "users", createdUid), newRiderProfile);
+      await setDoc(doc(tempDb, "users", createdUid), newRiderProfile);
 
-      alert(`Success! Rider ${riderNameInput} registered under UID: ${createdUid}`);
+      alert(`Success! Rider "${name}" has been successfully registered with username/phone: "${cleanPhone}" and password: "${password}"!`);
 
       // Clear states
       setRiderNameInput("");
       setRiderPhoneInput("");
-      setRiderVehicleInput("");
-      setRiderEmailInput("");
       setRiderPasswordInput("");
     } catch (err: any) {
-      if (err.code === "auth/email-already-in-use" || String(err.message || err).includes("email-already-in-use")) {
-        console.warn("Secured Rider Auth Creation warning (Email in Use):", err);
-      } else {
-        console.error("Secured Rider Auth Creation failure:", err);
-      }
-      
+      console.error("Secured Rider Auth Creation failure:", err);
       const errMsg = err.message || String(err);
-      if (err.code === "auth/email-already-in-use" || errMsg.includes("email-already-in-use")) {
-        const emailAliasSuggested = riderEmailInput.includes("@") 
-          ? riderEmailInput.replace("@", `+rider_${Date.now().toString().slice(-4)}@`) 
-          : "rider.alias@dadu247.com";
-        alert(
-          `Registration Conflict (Email in Use):\n\nThe email account "${riderEmailInput}" is already registered in our systems.\n\nRECOMMENDED ACTIONS:\n1. If they are already a customer, try promoting them by typing their Phone Number so our smart backend upgrades them directly!\n2. Otherwise, use an email alias like "${emailAliasSuggested}" or a unique email address to register this new driver profile.`
-        );
-      } else {
-        alert("Rider registration failed: " + errMsg);
-      }
+      alert("Registration feedback: " + errMsg);
     } finally {
       if (tempApp) {
         try {
@@ -492,7 +537,7 @@ export default function AdminPanel({
               <ShoppingCart className="w-4 h-4 shrink-0" />
               Live Orders Manager
               {totalActiveCount > 0 && (
-                <span className="ml-auto bg-[#FF5C00] text-zinc-950 font-black px-2.5 py-0.5 text-[9.5px] rounded-full shadow-[0_2px_10px_rgba(255,92,0,0.2)]">
+                <span className="ml-auto bg-[#D70F64] text-white font-black px-2.5 py-0.5 text-[9.5px] rounded-full shadow-[0_2px_10px_rgba(215,15,100,0.2)]">
                   {totalActiveCount}
                 </span>
               )}
@@ -523,9 +568,9 @@ export default function AdminPanel({
                 <span className="text-zinc-500 block text-[9.5px] font-bold uppercase tracking-wider">Completed</span>
                 <span className="text-[15px] font-black text-emerald-400 mt-1 block">{totalCompletedCount}</span>
               </div>
-              <div className="bg-zinc-950/80 border border-zinc-900/80 p-3 rounded-2xl hover:border-orange-500/20 transition-all">
+              <div className="bg-zinc-950/80 border border-zinc-900/80 p-3 rounded-2xl hover:border-pink-500/20 transition-all">
                 <span className="text-zinc-500 block text-[9.5px] font-bold uppercase tracking-wider">Active</span>
-                <span className="text-[15px] font-black text-[#FF5C00] mt-1 block">{totalActiveCount}</span>
+                <span className="text-[15px] font-black text-[#D70F64] mt-1 block">{totalActiveCount}</span>
               </div>
               <div className="bg-zinc-950/80 border border-zinc-900/80 p-3 rounded-2xl hover:border-red-500/20 transition-all">
                 <span className="text-zinc-500 block text-[9.5px] font-bold uppercase tracking-wider">Declined</span>
@@ -578,11 +623,11 @@ export default function AdminPanel({
 
                 {/* Categories demand distribution Recharts bar plot */}
                 <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl relative">
-                  <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-orange-500/10 to-transparent" />
+                  <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-pink-500/10 to-transparent" />
                   <div className="flex items-center justify-between mb-6">
                     <div>
                       <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 tracking-wide uppercase">
-                        <Package className="w-4 h-4 text-[#FF5C00]" />
+                        <Package className="w-4 h-4 text-[#D70F64]" />
                         Category Quantity Demand Analytics
                       </h4>
                       <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Volume of products purchased from database</span>
@@ -595,7 +640,7 @@ export default function AdminPanel({
                         <XAxis dataKey="name" stroke="#666" fontSize={9} fontStyle="bold"/>
                         <YAxis stroke="#666" fontSize={9} fontStyle="bold"/>
                         <Tooltip contentStyle={{ backgroundColor: "#0b0b0d", border: "1px solid #333", borderRadius: "14px", fontSize: "11px", color: "#fff" }}/>
-                        <Bar dataKey="sales" fill="#FF5C00" radius={[6, 6, 0, 0]} />
+                        <Bar dataKey="sales" fill="#D70F64" radius={[6, 6, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -968,7 +1013,7 @@ export default function AdminPanel({
                                   dadu-{order.id.substring(0, 8)}
                                 </span>
                                 <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${
-                                  isSvc ? "bg-amber-950/80 border border-amber-900/40 text-amber-500" : "bg-orange-950/80 border border-orange-900/40 text-[#FF5C00]"
+                                  isSvc ? "bg-amber-950/80 border border-amber-900/40 text-amber-500" : "bg-pink-950/80 border border-pink-900/40 text-[#D70F64]"
                                 }`}>
                                   {order.orderType}
                                 </span>
@@ -1013,7 +1058,7 @@ export default function AdminPanel({
                                   <div key={id} className="py-2 flex justify-between">
                                     <span className="text-gray-300 font-medium">
                                       {item.name}{" "}
-                                      <span className="text-xs text-[#FF5C00] font-black font-sans">
+                                      <span className="text-xs text-[#D70F64] font-black font-sans">
                                         ({item.restaurantName || (item.type === "service" ? "Dadu Home Services" : "Dadu Fast Food")})
                                       </span>{" "}
                                       <span className="text-zinc-500 font-bold">x{item.quantity}</span>
@@ -1173,7 +1218,7 @@ export default function AdminPanel({
                 <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl relative space-y-4">
                   <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-500/10 to-transparent" />
                   <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 pb-2.5 border-b border-zinc-805/50 uppercase tracking-wide">
-                    <Truck className="w-4 h-4 text-[#FF5C00]" />
+                    <Truck className="w-4 h-4 text-[#D70F64]" />
                     Set Global Delivery Charges
                   </h4>
                   <p className="text-[10.5px] text-zinc-400 font-medium leading-relaxed">
@@ -1194,7 +1239,7 @@ export default function AdminPanel({
                     <button
                       type="button"
                       onClick={handleSaveDeliveryConfig}
-                      className="bg-[#FF5C00] text-zinc-950 font-black px-5 py-3 rounded-xl hover:scale-[1.02] active:scale-95 transition cursor-pointer text-xs uppercase"
+                      className="bg-[#D70F64] text-white font-black px-5 py-3 rounded-xl hover:scale-[1.02] active:scale-95 transition cursor-pointer text-xs uppercase"
                     >
                       Update Rate
                     </button>
@@ -1210,7 +1255,7 @@ export default function AdminPanel({
                   </h4>
                   <div className="grid grid-cols-2 gap-4 text-xs pt-2">
                     <div className="bg-zinc-950/40 border border-zinc-850 p-3.5 rounded-xl text-center">
-                      <span className="text-[9px] text-[#FF5C00] uppercase tracking-widest font-black block">active shipments</span>
+                      <span className="text-[9px] text-[#D70F64] uppercase tracking-widest font-black block">active shipments</span>
                       <span className="text-xl font-black text-white block mt-1">
                         {orders.filter((o) => o.riderId && o.status !== "delivered" && o.status !== "cancelled").length}
                       </span>
@@ -1226,66 +1271,44 @@ export default function AdminPanel({
 
               {/* Secure Registration form */}
               <form onSubmit={handleRegisterRiderSubmit} className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl space-y-5 relative">
-                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#FF5C00]/20 to-transparent" />
+                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#D70F64]/20 to-transparent" />
                 <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 pb-3 border-b border-zinc-800/50 uppercase tracking-wide">
-                  <UserPlus className="w-4 h-4 text-[#FF5C00]" />
+                  <UserPlus className="w-4 h-4 text-[#D70F64]" />
                   Rider Registry Form (Manual Credentials Creation)
                 </h4>
 
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-5 text-xs">
-                  <div className="md:col-span-4 space-y-1.5">
-                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Full Name</label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-xs">
+                  <div className="space-y-1.5">
+                    <label className="text-zinc-400 font-black uppercase tracking-widest text-[9px] flex items-center gap-1">
+                      <User className="w-3 h-3 text-[#D70F64]" /> Rider Name
+                    </label>
                     <input
                       type="text"
                       required
                       value={riderNameInput}
                       onChange={(e) => setRiderNameInput(e.target.value)}
-                      placeholder="e.g. Ali Haider Meer"
+                      placeholder="e.g. Muhammad Ali"
                       className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 transition"
                     />
                   </div>
 
-                  <div className="md:col-span-4 space-y-1.5">
-                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Phone Number</label>
-                    <input
-                      type="tel"
-                      required
-                      value={riderPhoneInput}
-                      onChange={(e) => setRiderPhoneInput(e.target.value)}
-                      placeholder="e.g. 03277004471"
-                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 transition"
-                    />
-                  </div>
-
-                  <div className="md:col-span-4 space-y-1.5">
-                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Vehicle License Number</label>
+                  <div className="space-y-1.5">
+                    <label className="text-zinc-400 font-black uppercase tracking-widest text-[9px] flex items-center gap-1">
+                      <Phone className="w-3 h-3 text-[#D70F64]" /> Phone / Username
+                    </label>
                     <input
                       type="text"
                       required
-                      value={riderVehicleInput}
-                      onChange={(e) => setRiderVehicleInput(e.target.value)}
-                      placeholder="e.g. DADU-7729"
+                      value={riderPhoneInput}
+                      onChange={(e) => setRiderPhoneInput(e.target.value)}
+                      placeholder="e.g. 03277004471 or ali_rider"
                       className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 transition"
                     />
                   </div>
 
-                  <div className="md:col-span-6 space-y-1.5">
+                  <div className="space-y-1.5">
                     <label className="text-zinc-400 font-black uppercase tracking-widest text-[9px] flex items-center gap-1">
-                      <Send className="w-3 h-3 text-[#FF5C00]" /> Corporate Email Account
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      value={riderEmailInput}
-                      onChange={(e) => setRiderEmailInput(e.target.value)}
-                      placeholder="e.g. ali.rider@dadu247.com"
-                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 transition"
-                    />
-                  </div>
-
-                  <div className="md:col-span-6 space-y-1.5">
-                    <label className="text-zinc-400 font-black uppercase tracking-widest text-[9px] flex items-center gap-1">
-                      <Key className="w-3 h-3 text-[#FF5C00]" /> Access Password
+                      <Key className="w-3 h-3 text-[#D70F64]" /> Access Password
                     </label>
                     <input
                       type="password"
@@ -1302,7 +1325,7 @@ export default function AdminPanel({
                   <button
                     type="submit"
                     disabled={riderRegLoading}
-                    className="bg-[#FF5C00] hover:bg-orange-600 text-zinc-950 font-black text-xs uppercase tracking-wider py-3.5 px-6 rounded-xl shadow-lg shadow-orange-500/10 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-55"
+                    className="bg-[#D70F64] hover:bg-[#b00c50] text-white font-black text-xs uppercase tracking-wider py-3.5 px-6 rounded-xl shadow-lg shadow-pink-500/10 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-55"
                   >
                     {riderRegLoading ? (
                       <>
@@ -1321,9 +1344,9 @@ export default function AdminPanel({
 
               {/* Live shipments assignment status dashboard */}
               <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl relative space-y-5">
-                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#FF5C00]/20 to-transparent" />
+                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#D70F64]/20 to-transparent" />
                 <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 pb-3 border-b border-zinc-800/50 uppercase tracking-wide">
-                  <Compass className="w-4 h-4 text-[#FF5C00] animate-spin-slow" />
+                  <Compass className="w-4 h-4 text-[#D70F64] animate-spin-slow" />
                   Fleet Live Assignments Tracker
                 </h4>
 
@@ -1337,7 +1360,7 @@ export default function AdminPanel({
                       <div key={order.id} className="bg-zinc-950 border border-zinc-850 p-4.5 rounded-2xl flex items-center justify-between gap-4 flex-wrap text-xs">
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-extrabold text-[#FF5C00]">dadu-{order.id.substring(0, 8)}</span>
+                            <span className="font-extrabold text-[#D70F64]">dadu-{order.id.substring(0, 8)}</span>
                             <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest ${
                               order.status === "delivered" 
                                 ? "bg-emerald-500/10 text-emerald-400" 
@@ -1374,33 +1397,119 @@ export default function AdminPanel({
                       📋 No active riders provisioned.
                     </div>
                   ) : (
-                    ridersSubset.map((rider) => (
-                      <div key={rider.uid} className="bg-zinc-950 border border-zinc-850 p-4.5 rounded-2xl space-y-3 shadow-xs">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <span className="text-[10.5px] font-black tracking-wider text-white block">{rider.name}</span>
-                            <span className="text-[9px] text-[#FF5C00] font-bold block bg-[#FF5C00]/5 border border-[#FF5C00]/20 px-2.5 py-0.5 rounded-full w-max mt-1 uppercase">
-                              License: {rider.vehicleNumber || "N/A"}
-                            </span>
+                    ridersSubset.map((rider) => {
+                      // Calculate sales performance stats for each rider
+                      const stats = (() => {
+                        const completedRiderOrders = orders.filter(
+                          (o) => o.riderId === rider.uid && (o.status === "delivered" || o.status === "completed")
+                        );
+
+                        const now = new Date();
+                        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+                        
+                        // Time limitations
+                        const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+                        const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+
+                        let todayC = 0, todayS = 0;
+                        let weekC = 0, weekS = 0;
+                        let monthC = 0, monthS = 0;
+
+                        completedRiderOrders.forEach((o) => {
+                          let t = 0;
+                          if (o.createdAt?.seconds) {
+                            t = o.createdAt.seconds * 1000;
+                          } else if (o.createdAt instanceof Date) {
+                            t = o.createdAt.getTime();
+                          } else if (typeof o.createdAt === "number") {
+                            t = o.createdAt;
+                          } else if (typeof o.createdAt === "string") {
+                            t = Date.parse(o.createdAt);
+                          } else {
+                            t = Date.now();
+                          }
+
+                          const amt = o.grandTotal || o.totalPrice || 0;
+
+                          if (t >= todayStart) {
+                            todayC++;
+                            todayS += amt;
+                          }
+                          if (t >= sevenDaysAgo) {
+                            weekC++;
+                            weekS += amt;
+                          }
+                          if (t >= thirtyDaysAgo) {
+                            monthC++;
+                            monthS += amt;
+                          }
+                        });
+
+                        return {
+                          today: { count: todayC, sales: todayS },
+                          week: { count: weekC, sales: weekS },
+                          month: { count: monthC, sales: monthS },
+                        };
+                      })();
+
+                      return (
+                        <div key={rider.uid} className="bg-zinc-950 border border-zinc-850 p-4.5 rounded-2xl space-y-3 shadow-xs">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <span className="text-[10.5px] font-black tracking-wider text-white block">Rider Name: {rider.name}</span>
+                              <span className="text-[9px] text-[#D70F64] font-bold block bg-[#D70F64]/5 border border-[#D70F64]/20 px-2.5 py-0.5 rounded-full w-max mt-1 uppercase">
+                                Vehicle/Owner No: {rider.vehicleNumber || "N/A"}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-mono text-[9px] text-zinc-550">{rider.uid.substring(0, 8)}</span>
+                              <button
+                                onClick={() => handleDeleteRider(rider.uid, rider.name)}
+                                className="text-red-400 hover:text-red-300 p-1.5 rounded-lg hover:bg-red-500/10 transition cursor-pointer shrink-0"
+                                title="Delete Rider Permanent"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-mono text-[9px] text-zinc-550">{rider.uid.substring(0, 8)}</span>
-                            <button
-                              onClick={() => handleDeleteRider(rider.uid, rider.name)}
-                              className="text-red-400 hover:text-red-300 p-1.5 rounded-lg hover:bg-red-500/10 transition cursor-pointer shrink-0"
-                              title="Delete Rider Permanent"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                        <div className="border-t border-zinc-900 pt-2 text-[11px] font-semibold text-zinc-400 font-sans space-y-1">
-                          <div>📞 Contact Phone: <span className="font-mono text-zinc-200">{rider.phone}</span></div>
-                          <div className="flex items-center justify-between gap-2">
-                            <span>📍 Logged-in HQ Status:</span>
-                            <span className="text-emerald-440 font-bold uppercase text-[9px]">ONLINE DUTY</span>
-                          </div>
-                          {rider.riderCoords ? (
+                          <div className="border-t border-zinc-900 pt-2 text-[11px] font-semibold text-zinc-400 font-sans space-y-1">
+                            <div>📞 Contact Phone: <span className="font-mono text-zinc-200">{rider.phone}</span></div>
+                            <div className="flex items-center justify-between gap-2">
+                              <span>📍 Logged-in HQ Status:</span>
+                              <span className="text-emerald-440 font-bold uppercase text-[9px]">ONLINE DUTY</span>
+                            </div>
+
+                            {/* Rider Sales Performance Statistics Dashboard */}
+                            <div className="bg-[#0b0b0d] border border-zinc-900 rounded-xl p-3 mt-2.5 space-y-2">
+                              <span className="text-[9.5px] font-black uppercase text-pink-500 tracking-wider flex items-center gap-1">
+                                📊 Rider Earnings & Sales Stats
+                              </span>
+                              
+                              <div className="grid grid-cols-3 gap-2 text-center">
+                                {/* Today */}
+                                <div className="bg-zinc-900/60 border border-zinc-854 p-2 rounded-lg">
+                                  <span className="text-[8px] text-zinc-500 uppercase font-black block">Aaj (Today)</span>
+                                  <span className="text-[10.5px] font-black text-rose-500 block mt-0.5">{stats.today.count} Orders</span>
+                                  <span className="text-[9.5px] font-bold text-zinc-200 block font-mono mt-0.5">Rs. {stats.today.sales}</span>
+                                </div>
+
+                                {/* Week */}
+                                <div className="bg-zinc-900/60 border border-zinc-854 p-2 rounded-lg">
+                                  <span className="text-[8px] text-zinc-500 uppercase font-black block">Hafta (Week)</span>
+                                  <span className="text-[10.5px] font-black text-amber-500 block mt-0.5">{stats.week.count} Orders</span>
+                                  <span className="text-[9.5px] font-bold text-zinc-200 block font-mono mt-0.5">Rs. {stats.week.sales}</span>
+                                </div>
+
+                                {/* Month */}
+                                <div className="bg-zinc-900/60 border border-zinc-854 p-2 rounded-lg">
+                                  <span className="text-[8px] text-zinc-500 uppercase font-black block">Mahina (Month)</span>
+                                  <span className="text-[10.5px] font-black text-emerald-500 block mt-0.5">{stats.month.count} Orders</span>
+                                  <span className="text-[9.5px] font-bold text-zinc-200 block font-mono mt-0.5">Rs. {stats.month.sales}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {rider.riderCoords ? (
                             <div className="bg-emerald-950/10 border border-emerald-950 p-2.5 rounded-xl mt-1.5 space-y-1.5 text-zinc-300">
                               <div className="flex items-center justify-between text-[10px]">
                                 <span className="text-emerald-400 font-black flex items-center gap-1">
@@ -1432,7 +1541,8 @@ export default function AdminPanel({
                           )}
                         </div>
                       </div>
-                    ))
+                    );
+                  })
                   )}
                 </div>
               </div>

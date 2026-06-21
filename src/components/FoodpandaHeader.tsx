@@ -56,36 +56,36 @@ export default function FoodpandaHeader({
   ];
 
   return (
-    <header className="sticky top-0 z-40 bg-zinc-900 text-zinc-100 shadow-md border-b border-zinc-800">
+    <header className="sticky top-0 z-40 bg-white text-zinc-800 shadow-sm border-b border-zinc-200">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
         
         {/* Logo and Brand */}
         <div className="flex items-center gap-2 shrink-0">
-          <div className="bg-[#FF5C00] text-zinc-950 p-2 rounded-xl font-black text-xs sm:text-sm tracking-tight shadow-md flex items-center justify-center">
+          <div className="bg-[#D70F64] text-white p-2 rounded-xl font-black text-xs sm:text-sm tracking-tight shadow-md flex items-center justify-center">
             DF
           </div>
-          <span className="text-base sm:text-xl font-black tracking-tight text-white">
-            DADU<span className="text-[#FF5C00]">FOOD</span>
+          <span className="text-base sm:text-xl font-black tracking-tight text-zinc-900">
+            DADU<span className="text-[#D70F64]">FOOD</span>
           </span>
         </div>
 
         {/* Address and support info - desktop only */}
         {user && (
-          <div className="hidden md:flex flex-col text-xs text-zinc-400 max-w-xs truncate">
-            <span className="font-bold text-zinc-500 block uppercase tracking-wider text-[10px]">DELIVERING TO:</span>
-            <span className="truncate text-zinc-200 font-medium">{user.address}</span>
+          <div className="hidden md:flex flex-col text-xs text-zinc-500 max-w-xs truncate">
+            <span className="font-bold text-zinc-400 block uppercase tracking-wider text-[10px]">DELIVERING TO:</span>
+            <span className="truncate text-zinc-750 font-medium">{user.address}</span>
           </div>
         )}
 
         {/* Search bar inside header */}
         <div className="relative flex-1 max-w-md hidden sm:block">
-          <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-zinc-400" />
+          <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-zinc-500" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search delicious burgers, pizza or repairs..."
-            className="w-full pl-10 pr-4 py-2 bg-zinc-800 border border-zinc-700 rounded-full text-sm text-zinc-200 placeholder-zinc-500 outline-none focus:bg-zinc-850 focus:border-[#FF5C00] focus:ring-1 focus:ring-[#FF5C00] transition"
+            className="w-full pl-10 pr-4 py-2 bg-zinc-100 border border-zinc-250 rounded-full text-sm text-zinc-800 placeholder-zinc-400 outline-none focus:bg-white focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition"
           />
         </div>
 
@@ -99,43 +99,43 @@ export default function FoodpandaHeader({
                 setShowNotifications(!showNotifications);
                 setShowUserMenu(false);
               }}
-              className="p-2.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-xl transition cursor-pointer relative"
+              className="p-2.5 bg-zinc-100 hover:bg-zinc-200 border border-zinc-250 rounded-xl transition cursor-pointer relative"
             >
-              <Bell className="w-4 h-4 text-zinc-300" />
+              <Bell className="w-4 h-4 text-zinc-700" />
               {unreadNotifications.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-[#FF5C00] text-zinc-950 text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center animate-bounce">
+                <span className="absolute -top-1 -right-1 bg-[#D70F64] text-white text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center animate-bounce">
                   {unreadNotifications.length}
                 </span>
               )}
             </button>
 
             {showNotifications && (
-              <div className="absolute right-0 mt-2 bg-zinc-900 border border-zinc-800 text-zinc-100 rounded-2xl shadow-xl w-72 overflow-hidden z-50">
-                <div className="p-3.5 border-b border-zinc-800 flex items-center justify-between bg-zinc-950/80">
-                  <span className="font-bold text-xs tracking-wide uppercase text-zinc-400">Notification Hub</span>
+              <div className="absolute right-0 mt-2 bg-white border border-zinc-200 text-zinc-800 rounded-2xl shadow-xl w-72 overflow-hidden z-50">
+                <div className="p-3.5 border-b border-zinc-200 flex items-center justify-between bg-zinc-50">
+                  <span className="font-bold text-xs tracking-wide uppercase text-zinc-500">Notification Hub</span>
                   {notifications.length > 0 && (
                     <button
                       onClick={() => {
                         onClearNotifications();
                         setShowNotifications(false);
                       }}
-                      className="text-[10px] text-[#FF5C00] font-bold hover:underline cursor-pointer"
+                      className="text-[10px] text-[#D70F64] font-bold hover:underline cursor-pointer"
                     >
                       Clear All
                     </button>
                   )}
                 </div>
 
-                <div className="max-h-60 overflow-y-auto divide-y divide-zinc-850 bg-zinc-900">
+                <div className="max-h-60 overflow-y-auto divide-y divide-zinc-100 bg-white">
                   {notifications.length === 0 ? (
-                    <div className="p-6 text-center text-xs text-zinc-500">
+                    <div className="p-6 text-center text-xs text-zinc-400">
                       No updates yet. Order progress notifications will sound and appear here!
                     </div>
                   ) : (
                     notifications.map((notif) => (
-                      <div key={notif.id} className="p-3 hover:bg-zinc-850/30 transition text-xs">
-                        <div className="font-bold text-zinc-200">{notif.title}</div>
-                        <p className="text-zinc-400 mt-1 font-medium">{notif.message}</p>
+                      <div key={notif.id} className="p-3 hover:bg-zinc-50 transition text-xs">
+                        <div className="font-bold text-zinc-800">{notif.title}</div>
+                        <p className="text-zinc-500 mt-1 font-medium">{notif.message}</p>
                       </div>
                     ))
                   )}
@@ -147,14 +147,14 @@ export default function FoodpandaHeader({
           {/* Dynamic Checkout Cart Trigger */}
           <button
             onClick={onOpenCart}
-            className="flex items-center gap-1.5 bg-[#FF5C00] hover:bg-[#d44d00] transition text-zinc-950 py-2 px-3.5 rounded-xl text-xs font-black shadow-md cursor-pointer shrink-0"
+            className="flex items-center gap-1.5 bg-[#D70F64] hover:bg-[#b00c50] transition text-white py-2 px-3.5 rounded-xl text-xs font-black shadow-md cursor-pointer shrink-0"
           >
             <ShoppingBag className="w-4 h-4" />
             <span className="hidden md:inline">Cart</span>
-            <span className="bg-zinc-950/20 px-1.5 py-0.5 rounded-md text-[10px] font-bold">
+            <span className="bg-white/20 px-1.5 py-0.5 rounded-md text-[10px] font-bold">
               {cartCount}
             </span>
-            <span className="hidden leading-none lg:inline ml-0.5 border-l border-zinc-950/20 pl-1.5">
+            <span className="hidden leading-none lg:inline ml-0.5 border-l border-white/20 pl-1.5">
               Rs. {cartTotal}
             </span>
           </button>
@@ -167,38 +167,38 @@ export default function FoodpandaHeader({
                   setShowUserMenu(!showUserMenu);
                   setShowNotifications(false);
                 }}
-                className="flex items-center justify-center w-9.5 h-9.5 rounded-xl bg-zinc-850 border border-zinc-750 font-extrabold text-sm text-[#FF5C00] hover:border-orange-500/40 cursor-pointer shadow-xs transition"
+                className="flex items-center justify-center w-9.5 h-9.5 rounded-xl bg-zinc-100 border border-zinc-200 font-extrabold text-sm text-[#D70F64] hover:border-pink-500/40 cursor-pointer shadow-xs transition"
               >
                 {user.name.charAt(0).toUpperCase()}
               </button>
             ) : (
               <button
                 onClick={onOpenAuth}
-                className="p-2.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-750 rounded-xl transition cursor-pointer flex items-center gap-1 shrink-0"
+                className="p-2.5 bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 rounded-xl transition cursor-pointer flex items-center gap-1 shrink-0"
               >
-                <User className="w-4 h-4 text-zinc-300" />
-                <span className="hidden md:inline text-xs font-bold text-zinc-200">Sign In</span>
+                <User className="w-4 h-4 text-zinc-700" />
+                <span className="hidden md:inline text-xs font-bold text-zinc-800">Sign In</span>
               </button>
             )}
 
             {user && showUserMenu && (
-              <div className="absolute right-0 mt-2 bg-zinc-900 border border-zinc-800 text-zinc-100 rounded-2xl shadow-xl w-56 overflow-hidden z-50">
-                <div className="p-3.5 border-b border-zinc-800 bg-zinc-950/90 flex flex-col items-start">
-                  <div className="flex items-center gap-1 font-bold text-sm text-white">
+              <div className="absolute right-0 mt-2 bg-white border border-zinc-200 text-zinc-800 rounded-2xl shadow-xl w-56 overflow-hidden z-50">
+                <div className="p-3.5 border-b border-zinc-200 bg-zinc-50 flex flex-col items-start">
+                  <div className="flex items-center gap-1 font-bold text-sm text-zinc-900">
                     {user.name}
                     {user.role === "admin" && (
-                      <BadgeCheck className="w-4 h-4 text-[#FF5C00] shrink-0" />
+                      <BadgeCheck className="w-4 h-4 text-[#D70F64] shrink-0" />
                     )}
                   </div>
-                  <span className="text-[10px] text-zinc-400 font-medium">Phone: {user.phone}</span>
-                  <div className="bg-[#FF5C00]/10 border border-[#FF5C00]/20 text-[#FF5C00] px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-widest rounded-md mt-1.5">
+                  <span className="text-[10px] text-zinc-500 font-medium">Phone: {user.phone}</span>
+                  <div className="bg-[#D70F64]/10 border border-[#D70F64]/20 text-[#D70F64] px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-widest rounded-md mt-1.5">
                     Orders Placed: {user.ordersCount || 0}
                   </div>
                 </div>
 
                 {/* Active Placed Orders List inside User profile dropdown */}
                 {orders && orders.length > 0 && (
-                  <div className="p-2 border-b border-zinc-800 bg-zinc-950/40">
+                  <div className="p-2 border-b border-zinc-200 bg-zinc-50/50">
                     <span className="text-[8.5px] uppercase font-black tracking-widest text-[#D70F64] px-1.5 block mb-1">
                       Live Delivery Tracker
                     </span>
@@ -210,12 +210,12 @@ export default function FoodpandaHeader({
                             setShowUserMenu(false);
                             if (onTrackOrder) onTrackOrder(o);
                           }}
-                          className="w-full text-left p-1.5 rounded-lg hover:bg-zinc-800/80 transition text-[10.5px] font-bold flex items-center justify-between border border-zinc-850 cursor-pointer"
+                          className="w-full text-left p-1.5 rounded-lg hover:bg-zinc-100 transition text-[10.5px] font-bold flex items-center justify-between border border-zinc-100 cursor-pointer text-zinc-700"
                         >
-                          <span className="truncate max-w-[110px] text-zinc-300">
+                          <span className="truncate max-w-[110px] text-zinc-800">
                             dadu-{o.id.substring(0, 5)}
                           </span>
-                          <span className="text-[8px] font-black uppercase text-pink-400 bg-pink-950/30 px-1 py-0.5 rounded leading-none shrink-0 border border-pink-900/30">
+                          <span className="text-[8px] font-black uppercase text-[#D70F64] bg-[#D70F64]/10 px-1.5 py-0.5 rounded leading-none shrink-0 border border-[#D70F64]/20">
                             {o.status === "out_for_delivery" ? "Transit 🛵" : o.status === "preparing" ? "Kitchen 🍳" : o.status === "accepted" ? "Cook 🍳" : "Placed"}
                           </span>
                         </button>
@@ -224,16 +224,16 @@ export default function FoodpandaHeader({
                   </div>
                 )}
 
-                <div className="p-1 bg-zinc-900">
+                <div className="p-1 bg-white">
                   {user.role === "admin" && (
                     <button
                       onClick={() => {
                         setShowUserMenu(false);
                         onOpenAdmin();
                       }}
-                      className="w-full text-left font-bold text-xs text-amber-500 px-3.5 py-2 hover:bg-amber-950/30 rounded-xl transition flex items-center gap-2 cursor-pointer"
+                      className="w-full text-left font-bold text-xs text-amber-600 px-3.5 py-2 hover:bg-amber-50 rounded-xl transition flex items-center gap-2 cursor-pointer"
                     >
-                      <ShieldAlert className="w-4 h-4 text-amber-500 shrink-0" />
+                      <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
                       Admin Console
                     </button>
                   )}
@@ -243,7 +243,7 @@ export default function FoodpandaHeader({
                       setShowUserMenu(false);
                       onLogout();
                     }}
-                    className="w-full text-left text-xs font-bold text-red-450 px-3.5 py-2 hover:bg-red-950/30 rounded-xl transition flex items-center gap-2 cursor-pointer"
+                    className="w-full text-left text-xs font-bold text-red-650 px-3.5 py-2 hover:bg-red-50 rounded-xl transition flex items-center gap-2 cursor-pointer"
                   >
                     <LogOut className="w-4 h-4 shrink-0" />
                     Sign Out
@@ -257,22 +257,22 @@ export default function FoodpandaHeader({
       </div>
       
       {/* Mobile-only Search Sub Bar */}
-      <div className="p-2.5 bg-zinc-950 border-b border-zinc-850 block sm:hidden px-4">
+      <div className="p-2.5 bg-zinc-50 border-b border-zinc-200 block sm:hidden px-4">
         <div className="relative">
-          <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-zinc-450" />
+          <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-zinc-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search pizza, burger, electrician..."
-            className="w-full pl-10 pr-4 py-2 bg-zinc-900 border border-zinc-800 rounded-full text-xs text-zinc-200 placeholder-zinc-550 outline-none focus:border-[#FF5C00]"
+            className="w-full pl-10 pr-4 py-2 bg-white border border-zinc-200 rounded-full text-xs text-zinc-800 placeholder-zinc-400 outline-none focus:border-[#D70F64]"
           />
         </div>
       </div>
 
       {/* Mobile-only Categories Horizontal Row */}
       {activeCategory && setActiveCategory && (
-        <div className="p-2 pt-0 pb-3 bg-zinc-950 block sm:hidden px-4 border-b border-zinc-900">
+        <div className="p-2 pt-0 pb-3 bg-white block sm:hidden px-4 border-b border-zinc-200">
           <div className="flex items-center gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] scroll-smooth">
             {categories.map((cat) => {
               const isSelected = activeCategory === cat.name;
@@ -282,8 +282,8 @@ export default function FoodpandaHeader({
                   onClick={() => setActiveCategory(cat.name)}
                   className={`flex items-center gap-1.5 py-1.5 px-3 rounded-full text-[11px] font-black shrink-0 transition-all border outline-none select-none ${
                     isSelected 
-                      ? "bg-[#FF5C00] text-zinc-950 border-[#FF5C00]" 
-                      : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-zinc-200"
+                      ? "bg-[#D70F64] text-white border-[#D70F64]" 
+                      : "bg-zinc-100 text-zinc-650 border-zinc-200 hover:bg-zinc-250/50 hover:text-zinc-800"
                   }`}
                 >
                   <span className="text-xs">{cat.emoji}</span>
