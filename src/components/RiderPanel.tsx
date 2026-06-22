@@ -736,13 +736,36 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
 
                           {/* Order location and timing */}
                           <div className="bg-zinc-950/60 p-3 rounded-xl border border-zinc-850 space-y-1.5 text-[11px] font-semibold text-zinc-300">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[#D70F64]">📍 Destination:</span>
+                            <div className="flex items-center gap-1.5 justify-between border-b border-zinc-900 pb-1.5 mb-1.5">
+                              <span className="text-zinc-500 font-bold">Buyer Name:</span>
+                              <span className="text-zinc-100 font-extrabold">{order.userName || "Customer"}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <span className="text-zinc-500 font-bold">📞 Phone:</span>
+                              <a href={`tel:${order.userPhone}`} className="text-emerald-400 font-mono font-bold hover:underline">
+                                {order.userPhone || "N/A"}
+                              </a>
+                            </div>
+                            <div className="flex items-start gap-1.5">
+                              <span className="text-[#D70F64] shrink-0">📍 Destination:</span>
                               <span className="truncate max-w-[220px]">{order.userAddress}</span>
                             </div>
-                            <div className="flex items-center gap-1.5 justify-between">
-                              <span>Items total: Rs. {order.totalPrice}</span>
-                              <span className="text-amber-500">Payment: COD</span>
+                            <div className="flex items-center gap-1.5 justify-between border-t border-zinc-900 pt-1.5 mt-1.5">
+                              {order.userCoords ? (
+                                <span className="text-emerald-400 text-[9px] uppercase font-bold flex items-center gap-1 bg-emerald-950/20 px-1.5 py-0.5 rounded border border-emerald-900/10">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                  📍 GPS Pin Locked
+                                </span>
+                              ) : (
+                                <span className="text-amber-500 text-[9px] uppercase font-bold bg-amber-950/20 px-1.5 py-0.5 rounded border border-amber-900/10">
+                                  ⚠️ No GPS Pin
+                                </span>
+                              )}
+                              <span className="text-amber-500 font-extrabold uppercase">COD</span>
+                            </div>
+                            <div className="flex items-center justify-between text-[10px] text-zinc-400 font-bold">
+                              <span>Items: Rs. {order.totalPrice}</span>
+                              <span className="text-[#D70F64] font-black">Total: Rs. {order.grandTotal}</span>
                             </div>
                           </div>
 

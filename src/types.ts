@@ -36,8 +36,11 @@ export interface Order {
   id: string;
   userId: string;
   userName: string;
+  name?: string;
   userPhone: string;
+  phone?: string;
   userAddress: string;
+  address?: string;
   items: OrderItem[];
   totalPrice: number;
   deliveryFee: number;

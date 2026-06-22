@@ -32,6 +32,25 @@ export default function CartDrawer({
   const [submitting, setSubmitting] = useState(false);
   const [userCoords, setUserCoords] = useState<{ latitude: number; longitude: number } | null>(null);
 
+  React.useEffect(() => {
+    if (isOpen && !userCoords) {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            setUserCoords({
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude,
+            });
+          },
+          (err) => {
+            console.log("Auto GPS pinpoint deferred:", err);
+          },
+          { enableHighAccuracy: true, timeout: 5000 }
+        );
+      }
+    }
+  }, [isOpen, userCoords]);
+
   if (!isOpen) return null;
 
   const totalFoodItemsPrice = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);

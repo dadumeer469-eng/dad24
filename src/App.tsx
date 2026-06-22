@@ -17,6 +17,7 @@ import AuthModal from "./components/AuthModal";
 import RiderPanel from "./components/RiderPanel";
 import GroceryModule from "./components/GroceryModule";
 import GroceryCartDrawer from "./components/GroceryCartDrawer";
+import OrderSuccessAnimation from "./components/OrderSuccessAnimation";
 
 // Icons & Motion
 import { 
@@ -58,6 +59,8 @@ export default function App() {
   const [isAdminConsoleOpen, setIsAdminConsoleOpen] = useState(false);
   const [activeDetailDish, setActiveDetailDish] = useState<Dish | null>(null);
   const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
+  const [successAnimationOrder, setSuccessAnimationOrder] = useState<Order | null>(null);
+  const [isSuccessAnimationOpen, setIsSuccessAnimationOpen] = useState(false);
 
   // Visual notify states
   const [toastNotification, setToastNotification] = useState<{ title: string; message: string } | null>(null);
@@ -477,14 +480,17 @@ export default function App() {
         id: generatedOrderId,
         userId: currentUser?.uid || "guest",
         name: details.name,
+        userName: details.name,
         phone: details.phone,
+        userPhone: details.phone,
         address: details.address,
+        userAddress: details.address,
         items: adaptedItems,
         totalPrice: details.totalPrice,
         deliveryFee: details.deliveryFee,
         grandTotal: details.grandTotal,
         paymentMethod: "cod",
-        status: "placed",
+        status: "pending",
         orderType: "grocery",
         createdAt: { seconds: Math.floor(Date.now() / 1000) },
         userCoords: details.userCoords || null,
@@ -494,11 +500,10 @@ export default function App() {
       
       // Clear grocery basket
       setGroceryCartItems([]);
-      alert("🎉 ALHAMDULILLAH! Your express grocery order is placed successfully! Our staff is packing your fresh shipment.");
       
-      // Open live package tracker
-      setActiveTrackingOrder(orderDoc as any);
-      setIsTrackingModalOpen(true);
+      // Trigger success animation modal overlay
+      setSuccessAnimationOrder(orderDoc as any);
+      setIsSuccessAnimationOpen(true);
     } catch (err) {
       console.error(err);
       alert("Failed to record grocery order details: " + err);
@@ -549,8 +554,11 @@ export default function App() {
       id: uniqueOrderId,
       userId: currentUser.uid,
       userName: details.name,
+      name: details.name,
       userPhone: details.phone,
+      phone: details.phone,
       userAddress: details.address,
+      address: details.address,
       items: cartItems,
       totalPrice: itemsTotal,
       deliveryFee: finalFee,
@@ -582,8 +590,9 @@ export default function App() {
       await setDoc(doc(db, "users", currentUser.uid), cleanObject(updatedProfile));
       setCurrentUser(updatedProfile);
 
-      // 4. Alert success
-      alert("Success! Your DADUFOOD order or service appointment was successfully placed!");
+      // 4. Trigger success animation overlay
+      setSuccessAnimationOrder(orderModel);
+      setIsSuccessAnimationOpen(true);
     } catch (err: any) {
       console.error(err);
       alert(handleFirestoreError(err));
@@ -1244,6 +1253,19 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Visual Success Confetti & Rider Animation Overlay */}
+      <OrderSuccessAnimation
+        isOpen={isSuccessAnimationOpen}
+        onClose={() => setIsSuccessAnimationOpen(false)}
+        order={successAnimationOrder}
+        onTrackOrder={() => {
+          if (successAnimationOrder) {
+            setActiveTrackingOrder(successAnimationOrder);
+            setIsTrackingModalOpen(true);
+          }
+        }}
+      />
 
       {/* sliding push alerts toast widget */}
       {toastNotification && (
