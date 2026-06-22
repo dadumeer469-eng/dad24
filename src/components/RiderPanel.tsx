@@ -65,18 +65,61 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
     return () => clearInterval(interval);
   }, [availableOrders.length, isMuted]);
 
-  // Single Initial GPS Pinpoint update (only runs once per active order to optimize database writes/reads)
+  // Get active accepted orders
+  const riderActiveOrders = myOrders.filter((o) => o.status === "accepted" || o.status === "preparing" || o.status === "out_for_delivery");
+  const [focusedActiveOrderId, setFocusedActiveOrderId] = useState<string | null>(null);
+
+  // Live rider coordinates for distance calculation
+  const [liveRiderCoords, setLiveRiderCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+
   useEffect(() => {
-    const riderActiveOrder = myOrders.find((o) => o.status === "accepted" || o.status === "preparing" || o.status === "out_for_delivery");
-    if (!riderActiveOrder) {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLiveRiderCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+      },
+      (err) => console.log("Rider coords fetching skipped:", err.message),
+      { enableHighAccuracy: true }
+    );
+  }, [myOrders.length]);
+
+  // Set default focused active order when list changes
+  useEffect(() => {
+    if (riderActiveOrders.length > 0) {
+      if (!focusedActiveOrderId || !riderActiveOrders.some(o => o.id === focusedActiveOrderId)) {
+        setFocusedActiveOrderId(riderActiveOrders[0].id);
+      }
+    } else {
+      setFocusedActiveOrderId(null);
+    }
+  }, [riderActiveOrders.length, focusedActiveOrderId]);
+
+  // Haversine formula to find distance in KM between two points
+  const getDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371; // Radius of earth in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2); 
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+    return R * c;
+  };
+
+  // Single/Periodic GPS Pinpoint update (only runs once per active order to optimize database writes/reads)
+  useEffect(() => {
+    const activeOrders = myOrders.filter((o) => o.status === "accepted" || o.status === "preparing" || o.status === "out_for_delivery");
+    if (activeOrders.length === 0) {
       if (autoPinnedOrderId) {
         setAutoPinnedOrderId("");
       }
       return;
     }
 
-    // Direct exit if already auto-pinned for this active order
-    if (autoPinnedOrderId === riderActiveOrder.id) return;
+    // Direct exit if already auto-pinned for the primary active order (or any of them)
+    const latestActiveOrder = activeOrders[0];
+    if (autoPinnedOrderId === latestActiveOrder.id) return;
 
     if (!navigator.geolocation) {
       console.warn("Geolocation API offline/unsupported.");
@@ -88,14 +131,17 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
         try {
-          await updateDoc(doc(db, "orders", riderActiveOrder.id), {
-            riderCoords: { latitude: lat, longitude: lng, lastUpdated: Date.now() }
-          });
+          // Update location for all active orders
+          for (const order of activeOrders) {
+            await updateDoc(doc(db, "orders", order.id), {
+              riderCoords: { latitude: lat, longitude: lng, lastUpdated: Date.now() }
+            });
+          }
           await updateDoc(doc(db, "users", currentUser.uid), {
             riderCoords: { latitude: lat, longitude: lng, lastUpdated: Date.now() }
           });
-          setAutoPinnedOrderId(riderActiveOrder.id);
-          console.log("Rider initial location captured & updated.");
+          setAutoPinnedOrderId(latestActiveOrder.id);
+          console.log("Rider initial location captured & updated for active orders.");
         } catch (err) {
           console.error("Failed to update initial rider location:", err);
         }
@@ -221,8 +267,12 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
   // Sort dates descending
   const sortedDates = Object.keys(historyGroupedByDate).sort((a, b) => b.localeCompare(a));
 
-  // Rider Action: Accept Order
+  // Rider Action: Accept Order (Cap to 3 orders)
   const handleAcceptOrder = async (orderId: string) => {
+    if (riderActiveOrders.length >= 3) {
+      alert("⚠️ LIMIT REACHED!\n\nYou can only accept up to 3 active orders at the same time to ensure fast deliveries.");
+      return;
+    }
     setLoadingActionId(orderId);
     try {
       const orderRef = doc(db, "orders", orderId);
@@ -264,9 +314,10 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
       await updateDoc(orderRef, {
         status: "preparing"
       });
-      if (riderActiveOrder) {
+      const targetOrder = myOrders.find(o => o.id === orderId);
+      if (targetOrder) {
         await addDoc(collection(db, "notifications"), {
-          userId: riderActiveOrder.userId,
+          userId: targetOrder.userId,
           title: "🍳 Order is being Prepared!",
           message: `Your dadufood order is currently cooking & compiling in the kitchen!`,
           createdAt: { seconds: Date.now() / 1000 },
@@ -288,9 +339,10 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
       await updateDoc(orderRef, {
         status: "out_for_delivery"
       });
-      if (riderActiveOrder) {
+      const targetOrder = myOrders.find(o => o.id === orderId);
+      if (targetOrder) {
         await addDoc(collection(db, "notifications"), {
-          userId: riderActiveOrder.userId,
+          userId: targetOrder.userId,
           title: "🛵 Order Out for Delivery!",
           message: `Your delivery hero ${currentUser.name} has picked up your food and is on the way!`,
           createdAt: { seconds: Date.now() / 1000 },
@@ -304,8 +356,8 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
     }
   };
 
-  // Find active accepted order for this rider if any
-  const riderActiveOrder = myOrders.find((o) => o.status === "accepted" || o.status === "preparing" || o.status === "out_for_delivery");
+  // Find active accepted order for this rider if any (defaults to focused order, falls back to first)
+  const riderActiveOrder = riderActiveOrders.find(o => o.id === focusedActiveOrderId) || riderActiveOrders[0] || null;
 
   // Format YYYY-MM-DD into a more readable date
   const formatNiceDate = (dateStr: string) => {
@@ -470,9 +522,63 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
               
               {/* Left Column: Active Order Assignment */}
               <section className="space-y-5">
-                <h2 className="text-sm font-black uppercase tracking-widest text-[#D70F64] border-b border-zinc-800 pb-2">
-                  🛡️ Active Order Shipment
-                </h2>
+                <div className="flex items-center justify-between border-b border-zinc-800 pb-2 flex-wrap gap-2">
+                  <h2 className="text-sm font-black uppercase tracking-widest text-[#D70F64]">
+                    🛡️ Active Order Shipment
+                  </h2>
+                  {riderActiveOrders.length > 0 && (
+                    <span className="text-[10px] bg-red-500/10 text-red-400 py-0.5 px-2 rounded-full font-black uppercase">
+                      {riderActiveOrders.length}/3 Accepted
+                    </span>
+                  )}
+                </div>
+
+                {/* Multi-Run Status Header Banner */}
+                {riderActiveOrders.length > 0 && (
+                  <div className="bg-[#D70F64]/5 border border-[#D70F64]/20 p-3.5 rounded-2xl space-y-2">
+                    <div className="flex items-center justify-between text-xs text-pink-200">
+                      <span className="font-extrabold flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-450 animate-pulse"></span>
+                        🚀 Multi-Order Active Mode
+                      </span>
+                      <span className="font-bold text-[10px] text-zinc-400 uppercase tracking-widest">
+                        Max 3 active orders
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-zinc-400 font-semibold leading-relaxed">
+                      You are delivering multiple orders concurrently. Tap any order selector below to manage or navigate that specific route.
+                    </p>
+
+                    {/* Order selector tabs */}
+                    <div className="flex gap-2 flex-wrap pt-1">
+                      {riderActiveOrders.map((order, idx) => {
+                        const isFocused = order.id === focusedActiveOrderId;
+                        const statusBadgeColor = 
+                          order.status === "preparing" ? "border-amber-500/20 text-amber-400 bg-amber-500/10" :
+                          order.status === "out_for_delivery" ? "border-sky-500/20 text-sky-400 bg-sky-500/10" :
+                          "border-pink-500/20 text-pink-400 bg-[#D70F64]/10";
+                        return (
+                          <button
+                            key={order.id}
+                            onClick={() => setFocusedActiveOrderId(order.id)}
+                            className={`flex-1 min-w-[100px] text-left p-2 rounded-xl transition border cursor-pointer active:scale-95 ${
+                              isFocused
+                                ? "bg-[#D70F64] text-white border-[#D70F64] shadow-md shadow-pink-500/10"
+                                : "bg-zinc-950 border-zinc-850 text-zinc-400 hover:text-zinc-200"
+                            }`}
+                          >
+                            <span className="text-[10px] font-black block tracking-wide truncate">
+                              #{idx + 1}: {order.userName}
+                            </span>
+                            <span className={`text-[8.5px] px-1 rounded block uppercase mt-1 font-black w-max border ${isFocused ? "border-white/20 text-white bg-white/10" : statusBadgeColor}`}>
+                              {order.status === "accepted" ? "accepted" : order.status}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 {riderActiveOrder ? (
                   <div className="bg-zinc-900 border-2 border-[#D70F64]/40 rounded-3.5xl p-6 space-y-6 shadow-xl relative overflow-hidden animate-fade-in text-zinc-100">
@@ -582,25 +688,25 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
                       </span>
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         <button
-                          onClick={() => handleMarkAsPreparing(riderActiveOrder.id)}
-                          disabled={loadingActionId !== null || riderActiveOrder.status === "preparing"}
-                          className={`py-2.5 px-3 rounded-xl font-black uppercase text-[10px] tracking-wider transition cursor-pointer ${
-                            riderActiveOrder.status === "preparing" 
-                              ? "bg-amber-500/20 text-amber-400 border border-amber-500/30 font-black cursor-default" 
-                              : "bg-zinc-900 text-zinc-300 border border-zinc-800 hover:bg-zinc-850"
-                          }`}
+                           onClick={() => handleMarkAsPreparing(riderActiveOrder.id)}
+                           disabled={loadingActionId !== null || riderActiveOrder.status === "preparing"}
+                           className={`py-2.5 px-3 rounded-xl font-black uppercase text-[10px] tracking-wider transition cursor-pointer ${
+                             riderActiveOrder.status === "preparing" 
+                               ? "bg-amber-500/20 text-amber-400 border border-amber-500/30 font-black cursor-default" 
+                               : "bg-zinc-900 text-zinc-300 border border-zinc-800 hover:bg-zinc-850"
+                           }`}
                         >
                           🍳 Cook: Preparing
                         </button>
                         
                         <button
-                          onClick={() => handleMarkAsOutForDelivery(riderActiveOrder.id)}
-                          disabled={loadingActionId !== null || riderActiveOrder.status === "out_for_delivery"}
-                          className={`py-2.5 px-3 rounded-xl font-black uppercase text-[10px] tracking-wider transition cursor-pointer ${
-                            riderActiveOrder.status === "out_for_delivery" 
-                              ? "bg-sky-500/20 text-sky-400 border border-sky-500/30 font-black cursor-default" 
-                              : "bg-zinc-900 text-zinc-300 border border-zinc-800 hover:bg-zinc-850"
-                          }`}
+                           onClick={() => handleMarkAsOutForDelivery(riderActiveOrder.id)}
+                           disabled={loadingActionId !== null || riderActiveOrder.status === "out_for_delivery"}
+                           className={`py-2.5 px-3 rounded-xl font-black uppercase text-[10px] tracking-wider transition cursor-pointer ${
+                             riderActiveOrder.status === "out_for_delivery" 
+                               ? "bg-sky-500/20 text-sky-400 border border-sky-500/30 font-black cursor-default" 
+                               : "bg-zinc-900 text-zinc-300 border border-zinc-800 hover:bg-zinc-850"
+                           }`}
                         >
                           🛵 Out For Delivery
                         </button>
@@ -610,7 +716,7 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
                     {/* Dynamic ETA settings */}
                     <div className="bg-zinc-950 border border-zinc-805 rounded-2xl p-4.5 space-y-3.5">
                       <div className="flex items-center gap-1.5 text-[10px] font-black uppercase text-[#D70F64] tracking-wider">
-                        <Clock className="w-3.5 h-3.5 text-[#D70F64] animate-pulse" /> Set Delivery/Arrival Time (ETA)
+                         <Clock className="w-3.5 h-3.5 text-[#D70F64] animate-pulse" /> Set Delivery/Arrival Time (ETA)
                       </div>
                       <p className="text-[10px] text-zinc-400 font-semibold leading-relaxed">
                         Let the customer know when they can expect their food/repair arrival! Updates the live map dashboard instantly.
@@ -713,18 +819,59 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
                     </div>
                   ) : (
                     availableOrders.map((order) => {
-                      const isDisabled = !!riderActiveOrder || loadingActionId !== null;
+                      const isDisabled = riderActiveOrders.length >= 3 || loadingActionId !== null;
+                      
+                      // Calculate distance if coordinates exist
+                      const orderCoords = order.userCoords;
+                      let distanceToRider: number | null = null;
+                      if (orderCoords && liveRiderCoords) {
+                        distanceToRider = getDistanceKm(
+                          liveRiderCoords.latitude,
+                          liveRiderCoords.longitude,
+                          orderCoords.latitude,
+                          orderCoords.longitude
+                        );
+                      }
+
+                      // Check proximity to active orders (if distance is within 3km, it means location is close!)
+                      const nearbyActiveOrderMatches = riderActiveOrders.map(active => {
+                        if (!orderCoords || !active.userCoords) return null;
+                        const dist = getDistanceKm(
+                          active.userCoords.latitude,
+                          active.userCoords.longitude,
+                          orderCoords.latitude,
+                          orderCoords.longitude
+                        );
+                        return { name: active.userName, dist };
+                      }).filter((m): m is {name: string, dist: number} => m !== null && m.dist <= 3.0);
+
+                      const hasNearbyMatches = nearbyActiveOrderMatches.length > 0;
+
                       return (
                         <div 
                           key={order.id} 
-                          className="bg-zinc-900 border border-zinc-800 rounded-2.5xl p-5 hover:border-[#D70F64]/40 transition space-y-4 shadow-xs relative text-zinc-100 group"
+                          className={`bg-zinc-900 border rounded-2.5xl p-5 hover:border-[#D70F64]/40 transition space-y-4 shadow-xs relative text-zinc-100 group ${
+                            hasNearbyMatches ? "border-emerald-500/30 ring-1 ring-emerald-500/10" : "border-zinc-800"
+                          }`}
                         >
                           {/* Order metadata header */}
                           <div className="flex items-start justify-between gap-2">
                             <div>
-                              <span className="text-[9px] bg-zinc-950 border border-zinc-800 py-1 px-2.5 rounded text-zinc-450 font-black tracking-wider uppercase block w-max">
-                                Rs. {order.deliveryFee} Rider Fee
-                              </span>
+                              <div className="flex flex-wrap gap-1.5 items-center">
+                                <span className="text-[9px] bg-zinc-950 border border-zinc-800 py-1 px-2.5 rounded text-zinc-450 font-black tracking-wider uppercase block w-max">
+                                  Rs. {order.deliveryFee} Rider Fee
+                                </span>
+                                {distanceToRider !== null && distanceToRider <= 4.0 && (
+                                  <span className="text-[8.5px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 py-0.5 px-2 rounded font-black uppercase">
+                                    📍 Near You ({distanceToRider.toFixed(1)} km)
+                                  </span>
+                                )}
+                                {hasNearbyMatches && (
+                                  <span className="text-[8.5px] bg-sky-500/10 text-sky-400 border border-sky-500/20 py-0.5 px-2 rounded font-black uppercase animate-pulse">
+                                    🔥 On Active Way 
+                                  </span>
+                                )}
+                              </div>
                               <h4 className="font-extrabold text-sm mt-2 text-zinc-200">
                                 Dadu Order: <span className="font-mono text-xs text-[#D70F64]">dadu-{order.id.substring(0, 6)}</span>
                               </h4>
@@ -750,6 +897,19 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
                               <span className="text-[#D70F64] shrink-0">📍 Destination:</span>
                               <span className="truncate max-w-[220px]">{order.userAddress}</span>
                             </div>
+
+                            {/* Nearby concurrent orders path markers helper */}
+                            {nearbyActiveOrderMatches.length > 0 && (
+                              <div className="mt-2 pt-2 border-t border-zinc-900 space-y-1">
+                                <span className="text-[9px] text-[#D70F64] uppercase font-black tracking-wider block">🗺️ Proximity Analysis:</span>
+                                {nearbyActiveOrderMatches.map((match, mIdx) => (
+                                  <p key={mIdx} className="text-[10px] text-zinc-400 font-medium">
+                                    • Just <span className="text-emerald-400 font-black">{match.dist.toFixed(1)} km</span> away from active order customer <span className="text-zinc-200 font-semibold">{match.name}</span>! Extremely convenient to accept both.
+                                  </p>
+                                ))}
+                              </div>
+                            )}
+
                             <div className="flex items-center gap-1.5 justify-between border-t border-zinc-900 pt-1.5 mt-1.5">
                               {order.userCoords ? (
                                 <span className="text-emerald-400 text-[9px] uppercase font-bold flex items-center gap-1 bg-emerald-950/20 px-1.5 py-0.5 rounded border border-emerald-900/10">
@@ -774,15 +934,15 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
                             onClick={() => handleAcceptOrder(order.id)}
                             disabled={isDisabled}
                             className={`w-full py-3 rounded-xl text-[11px] font-black uppercase tracking-wider transition flex items-center justify-center gap-2 cursor-pointer border ${
-                              isDisabled
+                              isDisabled && riderActiveOrders.length >= 3
                                 ? "bg-zinc-950 text-zinc-600 border-zinc-850 cursor-not-allowed"
                                 : "bg-gradient-to-r from-[#D70F64] to-pink-600 text-white hover:from-pink-500 hover:to-pink-600 border-[#D70F64] shadow-md shadow-pink-500/10"
                             }`}
                           >
                             {loadingActionId === order.id ? (
                               "Accepting package..."
-                            ) : riderActiveOrder ? (
-                              "Deliver active package first"
+                            ) : riderActiveOrders.length >= 3 ? (
+                              "Limit reached (Max 3 orders active)"
                             ) : (
                               <>
                                 <span>Accept Delivery Shipment</span>

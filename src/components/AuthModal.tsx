@@ -10,6 +10,7 @@ import { auth, db, cleanObject } from "../firebase";
 import { UserProfile } from "../types";
 import { X, Phone, Lock, User, MapPin, Loader2, AlertCircle, LogIn } from "lucide-react";
 import { motion } from "motion/react";
+import daduLogo from "../assets/images/dadu_food_logo_1782079256405.jpg";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -310,17 +311,23 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
         exit={{ opacity: 0, scale: 0.95, y: 15 }}
         className="relative bg-zinc-900 border border-zinc-800 text-zinc-100 rounded-3xl shadow-xl w-full max-w-sm overflow-hidden"
       >
-        {/* Brand Banner */}
-        <div className="bg-[#D70F64] text-white p-6 pb-8 text-center relative">
+        {/* Brand Banner with official logo */}
+        <div className="bg-white p-5 text-center relative border-b border-zinc-800/10">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 bg-black/10 hover:bg-black/25 text-white transition-colors p-2 rounded-full cursor-pointer"
+            className="absolute top-4 right-4 bg-zinc-100 hover:bg-zinc-200 text-zinc-500 transition-colors p-2 rounded-full cursor-pointer z-10"
           >
             <X className="w-4 h-4" />
           </button>
           
-          <h2 className="text-3xl font-extrabold tracking-tight text-white">Dadu24#7</h2>
-          <p className="text-pink-100 text-sm font-bold mt-1">Authentic Food, Tea & Home Services</p>
+          <div className="flex justify-center items-center py-2 h-20">
+            <img 
+              src={daduLogo} 
+              alt="DaduFood Logo" 
+              className="h-full object-contain mx-auto"
+              referrerPolicy="no-referrer"
+            />
+          </div>
         </div>
 
         {/* Form Body */}

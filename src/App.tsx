@@ -18,6 +18,8 @@ import RiderPanel from "./components/RiderPanel";
 import GroceryModule from "./components/GroceryModule";
 import GroceryCartDrawer from "./components/GroceryCartDrawer";
 import OrderSuccessAnimation from "./components/OrderSuccessAnimation";
+import OrderHistoryDrawer from "./components/OrderHistoryDrawer";
+import daduLogo from "./assets/images/dadu_food_logo_1782079256405.jpg";
 
 // Icons & Motion
 import { 
@@ -61,6 +63,7 @@ export default function App() {
   const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
   const [successAnimationOrder, setSuccessAnimationOrder] = useState<Order | null>(null);
   const [isSuccessAnimationOpen, setIsSuccessAnimationOpen] = useState(false);
+  const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
 
   // Visual notify states
   const [toastNotification, setToastNotification] = useState<{ title: string; message: string } | null>(null);
@@ -454,6 +457,95 @@ export default function App() {
     setGroceryCartItems((prev) => prev.filter((item) => item.productId !== productId));
   };
 
+  const handleReorder = (order: Order) => {
+    if (order.orderType === "grocery") {
+      // It's a grocery order
+      if (cartItems.length > 0 && !groceryDeliveryConfig?.allowMixedCart) {
+        const clearFood = window.confirm(
+          "🛒 DISALLOW MIXED BASKET!\n\nYour basket currently contains Food items. Dadu Food requires separate delivery runs for hot kitchen meals and retail groceries.\n\nWould you like to auto-clear your Food Cart to start your Grocery purchase?"
+        );
+        if (clearFood) {
+          setCartItems([]);
+        } else {
+          return;
+        }
+      }
+
+      // Add each item in order.items to groceryCartItems
+      setGroceryCartItems((prev) => {
+        const updated = [...prev];
+        order.items.forEach((item) => {
+          // Find matching groceryProduct in current products to restore properties
+          const matchingProduct = groceryProducts.find(p => p.id === item.dishId);
+          const existingIdx = updated.findIndex((gi) => gi.productId === item.dishId);
+          if (existingIdx > -1) {
+            updated[existingIdx].quantity += item.quantity;
+          } else {
+            updated.push({
+              productId: item.dishId,
+              name: item.name,
+              price: item.price,
+              quantity: item.quantity,
+              unit: matchingProduct?.unit || "piece",
+              imageUrl: matchingProduct?.imageUrl || "",
+              category: matchingProduct?.categoryId || ""
+            });
+          }
+        });
+        return updated;
+      });
+
+      setToastNotification({
+        title: "Grocery Items Restored! 🍏",
+        message: "Items from your previous order have been added to your basket.",
+      });
+      setTimeout(() => setToastNotification(null), 4000);
+      setIsGroceryCartOpen(true);
+      setActiveModule("grocery");
+    } else {
+      // It's a food or service order
+      if (groceryCartItems.length > 0 && !groceryDeliveryConfig?.allowMixedCart) {
+        const clearGrocery = window.confirm(
+          "🛒 DISALLOW MIXED BASKET!\n\nYour basket currently contains Grocery products. Dadu Food requires separate delivery runs for hot kitchen meals and retail groceries.\n\nWould you like to auto-clear your Grocery Basket to start your Food order?"
+        );
+        if (clearGrocery) {
+          setGroceryCartItems([]);
+        } else {
+          return;
+        }
+      }
+
+      setCartItems((prev) => {
+        const updated = [...prev];
+        order.items.forEach((item) => {
+          const existing = updated.find((fi) => fi.dishId === item.dishId);
+          if (existing) {
+            existing.quantity += item.quantity;
+          } else {
+            updated.push({
+              dishId: item.dishId,
+              name: item.name,
+              price: item.price,
+              quantity: item.quantity,
+              type: item.type || "food",
+              serviceDuration: item.serviceDuration,
+              restaurantName: item.restaurantName || "Dadu Food & Service"
+            });
+          }
+        });
+        return updated;
+      });
+
+      setToastNotification({
+        title: "Food Items Restored! 🍔",
+        message: "Previous dishes have been successfully added to your cart.",
+      });
+      setTimeout(() => setToastNotification(null), 4000);
+      setIsCartOpen(true);
+      setActiveModule("food");
+    }
+  };
+
   const handlePlaceGroceryOrder = async (details: {
     name: string;
     phone: string;
@@ -661,21 +753,26 @@ export default function App() {
             <div className="absolute w-[450px] h-[450px] bg-pink-400/20 rounded-full blur-3xl animate-pulse"></div>
 
             <div className="flex flex-col items-center max-w-md px-6 text-center z-10 space-y-8">
-              {/* Modern bouncing round logo container */}
+              {/* Modern bouncing logo container */}
               <motion.div
-                initial={{ scale: 0.5, rotate: -15, opacity: 0 }}
+                initial={{ scale: 0.5, rotate: -10, opacity: 0 }}
                 animate={{ scale: 1, rotate: 0, opacity: 1 }}
                 transition={{ type: "spring", stiffness: 120, damping: 15 }}
-                className="w-28 h-28 bg-white rounded-3xl flex items-center justify-center shadow-2xl relative"
+                className="w-64 h-36 bg-white rounded-3xl flex items-center justify-center shadow-2xl relative p-4 overflow-hidden border border-white/20"
               >
                 {/* Visual badge highlight */}
-                <div className="absolute -top-2.5 -right-2.5 bg-[#D70F64] text-white font-black text-[9px] uppercase tracking-widest py-1 px-2.5 rounded-full shadow-lg border border-white flex items-center gap-0.5 animate-pulse">
+                <div className="absolute -top-1 -right-1 bg-[#D70F64] text-white font-black text-[8px] uppercase tracking-widest py-0.5 px-2 rounded-full shadow-lg border border-white flex items-center gap-0.5 animate-pulse z-10">
                   <span className="w-1 h-1 bg-white rounded-full"></span>
                   DADU CITY
                 </div>
 
-                {/* Main branding icon inside logo box */}
-                <UtensilsCrossed className="w-12 h-12 text-[#D70F64] stroke-[2.5] transform hover:rotate-12 transition duration-300" />
+                {/* Main branding image inside logo box */}
+                <img 
+                  src={daduLogo} 
+                  alt="DaduFood Logo" 
+                  className="w-full h-full object-contain"
+                  referrerPolicy="no-referrer"
+                />
               </motion.div>
 
               {/* Title & Tagline with staggered animations */}
@@ -761,6 +858,7 @@ export default function App() {
         cartCount={cartCountTotal}
         cartTotal={cartPriceTotal}
         onOpenAdmin={() => setIsAdminConsoleOpen(true)}
+        onOpenHistory={() => setIsHistoryDrawerOpen(true)}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         notifications={notifications}
@@ -1162,6 +1260,18 @@ export default function App() {
         onOpenAuth={() => setIsAuthOpen(true)}
         deliveryConfig={groceryDeliveryConfig}
         onPlaceGroceryOrder={handlePlaceGroceryOrder}
+      />
+
+      {/* Slide-over User Order History & Reorder Drawer */}
+      <OrderHistoryDrawer
+        isOpen={isHistoryDrawerOpen}
+        onClose={() => setIsHistoryDrawerOpen(false)}
+        orders={orders}
+        onReorder={handleReorder}
+        onTrackOrder={(order) => {
+          setActiveTrackingOrder(order);
+          setIsTrackingModalOpen(true);
+        }}
       />
 
 

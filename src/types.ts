@@ -55,8 +55,8 @@ export interface Order {
   eta?: string; // e.g. "1 Hour", "25 mins"
   serviceTiming?: string;
   createdAt: any; // Firestore Timestamp
-  paymentMethod: "COD" | "Pay on Appointment";
-  orderType: "food" | "service";
+  paymentMethod: "COD" | "Pay on Appointment" | "cod";
+  orderType: "food" | "service" | "grocery";
   userCoords?: { latitude: number; longitude: number };
   riderCoords?: { latitude: number; longitude: number; lastUpdated?: number };
 }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { UserProfile, AppNotification, Order } from "../types";
-import { Search, ShoppingBag, User, LogOut, Phone, Bell, ShieldAlert, BadgeCheck, Download } from "lucide-react";
+import { Search, ShoppingBag, User, LogOut, Phone, Bell, ShieldAlert, BadgeCheck, Download, History } from "lucide-react";
+import daduLogo from "../assets/images/dadu_food_logo_1782079256405.jpg";
 
 interface FoodpandaHeaderProps {
   user: UserProfile | null;
@@ -10,6 +11,7 @@ interface FoodpandaHeaderProps {
   cartCount: number;
   cartTotal: number;
   onOpenAdmin: () => void;
+  onOpenHistory?: () => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   notifications: AppNotification[];
@@ -32,6 +34,7 @@ export default function FoodpandaHeader({
   cartCount,
   cartTotal,
   onOpenAdmin,
+  onOpenHistory,
   searchQuery,
   setSearchQuery,
   notifications,
@@ -44,7 +47,7 @@ export default function FoodpandaHeader({
   groceryCartCount = 0,
   activeModule = "food",
   setActiveModule,
- }: FoodpandaHeaderProps) {
+}: FoodpandaHeaderProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
@@ -143,18 +146,23 @@ export default function FoodpandaHeader({
           className="flex items-center gap-2 shrink-0 cursor-pointer group select-none"
           title={canInstall ? "Tap to Install Dadu Food App" : isIos && !isStandalone ? "Tap to see how to Install App" : "Dadu Food Home"}
         >
-          <div className={`p-2 sm:p-2.5 rounded-xl font-black text-xs sm:text-sm tracking-tight shadow-md flex items-center justify-center gap-1.5 transition-all duration-300 relative ${
+          <div className={`${
             (canInstall || (isIos && !isStandalone))
-              ? "bg-[#D70F64] text-white shadow-[0_0_20px_rgba(215,15,100,0.8)] ring-2 ring-pink-500/60 scale-105 active:scale-95 border border-pink-300/50"
-              : "bg-[#D70F64] text-white group-hover:scale-105 active:scale-95"
-          }`}>
+              ? "p-2 sm:p-2.5 rounded-xl bg-[#D70F64] text-white shadow-[0_0_20px_rgba(215,15,100,0.8)] ring-2 ring-pink-500/60 scale-105 active:scale-95 border border-pink-300/50 flex items-center justify-center gap-1.5"
+              : "w-11 h-11 rounded-xl bg-white border border-zinc-200 overflow-hidden flex items-center justify-center group-hover:scale-105 active:scale-95 shadow-sm"
+          } transition-all duration-300 relative shrink-0`}>
             {canInstall || (isIos && !isStandalone) ? (
               <>
                 <Download className="w-3.5 h-3.5 text-white animate-bounce shrink-0" />
                 <span className="text-[10px] font-black uppercase tracking-wider">Install</span>
               </>
             ) : (
-              "DF"
+              <img 
+                src={daduLogo} 
+                alt="DF" 
+                className="w-full h-full object-cover scale-110" 
+                referrerPolicy="no-referrer"
+              />
             )}
             
             {/* Pulsing indicator when install is available */}
@@ -340,6 +348,18 @@ export default function FoodpandaHeader({
                 )}
 
                 <div className="p-1 bg-white">
+                  <button
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      if (onOpenHistory) onOpenHistory();
+                    }}
+                    className="w-full text-left font-bold text-xs text-zinc-700 px-3.5 py-2 hover:bg-zinc-50 rounded-xl transition flex items-center gap-2 cursor-pointer"
+                    id="history-menu-btn"
+                  >
+                    <History className="w-4 h-4 text-[#D70F64] shrink-0" />
+                    Order History
+                  </button>
+
                   {user.role === "admin" && (
                     <button
                       onClick={() => {
