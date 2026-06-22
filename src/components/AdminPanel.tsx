@@ -12,7 +12,7 @@ import {
 import { 
   Plus, Settings, LayoutDashboard, ShoppingCart, ListCollapse, ToggleLeft, ToggleRight, Trash2, 
   HelpCircle, RefreshCw, Smartphone, TrendingUp, DollarSign, Package, CheckCheck, Save, Send, EyeOff, Wrench,
-  UserPlus, User, Loader2, Key, Truck, Compass, Phone, ShoppingBasket
+  UserPlus, User, Loader2, Key, Truck, Compass, Phone, ShoppingBasket, AlertTriangle
 } from "lucide-react";
 
 interface AdminPanelProps {
@@ -24,6 +24,221 @@ interface AdminPanelProps {
   groceryCategories: GroceryCategory[];
   groceryProducts: GroceryProduct[];
   groceryDeliveryConfig: GroceryDeliveryConfig;
+}
+
+interface ProductImageSelectorProps {
+  imageUrl: string;
+  onChange: (url: string) => void;
+  accentColorClass?: "amber" | "orange";
+  label: string;
+  placeholder?: string;
+}
+
+function ProductImageSelector({ imageUrl, onChange, accentColorClass = "amber", label, placeholder }: ProductImageSelectorProps) {
+  const [isDragOver, setIsDragOver] = React.useState(false);
+  const [mode, setMode] = React.useState<"url" | "file">("file");
+  const [urlInput, setUrlInput] = React.useState(imageUrl);
+  const [isProcessing, setIsProcessing] = React.useState(false);
+
+  React.useEffect(() => {
+    setUrlInput(imageUrl);
+  }, [imageUrl]);
+
+  const handleUrlChange = (val: string) => {
+    setUrlInput(val);
+    onChange(val);
+  };
+
+  const processFile = (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      alert("Please select a valid image file (PNG, JPG, JPEG, etc.)");
+      return;
+    }
+
+    setIsProcessing(true);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+        const max_size = 400; // Limit image dimensions to fit within Firestore limit (~40-60KB size range)
+
+        if (width > height) {
+          if (width > max_size) {
+            height *= max_size / width;
+            width = max_size;
+          }
+        } else {
+          if (height > max_size) {
+            width *= max_size / height;
+            height = max_size;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.7); // 70% quality JPEG is perfect size & visual quality
+          onChange(dataUrl);
+        }
+        setIsProcessing(false);
+      };
+      img.onerror = () => {
+        alert("Failed to read selection as a valid image.");
+        setIsProcessing(false);
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      processFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      processFile(e.target.files[0]);
+    }
+  };
+
+  return (
+    <div className="space-y-2 mt-1">
+      <div className="flex items-center justify-between">
+        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 block">
+          {label}
+        </label>
+        <div className="flex rounded-lg bg-zinc-950 p-0.5 border border-zinc-800/80">
+          <button
+            type="button"
+            onClick={() => setMode("file")}
+            className={`px-2 py-0.5 text-[8px] uppercase font-black tracking-wide rounded transition cursor-pointer ${
+              mode === "file" 
+                ? "bg-zinc-800 text-white" 
+                : "text-zinc-500 hover:text-zinc-300"
+            }`}
+          >
+            Local File
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("url")}
+            className={`px-2 py-0.5 text-[8px] uppercase font-black tracking-wide rounded transition cursor-pointer ${
+              mode === "url" 
+                ? "bg-zinc-800 text-white" 
+                : "text-zinc-500 hover:text-zinc-300"
+            }`}
+          >
+            Image Link/URL
+          </button>
+        </div>
+      </div>
+
+      {mode === "file" ? (
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={`border-2 border-dashed rounded-xl p-3 text-center transition relative flex flex-col items-center justify-center min-h-[95px] ${
+            isDragOver
+              ? accentColorClass === "amber" ? "border-amber-500 bg-amber-500/5" : "border-orange-500 bg-orange-500/5"
+              : "border-zinc-800 hover:border-zinc-700 bg-zinc-950/50"
+          }`}
+        >
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          />
+          {isProcessing ? (
+            <div className="flex flex-col items-center space-y-1">
+              <Loader2 className="w-5 h-5 text-[#D70F64] animate-spin" />
+              <span className="text-[9px] text-zinc-400 font-extrabold">COMPRESSING IMAGE...</span>
+            </div>
+          ) : imageUrl ? (
+            <div className="relative flex items-center justify-center">
+              <img
+                src={imageUrl}
+                alt="Upload Preview"
+                className="h-16 w-16 object-cover rounded-lg border border-zinc-800/80 shadow-md"
+                referrerPolicy="no-referrer"
+              />
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onChange("");
+                }}
+                className="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-700 text-white rounded-full p-1 shadow-md cursor-pointer transition transform hover:scale-105"
+              >
+                <span className="font-bold text-[8px] leading-none block px-0.5">✕</span>
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <p className="text-[10px] text-zinc-400 font-bold">
+                Drag & drop image here or <span className={accentColorClass === "amber" ? "text-amber-500 font-black" : "text-orange-500 font-black"}>Browse</span>
+              </p>
+              <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-wider">Supports PNG, JPG, JPEG</p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <input
+            type="text"
+            value={urlInput}
+            onChange={(e) => handleUrlChange(e.target.value)}
+            placeholder={placeholder || "Paste image web address (https://...)"}
+            className="w-full p-2.5 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500/85 transition text-xs font-mono font-medium"
+          />
+          {imageUrl && (
+            <div className="flex items-center gap-3 p-2 bg-zinc-950 border border-zinc-900 rounded-xl">
+              <img
+                src={imageUrl}
+                alt="URL Preview"
+                className="h-10 w-10 object-cover rounded-lg border border-zinc-800 shrink-0"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = 'none';
+                }}
+              />
+              <div className="truncate flex-1">
+                <p className="text-[9px] font-bold text-zinc-400">Live Web Preview connected</p>
+                <p className="text-[8.5px] text-zinc-500 truncate font-mono">{imageUrl}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => onChange("")}
+                className="text-red-500 hover:text-red-400 text-[10px] font-extrabold uppercase shrink-0 px-2 cursor-pointer"
+              >
+                Clear
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function AdminPanel({
@@ -77,6 +292,13 @@ export default function AdminPanel({
   // Inline editing state for prices
   const [editingPriceDishId, setEditingPriceDishId] = useState<string | null>(null);
   const [editingPriceInput, setEditingPriceInput] = useState<number>(0);
+
+  // Custom confirmation dialog
+  const [confirmDialog, setConfirmDialog] = useState<{
+    title: string;
+    message: string;
+    onConfirm: () => void | Promise<void>;
+  } | null>(null);
 
   // Rider/ETA state overrides
   const [riderNames, setRiderNames] = useState<{ [orderId: string]: string }>({});
@@ -265,17 +487,19 @@ export default function AdminPanel({
     }
   };
 
-  const handleDeleteRider = async (uid: string, name: string) => {
-    const isConfirmed = window.confirm(`Are you absolutely sure you want to PERMANENTLY delete and revoke Rider "${name}" access?`);
-    if (!isConfirmed) return;
-
-    try {
-      await deleteDoc(doc(db, "users", uid));
-      alert(`Success: Rider profile "${name}" has been permanently deleted.`);
-    } catch (err) {
-      console.error("Failed to delete rider profile:", err);
-      alert("Error: Database permission denied or insufficient administrative credentials.");
-    }
+  const handleDeleteRider = (uid: string, name: string) => {
+    setConfirmDialog({
+      title: "Delete Rider Profile",
+      message: `Are you absolutely sure you want to PERMANENTLY delete and revoke Rider "${name}" access?`,
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, "users", uid));
+        } catch (err) {
+          console.error("Failed to delete rider profile:", err);
+          alert("Error: Database permission denied or insufficient administrative credentials.");
+        }
+      }
+    });
   };
 
   // --- BUSINESS LOGIC MATH FOR ANALYTICS ---
@@ -416,13 +640,18 @@ export default function AdminPanel({
     }
   };
 
-  const handleDeleteCategory = async (catId: string) => {
-    if (!window.confirm("Are you sure you want to delete this grocery category? All products in it will be orphaned!")) return;
-    try {
-      await deleteDoc(doc(db, "groceryCategories", catId));
-    } catch (err) {
-      console.error(err);
-    }
+  const handleDeleteCategory = (catId: string) => {
+    setConfirmDialog({
+      title: "Delete Category",
+      message: "Are you sure you want to delete this grocery category? All products in it will be orphaned!",
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, "groceryCategories", catId));
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    });
   };
 
   const handleToggleProductAvailable = async (prodId: string, current: boolean) => {
@@ -433,13 +662,18 @@ export default function AdminPanel({
     }
   };
 
-  const handleDeleteProduct = async (prodId: string) => {
-    if (!window.confirm("Are you sure you want to delete this grocery product?")) return;
-    try {
-      await deleteDoc(doc(db, "groceryProducts", prodId));
-    } catch (err) {
-      console.error(err);
-    }
+  const handleDeleteProduct = (prodId: string) => {
+    setConfirmDialog({
+      title: "Delete Product",
+      message: "Are you sure you want to delete this grocery product?",
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, "groceryProducts", prodId));
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    });
   };
 
   const handleSaveInlineGProductEdit = async (prodId: string) => {
@@ -523,13 +757,18 @@ export default function AdminPanel({
   };
 
   // Delete item from directory
-  const handleDeleteItem = async (dishId: string) => {
-    if (!confirm("Are you sure you want to delete this catalog item permanently?")) return;
-    try {
-      await deleteDoc(doc(db, "menu", dishId));
-    } catch (err) {
-      console.error(err);
-    }
+  const handleDeleteItem = (dishId: string) => {
+    setConfirmDialog({
+      title: "Delete Catalog Item",
+      message: "Are you sure you want to delete this catalog item permanently?",
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, "menu", dishId));
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    });
   };
 
   // Manual orders status controls
@@ -987,14 +1226,13 @@ export default function AdminPanel({
                     />
                   </div>
 
-                  <div className="md:col-span-4 space-y-1.5 font-mono">
-                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Image URL (Optional)</label>
-                    <input
-                      type="text"
-                      value={newItemImageUrl}
-                      onChange={(e) => setNewItemImageUrl(e.target.value)}
-                      placeholder="Blank for auto high quality Unsplash"
-                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 transition focus:ring-1 focus:ring-amber-500/10"
+                  <div className="md:col-span-4 space-y-1.5">
+                    <ProductImageSelector
+                      imageUrl={newItemImageUrl}
+                      onChange={setNewItemImageUrl}
+                      label="Product Picture / Illustration"
+                      accentColorClass="amber"
+                      placeholder="Blank for auto high quality illustration, or paste URL"
                     />
                   </div>
 
@@ -1059,7 +1297,7 @@ export default function AdminPanel({
                         <tr key={dish.id} className="hover:bg-zinc-900/20 transition-colors">
                           <td className="p-4 font-bold text-gray-200">
                             <div className="flex items-center gap-3">
-                              <img src={dish.imageUrl} alt={dish.name} className="w-8 h-8 rounded-lg object-cover bg-zinc-950 shrink-0"/>
+                              <img src={dish.imageUrl} alt={dish.name} className="w-8 h-8 rounded-lg object-cover bg-zinc-950 shrink-0" referrerPolicy="no-referrer"/>
                               <div className="truncate max-w-xs">
                                 <div>{dish.name}</div>
                                 <div className="text-[10px] text-zinc-500 font-medium font-sans mt-0.5">
@@ -1957,13 +2195,12 @@ export default function AdminPanel({
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[9px] font-bold text-zinc-400 block uppercase font-sans">Illustration Image URL</label>
-                      <input
-                        type="url"
-                        value={newGProdImageUrl}
-                        onChange={(e) => setNewGProdImageUrl(e.target.value)}
+                      <ProductImageSelector
+                        imageUrl={newGProdImageUrl}
+                        onChange={setNewGProdImageUrl}
+                        label="Illustration Image/File"
+                        accentColorClass="orange"
                         placeholder="Paste image web address (https://...)"
-                        className="w-full p-2.5 bg-zinc-955 border border-zinc-800 rounded-xl outline-none focus:border-orange-500 transition text-white text-xs"
                       />
                     </div>
 
@@ -1999,7 +2236,7 @@ export default function AdminPanel({
                           return (
                             <tr key={p.id} className="border-b border-zinc-900 hover:bg-zinc-950/40 text-[11px] font-semibold">
                               <td className="py-3 px-2 flex items-center gap-2 min-w-[150px]">
-                                <img src={p.imageUrl} alt={p.name} className="w-8 h-8 rounded-lg object-cover shrink-0 bg-zinc-900 border border-zinc-800" />
+                                <img src={p.imageUrl} alt={p.name} className="w-8 h-8 rounded-lg object-cover shrink-0 bg-zinc-900 border border-zinc-800" referrerPolicy="no-referrer" />
                                 <div className="truncate">
                                   <span className="text-zinc-200 font-bold block truncate leading-tight">{p.name}</span>
                                   <span className="text-[9px] text-zinc-500 block font-mono font-semibold">ID: {p.id.substring(0,6)}...</span>
@@ -2106,6 +2343,40 @@ export default function AdminPanel({
         </div>
 
       </div>
+
+      {confirmDialog && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-fade-in text-left">
+          <div className="bg-[#0c0c0e] border border-zinc-805/80 rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl text-zinc-100 p-6 space-y-4">
+            <div className="flex items-center gap-2.5 text-red-500">
+              <AlertTriangle className="w-5 h-5 shrink-0 animate-pulse" />
+              <h4 className="font-black text-xs uppercase tracking-widest">{confirmDialog.title}</h4>
+            </div>
+            <p className="text-[11px] text-zinc-400 font-semibold leading-relaxed">
+              {confirmDialog.message}
+            </p>
+            <div className="flex items-center justify-end gap-2.5 pt-1">
+              <button
+                type="button"
+                onClick={() => setConfirmDialog(null)}
+                className="px-3.5 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-[10px] uppercase font-black text-zinc-400 hover:text-white hover:bg-zinc-800 transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const callback = confirmDialog.onConfirm;
+                  setConfirmDialog(null);
+                  await callback();
+                }}
+                className="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl text-[10px] font-black hover:brightness-110 shadow-md cursor-pointer transition uppercase tracking-wide"
+              >
+                Delete Permanently
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

@@ -191,7 +191,7 @@ export default function GroceryCartDrawer({
                     key={item.productId}
                     className="bg-zinc-900/40 border border-zinc-900/80 p-3 rounded-2xl flex items-center gap-3"
                   >
-                    <img src={item.imageUrl} alt={item.name} className="w-12 h-12 rounded-xl object-cover bg-zinc-950 shrink-0" />
+                    <img src={item.imageUrl} alt={item.name} className="w-12 h-12 rounded-xl object-cover bg-zinc-950 shrink-0" referrerPolicy="no-referrer" />
                     <div className="flex-1 min-w-0">
                       <h5 className="font-bold text-xs text-zinc-100 truncate">{item.name}</h5>
                       <span className="text-[10px] text-zinc-400 block font-semibold">Unit: {item.unit} • Price: Rs. {item.price}</span>

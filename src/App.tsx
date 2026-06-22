@@ -123,10 +123,18 @@ export default function App() {
         const profileSnap = await getDoc(profileRef);
 
         if (profileSnap.exists()) {
-          setCurrentUser({ uid: authUser.uid, ...profileSnap.data() } as UserProfile);
+          const data = profileSnap.data();
+          const isAdminEmail = authUser.email === "dadumeer469@gmail.com" || authUser.email === "03277004471@dadu247.com";
+          if (isAdminEmail && data.role !== "admin") {
+            const updated = { ...data, role: "admin" };
+            await setDoc(profileRef, updated, { merge: true });
+            setCurrentUser({ uid: authUser.uid, ...updated } as UserProfile);
+          } else {
+            setCurrentUser({ uid: authUser.uid, ...data } as UserProfile);
+          }
         } else {
           // Fallback
-          const isMeerali = authUser.email === "03277004471@dadu247.com";
+          const isMeerali = authUser.email === "03277004471@dadu247.com" || authUser.email === "dadumeer469@gmail.com";
           const fallback: UserProfile = {
             uid: authUser.uid,
             name: isMeerali ? "meerali120" : "Dadu Guest",
@@ -1290,7 +1298,7 @@ export default function App() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fade-in">
           <div className="bg-zinc-900 border border-zinc-800 rounded-3.5xl max-w-sm w-full overflow-hidden shadow-2xl text-zinc-100">
             <div className="h-44 relative bg-zinc-950">
-              <img src={activeDetailDish.imageUrl} alt={activeDetailDish.name} className="w-full h-full object-cover"/>
+              <img src={activeDetailDish.imageUrl} alt={activeDetailDish.name} className="w-full h-full object-cover" referrerPolicy="no-referrer"/>
               <button
                 onClick={() => setActiveDetailDish(null)}
                 className="absolute top-4 right-4 bg-black/70 hover:bg-black/95 text-white p-2 rounded-full cursor-pointer transition text-xs font-bold"

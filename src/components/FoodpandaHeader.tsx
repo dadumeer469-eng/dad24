@@ -55,8 +55,9 @@ export default function FoodpandaHeader({
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [canInstall, setCanInstall] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
-  const [showIosTooltip, setShowIosTooltip] = useState(false);
+  const [showInstallModal, setShowInstallModal] = useState(false);
   const [isIos, setIsIos] = useState(false);
+  const [activeInstallTab, setActiveInstallTab] = useState<"android" | "ios" | "desktop">("android");
 
   useEffect(() => {
     // 1. Detect standalone mode (already installed & running)
@@ -68,6 +69,13 @@ export default function FoodpandaHeader({
     // 2. Detect iOS devices
     const iosCheck = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
     setIsIos(iosCheck);
+    if (iosCheck) {
+      setActiveInstallTab("ios");
+    } else if (/Mobi|Android/i.test(navigator.userAgent)) {
+      setActiveInstallTab("android");
+    } else {
+      setActiveInstallTab("desktop");
+    }
 
     // 3. Listen to chrome/android auto installer prompt event
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -94,31 +102,8 @@ export default function FoodpandaHeader({
     };
   }, []);
 
-  const handleLogoClick = async () => {
-    if (deferredPrompt) {
-      try {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === "accepted") {
-          console.log("User accepted the installation prompt!");
-          setDeferredPrompt(null);
-          setCanInstall(false);
-        } else {
-          console.log("User dismissed the installation prompt.");
-        }
-      } catch (err) {
-        console.error("Installation prompting failed:", err);
-      }
-    } else if (isIos && !isStandalone) {
-      setShowIosTooltip(true);
-    } else {
-      // Normal Logo Behavior: Reset search, category and soft scroll home
-      setSearchQuery("");
-      if (setActiveCategory) {
-        setActiveCategory("All");
-      }
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
+  const handleLogoClick = () => {
+    setShowInstallModal(true);
   };
 
   const unreadNotifications = notifications.filter(n => !n.read);
@@ -144,46 +129,30 @@ export default function FoodpandaHeader({
         <div 
           onClick={handleLogoClick}
           className="flex items-center gap-2 shrink-0 cursor-pointer group select-none"
-          title={canInstall ? "Tap to Install Dadu Food App" : isIos && !isStandalone ? "Tap to see how to Install App" : "Dadu Food Home"}
+          title="Install Dadu Food App on your Home Screen!"
         >
-          <div className={`${
-            (canInstall || (isIos && !isStandalone))
-              ? "p-2 sm:p-2.5 rounded-xl bg-[#D70F64] text-white shadow-[0_0_20px_rgba(215,15,100,0.8)] ring-2 ring-pink-500/60 scale-105 active:scale-95 border border-pink-300/50 flex items-center justify-center gap-1.5"
-              : "w-11 h-11 rounded-xl bg-white border border-zinc-200 overflow-hidden flex items-center justify-center group-hover:scale-105 active:scale-95 shadow-sm"
-          } transition-all duration-300 relative shrink-0`}>
-            {canInstall || (isIos && !isStandalone) ? (
-              <>
-                <Download className="w-3.5 h-3.5 text-white animate-bounce shrink-0" />
-                <span className="text-[10px] font-black uppercase tracking-wider">Install</span>
-              </>
-            ) : (
-              <img 
-                src={daduLogo} 
-                alt="DF" 
-                className="w-full h-full object-cover scale-110" 
-                referrerPolicy="no-referrer"
-              />
-            )}
-            
-            {/* Pulsing indicator when install is available */}
-            {(canInstall || (isIos && !isStandalone)) && (
-              <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-              </span>
-            )}
+          <div className="w-11 h-11 rounded-xl bg-white border border-zinc-200 overflow-hidden flex items-center justify-center group-hover:scale-105 active:scale-95 shadow-sm transition-all relative shrink-0">
+            <img 
+              src={daduLogo} 
+              alt="DF" 
+              className="w-full h-full object-cover scale-110" 
+              referrerPolicy="no-referrer"
+            />
+            {/* Pulsing notification indicator for home screen installation */}
+            <span className="absolute -top-1 -right-1 flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+            </span>
           </div>
           <span className="text-base sm:text-xl font-black tracking-tight text-zinc-900">
             DADU<span className="text-[#D70F64]">FOOD</span>
           </span>
 
-          {/* Quick inline pill so user understands they can download/install */}
-          {(canInstall || (isIos && !isStandalone)) && (
-            <span className="inline-flex items-center gap-1 bg-emerald-50/90 text-emerald-700 border border-emerald-200/60 py-0.5 px-2 rounded-full text-[9px] font-black uppercase tracking-wider animate-pulse shadow-xs shrink-0 select-none">
-              <Download className="w-2.5 h-2.5 text-emerald-600" />
-              Download App
-            </span>
-          )}
+          {/* Quick inline pill indicating they can download/install */}
+          <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200/60 py-0.5 px-2 rounded-full text-[9px] font-black uppercase tracking-wider animate-pulse shadow-xs shrink-0 select-none">
+            <Download className="w-2.5 h-2.5 text-emerald-600 animate-bounce" />
+            Install App
+          </span>
         </div>
 
         {/* Address and support info - desktop only */}
@@ -227,7 +196,7 @@ export default function FoodpandaHeader({
             </button>
 
             {showNotifications && (
-              <div className="absolute right-0 mt-2 bg-white border border-zinc-200 text-zinc-800 rounded-2xl shadow-xl w-72 overflow-hidden z-50">
+              <div className="absolute right-0 mt-2 bg-white border border-zinc-200 text-zinc-800 rounded-2xl shadow-xl w-72 max-sm:fixed max-sm:top-16 max-sm:left-4 max-sm:right-4 max-sm:w-auto overflow-hidden z-50 animate-fade-in">
                 <div className="p-3.5 border-b border-zinc-200 flex items-center justify-between bg-zinc-50">
                   <span className="font-bold text-xs tracking-wide uppercase text-zinc-500">Notification Hub</span>
                   {notifications.length > 0 && (
@@ -305,7 +274,7 @@ export default function FoodpandaHeader({
             )}
 
             {user && showUserMenu && (
-              <div className="absolute right-0 mt-2 bg-white border border-zinc-200 text-zinc-800 rounded-2xl shadow-xl w-56 overflow-hidden z-50">
+              <div className="absolute right-0 mt-2 bg-white border border-zinc-200 text-zinc-800 rounded-2xl shadow-xl w-56 max-sm:fixed max-sm:top-16 max-sm:left-4 max-sm:right-4 max-sm:w-auto overflow-hidden z-50 animate-fade-in">
                 <div className="p-3.5 border-b border-zinc-200 bg-zinc-50 flex flex-col items-start">
                   <div className="flex items-center gap-1 font-bold text-sm text-zinc-900">
                     {user.name}
@@ -430,53 +399,208 @@ export default function FoodpandaHeader({
         </div>
       )}
 
-      {/* iOS Safari PWA Installation Instructions Modal */}
-      {showIosTooltip && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-4">
-          <div className="bg-white text-zinc-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl relative border border-zinc-100 animate-in fade-in slide-in-from-bottom duration-300">
+      {/* Unified PWA Installation Instructions Modal */}
+      {showInstallModal && (
+        <div className="fixed inset-0 z-[110] bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white text-zinc-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl relative border border-zinc-100 animate-in fade-in zoom-in-95 duration-200">
             {/* Close button top corner */}
             <button
-              onClick={() => setShowIosTooltip(false)}
-              className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-600 transition p-1 cursor-pointer select-none"
+              onClick={() => setShowInstallModal(false)}
+              className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-600 transition p-2 cursor-pointer select-none text-sm font-bold bg-zinc-100 rounded-full w-8 h-8 flex items-center justify-center"
             >
               ✕
             </button>
 
             {/* Logo highlight */}
-            <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 bg-[#D70F64] text-white rounded-2xl font-black text-2xl flex items-center justify-center shadow-lg relative">
-                DF
+            <div className="flex justify-center mb-3">
+              <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-lg border border-zinc-100 p-0.5 bg-white relative">
+                <img src={daduLogo} alt="Dadu Food" className="w-full h-full object-cover rounded-xl" />
+                <span className="absolute -bottom-1 -right-1 bg-[#D70F64] text-white p-1 rounded-full text-[10px]">
+                  <Download className="w-3.5 h-3.5" />
+                </span>
               </div>
             </div>
 
-            <h3 className="text-center font-black text-lg text-zinc-950 tracking-tight">
-              Install Dadu Food
+            <h3 className="text-center font-black text-base text-zinc-950 tracking-tight">
+              Add Dadu Food to Home Screen
             </h3>
-            <p className="text-center text-xs text-zinc-500 mt-1 font-semibold">
-              Add to your Home Screen for full-screen experience!
+            <p className="text-center text-[10px] text-zinc-500 mt-0.5 font-bold uppercase tracking-wider text-pink-600 animate-pulse">
+              📲 Fast Mobile App Shortcut
+            </p>
+            <p className="text-center text-[11px] text-zinc-400 mt-1 px-4 leading-relaxed font-semibold">
+              Bina browser open kiye directly home screen se order karein!
             </p>
 
-            <div className="mt-5 space-y-4 bg-zinc-50 p-4 rounded-2xl border border-zinc-150 text-xs text-zinc-700 leading-relaxed font-semibold">
-              <div className="flex items-start gap-3">
-                <span className="bg-white w-6 h-6 rounded-lg text-xs flex items-center justify-center border border-zinc-200 shadow-sm shrink-0 font-bold">1</span>
-                <span>Tap the <span className="font-bold text-[#D70F64] inline-flex items-center gap-0.5">Share <svg className="w-3.5 h-3.5 inline text-[#D70F64]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="10" rx="2" /><path d="M12 2v12M9 5l3-3 3 3" /></svg></span> button in the bottom bar of Safari.</span>
-              </div>
-              <div className="flex items-start gap-3">
-                <span className="bg-white w-6 h-6 rounded-lg text-xs flex items-center justify-center border border-zinc-200 shadow-sm shrink-0 font-bold">2</span>
-                <span>Scroll down and select <span className="font-bold text-[#D70F64]">"Add to Home Screen"</span> from the list.</span>
-              </div>
-              <div className="flex items-start gap-3">
-                <span className="bg-white w-6 h-6 rounded-lg text-xs flex items-center justify-center border border-zinc-200 shadow-sm shrink-0 font-bold">3</span>
-                <span>Give the shortcut a name or tap <span className="font-bold text-zinc-800">"Add"</span> on top-right. Done! 📲</span>
-              </div>
+            {/* Platform Selection Tabs */}
+            <div className="flex bg-zinc-100 p-1 rounded-xl mt-4 gap-1.5 border border-zinc-250/50">
+              <button
+                type="button"
+                onClick={() => setActiveInstallTab("android")}
+                className={`flex-1 py-1.5 rounded-lg text-center text-[10px] font-black uppercase tracking-wider transition cursor-pointer ${
+                  activeInstallTab === "android"
+                    ? "bg-[#D70F64] text-white shadow-sm"
+                    : "text-zinc-500 hover:text-zinc-800"
+                }`}
+              >
+                Android 🤖
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveInstallTab("ios")}
+                className={`flex-1 py-1.5 rounded-lg text-center text-[10px] font-black uppercase tracking-wider transition cursor-pointer ${
+                  activeInstallTab === "ios"
+                    ? "bg-[#D70F64] text-white shadow-sm"
+                    : "text-zinc-500 hover:text-zinc-800"
+                }`}
+              >
+                iPhone 🍎
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveInstallTab("desktop")}
+                className={`flex-1 py-1.5 rounded-lg text-center text-[10px] font-black uppercase tracking-wider transition cursor-pointer ${
+                  activeInstallTab === "desktop"
+                    ? "bg-[#D70F64] text-white shadow-sm"
+                    : "text-zinc-500 hover:text-zinc-800"
+                }`}
+              >
+                Laptop 💻
+              </button>
             </div>
 
-            <button
-              onClick={() => setShowIosTooltip(false)}
-              className="mt-6 w-full py-3 bg-[#D70F64] hover:bg-[#b00c50] text-white font-black text-xs uppercase tracking-widest rounded-xl transition cursor-pointer select-none active:scale-98 shadow-md"
-            >
-              Start ordering
-            </button>
+            {/* Tab Contents */}
+            <div className="mt-4 space-y-3.5 bg-zinc-50 p-4 rounded-2xl border border-zinc-150 text-[11px] text-zinc-700 leading-relaxed font-semibold">
+              
+              {/* Direct Install Button inside Android / Desktop if promotional prompt is active */}
+              {deferredPrompt && (activeInstallTab === "android" || activeInstallTab === "desktop") && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      deferredPrompt.prompt();
+                      const { outcome } = await deferredPrompt.userChoice;
+                      if (outcome === "accepted") {
+                        setDeferredPrompt(null);
+                        setCanInstall(false);
+                        setShowInstallModal(false);
+                      }
+                    } catch (err) {
+                      console.error("Install prompting failed:", err);
+                    }
+                  }}
+                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] uppercase tracking-widest rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-md animate-bounce mb-2"
+                >
+                  <Download className="w-3.5 h-3.5 animate-pulse" />
+                  Install Instantly! (Click Here)
+                </button>
+              )}
+
+              {activeInstallTab === "ios" && (
+                <>
+                  <div className="flex items-start gap-2.5">
+                    <span className="bg-white w-5 h-5 rounded-md text-[10px] flex items-center justify-center border border-zinc-200 shadow-xs shrink-0 font-bold text-zinc-800">1</span>
+                    <div className="flex-1 text-left">
+                      <span className="font-bold text-zinc-900 block">Share icon par click karein</span>
+                      <p className="text-[10px] text-zinc-400 mt-0.5 leading-normal">Safari browser ke niche <span className="font-bold text-[#D70F64]">Share 📤</span> button par tap karein.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <span className="bg-white w-5 h-5 rounded-md text-[10px] flex items-center justify-center border border-zinc-200 shadow-xs shrink-0 font-bold text-zinc-800">2</span>
+                    <div className="flex-1 text-left">
+                      <span className="font-bold text-zinc-900 block">Add to Home Screen select karein</span>
+                      <p className="text-[10px] text-zinc-400 mt-0.5 leading-normal">Ghumayein (scroll karein) aur menu se <span className="font-bold text-[#D70F64]">(+) Add to Home Screen</span> dabayein.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <span className="bg-white w-5 h-5 rounded-md text-[10px] flex items-center justify-center border border-zinc-200 shadow-xs shrink-0 font-bold text-zinc-800">3</span>
+                    <div className="flex-1 text-left">
+                      <span className="font-bold text-zinc-900 block">Upar right me 'Add' click karein</span>
+                      <p className="text-[10px] text-zinc-400 mt-0.5 leading-normal">Ab direct logo Dadu Food aapke mobile ki Screen pe aa jayega!</p>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {activeInstallTab === "android" && (
+                <>
+                  <div className="flex items-start gap-2.5">
+                    <span className="bg-white w-5 h-5 rounded-md text-[10px] flex items-center justify-center border border-zinc-200 shadow-xs shrink-0 font-bold text-zinc-800">1</span>
+                    <div className="flex-1 text-left">
+                      <span className="font-bold text-zinc-900 block">Chrome menu open karein</span>
+                      <p className="text-[10px] text-zinc-400 mt-0.5 leading-normal">Chrome browser me upar ya niche right par <span className="font-bold">3 dots (⋮)</span> icon tap karein.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <span className="bg-white w-5 h-5 rounded-md text-[10px] flex items-center justify-center border border-zinc-200 shadow-xs shrink-0 font-bold text-zinc-800">2</span>
+                    <div className="flex-1 text-left">
+                      <span className="font-bold text-zinc-900 block">Select "Install App" / "Add Screen"</span>
+                      <p className="text-[10px] text-zinc-400 mt-0.5 leading-normal">Wahan <span className="font-bold text-[#D70F64]">"Install App"</span> ya <span className="font-bold text-[#D70F64]">"Add to Home Screen"</span> option select karein.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <span className="bg-white w-5 h-5 rounded-md text-[10px] flex items-center justify-center border border-zinc-200 shadow-xs shrink-0 font-bold text-zinc-800">3</span>
+                    <div className="flex-1 text-left">
+                      <span className="font-bold text-zinc-900 block">Confirm Add</span>
+                      <p className="text-[10px] text-zinc-400 mt-0.5 leading-normal">Abb direct real mobile application ban kar aapke phone me chalegi!</p>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {activeInstallTab === "desktop" && (
+                <>
+                  <div className="flex items-start gap-2.5">
+                    <span className="bg-white w-5 h-5 rounded-md text-[10px] flex items-center justify-center border border-zinc-200 shadow-xs shrink-0 font-bold text-zinc-800">1</span>
+                    <div className="flex-1 text-left">
+                      <span className="font-bold text-zinc-900 block">Look at Address Bar</span>
+                      <p className="text-[10px] text-zinc-400 mt-0.5 leading-normal">Browser ki upar wali URL bar (jahan website link hoti hai) ke right side par dekhein.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <span className="bg-white w-5 h-5 rounded-md text-[10px] flex items-center justify-center border border-zinc-200 shadow-xs shrink-0 font-bold text-zinc-800">2</span>
+                    <div className="flex-1 text-left">
+                      <span className="font-bold text-zinc-900 block">Find the Install Icon</span>
+                      <p className="text-[10px] text-zinc-400 mt-0.5 leading-normal">Wahan ek <span className="font-bold">PC Monitor ya (+) arrow</span> ka install sign dikhega, use tap karein.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <span className="bg-white w-5 h-5 rounded-md text-[10px] flex items-center justify-center border border-zinc-200 shadow-xs shrink-0 font-bold text-zinc-800">3</span>
+                    <div className="flex-1 text-left">
+                      <span className="font-bold text-zinc-900 block">Confirm Install</span>
+                      <p className="text-[10px] text-zinc-400 mt-0.5 leading-normal">Install button dabayein aur shortcut create ho jayega!</p>
+                    </div>
+                  </div>
+                </>
+              )}
+
+            </div>
+
+            {/* Actions for Go-Home or Scroll Top */}
+            <div className="mt-5 space-y-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowInstallModal(false);
+                  setSearchQuery("");
+                  if (setActiveCategory) {
+                    setActiveCategory("All");
+                  }
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="w-full py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold text-[10px] uppercase tracking-wider rounded-xl transition cursor-pointer select-none text-center"
+              >
+                Go to Home Screen Page 🏡
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => setShowInstallModal(false)}
+                className="w-full py-2.5 bg-[#D70F64] hover:bg-[#b00c50] text-white font-black text-[10px] uppercase tracking-widest rounded-xl transition cursor-pointer select-none shadow-md mt-1"
+              >
+                Close and Continue
+              </button>
+            </div>
+
           </div>
         </div>
       )}
