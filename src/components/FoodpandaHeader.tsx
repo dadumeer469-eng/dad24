@@ -138,20 +138,9 @@ export default function FoodpandaHeader({
               className="w-full h-full object-cover scale-110" 
               referrerPolicy="no-referrer"
             />
-            {/* Pulsing notification indicator for home screen installation */}
-            <span className="absolute -top-1 -right-1 flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-            </span>
           </div>
           <span className="text-base sm:text-xl font-black tracking-tight text-zinc-900">
             DADU<span className="text-[#D70F64]">FOOD</span>
-          </span>
-
-          {/* Quick inline pill indicating they can download/install */}
-          <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200/60 py-0.5 px-2 rounded-full text-[9px] font-black uppercase tracking-wider animate-pulse shadow-xs shrink-0 select-none">
-            <Download className="w-2.5 h-2.5 text-emerald-600 animate-bounce" />
-            Install App
           </span>
         </div>
 
