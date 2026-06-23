@@ -15,59 +15,62 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      if ('serviceWorker' in navigator) {
-        const registerSW = () => {
-          try {
-            navigator.serviceWorker.register('/sw.js').then((reg) => {
-              console.log('ServiceWorker registered successfully:', reg.scope);
-            }).catch((err) => {
-              console.warn('ServiceWorker registration failed:', err);
-            });
-          } catch (e) {
-            console.warn('ServiceWorker registration error:', e);
-          }
-        };
-
-        if (document.readyState === 'complete' || document.readyState === 'interactive') {
-          registerSW();
-        } else {
-          window.addEventListener('load', registerSW);
-        }
-      }
-
-      let deferredPrompt;
-      const installBtn = document.getElementById('installBtn');
-
-      window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        if (installBtn) {
-          installBtn.style.display = 'block';
-        }
-      });
-
-      if (installBtn) {
-        installBtn.addEventListener('click', async () => {
-          if (deferredPrompt) {
+      // Only execute PWA logic at top level to avoid SecurityError and cross-origin "Script error" in development preview iframe
+      if (window.self === window.top) {
+        if ('serviceWorker' in navigator) {
+          const registerSW = () => {
             try {
-              deferredPrompt.prompt();
-              const { outcome } = await deferredPrompt.userChoice;
-              if (outcome === 'accepted') {
-                installBtn.style.display = 'none';
-              }
-            } catch (err) {
-              console.warn('Prompt failed or cancelled:', err);
+              navigator.serviceWorker.register('/sw.js').then((reg) => {
+                console.log('ServiceWorker registered successfully:', reg.scope);
+              }).catch((err) => {
+                console.warn('ServiceWorker registration failed:', err);
+              });
+            } catch (e) {
+              console.warn('ServiceWorker registration error:', e);
             }
-            deferredPrompt = null;
+          };
+
+          if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            registerSW();
+          } else {
+            window.addEventListener('load', registerSW);
+          }
+        }
+
+        let deferredPrompt;
+        const installBtn = document.getElementById('installBtn');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+          e.preventDefault();
+          deferredPrompt = e;
+          if (installBtn) {
+            installBtn.style.display = 'block';
+          }
+        });
+
+        if (installBtn) {
+          installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+              try {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                  installBtn.style.display = 'none';
+                }
+              } catch (err) {
+                console.warn('Prompt failed or cancelled:', err);
+              }
+              deferredPrompt = null;
+            }
+          });
+        }
+
+        window.addEventListener('appinstalled', () => {
+          if (installBtn) {
+            installBtn.style.display = 'none';
           }
         });
       }
-
-      window.addEventListener('appinstalled', () => {
-        if (installBtn) {
-          installBtn.style.display = 'none';
-        }
-      });
     </script>
   </body>
 </html>
