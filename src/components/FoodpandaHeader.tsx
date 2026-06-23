@@ -51,61 +51,6 @@ export default function FoodpandaHeader({
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  // PWA & Installation state
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [canInstall, setCanInstall] = useState(false);
-  const [isStandalone, setIsStandalone] = useState(false);
-  const [showInstallModal, setShowInstallModal] = useState(false);
-  const [isIos, setIsIos] = useState(false);
-  const [activeInstallTab, setActiveInstallTab] = useState<"android" | "ios" | "desktop">("android");
-
-  useEffect(() => {
-    // 1. Detect standalone mode (already installed & running)
-    const standaloneCheck = 
-      window.matchMedia("(display-mode: standalone)").matches || 
-      (navigator as any).standalone === true;
-    setIsStandalone(standaloneCheck);
-
-    // 2. Detect iOS devices
-    const iosCheck = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
-    setIsIos(iosCheck);
-    if (iosCheck) {
-      setActiveInstallTab("ios");
-    } else if (/Mobi|Android/i.test(navigator.userAgent)) {
-      setActiveInstallTab("android");
-    } else {
-      setActiveInstallTab("desktop");
-    }
-
-    // 3. Listen to chrome/android auto installer prompt event
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setCanInstall(true);
-    };
-
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-
-    // 4. Listen to successful installations to reset the icons
-    const handleAppInstalled = () => {
-      console.log("Dadu Food application installed successfully!");
-      setDeferredPrompt(null);
-      setCanInstall(false);
-      setIsStandalone(true);
-    };
-
-    window.addEventListener("appinstalled", handleAppInstalled);
-
-    return () => {
-      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-      window.removeEventListener("appinstalled", handleAppInstalled);
-    };
-  }, []);
-
-  const handleLogoClick = () => {
-    setShowInstallModal(true);
-  };
-
   const unreadNotifications = notifications.filter(n => !n.read);
 
   // Unified WhatsApp link formatter
@@ -127,9 +72,9 @@ export default function FoodpandaHeader({
         
         {/* Logo and Brand */}
         <div 
-          onClick={handleLogoClick}
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           className="flex items-center gap-2 shrink-0 cursor-pointer group select-none"
-          title="Install Dadu Food App on your Home Screen!"
+          title="Dadu Food"
         >
           <div className="w-11 h-11 rounded-xl bg-white border border-zinc-200 overflow-hidden flex items-center justify-center group-hover:scale-105 active:scale-95 shadow-sm transition-all relative shrink-0">
             <img 
@@ -388,126 +333,6 @@ export default function FoodpandaHeader({
         </div>
       )}
 
-      {/* Unified PWA Installation Instructions Modal */}
-      {showInstallModal && (
-        <div className="fixed inset-0 z-[110] bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white text-zinc-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl relative border border-zinc-100 animate-in fade-in zoom-in-95 duration-200">
-            {/* Close button top corner */}
-            <button
-              onClick={() => setShowInstallModal(false)}
-              className="absolute top-4 right-4 text-zinc-400 hover:text-zinc-600 transition p-2 cursor-pointer select-none text-sm font-bold bg-zinc-100 rounded-full w-8 h-8 flex items-center justify-center"
-            >
-              ✕
-            </button>
-
-            {/* Logo highlight */}
-            <div className="flex justify-center mb-3">
-              <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-lg border border-zinc-100 p-0.5 bg-white relative">
-                <img src={daduLogo} alt="Dadu Food" className="w-full h-full object-cover rounded-xl" />
-                <span className="absolute -bottom-1 -right-1 bg-[#D70F64] text-white p-1 rounded-full text-[10px]">
-                  <Download className="w-3.5 h-3.5" />
-                </span>
-              </div>
-            </div>
-
-            <h3 className="text-center font-black text-base text-zinc-950 tracking-tight">
-              Add Dadu Food to Home Screen
-            </h3>
-            <p className="text-center text-[10px] text-zinc-500 mt-0.5 font-bold uppercase tracking-wider text-pink-600 animate-pulse">
-              📲 Fast Mobile App Shortcut
-            </p>
-            <p className="text-center text-[11px] text-zinc-400 mt-1 px-4 leading-relaxed font-semibold">
-              Bina browser open kiye directly home screen se order karein!
-            </p>
-
-            {/* Android Banner */}
-            <div className="bg-emerald-50 text-emerald-800 text-[10px] font-black uppercase tracking-wider text-center py-2 rounded-xl mt-4 border border-emerald-200/60 flex items-center justify-center gap-1.5 shadow-sm">
-              <span>🤖 Pure Android Experience</span>
-            </div>
-
-            {/* Tab Contents */}
-            <div className="mt-4 space-y-3.5 bg-zinc-50 p-4 rounded-2xl border border-zinc-150 text-[11px] text-zinc-700 leading-relaxed font-semibold">
-              
-              {/* Direct Install Button to trigger prompt instantly in background/foreground */}
-              <button
-                type="button"
-                onClick={async () => {
-                  if (deferredPrompt) {
-                    try {
-                      deferredPrompt.prompt();
-                      const { outcome } = await deferredPrompt.userChoice;
-                      if (outcome === "accepted") {
-                        setDeferredPrompt(null);
-                        setCanInstall(false);
-                        setShowInstallModal(false);
-                      }
-                    } catch (err) {
-                      console.error("Install prompting failed:", err);
-                    }
-                  } else {
-                    // Fallback alerts user with native browser help
-                    alert("Chrome main upar right side par (⋮) teen dots click karein, aur phir 'Add to Home screen' ya 'Install App' par tap karein!");
-                  }
-                }}
-                className="w-full py-3 bg-[#D70F64] hover:bg-[#b00c50] text-white font-black text-xs uppercase tracking-widest rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-md animate-pulse mb-3"
-              >
-                <Download className="w-4 h-4 animate-bounce shrink-0" />
-                INSTALL APP INSTANTLY 🚀
-              </button>
-
-              <div className="flex items-start gap-2.5">
-                <span className="bg-white w-5 h-5 rounded-md text-[10px] flex items-center justify-center border border-zinc-200 shadow-xs shrink-0 font-bold text-zinc-800">1</span>
-                <div className="flex-1 text-left">
-                  <span className="font-bold text-zinc-900 block">3 Dots (⋮) Par Click Karein</span>
-                  <p className="text-[10px] text-zinc-400 mt-0.5 leading-normal">Chrome browser me top-right me <span className="font-bold text-[#D70F64]">3 dots (⋮)</span> par click karein.</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2.5">
-                <span className="bg-white w-5 h-5 rounded-md text-[10px] flex items-center justify-center border border-zinc-200 shadow-xs shrink-0 font-bold text-zinc-800">2</span>
-                <div className="flex-1 text-left">
-                  <span className="font-bold text-zinc-900 block">"Install App" Option Chunein</span>
-                  <p className="text-[10px] text-zinc-400 mt-0.5 leading-normal">Ghumayein aur list se <span className="font-bold text-[#D70F64]">"Install App"</span> ya <span className="font-bold text-[#D70F64]">"Add to Home Screen"</span> dabayein.</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-2.5">
-                <span className="bg-white w-5 h-5 rounded-md text-[10px] flex items-center justify-center border border-zinc-200 shadow-xs shrink-0 font-bold text-zinc-800">3</span>
-                <div className="flex-1 text-left">
-                  <span className="font-bold text-zinc-900 block">Automatic Logo & shortcut</span>
-                  <p className="text-[10px] text-zinc-400 mt-0.5 leading-normal">Sahi logo ke sath application pure home screen par set ho jayegi bina koi extra settings ke!</p>
-                </div>
-              </div>
-
-            </div>
-
-            {/* Actions for Go-Home or Scroll Top */}
-            <div className="mt-5 space-y-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowInstallModal(false);
-                  setSearchQuery("");
-                  if (setActiveCategory) {
-                    setActiveCategory("All");
-                  }
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-                className="w-full py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold text-[10px] uppercase tracking-wider rounded-xl transition cursor-pointer select-none text-center"
-              >
-                Go to Home Screen Page 🏡
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => setShowInstallModal(false)}
-                className="w-full py-2.5 bg-[#D70F64] hover:bg-[#b00c50] text-white font-black text-[10px] uppercase tracking-widest rounded-xl transition cursor-pointer select-none shadow-md mt-1"
-              >
-                Close and Continue
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
     </header>
   );
 }

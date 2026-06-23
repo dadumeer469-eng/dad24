@@ -4,20 +4,19 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dadu 24#7</title>
-    <link rel="manifest" href="/manifest.json">
+    <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#f97316" />
     <link rel="apple-touch-icon" href="/logo.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   </head>
   <body>
-    <!-- Install App Button matching orange theme, styled visually inside the header path -->
-    <button id="installBtn" style="display: none; position: fixed; top: 12px; right: 12px; z-index: 9999; background-color: #f97316; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); font-family: sans-serif;">Install App 🚀</button>
+    <button id="installBtn" style="display: none; position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 9999; background-color: #f97316; color: white; border: none; padding: 12px 24px; border-radius: 9999px; font-weight: bold; cursor: pointer; box-shadow: 0 10px 15px -3px rgba(249, 115, 22, 0.4); font-family: sans-serif; font-size: 14px; transition: all 0.2s ease; border: 1px solid rgba(255,255,255,0.2);">Install Dadu Food App 🚀</button>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
+        const registerSW = () => {
           try {
             navigator.serviceWorker.register('/sw.js').then((reg) => {
               console.log('ServiceWorker registered successfully:', reg.scope);
@@ -25,9 +24,15 @@
               console.warn('ServiceWorker registration failed:', err);
             });
           } catch (e) {
-            console.warn('ServiceWorker registration not supported or blocked in this environment:', e);
+            console.warn('ServiceWorker registration error:', e);
           }
-        });
+        };
+
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+          registerSW();
+        } else {
+          window.addEventListener('load', registerSW);
+        }
       }
 
       let deferredPrompt;
@@ -37,7 +42,7 @@
         e.preventDefault();
         deferredPrompt = e;
         if (installBtn) {
-          installBtn.style.display = 'inline-block';
+          installBtn.style.display = 'block';
         }
       });
 
