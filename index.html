@@ -18,7 +18,15 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js');
+          try {
+            navigator.serviceWorker.register('/sw.js').then((reg) => {
+              console.log('ServiceWorker registered successfully:', reg.scope);
+            }).catch((err) => {
+              console.warn('ServiceWorker registration failed:', err);
+            });
+          } catch (e) {
+            console.warn('ServiceWorker registration not supported or blocked in this environment:', e);
+          }
         });
       }
 
@@ -28,22 +36,32 @@
       window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
-        installBtn.style.display = 'inline-block';
-      });
-
-      installBtn.addEventListener('click', async () => {
-        if (deferredPrompt) {
-          deferredPrompt.prompt();
-          const { outcome } = await deferredPrompt.userChoice;
-          if (outcome === 'accepted') {
-            installBtn.style.display = 'none';
-          }
-          deferredPrompt = null;
+        if (installBtn) {
+          installBtn.style.display = 'inline-block';
         }
       });
 
+      if (installBtn) {
+        installBtn.addEventListener('click', async () => {
+          if (deferredPrompt) {
+            try {
+              deferredPrompt.prompt();
+              const { outcome } = await deferredPrompt.userChoice;
+              if (outcome === 'accepted') {
+                installBtn.style.display = 'none';
+              }
+            } catch (err) {
+              console.warn('Prompt failed or cancelled:', err);
+            }
+            deferredPrompt = null;
+          }
+        });
+      }
+
       window.addEventListener('appinstalled', () => {
-        installBtn.style.display = 'none';
+        if (installBtn) {
+          installBtn.style.display = 'none';
+        }
       });
     </script>
   </body>
