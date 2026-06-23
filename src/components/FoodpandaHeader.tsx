@@ -420,51 +420,19 @@ export default function FoodpandaHeader({
               Bina browser open kiye directly home screen se order karein!
             </p>
 
-            {/* Platform Selection Tabs */}
-            <div className="flex bg-zinc-100 p-1 rounded-xl mt-4 gap-1.5 border border-zinc-250/50">
-              <button
-                type="button"
-                onClick={() => setActiveInstallTab("android")}
-                className={`flex-1 py-1.5 rounded-lg text-center text-[10px] font-black uppercase tracking-wider transition cursor-pointer ${
-                  activeInstallTab === "android"
-                    ? "bg-[#D70F64] text-white shadow-sm"
-                    : "text-zinc-500 hover:text-zinc-800"
-                }`}
-              >
-                Android 🤖
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveInstallTab("ios")}
-                className={`flex-1 py-1.5 rounded-lg text-center text-[10px] font-black uppercase tracking-wider transition cursor-pointer ${
-                  activeInstallTab === "ios"
-                    ? "bg-[#D70F64] text-white shadow-sm"
-                    : "text-zinc-500 hover:text-zinc-800"
-                }`}
-              >
-                iPhone 🍎
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveInstallTab("desktop")}
-                className={`flex-1 py-1.5 rounded-lg text-center text-[10px] font-black uppercase tracking-wider transition cursor-pointer ${
-                  activeInstallTab === "desktop"
-                    ? "bg-[#D70F64] text-white shadow-sm"
-                    : "text-zinc-500 hover:text-zinc-800"
-                }`}
-              >
-                Laptop 💻
-              </button>
+            {/* Android Banner */}
+            <div className="bg-emerald-50 text-emerald-800 text-[10px] font-black uppercase tracking-wider text-center py-2 rounded-xl mt-4 border border-emerald-200/60 flex items-center justify-center gap-1.5 shadow-sm">
+              <span>🤖 Pure Android Experience</span>
             </div>
 
             {/* Tab Contents */}
             <div className="mt-4 space-y-3.5 bg-zinc-50 p-4 rounded-2xl border border-zinc-150 text-[11px] text-zinc-700 leading-relaxed font-semibold">
               
-              {/* Direct Install Button inside Android / Desktop if promotional prompt is active */}
-              {deferredPrompt && (activeInstallTab === "android" || activeInstallTab === "desktop") && (
-                <button
-                  type="button"
-                  onClick={async () => {
+              {/* Direct Install Button to trigger prompt instantly in background/foreground */}
+              <button
+                type="button"
+                onClick={async () => {
+                  if (deferredPrompt) {
                     try {
                       deferredPrompt.prompt();
                       const { outcome } = await deferredPrompt.userChoice;
@@ -476,91 +444,38 @@ export default function FoodpandaHeader({
                     } catch (err) {
                       console.error("Install prompting failed:", err);
                     }
-                  }}
-                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] uppercase tracking-widest rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-md animate-bounce mb-2"
-                >
-                  <Download className="w-3.5 h-3.5 animate-pulse" />
-                  Install Instantly! (Click Here)
-                </button>
-              )}
+                  } else {
+                    // Fallback alerts user with native browser help
+                    alert("Chrome main upar right side par (⋮) teen dots click karein, aur phir 'Add to Home screen' ya 'Install App' par tap karein!");
+                  }
+                }}
+                className="w-full py-3 bg-[#D70F64] hover:bg-[#b00c50] text-white font-black text-xs uppercase tracking-widest rounded-xl transition cursor-pointer flex items-center justify-center gap-2 shadow-md animate-pulse mb-3"
+              >
+                <Download className="w-4 h-4 animate-bounce shrink-0" />
+                INSTALL APP INSTANTLY 🚀
+              </button>
 
-              {activeInstallTab === "ios" && (
-                <>
-                  <div className="flex items-start gap-2.5">
-                    <span className="bg-white w-5 h-5 rounded-md text-[10px] flex items-center justify-center border border-zinc-200 shadow-xs shrink-0 font-bold text-zinc-800">1</span>
-                    <div className="flex-1 text-left">
-                      <span className="font-bold text-zinc-900 block">Share icon par click karein</span>
-                      <p className="text-[10px] text-zinc-400 mt-0.5 leading-normal">Safari browser ke niche <span className="font-bold text-[#D70F64]">Share 📤</span> button par tap karein.</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2.5">
-                    <span className="bg-white w-5 h-5 rounded-md text-[10px] flex items-center justify-center border border-zinc-200 shadow-xs shrink-0 font-bold text-zinc-800">2</span>
-                    <div className="flex-1 text-left">
-                      <span className="font-bold text-zinc-900 block">Add to Home Screen select karein</span>
-                      <p className="text-[10px] text-zinc-400 mt-0.5 leading-normal">Ghumayein (scroll karein) aur menu se <span className="font-bold text-[#D70F64]">(+) Add to Home Screen</span> dabayein.</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2.5">
-                    <span className="bg-white w-5 h-5 rounded-md text-[10px] flex items-center justify-center border border-zinc-200 shadow-xs shrink-0 font-bold text-zinc-800">3</span>
-                    <div className="flex-1 text-left">
-                      <span className="font-bold text-zinc-900 block">Upar right me 'Add' click karein</span>
-                      <p className="text-[10px] text-zinc-400 mt-0.5 leading-normal">Ab direct logo Dadu Food aapke mobile ki Screen pe aa jayega!</p>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {activeInstallTab === "android" && (
-                <>
-                  <div className="flex items-start gap-2.5">
-                    <span className="bg-white w-5 h-5 rounded-md text-[10px] flex items-center justify-center border border-zinc-200 shadow-xs shrink-0 font-bold text-zinc-800">1</span>
-                    <div className="flex-1 text-left">
-                      <span className="font-bold text-zinc-900 block">Chrome menu open karein</span>
-                      <p className="text-[10px] text-zinc-400 mt-0.5 leading-normal">Chrome browser me upar ya niche right par <span className="font-bold">3 dots (⋮)</span> icon tap karein.</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2.5">
-                    <span className="bg-white w-5 h-5 rounded-md text-[10px] flex items-center justify-center border border-zinc-200 shadow-xs shrink-0 font-bold text-zinc-800">2</span>
-                    <div className="flex-1 text-left">
-                      <span className="font-bold text-zinc-900 block">Select "Install App" / "Add Screen"</span>
-                      <p className="text-[10px] text-zinc-400 mt-0.5 leading-normal">Wahan <span className="font-bold text-[#D70F64]">"Install App"</span> ya <span className="font-bold text-[#D70F64]">"Add to Home Screen"</span> option select karein.</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2.5">
-                    <span className="bg-white w-5 h-5 rounded-md text-[10px] flex items-center justify-center border border-zinc-200 shadow-xs shrink-0 font-bold text-zinc-800">3</span>
-                    <div className="flex-1 text-left">
-                      <span className="font-bold text-zinc-900 block">Confirm Add</span>
-                      <p className="text-[10px] text-zinc-400 mt-0.5 leading-normal">Abb direct real mobile application ban kar aapke phone me chalegi!</p>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {activeInstallTab === "desktop" && (
-                <>
-                  <div className="flex items-start gap-2.5">
-                    <span className="bg-white w-5 h-5 rounded-md text-[10px] flex items-center justify-center border border-zinc-200 shadow-xs shrink-0 font-bold text-zinc-800">1</span>
-                    <div className="flex-1 text-left">
-                      <span className="font-bold text-zinc-900 block">Look at Address Bar</span>
-                      <p className="text-[10px] text-zinc-400 mt-0.5 leading-normal">Browser ki upar wali URL bar (jahan website link hoti hai) ke right side par dekhein.</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2.5">
-                    <span className="bg-white w-5 h-5 rounded-md text-[10px] flex items-center justify-center border border-zinc-200 shadow-xs shrink-0 font-bold text-zinc-800">2</span>
-                    <div className="flex-1 text-left">
-                      <span className="font-bold text-zinc-900 block">Find the Install Icon</span>
-                      <p className="text-[10px] text-zinc-400 mt-0.5 leading-normal">Wahan ek <span className="font-bold">PC Monitor ya (+) arrow</span> ka install sign dikhega, use tap karein.</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2.5">
-                    <span className="bg-white w-5 h-5 rounded-md text-[10px] flex items-center justify-center border border-zinc-200 shadow-xs shrink-0 font-bold text-zinc-800">3</span>
-                    <div className="flex-1 text-left">
-                      <span className="font-bold text-zinc-900 block">Confirm Install</span>
-                      <p className="text-[10px] text-zinc-400 mt-0.5 leading-normal">Install button dabayein aur shortcut create ho jayega!</p>
-                    </div>
-                  </div>
-                </>
-              )}
+              <div className="flex items-start gap-2.5">
+                <span className="bg-white w-5 h-5 rounded-md text-[10px] flex items-center justify-center border border-zinc-200 shadow-xs shrink-0 font-bold text-zinc-800">1</span>
+                <div className="flex-1 text-left">
+                  <span className="font-bold text-zinc-900 block">3 Dots (⋮) Par Click Karein</span>
+                  <p className="text-[10px] text-zinc-400 mt-0.5 leading-normal">Chrome browser me top-right me <span className="font-bold text-[#D70F64]">3 dots (⋮)</span> par click karein.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <span className="bg-white w-5 h-5 rounded-md text-[10px] flex items-center justify-center border border-zinc-200 shadow-xs shrink-0 font-bold text-zinc-800">2</span>
+                <div className="flex-1 text-left">
+                  <span className="font-bold text-zinc-900 block">"Install App" Option Chunein</span>
+                  <p className="text-[10px] text-zinc-400 mt-0.5 leading-normal">Ghumayein aur list se <span className="font-bold text-[#D70F64]">"Install App"</span> ya <span className="font-bold text-[#D70F64]">"Add to Home Screen"</span> dabayein.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <span className="bg-white w-5 h-5 rounded-md text-[10px] flex items-center justify-center border border-zinc-200 shadow-xs shrink-0 font-bold text-zinc-800">3</span>
+                <div className="flex-1 text-left">
+                  <span className="font-bold text-zinc-900 block">Automatic Logo & shortcut</span>
+                  <p className="text-[10px] text-zinc-400 mt-0.5 leading-normal">Sahi logo ke sath application pure home screen par set ho jayegi bina koi extra settings ke!</p>
+                </div>
+              </div>
 
             </div>
 

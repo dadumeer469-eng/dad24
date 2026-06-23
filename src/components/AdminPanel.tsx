@@ -12,7 +12,7 @@ import {
 import { 
   Plus, Settings, LayoutDashboard, ShoppingCart, ListCollapse, ToggleLeft, ToggleRight, Trash2, 
   HelpCircle, RefreshCw, Smartphone, TrendingUp, DollarSign, Package, CheckCheck, Save, Send, EyeOff, Wrench,
-  UserPlus, User, Loader2, Key, Truck, Compass, Phone, ShoppingBasket, AlertTriangle
+  UserPlus, User, Loader2, Key, Truck, Compass, Phone, ShoppingBasket, AlertTriangle, Users
 } from "lucide-react";
 
 interface AdminPanelProps {
@@ -251,7 +251,9 @@ export default function AdminPanel({
   groceryProducts = [],
   groceryDeliveryConfig,
 }: AdminPanelProps) {
-  const [activeSubTab, setActiveSubTab] = useState<"analytics" | "items" | "orders" | "riders" | "grocery">("analytics");
+  const [activeSubTab, setActiveSubTab] = useState<"analytics" | "items" | "orders" | "riders" | "grocery" | "users">("analytics");
+  const [allUsersList, setAllUsersList] = useState<UserProfile[]>([]);
+  const [userSearchTerm, setUserSearchTerm] = useState("");
   
   // Delivery config state
   const [deliveryChargeInput, setDeliveryChargeInput] = useState(deliverySettings?.deliveryFee || 50);
@@ -326,6 +328,21 @@ export default function AdminPanel({
       setRidersSubset(list);
     }, (err) => {
       console.error("Failed to fetch real-time riders:", err);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Real-time listen to all registered users list
+  useEffect(() => {
+    const q = query(collection(db, "users"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const list: UserProfile[] = [];
+      snapshot.forEach((doc) => {
+        list.push({ uid: doc.id, ...doc.data() } as UserProfile);
+      });
+      setAllUsersList(list);
+    }, (err) => {
+      console.error("Failed to fetch real-time users list:", err);
     });
     return () => unsubscribe();
   }, []);
@@ -958,6 +975,21 @@ export default function AdminPanel({
             >
               <ShoppingBasket className="w-4 h-4 text-orange-500 shrink-0" />
               Manage Grocery Store
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab("users")}
+              className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
+                activeSubTab === "users" 
+                  ? "bg-emerald-500/5 border-emerald-500/30 text-emerald-500 font-extrabold shadow-[0_0_20px_rgba(16,185,129,0.04)]" 
+                  : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-emerald-450"
+              }`}
+            >
+              <Users className="w-4 h-4 text-emerald-500 shrink-0" />
+              Manage Users Directory
+              <span className="ml-auto bg-emerald-600 text-white font-extrabold px-2 py-0.5 text-[9px] rounded-full">
+                {allUsersList.length}
+              </span>
             </button>
 
           </div>
@@ -2336,6 +2368,187 @@ export default function AdminPanel({
 
               </div>
 
+            </div>
+          )}
+
+          {activeSubTab === "users" && (
+            <div className="space-y-6 animate-fade-in text-left">
+              {/* Header Box */}
+              <div className="bg-[#0b0b0d]/90 border border-zinc-800 rounded-3xl p-6 relative overflow-hidden">
+                <div className="absolute right-0 top-0 w-80 h-80 bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none" />
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 text-emerald-505">
+                      <Users className="w-5 h-5 text-emerald-500 animate-pulse" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Registered Directory</span>
+                    </div>
+                    <h2 className="text-xl font-black text-white mt-1">Dadu Food User Database</h2>
+                    <p className="text-[11px] text-zinc-400 font-semibold mt-0.5">
+                      View, search and manage all registered customers, riders and administrators.
+                    </p>
+                  </div>
+                  
+                  {/* Totals Badge */}
+                  <div className="bg-[#121215] border border-zinc-805/80 rounded-2xl px-5 py-3 text-center sm:text-right">
+                    <span className="text-[9.5px] font-black text-zinc-500 uppercase tracking-wider block">Total Registered Users</span>
+                    <span className="text-2xl font-black text-emerald-400">{allUsersList.length}</span>
+                  </div>
+                </div>
+
+                {/* Filter and Search Bar */}
+                <div className="mt-6 flex flex-col md:flex-row gap-3">
+                  <div className="flex-1 relative">
+                    <input
+                      type="text"
+                      value={userSearchTerm}
+                      onChange={(e) => setUserSearchTerm(e.target.value)}
+                      placeholder="Search users by name, phone or address..."
+                      className="w-full bg-[#141416]/90 border border-zinc-800 text-zinc-100 placeholder-zinc-500 pl-4 pr-10 py-3 rounded-2xl text-xs font-semibold focus:outline-hidden focus:border-emerald-500/50 transition-all"
+                    />
+                    {userSearchTerm && (
+                      <button
+                        onClick={() => setUserSearchTerm("")}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-350 text-xs font-bold"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Users Table Box */}
+              <div className="bg-[#0b0b0d]/90 border border-zinc-800/80 rounded-3xl overflow-hidden shadow-xl">
+                <div className="p-5 border-b border-zinc-850/60 flex items-center justify-between">
+                  <h3 className="font-black text-xs uppercase tracking-widest text-zinc-300">User Ledger</h3>
+                  <span className="text-[10.5px] font-bold text-zinc-500">
+                    Showing {
+                      allUsersList.filter(u => 
+                        (u.name || "").toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+                        (u.phone || "").toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+                        (u.address || "").toLowerCase().includes(userSearchTerm.toLowerCase())
+                      ).length
+                    } of {allUsersList.length}
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs text-left text-zinc-400 font-semibold border-collapse">
+                    <thead>
+                      <tr className="bg-zinc-950/70 border-b border-zinc-855/60 text-zinc-500 text-[9.5px] uppercase tracking-wider font-black">
+                        <th className="py-4 px-5">User Info</th>
+                        <th className="py-4 px-5">Role</th>
+                        <th className="py-4 px-5">Phone Number</th>
+                        <th className="py-2 px-5">Delivery/Living Address</th>
+                        <th className="py-4 px-5 text-center">Total Orders</th>
+                        <th className="py-4 px-5 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-900">
+                      {allUsersList
+                        .filter(u => {
+                          const queryStr = userSearchTerm.toLowerCase();
+                          return (
+                            (u.name || "").toLowerCase().includes(queryStr) ||
+                            (u.phone || "").toLowerCase().includes(queryStr) ||
+                            (u.address || "").toLowerCase().includes(queryStr) ||
+                            (u.role || "").toLowerCase().includes(queryStr)
+                          );
+                        })
+                        .map((u) => {
+                          const isSpecialAdmin = u.uid === "Wf1NfRofZ9dhre1t4WIsas7b6fJ3" || u.role === "admin";
+                          return (
+                            <tr key={u.uid} className="hover:bg-zinc-900/35 transition-all">
+                              {/* User Info */}
+                              <td className="py-4 px-5">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-9 h-9 rounded-xl bg-zinc-900/95 border border-zinc-800 flex items-center justify-center font-black text-xs text-zinc-300 uppercase shrink-0">
+                                    {u.name ? u.name.slice(0, 2) : "DU"}
+                                  </div>
+                                  <div>
+                                    <span className="text-zinc-100 font-black text-xs block">{u.name || "Dadu User"}</span>
+                                    <span className="text-[10px] text-zinc-500 font-mono block select-all">{u.uid}</span>
+                                  </div>
+                                </div>
+                              </td>
+
+                              {/* Role */}
+                              <td className="py-4 px-5">
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                                  u.role === "admin" 
+                                    ? "bg-red-500/10 text-red-400 border border-red-500/20" 
+                                    : u.role === "rider"
+                                    ? "bg-sky-500/10 text-sky-400 border border-sky-500/20"
+                                    : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                }`}>
+                                  {u.role || "buyer"}
+                                </span>
+                              </td>
+
+                              {/* Phone Number */}
+                              <td className="py-4 px-5">
+                                <span className="font-mono text-xs text-zinc-300 font-bold select-all">
+                                  {u.phone || "Not set/Guest"}
+                                </span>
+                              </td>
+
+                              {/* Delivery Address */}
+                              <td className="py-2 px-5 max-w-xs">
+                                <p className="text-[11px] text-zinc-305 font-medium whitespace-pre-wrap break-words max-h-16 overflow-y-auto">
+                                  {u.address || "No address saved"}
+                                </p>
+                              </td>
+
+                              {/* Total Orders */}
+                              <td className="py-4 px-5 text-center">
+                                <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-md bg-zinc-950 font-mono text-[10.5px] font-bold text-zinc-300 border border-zinc-900">
+                                  {u.ordersCount || 0}
+                                </span>
+                              </td>
+
+                              {/* Actions */}
+                              <td className="py-4 px-5 text-right">
+                                <button
+                                  type="button"
+                                  disabled={isSpecialAdmin}
+                                  onClick={() => {
+                                    setConfirmDialog({
+                                      title: "Revoke Access",
+                                      message: `Are you sure you want to PERMANENTLY delete user "${u.name || "Dadu User"}"?`,
+                                      onConfirm: async () => {
+                                        try {
+                                          await deleteDoc(doc(db, "users", u.uid));
+                                        } catch (err) {
+                                          console.error("Failed to delete user profile", err);
+                                          alert("Error: Database permission denied.");
+                                        }
+                                      }
+                                    });
+                                  }}
+                                  className={`p-1 px-2.5 rounded text-[10px] font-black uppercase transition-all ${
+                                    isSpecialAdmin 
+                                      ? "bg-zinc-900 text-zinc-700 cursor-not-allowed" 
+                                      : "bg-red-950/30 text-red-400 hover:bg-red-900/30 cursor-pointer"
+                                  }`}
+                                >
+                                  {isSpecialAdmin ? "Locked" : "Delete"}
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+
+                      {allUsersList.length === 0 && (
+                        <tr>
+                          <td colSpan={6} className="text-center py-10 text-zinc-500 font-black">
+                            No registered users found in database.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           )}
 

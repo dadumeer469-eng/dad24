@@ -891,44 +891,46 @@ export default function App() {
         <div className="flex-1">
           
           {/* Module Switcher Tabs - Direct & Tactile selection */}
-          <div className="max-w-7xl mx-auto px-4 mt-6">
-            <div className="bg-zinc-150 p-1 rounded-2xl flex gap-1.5 border border-zinc-200/60 shadow-xs relative overflow-hidden max-w-sm sm:max-w-md mx-auto">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveModule("food");
-                  setActiveCategory("All");
-                }}
-                className={`flex-1 py-2 sm:py-3 text-[10.5px] font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                  activeModule === "food"
-                    ? "bg-[#D70F64] text-white shadow-md scale-[1.01]"
-                    : "text-zinc-600 hover:bg-zinc-200/50 hover:text-zinc-805"
-                }`}
-              >
-                <span className="text-sm">🍔</span>
-                <span>Dadu Kitchen</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveModule("grocery");
-                }}
-                className={`flex-1 py-2 sm:py-3 text-[10.5px] font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                  activeModule === "grocery"
-                    ? "bg-orange-600 text-white shadow-md scale-[1.01]"
-                    : "text-zinc-650 hover:bg-zinc-200/50 hover:text-orange-600"
-                }`}
-              >
-                <span className="text-xs">🍏</span>
-                <span>Fresh Groceries</span>
-                {groceryCartItems.length > 0 && (
-                  <span className="bg-orange-500 text-white font-mono text-[9px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center animate-pulse leading-none shrink-0 font-black">
-                    {groceryCartItems.reduce((acc, i) => acc + i.quantity, 0)}
-                  </span>
-                )}
-              </button>
+          {!isAuthOpen && (
+            <div className="max-w-7xl mx-auto px-4 mt-6">
+              <div className="bg-zinc-150 p-1 rounded-2xl flex gap-1.5 border border-zinc-200/60 shadow-xs relative overflow-hidden max-w-sm sm:max-w-md mx-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveModule("food");
+                    setActiveCategory("All");
+                  }}
+                  className={`flex-1 py-2 sm:py-3 text-[10.5px] font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    activeModule === "food"
+                      ? "bg-[#D70F64] text-white shadow-md scale-[1.01]"
+                      : "text-zinc-600 hover:bg-zinc-200/50 hover:text-zinc-805"
+                  }`}
+                >
+                  <span className="text-sm">🍔</span>
+                  <span>Dadu Kitchen</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveModule("grocery");
+                  }}
+                  className={`flex-1 py-2 sm:py-3 text-[10.5px] font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    activeModule === "grocery"
+                      ? "bg-orange-600 text-white shadow-md scale-[1.01]"
+                      : "text-zinc-650 hover:bg-zinc-200/50 hover:text-orange-600"
+                  }`}
+                >
+                  <span className="text-xs">🍏</span>
+                  <span>Fresh Groceries</span>
+                  {groceryCartItems.length > 0 && (
+                    <span className="bg-orange-500 text-white font-mono text-[9px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center animate-pulse leading-none shrink-0 font-black">
+                      {groceryCartItems.reduce((acc, i) => acc + i.quantity, 0)}
+                    </span>
+                  )}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {activeModule === "food" ? (
             <>
