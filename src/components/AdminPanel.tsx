@@ -285,6 +285,7 @@ export default function AdminPanel({
   const [newItemName, setNewItemName] = useState("");
   const [newItemCategory, setNewItemCategory] = useState<Dish["category"]>("Burgers");
   const [newItemPrice, setNewItemPrice] = useState<number>(300);
+  const [newItemDiscountPrice, setNewItemDiscountPrice] = useState<number>(0);
   const [newItemDescription, setNewItemDescription] = useState("");
   const [newItemImageUrl, setNewItemImageUrl] = useState("");
   const [newItemType, setNewItemType] = useState<"food" | "service">("food");
@@ -294,6 +295,7 @@ export default function AdminPanel({
   // Inline editing state for prices
   const [editingPriceDishId, setEditingPriceDishId] = useState<string | null>(null);
   const [editingPriceInput, setEditingPriceInput] = useState<number>(0);
+  const [editingDiscountPriceInput, setEditingDiscountPriceInput] = useState<number>(0);
 
   // Custom confirmation dialog
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -727,6 +729,7 @@ export default function AdminPanel({
       name: newItemName,
       description: newItemDescription,
       price: Number(newItemPrice),
+      discountPrice: newItemDiscountPrice > 0 ? Number(newItemDiscountPrice) : undefined,
       category: newItemCategory,
       imageUrl: finalImg,
       isAvailable: true,
@@ -740,6 +743,8 @@ export default function AdminPanel({
       alert("New and fresh dish or service added successfully!");
       setNewItemName("");
       setNewItemDescription("");
+      setNewItemPrice(300);
+      setNewItemDiscountPrice(0);
       setNewItemImageUrl("");
       setNewItemServiceDuration("");
       setNewItemRestaurantName("");
@@ -766,6 +771,7 @@ export default function AdminPanel({
     try {
       await updateDoc(doc(db, "menu", dishId), {
         price: editingPriceInput,
+        discountPrice: editingDiscountPriceInput > 0 ? editingDiscountPriceInput : null,
       });
       setEditingPriceDishId(null);
     } catch (err) {
@@ -1183,7 +1189,7 @@ export default function AdminPanel({
                 </h4>
 
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-5 text-xs">
-                  <div className="md:col-span-4 space-y-1.5">
+                  <div className="md:col-span-3 space-y-1.5">
                     <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Title Name</label>
                     <input
                       type="text"
@@ -1195,7 +1201,7 @@ export default function AdminPanel({
                     />
                   </div>
 
-                  <div className="md:col-span-3 space-y-1.5">
+                  <div className="md:col-span-2 space-y-1.5">
                     <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Catalog Category</label>
                     <select
                       value={newItemCategory}
@@ -1219,6 +1225,17 @@ export default function AdminPanel({
                       value={newItemPrice}
                       onChange={(e) => setNewItemPrice(Number(e.target.value))}
                       placeholder="e.g. 500"
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 transition focus:ring-1 focus:ring-amber-500/10"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2 space-y-1.5">
+                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Discount Price (Rs.)</label>
+                    <input
+                      type="number"
+                      value={newItemDiscountPrice || ""}
+                      onChange={(e) => setNewItemDiscountPrice(Number(e.target.value))}
+                      placeholder="Optional"
                       className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 transition focus:ring-1 focus:ring-amber-500/10"
                     />
                   </div>
@@ -1353,31 +1370,60 @@ export default function AdminPanel({
                           </td>
                           <td className="p-4">
                             {editingPriceDishId === dish.id ? (
-                              <div className="flex items-center gap-1 max-w-[120px]">
-                                <input
-                                  type="number"
-                                  value={editingPriceInput}
-                                  onChange={(e) => setEditingPriceInput(Number(e.target.value))}
-                                  className="w-16 p-1 bg-[#1a1a1a] border border-amber-500 text-white rounded text-xs leading-none"
-                                />
-                                <button
-                                  onClick={() => handleSavePriceChange(dish.id)}
-                                  className="p-1 bg-amber-500 text-black rounded text-[10px] font-black cursor-pointer shadow-xs"
-                                >
-                                  Save
-                                </button>
+                              <div className="flex flex-col gap-1.5 max-w-[150px]">
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[8px] text-zinc-500 uppercase font-bold w-12">Price:</span>
+                                  <input
+                                    type="number"
+                                    value={editingPriceInput}
+                                    onChange={(e) => setEditingPriceInput(Number(e.target.value))}
+                                    className="w-20 p-1 bg-[#1a1a1a] border border-amber-500 text-white rounded text-xs leading-none"
+                                  />
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[8px] text-zinc-500 uppercase font-bold w-12">Discount:</span>
+                                  <input
+                                    type="number"
+                                    value={editingDiscountPriceInput}
+                                    onChange={(e) => setEditingDiscountPriceInput(Number(e.target.value))}
+                                    className="w-20 p-1 bg-[#1a1a1a] border border-amber-500 text-white rounded text-xs leading-none"
+                                    placeholder="0 for none"
+                                  />
+                                </div>
+                                <div className="flex gap-1 justify-end">
+                                  <button
+                                    onClick={() => setEditingPriceDishId(null)}
+                                    className="px-2 py-0.5 bg-zinc-800 text-zinc-300 rounded text-[9px] font-bold cursor-pointer"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    onClick={() => handleSavePriceChange(dish.id)}
+                                    className="px-2 py-0.5 bg-amber-500 text-black rounded text-[9px] font-black cursor-pointer shadow-xs animate-pulse-subtle"
+                                  >
+                                    Save
+                                  </button>
+                                </div>
                               </div>
                             ) : (
-                              <div className="flex items-center gap-2">
-                                <span className="font-extrabold text-white">Rs. {dish.price}</span>
+                              <div className="flex flex-col gap-0.5">
+                                {dish.discountPrice && dish.discountPrice < dish.price ? (
+                                  <>
+                                    <span className="font-extrabold text-emerald-400 text-xs">Rs. {dish.discountPrice}</span>
+                                    <span className="font-bold text-zinc-500 text-[10px] line-through">Rs. {dish.price}</span>
+                                  </>
+                                ) : (
+                                  <span className="font-extrabold text-white">Rs. {dish.price}</span>
+                                )}
                                 <button
                                   onClick={() => {
                                     setEditingPriceDishId(dish.id);
                                     setEditingPriceInput(dish.price);
+                                    setEditingDiscountPriceInput(dish.discountPrice || 0);
                                   }}
-                                  className="text-[10px] text-amber-500 hover:underline cursor-pointer"
+                                  className="text-[10px] text-amber-500 hover:underline cursor-pointer text-left mt-1"
                                 >
-                                  Edit
+                                  Edit Price
                                 </button>
                               </div>
                             )}

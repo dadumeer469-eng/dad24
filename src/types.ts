@@ -3,6 +3,7 @@ export interface Dish {
   name: string;
   description: string;
   price: number;
+  discountPrice?: number;
   category: "Burgers" | "Pizzas" | "Chicken & Rice" | "Only Tea" | "Home Services" | "Specials";
   imageUrl: string;
   isAvailable: boolean; // ON/OFF toggle switch from admin
@@ -26,6 +27,7 @@ export interface OrderItem {
   dishId: string;
   name: string;
   price: number;
+  discountPrice?: number;
   quantity: number;
   type: "food" | "service";
   serviceDuration?: string;

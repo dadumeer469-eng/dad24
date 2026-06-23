@@ -15,8 +15,20 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      // Only execute PWA logic at top level to avoid SecurityError and cross-origin "Script error" in development preview iframe
-      if (window.self === window.top) {
+      // Safe environment check to prevent SecurityError and cross-origin "Script error" in sandboxed development preview iframes
+      let isTopLevel = false;
+      try {
+        const isPreview = window.location.hostname.includes("run.app") || 
+                          window.location.hostname.includes("web-preview") ||
+                          window.location.hostname.includes("localhost");
+        if (!isPreview) {
+          isTopLevel = (window.self === window.top);
+        }
+      } catch (e) {
+        isTopLevel = false;
+      }
+
+      if (isTopLevel) {
         if ('serviceWorker' in navigator) {
           const registerSW = () => {
             try {

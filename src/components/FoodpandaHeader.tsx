@@ -67,7 +67,7 @@ export default function FoodpandaHeader({
   ];
 
   return (
-    <header className="sticky top-0 z-40 bg-white text-zinc-800 shadow-sm border-b border-zinc-200">
+    <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md text-zinc-800 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)] border-b border-pink-100/60">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
         
         {/* Logo and Brand */}
@@ -164,26 +164,36 @@ export default function FoodpandaHeader({
             )}
           </div>
 
-          {/* Dynamic Checkout Cart Trigger */}
-          <button
-            onClick={activeModule === "grocery" ? onOpenGroceryCart : onOpenCart}
-            className={`flex items-center gap-1.5 transition py-2 px-3.5 rounded-xl text-xs font-black shadow-md cursor-pointer shrink-0 ${
-              activeModule === "grocery"
-                ? "bg-orange-600 hover:bg-orange-700 text-white shadow-orange-500/10"
-                : "bg-[#D70F64] hover:bg-[#b00c50] text-white"
-            }`}
-          >
-            <ShoppingBag className="w-4 h-4" />
-            <span className="hidden md:inline">{activeModule === "grocery" ? "Basket" : "Cart"}</span>
-            <span className="bg-white/20 px-1.5 py-0.5 rounded-md text-[10px] font-bold">
-              {activeModule === "grocery" ? groceryCartCount : cartCount}
-            </span>
-            {activeModule !== "grocery" && (
+          {/* Dadu Kitchen Cart Trigger */}
+          {(activeModule !== "grocery" || cartCount > 0) && (
+            <button
+              onClick={onOpenCart}
+              className="flex items-center gap-1.5 transition py-2 px-3 sm:px-3.5 rounded-xl text-xs font-black shadow-md cursor-pointer shrink-0 bg-[#D70F64] hover:bg-[#b00c50] text-white"
+            >
+              <ShoppingBag className="w-4 h-4" />
+              <span className="hidden md:inline">Kitchen Cart</span>
+              <span className="bg-white/20 px-1.5 py-0.5 rounded-md text-[10px] font-bold">
+                {cartCount}
+              </span>
               <span className="hidden leading-none lg:inline ml-0.5 border-l border-white/20 pl-1.5">
                 Rs. {cartTotal}
               </span>
-            )}
-          </button>
+            </button>
+          )}
+
+          {/* Dadu Grocery Basket Trigger */}
+          {(activeModule === "grocery" || groceryCartCount > 0) && (
+            <button
+              onClick={onOpenGroceryCart}
+              className="flex items-center gap-1.5 transition py-2 px-3 sm:px-3.5 rounded-xl text-xs font-black shadow-md cursor-pointer shrink-0 bg-orange-600 hover:bg-orange-700 text-white shadow-orange-500/10"
+            >
+              <ShoppingBag className="w-4 h-4" />
+              <span className="hidden md:inline">Grocery Basket</span>
+              <span className="bg-white/20 px-1.5 py-0.5 rounded-md text-[10px] font-bold">
+                {groceryCartCount}
+              </span>
+            </button>
+          )}
 
           {/* User Account Circle Dropdown */}
           <div className="relative">

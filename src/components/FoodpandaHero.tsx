@@ -38,7 +38,7 @@ export default function FoodpandaHero({ activeCategory, setActiveCategory }: Foo
   ];
 
   return (
-    <div className="bg-white relative">
+    <div className="bg-transparent relative">
       
       {/* Prime Billboard Layout */}
       <div className="max-w-7xl mx-auto px-4 pt-4 pb-2">
@@ -46,9 +46,15 @@ export default function FoodpandaHero({ activeCategory, setActiveCategory }: Foo
           
           {/* Professional Dark Culinary & Service Background Image */}
           <div className="absolute inset-0 z-0">
+            <img 
+              src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=1200" 
+              alt="Gourmet food background backdrop" 
+              className="w-full h-full object-cover opacity-45 select-none"
+              referrerPolicy="no-referrer"
+            />
             {/* Dark gradient mapping to make text highly legible and aesthetic */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-[#D70F64]/95 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#D70F64] via-transparent to-black/30" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/75 to-[#D70F64]/35" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/35" />
             {/* Ambient back glow */}
             <div className="absolute right-1/4 top-1/4 w-72 h-72 bg-white/5 rounded-full blur-[100px] pointer-events-none" />
           </div>

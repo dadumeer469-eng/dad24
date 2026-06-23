@@ -43,7 +43,7 @@ export default function App() {
   const [groceryDeliveryConfig, setGroceryDeliveryConfig] = useState<GroceryDeliveryConfig>({
     baseDeliveryFee: 40,
     freeDeliveryAboveAmount: 1000,
-    allowMixedCart: false,
+    allowMixedCart: true,
   });
   const [groceryCartItems, setGroceryCartItems] = useState<GroceryOrderItem[]>([]);
   const [isGroceryCartOpen, setIsGroceryCartOpen] = useState(false);
@@ -91,23 +91,19 @@ export default function App() {
       osc1.start(now);
       osc1.stop(now + 0.25);
 
-      // Tone 2 staggered slightly
-      setTimeout(() => {
-        const ctx2 = new AudioCtx();
-        const now2 = ctx2.currentTime;
-        const osc2 = ctx2.createOscillator();
-        const gain2 = ctx2.createGain();
-        osc2.type = "sine";
-        osc2.frequency.setValueAtTime(880, now2); // A5
-        osc2.frequency.exponentialRampToValueAtTime(1174.66, now2 + 0.15); // D6
-        gain2.gain.setValueAtTime(0.10, now2);
-        gain2.gain.exponentialRampToValueAtTime(0.01, now2 + 0.3);
+      // Tone 2 staggered slightly (0.1s later) on the SAME context
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = "sine";
+      osc2.frequency.setValueAtTime(880, now + 0.1); // A5
+      osc2.frequency.exponentialRampToValueAtTime(1174.66, now + 0.25); // D6
+      gain2.gain.setValueAtTime(0.10, now + 0.1);
+      gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
 
-        osc2.connect(gain2);
-        gain2.connect(ctx2.destination);
-        osc2.start(now2);
-        osc2.stop(now2 + 0.3);
-      }, 100);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.1);
+      osc2.stop(now + 0.4);
 
     } catch (err) {
       console.warn("AudioContext blocked or waiting for user gesture:", err);
@@ -255,7 +251,7 @@ export default function App() {
         setDoc(doc(db, "settings", "groceryDeliveryConfig"), {
           baseDeliveryFee: 40,
           freeDeliveryAboveAmount: 1000,
-          allowMixedCart: false
+          allowMixedCart: true
         }).catch(console.error);
       }
     }, (err) => {
@@ -394,10 +390,11 @@ export default function App() {
           item.dishId === dish.id ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
+      const finalPrice = dish.discountPrice && dish.discountPrice < dish.price ? dish.discountPrice : dish.price;
       return [...prev, { 
         dishId: dish.id, 
         name: dish.name, 
-        price: dish.price, 
+        price: finalPrice, 
         quantity: 1, 
         type: dish.type, 
         serviceDuration: dish.serviceDuration,
@@ -732,7 +729,128 @@ export default function App() {
   const cartPriceTotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
   return (
-    <div className="min-h-screen bg-[#F9F8F9] text-zinc-800 relative pb-28 md:pb-12 flex flex-col font-sans">
+    <div className="min-h-screen bg-gradient-to-b from-[#FFFDFE] via-[#FDF5F8] to-[#FFFDFE] text-zinc-800 relative pb-28 md:pb-12 flex flex-col font-sans overflow-x-hidden">
+      
+      {/* Decorative Premium Food Watermark/Pattern Background */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden select-none z-0">
+        {/* Subtle grid pattern of culinary shapes */}
+        <div 
+          className="absolute inset-0 w-full h-full opacity-[0.025]" 
+          style={{ 
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cpath d='M15 15h10v10H15zm40 20h10v10H55zm40-20h10v10H95zM35 75h10v10H35zm40 10h10v10H75zM25 105h10v10H25zm50 5h10v10H75zm40-20h10v10h-10z' fill='%23D70F64'/%3E%3C/svg%3E")`,
+            backgroundSize: "120px 120px"
+          }}
+        />
+
+        {/* Floating Glowing Culinary Accents (Sunset & Pink gradients) */}
+        <div className="absolute top-1/4 -left-48 w-96 h-96 bg-pink-400/10 rounded-full blur-[120px]" />
+        <div className="absolute top-1/2 -right-48 w-96 h-96 bg-orange-300/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-1/4 left-1/3 w-80 h-80 bg-rose-300/8 rounded-full blur-[100px]" />
+
+        {/* Ambient floating elements behind content (visible on tablet and desktop) */}
+        <div className="absolute top-[400px] left-[10%] opacity-[0.06] text-6xl animate-pulse">🍔</div>
+        <div className="absolute top-[650px] right-[8%] opacity-[0.05] text-5xl animate-bounce" style={{ animationDuration: "6s" }}>🍕</div>
+        <div className="absolute top-[1100px] left-[5%] opacity-[0.04] text-7xl animate-pulse" style={{ animationDuration: "8s" }}>🍵</div>
+        <div className="absolute top-[1400px] right-[12%] opacity-[0.05] text-6xl animate-bounce" style={{ animationDuration: "7s" }}>🍗</div>
+        <div className="absolute top-[1900px] left-[12%] opacity-[0.04] text-5xl animate-pulse">🔧</div>
+        <div className="absolute top-[2200px] right-[6%] opacity-[0.06] text-7xl animate-bounce" style={{ animationDuration: "5s" }}>🍏</div>
+        <div className="absolute top-[2700px] left-[8%] opacity-[0.05] text-6xl animate-pulse" style={{ animationDuration: "9s" }}>🍩</div>
+      </div>
+
+      {/* Decorative Food Side Panels (Visible only on wide desktop screens to fill the margins) */}
+      <div className="hidden xl:flex fixed left-4 top-1/4 bottom-1/4 w-44 flex-col justify-around pointer-events-none select-none z-10">
+        <motion.div 
+          animate={{ y: [0, -10, 0] }}
+          transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+          className="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border border-pink-150/60 shadow-[0_12px_40px_rgba(0,0,0,0.06)] flex flex-col items-center text-center gap-1.5"
+        >
+          <img 
+            src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80&w=120" 
+            alt="Hot Burger" 
+            className="w-14 h-14 rounded-full object-cover border-2 border-pink-200 shadow-sm"
+            referrerPolicy="no-referrer"
+          />
+          <span className="text-[10px] font-black uppercase text-[#D70F64] tracking-wider mt-1">Hot Burgers</span>
+          <span className="text-[9px] text-zinc-400 font-semibold leading-none">Fresh & Sizzling</span>
+        </motion.div>
+
+        <motion.div 
+          animate={{ y: [0, 8, 0] }}
+          transition={{ repeat: Infinity, duration: 4.5, ease: "easeInOut" }}
+          className="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border border-pink-150/60 shadow-[0_12px_40px_rgba(0,0,0,0.06)] flex flex-col items-center text-center gap-1.5"
+        >
+          <img 
+            src="https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&q=80&w=120" 
+            alt="Special Tea" 
+            className="w-14 h-14 rounded-full object-cover border-2 border-pink-200 shadow-sm"
+            referrerPolicy="no-referrer"
+          />
+          <span className="text-[10px] font-black uppercase text-[#D70F64] tracking-wider mt-1">Dadu Special Tea</span>
+          <span className="text-[9px] text-zinc-400 font-semibold leading-none">Brewed with love</span>
+        </motion.div>
+
+        <motion.div 
+          animate={{ y: [0, -6, 0] }}
+          transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut" }}
+          className="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border border-pink-150/60 shadow-[0_12px_40px_rgba(0,0,0,0.06)] flex flex-col items-center text-center gap-1.5"
+        >
+          <img 
+            src="https://images.unsplash.com/photo-1610348725511-27aae371f0d9?auto=format&fit=crop&q=80&w=120" 
+            alt="Grocery" 
+            className="w-14 h-14 rounded-full object-cover border-2 border-orange-200 shadow-sm"
+            referrerPolicy="no-referrer"
+          />
+          <span className="text-[10px] font-black uppercase text-orange-600 tracking-wider mt-1">Fresh Grocery</span>
+          <span className="text-[9px] text-zinc-400 font-semibold leading-none">Delivered under 20m</span>
+        </motion.div>
+      </div>
+
+      <div className="hidden xl:flex fixed right-4 top-1/4 bottom-1/4 w-44 flex-col justify-around pointer-events-none select-none z-10">
+        <motion.div 
+          animate={{ y: [0, 10, 0] }}
+          transition={{ repeat: Infinity, duration: 4.2, ease: "easeInOut" }}
+          className="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border border-pink-150/60 shadow-[0_12px_40px_rgba(0,0,0,0.06)] flex flex-col items-center text-center gap-1.5"
+        >
+          <img 
+            src="https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&q=80&w=120" 
+            alt="Cheesy Pizza" 
+            className="w-14 h-14 rounded-full object-cover border-2 border-pink-200 shadow-sm"
+            referrerPolicy="no-referrer"
+          />
+          <span className="text-[10px] font-black uppercase text-[#D70F64] tracking-wider mt-1">Cheesy Pizza</span>
+          <span className="text-[9px] text-zinc-400 font-semibold leading-none">Thick Crust Hot</span>
+        </motion.div>
+
+        <motion.div 
+          animate={{ y: [0, -8, 0] }}
+          transition={{ repeat: Infinity, duration: 3.8, ease: "easeInOut" }}
+          className="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border border-pink-150/60 shadow-[0_12px_40px_rgba(0,0,0,0.06)] flex flex-col items-center text-center gap-1.5"
+        >
+          <img 
+            src="https://images.unsplash.com/photo-1633945274405-b6c8069047b0?auto=format&fit=crop&q=80&w=120" 
+            alt="Dadu Biryani" 
+            className="w-14 h-14 rounded-full object-cover border-2 border-pink-200 shadow-sm"
+            referrerPolicy="no-referrer"
+          />
+          <span className="text-[10px] font-black uppercase text-[#D70F64] tracking-wider mt-1">Dadu Biryani</span>
+          <span className="text-[9px] text-zinc-400 font-semibold leading-none">Spiced to perfection</span>
+        </motion.div>
+
+        <motion.div 
+          animate={{ y: [0, 6, 0] }}
+          transition={{ repeat: Infinity, duration: 4.8, ease: "easeInOut" }}
+          className="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border border-pink-150/60 shadow-[0_12px_40px_rgba(0,0,0,0.06)] flex flex-col items-center text-center gap-1.5"
+        >
+          <img 
+            src="https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&q=80&w=120" 
+            alt="Home Services" 
+            className="w-14 h-14 rounded-full object-cover border-2 border-zinc-200 shadow-sm"
+            referrerPolicy="no-referrer"
+          />
+          <span className="text-[10px] font-black uppercase text-zinc-700 tracking-wider mt-1">Home Services</span>
+          <span className="text-[9px] text-zinc-400 font-semibold leading-none">Certified Mechanics</span>
+        </motion.div>
+      </div>
       
       {/* Welcome Foodpanda-style Intro Splash Animation Screen */}
       <AnimatePresence mode="wait">
@@ -1089,12 +1207,17 @@ export default function App() {
                           <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent"></div>
                           
                           {/* Top Tag */}
-                          <div className="absolute top-2 left-2 flex gap-1">
+                          <div className="absolute top-2 left-2 flex flex-col gap-1 items-start">
                             <span className={`text-[8px] sm:text-[10px] font-black uppercase tracking-wider py-0.5 sm:py-1 px-1.5 sm:px-2.5 rounded-md sm:rounded-lg shadow-md ${
                               isSvc ? "bg-amber-500 text-neutral-950 font-extrabold" : "bg-[#D70F64] text-white"
                             }`}>
                               {isSvc ? "🛠️ Service" : "🍔 Food"}
                             </span>
+                            {dish.discountPrice && dish.discountPrice < dish.price && (
+                              <span className="text-[7.5px] sm:text-[9px] font-black uppercase tracking-wider py-0.5 sm:py-0.8 px-1.5 sm:px-2 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-md sm:rounded-lg shadow-md animate-pulse">
+                                🔥 {Math.round(((dish.price - dish.discountPrice) / dish.price) * 100)}% OFF
+                              </span>
+                            )}
                           </div>
                         </div>
 
@@ -1108,9 +1231,20 @@ export default function App() {
                               <h4 className="font-bold text-zinc-800 text-xs sm:text-sm tracking-tight leading-snug group-hover:text-[#D70F64] transition truncate max-w-full">
                                 {dish.name}
                               </h4>
-                              <span className={`font-black text-xs sm:text-sm shrink-0 whitespace-nowrap ${isSvc ? "text-amber-600" : "text-[#D70F64]"}`}>
-                                Rs. {dish.price}
-                              </span>
+                              {dish.discountPrice && dish.discountPrice < dish.price ? (
+                                <div className="flex flex-col items-end shrink-0 leading-none">
+                                  <span className={`font-black text-xs sm:text-sm whitespace-nowrap text-emerald-600`}>
+                                    Rs. {dish.discountPrice}
+                                  </span>
+                                  <span className="text-[9px] sm:text-[10.5px] line-through text-zinc-400 font-bold mt-0.5">
+                                    Rs. {dish.price}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className={`font-black text-xs sm:text-sm shrink-0 whitespace-nowrap ${isSvc ? "text-amber-600" : "text-[#D70F64]"}`}>
+                                  Rs. {dish.price}
+                                </span>
+                              )}
                             </div>
                             <p className="text-[10px] sm:text-[11.5px] text-zinc-505 line-clamp-1 sm:line-clamp-3 leading-relaxed font-semibold">
                               {dish.description}
@@ -1166,16 +1300,21 @@ export default function App() {
                 </div>
 
                 {filteredDishes.length === 0 && (
-                  <div className="bg-zinc-900 border border-zinc-800 p-12 rounded-3xl text-center space-y-3 shadow-xs text-zinc-100">
-                    <span className="text-4xl block">🔍</span>
-                    <p className="text-xs text-zinc-400 font-bold uppercase tracking-widest">
-                      We couldn't find any dishes or services matching "{searchQuery}"!
-                    </p>
+                  <div className="bg-white/80 backdrop-blur-md border border-pink-100 p-12 rounded-3.5xl text-center space-y-4 shadow-sm max-w-md mx-auto">
+                    <div className="w-16 h-16 bg-pink-50 rounded-full flex items-center justify-center mx-auto text-3xl shadow-inner animate-bounce">
+                      🍛
+                    </div>
+                    <div>
+                      <h4 className="font-black text-sm text-zinc-800 uppercase tracking-tight">No Delicious Dishes Found</h4>
+                      <p className="text-[11px] text-zinc-400 font-semibold leading-relaxed mt-1.5 px-4">
+                        Hamein aapki search query <span className="text-[#D70F64] font-bold">"{searchQuery}"</span> se milti-julti koi dish nahi mili. Kuch naya try karein!
+                      </p>
+                    </div>
                     <button
                       onClick={() => { setSearchQuery(""); setActiveCategory("All"); }}
-                      className="bg-zinc-800 hover:bg-zinc-750 border border-zinc-700 text-zinc-100 font-bold py-2 px-5 text-xs rounded-xl cursor-pointer transition-colors"
+                      className="bg-[#D70F64] hover:bg-[#b00c50] text-white font-black py-2.5 px-6 text-[10px] uppercase tracking-widest rounded-xl cursor-pointer transition-all shadow-md active:scale-95"
                     >
-                      Reset Filter Search
+                      Show All Food Menu 🍽️
                     </button>
                   </div>
                 )}
@@ -1321,7 +1460,20 @@ export default function App() {
                   </span>
                 </div>
                 <h3 className="font-extrabold text-zinc-100 text-base mt-2">{activeDetailDish.name}</h3>
-                <span className={`text-sm font-black mt-1 block ${activeDetailDish.type === "service" ? "text-amber-500" : "text-[#D70F64]"}`}>Rs. {activeDetailDish.price}</span>
+                {activeDetailDish.discountPrice && activeDetailDish.discountPrice < activeDetailDish.price ? (
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className={`text-sm font-black text-emerald-400`}>
+                      Rs. {activeDetailDish.discountPrice}
+                    </span>
+                    <span className="text-xs line-through text-zinc-500 font-bold">
+                      Rs. {activeDetailDish.price}
+                    </span>
+                  </div>
+                ) : (
+                  <span className={`text-sm font-black mt-1 block ${activeDetailDish.type === "service" ? "text-amber-500" : "text-[#D70F64]"}`}>
+                    Rs. {activeDetailDish.price}
+                  </span>
+                )}
               </div>
 
               <p className="text-xs text-zinc-400 leading-normal font-medium">{activeDetailDish.description}</p>
