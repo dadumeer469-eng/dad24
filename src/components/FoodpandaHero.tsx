@@ -44,6 +44,15 @@ export default function FoodpandaHero({ activeCategory, setActiveCategory }: Foo
       <div className="max-w-7xl mx-auto px-4 pt-4 pb-2">
         <div className="bg-[#D70F64] border border-[#D70F64] overflow-hidden rounded-3.5xl p-5 sm:p-8 relative flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_4px_30px_rgba(215,15,100,0.08)] min-h-[240px]">
           
+          {/* Professional Dark Culinary & Service Background Image */}
+          <div className="absolute inset-0 z-0">
+            {/* Dark gradient mapping to make text highly legible and aesthetic */}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-[#D70F64]/95 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#D70F64] via-transparent to-black/30" />
+            {/* Ambient back glow */}
+            <div className="absolute right-1/4 top-1/4 w-72 h-72 bg-white/5 rounded-full blur-[100px] pointer-events-none" />
+          </div>
+
           {/* Subtle branding absolute label in background */}
           <div className="absolute right-10 bottom-[-15px] text-[80px] select-none font-black text-white/[0.02] tracking-widest pointer-events-none hidden md:block uppercase font-mono">
             DADU

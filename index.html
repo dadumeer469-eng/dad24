@@ -4,15 +4,48 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dadu 24#7</title>
-    <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#D70F64" />
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#f97316" />
     <link rel="apple-touch-icon" href="/logo.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   </head>
   <body>
+    <!-- Install App Button matching orange theme, styled visually inside the header path -->
+    <button id="installBtn" style="display: none; position: fixed; top: 12px; right: 12px; z-index: 9999; background-color: #f97316; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); font-family: sans-serif;">Install App 🚀</button>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js');
+        });
+      }
+
+      let deferredPrompt;
+      const installBtn = document.getElementById('installBtn');
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        installBtn.style.display = 'inline-block';
+      });
+
+      installBtn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          if (outcome === 'accepted') {
+            installBtn.style.display = 'none';
+          }
+          deferredPrompt = null;
+        }
+      });
+
+      window.addEventListener('appinstalled', () => {
+        installBtn.style.display = 'none';
+      });
+    </script>
   </body>
 </html>
 
