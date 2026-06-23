@@ -18,12 +18,7 @@
       // Safe environment check to prevent SecurityError and cross-origin "Script error" in sandboxed development preview iframes
       let isTopLevel = false;
       try {
-        const isPreview = window.location.hostname.includes("run.app") || 
-                          window.location.hostname.includes("web-preview") ||
-                          window.location.hostname.includes("localhost");
-        if (!isPreview) {
-          isTopLevel = (window.self === window.top);
-        }
+        isTopLevel = (window.parent === window);
       } catch (e) {
         isTopLevel = false;
       }
