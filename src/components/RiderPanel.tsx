@@ -446,7 +446,7 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
               </button>
             </div>
             
-            <span className="hidden sm:inline text-zinc-805 mx-1">|</span>
+            <span className="hidden sm:inline text-zinc-800 mx-1">|</span>
 
             <button
               onClick={onLogout}
@@ -541,7 +541,7 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
                   <span className="text-[9px] sm:text-[10px] text-zinc-400 font-extrabold uppercase tracking-widest block">This Month's Earnings</span>
                   <p className="text-2xl sm:text-3xl font-black text-white mt-1">Rs. {stats.thisMonthEarnings}</p>
                 </div>
-                <div className="border-t border-zinc-850 pt-2 flex items-center gap-1.5 text-[10px] sm:text-[10.5px] text-emerald-450 mt-3 font-bold">
+                <div className="border-t border-zinc-850 pt-2 flex items-center gap-1.5 text-[10px] sm:text-[10.5px] text-emerald-400 mt-3 font-bold">
                   <Coins className="w-3.5 h-3.5" />
                   <span>Accumulated Earnings</span>
                 </div>

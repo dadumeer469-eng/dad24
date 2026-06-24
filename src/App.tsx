@@ -779,6 +779,12 @@ export default function App() {
   const cartCountTotal = cartItems.reduce((acc, item) => acc + item.quantity, 0);
   const cartPriceTotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
+  if (currentUser?.role === "rider") {
+    return (
+      <RiderPanel currentUser={currentUser} onLogout={handleLogout} />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#FFFDFE] via-[#FDF5F8] to-[#FFFDFE] text-zinc-800 relative pb-28 md:pb-12 flex flex-col font-sans overflow-x-hidden">
       
@@ -1054,9 +1060,7 @@ export default function App() {
         setActiveModule={setActiveModule}
       />
 
-      {currentUser?.role === "rider" ? (
-        <RiderPanel currentUser={currentUser} onLogout={() => signOut(auth)} />
-      ) : !isAdminConsoleOpen ? (
+      {!isAdminConsoleOpen ? (
         <div className="flex-1">
           
           {/* Module Switcher Tabs - Direct & Tactile selection */}
