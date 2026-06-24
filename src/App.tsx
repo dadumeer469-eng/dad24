@@ -19,7 +19,7 @@ import GroceryModule from "./components/GroceryModule";
 import GroceryCartDrawer from "./components/GroceryCartDrawer";
 import OrderSuccessAnimation from "./components/OrderSuccessAnimation";
 import OrderHistoryDrawer from "./components/OrderHistoryDrawer";
-import daduLogo from "./assets/images/dadu_food_logo_1782079256405.jpg";
+import daduLogo from "./assets/images/dadu_food_logo_new_1782333467889.jpg";
 
 // Icons & Motion
 import { 

@@ -55,18 +55,14 @@ service cloud.firestore {
       // Separate allowed reads to guarantee static query safety for Firestore analyzer
       allow read: if isAdmin();
       allow read: if isRider() && resource.data.status == "pending";
-      allow read: if isRider() && resource.data.riderId == request.auth.uid;
+      allow read: if isAuthenticated() && resource.data.riderId == request.auth.uid;
       allow read: if resource.data.userId == "guest"; // Allow guest users tracking their own order
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
       
       // Separate/clean updates for simplicity
       allow update: if isAdmin();
-      allow update: if isRider() && (
-        // Case A: Rider accepting a pending order
-        (resource.data.status == "pending" && request.resource.data.riderId == request.auth.uid && request.resource.data.status == "accepted") ||
-        // Case B: Rider updating metadata of their accepted order (e.g. marking complete/delivered)
-        (resource.data.riderId == request.auth.uid)
-      );
+      allow update: if isRider() && resource.data.status == "pending" && request.resource.data.riderId == request.auth.uid && request.resource.data.status == "accepted";
+      allow update: if isAuthenticated() && resource.data.riderId == request.auth.uid;
       allow update: if (resource.data.userId == "guest" || (isAuthenticated() && resource.data.userId == request.auth.uid)) && request.resource.data.status == resource.data.status;
       
       allow delete: if isAdmin();
@@ -105,14 +101,13 @@ service cloud.firestore {
     match /groceryOrders/{orderId} {
       allow create: if true; // Allow guest and auth checkouts
       allow read: if isAdmin() || 
-                     (isRider() && (resource.data.status == "pending" || resource.data.riderId == request.auth.uid)) ||
+                     (isRider() && resource.data.status == "pending") ||
+                     (isAuthenticated() && resource.data.riderId == request.auth.uid) ||
                      (resource.data.userId == "guest") ||
                      (isAuthenticated() && resource.data.userId == request.auth.uid);
       allow update: if isAdmin() ||
-                       (isRider() && (
-                         (resource.data.status == "pending" && request.resource.data.riderId == request.auth.uid && request.resource.data.status == "accepted") ||
-                         (resource.data.riderId == request.auth.uid)
-                       )) ||
+                       (isRider() && resource.data.status == "pending" && request.resource.data.riderId == request.auth.uid && request.resource.data.status == "accepted") ||
+                       (isAuthenticated() && resource.data.riderId == request.auth.uid) ||
                        ((resource.data.userId == "guest" || (isAuthenticated() && resource.data.userId == request.auth.uid)) && request.resource.data.status == resource.data.status);
       allow delete: if isAdmin();
     }

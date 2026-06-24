@@ -144,21 +144,30 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
       async (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
-        try {
-          // Update location for all active orders
-          for (const order of activeOrders) {
+        
+        // 1. Update location for all active orders
+        for (const order of activeOrders) {
+          try {
             await updateDoc(doc(db, "orders", order.id), {
               riderCoords: { latitude: lat, longitude: lng, lastUpdated: Date.now() }
             });
+            console.log(`Successfully updated tracking location for order: ${order.id}`);
+          } catch (orderErr) {
+            console.error(`Failed to update tracking location for order ${order.id}:`, orderErr);
           }
+        }
+
+        // 2. Update location on user profile doc
+        try {
           await updateDoc(doc(db, "users", currentUser.uid), {
             riderCoords: { latitude: lat, longitude: lng, lastUpdated: Date.now() }
           });
-          setAutoPinnedOrderId(latestActiveOrder.id);
-          console.log("Rider initial location captured & updated for active orders.");
-        } catch (err) {
-          console.error("Failed to update initial rider location:", err);
+          console.log(`Successfully updated tracking location for user profile: ${currentUser.uid}`);
+        } catch (userErr) {
+          console.error(`Failed to update tracking location on user profile ${currentUser.uid}:`, userErr);
         }
+
+        setAutoPinnedOrderId(latestActiveOrder.id);
       },
       (err) => {
         console.warn("Initial rider GPS pinpoint fetch failed:", err.message);

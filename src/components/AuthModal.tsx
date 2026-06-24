@@ -10,7 +10,7 @@ import { auth, db, cleanObject } from "../firebase";
 import { UserProfile } from "../types";
 import { X, Phone, Lock, User, MapPin, Loader2, AlertCircle, LogIn } from "lucide-react";
 import { motion } from "motion/react";
-import daduLogo from "../assets/images/dadu_food_logo_1782079256405.jpg";
+import daduLogo from "../assets/images/dadu_food_logo_new_1782333467889.jpg";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -304,34 +304,47 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"
+      onClick={onClose}
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 15 }}
         className="relative bg-zinc-900 border border-zinc-800 text-zinc-100 rounded-3xl shadow-xl w-full max-w-sm overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
       >
+        {/* Top-right floating close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 bg-black/60 hover:bg-black/85 text-white hover:text-[#D70F64] transition-colors p-2 rounded-full cursor-pointer z-50"
+        >
+          <X className="w-4 h-4" />
+        </button>
+
         {/* Brand Banner with official logo */}
-        <div className="bg-white p-5 text-center relative border-b border-zinc-800/10">
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 bg-zinc-100 hover:bg-zinc-200 text-zinc-500 transition-colors p-2 rounded-full cursor-pointer z-10"
-          >
-            <X className="w-4 h-4" />
-          </button>
+        <div 
+          className={`text-center relative border-b border-zinc-800/10 transition-all duration-300 bg-cover bg-center ${isSignUp ? "p-3" : "p-5"}`}
+          style={{ backgroundImage: `url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&q=80')` }}
+        >
+          {/* Dark appetizing overlay */}
+          <div className="absolute inset-0 bg-black/55 backdrop-blur-[1px]"></div>
           
-          <div className="flex justify-center items-center py-2 h-20">
-            <img 
-              src={daduLogo} 
-              alt="DaduFood Logo" 
-              className="h-full object-contain mx-auto"
-              referrerPolicy="no-referrer"
-            />
+          <div className={`relative z-10 flex justify-center items-center transition-all duration-300 ${isSignUp ? "py-1 h-12" : "py-2 h-20"}`}>
+            <div className="bg-white/95 px-4 py-2 rounded-2xl shadow-lg backdrop-blur-md border border-white/25 flex items-center justify-center">
+              <img 
+                src={daduLogo} 
+                alt="DaduFood Logo" 
+                className="h-8 sm:h-12 object-contain mx-auto"
+                referrerPolicy="no-referrer"
+              />
+            </div>
           </div>
         </div>
 
         {/* Form Body */}
-        <div className="p-6 -mt-4 bg-zinc-900 rounded-t-3xl relative">
+        <div className={`-mt-4 bg-zinc-900 rounded-t-3xl relative transition-all duration-300 ${isSignUp ? "p-4" : "p-6"}`}>
           {googleUserForProfileCompletion ? (
             /* Google Sign-in First-time profile creation */
             <div className="space-y-4">
@@ -418,10 +431,10 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
             /* Standard Sign-In / Register screens with secondary Google sign-in */
             <>
               {/* Header switch tabs */}
-              <div className="grid grid-cols-2 bg-zinc-950 p-1.5 rounded-2xl mb-5 border border-zinc-850">
+              <div className={`grid grid-cols-2 bg-zinc-950 p-1 rounded-xl border border-zinc-850 ${isSignUp ? "mb-3" : "mb-5"}`}>
                 <button
                   onClick={() => { setIsSignUp(false); setErrorMessage(""); }}
-                  className={`py-2 text-center text-sm font-black rounded-xl transition-all cursor-pointer ${
+                  className={`py-1.5 text-center text-xs sm:text-sm font-black rounded-lg transition-all cursor-pointer ${
                     !isSignUp ? "bg-[#D70F64] text-white shadow-xs" : "text-zinc-400 hover:text-zinc-200"
                   }`}
                 >
@@ -429,7 +442,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
                 </button>
                 <button
                   onClick={() => { setIsSignUp(true); setErrorMessage(""); }}
-                  className={`py-2 text-center text-sm font-black rounded-xl transition-all cursor-pointer ${
+                  className={`py-1.5 text-center text-xs sm:text-sm font-black rounded-lg transition-all cursor-pointer ${
                     isSignUp ? "bg-[#D70F64] text-white shadow-xs" : "text-zinc-400 hover:text-zinc-200"
                   }`}
                 >
@@ -438,91 +451,97 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
               </div>
 
               {errorMessage && (
-                <div className="bg-red-950/20 border border-red-900/40 text-red-400 text-xs p-3.5 rounded-2xl mb-4 flex items-start gap-2 shadow-3xs leading-relaxed font-semibold">
+                <div className={`bg-red-950/20 border border-red-900/40 text-red-400 text-xs p-3 rounded-xl flex items-start gap-2 shadow-3xs leading-relaxed font-semibold ${isSignUp ? "mb-3" : "mb-4"}`}>
                   <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
                   <span>{errorMessage}</span>
                 </div>
               )}
 
-              {/* Primary Fast login option: Sign in with Google */}
-              <div className="mb-4">
-                <button
-                  type="button"
-                  onClick={handleGoogleSignIn}
-                  disabled={loading}
-                  className="w-full bg-zinc-950 hover:bg-zinc-855 border border-zinc-800 transition text-[#D70F64] py-3 rounded-2xl font-black text-xs uppercase tracking-wide shadow-md flex items-center justify-center gap-2.5 cursor-pointer"
-                >
-                  <LogIn className="w-4 h-4 text-[#D70F64] shrink-0" />
-                  <span>Sign In with Google</span>
-                </button>
-                <div className="relative flex py-3 items-center">
-                  <div className="flex-grow border-t border-zinc-800"></div>
-                  <span className="flex-shrink mx-4 text-zinc-500 text-[10px] font-black tracking-widest uppercase">Or Phone Login</span>
-                  <div className="flex-grow border-t border-zinc-800"></div>
+              {/* Primary Fast login option: Sign in with Google (Only show on Sign In tab, hidden on Register to make it compact) */}
+              {!isSignUp && (
+                <div className="mb-4">
+                  <button
+                    type="button"
+                    onClick={handleGoogleSignIn}
+                    disabled={loading}
+                    className="w-full bg-zinc-950 hover:bg-zinc-855 border border-zinc-800 transition text-[#D70F64] py-3 rounded-2xl font-black text-xs uppercase tracking-wide shadow-md flex items-center justify-center gap-2.5 cursor-pointer"
+                  >
+                    <LogIn className="w-4 h-4 text-[#D70F64] shrink-0" />
+                    <span>Sign In with Google</span>
+                  </button>
+                  <div className="relative flex py-3 items-center">
+                    <div className="flex-grow border-t border-zinc-800"></div>
+                    <span className="flex-shrink mx-4 text-zinc-500 text-[10px] font-black tracking-widest uppercase">Or Phone Login</span>
+                    <div className="flex-grow border-t border-zinc-800"></div>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <form onSubmit={handleAuth} className="space-y-4">
+              <form onSubmit={handleAuth} className={isSignUp ? "space-y-2.5" : "space-y-4"}>
                 {isSignUp && (
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-zinc-400 block uppercase tracking-wider">Full Name</label>
+                  <div className="space-y-0.5">
+                    <label className="text-[10px] font-bold text-zinc-400 block uppercase tracking-wider">Full Name</label>
                     <div className="relative">
-                      <User className="absolute left-3.5 top-3 w-4 h-4 text-zinc-550" />
+                      <User className="absolute left-3 top-2 w-3.5 h-3.5 text-zinc-550" />
                       <input
                         type="text"
                         required
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         placeholder="Enter full name"
-                        className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-zinc-800 outline-none focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition text-sm bg-zinc-950 text-zinc-200 font-semibold"
+                        className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-zinc-800 outline-none focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition text-xs bg-zinc-950 text-zinc-200 font-semibold"
                       />
                     </div>
                   </div>
                 )}
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-zinc-400 block uppercase tracking-wider">Phone / Username</label>
+                <div className="space-y-0.5">
+                  <label className={`font-bold text-zinc-400 block uppercase tracking-wider ${isSignUp ? "text-[10px]" : "text-xs"}`}>Phone / Username</label>
                   <div className="relative">
-                    <Phone className="absolute left-3.5 top-3 w-4 h-4 text-zinc-550" />
+                    <Phone className={`absolute left-3 text-zinc-550 ${isSignUp ? "top-2 w-3.5 h-3.5" : "top-3 w-4 h-4"}`} />
                     <input
                       type="text"
                       required
                       placeholder="e.g. 03277004471 or rider_username"
                       value={phoneNumber}
                       onChange={(e) => setPhoneNumber(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-zinc-800 outline-none focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition text-sm bg-zinc-950 text-zinc-200 font-semibold"
+                      className={`w-full pr-4 border border-zinc-800 outline-none focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition bg-zinc-950 text-zinc-200 font-semibold ${
+                        isSignUp ? "pl-9 py-1.5 rounded-lg text-xs" : "pl-10 py-2.5 rounded-2xl text-sm"
+                      }`}
                     />
                   </div>
                 </div>
 
                 {isSignUp && (
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-zinc-400 block uppercase tracking-wider">Delivery Address</label>
+                  <div className="space-y-0.5">
+                    <label className="text-[10px] font-bold text-zinc-400 block uppercase tracking-wider">Delivery Address</label>
                     <div className="relative">
-                      <MapPin className="absolute left-3.5 top-3 w-4 h-4 text-zinc-550" />
+                      <MapPin className="absolute left-3 top-2 w-3.5 h-3.5 text-zinc-550" />
                       <textarea
                         required
-                        rows={2}
+                        rows={1.5}
                         placeholder="Complete home and street address"
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 rounded-2xl border border-zinc-800 outline-none focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition text-sm bg-zinc-950 text-zinc-200 font-semibold resize-none"
+                        className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-zinc-800 outline-none focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition text-xs bg-zinc-950 text-zinc-200 font-semibold resize-none"
                       />
                     </div>
                   </div>
                 )}
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-zinc-400 block uppercase tracking-wider">Password</label>
+                <div className="space-y-0.5">
+                  <label className={`font-bold text-zinc-400 block uppercase tracking-wider ${isSignUp ? "text-[10px]" : "text-xs"}`}>Password</label>
                   <div className="relative">
-                    <Lock className="absolute left-3.5 top-3 w-4 h-4 text-zinc-550" />
+                    <Lock className={`absolute left-3 text-zinc-550 ${isSignUp ? "top-2 w-3.5 h-3.5" : "top-3 w-4 h-4"}`} />
                     <input
                       type="password"
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Min 6 characters"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-zinc-800 outline-none focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition text-sm bg-zinc-950 text-zinc-200 font-semibold"
+                      className={`w-full pr-4 border border-zinc-800 outline-none focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition bg-zinc-950 text-zinc-200 font-semibold ${
+                        isSignUp ? "pl-9 py-1.5 rounded-lg text-xs" : "pl-10 py-2.5 rounded-2xl text-sm"
+                      }`}
                     />
                   </div>
                 </div>
@@ -530,11 +549,13 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-[#D70F64] hover:bg-[#b00c50] text-white py-3 rounded-2xl font-black tracking-wide shadow-md transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-75 cursor-pointer text-xs uppercase"
+                  className={`w-full bg-[#D70F64] hover:bg-[#b00c50] text-white font-black tracking-wide shadow-md transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-75 cursor-pointer uppercase ${
+                    isSignUp ? "py-2 rounded-lg text-[11px]" : "py-3 rounded-2xl text-xs"
+                  }`}
                 >
                   {loading ? (
                     <>
-                      <Loader2 className="w-5 h-5 animate-spin text-zinc-950" />
+                      <Loader2 className="w-4 h-4 animate-spin text-zinc-950" />
                       Processing...
                     </>
                   ) : isSignUp ? (

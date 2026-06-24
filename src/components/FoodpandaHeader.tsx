@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { UserProfile, AppNotification, Order } from "../types";
 import { Search, ShoppingBag, User, LogOut, Phone, Bell, ShieldAlert, BadgeCheck, Download, History } from "lucide-react";
-import daduLogo from "../assets/images/dadu_food_logo_1782079256405.jpg";
+import daduLogo from "../assets/images/dadu_food_logo_new_1782333467889.jpg";
 
 interface FoodpandaHeaderProps {
   user: UserProfile | null;
