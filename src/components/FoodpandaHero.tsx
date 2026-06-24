@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Sparkles, Utensils, HelpCircle, Flame, Clock } from "lucide-react";
+import { motion } from "motion/react";
 
 interface FoodpandaHeroProps {
   activeCategory: string;
@@ -28,13 +29,13 @@ export default function FoodpandaHero({ activeCategory, setActiveCategory }: Foo
   }, []);
 
   const categories = [
-    { name: "All", emoji: "🍽️" },
-    { name: "Burgers", emoji: "🍔" },
-    { name: "Pizzas", emoji: "🍕" },
-    { name: "Chicken & Rice", emoji: "🍗" },
-    { name: "Only Tea", emoji: "🍵" },
-    { name: "Specials", emoji: "⭐️" },
-    { name: "Home Services", emoji: "🛠️" }
+    { name: "All", emoji: "🍽️", subtitle: "Sab Kuch", color: "from-[#D70F64] to-[#f22c80]" },
+    { name: "Burgers", emoji: "🍔", subtitle: "Zesty Burgers", color: "from-amber-500 to-orange-600" },
+    { name: "Pizzas", emoji: "🍕", subtitle: "Hot & Cheesy", color: "from-red-500 to-rose-600" },
+    { name: "Chicken & Rice", emoji: "🍗", subtitle: "Desi Flavors", color: "from-yellow-500 to-amber-600" },
+    { name: "Only Tea", emoji: "🍵", subtitle: "Karak Chai", color: "from-teal-500 to-emerald-600" },
+    { name: "Specials", emoji: "⭐️", subtitle: "Dadu Premium", color: "from-purple-500 to-indigo-600" },
+    { name: "Home Services", emoji: "🛠️", subtitle: "Expert Repairs", color: "from-sky-500 to-blue-600" }
   ];
 
   return (
@@ -118,27 +119,55 @@ export default function FoodpandaHero({ activeCategory, setActiveCategory }: Foo
 
       {/* Category Horizontal Filter Bar */}
       <div id="catalog-section" className="max-w-7xl mx-auto px-4 pt-8 pb-4">
-        <h2 className="text-xl font-extrabold tracking-tight text-zinc-800 mb-4 uppercase text-[15px] border-l-2 border-[#D70F64] pl-2.5">
-          Browse Categories
-        </h2>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-5">
+          <div>
+            <h2 className="text-base sm:text-lg font-black tracking-tight text-zinc-900 uppercase flex items-center gap-2">
+              <span className="w-3.5 h-3.5 rounded-md bg-[#D70F64] inline-block shadow-sm shadow-pink-500/30"></span>
+              Browse Categories
+            </h2>
+            <p className="text-[10.5px] text-zinc-500 font-semibold mt-0.5">Dadu premium menu items and verified residential services catalog</p>
+          </div>
+          <div className="bg-pink-50/50 border border-pink-100/60 rounded-xl py-1 px-3 text-[10px] text-[#D70F64] font-extrabold uppercase w-max self-start sm:self-auto">
+            📍 Fast Delivery Active
+          </div>
+        </div>
         
         {/* Scroll wrapper */}
-        <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none">
+        <div className="flex items-center gap-3 overflow-x-auto pb-3.5 scrollbar-none snap-x snap-mandatory">
           {categories.map((cat) => {
             const isSelected = activeCategory === cat.name;
             return (
-              <button
+              <motion.button
                 key={cat.name}
+                type="button"
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => setActiveCategory(cat.name)}
-                className={`flex items-center gap-2 py-2.5 px-4 rounded-2xl text-xs font-bold shrink-0 transition-all shadow-xs cursor-pointer border ${
+                className={`flex items-center gap-3.5 py-3 px-5 rounded-2xl text-xs font-bold shrink-0 transition-all cursor-pointer border relative overflow-hidden snap-start ${
                   isSelected 
-                    ? "bg-[#D70F64] text-white border-[#D70F64] shadow-md shadow-pink-500/15 scale-[1.02]" 
-                    : "bg-white text-zinc-650 border-zinc-200 hover:bg-zinc-50 hover:text-zinc-800"
+                    ? `bg-gradient-to-r ${cat.color} text-white border-transparent shadow-lg shadow-pink-500/15` 
+                    : "bg-white text-zinc-700 border-zinc-200/80 hover:bg-zinc-50 hover:border-zinc-300"
                 }`}
               >
-                <span className="text-sm">{cat.emoji}</span>
-                <span>{cat.name}</span>
-              </button>
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-lg shadow-inner shrink-0 ${
+                  isSelected ? "bg-white/20 text-white" : "bg-zinc-100 text-zinc-800"
+                }`}>
+                  {cat.emoji}
+                </div>
+                <div className="text-left">
+                  <span className="block font-black uppercase text-[11px] tracking-wide">{cat.name}</span>
+                  <span className={`block text-[9px] font-semibold mt-0.5 ${
+                    isSelected ? "text-pink-100" : "text-zinc-400"
+                  }`}>{cat.subtitle}</span>
+                </div>
+                {isSelected && (
+                  <motion.div 
+                    layoutId="activeCategoryBorder"
+                    className="absolute bottom-0 left-0 right-0 h-1 bg-white/40"
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  />
+                )}
+              </motion.button>
             );
           })}
         </div>

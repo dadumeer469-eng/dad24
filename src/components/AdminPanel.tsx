@@ -3,7 +3,7 @@ import { UserProfile, Dish, Order, SystemSettings, AppNotification, GroceryCateg
 import { 
   doc, setDoc, deleteDoc, collection, addDoc, updateDoc, query, where, onSnapshot, getDocs, getFirestore
 } from "firebase/firestore";
-import { db, firebaseConfig, databaseId } from "../firebase";
+import { db, firebaseConfig, databaseId, cleanObject } from "../firebase";
 import { initializeApp, deleteApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { 
@@ -275,11 +275,13 @@ export default function AdminPanel({
   const [newGProdUnit, setNewGProdUnit] = useState<"kg" | "litre" | "piece" | "pack">("kg");
   const [newGProdStock, setNewGProdStock] = useState<number>(10);
   const [newGProdCategoryId, setNewGProdCategoryId] = useState("");
+  const [newGProdCommission, setNewGProdCommission] = useState<number>(0);
 
   // Edit grocery states
   const [editingGProductId, setEditingGProductId] = useState<string | null>(null);
   const [editingGProdPriceInput, setEditingGProdPriceInput] = useState<number>(0);
   const [editingGProdStockInput, setEditingGProdStockInput] = useState<number>(0);
+  const [editingGProdCommissionInput, setEditingGProdCommissionInput] = useState<number>(0);
 
   // Form states for adding items
   const [newItemName, setNewItemName] = useState("");
@@ -291,11 +293,13 @@ export default function AdminPanel({
   const [newItemType, setNewItemType] = useState<"food" | "service">("food");
   const [newItemServiceDuration, setNewItemServiceDuration] = useState("");
   const [newItemRestaurantName, setNewItemRestaurantName] = useState("");
+  const [newItemCommission, setNewItemCommission] = useState<number>(0);
 
   // Inline editing state for prices
   const [editingPriceDishId, setEditingPriceDishId] = useState<string | null>(null);
   const [editingPriceInput, setEditingPriceInput] = useState<number>(0);
   const [editingDiscountPriceInput, setEditingDiscountPriceInput] = useState<number>(0);
+  const [editingCommissionInput, setEditingCommissionInput] = useState<number>(0);
 
   // Custom confirmation dialog
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -529,6 +533,12 @@ export default function AdminPanel({
   const totalCancelledCount = orders.filter((o) => o.status === "cancelled").length;
   const totalActiveCount = orders.filter((o) => o.status !== "delivered" && o.status !== "completed" && o.status !== "cancelled").length;
 
+  const totalCommissionSum = deliveredOrders.reduce((sum, o) => {
+    return sum + (o.totalCommission !== undefined 
+      ? o.totalCommission 
+      : (o.items || []).reduce((itemSum, item) => itemSum + (item.commission || 0) * item.quantity, 0));
+  }, 0);
+
   // Render Category distributions
   const getCategoryChartData = () => {
     const categoryMap: { [key: string]: number } = {};
@@ -597,6 +607,25 @@ export default function AdminPanel({
     }
   };
 
+  // Clear all sales/orders history
+  const handleClearAllOrderHistory = async () => {
+    setConfirmDialog({
+      title: "Clear All Sales & Order History",
+      message: "WARNING: This will permanently delete all order history and sales records. This action cannot be undone. Are you sure you want to proceed?",
+      onConfirm: async () => {
+        try {
+          const snapshot = await getDocs(collection(db, "orders"));
+          const deletePromises = snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref));
+          await Promise.all(deletePromises);
+          alert("All sales and order history have been cleared successfully!");
+        } catch (err) {
+          console.error("Error clearing order history:", err);
+          alert("Failed to clear history. Check database rules.");
+        }
+      }
+    });
+  };
+
   // Helper: Create Grocery category
   const handleAddGroceryCategory = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -628,7 +657,7 @@ export default function AdminPanel({
     try {
       const generatedId = `gprod_${Date.now()}`;
       const defaultImg = newGProdImageUrl.trim() || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400";
-      await setDoc(doc(db, "groceryProducts", generatedId), {
+      await setDoc(doc(db, "groceryProducts", generatedId), cleanObject({
         id: generatedId,
         name: newGProdName.trim(),
         imageUrl: defaultImg,
@@ -637,13 +666,15 @@ export default function AdminPanel({
         unit: newGProdUnit,
         stock: Number(newGProdStock),
         categoryId: newGProdCategoryId,
-        isAvailable: true
-      });
+        isAvailable: true,
+        commission: Number(newGProdCommission)
+      }));
       setNewGProdName("");
       setNewGProdImageUrl("");
       setNewGProdPrice(100);
       setNewGProdDiscountPrice(0);
       setNewGProdStock(10);
+      setNewGProdCommission(0);
       alert(`Product "${newGProdName}" added successfully!`);
     } catch (err) {
       console.error(err);
@@ -699,7 +730,8 @@ export default function AdminPanel({
     try {
       await updateDoc(doc(db, "groceryProducts", prodId), {
         price: Number(editingGProdPriceInput),
-        stock: Number(editingGProdStockInput)
+        stock: Number(editingGProdStockInput),
+        commission: Number(editingGProdCommissionInput)
       });
       setEditingGProductId(null);
     } catch (err) {
@@ -735,11 +767,12 @@ export default function AdminPanel({
       isAvailable: true,
       type: newItemType,
       restaurantName: newItemRestaurantName.trim() || (newItemType === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen"),
+      commission: Number(newItemCommission),
       ...(newItemType === "service" && newItemServiceDuration ? { serviceDuration: newItemServiceDuration } : {}),
     };
 
     try {
-      await setDoc(doc(db, "menu", uniqueId), dishModel);
+      await setDoc(doc(db, "menu", uniqueId), cleanObject(dishModel));
       alert("New and fresh dish or service added successfully!");
       setNewItemName("");
       setNewItemDescription("");
@@ -748,6 +781,7 @@ export default function AdminPanel({
       setNewItemImageUrl("");
       setNewItemServiceDuration("");
       setNewItemRestaurantName("");
+      setNewItemCommission(0);
     } catch (err) {
       console.error(err);
       alert("Check database permissions. Could not add menu item.");
@@ -772,6 +806,7 @@ export default function AdminPanel({
       await updateDoc(doc(db, "menu", dishId), {
         price: editingPriceInput,
         discountPrice: editingDiscountPriceInput > 0 ? editingDiscountPriceInput : null,
+        commission: editingCommissionInput,
       });
       setEditingPriceDishId(null);
     } catch (err) {
@@ -1009,16 +1044,16 @@ export default function AdminPanel({
                 <span className="text-[15px] font-black text-amber-500 mt-1 block">Rs. {totalRevenue}</span>
               </div>
               <div className="bg-zinc-950/80 border border-zinc-900/80 p-3 rounded-2xl hover:border-emerald-500/20 transition-all">
+                <span className="text-zinc-500 block text-[9.5px] font-bold uppercase tracking-wider">Your Comm</span>
+                <span className="text-[15px] font-black text-emerald-400 mt-1 block">Rs. {totalCommissionSum}</span>
+              </div>
+              <div className="bg-zinc-950/80 border border-zinc-900/80 p-3 rounded-2xl hover:border-emerald-500/20 transition-all">
                 <span className="text-zinc-500 block text-[9.5px] font-bold uppercase tracking-wider">Completed</span>
-                <span className="text-[15px] font-black text-emerald-400 mt-1 block">{totalCompletedCount}</span>
+                <span className="text-[15px] font-black text-zinc-200 mt-1 block">{totalCompletedCount}</span>
               </div>
               <div className="bg-zinc-950/80 border border-zinc-900/80 p-3 rounded-2xl hover:border-pink-500/20 transition-all">
                 <span className="text-zinc-500 block text-[9.5px] font-bold uppercase tracking-wider">Active</span>
                 <span className="text-[15px] font-black text-[#D70F64] mt-1 block">{totalActiveCount}</span>
-              </div>
-              <div className="bg-zinc-950/80 border border-zinc-900/80 p-3 rounded-2xl hover:border-red-500/20 transition-all">
-                <span className="text-zinc-500 block text-[9.5px] font-bold uppercase tracking-wider">Declined</span>
-                <span className="text-[15px] font-black text-red-500 mt-1 block">{totalCancelledCount}</span>
               </div>
             </div>
           </div>
@@ -1240,6 +1275,18 @@ export default function AdminPanel({
                     />
                   </div>
 
+                  <div className="md:col-span-2 space-y-1.5">
+                    <label className="text-emerald-500 font-bold uppercase tracking-widest text-[9px]">Commission (Rs.)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={newItemCommission}
+                      onChange={(e) => setNewItemCommission(Number(e.target.value))}
+                      placeholder="Commission"
+                      className="w-full p-3 bg-zinc-950 border border-emerald-900 rounded-xl text-white outline-none focus:border-emerald-500 transition focus:ring-1 focus:ring-emerald-500/10 font-bold"
+                    />
+                  </div>
+
                   <div className="md:col-span-3 space-y-1.5">
                     <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Service / Product Type</label>
                     <div className="grid grid-cols-2 gap-1 bg-zinc-950 border border-zinc-800/80 rounded-xl p-1">
@@ -1390,6 +1437,16 @@ export default function AdminPanel({
                                     placeholder="0 for none"
                                   />
                                 </div>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[8px] text-emerald-400 uppercase font-bold w-12">Comm:</span>
+                                  <input
+                                    type="number"
+                                    value={editingCommissionInput}
+                                    onChange={(e) => setEditingCommissionInput(Number(e.target.value))}
+                                    className="w-20 p-1 bg-[#1a1a1a] border border-emerald-500 text-white rounded text-xs leading-none"
+                                    placeholder="Commission"
+                                  />
+                                </div>
                                 <div className="flex gap-1 justify-end">
                                   <button
                                     onClick={() => setEditingPriceDishId(null)}
@@ -1415,15 +1472,17 @@ export default function AdminPanel({
                                 ) : (
                                   <span className="font-extrabold text-white">Rs. {dish.price}</span>
                                 )}
+                                <span className="text-[10px] text-emerald-400 font-bold block mt-0.5">Comm: Rs. {dish.commission || 0}</span>
                                 <button
                                   onClick={() => {
                                     setEditingPriceDishId(dish.id);
                                     setEditingPriceInput(dish.price);
                                     setEditingDiscountPriceInput(dish.discountPrice || 0);
+                                    setEditingCommissionInput(dish.commission || 0);
                                   }}
-                                  className="text-[10px] text-amber-500 hover:underline cursor-pointer text-left mt-1"
+                                  className="text-[10px] text-amber-500 hover:underline cursor-pointer text-left mt-1 font-bold"
                                 >
-                                  Edit Price
+                                  Edit Price & Comm
                                 </button>
                               </div>
                             )}
@@ -1470,9 +1529,20 @@ export default function AdminPanel({
 
               <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 rounded-[24px] overflow-hidden shadow-2xl relative">
                 <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-500/10 to-transparent" />
-                <div className="p-6 border-b border-zinc-800/50 bg-zinc-900/15">
-                  <h4 className="font-black text-sm text-zinc-100 uppercase tracking-wide">Live Operational Orders Pipeline</h4>
-                  <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Monitor order transactions and assign dispatchers in real-time</span>
+                <div className="p-6 border-b border-zinc-800/50 bg-zinc-900/15 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h4 className="font-black text-sm text-zinc-100 uppercase tracking-wide">Live Operational Orders Pipeline</h4>
+                    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Monitor order transactions and assign dispatchers in real-time</span>
+                  </div>
+                  {orders.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleClearAllOrderHistory}
+                      className="px-4 py-2 bg-red-955/40 hover:bg-red-900/30 text-red-400 border border-red-900/45 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer transition shrink-0"
+                    >
+                      Clear Sales History 🧹
+                    </button>
+                  )}
                 </div>
 
                 <div className="divide-y divide-zinc-900/30">
@@ -1928,10 +1998,18 @@ export default function AdminPanel({
                           }
                         });
 
+                        const totalCommission = completedRiderOrders.reduce((sum, o) => {
+                          return sum + (o.totalCommission !== undefined 
+                            ? o.totalCommission 
+                            : (o.items || []).reduce((itemSum, item) => itemSum + (item.commission || 0) * item.quantity, 0));
+                        }, 0);
+
                         return {
                           today: { count: todayC, sales: todayS },
                           week: { count: weekC, sales: weekS },
                           month: { count: monthC, sales: monthS },
+                          totalCompleted: completedRiderOrders.length,
+                          totalCommission
                         };
                       })();
 
@@ -1962,8 +2040,20 @@ export default function AdminPanel({
                               <span className="text-emerald-440 font-bold uppercase text-[9px]">ONLINE DUTY</span>
                             </div>
 
+                            {/* Rider Total Deliveries & Earned Commission */}
+                            <div className="bg-emerald-950/20 border border-emerald-900/40 rounded-xl p-3 mt-2.5 flex items-center justify-between gap-3 text-xs font-semibold">
+                              <div>
+                                <span className="text-[9px] text-emerald-400 uppercase tracking-widest font-black block">delivered runs</span>
+                                <span className="text-xs font-extrabold text-white block mt-0.5">{stats.totalCompleted} Orders</span>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-[9px] text-emerald-400 uppercase tracking-widest font-black block font-sans">earned commission</span>
+                                <span className="text-xs font-black text-emerald-400 block mt-0.5">Rs. {stats.totalCommission}</span>
+                              </div>
+                            </div>
+
                             {/* Rider Sales Performance Statistics Dashboard */}
-                            <div className="bg-[#0b0b0d] border border-zinc-900 rounded-xl p-3 mt-2.5 space-y-2">
+                            <div className="bg-[#0b0b0d] border border-zinc-900 rounded-xl p-3 mt-2 space-y-2">
                               <span className="text-[9.5px] font-black uppercase text-pink-500 tracking-wider flex items-center gap-1">
                                 📊 Rider Earnings & Sales Stats
                               </span>
@@ -2245,7 +2335,7 @@ export default function AdminPanel({
                         </select>
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-zinc-450 block uppercase">Stock Count</label>
+                        <label className="text-[9px] font-bold text-zinc-455 block uppercase">Stock Count</label>
                         <input
                           type="number"
                           required
@@ -2255,6 +2345,18 @@ export default function AdminPanel({
                           className="w-full p-2.5 bg-zinc-955 border border-zinc-800 rounded-xl outline-none focus:border-orange-500 text-white text-xs font-mono font-bold"
                         />
                       </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-emerald-400 block uppercase font-sans">Admin Commission (Rs.)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={newGProdCommission}
+                        onChange={(e) => setNewGProdCommission(Number(e.target.value))}
+                        className="w-full p-2.5 bg-zinc-955 border border-zinc-800 rounded-xl outline-none focus:border-emerald-500 text-white text-xs font-mono font-bold"
+                        placeholder="Commission in Rs."
+                      />
                     </div>
 
                     <div className="space-y-1">
@@ -2340,15 +2442,23 @@ export default function AdminPanel({
                                       placeholder="Stock"
                                       className="p-1 text-xs text-white bg-black border border-orange-500 rounded font-semibold w-full"
                                     />
+                                    <input
+                                      type="number"
+                                      value={editingGProdCommissionInput}
+                                      onChange={(e) => setEditingGProdCommissionInput(Number(e.target.value))}
+                                      placeholder="Comm"
+                                      className="p-1 text-xs text-white bg-black border border-emerald-500 rounded font-semibold w-full"
+                                    />
                                   </div>
                                 ) : (
                                   <div>
-                                    <span className="text-orange-550 font-bold block font-mono">Rs. {p.price} /{p.unit}</span>
+                                    <span className="text-orange-555 font-bold block font-mono">Rs. {p.price} /{p.unit}</span>
                                     {p.stock <= 0 ? (
                                       <span className="text-red-500 text-[9px] uppercase font-black">Out of Stock</span>
                                     ) : (
                                       <span className="text-zinc-500 text-[9px] font-semibold">Stock: {p.stock} units</span>
                                     )}
+                                    <span className="text-emerald-400 text-[10px] block font-bold mt-0.5">Comm: Rs. {p.commission || 0}</span>
                                   </div>
                                 )}
                               </td>
@@ -2379,6 +2489,7 @@ export default function AdminPanel({
                                           setEditingGProductId(p.id);
                                           setEditingGProdPriceInput(p.price);
                                           setEditingGProdStockInput(p.stock);
+                                          setEditingGProdCommissionInput(p.commission || 0);
                                         }}
                                         className="text-orange-500 hover:underline text-[10px] font-bold cursor-pointer"
                                       >

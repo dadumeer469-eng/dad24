@@ -10,6 +10,7 @@ export interface Dish {
   type: "food" | "service";
   serviceDuration?: string;
   restaurantName?: string;
+  commission?: number;
 }
 
 export interface UserProfile {
@@ -32,6 +33,7 @@ export interface OrderItem {
   type: "food" | "service";
   serviceDuration?: string;
   restaurantName?: string;
+  commission?: number;
 }
 
 export interface Order {
@@ -61,6 +63,7 @@ export interface Order {
   orderType: "food" | "service" | "grocery";
   userCoords?: { latitude: number; longitude: number };
   riderCoords?: { latitude: number; longitude: number; lastUpdated?: number };
+  totalCommission?: number;
 }
 
 export interface SystemSettings {
@@ -93,6 +96,7 @@ export interface GroceryProduct {
   stock: number; // custom number or boolean representation
   categoryId: string;
   isAvailable: boolean;
+  commission?: number;
 }
 
 export interface GroceryOrderItem {
@@ -103,6 +107,7 @@ export interface GroceryOrderItem {
   quantity: number;
   unit: string;
   imageUrl: string;
+  commission?: number;
 }
 
 export interface GroceryOrder {
@@ -123,6 +128,7 @@ export interface GroceryOrder {
   riderName?: string;
   riderPhone?: string;
   userCoords?: { latitude: number; longitude: number };
+  totalCommission?: number;
 }
 
 export interface GroceryDeliveryConfig {

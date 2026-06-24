@@ -448,7 +448,8 @@ export default function App() {
         quantity: 1, 
         type: dish.type, 
         serviceDuration: dish.serviceDuration,
-        restaurantName: dish.restaurantName || (dish.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen")
+        restaurantName: dish.restaurantName || (dish.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen"),
+        commission: dish.commission || 0
       }];
     });
     // Open cart drawer for rapid visibility
@@ -486,6 +487,7 @@ export default function App() {
             unit: product.unit,
             stock: product.stock,
             quantity: quantity,
+            commission: product.commission || 0,
           },
         ];
       }
@@ -620,8 +622,11 @@ export default function App() {
         name: item.name,
         price: item.price,
         quantity: item.quantity,
-        restaurantName: "Dadu Grocery Store"
+        restaurantName: "Dadu Grocery Store",
+        commission: item.commission || 0
       }));
+
+      const totalCommission = adaptedItems.reduce((acc, itm) => acc + (itm.commission || 0) * itm.quantity, 0);
 
       const orderDoc = {
         id: generatedOrderId,
@@ -641,6 +646,7 @@ export default function App() {
         orderType: "grocery",
         createdAt: { seconds: Math.floor(Date.now() / 1000) },
         userCoords: details.userCoords || null,
+        totalCommission,
       };
 
       await setDoc(doc(db, "orders", generatedOrderId), orderDoc);
@@ -697,6 +703,12 @@ export default function App() {
       ? (firstService?.serviceDuration || "Expected arrival within 1 hour")
       : undefined;
 
+    const itemsWithCommission = cartItems.map((item) => ({
+      ...item,
+      commission: item.commission || 0
+    }));
+    const totalCommission = itemsWithCommission.reduce((acc, itm) => acc + (itm.commission || 0) * itm.quantity, 0);
+
     const uniqueOrderId = `order_${Date.now()}`;
     const orderModel: Order = {
       id: uniqueOrderId,
@@ -707,7 +719,7 @@ export default function App() {
       phone: details.phone,
       userAddress: details.address,
       address: details.address,
-      items: cartItems,
+      items: itemsWithCommission,
       totalPrice: itemsTotal,
       deliveryFee: finalFee,
       grandTotal: finalGrandTotal,
@@ -717,6 +729,7 @@ export default function App() {
       serviceTiming: computedServiceTiming,
       createdAt: { seconds: Date.now() / 1000 },
       userCoords: details.userCoords || undefined,
+      totalCommission,
     };
 
     try {
