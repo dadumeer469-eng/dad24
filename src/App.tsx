@@ -369,6 +369,56 @@ export default function App() {
     setIsAdminConsoleOpen(false);
   };
 
+  // Mobile Back Button Navigation Controller (PWA back button handler)
+  useEffect(() => {
+    const isAnyModalOpen = 
+      isAuthOpen || 
+      isCartOpen || 
+      isGroceryCartOpen || 
+      !!activeDetailDish || 
+      isTrackingModalOpen || 
+      isSuccessAnimationOpen || 
+      isHistoryDrawerOpen ||
+      isAdminConsoleOpen;
+
+    if (isAnyModalOpen) {
+      if (window.history.state?.modalOpen !== true) {
+        window.history.pushState({ modalOpen: true }, "");
+      }
+    } else {
+      if (window.history.state?.modalOpen === true) {
+        window.history.back();
+      }
+    }
+
+    const handlePopState = (event: PopStateEvent) => {
+      if (isAuthOpen || isCartOpen || isGroceryCartOpen || !!activeDetailDish || isTrackingModalOpen || isSuccessAnimationOpen || isHistoryDrawerOpen || isAdminConsoleOpen) {
+        setIsAuthOpen(false);
+        setIsCartOpen(false);
+        setIsGroceryCartOpen(false);
+        setActiveDetailDish(null);
+        setIsTrackingModalOpen(false);
+        setIsSuccessAnimationOpen(false);
+        setIsHistoryDrawerOpen(false);
+        setIsAdminConsoleOpen(false);
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [
+    isAuthOpen, 
+    isCartOpen, 
+    isGroceryCartOpen, 
+    activeDetailDish, 
+    isTrackingModalOpen, 
+    isSuccessAnimationOpen, 
+    isHistoryDrawerOpen,
+    isAdminConsoleOpen
+  ]);
+
   // --- CART CONTROLLER OPERATIONS ---
   const handleAddToCart = (dish: Dish) => {
     // Check if mixed cart is allowed
