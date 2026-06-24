@@ -71,11 +71,15 @@ export default function GroceryCartDrawer({
   // Delivery configuration calculations
   const deliveryRequired = totalGroceryPrice > 0;
   const isFreeDelivery = totalGroceryPrice >= (deliveryConfig?.freeDeliveryAboveAmount || 1000);
+  const baseDeliveryFee = deliveryConfig?.baseDeliveryFee || 40;
+  // If grocery total is below 500, double the base delivery fee!
+  const isDoubleFee = totalGroceryPrice < 500;
+  const deliveryFeeRate = isDoubleFee ? baseDeliveryFee * 2 : baseDeliveryFee;
   const finalDeliveryFee = !deliveryRequired
     ? 0
     : isFreeDelivery
     ? 0
-    : deliveryConfig?.baseDeliveryFee || 40;
+    : deliveryFeeRate;
 
   const taxesAmount = Math.round(totalGroceryPrice * 0.02); // 2% GST
   const grandTotal = totalGroceryPrice + finalDeliveryFee + taxesAmount;
@@ -338,6 +342,15 @@ export default function GroceryCartDrawer({
           {cartItems.length > 0 && (
             <div className="p-5 border-t border-zinc-900 bg-zinc-900/60 space-y-4">
               <div className="space-y-1.5 text-xs">
+                {totalGroceryPrice < 500 && (
+                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-2.5 text-[10.5px] text-amber-400 flex items-start gap-2 mb-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-extrabold block text-amber-300">Delivery Charges Doubled (Below Rs. 500)</span>
+                      Rs. 500 se kam order par delivery charges double hain. Add Rs. {500 - totalGroceryPrice} more grocery items to get standard delivery!
+                    </div>
+                  </div>
+                )}
                 <div className="flex justify-between text-zinc-400 font-semibold">
                   <span>Cart Subtotal</span>
                   <span>Rs. {totalGroceryPrice}</span>

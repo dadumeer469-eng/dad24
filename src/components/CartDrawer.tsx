@@ -60,7 +60,9 @@ export default function CartDrawer({
   const hasService = cartItems.some((item) => item.type === "service");
 
   // Determine delivery charge: Rs. 0 for pure diagnostic home services, custom delivery charge for food!
-  const finalDeliveryFee = hasFood ? deliveryFee : 0;
+  // If order total (items price) is below 500, double the delivery fee!
+  const isDoubleFee = hasFood && totalFoodItemsPrice < 500;
+  const finalDeliveryFee = hasFood ? (isDoubleFee ? deliveryFee * 2 : deliveryFee) : 0;
   const grandTotal = totalFoodItemsPrice + finalDeliveryFee;
 
   // Handles auto checkout detail mapping
@@ -431,6 +433,15 @@ export default function CartDrawer({
         {/* Pricing Summary Bottom Card */}
         {cartItems.length > 0 && (
           <div className="p-4 bg-zinc-950 border-t border-zinc-800 space-y-3.5 rounded-t-3xl shadow-2xl shrink-0">
+            {hasFood && totalFoodItemsPrice < 500 && (
+              <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-3 text-[11px] text-amber-400 flex items-start gap-2.5">
+                <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-extrabold block text-amber-300">Delivery Charges Doubled (Below Rs. 500)</span>
+                  Rs. 500 se kam order par delivery charges double hain. Add Rs. {500 - totalFoodItemsPrice} more of delicious food to get standard delivery rate!
+                </div>
+              </div>
+            )}
             <div className="space-y-1.5 text-xs text-zinc-400 font-semibold">
               <div className="flex justify-between">
                 <span>Items Subtotal:</span>

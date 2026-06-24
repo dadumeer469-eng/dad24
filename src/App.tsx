@@ -688,7 +688,8 @@ export default function App() {
     }
 
     const itemsTotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
-    const finalFee = details.orderType === "food" ? deliverySettings.deliveryFee : 0;
+    const baseFee = details.orderType === "food" ? deliverySettings.deliveryFee : 0;
+    const finalFee = (details.orderType === "food" && itemsTotal < 500) ? baseFee * 2 : baseFee;
     const finalGrandTotal = itemsTotal + finalFee;
 
     const firstService = cartItems.find((itm) => itm.type === "service");
