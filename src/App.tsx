@@ -20,6 +20,7 @@ import GroceryCartDrawer from "./components/GroceryCartDrawer";
 import OrderSuccessAnimation from "./components/OrderSuccessAnimation";
 import OrderHistoryDrawer from "./components/OrderHistoryDrawer";
 import daduLogo from "./assets/images/dadu_food_logo_new_1782333467889.jpg";
+import InstallPrompt from "./components/InstallPrompt";
 
 // Icons & Motion
 import { 
@@ -1632,6 +1633,9 @@ export default function App() {
           </a>
         </p>
       </footer>
+
+      {/* PWA Guided & Automatic Installation Dialog & Floating Banner */}
+      <InstallPrompt />
 
     </div>
   );
