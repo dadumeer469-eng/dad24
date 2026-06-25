@@ -110,35 +110,5 @@ export const INITIAL_MENU_ITEMS: Dish[] = [
     imageUrl: "https://images.unsplash.com/photo-1601050690597-df056fb4ce78?auto=format&fit=crop&q=80&w=400",
     isAvailable: true,
     type: "food"
-  },
-  {
-    id: "drink_pepsi",
-    name: "Pepsi Can Chilled (345ml)",
-    description: "Ice cold fizzy cola to complement your hot meal.",
-    price: 100,
-    category: "Drinks",
-    imageUrl: "https://images.unsplash.com/photo-1629203851122-3726ecdf080e?auto=format&fit=crop&q=80&w=400",
-    isAvailable: true,
-    type: "food"
-  },
-  {
-    id: "drink_dew",
-    name: "Mountain Dew Can Chilled (345ml)",
-    description: "High energy, citrus-charged Mountain Dew beverage.",
-    price: 100,
-    category: "Drinks",
-    imageUrl: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&q=80&w=400",
-    isAvailable: true,
-    type: "food"
-  },
-  {
-    id: "drink_7up",
-    name: "7Up Can Chilled (345ml)",
-    description: "Crisp and refreshing lemon-lime flavored soft drink.",
-    price: 100,
-    category: "Drinks",
-    imageUrl: "https://images.unsplash.com/photo-1543257580-7269da773bf5?auto=format&fit=crop&q=80&w=400",
-    isAvailable: true,
-    type: "food"
   }
 ];

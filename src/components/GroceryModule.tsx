@@ -10,8 +10,6 @@ interface GroceryModuleProps {
   onUpdateCartQuantity: (productId: string, quantity: number) => void;
   onRemoveFromCart: (productId: string) => void;
   searchQuery: string;
-  favorites: string[];
-  toggleFavorite: (itemId: string) => void;
 }
 
 export default function GroceryModule({
@@ -22,8 +20,6 @@ export default function GroceryModule({
   onUpdateCartQuantity,
   onRemoveFromCart,
   searchQuery = "",
-  favorites = [],
-  toggleFavorite,
 }: GroceryModuleProps) {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("All");
 
@@ -32,13 +28,11 @@ export default function GroceryModule({
   const activeCategoryIdList = activeCategories.map((c) => c.id);
 
   const filteredProducts = products.filter((p) => {
-    // Basic active category matching including favorites
+    // Basic active category matching
     const matchesCategory =
-      selectedCategoryId === "Bookmarks"
-        ? favorites.includes(p.id)
-        : (selectedCategoryId === "All" || p.categoryId === selectedCategoryId);
-    // Check if category itself is available or selected as favorites
-    const isCategoryEnabled = selectedCategoryId === "Bookmarks" || activeCategoryIdList.includes(p.categoryId);
+      selectedCategoryId === "All" || p.categoryId === selectedCategoryId;
+    // Check if category itself is available
+    const isCategoryEnabled = activeCategoryIdList.includes(p.categoryId);
     // Search query matches
     const matchesSearch =
       !searchQuery.trim() ||
@@ -92,16 +86,6 @@ export default function GroceryModule({
             >
               🛒 All Items
             </button>
-            <button
-              onClick={() => setSelectedCategoryId("Bookmarks")}
-              className={`py-2 px-4 sm:py-2.5 sm:px-5 rounded-xl text-xs font-extrabold tracking-wide uppercase transition shrink-0 cursor-pointer select-none border ${
-                selectedCategoryId === "Bookmarks"
-                  ? "bg-orange-500 text-white border-orange-500 shadow-lg shadow-orange-500/25 animate-pulse"
-                  : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-zinc-200"
-              }`}
-            >
-              ❤️ Favorites
-            </button>
             {activeCategories.map((cat) => (
               <button
                 key={cat.id}
@@ -118,12 +102,20 @@ export default function GroceryModule({
           </div>
         </div>
 
-        {/* Catalog Items Display Grid */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-extrabold tracking-wider text-zinc-400 uppercase border-b border-zinc-850 pb-2.5">
-              {selectedCategoryId === "All" ? "Full Catalog" : selectedCategoryId === "Bookmarks" ? "Favorites List" : categories.find((c) => c.id === selectedCategoryId)?.name} Directory ({filteredProducts.length})
+        {/* Grid of grocery products */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xs sm:text-sm font-black uppercase tracking-widest text-orange-500">
+              {selectedCategoryId === "All"
+                ? "All Grocery Essentials"
+                : activeCategories.find((c) => c.id === selectedCategoryId)?.name || "Groceries"}{" "}
+              ({filteredProducts.length})
             </h3>
+            {searchQuery && (
+              <span className="text-[10px] sm:text-xs text-zinc-500 font-bold uppercase tracking-wider">
+                Matching "{searchQuery}"
+              </span>
+            )}
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
@@ -131,7 +123,6 @@ export default function GroceryModule({
               const qty = getProductQuantityInCart(p.id);
               const hasDiscount = p.discountPrice && p.discountPrice < p.price;
               const displayPrice = hasDiscount ? p.discountPrice : p.price;
-              const isBookmarked = favorites.includes(p.id);
 
               return (
                 <div
@@ -150,30 +141,6 @@ export default function GroceryModule({
                       </span>
                     </div>
                   )}
-
-                  {/* Favorite Bookmark Heart Button */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleFavorite(p.id);
-                    }}
-                    className="absolute top-2.5 right-2.5 z-10 w-7 h-7 sm:w-9 sm:h-9 bg-zinc-950/90 hover:bg-zinc-900 text-zinc-400 hover:text-orange-500 rounded-full flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition cursor-pointer border border-zinc-800/50"
-                    title={isBookmarked ? "Remove from Favorites" : "Add to Favorites"}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill={isBookmarked ? "#ea580c" : "none"}
-                      stroke={isBookmarked ? "#ea580c" : "currentColor"}
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="w-4 h-4 sm:w-5 h-5 transition-colors duration-300"
-                    >
-                      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-                    </svg>
-                  </button>
 
                   {/* Discount Percentage Badge */}
                   {hasDiscount && p.isAvailable && p.stock > 0 && (
@@ -214,7 +181,7 @@ export default function GroceryModule({
                           Rs. {displayPrice}
                         </span>
                         {hasDiscount && (
-                          <span className="text-[9px] sm:text-[10.5px] text-zinc-505 line-through font-bold font-mono">
+                          <span className="text-[9px] sm:text-[10.5px] text-zinc-500 line-through font-bold font-mono">
                             Rs. {p.price}
                           </span>
                         )}
@@ -255,7 +222,7 @@ export default function GroceryModule({
 
           {filteredProducts.length === 0 && (
             <div className="bg-zinc-900 border border-zinc-850 p-12 rounded-3xl text-center space-y-3 max-w-md mx-auto mt-6">
-              <ShoppingBag className="w-10 h-10 text-zinc-505 mx-auto" />
+              <ShoppingBag className="w-10 h-10 text-zinc-500 mx-auto" />
               <p className="text-xs text-zinc-400 font-bold uppercase tracking-widest">
                 We couldn't find any grocery products matching "{searchQuery}"!
               </p>

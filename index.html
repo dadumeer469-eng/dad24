@@ -5,42 +5,78 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dadu 24#7</title>
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#D70F64" />
+    <meta name="theme-color" content="#f97316" />
     <link rel="apple-touch-icon" href="/logo.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   </head>
   <body>
+    <button id="installBtn" style="display: none; position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 9999; background-color: #f97316; color: white; border: none; padding: 12px 24px; border-radius: 9999px; font-weight: bold; cursor: pointer; box-shadow: 0 10px 15px -3px rgba(249, 115, 22, 0.4); font-family: sans-serif; font-size: 14px; transition: all 0.2s ease; border: 1px solid rgba(255,255,255,0.2);">Install Dadu Food App 🚀</button>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      // Capture the beforeinstallprompt early in case React hasn't registered its listener yet
-      window.deferredInstallPrompt = null;
-      window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        window.deferredInstallPrompt = e;
-        // Dispatch a custom event so React knows it has been captured if it's already mounted
-        window.dispatchEvent(new CustomEvent('pwa-prompt-available', { detail: e }));
-      });
+      // Safe environment check to prevent SecurityError and cross-origin "Script error" in sandboxed development preview iframes
+      let isTopLevel = false;
+      try {
+        isTopLevel = (window.parent === window);
+      } catch (e) {
+        isTopLevel = false;
+      }
 
-      if ('serviceWorker' in navigator) {
-        const registerSW = () => {
-          try {
-            navigator.serviceWorker.register('/sw.js').then((reg) => {
-              console.log('ServiceWorker registered successfully:', reg.scope);
-            }).catch((err) => {
-              console.warn('ServiceWorker registration failed:', err);
-            });
-          } catch (e) {
-            console.warn('ServiceWorker registration threw error:', e);
+      if (isTopLevel) {
+        if ('serviceWorker' in navigator) {
+          const registerSW = () => {
+            try {
+              navigator.serviceWorker.register('/sw.js').then((reg) => {
+                console.log('ServiceWorker registered successfully:', reg.scope);
+              }).catch((err) => {
+                console.warn('ServiceWorker registration failed:', err);
+              });
+            } catch (e) {
+              console.warn('ServiceWorker registration error:', e);
+            }
+          };
+
+          if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            registerSW();
+          } else {
+            window.addEventListener('load', registerSW);
           }
-        };
-
-        if (document.readyState === 'complete' || document.readyState === 'interactive') {
-          registerSW();
-        } else {
-          window.addEventListener('load', registerSW);
         }
+
+        let deferredPrompt;
+        const installBtn = document.getElementById('installBtn');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+          e.preventDefault();
+          deferredPrompt = e;
+          if (installBtn) {
+            installBtn.style.display = 'block';
+          }
+        });
+
+        if (installBtn) {
+          installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+              try {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                  installBtn.style.display = 'none';
+                }
+              } catch (err) {
+                console.warn('Prompt failed or cancelled:', err);
+              }
+              deferredPrompt = null;
+            }
+          });
+        }
+
+        window.addEventListener('appinstalled', () => {
+          if (installBtn) {
+            installBtn.style.display = 'none';
+          }
+        });
       }
     </script>
   </body>

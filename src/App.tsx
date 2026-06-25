@@ -23,8 +23,7 @@ import daduLogo from "./assets/images/dadu_food_logo_new_1782333467889.jpg";
 
 // Icons & Motion
 import { 
-  ShieldAlert, Clock, AlertTriangle, MessageSquare, BadgeAlert, Sparkles, CheckSquare, Wrench, HeartHandshake, UtensilsCrossed, Compass, MapPin,
-  Download, Smartphone, X
+  ShieldAlert, Clock, AlertTriangle, MessageSquare, BadgeAlert, Sparkles, CheckSquare, Wrench, HeartHandshake, UtensilsCrossed, Compass, MapPin
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -66,18 +65,8 @@ export default function App() {
   const [isSuccessAnimationOpen, setIsSuccessAnimationOpen] = useState(false);
   const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
 
-  // Favorites bookmarked items list
-  const [favorites, setFavorites] = useState<string[]>([]);
-
-  // Real-time Deal of the Hour settings
-  const [dealOfTheHour, setDealOfTheHour] = useState<any>(null);
-
   // Visual notify states
   const [toastNotification, setToastNotification] = useState<{ title: string; message: string } | null>(null);
-
-  // PWA Install Prompt State
-  const [pwaPrompt, setPwaPrompt] = useState<any>(null);
-  const [showPwaBanner, setShowPwaBanner] = useState(false);
 
   // Audio synthesizer chime tone
   const playChimeSound = () => {
@@ -118,66 +107,6 @@ export default function App() {
 
     } catch (err) {
       console.warn("AudioContext blocked or waiting for user gesture:", err);
-    }
-  };
-
-  // 0. PWA Install Event Handler & Global Synchronizer
-  useEffect(() => {
-    // 1. Check if we already have a globally captured prompt
-    const globalPrompt = (window as any).deferredInstallPrompt;
-    if (globalPrompt) {
-      setPwaPrompt(globalPrompt);
-      setShowPwaBanner(true);
-    }
-
-    // 2. Listen to custom event in case index.html captured it while React was initializing
-    const handlePwaPromptAvailable = (e: any) => {
-      const promptEvent = e.detail;
-      if (promptEvent) {
-        setPwaPrompt(promptEvent);
-        setShowPwaBanner(true);
-      }
-    };
-
-    // 3. Standard browser level event listener fallback
-    const handleBeforeInstall = (e: any) => {
-      e.preventDefault();
-      setPwaPrompt(e);
-      setShowPwaBanner(true);
-      (window as any).deferredInstallPrompt = e;
-    };
-
-    const handleAppInstalled = () => {
-      setShowPwaBanner(false);
-      setPwaPrompt(null);
-      (window as any).deferredInstallPrompt = null;
-      console.log("Dadu App was successfully installed!");
-    };
-
-    window.addEventListener("pwa-prompt-available", handlePwaPromptAvailable as EventListener);
-    window.addEventListener("beforeinstallprompt", handleBeforeInstall);
-    window.addEventListener("appinstalled", handleAppInstalled);
-
-    return () => {
-      window.removeEventListener("pwa-prompt-available", handlePwaPromptAvailable as EventListener);
-      window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
-      window.removeEventListener("appinstalled", handleAppInstalled);
-    };
-  }, []);
-
-  const handlePwaInstallClick = async () => {
-    if (!pwaPrompt) return;
-    try {
-      pwaPrompt.prompt();
-      const { outcome } = await pwaPrompt.userChoice;
-      console.log(`User response to install prompt: ${outcome}`);
-      if (outcome === "accepted") {
-        setShowPwaBanner(false);
-        setPwaPrompt(null);
-        (window as any).deferredInstallPrompt = null;
-      }
-    } catch (err) {
-      console.error("Failed to present PWA install prompt:", err);
     }
   };
 
@@ -259,16 +188,6 @@ export default function App() {
           list.push(doc.data() as Dish);
         });
         setDishes(list);
-
-        // Proactively seed default drinks if none exist in the database yet
-        const hasDrinks = list.some(item => item.category === "Drinks");
-        if (!hasDrinks) {
-          console.log("No exclusive drinks found in database. Seeding drinks...");
-          const drinksToSeed = INITIAL_MENU_ITEMS.filter(item => item.category === "Drinks");
-          drinksToSeed.forEach(item => {
-            setDoc(doc(db, "menu", item.id), item).catch(console.error);
-          });
-        }
       }
     }, (err) => {
       console.error(handleFirestoreError(err));
@@ -356,65 +275,6 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("dadu_grocery_cart", JSON.stringify(groceryCartItems));
   }, [groceryCartItems]);
-
-  // 3e. Favorites LocalStorage Sync
-  useEffect(() => {
-    const saved = localStorage.getItem("dadu_favorites");
-    if (saved) {
-      try {
-        setFavorites(JSON.parse(saved));
-      } catch (e) {
-        console.warn("Parsing favorites failed:", e);
-      }
-    }
-  }, []);
-
-  const toggleFavorite = (itemId: string) => {
-    setFavorites((prev) => {
-      const next = prev.includes(itemId)
-        ? prev.filter((id) => id !== itemId)
-        : [...prev, itemId];
-      localStorage.setItem("dadu_favorites", JSON.stringify(next));
-      return next;
-    });
-  };
-
-  // 3f. Deal of the Hour Real-time Listener & Seeder
-  useEffect(() => {
-    const unsubscribe = onSnapshot(doc(db, "settings", "deal_of_the_hour"), (docSnap) => {
-      if (docSnap.exists()) {
-        setDealOfTheHour(docSnap.data());
-      } else {
-        // Seed initial default deal of the hour document
-        setDoc(doc(db, "settings", "deal_of_the_hour"), {
-          active: true,
-          title: "Save 25% on Only Tea & Fresh Fast Food Platters!",
-          discountPercentage: 25,
-          durationMinutes: 30,
-          startTime: Date.now(),
-          applicableItems: [] // empty default
-        }).catch(console.error);
-      }
-    }, (err) => {
-      console.warn("Deal of the Hour subscription error:", handleFirestoreError(err));
-    });
-    return () => unsubscribe();
-  }, []);
-
-  // Price helper considering active deal of the hour discount overrides
-  const getDishPrice = (dish: Dish) => {
-    const now = Date.now();
-    const isDealActive = dealOfTheHour?.active && 
-                         dealOfTheHour?.startTime && 
-                         dealOfTheHour?.durationMinutes && 
-                         (now - dealOfTheHour.startTime < dealOfTheHour.durationMinutes * 60 * 1000);
-                         
-    if (isDealActive && dealOfTheHour.applicableItems?.includes(dish.id)) {
-      return Math.round(dish.price * (1 - dealOfTheHour.discountPercentage / 100));
-    }
-    
-    return dish.discountPrice && dish.discountPrice < dish.price ? dish.discountPrice : dish.price;
-  };
 
 
   // 4. Real-time Orders & Notification Listeners
@@ -573,26 +433,6 @@ export default function App() {
       }
     }
 
-    // MULTI-RESTAURANT CART CONSTRAINTS (RIDER OPTIMIZATION)
-    if (dish.type === "food" && dish.category !== "Drinks") {
-      const dishRestaurant = dish.restaurantName || "Dadu Fast Food & Kitchen";
-      const isDishInCart = cartItems.some((item) => item.dishId === dish.id);
-      if (!isDishInCart) {
-        const currentRestaurants = Array.from(new Set(
-          cartItems
-            .filter((item) => {
-              const matched = dishes.find((d) => d.id === item.dishId);
-              return item.type === "food" && matched?.category !== "Drinks";
-            })
-            .map((item) => item.restaurantName || "Dadu Fast Food & Kitchen")
-        ));
-        if (!currentRestaurants.includes(dishRestaurant) && currentRestaurants.length >= 2) {
-          alert("You can only order from a maximum of 2 restaurants in a single order.");
-          return;
-        }
-      }
-    }
-
     setCartItems((prev) => {
       const existing = prev.find((item) => item.dishId === dish.id);
       if (existing) {
@@ -600,7 +440,7 @@ export default function App() {
           item.dishId === dish.id ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
-      const finalPrice = getDishPrice(dish);
+      const finalPrice = dish.discountPrice && dish.discountPrice < dish.price ? dish.discountPrice : dish.price;
       return [...prev, { 
         dishId: dish.id, 
         name: dish.name, 
@@ -940,8 +780,7 @@ export default function App() {
 
   // --- CATALOG RENDER FILTERS ---
   const filteredDishes = dishes.filter((dish) => {
-    if (dish.category === "Drinks") return false; // Hide exclusive drinks from the main catalog/browsing screen
-    const matchesCategory = activeCategory === "Bookmarks" ? favorites.includes(dish.id) : (activeCategory === "All" || dish.category === activeCategory);
+    const matchesCategory = activeCategory === "All" || dish.category === activeCategory;
     const rName = dish.restaurantName || (dish.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
     const matchesRestaurant = selectedRestaurant === "All Restaurants" || rName === selectedRestaurant;
     const matchesSearch = dish.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -1282,7 +1121,7 @@ export default function App() {
           {activeModule === "food" ? (
             <>
               {/* Billboard / category selectors */}
-              <FoodpandaHero activeCategory={activeCategory} setActiveCategory={setActiveCategory} dealOfTheHour={dealOfTheHour} />
+              <FoodpandaHero activeCategory={activeCategory} setActiveCategory={setActiveCategory} />
 
               {/* Active Order Banner Card */}
               {(() => {
@@ -1345,7 +1184,6 @@ export default function App() {
                   const uniqueRestaurants = Array.from(
                     new Set(
                       dishes
-                        .filter((d) => d.category !== "Drinks")
                         .map((d) => d.restaurantName?.trim() || (d.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen"))
                         .filter(Boolean)
                     )
@@ -1412,10 +1250,6 @@ export default function App() {
                 <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
                   {filteredDishes.map((dish) => {
                     const isSvc = dish.type === "service";
-                    const activePrice = getDishPrice(dish);
-                    const hasDiscount = activePrice < dish.price;
-                    const isBookmarked = favorites.includes(dish.id);
-
                     return (
                       <div
                         key={dish.id}
@@ -1430,50 +1264,26 @@ export default function App() {
                           </div>
                         )}
 
-                        {/* Favorite Bookmark Heart Button */}
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleFavorite(dish.id);
-                          }}
-                          className="absolute top-2 right-2 z-30 w-7 h-7 sm:w-9 sm:h-9 bg-white/95 hover:bg-white text-zinc-700 hover:text-red-500 rounded-full flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition cursor-pointer border border-zinc-200/50"
-                          title={isBookmarked ? "Remove from Favorites" : "Add to Favorites"}
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24"
-                            fill={isBookmarked ? "#ef4444" : "none"}
-                            stroke={isBookmarked ? "#ef4444" : "currentColor"}
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="w-4 h-4 sm:w-5 h-5 transition-colors duration-300"
-                          >
-                            <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-                          </svg>
-                        </button>
-
                         {/* Card Image */}
-                        <div className="relative h-28 sm:h-44 bg-zinc-100 overflow-hidden shrink-0 cursor-pointer animate-fade-in" onClick={() => setActiveDetailDish(dish)}>
+                        <div className="relative h-28 sm:h-44 bg-zinc-100 overflow-hidden shrink-0 cursor-pointer" onClick={() => setActiveDetailDish(dish)}>
                           <img
                             referrerPolicy="no-referrer"
                             src={dish.imageUrl}
                             alt={dish.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition duration-500 animate-fade-in"
+                            className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent"></div>
                           
                           {/* Top Tag */}
-                          <div className="absolute top-2 left-2 flex flex-col gap-1 items-start z-10">
+                          <div className="absolute top-2 left-2 flex flex-col gap-1 items-start">
                             <span className={`text-[8px] sm:text-[10px] font-black uppercase tracking-wider py-0.5 sm:py-1 px-1.5 sm:px-2.5 rounded-md sm:rounded-lg shadow-md ${
                               isSvc ? "bg-amber-500 text-neutral-950 font-extrabold" : "bg-[#D70F64] text-white"
                             }`}>
                               {isSvc ? "🛠️ Service" : "🍔 Food"}
                             </span>
-                            {hasDiscount && (
+                            {dish.discountPrice && dish.discountPrice < dish.price && (
                               <span className="text-[7.5px] sm:text-[9px] font-black uppercase tracking-wider py-0.5 sm:py-0.8 px-1.5 sm:px-2 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-md sm:rounded-lg shadow-md animate-pulse">
-                                🔥 {Math.round(((dish.price - activePrice) / dish.price) * 100)}% OFF
+                                🔥 {Math.round(((dish.price - dish.discountPrice) / dish.price) * 100)}% OFF
                               </span>
                             )}
                           </div>
@@ -1482,17 +1292,17 @@ export default function App() {
                         {/* Card Contents */}
                         <div className="p-2.5 sm:p-4 flex-1 flex flex-col justify-between space-y-2 sm:space-y-3.5 bg-white">
                           <div className="space-y-1 sm:space-y-1.5 flex-1 cursor-pointer" onClick={() => setActiveDetailDish(dish)}>
-                            <div className="text-[8.5px] sm:text-[10.5px] text-zinc-505 font-extrabold tracking-wider uppercase flex items-center gap-1 truncate max-w-full">
+                            <div className="text-[8.5px] sm:text-[10.5px] text-zinc-500 font-extrabold tracking-wider uppercase flex items-center gap-1 truncate max-w-full">
                               <span>🏪</span> {dish.restaurantName || (dish.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen")}
                             </div>
                             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-1 sm:gap-1.5">
                               <h4 className="font-bold text-zinc-800 text-xs sm:text-sm tracking-tight leading-snug group-hover:text-[#D70F64] transition truncate max-w-full">
                                 {dish.name}
                               </h4>
-                              {hasDiscount ? (
+                              {dish.discountPrice && dish.discountPrice < dish.price ? (
                                 <div className="flex flex-col items-end shrink-0 leading-none">
-                                  <span className="font-black text-xs sm:text-sm whitespace-nowrap text-emerald-600">
-                                    Rs. {activePrice}
+                                  <span className={`font-black text-xs sm:text-sm whitespace-nowrap text-emerald-600`}>
+                                    Rs. {dish.discountPrice}
                                   </span>
                                   <span className="text-[9px] sm:text-[10.5px] line-through text-zinc-400 font-bold mt-0.5">
                                     Rs. {dish.price}
@@ -1626,8 +1436,6 @@ export default function App() {
             onUpdateCartQuantity={handleUpdateGroceryCartQuantity}
             onRemoveFromCart={handleRemoveFromGroceryCart}
             searchQuery={searchQuery}
-            favorites={favorites}
-            toggleFavorite={toggleFavorite}
           />
         )}
       </div>
@@ -1656,8 +1464,6 @@ export default function App() {
         onOpenAuth={() => setIsAuthOpen(true)}
         deliveryFee={deliverySettings.deliveryFee}
         onPlaceOrder={handlePlaceOrderSubmit}
-        drinks={dishes.filter(dish => dish.category === "Drinks")}
-        onAddDishToCart={handleAddToCart}
       />
 
       {/* Standalone Grocery Basket Drawer */}
@@ -1816,7 +1622,7 @@ export default function App() {
 
       {/* Floating Bottom Cart for mobile screens */}
       {cartCountTotal > 0 && (
-        <div className="fixed bottom-4 left-4 right-4 z-40 md:hidden bg-zinc-900/95 border border-zinc-850 p-3 rounded-2xl shadow-2xl flex items-center justify-between gap-3 backdrop-blur-md">
+        <div className="fixed bottom-4 left-4 right-4 z-40 md:hidden bg-zinc-900/95 border border-zinc-805 p-3 rounded-2xl shadow-2xl flex items-center justify-between gap-3 backdrop-blur-md">
           <div className="flex items-center gap-2">
             <div className="bg-[#D70F64] text-white px-2 rounded-lg font-black text-xs h-7 flex items-center justify-center min-w-[28px]">
               {cartCountTotal}
@@ -1834,58 +1640,6 @@ export default function App() {
           </button>
         </div>
       )}
-
-      {/* Custom Prominent PWA Install Banner */}
-      <AnimatePresence>
-        {showPwaBanner && (
-          <motion.div
-            initial={{ opacity: 0, y: 50, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 30, scale: 0.95 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className={`fixed left-4 right-4 z-40 md:left-auto md:right-6 md:w-[380px] bg-zinc-950 border border-zinc-800 p-4 rounded-3xl shadow-2xl backdrop-blur-md transition-all duration-300 ${
-              cartCountTotal > 0 ? "bottom-[84px] md:bottom-6" : "bottom-4 md:bottom-6"
-            }`}
-          >
-            <div className="flex gap-3">
-              {/* Decorative Launcher Icon Wrapper */}
-              <div className="w-12 h-12 rounded-2xl bg-[#D70F64]/10 border border-[#D70F64]/20 flex items-center justify-center shrink-0">
-                <Smartphone className="w-6 h-6 text-[#D70F64]" />
-              </div>
-              
-              {/* Text & Metadata details */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-[#D70F64] flex items-center gap-1">
-                    <Sparkles className="w-3.5 h-3.5 animate-pulse" /> PWA APPLICATION
-                  </span>
-                  <button
-                    onClick={() => setShowPwaBanner(false)}
-                    className="text-zinc-500 hover:text-zinc-300 p-1 rounded-full hover:bg-zinc-800 transition cursor-pointer"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-                <h4 className="text-xs font-black text-zinc-100 uppercase tracking-tight mt-1">Dadu App Install Karein!</h4>
-                <p className="text-[10px] text-zinc-450 font-bold leading-relaxed mt-1">
-                  Home Screen par app add karein fast delivery updates, live orders tracking aur full performance ke liye.
-                </p>
-              </div>
-            </div>
-
-            {/* Prominent Large CTA Button */}
-            <div className="mt-3.5 flex items-center gap-2">
-              <button
-                onClick={handlePwaInstallClick}
-                className="flex-1 py-3 bg-[#D70F64] hover:bg-[#b00c50] text-white text-xs font-black uppercase tracking-widest rounded-2xl cursor-pointer transition shadow-lg shadow-[#D70F64]/20 hover:shadow-[#D70F64]/45 flex items-center justify-center gap-2 select-none active:scale-95"
-              >
-                <Download className="w-4 h-4 animate-bounce" />
-                Install Dadu App 🚀
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Footer support details */}
       <footer className="max-w-7xl mx-auto px-4 mt-12 pt-8 border-t border-zinc-800 text-center space-y-4">

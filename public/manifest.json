@@ -1,70 +1,22 @@
 {
-  "id": "/",
-  "name": "Dadu 24/7 Food & Services",
-  "short_name": "Dadu PWA",
-  "description": "Dadu's leading delivery kitchen and expert home services",
-  "start_url": "/?utm_source=pwa",
+  "name": "Dadu Food",
+  "short_name": "DADUFOOD",
+  "description": "Delicious food from Dadu",
+  "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#D70F64",
-  "theme_color": "#D70F64",
+  "background_color": "#ffffff",
+  "theme_color": "#f97316",
   "icons": [
     {
-      "src": "/icons/icon-192.png",
+      "src": "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=192&h=192&fit=crop",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
+      "type": "image/jpeg"
     },
     {
-      "src": "/icons/icon-512.png",
+      "src": "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=512&h=512&fit=crop",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/logo.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/logo.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/logo.jpg",
-      "sizes": "512x512",
-      "type": "image/jpeg",
-      "purpose": "any"
-    }
-  ],
-  "categories": ["food", "shopping", "utilities"],
-  "shortcuts": [
-    {
-      "name": "Order Food",
-      "short_name": "Food",
-      "url": "/?module=food",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
-    },
-    {
-      "name": "Order Groceries",
-      "short_name": "Groceries",
-      "url": "/?module=groceries",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+      "type": "image/jpeg"
     }
   ]
 }
