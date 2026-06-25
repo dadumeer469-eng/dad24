@@ -1424,6 +1424,7 @@ export default function AdminPanel({
                       <option value="Only Tea">Only Tea ☕</option>
                       <option value="Specials">Specials (Offers) ⭐️</option>
                       <option value="Home Services">Home Services 🛠️</option>
+                      <option value="Drinks">Drinks (Checkout Exclusive) 🥤</option>
                     </select>
                   </div>
 

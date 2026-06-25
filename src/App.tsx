@@ -194,6 +194,16 @@ export default function App() {
           list.push(doc.data() as Dish);
         });
         setDishes(list);
+
+        // Proactively seed default drinks if none exist in the database yet
+        const hasDrinks = list.some(item => item.category === "Drinks");
+        if (!hasDrinks) {
+          console.log("No exclusive drinks found in database. Seeding drinks...");
+          const drinksToSeed = INITIAL_MENU_ITEMS.filter(item => item.category === "Drinks");
+          drinksToSeed.forEach(item => {
+            setDoc(doc(db, "menu", item.id), item).catch(console.error);
+          });
+        }
       }
     }, (err) => {
       console.error(handleFirestoreError(err));
@@ -495,6 +505,26 @@ export default function App() {
         setGroceryCartItems([]);
       } else {
         return;
+      }
+    }
+
+    // MULTI-RESTAURANT CART CONSTRAINTS (RIDER OPTIMIZATION)
+    if (dish.type === "food" && dish.category !== "Drinks") {
+      const dishRestaurant = dish.restaurantName || "Dadu Fast Food & Kitchen";
+      const isDishInCart = cartItems.some((item) => item.dishId === dish.id);
+      if (!isDishInCart) {
+        const currentRestaurants = Array.from(new Set(
+          cartItems
+            .filter((item) => {
+              const matched = dishes.find((d) => d.id === item.dishId);
+              return item.type === "food" && matched?.category !== "Drinks";
+            })
+            .map((item) => item.restaurantName || "Dadu Fast Food & Kitchen")
+        ));
+        if (!currentRestaurants.includes(dishRestaurant) && currentRestaurants.length >= 2) {
+          alert("You can only order from a maximum of 2 restaurants in a single order.");
+          return;
+        }
       }
     }
 
@@ -845,6 +875,7 @@ export default function App() {
 
   // --- CATALOG RENDER FILTERS ---
   const filteredDishes = dishes.filter((dish) => {
+    if (dish.category === "Drinks") return false; // Hide exclusive drinks from the main catalog/browsing screen
     const matchesCategory = activeCategory === "Bookmarks" ? favorites.includes(dish.id) : (activeCategory === "All" || dish.category === activeCategory);
     const rName = dish.restaurantName || (dish.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
     const matchesRestaurant = selectedRestaurant === "All Restaurants" || rName === selectedRestaurant;
@@ -1249,6 +1280,7 @@ export default function App() {
                   const uniqueRestaurants = Array.from(
                     new Set(
                       dishes
+                        .filter((d) => d.category !== "Drinks")
                         .map((d) => d.restaurantName?.trim() || (d.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen"))
                         .filter(Boolean)
                     )
@@ -1559,6 +1591,8 @@ export default function App() {
         onOpenAuth={() => setIsAuthOpen(true)}
         deliveryFee={deliverySettings.deliveryFee}
         onPlaceOrder={handlePlaceOrderSubmit}
+        drinks={dishes.filter(dish => dish.category === "Drinks")}
+        onAddDishToCart={handleAddToCart}
       />
 
       {/* Standalone Grocery Basket Drawer */}
