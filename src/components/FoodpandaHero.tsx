@@ -5,31 +5,45 @@ import { motion } from "motion/react";
 interface FoodpandaHeroProps {
   activeCategory: string;
   setActiveCategory: (cat: string) => void;
+  dealOfTheHour?: any;
 }
 
-export default function FoodpandaHero({ activeCategory, setActiveCategory }: FoodpandaHeroProps) {
-  const [timeLeft, setTimeLeft] = useState({ minutes: 29, seconds: 42 });
+export default function FoodpandaHero({ activeCategory, setActiveCategory, dealOfTheHour }: FoodpandaHeroProps) {
+  const [timeLeft, setTimeLeft] = useState({ minutes: 0, seconds: 0 });
+  const [isDealActive, setIsDealActive] = useState(false);
 
-  // Promotional ticking clock countdown
+  // Synchronized promotional timer countdown
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev.seconds > 0) {
-          return { ...prev, seconds: prev.seconds - 1 };
-        } else if (prev.minutes > 0) {
-          return { minutes: prev.minutes - 1, seconds: 59 };
-        } else {
-          // Restart to simulate infinite high-intensity countdown
-          return { minutes: 29, seconds: 59 };
-        }
-      });
-    }, 1000);
+    if (!dealOfTheHour || !dealOfTheHour.active || !dealOfTheHour.startTime || !dealOfTheHour.durationMinutes) {
+      setIsDealActive(false);
+      return;
+    }
 
-    return () => clearInterval(timer);
-  }, []);
+    const updateTimer = () => {
+      const now = Date.now();
+      const elapsedMs = now - dealOfTheHour.startTime;
+      const durationMs = dealOfTheHour.durationMinutes * 60 * 1000;
+      const remainingMs = durationMs - elapsedMs;
+
+      if (remainingMs > 0) {
+        const totalSecs = Math.floor(remainingMs / 1000);
+        const mins = Math.floor(totalSecs / 60);
+        const secs = totalSecs % 60;
+        setTimeLeft({ minutes: mins, seconds: secs });
+        setIsDealActive(true);
+      } else {
+        setIsDealActive(false);
+      }
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [dealOfTheHour]);
 
   const categories = [
     { name: "All", emoji: "🍽️", subtitle: "Sab Kuch", color: "from-[#D70F64] to-[#f22c80]" },
+    { name: "Bookmarks", emoji: "❤️", subtitle: "Favorites", color: "from-rose-500 to-red-600" },
     { name: "Burgers", emoji: "🍔", subtitle: "Zesty Burgers", color: "from-amber-500 to-orange-600" },
     { name: "Pizzas", emoji: "🍕", subtitle: "Hot & Cheesy", color: "from-red-500 to-rose-600" },
     { name: "Chicken & Rice", emoji: "🍗", subtitle: "Desi Flavors", color: "from-yellow-500 to-amber-600" },
@@ -42,8 +56,8 @@ export default function FoodpandaHero({ activeCategory, setActiveCategory }: Foo
     <div className="bg-transparent relative">
       
       {/* Prime Billboard Layout */}
-      <div className="max-w-7xl mx-auto px-4 pt-4 pb-2">
-        <div className="bg-[#D70F64] border border-[#D70F64] overflow-hidden rounded-3.5xl p-5 sm:p-8 relative flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_4px_30px_rgba(215,15,100,0.08)] min-h-[240px]">
+      <div className="max-w-7xl mx-auto px-4 pt-4 pb-1">
+        <div className="bg-[#D70F64] border border-[#D70F64] overflow-hidden rounded-3.5xl p-5 sm:p-8 relative flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_4px_30px_rgba(215,15,100,0.08)] min-h-[220px]">
           
           {/* Professional Dark Culinary & Service Background Image */}
           <div className="absolute inset-0 z-0">
@@ -101,25 +115,30 @@ export default function FoodpandaHero({ activeCategory, setActiveCategory }: Foo
       </div>
 
       {/* Ticking Interactive Count Deal Banner */}
-      <div className="max-w-7xl mx-auto px-4 py-2">
-        <div className="bg-white border border-pink-100 py-3.5 px-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-xs">
-          <div className="flex items-center gap-2 text-xs text-zinc-700 font-medium">
-            <Clock className="w-4 h-4 text-[#D70F64]" />
-            <span className="font-extrabold text-[#D70F64]">Deal of the Hour:</span>
-            <span>Save 25% on Only Tea & Fresh Platters! Hurry!</span>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <span className="text-[10px] uppercase tracking-wider font-extrabold text-zinc-400">Deal Closes In</span>
-            <div className="bg-[#D70F64]/10 border border-[#D70F64]/20 text-[#D70F64] font-black text-xs px-3 py-1 rounded-lg">
-              {String(timeLeft.minutes).padStart(2, "0")} : {String(timeLeft.seconds).padStart(2, "0")}
+      {isDealActive && (
+        <div className="max-w-7xl mx-auto px-4 py-1 animate-fade-in">
+          <div className="bg-gradient-to-r from-rose-50 to-pink-50/50 border border-rose-100 py-2.5 px-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-xs">
+            <div className="flex items-center gap-2 text-xs text-zinc-700 font-medium">
+              <Clock className="w-4 h-4 text-[#D70F64] animate-pulse" />
+              <span className="font-extrabold text-[#D70F64]">Deal of the Hour:</span>
+              <span className="font-semibold text-zinc-800">{dealOfTheHour.title}</span>
+              <span className="bg-rose-500 text-white font-black text-[9px] uppercase px-1.5 py-0.5 rounded ml-1 animate-pulse">
+                -{dealOfTheHour.discountPercentage}%
+              </span>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold text-rose-500">Deal Closes In</span>
+              <div className="bg-[#D70F64] text-white font-mono font-black text-xs px-3 py-1.5 rounded-xl shadow-md tracking-wider">
+                {String(timeLeft.minutes).padStart(2, "0")}m : {String(timeLeft.seconds).padStart(2, "0")}s
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Category Horizontal Filter Bar */}
-      <div id="catalog-section" className="max-w-7xl mx-auto px-4 pt-8 pb-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-5">
+      {/* Category Horizontal Filter Bar - Reduced top-padding and bottom-padding for tighter layout */}
+      <div id="catalog-section" className="max-w-7xl mx-auto px-4 pt-3.5 pb-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3.5">
           <div>
             <h2 className="text-base sm:text-lg font-black tracking-tight text-zinc-900 uppercase flex items-center gap-2">
               <span className="w-3.5 h-3.5 rounded-md bg-[#D70F64] inline-block shadow-sm shadow-pink-500/30"></span>
@@ -133,7 +152,7 @@ export default function FoodpandaHero({ activeCategory, setActiveCategory }: Foo
         </div>
         
         {/* Scroll wrapper */}
-        <div className="flex items-center gap-3 overflow-x-auto pb-3.5 scrollbar-none snap-x snap-mandatory">
+        <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory">
           {categories.map((cat) => {
             const isSelected = activeCategory === cat.name;
             return (

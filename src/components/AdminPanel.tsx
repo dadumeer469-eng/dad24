@@ -12,7 +12,7 @@ import {
 import { 
   Plus, Settings, LayoutDashboard, ShoppingCart, ListCollapse, ToggleLeft, ToggleRight, Trash2, 
   HelpCircle, RefreshCw, Smartphone, TrendingUp, DollarSign, Package, CheckCheck, Save, Send, EyeOff, Wrench,
-  UserPlus, User, Loader2, Key, Truck, Compass, Phone, ShoppingBasket, AlertTriangle, Users
+  UserPlus, User, Loader2, Key, Truck, Compass, Phone, ShoppingBasket, AlertTriangle, Users, Sparkles
 } from "lucide-react";
 
 interface AdminPanelProps {
@@ -322,6 +322,49 @@ export default function AdminPanel({
   const [riderPasswordInput, setRiderPasswordInput] = useState("");
   const [riderRegLoading, setRiderRegLoading] = useState(false);
   const [ridersSubset, setRidersSubset] = useState<UserProfile[]>([]);
+
+  // Deal of the Hour admin states
+  const [dealActive, setDealActive] = useState(false);
+  const [dealTitle, setDealTitle] = useState("");
+  const [dealDiscount, setDealDiscount] = useState(25);
+  const [dealDuration, setDealDuration] = useState(30);
+  const [dealItems, setDealItems] = useState<string[]>([]);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(doc(db, "settings", "deal_of_the_hour"), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setDealActive(data.active ?? false);
+        setDealTitle(data.title ?? "");
+        setDealDiscount(data.discountPercentage ?? 25);
+        setDealDuration(data.durationMinutes ?? 30);
+        setDealItems(data.applicableItems ?? []);
+      }
+    }, (err) => {
+      console.error("Deal subscription error:", err);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleSaveDealOfTheHour = async (startFreshTimer: boolean) => {
+    try {
+      const updatePayload: any = {
+        active: dealActive,
+        title: dealTitle.trim() || `Save ${dealDiscount}% on Select Premium Platters!`,
+        discountPercentage: Number(dealDiscount),
+        durationMinutes: Number(dealDuration),
+        applicableItems: dealItems,
+      };
+      if (startFreshTimer) {
+        updatePayload.startTime = Date.now();
+      }
+      await setDoc(doc(db, "settings", "deal_of_the_hour"), cleanObject(updatePayload), { merge: true });
+      alert(startFreshTimer ? "Deal of the Hour restarted with a fresh timer successfully!" : "Deal of the Hour settings updated successfully!");
+    } catch (err) {
+      console.error("Failed to save Deal of the Hour:", err);
+      alert("Permission denied or database error saving Deal of the Hour settings.");
+    }
+  };
 
   // Real-time listen to registered riders list
   useEffect(() => {
@@ -1215,6 +1258,138 @@ export default function AdminPanel({
           {activeSubTab === "items" && (
             <div className="space-y-8 animate-fade-in">
               
+              {/* Dynamic Deal of the Hour Admin Controls */}
+              <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-rose-950/40 p-6 rounded-[24px] shadow-2xl relative space-y-5">
+                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-rose-500/30 to-transparent" />
+                
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-zinc-800/50">
+                  <div>
+                    <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 uppercase tracking-wide text-rose-500">
+                      <Sparkles className="w-4 h-4 text-rose-500 animate-pulse" />
+                      Dynamic "Deal of the Hour" Controller
+                    </h4>
+                    <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider mt-0.5">
+                      Configure real-time synchronized timer and promotional pricing
+                    </p>
+                  </div>
+                  
+                  {/* Active status pill */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-zinc-400">Deal Status:</span>
+                    <button
+                      type="button"
+                      onClick={() => setDealActive(!dealActive)}
+                      className={`py-1.5 px-3.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition cursor-pointer select-none border ${
+                        dealActive 
+                          ? "bg-rose-950/50 text-rose-400 border-rose-900 animate-pulse" 
+                          : "bg-zinc-900/50 text-zinc-500 border-zinc-800"
+                      }`}
+                    >
+                      {dealActive ? "● ACTIVE & TICKING" : "○ DISABLED / INACTIVE"}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-5 text-xs">
+                  {/* Banner Title Input */}
+                  <div className="md:col-span-6 space-y-1.5">
+                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Promo Banner Announcement Text</label>
+                    <input
+                      type="text"
+                      value={dealTitle}
+                      onChange={(e) => setDealTitle(e.target.value)}
+                      placeholder="e.g. Save 25% on Only Tea & Fresh Platters!"
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-white outline-none focus:border-rose-500 transition text-xs font-semibold"
+                    />
+                  </div>
+
+                  {/* Discount Percentage */}
+                  <div className="md:col-span-3 space-y-1.5">
+                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Discount Percentage (%)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={dealDiscount}
+                      onChange={(e) => setDealDiscount(Number(e.target.value))}
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-white outline-none focus:border-rose-500 transition font-mono font-bold"
+                    />
+                  </div>
+
+                  {/* Duration in Minutes */}
+                  <div className="md:col-span-3 space-y-1.5">
+                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Duration (Minutes)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={dealDuration}
+                      onChange={(e) => setDealDuration(Number(e.target.value))}
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-white outline-none focus:border-rose-500 transition font-mono font-bold"
+                    />
+                  </div>
+
+                  {/* Multi-Select Item Grid */}
+                  <div className="md:col-span-12 space-y-2">
+                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px] block">
+                      Select dishes/services to apply this deal to ({dealItems.length} selected)
+                    </label>
+                    
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 max-h-48 overflow-y-auto p-1 pr-2 bg-zinc-950/50 rounded-2xl border border-zinc-900">
+                      {dishes.map((dish) => {
+                        const isSelected = dealItems.includes(dish.id);
+                        return (
+                          <button
+                            key={dish.id}
+                            type="button"
+                            onClick={() => {
+                              setDealItems((prev) =>
+                                prev.includes(dish.id)
+                                  ? prev.filter((id) => id !== dish.id)
+                                  : [...prev, dish.id]
+                              );
+                            }}
+                            className={`p-2.5 rounded-xl border text-left flex items-center gap-2.5 transition select-none cursor-pointer ${
+                              isSelected
+                                ? "bg-rose-950/20 border-rose-900 text-rose-300"
+                                : "bg-zinc-950 border-zinc-850 text-zinc-400 hover:text-zinc-200"
+                            }`}
+                          >
+                            <img
+                              src={dish.imageUrl}
+                              alt={dish.name}
+                              className="w-7 h-7 rounded-lg object-cover bg-black shrink-0"
+                              referrerPolicy="no-referrer"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="font-extrabold text-[10px] truncate leading-tight">{dish.name}</p>
+                              <p className="text-[9px] text-zinc-500 font-bold font-sans mt-0.5">Rs. {dish.price}</p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-3 justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSaveDealOfTheHour(false)}
+                    className="py-3 px-5 bg-zinc-900 hover:bg-zinc-850 text-zinc-300 font-black text-[10px] uppercase tracking-wider rounded-2xl border border-zinc-800 hover:border-zinc-750 transition cursor-pointer"
+                  >
+                    Save settings only 💾
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSaveDealOfTheHour(true)}
+                    className="py-3 px-5 bg-rose-600 hover:bg-rose-700 text-white font-black text-[10px] uppercase tracking-wider rounded-2xl transition cursor-pointer flex items-center gap-1.5 shadow-lg shadow-rose-600/15"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" style={{ animationDuration: "3s" }} />
+                    Save & Start Fresh Timer ⏱️
+                  </button>
+                </div>
+              </div>
+
               {/* Add New Dish / Home Service Product Form */}
               <form onSubmit={handleAddNewItem} className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl space-y-5 relative">
                 <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-500/10 to-transparent" />

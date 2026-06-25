@@ -65,6 +65,12 @@ export default function App() {
   const [isSuccessAnimationOpen, setIsSuccessAnimationOpen] = useState(false);
   const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
 
+  // Favorites bookmarked items list
+  const [favorites, setFavorites] = useState<string[]>([]);
+
+  // Real-time Deal of the Hour settings
+  const [dealOfTheHour, setDealOfTheHour] = useState<any>(null);
+
   // Visual notify states
   const [toastNotification, setToastNotification] = useState<{ title: string; message: string } | null>(null);
 
@@ -276,6 +282,65 @@ export default function App() {
     localStorage.setItem("dadu_grocery_cart", JSON.stringify(groceryCartItems));
   }, [groceryCartItems]);
 
+  // 3e. Favorites LocalStorage Sync
+  useEffect(() => {
+    const saved = localStorage.getItem("dadu_favorites");
+    if (saved) {
+      try {
+        setFavorites(JSON.parse(saved));
+      } catch (e) {
+        console.warn("Parsing favorites failed:", e);
+      }
+    }
+  }, []);
+
+  const toggleFavorite = (itemId: string) => {
+    setFavorites((prev) => {
+      const next = prev.includes(itemId)
+        ? prev.filter((id) => id !== itemId)
+        : [...prev, itemId];
+      localStorage.setItem("dadu_favorites", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  // 3f. Deal of the Hour Real-time Listener & Seeder
+  useEffect(() => {
+    const unsubscribe = onSnapshot(doc(db, "settings", "deal_of_the_hour"), (docSnap) => {
+      if (docSnap.exists()) {
+        setDealOfTheHour(docSnap.data());
+      } else {
+        // Seed initial default deal of the hour document
+        setDoc(doc(db, "settings", "deal_of_the_hour"), {
+          active: true,
+          title: "Save 25% on Only Tea & Fresh Fast Food Platters!",
+          discountPercentage: 25,
+          durationMinutes: 30,
+          startTime: Date.now(),
+          applicableItems: [] // empty default
+        }).catch(console.error);
+      }
+    }, (err) => {
+      console.warn("Deal of the Hour subscription error:", handleFirestoreError(err));
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Price helper considering active deal of the hour discount overrides
+  const getDishPrice = (dish: Dish) => {
+    const now = Date.now();
+    const isDealActive = dealOfTheHour?.active && 
+                         dealOfTheHour?.startTime && 
+                         dealOfTheHour?.durationMinutes && 
+                         (now - dealOfTheHour.startTime < dealOfTheHour.durationMinutes * 60 * 1000);
+                         
+    if (isDealActive && dealOfTheHour.applicableItems?.includes(dish.id)) {
+      return Math.round(dish.price * (1 - dealOfTheHour.discountPercentage / 100));
+    }
+    
+    return dish.discountPrice && dish.discountPrice < dish.price ? dish.discountPrice : dish.price;
+  };
+
 
   // 4. Real-time Orders & Notification Listeners
   useEffect(() => {
@@ -440,7 +505,7 @@ export default function App() {
           item.dishId === dish.id ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
-      const finalPrice = dish.discountPrice && dish.discountPrice < dish.price ? dish.discountPrice : dish.price;
+      const finalPrice = getDishPrice(dish);
       return [...prev, { 
         dishId: dish.id, 
         name: dish.name, 
@@ -780,7 +845,7 @@ export default function App() {
 
   // --- CATALOG RENDER FILTERS ---
   const filteredDishes = dishes.filter((dish) => {
-    const matchesCategory = activeCategory === "All" || dish.category === activeCategory;
+    const matchesCategory = activeCategory === "Bookmarks" ? favorites.includes(dish.id) : (activeCategory === "All" || dish.category === activeCategory);
     const rName = dish.restaurantName || (dish.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
     const matchesRestaurant = selectedRestaurant === "All Restaurants" || rName === selectedRestaurant;
     const matchesSearch = dish.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -1121,7 +1186,7 @@ export default function App() {
           {activeModule === "food" ? (
             <>
               {/* Billboard / category selectors */}
-              <FoodpandaHero activeCategory={activeCategory} setActiveCategory={setActiveCategory} />
+              <FoodpandaHero activeCategory={activeCategory} setActiveCategory={setActiveCategory} dealOfTheHour={dealOfTheHour} />
 
               {/* Active Order Banner Card */}
               {(() => {
@@ -1250,6 +1315,10 @@ export default function App() {
                 <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
                   {filteredDishes.map((dish) => {
                     const isSvc = dish.type === "service";
+                    const activePrice = getDishPrice(dish);
+                    const hasDiscount = activePrice < dish.price;
+                    const isBookmarked = favorites.includes(dish.id);
+
                     return (
                       <div
                         key={dish.id}
@@ -1264,26 +1333,50 @@ export default function App() {
                           </div>
                         )}
 
+                        {/* Favorite Bookmark Heart Button */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFavorite(dish.id);
+                          }}
+                          className="absolute top-2 right-2 z-30 w-7 h-7 sm:w-9 sm:h-9 bg-white/95 hover:bg-white text-zinc-700 hover:text-red-500 rounded-full flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition cursor-pointer border border-zinc-200/50"
+                          title={isBookmarked ? "Remove from Favorites" : "Add to Favorites"}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill={isBookmarked ? "#ef4444" : "none"}
+                            stroke={isBookmarked ? "#ef4444" : "currentColor"}
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="w-4 h-4 sm:w-5 h-5 transition-colors duration-300"
+                          >
+                            <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                          </svg>
+                        </button>
+
                         {/* Card Image */}
-                        <div className="relative h-28 sm:h-44 bg-zinc-100 overflow-hidden shrink-0 cursor-pointer" onClick={() => setActiveDetailDish(dish)}>
+                        <div className="relative h-28 sm:h-44 bg-zinc-100 overflow-hidden shrink-0 cursor-pointer animate-fade-in" onClick={() => setActiveDetailDish(dish)}>
                           <img
                             referrerPolicy="no-referrer"
                             src={dish.imageUrl}
                             alt={dish.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                            className="w-full h-full object-cover group-hover:scale-105 transition duration-500 animate-fade-in"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent"></div>
                           
                           {/* Top Tag */}
-                          <div className="absolute top-2 left-2 flex flex-col gap-1 items-start">
+                          <div className="absolute top-2 left-2 flex flex-col gap-1 items-start z-10">
                             <span className={`text-[8px] sm:text-[10px] font-black uppercase tracking-wider py-0.5 sm:py-1 px-1.5 sm:px-2.5 rounded-md sm:rounded-lg shadow-md ${
                               isSvc ? "bg-amber-500 text-neutral-950 font-extrabold" : "bg-[#D70F64] text-white"
                             }`}>
                               {isSvc ? "🛠️ Service" : "🍔 Food"}
                             </span>
-                            {dish.discountPrice && dish.discountPrice < dish.price && (
+                            {hasDiscount && (
                               <span className="text-[7.5px] sm:text-[9px] font-black uppercase tracking-wider py-0.5 sm:py-0.8 px-1.5 sm:px-2 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-md sm:rounded-lg shadow-md animate-pulse">
-                                🔥 {Math.round(((dish.price - dish.discountPrice) / dish.price) * 100)}% OFF
+                                🔥 {Math.round(((dish.price - activePrice) / dish.price) * 100)}% OFF
                               </span>
                             )}
                           </div>
@@ -1292,17 +1385,17 @@ export default function App() {
                         {/* Card Contents */}
                         <div className="p-2.5 sm:p-4 flex-1 flex flex-col justify-between space-y-2 sm:space-y-3.5 bg-white">
                           <div className="space-y-1 sm:space-y-1.5 flex-1 cursor-pointer" onClick={() => setActiveDetailDish(dish)}>
-                            <div className="text-[8.5px] sm:text-[10.5px] text-zinc-500 font-extrabold tracking-wider uppercase flex items-center gap-1 truncate max-w-full">
+                            <div className="text-[8.5px] sm:text-[10.5px] text-zinc-505 font-extrabold tracking-wider uppercase flex items-center gap-1 truncate max-w-full">
                               <span>🏪</span> {dish.restaurantName || (dish.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen")}
                             </div>
                             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-1 sm:gap-1.5">
                               <h4 className="font-bold text-zinc-800 text-xs sm:text-sm tracking-tight leading-snug group-hover:text-[#D70F64] transition truncate max-w-full">
                                 {dish.name}
                               </h4>
-                              {dish.discountPrice && dish.discountPrice < dish.price ? (
+                              {hasDiscount ? (
                                 <div className="flex flex-col items-end shrink-0 leading-none">
-                                  <span className={`font-black text-xs sm:text-sm whitespace-nowrap text-emerald-600`}>
-                                    Rs. {dish.discountPrice}
+                                  <span className="font-black text-xs sm:text-sm whitespace-nowrap text-emerald-600">
+                                    Rs. {activePrice}
                                   </span>
                                   <span className="text-[9px] sm:text-[10.5px] line-through text-zinc-400 font-bold mt-0.5">
                                     Rs. {dish.price}
@@ -1436,6 +1529,8 @@ export default function App() {
             onUpdateCartQuantity={handleUpdateGroceryCartQuantity}
             onRemoveFromCart={handleRemoveFromGroceryCart}
             searchQuery={searchQuery}
+            favorites={favorites}
+            toggleFavorite={toggleFavorite}
           />
         )}
       </div>
