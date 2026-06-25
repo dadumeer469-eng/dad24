@@ -23,7 +23,7 @@ import daduLogo from "./assets/images/dadu_food_logo_new_1782333467889.jpg";
 
 // Icons & Motion
 import { 
-  ShieldAlert, Clock, AlertTriangle, MessageSquare, BadgeAlert, Sparkles, CheckSquare, Wrench, HeartHandshake, UtensilsCrossed, Compass, MapPin, Heart
+  ShieldAlert, Clock, AlertTriangle, MessageSquare, BadgeAlert, Sparkles, CheckSquare, Wrench, HeartHandshake, UtensilsCrossed, Compass, MapPin, Heart, LogOut, Home, ArrowLeft
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -38,6 +38,7 @@ export default function App() {
 
   // Favorites and Deal of the Hour configuration
   const [favoriteDishIds, setFavoriteDishIds] = useState<string[]>([]);
+  const [isExitConfirmationOpen, setIsExitConfirmationOpen] = useState(false);
   const [dealConfig, setDealConfig] = useState<{
     timerMinutes: number;
     discountPercentage: number;
@@ -301,7 +302,7 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // 3e. Load favorites from LocalStorage on mount
+  // 3e. Load favorites and initialize root history state on mount
   useEffect(() => {
     const saved = localStorage.getItem("dadu_favorite_dishes");
     if (saved) {
@@ -310,6 +311,11 @@ export default function App() {
       } catch (e) {
         console.warn("Failed to load favorites", e);
       }
+    }
+
+    // Initialize root history state to enable back button intercepting
+    if (!window.history.state || !window.history.state.root) {
+      window.history.pushState({ root: true }, "");
     }
   }, []);
 
@@ -438,7 +444,7 @@ export default function App() {
     setIsAdminConsoleOpen(false);
   };
 
-  // Mobile Back Button Navigation Controller (PWA back button handler)
+  // Mobile Back Button Navigation Controller (PWA back button handler with custom Exit Confirmation interceptor)
   useEffect(() => {
     const isAnyModalOpen = 
       isAuthOpen || 
@@ -448,7 +454,8 @@ export default function App() {
       isTrackingModalOpen || 
       isSuccessAnimationOpen || 
       isHistoryDrawerOpen ||
-      isAdminConsoleOpen;
+      isAdminConsoleOpen ||
+      isExitConfirmationOpen;
 
     if (isAnyModalOpen) {
       if (window.history.state?.modalOpen !== true) {
@@ -461,7 +468,7 @@ export default function App() {
     }
 
     const handlePopState = (event: PopStateEvent) => {
-      if (isAuthOpen || isCartOpen || isGroceryCartOpen || !!activeDetailDish || isTrackingModalOpen || isSuccessAnimationOpen || isHistoryDrawerOpen || isAdminConsoleOpen) {
+      if (isAuthOpen || isCartOpen || isGroceryCartOpen || !!activeDetailDish || isTrackingModalOpen || isSuccessAnimationOpen || isHistoryDrawerOpen || isAdminConsoleOpen || isExitConfirmationOpen) {
         setIsAuthOpen(false);
         setIsCartOpen(false);
         setIsGroceryCartOpen(false);
@@ -470,6 +477,13 @@ export default function App() {
         setIsSuccessAnimationOpen(false);
         setIsHistoryDrawerOpen(false);
         setIsAdminConsoleOpen(false);
+        setIsExitConfirmationOpen(false);
+      } else {
+        // No modal was open and user pressed back - this is the exit attempt!
+        // Prevent immediate exit, show custom confirmation dialog
+        setIsExitConfirmationOpen(true);
+        // Push the root state back so the user can back-out or confirm again
+        window.history.pushState({ root: true }, "");
       }
     };
 
@@ -485,7 +499,8 @@ export default function App() {
     isTrackingModalOpen, 
     isSuccessAnimationOpen, 
     isHistoryDrawerOpen,
-    isAdminConsoleOpen
+    isAdminConsoleOpen,
+    isExitConfirmationOpen
   ]);
 
   // --- CART CONTROLLER OPERATIONS ---
@@ -1754,6 +1769,72 @@ export default function App() {
           <div>
             <h5 className="font-extrabold text-xs text-zinc-100 uppercase tracking-wider">{toastNotification.title}</h5>
             <p className="text-[11px] text-zinc-400 mt-1 leading-normal font-semibold">{toastNotification.message}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Exit/Back Confirmation Dialog */}
+      {isExitConfirmationOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fade-in">
+          <div className="bg-zinc-900 border-2 border-[#D70F64]/30 rounded-[32px] max-w-sm w-full overflow-hidden shadow-2xl text-zinc-100 relative">
+            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#D70F64] to-transparent" />
+            
+            <div className="p-6 text-center space-y-5">
+              {/* Animated Icon Container */}
+              <div className="mx-auto w-16 h-16 rounded-full bg-[#D70F64]/10 border border-[#D70F64]/20 flex items-center justify-center text-[#D70F64]">
+                <LogOut className="w-8 h-8 animate-pulse" />
+              </div>
+
+              {/* Title & Description */}
+              <div className="space-y-2">
+                <h3 className="text-lg font-black uppercase tracking-wide text-zinc-100">Exit Dadu Food?</h3>
+                <p className="text-xs text-zinc-400 font-semibold leading-relaxed">
+                  Are you sure you want to exit? You can stay to explore delicious meals, fresh groceries, or trusted local services!
+                </p>
+              </div>
+
+              {/* Interaction Buttons */}
+              <div className="flex flex-col gap-2 pt-2">
+                {/* Stay & order */}
+                <button
+                  type="button"
+                  onClick={() => setIsExitConfirmationOpen(false)}
+                  className="w-full bg-[#D70F64] hover:bg-[#b00c50] text-white py-3 rounded-2xl font-black text-xs uppercase tracking-wider transition active:scale-95 shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <UtensilsCrossed className="w-4 h-4" />
+                  No, Keep Ordering!
+                </button>
+
+                {/* Back to Home Screen */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveCategory("All");
+                    setSelectedRestaurant("All Restaurants");
+                    setActiveModule("food");
+                    setIsExitConfirmationOpen(false);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="w-full bg-zinc-800 hover:bg-zinc-750 text-zinc-200 py-3 rounded-2xl font-extrabold text-xs uppercase tracking-wider transition active:scale-95 border border-zinc-700/80 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Home className="w-4 h-4" />
+                  Go To Home Screen
+                </button>
+
+                {/* Exit Website */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Back twice to clear the root and modalOpen history state and leave the app
+                    window.history.go(-2);
+                  }}
+                  className="w-full bg-transparent hover:bg-red-500/10 text-red-500 hover:text-red-400 py-2.5 rounded-2xl font-black text-[11px] uppercase tracking-wider transition flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  Yes, Exit App
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
