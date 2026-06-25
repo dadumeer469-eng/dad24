@@ -52,6 +52,23 @@ export default function App() {
     selectedItemIds: ["dish_6", "dish_7"],
     dealText: "Save 25% on Only Tea & Fresh Platters! Hurry!"
   });
+  const [dealTimeLeft, setDealTimeLeft] = useState<{ minutes: number; seconds: number }>({ minutes: 0, seconds: 0 });
+
+  // Deal of the Hour ticking clock countdown in App.tsx
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setDealTimeLeft((prev) => {
+        if (prev.seconds > 0) {
+          return { ...prev, seconds: prev.seconds - 1 };
+        } else if (prev.minutes > 0) {
+          return { minutes: prev.minutes - 1, seconds: 59 };
+        } else {
+          return { minutes: 0, seconds: 0 }; // Keep it at 0:00 (deal is OFF)
+        }
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Standalone Grocery Module states
   const [activeModule, setActiveModule] = useState<"food" | "grocery">("food");
@@ -282,12 +299,14 @@ export default function App() {
     const unsubscribe = onSnapshot(doc(db, "settings", "deal_config"), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
+        const minutes = Number(data.timerMinutes) || 0;
         setDealConfig({
-          timerMinutes: data.timerMinutes || 30,
+          timerMinutes: minutes,
           discountPercentage: data.discountPercentage || 25,
           selectedItemIds: data.selectedItemIds || [],
           dealText: data.dealText || ""
         });
+        setDealTimeLeft({ minutes, seconds: 0 });
       } else {
         // Seed default
         const defaultDeal = {
@@ -297,6 +316,7 @@ export default function App() {
           dealText: "Save 25% on Only Tea & Fresh Platters! Hurry!"
         };
         setDoc(doc(db, "settings", "deal_config"), defaultDeal).catch(console.error);
+        setDealTimeLeft({ minutes: 30, seconds: 0 });
       }
     }, (err) => {
       console.warn("Deal config subscription error:", handleFirestoreError(err));
@@ -915,8 +935,9 @@ export default function App() {
   };
 
   // --- DYNAMIC DEAL OF THE HOUR MODIFIERS ---
+  const isDealActive = dealTimeLeft.minutes > 0 || dealTimeLeft.seconds > 0;
   const finalDishes = dishes.map((dish) => {
-    if (dealConfig?.selectedItemIds?.includes(dish.id)) {
+    if (isDealActive && dealConfig?.selectedItemIds?.includes(dish.id)) {
       const pct = dealConfig.discountPercentage || 0;
       if (pct > 0) {
         const discountPrice = Math.round(dish.price * (1 - pct / 100));
@@ -1273,7 +1294,7 @@ export default function App() {
           {activeModule === "food" ? (
             <>
               {/* Billboard / category selectors */}
-              <FoodpandaHero activeCategory={activeCategory} setActiveCategory={setActiveCategory} dealConfig={dealConfig} />
+              <FoodpandaHero activeCategory={activeCategory} setActiveCategory={setActiveCategory} dealConfig={dealConfig} dealTimeLeft={dealTimeLeft} />
 
               {/* Active Order Banner Card */}
               {(() => {

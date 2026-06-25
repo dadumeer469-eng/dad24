@@ -11,34 +11,10 @@ interface FoodpandaHeroProps {
     selectedItemIds: string[];
     dealText?: string;
   };
+  dealTimeLeft: { minutes: number; seconds: number };
 }
 
-export default function FoodpandaHero({ activeCategory, setActiveCategory, dealConfig }: FoodpandaHeroProps) {
-  const [timeLeft, setTimeLeft] = useState({ minutes: dealConfig.timerMinutes, seconds: 0 });
-
-  // Sync / Reset timer if config duration changes
-  useEffect(() => {
-    setTimeLeft({ minutes: dealConfig.timerMinutes, seconds: 0 });
-  }, [dealConfig.timerMinutes]);
-
-  // Promotional ticking clock countdown
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev.seconds > 0) {
-          return { ...prev, seconds: prev.seconds - 1 };
-        } else if (prev.minutes > 0) {
-          return { minutes: prev.minutes - 1, seconds: 59 };
-        } else {
-          // Loop countdown to simulate high urgency
-          return { minutes: dealConfig.timerMinutes, seconds: 59 };
-        }
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [dealConfig.timerMinutes]);
-
+export default function FoodpandaHero({ activeCategory, setActiveCategory, dealConfig, dealTimeLeft }: FoodpandaHeroProps) {
   const categories = [
     { name: "All", emoji: "🍽️", subtitle: "Sab Kuch", color: "from-[#D70F64] to-[#f22c80]" },
     { name: "Burgers", emoji: "🍔", subtitle: "Zesty Burgers", color: "from-amber-500 to-orange-600" },
@@ -154,23 +130,25 @@ export default function FoodpandaHero({ activeCategory, setActiveCategory, dealC
       </div>
 
       {/* Ticking Interactive Count Deal Banner */}
-      <div className="max-w-7xl mx-auto px-4 py-2">
-        <div className="bg-white border border-pink-100 py-3 px-5 sm:px-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-xs">
-          <div className="flex items-center gap-2 text-xs text-zinc-700 font-medium">
-            <Clock className="w-4 h-4 text-[#D70F64]" />
-            <span className="font-extrabold text-[#D70F64]">Deal of the Hour:</span>
-            <span>
-              {dealConfig.dealText || `Save ${dealConfig.discountPercentage}% on our curated choice of hot items!`}
-            </span>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <span className="text-[10px] uppercase tracking-wider font-extrabold text-zinc-400">Deal Closes In</span>
-            <div className="bg-[#D70F64]/10 border border-[#D70F64]/20 text-[#D70F64] font-black text-xs px-3 py-1 rounded-lg">
-              {String(timeLeft.minutes).padStart(2, "0")} : {String(timeLeft.seconds).padStart(2, "0")}
+      {(dealTimeLeft.minutes > 0 || dealTimeLeft.seconds > 0) && (
+        <div className="max-w-7xl mx-auto px-4 py-2">
+          <div className="bg-white border border-pink-100 py-3 px-5 sm:px-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-xs">
+            <div className="flex items-center gap-2 text-xs text-zinc-700 font-medium">
+              <Clock className="w-4 h-4 text-[#D70F64]" />
+              <span className="font-extrabold text-[#D70F64]">Deal of the Hour:</span>
+              <span>
+                {dealConfig.dealText || `Save ${dealConfig.discountPercentage}% on our curated choice of hot items!`}
+              </span>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold text-zinc-400">Deal Closes In</span>
+              <div className="bg-[#D70F64]/10 border border-[#D70F64]/20 text-[#D70F64] font-black text-xs px-3 py-1 rounded-lg">
+                {String(dealTimeLeft.minutes).padStart(2, "0")} : {String(dealTimeLeft.seconds).padStart(2, "0")}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Category Horizontal Filter Bar (Spacing tightly adjusted, headers removed) */}
       <div id="catalog-section" className="max-w-7xl mx-auto px-4 pt-1.5 pb-2">
