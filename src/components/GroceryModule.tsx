@@ -51,25 +51,33 @@ export default function GroceryModule({
       <div className="max-w-7xl mx-auto px-4 space-y-6 sm:space-y-8">
         
         {/* Glowing Orange Welcome Banner */}
-        <div className="relative overflow-hidden bg-gradient-to-r from-orange-600 to-amber-700 p-6 sm:p-8 rounded-3xl shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="absolute inset-0 bg-black/10"></div>
-          <div className="absolute -top-12 -right-12 w-32 h-32 bg-yellow-400/20 rounded-full blur-2xl"></div>
+        <div 
+          className="relative overflow-hidden p-6 sm:p-8 rounded-3xl shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 border border-orange-500/20"
+          style={{ 
+            backgroundImage: `url("https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1200")`,
+            backgroundSize: "cover",
+            backgroundPosition: "center"
+          }}
+        >
+          {/* VIP Premium overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/80 to-orange-950/40 z-0"></div>
+          <div className="absolute -top-12 -right-12 w-32 h-32 bg-orange-500/10 rounded-full blur-2xl z-0"></div>
           
-          <div className="relative space-y-2 z-10 text-center md:text-left">
-            <span className="inline-flex items-center gap-1.5 bg-black/25 text-amber-300 py-1 px-3.5 rounded-full text-[10px] font-black uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 animate-pulse text-amber-300" />
-              Dadu Fresh Mart
+          <div className="relative space-y-2.5 z-10 text-center md:text-left">
+            <span className="inline-flex items-center gap-1.5 bg-orange-600/20 border border-orange-500/40 text-orange-300 py-1.5 px-4 rounded-full text-[10px] font-black uppercase tracking-wider backdrop-blur-md">
+              <Sparkles className="w-3.5 h-3.5 animate-pulse text-orange-400" />
+              Dadu Fresh VIP Mart
             </span>
-            <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white uppercase">
-              Instant Groceries <span className="text-yellow-300">Fast Delivery</span>
+            <h2 className="text-2xl sm:text-4xl font-black tracking-tight text-white uppercase drop-shadow-md">
+              Instant Groceries <span className="text-orange-400 bg-orange-500/15 border border-orange-500/20 px-2 rounded-xl">Fast Delivery</span>
             </h2>
-            <p className="text-xs sm:text-sm text-orange-50 font-medium">
+            <p className="text-xs sm:text-sm text-zinc-300 font-medium max-w-xl">
               We stock 100% fresh dairy, farm veggies, bread and sweets delivered to your door in minutes!
             </p>
           </div>
 
-          <div className="relative shrink-0 flex items-center justify-center bg-white/10 border border-white/20 p-5 rounded-2xl backdrop-blur-md z-10">
-            <ShoppingBasket className="w-14 h-14 text-white stroke-[1.5] filter drop-shadow-md animate-bounce" />
+          <div className="relative shrink-0 flex items-center justify-center bg-zinc-900/80 border border-orange-500/30 p-5 rounded-2xl backdrop-blur-md z-10 shadow-lg shadow-orange-500/10">
+            <ShoppingBasket className="w-14 h-14 text-orange-500 stroke-[1.5] filter drop-shadow-md animate-bounce" />
           </div>
         </div>
 

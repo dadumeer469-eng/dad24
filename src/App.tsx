@@ -1799,26 +1799,10 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setIsExitConfirmationOpen(false)}
-                  className="w-full bg-[#D70F64] hover:bg-[#b00c50] text-white py-3 rounded-2xl font-black text-xs uppercase tracking-wider transition active:scale-95 shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full bg-[#D70F64] hover:bg-[#b00c50] text-white py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider transition active:scale-95 shadow-md flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <UtensilsCrossed className="w-4 h-4" />
-                  No, Keep Ordering!
-                </button>
-
-                {/* Back to Home Screen */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveCategory("All");
-                    setSelectedRestaurant("All Restaurants");
-                    setActiveModule("food");
-                    setIsExitConfirmationOpen(false);
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                  className="w-full bg-zinc-800 hover:bg-zinc-750 text-zinc-200 py-3 rounded-2xl font-extrabold text-xs uppercase tracking-wider transition active:scale-95 border border-zinc-700/80 flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Home className="w-4 h-4" />
-                  Go To Home Screen
+                  Keep Ordering
                 </button>
 
                 {/* Exit Website */}
@@ -1828,10 +1812,10 @@ export default function App() {
                     // Back twice to clear the root and modalOpen history state and leave the app
                     window.history.go(-2);
                   }}
-                  className="w-full bg-transparent hover:bg-red-500/10 text-red-500 hover:text-red-400 py-2.5 rounded-2xl font-black text-[11px] uppercase tracking-wider transition flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full bg-zinc-800 hover:bg-zinc-750 text-zinc-200 py-3 rounded-2xl font-extrabold text-xs uppercase tracking-wider transition active:scale-95 border border-zinc-700/80 flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  Yes, Exit App
+                  <ArrowLeft className="w-4 h-4 text-red-500" />
+                  Exit App
                 </button>
               </div>
             </div>
