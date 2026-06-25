@@ -23,7 +23,8 @@ import daduLogo from "./assets/images/dadu_food_logo_new_1782333467889.jpg";
 
 // Icons & Motion
 import { 
-  ShieldAlert, Clock, AlertTriangle, MessageSquare, BadgeAlert, Sparkles, CheckSquare, Wrench, HeartHandshake, UtensilsCrossed, Compass, MapPin
+  ShieldAlert, Clock, AlertTriangle, MessageSquare, BadgeAlert, Sparkles, CheckSquare, Wrench, HeartHandshake, UtensilsCrossed, Compass, MapPin,
+  Download, Smartphone, X
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -74,6 +75,10 @@ export default function App() {
   // Visual notify states
   const [toastNotification, setToastNotification] = useState<{ title: string; message: string } | null>(null);
 
+  // PWA Install Prompt State
+  const [pwaPrompt, setPwaPrompt] = useState<any>(null);
+  const [showPwaBanner, setShowPwaBanner] = useState(false);
+
   // Audio synthesizer chime tone
   const playChimeSound = () => {
     try {
@@ -113,6 +118,66 @@ export default function App() {
 
     } catch (err) {
       console.warn("AudioContext blocked or waiting for user gesture:", err);
+    }
+  };
+
+  // 0. PWA Install Event Handler & Global Synchronizer
+  useEffect(() => {
+    // 1. Check if we already have a globally captured prompt
+    const globalPrompt = (window as any).deferredInstallPrompt;
+    if (globalPrompt) {
+      setPwaPrompt(globalPrompt);
+      setShowPwaBanner(true);
+    }
+
+    // 2. Listen to custom event in case index.html captured it while React was initializing
+    const handlePwaPromptAvailable = (e: any) => {
+      const promptEvent = e.detail;
+      if (promptEvent) {
+        setPwaPrompt(promptEvent);
+        setShowPwaBanner(true);
+      }
+    };
+
+    // 3. Standard browser level event listener fallback
+    const handleBeforeInstall = (e: any) => {
+      e.preventDefault();
+      setPwaPrompt(e);
+      setShowPwaBanner(true);
+      (window as any).deferredInstallPrompt = e;
+    };
+
+    const handleAppInstalled = () => {
+      setShowPwaBanner(false);
+      setPwaPrompt(null);
+      (window as any).deferredInstallPrompt = null;
+      console.log("Dadu App was successfully installed!");
+    };
+
+    window.addEventListener("pwa-prompt-available", handlePwaPromptAvailable as EventListener);
+    window.addEventListener("beforeinstallprompt", handleBeforeInstall);
+    window.addEventListener("appinstalled", handleAppInstalled);
+
+    return () => {
+      window.removeEventListener("pwa-prompt-available", handlePwaPromptAvailable as EventListener);
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
+  }, []);
+
+  const handlePwaInstallClick = async () => {
+    if (!pwaPrompt) return;
+    try {
+      pwaPrompt.prompt();
+      const { outcome } = await pwaPrompt.userChoice;
+      console.log(`User response to install prompt: ${outcome}`);
+      if (outcome === "accepted") {
+        setShowPwaBanner(false);
+        setPwaPrompt(null);
+        (window as any).deferredInstallPrompt = null;
+      }
+    } catch (err) {
+      console.error("Failed to present PWA install prompt:", err);
     }
   };
 
@@ -1751,7 +1816,7 @@ export default function App() {
 
       {/* Floating Bottom Cart for mobile screens */}
       {cartCountTotal > 0 && (
-        <div className="fixed bottom-4 left-4 right-4 z-40 md:hidden bg-zinc-900/95 border border-zinc-805 p-3 rounded-2xl shadow-2xl flex items-center justify-between gap-3 backdrop-blur-md">
+        <div className="fixed bottom-4 left-4 right-4 z-40 md:hidden bg-zinc-900/95 border border-zinc-850 p-3 rounded-2xl shadow-2xl flex items-center justify-between gap-3 backdrop-blur-md">
           <div className="flex items-center gap-2">
             <div className="bg-[#D70F64] text-white px-2 rounded-lg font-black text-xs h-7 flex items-center justify-center min-w-[28px]">
               {cartCountTotal}
@@ -1769,6 +1834,58 @@ export default function App() {
           </button>
         </div>
       )}
+
+      {/* Custom Prominent PWA Install Banner */}
+      <AnimatePresence>
+        {showPwaBanner && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 30, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className={`fixed left-4 right-4 z-40 md:left-auto md:right-6 md:w-[380px] bg-zinc-950 border border-zinc-800 p-4 rounded-3xl shadow-2xl backdrop-blur-md transition-all duration-300 ${
+              cartCountTotal > 0 ? "bottom-[84px] md:bottom-6" : "bottom-4 md:bottom-6"
+            }`}
+          >
+            <div className="flex gap-3">
+              {/* Decorative Launcher Icon Wrapper */}
+              <div className="w-12 h-12 rounded-2xl bg-[#D70F64]/10 border border-[#D70F64]/20 flex items-center justify-center shrink-0">
+                <Smartphone className="w-6 h-6 text-[#D70F64]" />
+              </div>
+              
+              {/* Text & Metadata details */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-[#D70F64] flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 animate-pulse" /> PWA APPLICATION
+                  </span>
+                  <button
+                    onClick={() => setShowPwaBanner(false)}
+                    className="text-zinc-500 hover:text-zinc-300 p-1 rounded-full hover:bg-zinc-800 transition cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <h4 className="text-xs font-black text-zinc-100 uppercase tracking-tight mt-1">Dadu App Install Karein!</h4>
+                <p className="text-[10px] text-zinc-450 font-bold leading-relaxed mt-1">
+                  Home Screen par app add karein fast delivery updates, live orders tracking aur full performance ke liye.
+                </p>
+              </div>
+            </div>
+
+            {/* Prominent Large CTA Button */}
+            <div className="mt-3.5 flex items-center gap-2">
+              <button
+                onClick={handlePwaInstallClick}
+                className="flex-1 py-3 bg-[#D70F64] hover:bg-[#b00c50] text-white text-xs font-black uppercase tracking-widest rounded-2xl cursor-pointer transition shadow-lg shadow-[#D70F64]/20 hover:shadow-[#D70F64]/45 flex items-center justify-center gap-2 select-none active:scale-95"
+              >
+                <Download className="w-4 h-4 animate-bounce" />
+                Install Dadu App 🚀
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Footer support details */}
       <footer className="max-w-7xl mx-auto px-4 mt-12 pt-8 border-t border-zinc-800 text-center space-y-4">

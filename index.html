@@ -11,10 +11,18 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   </head>
   <body>
-    <button id="installBtn" style="display: none; position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 9999; background-color: #D70F64; color: white; border: none; padding: 12px 24px; border-radius: 9999px; font-weight: bold; cursor: pointer; box-shadow: 0 10px 15px -3px rgba(215, 15, 100, 0.4); font-family: sans-serif; font-size: 14px; transition: all 0.2s ease; border: 1px solid rgba(255,255,255,0.2);">Install Dadu Food App 🚀</button>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
+      // Capture the beforeinstallprompt early in case React hasn't registered its listener yet
+      window.deferredInstallPrompt = null;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        window.deferredInstallPrompt = e;
+        // Dispatch a custom event so React knows it has been captured if it's already mounted
+        window.dispatchEvent(new CustomEvent('pwa-prompt-available', { detail: e }));
+      });
+
       if ('serviceWorker' in navigator) {
         const registerSW = () => {
           try {
@@ -34,44 +42,6 @@
           window.addEventListener('load', registerSW);
         }
       }
-
-      let deferredPrompt;
-      const installBtn = document.getElementById('installBtn');
-
-      window.addEventListener('beforeinstallprompt', (e) => {
-        try {
-          e.preventDefault();
-          deferredPrompt = e;
-          if (installBtn) {
-            installBtn.style.display = 'block';
-          }
-        } catch (err) {
-          console.warn('beforeinstallprompt error:', err);
-        }
-      });
-
-      if (installBtn) {
-        installBtn.addEventListener('click', async () => {
-          if (deferredPrompt) {
-            try {
-              deferredPrompt.prompt();
-              const { outcome } = await deferredPrompt.userChoice;
-              if (outcome === 'accepted') {
-                installBtn.style.display = 'none';
-              }
-            } catch (err) {
-              console.warn('Prompt failed or cancelled:', err);
-            }
-            deferredPrompt = null;
-          }
-        });
-      }
-
-      window.addEventListener('appinstalled', () => {
-        if (installBtn) {
-          installBtn.style.display = 'none';
-        }
-      });
     </script>
   </body>
 </html>
