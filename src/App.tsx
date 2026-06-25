@@ -40,6 +40,7 @@ export default function App() {
   const [favoriteDishIds, setFavoriteDishIds] = useState<string[]>([]);
   const [isExitConfirmationOpen, setIsExitConfirmationOpen] = useState(false);
   const isExitingRef = useRef(false);
+  const isProgrammaticBackRef = useRef(false);
   const [dealConfig, setDealConfig] = useState<{
     timerMinutes: number;
     discountPercentage: number;
@@ -313,6 +314,11 @@ export default function App() {
         console.warn("Failed to load favorites", e);
       }
     }
+
+    // Initialize root history state to enable back button intercepting
+    if (!window.history.state || !window.history.state.appRoot) {
+      window.history.pushState({ appRoot: true }, "");
+    }
   }, []);
 
   // 3f. Save favorites to LocalStorage whenever they change
@@ -442,29 +448,40 @@ export default function App() {
 
   // Mobile Back Button Navigation Controller (PWA back button handler with custom Exit Confirmation interceptor)
   useEffect(() => {
-    // Push the initial active state so we can capture the back button
-    if (!window.history.state || !window.history.state.appActive) {
-      window.history.pushState({ appActive: true }, "");
+    const isAnyModalOpen = 
+      isAuthOpen || 
+      isCartOpen || 
+      isGroceryCartOpen || 
+      !!activeDetailDish || 
+      isTrackingModalOpen || 
+      isSuccessAnimationOpen || 
+      isHistoryDrawerOpen ||
+      isAdminConsoleOpen ||
+      isExitConfirmationOpen;
+
+    if (isAnyModalOpen) {
+      if (window.history.state?.modalOpen !== true) {
+        window.history.pushState({ modalOpen: true }, "");
+      }
+    } else {
+      if (window.history.state?.modalOpen === true) {
+        isProgrammaticBackRef.current = true;
+        window.history.back();
+      }
     }
 
     const handlePopState = (event: PopStateEvent) => {
       if (isExitingRef.current) {
-        // If the user clicked "Exit App", don't intercept! Let the browser go back naturally.
         return;
       }
 
-      const isAnyModalOpen = 
-        isAuthOpen || 
-        isCartOpen || 
-        isGroceryCartOpen || 
-        !!activeDetailDish || 
-        isTrackingModalOpen || 
-        isSuccessAnimationOpen || 
-        isHistoryDrawerOpen ||
-        isAdminConsoleOpen;
+      if (isProgrammaticBackRef.current) {
+        isProgrammaticBackRef.current = false;
+        return;
+      }
 
-      if (isAnyModalOpen) {
-        // If any modal was open, close all of them and stay on the app
+      // Close open modals
+      if (isAuthOpen || isCartOpen || isGroceryCartOpen || !!activeDetailDish || isTrackingModalOpen || isSuccessAnimationOpen || isHistoryDrawerOpen || isAdminConsoleOpen) {
         setIsAuthOpen(false);
         setIsCartOpen(false);
         setIsGroceryCartOpen(false);
@@ -473,19 +490,18 @@ export default function App() {
         setIsSuccessAnimationOpen(false);
         setIsHistoryDrawerOpen(false);
         setIsAdminConsoleOpen(false);
-        
-        // Push state back to maintain the back-button lock
-        window.history.pushState({ appActive: true }, "");
-      } else if (isExitConfirmationOpen) {
-        // If the confirmation dialog was already open and they pressed back again, close it
-        setIsExitConfirmationOpen(false);
-        window.history.pushState({ appActive: true }, "");
-      } else {
-        // No modal was open. Show exit confirmation!
-        setIsExitConfirmationOpen(true);
-        // Push state back to keep the user inside the app
-        window.history.pushState({ appActive: true }, "");
+        return;
       }
+
+      // Close exit confirmation if open
+      if (isExitConfirmationOpen) {
+        setIsExitConfirmationOpen(false);
+        return;
+      }
+
+      // No modal open: trigger exit confirmation dialogue and push state back to trap next back click
+      setIsExitConfirmationOpen(true);
+      window.history.pushState({ appRoot: true }, "");
     };
 
     window.addEventListener("popstate", handlePopState);
