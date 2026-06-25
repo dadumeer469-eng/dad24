@@ -15,69 +15,63 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      // Safe environment check to prevent SecurityError and cross-origin "Script error" in sandboxed development preview iframes
-      let isTopLevel = false;
-      try {
-        isTopLevel = (window.parent === window);
-      } catch (e) {
-        isTopLevel = false;
+      if ('serviceWorker' in navigator) {
+        const registerSW = () => {
+          try {
+            navigator.serviceWorker.register('/sw.js').then((reg) => {
+              console.log('ServiceWorker registered successfully:', reg.scope);
+            }).catch((err) => {
+              console.warn('ServiceWorker registration failed:', err);
+            });
+          } catch (e) {
+            console.warn('ServiceWorker registration threw error:', e);
+          }
+        };
+
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+          registerSW();
+        } else {
+          window.addEventListener('load', registerSW);
+        }
       }
 
-      if (isTopLevel) {
-        if ('serviceWorker' in navigator) {
-          const registerSW = () => {
-            try {
-              navigator.serviceWorker.register('/sw.js').then((reg) => {
-                console.log('ServiceWorker registered successfully:', reg.scope);
-              }).catch((err) => {
-                console.warn('ServiceWorker registration failed:', err);
-              });
-            } catch (e) {
-              console.warn('ServiceWorker registration error:', e);
-            }
-          };
+      let deferredPrompt;
+      const installBtn = document.getElementById('installBtn');
 
-          if (document.readyState === 'complete' || document.readyState === 'interactive') {
-            registerSW();
-          } else {
-            window.addEventListener('load', registerSW);
-          }
-        }
-
-        let deferredPrompt;
-        const installBtn = document.getElementById('installBtn');
-
-        window.addEventListener('beforeinstallprompt', (e) => {
+      window.addEventListener('beforeinstallprompt', (e) => {
+        try {
           e.preventDefault();
           deferredPrompt = e;
           if (installBtn) {
             installBtn.style.display = 'block';
           }
-        });
-
-        if (installBtn) {
-          installBtn.addEventListener('click', async () => {
-            if (deferredPrompt) {
-              try {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                  installBtn.style.display = 'none';
-                }
-              } catch (err) {
-                console.warn('Prompt failed or cancelled:', err);
-              }
-              deferredPrompt = null;
-            }
-          });
+        } catch (err) {
+          console.warn('beforeinstallprompt error:', err);
         }
+      });
 
-        window.addEventListener('appinstalled', () => {
-          if (installBtn) {
-            installBtn.style.display = 'none';
+      if (installBtn) {
+        installBtn.addEventListener('click', async () => {
+          if (deferredPrompt) {
+            try {
+              deferredPrompt.prompt();
+              const { outcome } = await deferredPrompt.userChoice;
+              if (outcome === 'accepted') {
+                installBtn.style.display = 'none';
+              }
+            } catch (err) {
+              console.warn('Prompt failed or cancelled:', err);
+            }
+            deferredPrompt = null;
           }
         });
       }
+
+      window.addEventListener('appinstalled', () => {
+        if (installBtn) {
+          installBtn.style.display = 'none';
+        }
+      });
     </script>
   </body>
 </html>

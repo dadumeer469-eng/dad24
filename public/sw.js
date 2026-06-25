@@ -1,12 +1,10 @@
-const CACHE_NAME = "dadu-food-cache-v2";
+const CACHE_NAME = "dadu-food-cache-v3";
 const PRECACHE_ASSETS = [
   "/",
   "/index.html",
   "/manifest.json",
   "/logo.png",
-  "/logo.jpg",
-  "/icons/icon-192.png",
-  "/icons/icon-512.png"
+  "/logo.jpg"
 ];
 
 // On install, pre-cache core assets
@@ -45,45 +43,48 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Avoid caching Firebase, Hot Module Replacement (HMR) or dev server API requests
-  if (request.url.includes("/api/") || request.url.includes("firestore") || request.url.includes("firebase")) {
+  // Avoid caching dev server websocket, hot-reloads, firebase, api, or firestore
+  if (
+    request.url.includes("/api/") || 
+    request.url.includes("firestore") || 
+    request.url.includes("firebase") ||
+    request.url.includes("/@vite") ||
+    request.url.includes("/node_modules/") ||
+    request.url.includes("hmr") ||
+    request.url.includes("sockjs")
+  ) {
     return;
   }
 
+  // NETWORK FIRST STRATEGY: Fetch from network, fall back to cache
   event.respondWith(
-    caches.match(request).then((cachedResponse) => {
-      if (cachedResponse) {
-        // Return cached version, but fetch fresh one in the background (stale-while-revalidate)
-        fetch(request)
-          .then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200 && networkResponse.type === "basic") {
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(request, networkResponse);
-              });
-            }
-          })
-          .catch(() => { /* ignore background fetch failure */ });
-        return cachedResponse;
-      }
-
-      // If not cached, fetch from network and dynamically cache it
-      return fetch(request)
-        .then((networkResponse) => {
-          if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== "basic") {
-            return networkResponse;
+    fetch(request)
+      .then((networkResponse) => {
+        // If successful, and it's a standard static asset, put it in cache
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === "basic") {
+          const urlStr = request.url;
+          // Only dynamically cache images, fonts, and manifest to prevent JS chunk caching issues
+          const isStaticAsset = /\.(png|jpg|jpeg|gif|svg|ico|woff2|woff|ttf|otf|json)$/i.test(urlStr) || urlStr === self.location.origin + "/";
+          if (isStaticAsset) {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseToCache);
+            });
           }
-          const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseToCache);
-          });
-          return networkResponse;
-        })
-        .catch(() => {
-          // Fallback to offline index.html if the request is for document navigation
+        }
+        return networkResponse;
+      })
+      .catch(() => {
+        // Fallback: search cache
+        return caches.match(request).then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          // If a navigation request fails (offline), return precached root
           if (request.mode === "navigate") {
             return caches.match("/");
           }
         });
-    })
+      })
   );
 });

@@ -3,7 +3,7 @@
   "name": "Dadu 24/7 Food & Services",
   "short_name": "Dadu PWA",
   "description": "Dadu's leading delivery kitchen and expert home services",
-  "start_url": "/",
+  "start_url": "/?utm_source=pwa",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#D70F64",
@@ -16,22 +16,28 @@
       "purpose": "any"
     },
     {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
       "src": "/logo.jpg",
       "sizes": "512x512",
       "type": "image/jpeg",
       "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
     }
   ],
   "categories": ["food", "shopping", "utilities"],
@@ -40,13 +46,13 @@
       "name": "Order Food",
       "short_name": "Food",
       "url": "/?module=food",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
     },
     {
       "name": "Order Groceries",
       "short_name": "Groceries",
       "url": "/?module=groceries",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
     }
   ]
 }
