@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { 
   collection, doc, onSnapshot, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, getDocs 
@@ -39,6 +39,7 @@ export default function App() {
   // Favorites and Deal of the Hour configuration
   const [favoriteDishIds, setFavoriteDishIds] = useState<string[]>([]);
   const [isExitConfirmationOpen, setIsExitConfirmationOpen] = useState(false);
+  const isExitingRef = useRef(false);
   const [dealConfig, setDealConfig] = useState<{
     timerMinutes: number;
     discountPercentage: number;
@@ -302,7 +303,7 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // 3e. Load favorites and initialize root history state on mount
+  // 3e. Load favorites from LocalStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem("dadu_favorite_dishes");
     if (saved) {
@@ -311,11 +312,6 @@ export default function App() {
       } catch (e) {
         console.warn("Failed to load favorites", e);
       }
-    }
-
-    // Initialize root history state to enable back button intercepting
-    if (!window.history.state || !window.history.state.root) {
-      window.history.pushState({ root: true }, "");
     }
   }, []);
 
@@ -446,29 +442,29 @@ export default function App() {
 
   // Mobile Back Button Navigation Controller (PWA back button handler with custom Exit Confirmation interceptor)
   useEffect(() => {
-    const isAnyModalOpen = 
-      isAuthOpen || 
-      isCartOpen || 
-      isGroceryCartOpen || 
-      !!activeDetailDish || 
-      isTrackingModalOpen || 
-      isSuccessAnimationOpen || 
-      isHistoryDrawerOpen ||
-      isAdminConsoleOpen ||
-      isExitConfirmationOpen;
-
-    if (isAnyModalOpen) {
-      if (window.history.state?.modalOpen !== true) {
-        window.history.pushState({ modalOpen: true }, "");
-      }
-    } else {
-      if (window.history.state?.modalOpen === true) {
-        window.history.back();
-      }
+    // Push the initial active state so we can capture the back button
+    if (!window.history.state || !window.history.state.appActive) {
+      window.history.pushState({ appActive: true }, "");
     }
 
     const handlePopState = (event: PopStateEvent) => {
-      if (isAuthOpen || isCartOpen || isGroceryCartOpen || !!activeDetailDish || isTrackingModalOpen || isSuccessAnimationOpen || isHistoryDrawerOpen || isAdminConsoleOpen || isExitConfirmationOpen) {
+      if (isExitingRef.current) {
+        // If the user clicked "Exit App", don't intercept! Let the browser go back naturally.
+        return;
+      }
+
+      const isAnyModalOpen = 
+        isAuthOpen || 
+        isCartOpen || 
+        isGroceryCartOpen || 
+        !!activeDetailDish || 
+        isTrackingModalOpen || 
+        isSuccessAnimationOpen || 
+        isHistoryDrawerOpen ||
+        isAdminConsoleOpen;
+
+      if (isAnyModalOpen) {
+        // If any modal was open, close all of them and stay on the app
         setIsAuthOpen(false);
         setIsCartOpen(false);
         setIsGroceryCartOpen(false);
@@ -477,13 +473,18 @@ export default function App() {
         setIsSuccessAnimationOpen(false);
         setIsHistoryDrawerOpen(false);
         setIsAdminConsoleOpen(false);
+        
+        // Push state back to maintain the back-button lock
+        window.history.pushState({ appActive: true }, "");
+      } else if (isExitConfirmationOpen) {
+        // If the confirmation dialog was already open and they pressed back again, close it
         setIsExitConfirmationOpen(false);
+        window.history.pushState({ appActive: true }, "");
       } else {
-        // No modal was open and user pressed back - this is the exit attempt!
-        // Prevent immediate exit, show custom confirmation dialog
+        // No modal was open. Show exit confirmation!
         setIsExitConfirmationOpen(true);
-        // Push the root state back so the user can back-out or confirm again
-        window.history.pushState({ root: true }, "");
+        // Push state back to keep the user inside the app
+        window.history.pushState({ appActive: true }, "");
       }
     };
 
@@ -1809,8 +1810,12 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => {
-                    // Back twice to clear the root and modalOpen history state and leave the app
-                    window.history.go(-2);
+                    isExitingRef.current = true;
+                    setIsExitConfirmationOpen(false);
+                    window.history.back();
+                    setTimeout(() => {
+                      window.location.href = "about:blank";
+                    }, 150);
                   }}
                   className="w-full bg-zinc-800 hover:bg-zinc-750 text-zinc-200 py-3 rounded-2xl font-extrabold text-xs uppercase tracking-wider transition active:scale-95 border border-zinc-700/80 flex items-center justify-center gap-2 cursor-pointer"
                 >
