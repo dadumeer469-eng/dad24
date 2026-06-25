@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { UserProfile, OrderItem } from "../types";
 import { X, ShoppingBag, MapPin, Phone, User, AlertTriangle, ShieldCheck, Heart, Edit2, Compass } from "lucide-react";
+import { CHECKOUT_DRINKS } from "../data";
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface CartDrawerProps {
   onOpenAuth: () => void;
   deliveryFee: number; // Stored inside Firestore settings!
   onPlaceOrder: (details: { name: string; phone: string; address: string; paymentMethod: string; orderType: "food" | "service"; userCoords?: { latitude: number; longitude: number } }) => Promise<void>;
+  onAddDrink: (drink: any) => void;
 }
 
 export default function CartDrawer({
@@ -24,6 +26,7 @@ export default function CartDrawer({
   onOpenAuth,
   deliveryFee,
   onPlaceOrder,
+  onAddDrink,
 }: CartDrawerProps) {
   const [nameInput, setNameInput] = useState("");
   const [phoneInput, setPhoneInput] = useState("");
@@ -212,6 +215,80 @@ export default function CartDrawer({
                   </button>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Checkout-Exclusive Drinks Recommendation Section */}
+          {cartItems.length > 0 && (
+            <div className="bg-gradient-to-br from-[#D70F64]/5 to-zinc-900 border border-[#D70F64]/15 p-4 rounded-3xl mt-4 space-y-3 shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black uppercase tracking-wider text-[#D70F64] flex items-center gap-1.5">
+                  <span className="text-base">🥤</span> Complete Your Meal
+                </span>
+                <span className="bg-[#D70F64]/10 text-[#D70F64] text-[8px] font-black uppercase px-2 py-0.5 rounded-full">
+                  Checkout Exclusive
+                </span>
+              </div>
+              <p className="text-[10px] text-zinc-400 font-semibold leading-tight">
+                Add an ice-cold beverage to go with your hot food! (Served chilled)
+              </p>
+
+              <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none snap-x snap-mandatory">
+                {CHECKOUT_DRINKS.map((drink) => {
+                  const alreadyInCart = cartItems.find(item => item.dishId === drink.id);
+                  return (
+                    <div 
+                      key={drink.id} 
+                      className="bg-zinc-950 border border-zinc-800/80 rounded-2xl p-2.5 w-36 shrink-0 flex flex-col justify-between gap-2 snap-start hover:border-[#D70F64]/30 transition"
+                    >
+                      <div className="relative h-20 rounded-xl overflow-hidden bg-zinc-900 shrink-0">
+                        <img 
+                          src={drink.imageUrl} 
+                          alt={drink.name} 
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="absolute top-1 left-1 bg-black/60 backdrop-blur-xs text-[8px] font-black text-white px-1.5 py-0.5 rounded">
+                          Rs. {drink.price}
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <h5 className="font-extrabold text-[11px] text-zinc-100 truncate leading-tight">{drink.name}</h5>
+                        <p className="text-[9px] text-zinc-500 font-semibold truncate leading-none">{drink.description}</p>
+                      </div>
+
+                      {alreadyInCart ? (
+                        <div className="flex items-center justify-between bg-[#D70F64]/10 border border-[#D70F64]/20 p-0.5 rounded-xl text-xs">
+                          <button
+                            type="button"
+                            onClick={() => onUpdateQuantity(drink.id, alreadyInCart.quantity - 1)}
+                            className="w-5 h-5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-800"
+                          >
+                            -
+                          </button>
+                          <span className="text-[10px] font-black text-zinc-200">{alreadyInCart.quantity}</span>
+                          <button
+                            type="button"
+                            onClick={() => onUpdateQuantity(drink.id, alreadyInCart.quantity + 1)}
+                            className="w-5 h-5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-800"
+                          >
+                            +
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => onAddDrink(drink)}
+                          className="w-full bg-[#D70F64] hover:bg-[#b00c50] text-white py-1.5 rounded-xl font-black text-[9px] uppercase tracking-wider transition cursor-pointer text-center hover:scale-[1.02] active:scale-95"
+                        >
+                          + Add Drink
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 

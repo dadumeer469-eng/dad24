@@ -112,3 +112,42 @@ export const INITIAL_MENU_ITEMS: Dish[] = [
     type: "food"
   }
 ];
+
+export interface DrinkRecommendation {
+  id: string;
+  name: string;
+  price: number;
+  imageUrl: string;
+  description: string;
+}
+
+export const CHECKOUT_DRINKS: DrinkRecommendation[] = [
+  {
+    id: "drink_pepsi",
+    name: "Chilled Pepsi (345ml)",
+    price: 110,
+    imageUrl: "https://images.unsplash.com/photo-1629203851122-3726ecdf080e?auto=format&fit=crop&q=80&w=300",
+    description: "Ice cold carbonated cola refresher."
+  },
+  {
+    id: "drink_dew",
+    name: "Ice Cold Mountain Dew (345ml)",
+    price: 110,
+    imageUrl: "https://images.unsplash.com/photo-1534080564583-6be75777b70a?auto=format&fit=crop&q=80&w=300",
+    description: "Do the Dew! Extra carbonated, chilled citrus kick."
+  },
+  {
+    id: "drink_7up",
+    name: "Chilled 7Up (345ml)",
+    price: 110,
+    imageUrl: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&q=80&w=300",
+    description: "Crisp and clean lemon-lime chilled soft drink."
+  },
+  {
+    id: "drink_coke",
+    name: "Chilled Coca-Cola (345ml)",
+    price: 110,
+    imageUrl: "https://images.unsplash.com/photo-1554866585-cd94860890b7?auto=format&fit=crop&q=80&w=300",
+    description: "Classic delicious ice-cold cola refresher."
+  }
+];

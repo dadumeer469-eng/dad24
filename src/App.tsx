@@ -503,7 +503,13 @@ export default function App() {
     }
 
     // Limit cart constraint: Max 2 different restaurants per order
-    const itemRestaurant = dish.restaurantName || (dish.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
+    let itemRestaurant = dish.restaurantName || (dish.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
+    const isDrink = dish.id.startsWith("drink_") || dish.category === "Drinks" || (dish.category as string) === "Beverages";
+    
+    if (isDrink && cartItems.length > 0) {
+      itemRestaurant = cartItems[0].restaurantName || "Dadu Fast Food & Kitchen";
+    }
+
     const currentRestaurants = Array.from(
       new Set(cartItems.map((item) => item.restaurantName).filter(Boolean))
     );
@@ -511,7 +517,7 @@ export default function App() {
     const isAlreadyInCart = cartItems.some((item) => item.dishId === dish.id);
 
     if (!isAlreadyInCart && !currentRestaurants.includes(itemRestaurant) && currentRestaurants.length >= 2) {
-      alert("You can only order from 2 restaurants in a single order.");
+      alert("You can only order from a maximum of 2 restaurants in a single order.");
       return;
     }
 
@@ -530,12 +536,28 @@ export default function App() {
         quantity: 1, 
         type: dish.type, 
         serviceDuration: dish.serviceDuration,
-        restaurantName: dish.restaurantName || (dish.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen"),
+        restaurantName: itemRestaurant,
         commission: dish.commission || 0
       }];
     });
     // Open cart drawer for rapid visibility
     setIsCartOpen(true);
+  };
+
+  const handleAddExclusiveDrink = (drink: any) => {
+    const firstRestName = cartItems[0]?.restaurantName || "Dadu Fast Food & Kitchen";
+    const dishObj = {
+      id: drink.id,
+      name: drink.name,
+      price: drink.price,
+      description: drink.description,
+      imageUrl: drink.imageUrl,
+      category: "Drinks" as const,
+      isAvailable: true,
+      type: "food" as const,
+      restaurantName: firstRestName
+    };
+    handleAddToCart(dishObj);
   };
 
   const handleAddToGroceryCart = (product: GroceryProduct, quantity = 1) => {
@@ -874,6 +896,10 @@ export default function App() {
 
   // --- CATALOG RENDER FILTERS ---
   const filteredDishes = finalDishes.filter((dish) => {
+    // Hide checkout-exclusive soft drinks from main browsing screen & panels
+    const isExclusiveDrink = dish.id.startsWith("drink_") || dish.category === "Drinks" || dish.category === "Beverages";
+    if (isExclusiveDrink) return false;
+
     const matchesCategory = activeCategory === "All" || dish.category === activeCategory;
     const rName = dish.restaurantName || (dish.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
     const matchesRestaurant = selectedRestaurant === "All Restaurants" || rName === selectedRestaurant;
@@ -1575,6 +1601,7 @@ export default function App() {
         onOpenAuth={() => setIsAuthOpen(true)}
         deliveryFee={deliverySettings.deliveryFee}
         onPlaceOrder={handlePlaceOrderSubmit}
+        onAddDrink={handleAddExclusiveDrink}
       />
 
       {/* Standalone Grocery Basket Drawer */}

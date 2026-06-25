@@ -4,7 +4,7 @@ export interface Dish {
   description: string;
   price: number;
   discountPrice?: number;
-  category: "Burgers" | "Pizzas" | "Chicken & Rice" | "Only Tea" | "Home Services" | "Specials";
+  category: "Burgers" | "Pizzas" | "Chicken & Rice" | "Only Tea" | "Home Services" | "Specials" | "Drinks";
   imageUrl: string;
   isAvailable: boolean; // ON/OFF toggle switch from admin
   type: "food" | "service";
