@@ -12,7 +12,7 @@ import {
 import { 
   Plus, Settings, LayoutDashboard, ShoppingCart, ListCollapse, ToggleLeft, ToggleRight, Trash2, 
   HelpCircle, RefreshCw, Smartphone, TrendingUp, DollarSign, Package, CheckCheck, Save, Send, EyeOff, Wrench,
-  UserPlus, User, Loader2, Key, Truck, Compass, Phone, ShoppingBasket, AlertTriangle, Users
+  UserPlus, User, Loader2, Key, Truck, Compass, Phone, ShoppingBasket, AlertTriangle, Users, Percent
 } from "lucide-react";
 
 interface AdminPanelProps {
@@ -257,6 +257,43 @@ export default function AdminPanel({
   
   // Delivery config state
   const [deliveryChargeInput, setDeliveryChargeInput] = useState(deliverySettings?.deliveryFee || 50);
+
+  // Deal of the Hour states
+  const [dealTimer, setDealTimer] = useState(30);
+  const [dealDiscount, setDealDiscount] = useState(25);
+  const [dealItems, setDealItems] = useState<string[]>([]);
+  const [dealText, setDealText] = useState("");
+
+  // Live Deal of the Hour settings subscription
+  useEffect(() => {
+    const unsubscribe = onSnapshot(doc(db, "settings", "deal_config"), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setDealTimer(data.timerMinutes || 30);
+        setDealDiscount(data.discountPercentage || 25);
+        setDealItems(data.selectedItemIds || []);
+        setDealText(data.dealText || "");
+      }
+    }, (err) => {
+      console.warn("Error subscribing to deal config inside AdminPanel:", err);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleSaveDealConfig = async () => {
+    try {
+      await setDoc(doc(db, "settings", "deal_config"), {
+        timerMinutes: Number(dealTimer),
+        discountPercentage: Number(dealDiscount),
+        selectedItemIds: dealItems,
+        dealText: dealText || `Save ${dealDiscount}% on our selected items! Hurry!`
+      });
+      alert(`Deal of the Hour successfully saved with ${dealDiscount}% discount across ${dealItems.length} selected items!`);
+    } catch (err) {
+      console.error(err);
+      alert("Error saving Deal of the Hour configuration.");
+    }
+  };
 
   // Grocery settings inputs
   const [gBaseDeliveryFee, setGBaseDeliveryFee] = useState(groceryDeliveryConfig?.baseDeliveryFee || 40);
@@ -1204,6 +1241,123 @@ export default function AdminPanel({
                       </button>
                     </div>
                   </div>
+                </div>
+
+              </div>
+
+              {/* Deal of the Hour Full Control Manager */}
+              <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl relative space-y-6">
+                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#D70F64]/10 to-transparent" />
+                
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-800/50">
+                  <div>
+                    <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 uppercase tracking-wide">
+                      <Percent className="w-4 h-4 text-[#D70F64]" />
+                      Deal of the Hour Controller
+                    </h4>
+                    <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed font-medium">
+                      Configure the high-intensity countdown timer, set the custom discount rate, and dynamically pick featured dishes/services on sale.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleSaveDealConfig}
+                    className="bg-[#D70F64] hover:bg-[#b00c50] transition-all text-white font-black px-5 py-3 rounded-2xl text-[11px] uppercase tracking-wider cursor-pointer shadow-lg shadow-[#D70F64]/15 flex items-center gap-2 shrink-0 hover:scale-[1.02] active:scale-95 self-start sm:self-auto animate-pulse"
+                  >
+                    <Save className="w-4 h-4" />
+                    Save Deal Settings
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 text-xs text-zinc-100">
+                  <div className="md:col-span-4 space-y-2">
+                    <label className="block text-xs font-black uppercase tracking-wider text-zinc-400 font-bold uppercase tracking-widest text-[9px]">
+                      Timer Duration (Minutes)
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={1440}
+                      value={dealTimer}
+                      onChange={(e) => setDealTimer(Math.max(1, Number(e.target.value)))}
+                      placeholder="e.g. 30"
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-2xl text-xs sm:text-sm outline-none text-white focus:border-[#D70F64]/60 transition"
+                    />
+                  </div>
+
+                  <div className="md:col-span-4 space-y-2">
+                    <label className="block text-xs font-black uppercase tracking-wider text-zinc-400 font-bold uppercase tracking-widest text-[9px]">
+                      Discount Rate (%)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={95}
+                      value={dealDiscount}
+                      onChange={(e) => setDealDiscount(Math.max(0, Math.min(95, Number(e.target.value))))}
+                      placeholder="e.g. 25"
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-2xl text-xs sm:text-sm outline-none text-white focus:border-[#D70F64]/60 transition"
+                    />
+                  </div>
+
+                  <div className="md:col-span-4 space-y-2">
+                    <label className="block text-xs font-black uppercase tracking-wider text-[#D70F64] font-bold uppercase tracking-widest text-[9px]">
+                      Deal Banner Text (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={dealText}
+                      onChange={(e) => setDealText(e.target.value)}
+                      placeholder={`e.g. Save ${dealDiscount}% on Tea & Fresh Platters!`}
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-2xl text-xs sm:text-sm outline-none text-white focus:border-[#D70F64]/60 transition"
+                    />
+                  </div>
+                </div>
+
+                {/* Dynamic Items Select list */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-black uppercase tracking-wider text-zinc-400 font-bold uppercase tracking-widest text-[9px]">
+                    Select Included Products & Services
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto p-3 bg-zinc-950 border border-zinc-850 rounded-2xl scrollbar-none">
+                    {dishes.map((dish) => {
+                      const isSelected = dealItems.includes(dish.id);
+                      return (
+                        <button
+                          key={dish.id}
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              setDealItems(dealItems.filter(id => id !== dish.id));
+                            } else {
+                              setDealItems([...dealItems, dish.id]);
+                            }
+                          }}
+                          className={`p-3 rounded-xl border text-left flex items-center gap-3 transition text-xs cursor-pointer ${
+                            isSelected
+                              ? "bg-[#D70F64]/10 border-[#D70F64] text-white"
+                              : "bg-zinc-900/40 border-zinc-800/80 text-zinc-400 hover:bg-zinc-800/40 hover:text-zinc-200"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {}} // click handled on container
+                            className="accent-[#D70F64] scale-105 pointer-events-none"
+                          />
+                          <div className="truncate flex-1">
+                            <p className="font-bold truncate text-zinc-200 leading-snug">{dish.name}</p>
+                            <p className="text-[9.5px] text-zinc-500 font-extrabold uppercase mt-0.5 tracking-wide">
+                              {dish.category} • Rs. {dish.price}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block leading-relaxed">
+                    💡 Active Deal of the Hour items will dynamically show the discounted price calculated from your discount rate.
+                  </span>
                 </div>
 
               </div>

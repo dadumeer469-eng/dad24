@@ -308,31 +308,6 @@ export default function FoodpandaHeader({
         </div>
       </div>
 
-      {/* Mobile-only Categories Horizontal Row */}
-      {activeCategory && setActiveCategory && (
-        <div className="p-2 pt-0 pb-3 bg-white block sm:hidden px-4 border-b border-zinc-200">
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] scroll-smooth">
-            {categories.map((cat) => {
-              const isSelected = activeCategory === cat.name;
-              return (
-                <button
-                  key={cat.name}
-                  onClick={() => setActiveCategory(cat.name)}
-                  className={`flex items-center gap-1.5 py-1.5 px-3 rounded-full text-[11px] font-black shrink-0 transition-all border outline-none select-none ${
-                    isSelected 
-                      ? "bg-[#D70F64] text-white border-[#D70F64]" 
-                      : "bg-zinc-100 text-zinc-650 border-zinc-200 hover:bg-zinc-250/50 hover:text-zinc-800"
-                  }`}
-                >
-                  <span className="text-xs">{cat.emoji}</span>
-                  <span>{cat.name}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
     </header>
   );
 }

@@ -23,7 +23,7 @@ import daduLogo from "./assets/images/dadu_food_logo_new_1782333467889.jpg";
 
 // Icons & Motion
 import { 
-  ShieldAlert, Clock, AlertTriangle, MessageSquare, BadgeAlert, Sparkles, CheckSquare, Wrench, HeartHandshake, UtensilsCrossed, Compass, MapPin
+  ShieldAlert, Clock, AlertTriangle, MessageSquare, BadgeAlert, Sparkles, CheckSquare, Wrench, HeartHandshake, UtensilsCrossed, Compass, MapPin, Heart
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -35,6 +35,20 @@ export default function App() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [deliverySettings, setDeliverySettings] = useState<SystemSettings>({ deliveryFee: 50 });
+
+  // Favorites and Deal of the Hour configuration
+  const [favoriteDishIds, setFavoriteDishIds] = useState<string[]>([]);
+  const [dealConfig, setDealConfig] = useState<{
+    timerMinutes: number;
+    discountPercentage: number;
+    selectedItemIds: string[];
+    dealText?: string;
+  }>({
+    timerMinutes: 30,
+    discountPercentage: 25,
+    selectedItemIds: ["dish_6", "dish_7"],
+    dealText: "Save 25% on Only Tea & Fresh Platters! Hurry!"
+  });
 
   // Standalone Grocery Module states
   const [activeModule, setActiveModule] = useState<"food" | "grocery">("food");
@@ -260,6 +274,61 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
+  // 3d. Real-time Deal of the Hour Config Listening
+  useEffect(() => {
+    const unsubscribe = onSnapshot(doc(db, "settings", "deal_config"), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setDealConfig({
+          timerMinutes: data.timerMinutes || 30,
+          discountPercentage: data.discountPercentage || 25,
+          selectedItemIds: data.selectedItemIds || [],
+          dealText: data.dealText || ""
+        });
+      } else {
+        // Seed default
+        const defaultDeal = {
+          timerMinutes: 30,
+          discountPercentage: 25,
+          selectedItemIds: ["dish_6", "dish_7"],
+          dealText: "Save 25% on Only Tea & Fresh Platters! Hurry!"
+        };
+        setDoc(doc(db, "settings", "deal_config"), defaultDeal).catch(console.error);
+      }
+    }, (err) => {
+      console.warn("Deal config subscription error:", handleFirestoreError(err));
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // 3e. Load favorites from LocalStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("dadu_favorite_dishes");
+    if (saved) {
+      try {
+        setFavoriteDishIds(JSON.parse(saved));
+      } catch (e) {
+        console.warn("Failed to load favorites", e);
+      }
+    }
+  }, []);
+
+  // 3f. Save favorites to LocalStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem("dadu_favorite_dishes", JSON.stringify(favoriteDishIds));
+  }, [favoriteDishIds]);
+
+  const toggleFavorite = (dishId: string) => {
+    setFavoriteDishIds((prev) => {
+      const isFav = prev.includes(dishId);
+      if (isFav) {
+        return prev.filter((id) => id !== dishId);
+      } else {
+        return [...prev, dishId];
+      }
+    });
+  };
+
   // 3d. Grocery cart LocalStorage Sync
   useEffect(() => {
     const saved = localStorage.getItem("dadu_grocery_cart");
@@ -431,6 +500,19 @@ export default function App() {
       } else {
         return;
       }
+    }
+
+    // Limit cart constraint: Max 2 different restaurants per order
+    const itemRestaurant = dish.restaurantName || (dish.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
+    const currentRestaurants = Array.from(
+      new Set(cartItems.map((item) => item.restaurantName).filter(Boolean))
+    );
+
+    const isAlreadyInCart = cartItems.some((item) => item.dishId === dish.id);
+
+    if (!isAlreadyInCart && !currentRestaurants.includes(itemRestaurant) && currentRestaurants.length >= 2) {
+      alert("You can only order from 2 restaurants in a single order.");
+      return;
     }
 
     setCartItems((prev) => {
@@ -778,8 +860,20 @@ export default function App() {
     }
   };
 
+  // --- DYNAMIC DEAL OF THE HOUR MODIFIERS ---
+  const finalDishes = dishes.map((dish) => {
+    if (dealConfig?.selectedItemIds?.includes(dish.id)) {
+      const pct = dealConfig.discountPercentage || 0;
+      if (pct > 0) {
+        const discountPrice = Math.round(dish.price * (1 - pct / 100));
+        return { ...dish, discountPrice };
+      }
+    }
+    return dish;
+  });
+
   // --- CATALOG RENDER FILTERS ---
-  const filteredDishes = dishes.filter((dish) => {
+  const filteredDishes = finalDishes.filter((dish) => {
     const matchesCategory = activeCategory === "All" || dish.category === activeCategory;
     const rName = dish.restaurantName || (dish.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
     const matchesRestaurant = selectedRestaurant === "All Restaurants" || rName === selectedRestaurant;
@@ -1121,7 +1215,7 @@ export default function App() {
           {activeModule === "food" ? (
             <>
               {/* Billboard / category selectors */}
-              <FoodpandaHero activeCategory={activeCategory} setActiveCategory={setActiveCategory} />
+              <FoodpandaHero activeCategory={activeCategory} setActiveCategory={setActiveCategory} dealConfig={dealConfig} />
 
               {/* Active Order Banner Card */}
               {(() => {
@@ -1270,9 +1364,26 @@ export default function App() {
                             referrerPolicy="no-referrer"
                             src={dish.imageUrl}
                             alt={dish.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                            className="w-full h-full object-cover group-hover:scale-105 transition duration duration-500"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent"></div>
+                          
+                          {/* Add to Favorite (Heart Icon Button) */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFavorite(dish.id);
+                            }}
+                            className="absolute top-2 right-2 z-30 p-1.5 sm:p-2 rounded-full bg-white/90 hover:bg-white text-[#D70F64] hover:scale-110 active:scale-95 shadow-md transition duration-200 cursor-pointer"
+                            title={favoriteDishIds.includes(dish.id) ? "Remove from Favorites" : "Add to Favorites"}
+                          >
+                            <Heart 
+                              className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition duration-200 ${
+                                favoriteDishIds.includes(dish.id) ? "fill-[#D70F64] text-[#D70F64]" : "text-zinc-650 hover:text-[#D70F64]"
+                              }`} 
+                            />
+                          </button>
                           
                           {/* Top Tag */}
                           <div className="absolute top-2 left-2 flex flex-col gap-1 items-start">
