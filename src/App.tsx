@@ -23,7 +23,7 @@ import daduLogo from "./assets/images/dadu_food_logo_new_1782333467889.jpg";
 
 // Icons & Motion
 import { 
-  ShieldAlert, Clock, AlertTriangle, MessageSquare, BadgeAlert, Sparkles, CheckSquare, Wrench, HeartHandshake, UtensilsCrossed, Compass, MapPin, Heart, LogOut, Home, ArrowLeft
+  ShieldAlert, Clock, AlertTriangle, AlertCircle, MessageSquare, BadgeAlert, Sparkles, CheckSquare, Wrench, HeartHandshake, UtensilsCrossed, Compass, MapPin, Heart, LogOut, Home, ArrowLeft
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -34,7 +34,7 @@ export default function App() {
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [deliverySettings, setDeliverySettings] = useState<SystemSettings>({ deliveryFee: 50 });
+  const [deliverySettings, setDeliverySettings] = useState<SystemSettings>({ deliveryFee: 50, restaurantStatus: { isTemporarilyUnavailable: false, openingTime: "09:00", closingTime: "23:00" } });
 
   // Favorites and Deal of the Hour configuration
   const [favoriteDishIds, setFavoriteDishIds] = useState<string[]>([]);
@@ -71,6 +71,15 @@ export default function App() {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Automatically deactivate the deal in Firestore when the timer hits 0:00
+  useEffect(() => {
+    if (dealTimeLeft.minutes === 0 && dealTimeLeft.seconds === 0 && dealConfig.isActive) {
+      updateDoc(doc(db, "settings", "deal_config"), { isActive: false }).catch((err) => {
+        console.warn("Failed to deactivate deal of the hour automatically:", err);
+      });
+    }
+  }, [dealTimeLeft, dealConfig.isActive]);
 
   // Standalone Grocery Module states
   const [activeModule, setActiveModule] = useState<"food" | "grocery">("food");
@@ -239,7 +248,7 @@ export default function App() {
         setDeliverySettings(docSnap.data() as SystemSettings);
       } else {
         // Seed default
-        setDoc(doc(db, "settings", "delivery_config"), { deliveryFee: 50 }).catch(console.error);
+        setDoc(doc(db, "settings", "delivery_config"), { deliveryFee: 50, restaurantStatus: { isTemporarilyUnavailable: false, openingTime: "09:00", closingTime: "23:00" } }).catch(console.error);
       }
     }, (err) => {
       console.warn("Delivery config subscription error:", handleFirestoreError(err));
@@ -969,6 +978,42 @@ export default function App() {
   const cartCountTotal = cartItems.reduce((acc, item) => acc + item.quantity, 0);
   const cartPriceTotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
+  // --- RESTAURANT AVAILABILITY CHECK ---
+  const checkIsRestaurantClosed = (restaurantName?: string) => {
+    const fallbackName = "Dadu Fast Food & Kitchen";
+    const nameToUse = restaurantName || fallbackName;
+    
+    // Check specific restaurant status first
+    if (deliverySettings?.restaurantStatuses && deliverySettings.restaurantStatuses[nameToUse]) {
+      const { isTemporarilyUnavailable, openingTime, closingTime } = deliverySettings.restaurantStatuses[nameToUse];
+      if (isTemporarilyUnavailable) return true;
+      if (openingTime && closingTime) {
+        const now = new Date();
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+        
+        const [openH, openM] = openingTime.split(':').map(Number);
+        const [closeH, closeM] = closingTime.split(':').map(Number);
+        
+        const currentAbsolute = currentHour * 60 + currentMinute;
+        const openAbsolute = openH * 60 + openM;
+        const closeAbsolute = closeH * 60 + closeM;
+
+        if (closeAbsolute < openAbsolute) {
+          // Crosses midnight
+          if (currentAbsolute < openAbsolute && currentAbsolute > closeAbsolute) return true;
+        } else {
+          // Normal day hours
+          if (currentAbsolute < openAbsolute || currentAbsolute >= closeAbsolute) return true;
+        }
+      }
+      return false;
+    }
+
+    // Fallback to legacy global setting if no specific setting exists
+    return false;
+  };
+
   if (currentUser?.role === "rider") {
     return (
       <RiderPanel currentUser={currentUser} onLogout={handleLogout} />
@@ -976,7 +1021,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#FFFDFE] via-[#FDF5F8] to-[#FFFDFE] text-zinc-800 relative pb-28 md:pb-12 flex flex-col font-sans overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-b from-[#FFFDFE] via-[#FDF5F8] to-[#FFFDFE] text-zinc-800 relative pb-28 md:pb-12 flex flex-col font-sans overflow-x-clip">
       
       {/* Decorative Premium Food Watermark/Pattern Background */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden select-none z-0">
@@ -1427,18 +1472,27 @@ export default function App() {
                 <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
                   {filteredDishes.map((dish) => {
                     const isSvc = dish.type === "service";
+                    const dishRestaurantName = dish.restaurantName || (isSvc ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
+                    const isRestaurantClosed = checkIsRestaurantClosed(dishRestaurantName);
                     return (
                       <div
                         key={dish.id}
-                        className="bg-white border border-zinc-200/80 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs hover:border-[#D70F64]/30 hover:shadow-md hover:shadow-pink-500/5 transition-all flex flex-col group relative text-zinc-800"
+                        className={`bg-white border border-zinc-200/80 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs hover:border-[#D70F64]/30 hover:shadow-md hover:shadow-pink-500/5 transition-all flex flex-col group relative text-zinc-800 ${isRestaurantClosed ? 'opacity-70 grayscale-[20%]' : ''}`}
                       >
                         {/* Sold Out Overlay */}
-                        {!dish.isAvailable && (
+                        {!dish.isAvailable && !isRestaurantClosed && (
                           <div className="absolute inset-0 bg-white/95 z-20 flex flex-col items-center justify-center text-center p-2 sm:p-4">
                             <BadgeAlert className="w-5 h-5 sm:w-8 sm:h-8 text-zinc-400 mb-1" />
                             <span className="font-extrabold text-[10px] sm:text-sm uppercase tracking-widest text-[#D70F64]">SOLD OUT</span>
                             <span className="text-[8px] sm:text-[10px] text-zinc-500 mt-0.5 font-bold">Soon</span>
                           </div>
+                        )}
+                        
+                        {isRestaurantClosed && (
+                           <div className="absolute inset-0 bg-white/60 z-20 flex flex-col items-center justify-center text-center p-2 sm:p-4 cursor-not-allowed">
+                              <Clock className="w-5 h-5 sm:w-8 sm:h-8 text-red-400 mb-1" />
+                              <span className="font-extrabold text-[10px] sm:text-sm uppercase tracking-widest text-red-600">UNAVAILABLE</span>
+                           </div>
                         )}
 
                         {/* Card Image */}
@@ -1534,8 +1588,8 @@ export default function App() {
                           <div className="pt-1 shrink-0">
                             <button
                               onClick={() => handleAddToCart(dish)}
-                              disabled={!dish.isAvailable}
-                              className={`w-full py-1.5 sm:py-2.5 rounded-xl sm:rounded-2xl text-[9px] sm:text-xs font-black uppercase tracking-wider transition shadow-xs flex items-center justify-center gap-1 cursor-pointer ${
+                              disabled={!dish.isAvailable || isRestaurantClosed}
+                              className={`w-full py-1.5 sm:py-2.5 rounded-xl sm:rounded-2xl text-[9px] sm:text-xs font-black uppercase tracking-wider transition shadow-xs flex items-center justify-center gap-1 ${!dish.isAvailable || isRestaurantClosed ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} ${
                                 isSvc 
                                   ? "bg-amber-500 hover:bg-amber-600 text-[#121212] font-semibold" 
                                   : "bg-[#D70F64] hover:bg-[#b00c50] text-white"
@@ -1698,7 +1752,9 @@ export default function App() {
       />
 
       {/* Menu Item Detailed Popup Warning Modal */}
-      {activeDetailDish && (
+      {activeDetailDish && (() => {
+        const isActiveDetailDishClosed = checkIsRestaurantClosed(activeDetailDish.restaurantName || (activeDetailDish.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen"));
+        return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fade-in">
           <div className="bg-zinc-900 border border-zinc-800 rounded-3.5xl max-w-sm w-full overflow-hidden shadow-2xl text-zinc-100">
             <div className="h-44 relative bg-zinc-950">
@@ -1751,13 +1807,23 @@ export default function App() {
                 </div>
               )}
 
+              {isActiveDetailDishClosed && (
+                 <div className="bg-red-950/30 border border-red-900/50 text-red-400 text-[10.5px] p-3 rounded-xl flex items-center gap-1.5 font-bold mb-3 mt-3">
+                   <Clock className="w-4 h-4 shrink-0" />
+                   <span>This vendor is currently unavailable or closed.</span>
+                 </div>
+              )}
+
               <button
                 onClick={() => {
-                  handleAddToCart(activeDetailDish);
-                  setActiveDetailDish(null);
+                  if (activeDetailDish.isAvailable && !isActiveDetailDishClosed) {
+                    handleAddToCart(activeDetailDish);
+                    setActiveDetailDish(null);
+                  }
                 }}
-                className={`w-full py-2.5 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer ${
-                  activeDetailDish.type === "service" ? "bg-amber-500 text-neutral-950 hover:bg-amber-600" : "bg-[#D70F64] text-white hover:bg-[#b00c50]"
+                disabled={!activeDetailDish.isAvailable || isActiveDetailDishClosed}
+                className={`w-full py-2.5 rounded-xl text-xs font-black uppercase tracking-wider ${!activeDetailDish.isAvailable || isActiveDetailDishClosed ? 'cursor-not-allowed opacity-60 bg-zinc-800 text-zinc-500' : 'cursor-pointer'} ${
+                  (!activeDetailDish.isAvailable || isActiveDetailDishClosed) ? "" : activeDetailDish.type === "service" ? "bg-amber-500 text-neutral-950 hover:bg-amber-600" : "bg-[#D70F64] text-white hover:bg-[#b00c50]"
                 }`}
               >
                 {activeDetailDish.type === "service" ? "Book visitation (Rs. 500)" : "Add to Checkout Cart"}
@@ -1765,7 +1831,8 @@ export default function App() {
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Dynamic Pop-up Full-Screen Tracking Modal */}
       {isTrackingModalOpen && activeTrackingOrder && (

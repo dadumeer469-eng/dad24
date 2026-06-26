@@ -68,6 +68,16 @@ export interface Order {
 
 export interface SystemSettings {
   deliveryFee: number;
+  restaurantStatus?: {
+    isTemporarilyUnavailable: boolean; // manual toggle
+    openingTime: string; // e.g. "09:00"
+    closingTime: string; // e.g. "23:00"
+  };
+  restaurantStatuses?: Record<string, {
+    isTemporarilyUnavailable: boolean;
+    openingTime: string;
+    closingTime: string;
+  }>;
 }
 
 export interface AppNotification {

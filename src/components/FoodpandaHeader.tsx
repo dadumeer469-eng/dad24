@@ -67,10 +67,11 @@ export default function FoodpandaHeader({
   ];
 
   return (
-    <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md text-zinc-800 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)] border-b border-pink-100/60">
-      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-        
-        {/* Logo and Brand */}
+    <>
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md text-zinc-800 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)] border-b border-pink-100/60">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+          
+          {/* Logo and Brand */}
         <div 
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           className="flex items-center gap-2 shrink-0 cursor-pointer group select-none"
@@ -293,6 +294,7 @@ export default function FoodpandaHeader({
 
         </div>
       </div>
+      </header>
       
       {/* Mobile-only Search Sub Bar */}
       <div className="p-2.5 bg-zinc-50 border-b border-zinc-200 block sm:hidden px-4">
@@ -307,7 +309,6 @@ export default function FoodpandaHeader({
           />
         </div>
       </div>
-
-    </header>
+    </>
   );
 }

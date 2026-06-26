@@ -12,7 +12,7 @@ import {
 import { 
   Plus, Settings, LayoutDashboard, ShoppingCart, ListCollapse, ToggleLeft, ToggleRight, Trash2, 
   HelpCircle, RefreshCw, Smartphone, TrendingUp, DollarSign, Package, CheckCheck, Save, Send, EyeOff, Wrench,
-  UserPlus, User, Loader2, Key, Truck, Compass, Phone, ShoppingBasket, AlertTriangle, Users, Percent
+  UserPlus, User, Loader2, Key, Truck, Compass, Phone, ShoppingBasket, AlertTriangle, Users, Percent, Clock
 } from "lucide-react";
 
 interface AdminPanelProps {
@@ -255,8 +255,17 @@ export default function AdminPanel({
   const [allUsersList, setAllUsersList] = useState<UserProfile[]>([]);
   const [userSearchTerm, setUserSearchTerm] = useState("");
   
+  // Dynamic Restaurants list based on unique values in dishes
+  const uniqueRestaurants = Array.from(new Set(dishes.map(d => d.restaurantName || (d.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen"))));
+  const [selectedScheduleRestaurant, setSelectedScheduleRestaurant] = useState(uniqueRestaurants[0] || "Dadu Fast Food & Kitchen");
+  
   // Delivery config state
   const [deliveryChargeInput, setDeliveryChargeInput] = useState(deliverySettings?.deliveryFee || 50);
+
+  // Restaurant Status Management
+  const [restStatusUnavailable, setRestStatusUnavailable] = useState(false);
+  const [restOpeningTime, setRestOpeningTime] = useState("09:00");
+  const [restClosingTime, setRestClosingTime] = useState("23:00");
 
   // Deal of the Hour states
   const [dealActive, setDealActive] = useState(true);
@@ -264,6 +273,25 @@ export default function AdminPanel({
   const [dealDiscount, setDealDiscount] = useState(25);
   const [dealItems, setDealItems] = useState<string[]>([]);
   const [dealText, setDealText] = useState("");
+
+  // Sync state when props or selected restaurant change
+  useEffect(() => {
+    if (deliverySettings) {
+      setDeliveryChargeInput(deliverySettings.deliveryFee || 50);
+      
+      // Load specific restaurant status or fallback to global/default
+      const specificStatus = deliverySettings.restaurantStatuses?.[selectedScheduleRestaurant];
+      if (specificStatus) {
+        setRestStatusUnavailable(specificStatus.isTemporarilyUnavailable);
+        setRestOpeningTime(specificStatus.openingTime);
+        setRestClosingTime(specificStatus.closingTime);
+      } else {
+        setRestStatusUnavailable(false);
+        setRestOpeningTime("09:00");
+        setRestClosingTime("23:00");
+      }
+    }
+  }, [deliverySettings, selectedScheduleRestaurant]);
 
   // Live Deal of the Hour settings subscription
   useEffect(() => {
@@ -619,13 +647,31 @@ export default function AdminPanel({
     }));
   };
 
-  // Save new Delivery Setting
+  // Save new Delivery Setting and Restaurant Status
   const handleSaveDeliveryConfig = async () => {
     try {
-      await setDoc(doc(db, "settings", "delivery_config"), {
+      const existingStatuses = deliverySettings?.restaurantStatuses || {};
+      
+      const newSettings = {
         deliveryFee: Number(deliveryChargeInput),
-      });
-      alert(`Delivery charges successfully saved as Rs. ${deliveryChargeInput}!`);
+        // Keep legacy for safety
+        restaurantStatus: deliverySettings?.restaurantStatus || {
+          isTemporarilyUnavailable: false,
+          openingTime: "09:00",
+          closingTime: "23:00"
+        },
+        restaurantStatuses: {
+          ...existingStatuses,
+          [selectedScheduleRestaurant]: {
+            isTemporarilyUnavailable: restStatusUnavailable,
+            openingTime: restOpeningTime,
+            closingTime: restClosingTime
+          }
+        }
+      };
+      
+      await setDoc(doc(db, "settings", "delivery_config"), newSettings);
+      alert(`Settings successfully saved for ${selectedScheduleRestaurant}!`);
     } catch (err) {
       console.error(err);
       alert("Permission denied or Firestore configuration missing while saving settings.");
@@ -1168,7 +1214,90 @@ export default function AdminPanel({
               </div>
 
               {/* Delivery Charge Setup Card & Broadcast Manager */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+                {/* Restaurant Status Manager */}
+                <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl space-y-5 relative">
+                  <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-purple-500/10 to-transparent" />
+                  <div>
+                    <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 uppercase tracking-wide">
+                      <Clock className="w-4 h-4 text-purple-500" />
+                      Restaurant Schedule
+                    </h4>
+                    <p className="text-[11px] text-zinc-400 mt-2.5 leading-relaxed font-medium">
+                      Control your operating hours or quickly set the restaurant to temporarily unavailable.
+                    </p>
+                  </div>
+
+                  <div className="space-y-4 pt-1">
+                    <div>
+                      <label className="block text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Select Restaurant / Vendor</label>
+                      <div className="relative">
+                        <select
+                          value={selectedScheduleRestaurant}
+                          onChange={(e) => setSelectedScheduleRestaurant(e.target.value)}
+                          className="w-full p-2.5 bg-zinc-950 border border-zinc-800/80 rounded-xl text-xs text-white focus:border-purple-500/60 outline-none appearance-none"
+                        >
+                          {uniqueRestaurants.map(rest => (
+                            <option key={rest} value={rest}>{rest}</option>
+                          ))}
+                        </select>
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between bg-zinc-950 p-3 rounded-xl border border-zinc-800">
+                      <div>
+                        <h5 className="font-bold text-xs text-zinc-100">Temporarily Unavailable</h5>
+                        <p className="text-[9px] text-zinc-500">Pause incoming orders right now.</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer group">
+                        <input 
+                          type="checkbox" 
+                          className="sr-only peer" 
+                          checked={restStatusUnavailable}
+                          onChange={(e) => setRestStatusUnavailable(e.target.checked)}
+                        />
+                        <div className="w-9 h-5 bg-zinc-800 rounded-full peer peer-focus:ring-2 peer-focus:ring-purple-500/40 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-300 after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500 group-hover:after:bg-white"></div>
+                      </label>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Opening Time</label>
+                        <input
+                          type="time"
+                          value={restOpeningTime}
+                          onChange={(e) => setRestOpeningTime(e.target.value)}
+                          className="w-full p-2.5 bg-zinc-950 border border-zinc-800/80 rounded-xl text-xs text-white focus:border-purple-500/60 outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Closing Time</label>
+                        <input
+                          type="time"
+                          value={restClosingTime}
+                          onChange={(e) => setRestClosingTime(e.target.value)}
+                          className="w-full p-2.5 bg-zinc-950 border border-zinc-800/80 rounded-xl text-xs text-white focus:border-purple-500/60 outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-2">
+                      <button
+                        onClick={handleSaveDeliveryConfig}
+                        className="bg-purple-500 hover:bg-purple-600 transition-all text-black font-black px-4 py-2.5 rounded-xl text-[10px] uppercase tracking-wider cursor-pointer shadow-lg shadow-purple-500/10 flex items-center gap-1.5 shrink-0 hover:scale-[1.02] active:scale-95"
+                      >
+                        <Save className="w-3.5 h-3.5" />
+                        Save Times
+                      </button>
+                    </div>
+                  </div>
+                </div>
 
                 {/* Delivery Fee Adjustment form */}
                 <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl space-y-5 relative">
@@ -1968,6 +2097,81 @@ export default function AdminPanel({
                       className="bg-[#D70F64] text-white font-black px-5 py-3 rounded-xl hover:scale-[1.02] active:scale-95 transition cursor-pointer text-xs uppercase"
                     >
                       Update Rate
+                    </button>
+                  </div>
+                </div>
+
+                {/* Mobile Restaurant Schedule Manager */}
+                <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl relative space-y-4">
+                  <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-purple-500/10 to-transparent" />
+                  <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 pb-2.5 border-b border-zinc-805/50 uppercase tracking-wide">
+                    <Clock className="w-4 h-4 text-purple-500" />
+                    Restaurant Schedule
+                  </h4>
+                  
+                  <div className="space-y-4 pt-1">
+                    <div>
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Select Restaurant / Vendor</label>
+                      <div className="relative">
+                        <select
+                          value={selectedScheduleRestaurant}
+                          onChange={(e) => setSelectedScheduleRestaurant(e.target.value)}
+                          className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-xs text-white focus:border-purple-500/60 outline-none appearance-none"
+                        >
+                          {uniqueRestaurants.map(rest => (
+                            <option key={rest} value={rest}>{rest}</option>
+                          ))}
+                        </select>
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between bg-zinc-950 p-4 rounded-xl border border-zinc-800">
+                      <div>
+                        <h5 className="font-bold text-xs text-zinc-100">Temporarily Unavailable</h5>
+                        <p className="text-[10px] text-zinc-500">Pause orders immediately</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer group">
+                        <input 
+                          type="checkbox" 
+                          className="sr-only peer" 
+                          checked={restStatusUnavailable}
+                          onChange={(e) => setRestStatusUnavailable(e.target.checked)}
+                        />
+                        <div className="w-10 h-5 bg-zinc-800 rounded-full peer peer-focus:ring-2 peer-focus:ring-purple-500/40 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-300 after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500"></div>
+                      </label>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Open Time</label>
+                        <input
+                          type="time"
+                          value={restOpeningTime}
+                          onChange={(e) => setRestOpeningTime(e.target.value)}
+                          className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-xs text-white focus:border-purple-500/60 outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Close Time</label>
+                        <input
+                          type="time"
+                          value={restClosingTime}
+                          onChange={(e) => setRestClosingTime(e.target.value)}
+                          className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-xs text-white focus:border-purple-500/60 outline-none"
+                        />
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleSaveDeliveryConfig}
+                      className="w-full bg-purple-500 text-black font-black px-5 py-3 rounded-xl hover:scale-[1.02] active:scale-95 transition cursor-pointer text-xs uppercase"
+                    >
+                      Save Times
                     </button>
                   </div>
                 </div>
