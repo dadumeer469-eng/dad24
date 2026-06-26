@@ -67,10 +67,6 @@ export default function FoodpandaHero({ activeCategory, setActiveCategory, dealC
                 with Expert Repairs!
               </span>
             </h1>
-            
-            <p className="text-pink-100 text-xs sm:text-[13.5px] leading-relaxed font-semibold max-w-lg">
-              Savor beautiful fast hot meals right from Dadu’s leading kitchens, delivered within 25 minutes flat. Cash on delivery accepted and highly secure. Or book top-tier certified Home Services like electricians or AC servicing packages with flat diagnostic fees.
-            </p>
 
             <div className="pt-2.5 flex flex-wrap gap-3 items-center justify-center md:justify-start">
               <button

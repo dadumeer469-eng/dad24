@@ -935,7 +935,24 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
                               </span>
                             </div>
 
-                            <div className="flex items-center gap-1.5 justify-between border-b border-zinc-900 pb-1.5">
+                            {/* Item List Display */}
+                            <div className="border-b border-zinc-900 pb-2 space-y-1.5">
+                              <span className="text-zinc-500 font-bold block">📦 Items to Pick Up:</span>
+                              <div className="space-y-1">
+                                {order.items?.map((item: any, idx: number) => (
+                                  <div key={idx} className="flex justify-between items-start text-[10.5px]">
+                                    <div className="flex-1 pr-2">
+                                      <span className="text-zinc-200 font-bold">{item.quantity}x {item.name}</span>
+                                      {item.restaurantName && (
+                                        <span className="block text-[9px] text-pink-400/80 font-medium mt-0.5 leading-tight">{item.restaurantName}</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 justify-between border-b border-zinc-900 pb-1.5 pt-1">
                               <span className="text-zinc-500 font-bold">Buyer Name:</span>
                               <span className="text-zinc-100 font-extrabold">{order.userName || "Customer"}</span>
                             </div>

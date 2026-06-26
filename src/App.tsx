@@ -23,7 +23,7 @@ import daduLogo from "./assets/images/dadu_food_logo_new_1782333467889.jpg";
 
 // Icons & Motion
 import { 
-  ShieldAlert, Clock, AlertTriangle, AlertCircle, MessageSquare, BadgeAlert, Sparkles, CheckSquare, Wrench, HeartHandshake, UtensilsCrossed, Compass, MapPin, Heart, LogOut, Home, ArrowLeft
+  ShieldAlert, Clock, AlertTriangle, AlertCircle, MessageSquare, BadgeAlert, Sparkles, CheckSquare, Wrench, HeartHandshake, UtensilsCrossed, Compass, MapPin, Heart, LogOut, Home, ArrowLeft, Plus, Minus
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -605,8 +605,6 @@ export default function App() {
         commission: dish.commission || 0
       }];
     });
-    // Open cart drawer for rapid visibility
-    setIsCartOpen(true);
   };
 
   const handleAddExclusiveDrink = (drink: any) => {
@@ -1562,9 +1560,6 @@ export default function App() {
                                 </span>
                               )}
                             </div>
-                            <p className="text-[10px] sm:text-[11.5px] text-zinc-505 line-clamp-1 sm:line-clamp-3 leading-relaxed font-semibold">
-                              {dish.description}
-                            </p>
                           </div>
 
                           {/* Detail Badging - CUSTOMIZED FOR SERVICES (Hidden on mobile grid for cleanliness) */}
@@ -1586,27 +1581,58 @@ export default function App() {
 
                           {/* Add to checkout CTAs */}
                           <div className="pt-1 shrink-0">
-                            <button
-                              onClick={() => handleAddToCart(dish)}
-                              disabled={!dish.isAvailable || isRestaurantClosed}
-                              className={`w-full py-1.5 sm:py-2.5 rounded-xl sm:rounded-2xl text-[9px] sm:text-xs font-black uppercase tracking-wider transition shadow-xs flex items-center justify-center gap-1 ${!dish.isAvailable || isRestaurantClosed ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} ${
-                                isSvc 
-                                  ? "bg-amber-500 hover:bg-amber-600 text-[#121212] font-semibold" 
-                                  : "bg-[#D70F64] hover:bg-[#b00c50] text-white"
-                              }`}
-                            >
-                              {isSvc ? (
-                                <>
-                                  <span className="sm:hidden">+ Book</span>
-                                  <span className="hidden sm:inline">Book Diagnosis (Rs. 500)</span>
-                                </>
-                              ) : (
-                                <>
-                                  <span className="sm:hidden">+ Add</span>
-                                  <span className="hidden sm:inline">Add To Dadu Cart</span>
-                                </>
-                              )}
-                            </button>
+                            {(() => {
+                              const cartItem = cartItems.find((item) => item.dishId === dish.id);
+                              const qty = cartItem ? cartItem.quantity : 0;
+                              
+                              if (qty > 0) {
+                                return (
+                                  <div className="flex items-center justify-between bg-zinc-950 border border-zinc-800 p-1.5 rounded-xl">
+                                    <button
+                                      onClick={() => handleUpdateCartQuantity(dish.id, qty - 1)}
+                                      className="w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 transition font-black flex items-center justify-center cursor-pointer active:scale-90"
+                                    >
+                                      <Minus className="w-3.5 h-3.5" />
+                                    </button>
+                                    <span className="text-xs font-black text-white font-mono shrink-0">
+                                      {qty}
+                                    </span>
+                                    <button
+                                      onClick={() => handleUpdateCartQuantity(dish.id, qty + 1)}
+                                      className={`w-8 h-8 rounded-lg transition font-black flex items-center justify-center cursor-pointer active:scale-90 ${
+                                        isSvc ? "bg-amber-500 hover:bg-amber-600 text-[#121212]" : "bg-[#D70F64] hover:bg-[#b00c50] text-white"
+                                      }`}
+                                    >
+                                      <Plus className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                );
+                              }
+
+                              return (
+                                <button
+                                  onClick={() => handleAddToCart(dish)}
+                                  disabled={!dish.isAvailable || isRestaurantClosed}
+                                  className={`w-full py-1.5 sm:py-2.5 rounded-xl sm:rounded-2xl text-[9px] sm:text-xs font-black uppercase tracking-wider transition shadow-xs flex items-center justify-center gap-1 ${!dish.isAvailable || isRestaurantClosed ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} ${
+                                    isSvc 
+                                      ? "bg-amber-500 hover:bg-amber-600 text-[#121212] font-semibold" 
+                                      : "bg-[#D70F64] hover:bg-[#b00c50] text-white"
+                                  }`}
+                                >
+                                  {isSvc ? (
+                                    <>
+                                      <span className="sm:hidden">+ Book</span>
+                                      <span className="hidden sm:inline">Book Diagnosis (Rs. 500)</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span className="sm:hidden">+ Add</span>
+                                      <span className="hidden sm:inline">Add To Dadu Cart</span>
+                                    </>
+                                  )}
+                                </button>
+                              );
+                            })()}
                           </div>
                         </div>
 

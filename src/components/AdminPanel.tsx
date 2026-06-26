@@ -251,12 +251,15 @@ export default function AdminPanel({
   groceryProducts = [],
   groceryDeliveryConfig,
 }: AdminPanelProps) {
-  const [activeSubTab, setActiveSubTab] = useState<"analytics" | "items" | "orders" | "riders" | "grocery" | "users">("analytics");
+  const [activeSubTab, setActiveSubTab] = useState<"analytics" | "restaurants" | "items" | "orders" | "riders" | "grocery" | "services" | "users">("analytics");
   const [allUsersList, setAllUsersList] = useState<UserProfile[]>([]);
   const [userSearchTerm, setUserSearchTerm] = useState("");
   
-  // Dynamic Restaurants list based on unique values in dishes
-  const uniqueRestaurants = Array.from(new Set(dishes.map(d => d.restaurantName || (d.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen"))));
+  // Dynamic Restaurants list based on unique values in dishes and existing config
+  const uniqueRestaurants = Array.from(new Set([
+    ...dishes.map(d => d.restaurantName || (d.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen")),
+    ...Object.keys(deliverySettings?.restaurantStatuses || {})
+  ]));
   const [selectedScheduleRestaurant, setSelectedScheduleRestaurant] = useState(uniqueRestaurants[0] || "Dadu Fast Food & Kitchen");
   
   // Delivery config state
@@ -266,6 +269,7 @@ export default function AdminPanel({
   const [restStatusUnavailable, setRestStatusUnavailable] = useState(false);
   const [restOpeningTime, setRestOpeningTime] = useState("09:00");
   const [restClosingTime, setRestClosingTime] = useState("23:00");
+  const [newRestaurantInput, setNewRestaurantInput] = useState("");
 
   // Deal of the Hour states
   const [dealActive, setDealActive] = useState(true);
@@ -647,6 +651,37 @@ export default function AdminPanel({
     }));
   };
 
+  const handleAddNewRestaurant = async () => {
+    if (!newRestaurantInput.trim()) return;
+    try {
+      const existingStatuses = deliverySettings?.restaurantStatuses || {};
+      const newSettings = {
+        deliveryFee: Number(deliveryChargeInput),
+        restaurantStatus: deliverySettings?.restaurantStatus || {
+          isTemporarilyUnavailable: false,
+          openingTime: "09:00",
+          closingTime: "23:00"
+        },
+        restaurantStatuses: {
+          ...existingStatuses,
+          [newRestaurantInput.trim()]: {
+            isTemporarilyUnavailable: false,
+            openingTime: "09:00",
+            closingTime: "23:00"
+          }
+        }
+      };
+      
+      await setDoc(doc(db, "settings", "delivery_config"), newSettings, { merge: true });
+      setSelectedScheduleRestaurant(newRestaurantInput.trim());
+      setNewRestaurantInput("");
+      alert(`Successfully registered new Restaurant / Vendor: ${newRestaurantInput.trim()}`);
+    } catch (err) {
+      console.error(err);
+      alert("Permission denied or Firestore configuration missing while saving new restaurant.");
+    }
+  };
+
   // Save new Delivery Setting and Restaurant Status
   const handleSaveDeliveryConfig = async () => {
     try {
@@ -848,7 +883,7 @@ export default function AdminPanel({
       description: newItemDescription,
       price: Number(newItemPrice),
       discountPrice: newItemDiscountPrice > 0 ? Number(newItemDiscountPrice) : undefined,
-      category: newItemCategory,
+      category: newItemType === "service" ? "Home Services" : newItemCategory,
       imageUrl: finalImg,
       isAvailable: true,
       type: newItemType,
@@ -1052,15 +1087,15 @@ export default function AdminPanel({
             </button>
 
             <button
-              onClick={() => setActiveSubTab("items")}
+              onClick={() => setActiveSubTab("restaurants")}
               className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
-                activeSubTab === "items" 
-                  ? "bg-amber-500/5 border-amber-500/30 text-amber-500 font-extrabold shadow-[0_0_20px_rgba(245,158,11,0.04)]" 
+                activeSubTab === "restaurants" 
+                  ? "bg-purple-500/5 border-purple-500/30 text-purple-500 font-extrabold shadow-[0_0_20px_rgba(168,85,247,0.04)]" 
                   : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-zinc-200"
               }`}
             >
-              <ListCollapse className="w-4 h-4 shrink-0" />
-              Manage Items Directory
+              <Clock className="w-4 h-4 shrink-0" />
+              Manage Restaurants
             </button>
 
             <button
@@ -1102,6 +1137,21 @@ export default function AdminPanel({
             >
               <ShoppingBasket className="w-4 h-4 text-orange-500 shrink-0" />
               Manage Grocery Store
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveSubTab("services");
+                setNewItemType("service");
+              }}
+              className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
+                activeSubTab === "services" 
+                  ? "bg-blue-500/5 border-blue-500/30 text-blue-500 font-extrabold shadow-[0_0_20px_rgba(59,130,246,0.04)]" 
+                  : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-blue-400"
+              }`}
+            >
+              <Settings className="w-4 h-4 text-blue-500 shrink-0" />
+              Manage Services
             </button>
 
             <button
@@ -1215,89 +1265,6 @@ export default function AdminPanel({
 
               {/* Delivery Charge Setup Card & Broadcast Manager */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-
-                {/* Restaurant Status Manager */}
-                <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl space-y-5 relative">
-                  <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-purple-500/10 to-transparent" />
-                  <div>
-                    <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 uppercase tracking-wide">
-                      <Clock className="w-4 h-4 text-purple-500" />
-                      Restaurant Schedule
-                    </h4>
-                    <p className="text-[11px] text-zinc-400 mt-2.5 leading-relaxed font-medium">
-                      Control your operating hours or quickly set the restaurant to temporarily unavailable.
-                    </p>
-                  </div>
-
-                  <div className="space-y-4 pt-1">
-                    <div>
-                      <label className="block text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Select Restaurant / Vendor</label>
-                      <div className="relative">
-                        <select
-                          value={selectedScheduleRestaurant}
-                          onChange={(e) => setSelectedScheduleRestaurant(e.target.value)}
-                          className="w-full p-2.5 bg-zinc-950 border border-zinc-800/80 rounded-xl text-xs text-white focus:border-purple-500/60 outline-none appearance-none"
-                        >
-                          {uniqueRestaurants.map(rest => (
-                            <option key={rest} value={rest}>{rest}</option>
-                          ))}
-                        </select>
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
-                          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between bg-zinc-950 p-3 rounded-xl border border-zinc-800">
-                      <div>
-                        <h5 className="font-bold text-xs text-zinc-100">Temporarily Unavailable</h5>
-                        <p className="text-[9px] text-zinc-500">Pause incoming orders right now.</p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer group">
-                        <input 
-                          type="checkbox" 
-                          className="sr-only peer" 
-                          checked={restStatusUnavailable}
-                          onChange={(e) => setRestStatusUnavailable(e.target.checked)}
-                        />
-                        <div className="w-9 h-5 bg-zinc-800 rounded-full peer peer-focus:ring-2 peer-focus:ring-purple-500/40 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-300 after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500 group-hover:after:bg-white"></div>
-                      </label>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Opening Time</label>
-                        <input
-                          type="time"
-                          value={restOpeningTime}
-                          onChange={(e) => setRestOpeningTime(e.target.value)}
-                          className="w-full p-2.5 bg-zinc-950 border border-zinc-800/80 rounded-xl text-xs text-white focus:border-purple-500/60 outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Closing Time</label>
-                        <input
-                          type="time"
-                          value={restClosingTime}
-                          onChange={(e) => setRestClosingTime(e.target.value)}
-                          className="w-full p-2.5 bg-zinc-950 border border-zinc-800/80 rounded-xl text-xs text-white focus:border-purple-500/60 outline-none"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end pt-2">
-                      <button
-                        onClick={handleSaveDeliveryConfig}
-                        className="bg-purple-500 hover:bg-purple-600 transition-all text-black font-black px-4 py-2.5 rounded-xl text-[10px] uppercase tracking-wider cursor-pointer shadow-lg shadow-purple-500/10 flex items-center gap-1.5 shrink-0 hover:scale-[1.02] active:scale-95"
-                      >
-                        <Save className="w-3.5 h-3.5" />
-                        Save Times
-                      </button>
-                    </div>
-                  </div>
-                </div>
 
                 {/* Delivery Fee Adjustment form */}
                 <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl space-y-5 relative">
@@ -1513,9 +1480,170 @@ export default function AdminPanel({
             </div>
           )}
 
+          {/* TAB: Manage Restaurants */}
+          {activeSubTab === "restaurants" && (
+            <div className="space-y-8 animate-fade-in">
+              <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl relative">
+                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-purple-500/30 to-transparent" />
+                <div className="flex items-center gap-3 mb-6 border-b border-zinc-800/50 pb-4">
+                  <div className="w-10 h-10 rounded-2xl bg-purple-500/10 flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-purple-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-black text-white tracking-wide uppercase">Restaurants & Vendors Manager</h3>
+                    <p className="text-[11px] text-zinc-400 font-medium">Control opening/closing hours and register new partners</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Register New Restaurant */}
+                  <div className="bg-zinc-950 border border-zinc-800/80 p-5 rounded-2xl space-y-4">
+                    <h4 className="font-bold text-xs text-white uppercase tracking-wider flex items-center gap-2">
+                      <Plus className="w-3.5 h-3.5 text-emerald-400" /> Add New Restaurant
+                    </h4>
+                    <div className="space-y-3">
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Restaurant Name</label>
+                      <input
+                        type="text"
+                        value={newRestaurantInput}
+                        onChange={(e) => setNewRestaurantInput(e.target.value)}
+                        placeholder="e.g. Dadu Pizza Shop"
+                        className="w-full p-3 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-white outline-none focus:border-purple-500/60 transition"
+                      />
+                      <button
+                        onClick={handleAddNewRestaurant}
+                        disabled={!newRestaurantInput.trim()}
+                        className={`w-full py-3 rounded-xl font-black text-[11px] uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                          !newRestaurantInput.trim() 
+                            ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' 
+                            : 'bg-emerald-500 hover:bg-emerald-600 text-black shadow-lg shadow-emerald-500/10 cursor-pointer hover:scale-[1.02] active:scale-95'
+                        }`}
+                      >
+                        <UserPlus className="w-4 h-4 shrink-0" />
+                        Register Vendor
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Schedule Manager */}
+                  <div className="bg-zinc-950 border border-zinc-800/80 p-5 rounded-2xl space-y-4">
+                    <h4 className="font-bold text-xs text-white uppercase tracking-wider flex items-center gap-2">
+                      <Settings className="w-3.5 h-3.5 text-purple-400" /> Manage Timings
+                    </h4>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Select Vendor</label>
+                        <div className="relative">
+                          <select
+                            value={selectedScheduleRestaurant}
+                            onChange={(e) => setSelectedScheduleRestaurant(e.target.value)}
+                            className="w-full p-3 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-white outline-none appearance-none focus:border-purple-500/60 transition"
+                          >
+                            {uniqueRestaurants.map(rest => (
+                              <option key={rest} value={rest}>{rest}</option>
+                            ))}
+                          </select>
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between bg-zinc-900 p-3 rounded-xl border border-zinc-800">
+                        <div>
+                          <h5 className="font-bold text-xs text-zinc-100">Temporarily Unavailable</h5>
+                          <p className="text-[9px] text-zinc-500 mt-0.5">Pause orders immediately</p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer group">
+                          <input 
+                            type="checkbox" 
+                            className="sr-only peer" 
+                            checked={restStatusUnavailable}
+                            onChange={(e) => setRestStatusUnavailable(e.target.checked)}
+                          />
+                          <div className="w-10 h-5 bg-zinc-800 rounded-full peer peer-focus:ring-2 peer-focus:ring-purple-500/40 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-300 after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500"></div>
+                        </label>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Open Time</label>
+                          <input
+                            type="time"
+                            value={restOpeningTime}
+                            onChange={(e) => setRestOpeningTime(e.target.value)}
+                            className="w-full p-3 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-white outline-none focus:border-purple-500/60 transition"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Close Time</label>
+                          <input
+                            type="time"
+                            value={restClosingTime}
+                            onChange={(e) => setRestClosingTime(e.target.value)}
+                            className="w-full p-3 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-white outline-none focus:border-purple-500/60 transition"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-col gap-2 mt-2">
+                        <button
+                          onClick={handleSaveDeliveryConfig}
+                          className="w-full bg-purple-500 hover:bg-purple-600 transition-all text-black font-black py-3 rounded-xl text-[11px] uppercase tracking-wider cursor-pointer shadow-lg shadow-purple-500/10 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95"
+                        >
+                          <Save className="w-4 h-4 shrink-0" />
+                          Save Operating Times
+                        </button>
+                        
+                        <button
+                          onClick={() => {
+                            setNewItemRestaurantName(selectedScheduleRestaurant);
+                            setActiveSubTab("items");
+                            setNewItemType("food");
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                          }}
+                          className="w-full bg-zinc-800 hover:bg-zinc-700 transition-all text-white font-black py-3 rounded-xl text-[11px] uppercase tracking-wider cursor-pointer flex items-center justify-center gap-2"
+                        >
+                          <ListCollapse className="w-4 h-4 shrink-0" />
+                          Manage Menu / Items
+                        </button>
+                      </div>
+                      
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* TAB 2: Manage Items Directory */}
           {activeSubTab === "items" && (
             <div className="space-y-8 animate-fade-in">
+              <div className="flex items-center justify-between bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-4 rounded-2xl shadow-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                    <ListCollapse className="w-5 h-5 text-amber-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-white tracking-wide uppercase">Managing Menu</h3>
+                    <p className="text-[11px] text-zinc-400 font-medium">For: <span className="text-amber-500 font-bold">{newItemRestaurantName || "All Vendors"}</span></p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setActiveSubTab("restaurants");
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="bg-zinc-900 hover:bg-zinc-800 text-white px-4 py-2 rounded-xl text-[10px] uppercase font-black tracking-wider transition-colors border border-zinc-800 hover:border-zinc-700 flex items-center gap-2"
+                >
+                  <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Back to Restaurants
+                </button>
+              </div>
               
               {/* Add New Dish / Home Service Product Form */}
               <form onSubmit={handleAddNewItem} className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl space-y-5 relative">
@@ -1550,7 +1678,6 @@ export default function AdminPanel({
                       <option value="Chicken & Rice">Chicken & Rice 🍗</option>
                       <option value="Only Tea">Only Tea ☕</option>
                       <option value="Specials">Specials (Offers) ⭐️</option>
-                      <option value="Home Services">Home Services 🛠️</option>
                     </select>
                   </div>
 
@@ -1590,30 +1717,6 @@ export default function AdminPanel({
                   </div>
 
                   <div className="md:col-span-3 space-y-1.5">
-                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Service / Product Type</label>
-                    <div className="grid grid-cols-2 gap-1 bg-zinc-950 border border-zinc-800/80 rounded-xl p-1">
-                      <button
-                        type="button"
-                        onClick={() => setNewItemType("food")}
-                        className={`py-1.5 rounded-lg font-black text-[9px] uppercase cursor-pointer transition-all ${
-                          newItemType === "food" ? "bg-amber-500 text-black font-extrabold shadow-sm" : "text-zinc-400 hover:text-white"
-                        }`}
-                      >
-                        Food 🍔
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setNewItemType("service")}
-                        className={`py-1.5 rounded-lg font-black text-[9px] uppercase cursor-pointer transition-all ${
-                          newItemType === "service" ? "bg-amber-500 text-black font-extrabold shadow-sm" : "text-zinc-400 hover:text-white"
-                        }`}
-                      >
-                        Service 🛠️
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="md:col-span-4 space-y-1.5">
                     <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Description Information</label>
                     <input
                       type="text"
@@ -1636,27 +1739,24 @@ export default function AdminPanel({
 
                   <div className="md:col-span-4 space-y-1.5">
                     <label className="text-amber-500 font-bold uppercase tracking-widest text-[9px]">Restaurant / Partner Shop Name</label>
-                    <input
-                      type="text"
-                      value={newItemRestaurantName}
-                      onChange={(e) => setNewItemRestaurantName(e.target.value)}
-                      placeholder="e.g. KFC, Savour Foods, Dadu Tea House"
-                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 transition focus:ring-1 focus:ring-amber-500/10"
-                    />
-                  </div>
-
-                  {newItemType === "service" && (
-                    <div className="md:col-span-12 space-y-1.5">
-                      <label className="text-amber-500 font-bold uppercase tracking-widest text-[9px]">Service Duration / Timing</label>
-                      <input
-                        type="text"
-                        value={newItemServiceDuration}
-                        onChange={(e) => setNewItemServiceDuration(e.target.value)}
-                        placeholder="e.g. Expected arrival within 1 hour"
-                        className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 transition focus:ring-1 focus:ring-amber-500/10"
-                      />
+                    <div className="relative">
+                      <select
+                        value={newItemRestaurantName}
+                        onChange={(e) => setNewItemRestaurantName(e.target.value)}
+                        className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none appearance-none focus:border-amber-500 transition focus:ring-1 focus:ring-amber-500/10"
+                      >
+                        <option value="">Default (Auto-selects based on category)</option>
+                        {uniqueRestaurants.map(rest => (
+                          <option key={rest} value={rest}>{rest}</option>
+                        ))}
+                      </select>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
 
                 <div className="flex justify-end pt-2">
@@ -1691,7 +1791,12 @@ export default function AdminPanel({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-900/40">
-                      {dishes.map((dish) => (
+                      {dishes.filter(dish => {
+                        if (dish.type === "service") return false;
+                        if (!newItemRestaurantName) return true;
+                        const dishRest = dish.restaurantName || "Dadu Fast Food & Kitchen";
+                        return dishRest === newItemRestaurantName;
+                      }).map((dish) => (
                         <tr key={dish.id} className="hover:bg-zinc-900/20 transition-colors">
                           <td className="p-4 font-bold text-gray-200">
                             <div className="flex items-center gap-3">
@@ -1783,6 +1888,278 @@ export default function AdminPanel({
                                     setEditingCommissionInput(dish.commission || 0);
                                   }}
                                   className="text-[10px] text-amber-500 hover:underline cursor-pointer text-left mt-1 font-bold"
+                                >
+                                  Edit Price & Comm
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                          <td className="p-4 text-center">
+                            <button
+                              onClick={() => handleToggleAvailability(dish)}
+                              className="inline-flex justify-center transition cursor-pointer"
+                            >
+                              {dish.isAvailable ? (
+                                <div className="flex items-center gap-1.5 text-emerald-400">
+                                  <ToggleRight className="w-7 h-7 stroke-[1.5]" />
+                                  <span className="text-[10px] uppercase font-bold tracking-wide">Available</span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-1.5 text-zinc-650">
+                                  <ToggleLeft className="w-7 h-7 stroke-[1.5]" />
+                                  <span className="text-[10px] uppercase font-bold tracking-wide text-zinc-500">Sold Out</span>
+                                </div>
+                              )}
+                            </button>
+                          </td>
+                          <td className="p-4 text-center">
+                            <button
+                              onClick={() => handleDeleteItem(dish.id)}
+                              className="p-2 text-zinc-650 hover:text-red-500 hover:bg-red-950/20 rounded-xl transition cursor-pointer"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* TAB 2.5: Manage Services Directory */}
+          {activeSubTab === "services" && (
+            <div className="space-y-8 animate-fade-in">
+              <div className="flex items-center justify-between bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-4 rounded-2xl shadow-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                    <Settings className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-white tracking-wide uppercase">Managing Services</h3>
+                    <p className="text-[11px] text-zinc-400 font-medium">Home Services & Repair directory</p>
+                  </div>
+                </div>
+              </div>
+              
+              <form onSubmit={handleAddNewItem} className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl space-y-5 relative">
+                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-blue-500/10 to-transparent" />
+                <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 pb-3 border-b border-zinc-800/50 uppercase tracking-wide">
+                  <Plus className="w-4 h-4 text-blue-500" />
+                  Register New Home Service Product
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-5 text-xs">
+                  <div className="md:col-span-3 space-y-1.5">
+                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Title Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={newItemName}
+                      onChange={(e) => setNewItemName(e.target.value)}
+                      placeholder="e.g. AC Repair"
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-blue-500 transition focus:ring-1 focus:ring-blue-500/10"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2 space-y-1.5">
+                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Base Price (Rs.)</label>
+                    <input
+                      type="number"
+                      required
+                      value={newItemPrice}
+                      onChange={(e) => setNewItemPrice(Number(e.target.value))}
+                      placeholder="e.g. 500"
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-blue-500 transition focus:ring-1 focus:ring-blue-500/10"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2 space-y-1.5">
+                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Discount Price (Rs.)</label>
+                    <input
+                      type="number"
+                      value={newItemDiscountPrice || ""}
+                      onChange={(e) => setNewItemDiscountPrice(Number(e.target.value))}
+                      placeholder="Optional"
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-blue-500 transition focus:ring-1 focus:ring-blue-500/10"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2 space-y-1.5">
+                    <label className="text-emerald-500 font-bold uppercase tracking-widest text-[9px]">Commission (Rs.)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={newItemCommission}
+                      onChange={(e) => setNewItemCommission(Number(e.target.value))}
+                      placeholder="Commission"
+                      className="w-full p-3 bg-zinc-950 border border-emerald-900 rounded-xl text-white outline-none focus:border-emerald-500 transition focus:ring-1 focus:ring-emerald-500/10 font-bold"
+                    />
+                  </div>
+
+                  <div className="md:col-span-3 space-y-1.5">
+                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Description Information</label>
+                    <input
+                      type="text"
+                      value={newItemDescription}
+                      onChange={(e) => setNewItemDescription(e.target.value)}
+                      placeholder="Brief descriptive labels shown to customers"
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-blue-500 transition focus:ring-1 focus:ring-blue-500/10"
+                    />
+                  </div>
+
+                  <div className="md:col-span-4 space-y-1.5">
+                    <ProductImageSelector
+                      imageUrl={newItemImageUrl}
+                      onChange={setNewItemImageUrl}
+                      label="Product Picture / Illustration"
+                      accentColorClass="blue"
+                      placeholder="Blank for auto high quality illustration, or paste URL"
+                    />
+                  </div>
+
+                  <div className="md:col-span-4 space-y-1.5">
+                    <label className="text-blue-500 font-bold uppercase tracking-widest text-[9px]">Service Provider / Partner Name</label>
+                    <div className="relative">
+                      <select
+                        value={newItemRestaurantName}
+                        onChange={(e) => setNewItemRestaurantName(e.target.value)}
+                        className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none appearance-none focus:border-blue-500 transition focus:ring-1 focus:ring-blue-500/10"
+                      >
+                        <option value="">Default (Auto-selects based on category)</option>
+                        {uniqueRestaurants.map(rest => (
+                          <option key={rest} value={rest}>{rest}</option>
+                        ))}
+                      </select>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="md:col-span-4 space-y-1.5">
+                    <label className="text-blue-500 font-bold uppercase tracking-widest text-[9px]">Service Duration / Timing</label>
+                    <input
+                      type="text"
+                      value={newItemServiceDuration}
+                      onChange={(e) => setNewItemServiceDuration(e.target.value)}
+                      placeholder="e.g. Expected arrival within 1 hour"
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-blue-500 transition focus:ring-1 focus:ring-blue-500/10"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="submit"
+                    className="bg-blue-500 hover:bg-blue-600 transition-all font-black text-xs tracking-widest text-black uppercase py-3.5 px-6 rounded-2xl flex items-center gap-1.5 cursor-pointer shadow-lg shadow-blue-500/10 hover:scale-[1.02] active:scale-95"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Dispatch Service to Database
+                  </button>
+                </div>
+              </form>
+
+              {/* Items Table List */}
+              <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 rounded-[24px] overflow-hidden shadow-2xl relative">
+                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-blue-500/10 to-transparent" />
+                <div className="p-5 border-b border-zinc-800/50 bg-zinc-900/15">
+                  <h4 className="font-black text-sm text-zinc-100 uppercase tracking-wide">Operational Services Directory</h4>
+                  <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Enable availability controls and edit prices instantly</span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs text-left text-zinc-455 font-medium">
+                    <thead className="bg-zinc-950/70 text-zinc-500 uppercase font-black tracking-widest text-[9px] border-b border-zinc-850/40">
+                      <tr>
+                        <th className="p-4.5">Service Name</th>
+                        <th className="p-4.5">Price (Rs.)</th>
+                        <th className="p-4.5 text-center">ON/OFF Toggle</th>
+                        <th className="p-4.5 text-center">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-900/40">
+                      {dishes.filter(dish => dish.type === "service").map((dish) => (
+                        <tr key={dish.id} className="hover:bg-zinc-900/20 transition-colors">
+                          <td className="p-4 font-bold text-gray-200">
+                            <div className="flex items-center gap-3">
+                              <img src={dish.imageUrl} alt={dish.name} className="w-8 h-8 rounded-lg object-cover bg-zinc-950 shrink-0" referrerPolicy="no-referrer"/>
+                              <div className="truncate max-w-xs">
+                                <div>{dish.name}</div>
+                                <div className="text-[10px] text-zinc-500 font-medium font-sans mt-0.5">
+                                  🏪 Provider: <span className="text-blue-500 font-bold">{dish.restaurantName || "Dadu Home Services"}</span>
+                                </div>
+                                {dish.serviceDuration && (
+                                  <div className="text-[10px] text-zinc-500 font-medium font-sans mt-0.5">
+                                    ⏱️ Duration: <span className="text-blue-500 font-bold">{dish.serviceDuration}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            {editingPriceDishId === dish.id ? (
+                              <div className="flex flex-col gap-1.5 max-w-[150px]">
+                                <input
+                                  type="number"
+                                  value={editingPriceInput}
+                                  onChange={(e) => setEditingPriceInput(Number(e.target.value))}
+                                  className="w-full p-2 bg-zinc-950 text-white text-xs border border-zinc-700 focus:border-blue-500 outline-none rounded"
+                                  placeholder="New Price"
+                                />
+                                <input
+                                  type="number"
+                                  value={editingDiscountPriceInput}
+                                  onChange={(e) => setEditingDiscountPriceInput(Number(e.target.value))}
+                                  className="w-full p-2 bg-zinc-950 text-white text-xs border border-zinc-700 focus:border-blue-500 outline-none rounded"
+                                  placeholder="Discount"
+                                />
+                                <input
+                                  type="number"
+                                  value={editingCommissionInput}
+                                  onChange={(e) => setEditingCommissionInput(Number(e.target.value))}
+                                  className="w-full p-2 bg-zinc-950 text-white text-[10px] border border-emerald-900 focus:border-emerald-500 outline-none rounded"
+                                  placeholder="Comm."
+                                />
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => setEditingPriceDishId(null)}
+                                    className="px-2 py-0.5 bg-zinc-800 text-zinc-300 rounded text-[9px] font-bold cursor-pointer"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    onClick={() => handleSavePriceChange(dish.id)}
+                                    className="px-2 py-0.5 bg-blue-500 text-black rounded text-[9px] font-black cursor-pointer shadow-xs animate-pulse-subtle"
+                                  >
+                                    Save
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col gap-0.5">
+                                {dish.discountPrice && dish.discountPrice < dish.price ? (
+                                  <>
+                                    <span className="font-extrabold text-emerald-400 text-xs">Rs. {dish.discountPrice}</span>
+                                    <span className="font-bold text-zinc-500 text-[10px] line-through">Rs. {dish.price}</span>
+                                  </>
+                                ) : (
+                                  <span className="font-extrabold text-white">Rs. {dish.price}</span>
+                                )}
+                                <span className="text-[10px] text-emerald-400 font-bold block mt-0.5">Comm: Rs. {dish.commission || 0}</span>
+                                <button
+                                  onClick={() => {
+                                    setEditingPriceDishId(dish.id);
+                                    setEditingPriceInput(dish.price);
+                                    setEditingDiscountPriceInput(dish.discountPrice || 0);
+                                    setEditingCommissionInput(dish.commission || 0);
+                                  }}
+                                  className="text-[10px] text-blue-500 hover:underline cursor-pointer text-left mt-1 font-bold"
                                 >
                                   Edit Price & Comm
                                 </button>

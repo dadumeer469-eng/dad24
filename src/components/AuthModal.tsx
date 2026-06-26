@@ -3,12 +3,13 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   signInWithPopup, 
-  GoogleAuthProvider 
+  GoogleAuthProvider,
+  GithubAuthProvider
 } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { auth, db, cleanObject } from "../firebase";
 import { UserProfile } from "../types";
-import { X, Phone, Lock, User, MapPin, Loader2, AlertCircle, LogIn } from "lucide-react";
+import { X, Phone, Lock, User, MapPin, Loader2, AlertCircle, LogIn, Github } from "lucide-react";
 import { motion } from "motion/react";
 import daduLogo from "../assets/images/dadu_food_logo_new_1782333467889.jpg";
 
@@ -39,6 +40,53 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
       cleaned = "0" + cleaned.substring(2);
     }
     return cleaned;
+  };
+
+  const handleGithubSignIn = async () => {
+    setErrorMessage("");
+    setLoading(true);
+    const provider = new GithubAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      // Check if user has an existing Firestore Profile
+      const userDocRef = doc(db, "users", user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+
+      const isAdminEmail = user.email === "dadumeer469@gmail.com";
+
+      if (userDocSnap.exists()) {
+        const profile = { uid: user.uid, ...userDocSnap.data() } as UserProfile;
+        // Keep role updated for admin
+        if (isAdminEmail && profile.role !== "admin") {
+          const updated = { ...profile, role: "admin" as const };
+          await setDoc(userDocRef, cleanObject(updated));
+          onAuthSuccess(updated);
+        } else {
+          onAuthSuccess(profile);
+        }
+        onClose();
+      } else {
+        // First-time signup with Github! Take them to complete profile details
+        setName(user.displayName || user.email?.split('@')[0] || "");
+        setGoogleUserForProfileCompletion(user);
+        setErrorMessage(""); // clear
+      }
+    } catch (error: any) {
+      console.error("Github Authentication error:", error);
+      if (error.code === "auth/popup-closed-by-user") {
+        setErrorMessage("Sign in was cancelled (Popup closed). Please try again!");
+      } else if (error.code === "auth/network-request-failed" || error.message?.includes("offline")) {
+        setErrorMessage("Network request failed. Your browser or the AI Studio iframe may be blocking connection popups/third-party cookies. Please open the app in a 'New Tab' (top-right icon) or use standard Phone/Password or Phone Login instead!");
+      } else if (error.code === "auth/account-exists-with-different-credential") {
+        setErrorMessage("An account already exists with the same email address but different sign-in credentials. Sign in using a provider associated with this email address (like Google).");
+      } else {
+        setErrorMessage(error.message || "Github Sign-In failed. Please try again.");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleGoogleSignIn = async () => {
@@ -457,9 +505,9 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
                 </div>
               )}
 
-              {/* Primary Fast login option: Sign in with Google (Only show on Sign In tab, hidden on Register to make it compact) */}
+              {/* Primary Fast login option: Sign in with Google and Github (Only show on Sign In tab, hidden on Register to make it compact) */}
               {!isSignUp && (
-                <div className="mb-4">
+                <div className="mb-4 space-y-2.5">
                   <button
                     type="button"
                     onClick={handleGoogleSignIn}
@@ -468,6 +516,15 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
                   >
                     <LogIn className="w-4 h-4 text-[#D70F64] shrink-0" />
                     <span>Sign In with Google</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleGithubSignIn}
+                    disabled={loading}
+                    className="w-full bg-zinc-950 hover:bg-zinc-855 border border-zinc-800 transition text-zinc-300 py-3 rounded-2xl font-black text-xs uppercase tracking-wide shadow-md flex items-center justify-center gap-2.5 cursor-pointer"
+                  >
+                    <Github className="w-4 h-4 text-zinc-300 shrink-0" />
+                    <span>Sign In with Github</span>
                   </button>
                   <div className="relative flex py-3 items-center">
                     <div className="flex-grow border-t border-zinc-800"></div>
