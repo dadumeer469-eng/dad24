@@ -83,28 +83,38 @@ export default function GroceryModule({
 
         {/* Sticky horizontal categories filter list */}
         <div className="sticky top-12 z-30 bg-zinc-950/90 backdrop-blur-md py-3 border-y border-zinc-850">
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+          <div className="flex items-start gap-3 overflow-x-auto pb-2 scrollbar-none px-1">
             <button
               onClick={() => setSelectedCategoryId("All")}
-              className={`py-2 px-4 sm:py-2.5 sm:px-5 rounded-xl text-xs font-extrabold tracking-wide uppercase transition shrink-0 cursor-pointer select-none border ${
+              className={`p-2 w-[76px] sm:w-[88px] rounded-2xl text-[9px] sm:text-[10px] font-extrabold tracking-wide uppercase transition shrink-0 cursor-pointer select-none border flex flex-col items-center justify-start gap-1.5 ${
                 selectedCategoryId === "All"
-                  ? "bg-orange-500 text-white border-orange-500 shadow-lg shadow-orange-500/25"
-                  : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-zinc-200"
+                  ? "bg-orange-500/10 text-orange-400 border-orange-500 shadow-lg shadow-orange-500/10"
+                  : "bg-zinc-900/50 text-zinc-400 border-zinc-800/50 hover:bg-zinc-800"
               }`}
             >
-              🛒 All Items
+              <div className={`w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center rounded-full text-2xl sm:text-3xl shrink-0 transition-transform ${selectedCategoryId === "All" ? "bg-orange-500 text-white scale-105" : "bg-zinc-800 text-zinc-400"}`}>
+                🛒
+              </div>
+              <span className="text-center leading-tight line-clamp-2 mt-0.5">All Items</span>
             </button>
             {activeCategories.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategoryId(cat.id)}
-                className={`py-2 px-4 sm:py-2.5 sm:px-5 rounded-xl text-xs font-extrabold tracking-wide uppercase transition shrink-0 cursor-pointer select-none border ${
+                className={`p-2 w-[76px] sm:w-[88px] rounded-2xl text-[9px] sm:text-[10px] font-extrabold tracking-wide uppercase transition shrink-0 cursor-pointer select-none border flex flex-col items-center justify-start gap-1.5 ${
                   selectedCategoryId === cat.id
-                    ? "bg-orange-500 text-white border-orange-500 shadow-lg shadow-orange-500/25"
-                    : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-zinc-200"
+                    ? "bg-orange-500/10 text-orange-400 border-orange-500 shadow-lg shadow-orange-500/10"
+                    : "bg-zinc-900/50 text-zinc-400 border-zinc-800/50 hover:bg-zinc-800"
                 }`}
               >
-                {cat.name}
+                {cat.imageUrl ? (
+                  <img src={cat.imageUrl} alt="" className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover shrink-0 transition-transform border-2 ${selectedCategoryId === cat.id ? "border-orange-500 scale-105" : "border-transparent"}`} />
+                ) : (
+                  <div className={`w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center rounded-full text-xl sm:text-2xl shrink-0 transition-transform border-2 ${selectedCategoryId === cat.id ? "bg-orange-500 text-white border-orange-500 scale-105" : "bg-zinc-800 text-zinc-400 border-transparent"}`}>
+                    📦
+                  </div>
+                )}
+                <span className="text-center leading-tight line-clamp-2 mt-0.5">{cat.name}</span>
               </button>
             ))}
           </div>

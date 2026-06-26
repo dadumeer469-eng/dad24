@@ -92,6 +92,7 @@ export interface AppNotification {
 export interface GroceryCategory {
   id: string;
   name: string;
+  imageUrl?: string;
   isAvailable: boolean;
   position?: number;
 }

@@ -1090,7 +1090,7 @@ export default function App() {
             className="w-14 h-14 rounded-full object-cover border-2 border-orange-200 shadow-sm"
             referrerPolicy="no-referrer"
           />
-          <span className="text-[10px] font-black uppercase text-orange-600 tracking-wider mt-1">Fresh Grocery</span>
+          <span className="text-[10px] font-black uppercase text-orange-600 tracking-wider mt-1">Groceries</span>
           <span className="text-[9px] text-zinc-400 font-semibold leading-none">Delivered under 20m</span>
         </motion.div>
       </div>
@@ -1329,7 +1329,7 @@ export default function App() {
                   }`}
                 >
                   <span className="text-xs">🍏</span>
-                  <span>Fresh Groceries</span>
+                  <span>Groceries</span>
                   {groceryCartItems.length > 0 && (
                     <span className="bg-orange-500 text-white font-mono text-[9px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center animate-pulse leading-none shrink-0 font-black">
                       {groceryCartItems.reduce((acc, i) => acc + i.quantity, 0)}

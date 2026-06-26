@@ -337,7 +337,11 @@ export default function AdminPanel({
 
   // Form states for adding grocery category
   const [newCatName, setNewCatName] = useState("");
+  const [newCatImageUrl, setNewCatImageUrl] = useState("");
   const [newCatPosition, setNewCatPosition] = useState(1);
+
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editingCategoryImageUrl, setEditingCategoryImageUrl] = useState("");
 
   // Form states for adding grocery product
   const [newGProdName, setNewGProdName] = useState("");
@@ -756,10 +760,12 @@ export default function AdminPanel({
       await setDoc(doc(db, "groceryCategories", generatedId), {
         id: generatedId,
         name: newCatName.trim(),
+        imageUrl: newCatImageUrl.trim(),
         isAvailable: true,
         position: Number(newCatPosition)
       });
       setNewCatName("");
+      setNewCatImageUrl("");
       setNewCatPosition(prev => prev + 1);
       alert(`Category "${newCatName}" added successfully!`);
     } catch (err) {
@@ -808,6 +814,15 @@ export default function AdminPanel({
       await updateDoc(doc(db, "groceryCategories", catId), { isAvailable: !current });
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleUpdateCategoryImageUrl = async (id: string) => {
+    try {
+      await updateDoc(doc(db, "groceryCategories", id), { imageUrl: editingCategoryImageUrl.trim() });
+      setEditingCategoryId(null);
+    } catch (err) {
+      console.error("Failed to update category image", err);
     }
   };
 
@@ -2970,6 +2985,15 @@ export default function AdminPanel({
                       />
                     </div>
                     <div className="space-y-1">
+                      <ProductImageSelector
+                        imageUrl={newCatImageUrl}
+                        onChange={setNewCatImageUrl}
+                        label="Category Icon/Image (Optional)"
+                        accentColorClass="orange"
+                        placeholder="E.g., https://example.com/image.jpg"
+                      />
+                    </div>
+                    <div className="space-y-1">
                       <label className="text-[9.5px] font-bold text-zinc-400 block uppercase">Display Order Position</label>
                       <input
                         type="number"
@@ -2995,29 +3019,66 @@ export default function AdminPanel({
                   </h4>
                   <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                     {groceryCategories.map((cat) => (
-                      <div key={cat.id} className="bg-zinc-950 p-2.5 rounded-xl border border-zinc-900 w-full flex items-center justify-between text-xs font-semibold gap-3">
-                        <div className="min-w-0">
-                          <span className="text-zinc-500 pr-1.5 font-bold font-mono">#{cat.position || 0}</span>
-                          <span className="text-zinc-250 font-bold truncate inline-block">{cat.name}</span>
+                      <div key={cat.id} className="bg-zinc-950 p-2.5 rounded-xl border border-zinc-900 w-full flex flex-col gap-2">
+                        <div className="flex items-center justify-between text-xs font-semibold gap-3">
+                          <div className="flex items-center gap-2 min-w-0">
+                            {cat.imageUrl && (
+                              <img src={cat.imageUrl} alt="" className="w-8 h-8 rounded-lg object-cover bg-zinc-900 shrink-0 border border-zinc-800" />
+                            )}
+                            <div className="truncate">
+                              <span className="text-zinc-500 pr-1.5 font-bold font-mono">#{cat.position || 0}</span>
+                              <span className="text-zinc-250 font-bold">{cat.name}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingCategoryId(editingCategoryId === cat.id ? null : cat.id);
+                                setEditingCategoryImageUrl(cat.imageUrl || "");
+                              }}
+                              className="p-1 px-2 rounded text-[10px] font-black uppercase cursor-pointer bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition"
+                            >
+                              Image
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleCategoryAvailable(cat.id, cat.isAvailable)}
+                              className={`p-1 px-2 rounded text-[10px] font-black uppercase cursor-pointer ${
+                                cat.isAvailable ? "bg-orange-500/10 text-orange-400" : "bg-zinc-850 text-zinc-500"
+                              }`}
+                            >
+                              {cat.isAvailable ? "Available" : "Disabled"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCategory(cat.id)}
+                              className="p-1 px-1.5 rounded bg-red-950/20 text-red-400 hover:text-red-300 transition"
+                            >
+                              ✕
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => handleToggleCategoryAvailable(cat.id, cat.isAvailable)}
-                            className={`p-1 px-2 rounded text-[10px] font-black uppercase cursor-pointer ${
-                              cat.isAvailable ? "bg-orange-500/10 text-orange-400" : "bg-zinc-850 text-zinc-500"
-                            }`}
-                          >
-                            {cat.isAvailable ? "Available" : "Disabled"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteCategory(cat.id)}
-                            className="p-1 px-1.5 rounded bg-red-950/20 text-red-400 hover:text-red-300 transition"
-                          >
-                            ✕
-                          </button>
-                        </div>
+                        {editingCategoryId === cat.id && (
+                          <div className="mt-1 space-y-2 bg-zinc-955 p-3 rounded-xl border border-zinc-900">
+                            <ProductImageSelector
+                              imageUrl={editingCategoryImageUrl}
+                              onChange={setEditingCategoryImageUrl}
+                              label="Update Category Image"
+                              accentColorClass="orange"
+                              placeholder="Image URL"
+                            />
+                            <div className="flex justify-end">
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateCategoryImageUrl(cat.id)}
+                                className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-xs font-bold cursor-pointer transition w-full"
+                              >
+                                Save Changes
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                     {groceryCategories.length === 0 && (
