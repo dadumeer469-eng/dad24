@@ -27,6 +27,9 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
+// Vercel Speed Insights
+import { SpeedInsights } from "@vercel/speed-insights/react";
+
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [splashProgress, setSplashProgress] = useState(0);
@@ -1994,6 +1997,9 @@ export default function App() {
           </a>
         </p>
       </footer>
+
+      {/* Vercel Speed Insights */}
+      <SpeedInsights />
 
     </div>
   );
