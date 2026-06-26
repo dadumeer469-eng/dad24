@@ -166,27 +166,25 @@ export default function FoodpandaHeader({
           </div>
 
           {/* Dynamic Checkout Cart Trigger */}
-          {(activeModule === "grocery" ? groceryCartCount > 0 : cartCount > 0) && (
-            <button
-              onClick={activeModule === "grocery" ? onOpenGroceryCart : onOpenCart}
-              className={`flex items-center gap-1.5 transition py-2 px-3.5 rounded-xl text-xs font-black shadow-md cursor-pointer shrink-0 ${
-                activeModule === "grocery"
-                  ? "bg-orange-600 hover:bg-orange-700 text-white shadow-orange-500/10"
-                  : "bg-[#D70F64] hover:bg-[#b00c50] text-white"
-              }`}
-            >
-              <ShoppingBag className="w-4 h-4" />
-              <span className="hidden md:inline">{activeModule === "grocery" ? "Basket" : "Cart"}</span>
-              <span className="bg-white/20 px-1.5 py-0.5 rounded-md text-[10px] font-bold">
-                {activeModule === "grocery" ? groceryCartCount : cartCount}
+          <button
+            onClick={activeModule === "grocery" ? onOpenGroceryCart : onOpenCart}
+            className={`flex items-center gap-1.5 transition py-2 px-3.5 rounded-xl text-xs font-black shadow-md cursor-pointer shrink-0 ${
+              activeModule === "grocery"
+                ? "bg-orange-600 hover:bg-orange-700 text-white shadow-orange-500/10"
+                : "bg-[#D70F64] hover:bg-[#b00c50] text-white"
+            }`}
+          >
+            <ShoppingBag className="w-4 h-4" />
+            <span className="hidden md:inline">{activeModule === "grocery" ? "Basket" : "Cart"}</span>
+            <span className="bg-white/20 px-1.5 py-0.5 rounded-md text-[10px] font-bold">
+              {activeModule === "grocery" ? groceryCartCount : cartCount}
+            </span>
+            {activeModule !== "grocery" && cartTotal > 0 && (
+              <span className="hidden leading-none lg:inline ml-0.5 border-l border-white/20 pl-1.5">
+                Rs. {cartTotal}
               </span>
-              {activeModule !== "grocery" && (
-                <span className="hidden leading-none lg:inline ml-0.5 border-l border-white/20 pl-1.5">
-                  Rs. {cartTotal}
-                </span>
-              )}
-            </button>
-          )}
+            )}
+          </button>
 
           {/* User Account Circle Dropdown */}
           <div className="relative">
