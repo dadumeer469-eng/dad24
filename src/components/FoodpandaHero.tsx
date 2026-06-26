@@ -6,6 +6,7 @@ interface FoodpandaHeroProps {
   activeCategory: string;
   setActiveCategory: (cat: string) => void;
   dealConfig: {
+    isActive: boolean;
     timerMinutes: number;
     discountPercentage: number;
     selectedItemIds: string[];
@@ -130,7 +131,7 @@ export default function FoodpandaHero({ activeCategory, setActiveCategory, dealC
       </div>
 
       {/* Ticking Interactive Count Deal Banner */}
-      {(dealTimeLeft.minutes > 0 || dealTimeLeft.seconds > 0) && (
+      {dealConfig.isActive && (dealTimeLeft.minutes > 0 || dealTimeLeft.seconds > 0) && (
         <div className="max-w-7xl mx-auto px-4 py-2">
           <div className="bg-white border border-pink-100 py-3 px-5 sm:px-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-xs">
             <div className="flex items-center gap-2 text-xs text-zinc-700 font-medium">

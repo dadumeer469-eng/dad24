@@ -42,11 +42,13 @@ export default function App() {
   const isExitingRef = useRef(false);
   const isProgrammaticBackRef = useRef(false);
   const [dealConfig, setDealConfig] = useState<{
+    isActive: boolean;
     timerMinutes: number;
     discountPercentage: number;
     selectedItemIds: string[];
     dealText?: string;
   }>({
+    isActive: true,
     timerMinutes: 30,
     discountPercentage: 25,
     selectedItemIds: ["dish_6", "dish_7"],
@@ -301,6 +303,7 @@ export default function App() {
         const data = docSnap.data();
         const minutes = Number(data.timerMinutes) || 0;
         setDealConfig({
+          isActive: data.isActive !== false,
           timerMinutes: minutes,
           discountPercentage: data.discountPercentage || 25,
           selectedItemIds: data.selectedItemIds || [],
@@ -310,6 +313,7 @@ export default function App() {
       } else {
         // Seed default
         const defaultDeal = {
+          isActive: true,
           timerMinutes: 30,
           discountPercentage: 25,
           selectedItemIds: ["dish_6", "dish_7"],
@@ -935,7 +939,7 @@ export default function App() {
   };
 
   // --- DYNAMIC DEAL OF THE HOUR MODIFIERS ---
-  const isDealActive = dealTimeLeft.minutes > 0 || dealTimeLeft.seconds > 0;
+  const isDealActive = dealConfig.isActive && (dealTimeLeft.minutes > 0 || dealTimeLeft.seconds > 0);
   const finalDishes = dishes.map((dish) => {
     if (isDealActive && dealConfig?.selectedItemIds?.includes(dish.id)) {
       const pct = dealConfig.discountPercentage || 0;

@@ -259,6 +259,7 @@ export default function AdminPanel({
   const [deliveryChargeInput, setDeliveryChargeInput] = useState(deliverySettings?.deliveryFee || 50);
 
   // Deal of the Hour states
+  const [dealActive, setDealActive] = useState(true);
   const [dealTimer, setDealTimer] = useState(30);
   const [dealDiscount, setDealDiscount] = useState(25);
   const [dealItems, setDealItems] = useState<string[]>([]);
@@ -269,6 +270,7 @@ export default function AdminPanel({
     const unsubscribe = onSnapshot(doc(db, "settings", "deal_config"), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
+        setDealActive(data.isActive !== false);
         setDealTimer(data.timerMinutes || 30);
         setDealDiscount(data.discountPercentage || 25);
         setDealItems(data.selectedItemIds || []);
@@ -283,12 +285,13 @@ export default function AdminPanel({
   const handleSaveDealConfig = async () => {
     try {
       await setDoc(doc(db, "settings", "deal_config"), {
+        isActive: dealActive,
         timerMinutes: Number(dealTimer),
         discountPercentage: Number(dealDiscount),
         selectedItemIds: dealItems,
         dealText: dealText || `Save ${dealDiscount}% on our selected items! Hurry!`
       });
-      alert(`Deal of the Hour successfully saved with ${dealDiscount}% discount across ${dealItems.length} selected items!`);
+      alert(`Deal of the Hour successfully saved!`);
     } catch (err) {
       console.error(err);
       alert("Error saving Deal of the Hour configuration.");
@@ -1270,6 +1273,22 @@ export default function AdminPanel({
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-6 text-xs text-zinc-100">
+                  <div className="md:col-span-12 flex items-center justify-between bg-zinc-950 p-4 rounded-2xl border border-zinc-800">
+                    <div>
+                      <h5 className="font-bold text-sm text-zinc-100">Enable Deal of the Hour</h5>
+                      <p className="text-[10px] text-zinc-500 mt-1">Toggle this on or off to control visibility instantly.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer group">
+                      <input 
+                        type="checkbox" 
+                        className="sr-only peer" 
+                        checked={dealActive}
+                        onChange={(e) => setDealActive(e.target.checked)}
+                      />
+                      <div className="w-11 h-6 bg-zinc-800 rounded-full peer peer-focus:ring-2 peer-focus:ring-[#D70F64]/40 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-zinc-300 after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#D70F64] group-hover:after:bg-white"></div>
+                    </label>
+                  </div>
+
                   <div className="md:col-span-4 space-y-2">
                     <label className="block text-xs font-black uppercase tracking-wider text-zinc-400 font-bold uppercase tracking-widest text-[9px]">
                       Timer Duration (Minutes)

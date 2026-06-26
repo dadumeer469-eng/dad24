@@ -5,8 +5,8 @@
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#ffffff",
-  "theme_color": "#f97316",
+  "background_color": "#D70F64",
+  "theme_color": "#D70F64",
   "icons": [
     {
       "src": "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=192&h=192&fit=crop",
