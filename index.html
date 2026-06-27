@@ -9,22 +9,22 @@
     <meta name="description" content="Welcome to Dadu Food! Order delicious meals from top restaurants, shop fresh daily groceries, and hire expert home services. Fast delivery, fresh ingredients, and 24/7 convenience at your doorstep." />
     <meta name="keywords" content="Dadu Food, Dadu Food Delivery, Dadu Fast Food, Dadu Restaurant, Order Food Online, Fresh Groceries, Dadu Groceries, Home Services, Dadu Home Services, Foodpanda Dadu, Dadu Delivery, Online Food App" />
     <meta name="robots" content="index, follow" />
-    <link rel="canonical" href="https://dadu-food.app" />
+    <link rel="canonical" href="https://dadufood.vercel.app" />
     
     <!-- Open Graph / Facebook Meta Tags -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://dadu-food.app" />
+    <meta property="og:url" content="https://dadufood.vercel.app" />
     <meta property="og:title" content="Dadu Food - Order Food, Groceries & Home Services Online" />
     <meta property="og:description" content="Satisfy your cravings with Dadu Food! Get piping hot meals, fresh daily essentials, and local home utility services delivered straight to your door with blazing speed." />
-    <meta property="og:image" content="/logo.png" />
+    <meta property="og:image" content="https://dadufood.vercel.app/logo.png" />
     <meta property="og:site_name" content="Dadu Food" />
 
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:url" content="https://dadu-food.app" />
+    <meta name="twitter:url" content="https://dadufood.vercel.app" />
     <meta name="twitter:title" content="Dadu Food - Blazing Fast Food & Grocery Delivery" />
     <meta name="twitter:description" content="Your favorite meals, daily groceries, and trusted local home services in one easy-to-use platform. Experience premium convenience with Dadu Food today!" />
-    <meta name="twitter:image" content="/logo.png" />
+    <meta name="twitter:image" content="https://dadufood.vercel.app/logo.png" />
 
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#D70F64" />
@@ -33,7 +33,45 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   </head>
   <body>
-    <button id="installBtn" style="display: none; position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 9999; background-color: #f97316; color: white; border: none; padding: 12px 24px; border-radius: 9999px; font-weight: bold; cursor: pointer; box-shadow: 0 10px 15px -3px rgba(249, 115, 22, 0.4); font-family: sans-serif; font-size: 14px; transition: all 0.2s ease; border: 1px solid rgba(255,255,255,0.2);">Install Dadu Food App 🚀</button>
+    <noscript>
+      <div style="font-family: system-ui, -apple-system, sans-serif; background-color: #0f0f11; color: #ffffff; min-height: 100vh; padding: 40px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box;">
+        <div style="background-color: #18181b; border: 1px solid #27272a; padding: 32px; border-radius: 24px; max-width: 480px; width: 100%; box-sizing: border-box; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); margin: 0 auto;">
+          <div style="background-color: #D70F64; color: white; display: inline-block; padding: 12px 24px; border-radius: 16px; font-weight: 900; font-size: 24px; margin-bottom: 24px; letter-spacing: -0.5px;">DADU FOOD</div>
+          <h1 style="font-size: 22px; font-weight: 800; margin-bottom: 12px; color: #ffffff;">Please Enable JavaScript</h1>
+          <p style="font-size: 14px; color: #a1a1aa; line-height: 1.6; margin-bottom: 32px;">To view Dadu Food's menus, active grocery items, and schedule services, you need to enable JavaScript or use a supported modern browser.</p>
+          
+          <div style="text-align: left; background-color: #0f0f11; border: 1px solid #27272a; border-radius: 16px; padding: 20px; margin-bottom: 24px;">
+            <p style="font-size: 12px; font-weight: 800; text-transform: uppercase; color: #D70F64; letter-spacing: 1px; margin: 0 0 12px 0;">Our Services</p>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 8px; color: #e4e4e7; font-size: 14px; font-weight: 600;">
+                <span style="font-size: 16px;">🍔</span> Order Hot &amp; Fresh Food
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px; color: #e4e4e7; font-size: 14px; font-weight: 600;">
+                <span style="font-size: 16px;">🍏</span> Daily Essential Groceries
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px; color: #e4e4e7; font-size: 14px; font-weight: 600;">
+                <span style="font-size: 16px;">🛠️</span> Expert Local Home Services
+              </div>
+            </div>
+          </div>
+          
+          <p style="font-size: 11px; color: #71717a; margin: 0;">© 2026 DADU FOOD Delivery Services. All Rights Reserved.</p>
+        </div>
+      </div>
+    </noscript>
+    <!-- Beautiful, Non-Intrusive PWA Installation Banner -->
+    <div id="pwaBanner" style="display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 99999; background-color: #D70F64; color: white; padding: 10px 16px; font-family: system-ui, -apple-system, sans-serif; font-size: 13px; font-weight: 600; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border-bottom: 1px solid rgba(255,255,255,0.15); transition: all 0.3s ease;">
+      <div style="max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 16px;">📱</span>
+          <span>Install <strong>Dadu Food App</strong> for a faster, offline-friendly experience!</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <button id="installBtn" style="background-color: white; color: #D70F64; border: none; padding: 6px 14px; border-radius: 9999px; font-weight: 800; font-size: 11px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.2s ease;">Install 🚀</button>
+          <button id="closeBannerBtn" style="background: none; color: white; border: none; font-size: 16px; cursor: pointer; padding: 4px; line-height: 1; opacity: 0.8; transition: opacity 0.2s;">✕</button>
+        </div>
+      </div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
@@ -67,13 +105,18 @@
         }
 
         let deferredPrompt;
+        const pwaBanner = document.getElementById('pwaBanner');
         const installBtn = document.getElementById('installBtn');
+        const closeBannerBtn = document.getElementById('closeBannerBtn');
+
+        // Check if user dismissed the banner previously in this session
+        const isBannerDismissed = sessionStorage.getItem('pwa-banner-dismissed');
 
         window.addEventListener('beforeinstallprompt', (e) => {
           e.preventDefault();
           deferredPrompt = e;
-          if (installBtn) {
-            installBtn.style.display = 'block';
+          if (pwaBanner && !isBannerDismissed) {
+            pwaBanner.style.display = 'block';
           }
         });
 
@@ -84,7 +127,9 @@
                 deferredPrompt.prompt();
                 const { outcome } = await deferredPrompt.userChoice;
                 if (outcome === 'accepted') {
-                  installBtn.style.display = 'none';
+                  if (pwaBanner) {
+                    pwaBanner.style.display = 'none';
+                  }
                 }
               } catch (err) {
                 console.warn('Prompt failed or cancelled:', err);
@@ -94,9 +139,18 @@
           });
         }
 
+        if (closeBannerBtn) {
+          closeBannerBtn.addEventListener('click', () => {
+            if (pwaBanner) {
+              pwaBanner.style.display = 'none';
+            }
+            sessionStorage.setItem('pwa-banner-dismissed', 'true');
+          });
+        }
+
         window.addEventListener('appinstalled', () => {
-          if (installBtn) {
-            installBtn.style.display = 'none';
+          if (pwaBanner) {
+            pwaBanner.style.display = 'none';
           }
         });
       }
