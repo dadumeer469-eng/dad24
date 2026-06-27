@@ -15,6 +15,7 @@ import OrderTracker from "./components/OrderTracker";
 import AdminPanel from "./components/AdminPanel";
 import AuthModal from "./components/AuthModal";
 import RiderPanel from "./components/RiderPanel";
+import FoodDetailModal from "./components/FoodDetailModal";
 import GroceryModule from "./components/GroceryModule";
 import GroceryCartDrawer from "./components/GroceryCartDrawer";
 import OrderSuccessAnimation from "./components/OrderSuccessAnimation";
@@ -338,7 +339,43 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // 3e. Load favorites from LocalStorage on mount
+  // 3e. Load SEO config and update document head
+  useEffect(() => {
+    const unsubscribe = onSnapshot(doc(db, "settings", "seo_config"), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        
+        if (data.title) {
+          document.title = data.title;
+        }
+        
+        if (data.description) {
+          let descMeta = document.querySelector('meta[name="description"]');
+          if (!descMeta) {
+            descMeta = document.createElement('meta');
+            descMeta.setAttribute('name', 'description');
+            document.head.appendChild(descMeta);
+          }
+          descMeta.setAttribute('content', data.description);
+        }
+        
+        if (data.keywords) {
+          let keywordsMeta = document.querySelector('meta[name="keywords"]');
+          if (!keywordsMeta) {
+            keywordsMeta = document.createElement('meta');
+            keywordsMeta.setAttribute('name', 'keywords');
+            document.head.appendChild(keywordsMeta);
+          }
+          keywordsMeta.setAttribute('content', data.keywords);
+        }
+      }
+    }, (err) => {
+      console.warn("SEO config subscription error:", handleFirestoreError(err));
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // 3f. Load favorites from LocalStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem("dadu_favorite_dishes");
     if (saved) {
@@ -555,7 +592,7 @@ export default function App() {
   ]);
 
   // --- CART CONTROLLER OPERATIONS ---
-  const handleAddToCart = (dish: Dish) => {
+  const handleAddToCart = (dish: Dish, quantityToAdd: number = 1, options?: { size?: string, flavor?: string, addOns?: {name: string, price: number}[], specialInstructions?: string }) => {
     // Check if mixed cart is allowed
     if (!groceryDeliveryConfig?.allowMixedCart && groceryCartItems.length > 0) {
       const clearGrocery = window.confirm(
@@ -580,7 +617,18 @@ export default function App() {
       new Set(cartItems.map((item) => item.restaurantName).filter(Boolean))
     );
 
-    const isAlreadyInCart = cartItems.some((item) => item.dishId === dish.id);
+    // If options are provided, append them to the cart item's ID so they don't get merged with different variants of the same dish.
+    const addOnsKey = options?.addOns?.map(a => a.name).join("-") || "";
+    const cartItemId = options?.size || options?.flavor || addOnsKey || options?.specialInstructions ? `${dish.id}-${options.size || ''}-${options.flavor || ''}-${addOnsKey}-${options.specialInstructions || ''}` : dish.id;
+    let variantName = dish.name;
+    if (options?.size || options?.flavor) {
+      const parts = [];
+      if (options.size) parts.push(options.size);
+      if (options.flavor) parts.push(options.flavor);
+      variantName = `${dish.name} (${parts.join(", ")})`;
+    }
+
+    const isAlreadyInCart = cartItems.some((item) => item.dishId === cartItemId);
 
     if (!isAlreadyInCart && !currentRestaurants.includes(itemRestaurant) && currentRestaurants.length >= 2) {
       alert("You can only order from a maximum of 2 restaurants in a single order.");
@@ -588,22 +636,40 @@ export default function App() {
     }
 
     setCartItems((prev) => {
-      const existing = prev.find((item) => item.dishId === dish.id);
+      const existing = prev.find((item) => item.dishId === cartItemId);
       if (existing) {
         return prev.map((item) =>
-          item.dishId === dish.id ? { ...item, quantity: item.quantity + 1 } : item
+          item.dishId === cartItemId ? { ...item, quantity: item.quantity + quantityToAdd } : item
         );
       }
-      const finalPrice = dish.discountPrice && dish.discountPrice < dish.price ? dish.discountPrice : dish.price;
+      
+      const basePrice = dish.discountPrice && dish.discountPrice < dish.price ? dish.discountPrice : dish.price;
+      
+      let finalPrice = basePrice;
+      if (options?.size) {
+        const sizeObj = dish.sizes?.find(s => s.name === options.size);
+        if (sizeObj) {
+          finalPrice = sizeObj.price;
+        }
+      }
+      
+      if (options?.addOns) {
+        finalPrice += options.addOns.reduce((sum, addOn) => sum + addOn.price, 0);
+      }
+      
       return [...prev, { 
-        dishId: dish.id, 
-        name: dish.name, 
+        dishId: cartItemId, 
+        name: variantName, 
         price: finalPrice, 
-        quantity: 1, 
+        quantity: quantityToAdd, 
         type: dish.type, 
         serviceDuration: dish.serviceDuration,
         restaurantName: itemRestaurant,
-        commission: dish.commission || 0
+        commission: dish.commission || 0,
+        selectedSize: options?.size,
+        selectedFlavor: options?.flavor,
+        selectedAddOns: options?.addOns,
+        specialInstructions: options?.specialInstructions
       }];
     });
   };
@@ -862,6 +928,12 @@ export default function App() {
     }
 
     const itemsTotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
+
+    if (details.orderType === "food" && deliverySettings.minOrderAmount && itemsTotal < deliverySettings.minOrderAmount) {
+      alert(`Minimum order amount is Rs. ${deliverySettings.minOrderAmount}. Your current total is Rs. ${itemsTotal}. Please add more items.`);
+      return;
+    }
+
     const baseFee = details.orderType === "food" ? deliverySettings.deliveryFee : 0;
     const finalFee = (details.orderType === "food" && itemsTotal < 500) ? baseFee * 2 : baseFee;
     const finalGrandTotal = itemsTotal + finalFee;
@@ -1016,7 +1088,7 @@ export default function App() {
 
   if (currentUser?.role === "rider") {
     return (
-      <RiderPanel currentUser={currentUser} onLogout={handleLogout} />
+      <RiderPanel currentUser={currentUser} onLogout={handleLogout} deliverySettings={deliverySettings} />
     );
   }
 
@@ -1415,21 +1487,24 @@ export default function App() {
                     )
                   ) as string[];
                   return (
-                    <div className="bg-white border border-pink-100 p-4.5 rounded-3.5xl space-y-3.5 shadow-sm">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xl">🏪</span>
+                    <div className="bg-gradient-to-br from-white to-pink-50/30 border border-pink-100/60 p-5 rounded-3xl space-y-4 shadow-sm relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#D70F64]/5 to-transparent rounded-full -mr-16 -mt-16 pointer-events-none" />
+                      <div className="flex items-center justify-between relative z-10">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#D70F64] to-pink-500 flex items-center justify-center shadow-lg shadow-pink-500/20 text-white shrink-0">
+                            <Compass className="w-5 h-5" />
+                          </div>
                           <div>
-                            <h4 className="text-xs font-black uppercase tracking-wider text-zinc-800">Browse Restaurants & Repair Shops</h4>
-                            <p className="text-[10px] text-zinc-400 font-bold leading-tight">Filter menu items or choose a specific partner store on Dadu</p>
+                            <h4 className="text-[13px] font-black uppercase tracking-widest text-zinc-900">Partner Shops</h4>
+                            <p className="text-[10px] text-zinc-500 font-bold leading-tight mt-0.5 tracking-wide">Filter by specific vendor</p>
                           </div>
                         </div>
                         {selectedRestaurant !== "All Restaurants" && (
                           <button
                             onClick={() => setSelectedRestaurant("All Restaurants")}
-                            className="text-[10px] text-[#D70F64] font-black uppercase tracking-wider hover:underline cursor-pointer"
+                            className="bg-pink-50 hover:bg-pink-100 text-[#D70F64] px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 cursor-pointer"
                           >
-                            Reset filter
+                            Reset
                           </button>
                         )}
                       </div>
@@ -1629,7 +1704,17 @@ export default function App() {
 
                               return (
                                 <button
-                                  onClick={() => handleAddToCart(dish)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const hasCustomization = (dish.sizes && dish.sizes.length > 0) || 
+                                                             (dish.flavors && dish.flavors.length > 0) || 
+                                                             (dish.addOns && dish.addOns.length > 0);
+                                    if (hasCustomization) {
+                                      setActiveDetailDish(dish);
+                                    } else {
+                                      handleAddToCart(dish);
+                                    }
+                                  }}
                                   disabled={!dish.isAvailable || isRestaurantClosed}
                                   className={`w-full py-1.5 sm:py-2.5 rounded-xl sm:rounded-2xl text-[9px] sm:text-xs font-black uppercase tracking-wider transition shadow-xs flex items-center justify-center gap-1 ${!dish.isAvailable || isRestaurantClosed ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} ${
                                     isSvc 
@@ -1799,88 +1884,13 @@ export default function App() {
         }}
       />
 
-      {/* Menu Item Detailed Popup Warning Modal */}
-      {activeDetailDish && (() => {
-        const isActiveDetailDishClosed = checkIsRestaurantClosed(activeDetailDish.restaurantName || (activeDetailDish.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen"));
-        return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fade-in">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-3.5xl max-w-sm w-full overflow-hidden shadow-2xl text-zinc-100">
-            <div className="h-44 relative bg-zinc-950">
-              <img src={activeDetailDish.imageUrl} alt={activeDetailDish.name} className="w-full h-full object-cover" referrerPolicy="no-referrer"/>
-              <button
-                onClick={() => setActiveDetailDish(null)}
-                className="absolute top-4 right-4 bg-black/70 hover:bg-black/95 text-white p-2 rounded-full cursor-pointer transition text-xs font-bold"
-              >
-                Close ✕
-              </button>
-            </div>
-            <div className="p-5 space-y-4">
-              <div>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className={`text-[9px] font-black uppercase tracking-wider py-0.5 px-2 rounded ${
-                    activeDetailDish.type === "service" ? "bg-amber-530/20 text-amber-500 font-extrabold" : "bg-[#D70F64]/10 text-[#D70F64] font-black"
-                  }`}>
-                    {activeDetailDish.type === "service" ? "Licensed electrician visit" : "Kitchen direct"}
-                  </span>
-                  <span className="text-[9.5px] text-amber-550 font-black tracking-wider uppercase bg-zinc-950 border border-zinc-800 py-0.5 px-2 rounded-sm">
-                    🏪 {activeDetailDish.restaurantName || (activeDetailDish.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen")}
-                  </span>
-                </div>
-                <h3 className="font-extrabold text-zinc-100 text-base mt-2">{activeDetailDish.name}</h3>
-                {activeDetailDish.discountPrice && activeDetailDish.discountPrice < activeDetailDish.price ? (
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={`text-sm font-black text-emerald-400`}>
-                      Rs. {activeDetailDish.discountPrice}
-                    </span>
-                    <span className="text-xs line-through text-zinc-500 font-bold">
-                      Rs. {activeDetailDish.price}
-                    </span>
-                  </div>
-                ) : (
-                  <span className={`text-sm font-black mt-1 block ${activeDetailDish.type === "service" ? "text-amber-500" : "text-[#D70F64]"}`}>
-                    Rs. {activeDetailDish.price}
-                  </span>
-                )}
-              </div>
-
-              <p className="text-xs text-zinc-400 leading-normal font-medium">{activeDetailDish.description}</p>
-
-              {/* Warnings and information customized for services to avoid food cook metrics entirely */}
-              {activeDetailDish.type === "service" && (
-                <div className="bg-amber-950/20 shadow-xs border border-amber-900/40 text-amber-500 text-[10.5px] p-3 rounded-xl flex items-start gap-1.5 leading-relaxed font-semibold">
-                  <AlertTriangle className="w-4 h-4 text-amber-550 shrink-0 mt-0.5" />
-                  <span>
-                    ⚠️ **Aane ke charges Note:** This charge is strictly the visitation and diagnostic fee. General repairs and materials are evaluated and quoted on-site.
-                  </span>
-                </div>
-              )}
-
-              {isActiveDetailDishClosed && (
-                 <div className="bg-red-950/30 border border-red-900/50 text-red-400 text-[10.5px] p-3 rounded-xl flex items-center gap-1.5 font-bold mb-3 mt-3">
-                   <Clock className="w-4 h-4 shrink-0" />
-                   <span>This vendor is currently unavailable or closed.</span>
-                 </div>
-              )}
-
-              <button
-                onClick={() => {
-                  if (activeDetailDish.isAvailable && !isActiveDetailDishClosed) {
-                    handleAddToCart(activeDetailDish);
-                    setActiveDetailDish(null);
-                  }
-                }}
-                disabled={!activeDetailDish.isAvailable || isActiveDetailDishClosed}
-                className={`w-full py-2.5 rounded-xl text-xs font-black uppercase tracking-wider ${!activeDetailDish.isAvailable || isActiveDetailDishClosed ? 'cursor-not-allowed opacity-60 bg-zinc-800 text-zinc-500' : 'cursor-pointer'} ${
-                  (!activeDetailDish.isAvailable || isActiveDetailDishClosed) ? "" : activeDetailDish.type === "service" ? "bg-amber-500 text-neutral-950 hover:bg-amber-600" : "bg-[#D70F64] text-white hover:bg-[#b00c50]"
-                }`}
-              >
-                {activeDetailDish.type === "service" ? "Book visitation (Rs. 500)" : "Add to Checkout Cart"}
-              </button>
-            </div>
-          </div>
-        </div>
-        );
-      })()}
+      {/* Menu Item Detailed Popup Modal */}
+      <FoodDetailModal 
+        dish={activeDetailDish} 
+        onClose={() => setActiveDetailDish(null)} 
+        onAddToCart={handleAddToCart}
+        isActiveDetailDishClosed={activeDetailDish ? checkIsRestaurantClosed(activeDetailDish.restaurantName || (activeDetailDish.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen")) : false}
+      />
 
       {/* Dynamic Pop-up Full-Screen Tracking Modal */}
       {isTrackingModalOpen && activeTrackingOrder && (

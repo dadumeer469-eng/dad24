@@ -12,9 +12,10 @@ import {
 interface RiderPanelProps {
   currentUser: UserProfile;
   onLogout: () => void;
+  deliverySettings?: any;
 }
 
-export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
+export default function RiderPanel({ currentUser, onLogout, deliverySettings }: RiderPanelProps) {
   const [activeTab, setActiveTab] = useState<"dashboard" | "history">("dashboard");
   const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
   const [myOrders, setMyOrders] = useState<Order[]>([]);
@@ -641,9 +642,21 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
                         <Store className="w-4 h-4 text-pink-400 shrink-0 mt-0.5" />
                         <div>
                           <span className="text-[10px] uppercase text-zinc-500 font-black tracking-wider block">🏪 Pickup Store / Restaurant</span>
-                          <p className="text-sm font-black text-pink-400 mt-0.5 leading-tight">
-                            {getOrderRestaurants(riderActiveOrder).join(", ")}
-                          </p>
+                          <div className="mt-0.5">
+                            {getOrderRestaurants(riderActiveOrder).map(restName => {
+                              const restPhone = deliverySettings?.restaurantStatuses?.[restName]?.phone;
+                              return (
+                                <div key={restName} className="mb-1 last:mb-0">
+                                  <p className="text-sm font-black text-pink-400 leading-tight">{restName}</p>
+                                  {restPhone && (
+                                    <a href={`tel:${restPhone}`} className="text-[11px] text-zinc-400 font-bold hover:text-white hover:underline flex items-center gap-1 mt-0.5">
+                                      <PhoneCall className="w-3 h-3 text-emerald-400" /> {restPhone}
+                                    </a>
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
                         </div>
                       </div>
 
@@ -928,11 +941,25 @@ export default function RiderPanel({ currentUser, onLogout }: RiderPanelProps) {
                           <div className="bg-zinc-950/60 p-3 rounded-xl border border-zinc-850 space-y-2 text-[11px] font-semibold text-zinc-300">
                             
                             {/* Display pickup store / restaurant! */}
-                            <div className="flex items-start gap-1.5 justify-between border-b border-zinc-900 pb-1.5">
-                              <span className="text-zinc-500 font-bold">🏪 Pickup From:</span>
-                              <span className="text-pink-400 font-extrabold text-right truncate max-w-[200px]">
-                                {getOrderRestaurants(order).join(", ")}
-                              </span>
+                            <div className="flex flex-col gap-1.5 border-b border-zinc-900 pb-1.5">
+                              <div className="flex items-start gap-1.5 justify-between">
+                                <span className="text-zinc-500 font-bold">🏪 Pickup From:</span>
+                                <span className="text-pink-400 font-extrabold text-right max-w-[200px]">
+                                  {getOrderRestaurants(order).map(restName => {
+                                    const restPhone = deliverySettings?.restaurantStatuses?.[restName]?.phone;
+                                    return (
+                                      <div key={restName} className="mb-0.5">
+                                        <span className="block truncate leading-tight">{restName}</span>
+                                        {restPhone && (
+                                          <a href={`tel:${restPhone}`} className="text-[10px] text-zinc-400 hover:text-white hover:underline flex items-center justify-end gap-1 mt-0.5" onClick={(e) => e.stopPropagation()}>
+                                            <PhoneCall className="w-2.5 h-2.5" /> {restPhone}
+                                          </a>
+                                        )}
+                                      </div>
+                                    )
+                                  })}
+                                </span>
+                              </div>
                             </div>
 
                             {/* Item List Display */}

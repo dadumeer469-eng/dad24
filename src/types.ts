@@ -4,13 +4,16 @@ export interface Dish {
   description: string;
   price: number;
   discountPrice?: number;
-  category: "Burgers" | "Pizzas" | "Chicken & Rice" | "Only Tea" | "Home Services" | "Specials" | "Drinks";
+  category: "Burgers" | "Pizzas" | "Chicken & Rice" | "Only Tea" | "Home Services" | "Specials" | "Drinks" | "Pizza" | "Burger" | "Broast" | "Rolls" | "Pasta" | "Lazania" | "Fries" | "Paratha" | "Sandwich" | "Ice Cream" | "Dessert" | "Milkshake" | "Limca" | "Beverages" | string;
   imageUrl: string;
   isAvailable: boolean; // ON/OFF toggle switch from admin
   type: "food" | "service";
   serviceDuration?: string;
   restaurantName?: string;
   commission?: number;
+  sizes?: { name: string; price: number; imageUrl?: string }[];
+  flavors?: { name: string; price: number; imageUrl?: string; isPopular?: boolean; originalPrice?: number }[];
+  addOns?: { name: string; price: number; imageUrl?: string; originalPrice?: number }[];
 }
 
 export interface UserProfile {
@@ -34,6 +37,10 @@ export interface OrderItem {
   serviceDuration?: string;
   restaurantName?: string;
   commission?: number;
+  selectedSize?: string;
+  selectedFlavor?: string;
+  selectedAddOns?: { name: string; price: number }[];
+  specialInstructions?: string;
 }
 
 export interface Order {
@@ -68,6 +75,7 @@ export interface Order {
 
 export interface SystemSettings {
   deliveryFee: number;
+  minOrderAmount?: number;
   restaurantStatus?: {
     isTemporarilyUnavailable: boolean; // manual toggle
     openingTime: string; // e.g. "09:00"
@@ -78,6 +86,7 @@ export interface SystemSettings {
     openingTime: string;
     closingTime: string;
     imageUrl?: string;
+    phone?: string;
   }>;
 }
 

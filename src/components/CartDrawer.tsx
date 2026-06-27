@@ -184,6 +184,16 @@ export default function CartDrawer({
                         </span>
                       )}
                     </div>
+                    {item.selectedAddOns && item.selectedAddOns.length > 0 && (
+                      <div className="text-[10px] text-zinc-400 font-medium mt-0.5">
+                        Add-ons: {item.selectedAddOns.map(a => a.name).join(", ")}
+                      </div>
+                    )}
+                    {item.specialInstructions && (
+                      <div className="text-[10px] text-zinc-400 font-medium mt-0.5 italic">
+                        Note: {item.specialInstructions}
+                      </div>
+                    )}
                     <div className="text-[10px] text-[#D70F64] font-black tracking-wider uppercase flex items-center gap-1 select-none mt-0.5">
                       <span>🏪</span> {item.restaurantName || (item.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen")}
                     </div>

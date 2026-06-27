@@ -250,9 +250,17 @@ export default function OrderHistoryDrawer({
                             <div className="space-y-1.5">
                               <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 block pb-1 border-b border-zinc-200/50">Purchased Items</span>
                               {order.items.map((item, idx) => (
-                                <div key={idx} className="flex justify-between items-center text-[11px] font-bold text-zinc-700">
-                                  <span className="truncate max-w-[200px]">{item.quantity}x {item.name}</span>
-                                  <span className="font-mono text-zinc-600">Rs. {item.price * item.quantity}</span>
+                                <div key={idx} className="flex flex-col gap-0.5 text-[11px] font-bold text-zinc-700">
+                                  <div className="flex justify-between items-center">
+                                    <span className="truncate max-w-[200px]">{item.quantity}x {item.name}</span>
+                                    <span className="font-mono text-zinc-600">Rs. {item.price * item.quantity}</span>
+                                  </div>
+                                  {item.selectedAddOns && item.selectedAddOns.length > 0 && (
+                                    <span className="text-[9px] text-zinc-400">Add-ons: {item.selectedAddOns.map(a => a.name).join(", ")}</span>
+                                  )}
+                                  {item.specialInstructions && (
+                                    <span className="text-[9px] text-zinc-400 italic">Note: {item.specialInstructions}</span>
+                                  )}
                                 </div>
                               ))}
                             </div>

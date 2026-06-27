@@ -12,7 +12,7 @@ import {
 import { 
   Plus, Settings, LayoutDashboard, ShoppingCart, ListCollapse, ToggleLeft, ToggleRight, Trash2, 
   HelpCircle, RefreshCw, Smartphone, TrendingUp, DollarSign, Package, CheckCheck, Save, Send, EyeOff, Wrench,
-  UserPlus, User, Loader2, Key, Truck, Compass, Phone, ShoppingBasket, AlertTriangle, Users, Percent, Clock
+  UserPlus, User, Loader2, Key, Truck, Compass, Phone, ShoppingBasket, AlertTriangle, Users, Percent, Clock, X, Globe
 } from "lucide-react";
 
 interface AdminPanelProps {
@@ -29,7 +29,7 @@ interface AdminPanelProps {
 interface ProductImageSelectorProps {
   imageUrl: string;
   onChange: (url: string) => void;
-  accentColorClass?: "amber" | "orange";
+  accentColorClass?: "amber" | "orange" | "purple" | "blue" | "emerald";
   label: string;
   placeholder?: string;
 }
@@ -251,7 +251,7 @@ export default function AdminPanel({
   groceryProducts = [],
   groceryDeliveryConfig,
 }: AdminPanelProps) {
-  const [activeSubTab, setActiveSubTab] = useState<"analytics" | "restaurants" | "items" | "orders" | "riders" | "grocery" | "services" | "users">("analytics");
+  const [activeSubTab, setActiveSubTab] = useState<"analytics" | "restaurants" | "items" | "orders" | "riders" | "grocery" | "services" | "users" | "seo">("analytics");
   const [allUsersList, setAllUsersList] = useState<UserProfile[]>([]);
   const [userSearchTerm, setUserSearchTerm] = useState("");
   
@@ -264,12 +264,14 @@ export default function AdminPanel({
   
   // Delivery config state
   const [deliveryChargeInput, setDeliveryChargeInput] = useState(deliverySettings?.deliveryFee || 50);
+  const [minOrderAmountInput, setMinOrderAmountInput] = useState(deliverySettings?.minOrderAmount || 0);
 
   // Restaurant Status Management
   const [restStatusUnavailable, setRestStatusUnavailable] = useState(false);
   const [restOpeningTime, setRestOpeningTime] = useState("09:00");
   const [restClosingTime, setRestClosingTime] = useState("23:00");
   const [restImageUrl, setRestImageUrl] = useState("");
+  const [restPhone, setRestPhone] = useState("");
   const [newRestaurantInput, setNewRestaurantInput] = useState("");
 
   // Deal of the Hour states
@@ -279,10 +281,16 @@ export default function AdminPanel({
   const [dealItems, setDealItems] = useState<string[]>([]);
   const [dealText, setDealText] = useState("");
 
+  // SEO States
+  const [seoTitle, setSeoTitle] = useState("");
+  const [seoDescription, setSeoDescription] = useState("");
+  const [seoKeywords, setSeoKeywords] = useState("");
+
   // Sync state when props or selected restaurant change
   useEffect(() => {
     if (deliverySettings) {
       setDeliveryChargeInput(deliverySettings.deliveryFee || 50);
+      setMinOrderAmountInput(deliverySettings.minOrderAmount || 0);
       
       // Load specific restaurant status or fallback to global/default
       const specificStatus = deliverySettings.restaurantStatuses?.[selectedScheduleRestaurant];
@@ -291,11 +299,13 @@ export default function AdminPanel({
         setRestOpeningTime(specificStatus.openingTime);
         setRestClosingTime(specificStatus.closingTime);
         setRestImageUrl(specificStatus.imageUrl || "");
+        setRestPhone(specificStatus.phone || "");
       } else {
         setRestStatusUnavailable(false);
         setRestOpeningTime("09:00");
         setRestClosingTime("23:00");
         setRestImageUrl("");
+        setRestPhone("");
       }
     }
   }, [deliverySettings, selectedScheduleRestaurant]);
@@ -314,7 +324,20 @@ export default function AdminPanel({
     }, (err) => {
       console.warn("Error subscribing to deal config inside AdminPanel:", err);
     });
-    return () => unsubscribe();
+
+    const unsubscribeSeo = onSnapshot(doc(db, "settings", "seo_config"), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setSeoTitle(data.title || "");
+        setSeoDescription(data.description || "");
+        setSeoKeywords(data.keywords || "");
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      unsubscribeSeo();
+    };
   }, []);
 
   const handleSaveDealConfig = async () => {
@@ -330,6 +353,20 @@ export default function AdminPanel({
     } catch (err) {
       console.error(err);
       alert("Error saving Deal of the Hour configuration.");
+    }
+  };
+
+  const handleSaveSeoConfig = async () => {
+    try {
+      await setDoc(doc(db, "settings", "seo_config"), {
+        title: seoTitle,
+        description: seoDescription,
+        keywords: seoKeywords
+      }, { merge: true });
+      alert(`SEO settings successfully saved!`);
+    } catch (err) {
+      console.error(err);
+      alert("Error saving SEO configuration.");
     }
   };
 
@@ -373,12 +410,18 @@ export default function AdminPanel({
   const [newItemServiceDuration, setNewItemServiceDuration] = useState("");
   const [newItemRestaurantName, setNewItemRestaurantName] = useState("");
   const [newItemCommission, setNewItemCommission] = useState<number>(0);
+  const [newItemSizes, setNewItemSizes] = useState<{name: string; price: number; imageUrl?: string}[]>([]);
+  const [newItemFlavors, setNewItemFlavors] = useState<{name: string; price: number; imageUrl?: string; isPopular?: boolean; originalPrice?: number}[]>([]);
+  const [newItemAddOns, setNewItemAddOns] = useState<{name: string; price: number; imageUrl?: string; originalPrice?: number}[]>([]);
 
   // Inline editing state for prices
   const [editingPriceDishId, setEditingPriceDishId] = useState<string | null>(null);
   const [editingPriceInput, setEditingPriceInput] = useState<number>(0);
   const [editingDiscountPriceInput, setEditingDiscountPriceInput] = useState<number>(0);
   const [editingCommissionInput, setEditingCommissionInput] = useState<number>(0);
+  const [editingSizes, setEditingSizes] = useState<{name: string; price: number; imageUrl?: string}[]>([]);
+  const [editingFlavors, setEditingFlavors] = useState<{name: string; price: number; imageUrl?: string; isPopular?: boolean; originalPrice?: number}[]>([]);
+  const [editingAddOns, setEditingAddOns] = useState<{name: string; price: number; imageUrl?: string; originalPrice?: number}[]>([]);
 
   // Custom confirmation dialog
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -696,6 +739,7 @@ export default function AdminPanel({
       
       const newSettings = {
         deliveryFee: Number(deliveryChargeInput),
+        minOrderAmount: Number(minOrderAmountInput),
         // Keep legacy for safety
         restaurantStatus: deliverySettings?.restaurantStatus || {
           isTemporarilyUnavailable: false,
@@ -708,7 +752,8 @@ export default function AdminPanel({
             isTemporarilyUnavailable: restStatusUnavailable,
             openingTime: restOpeningTime,
             closingTime: restClosingTime,
-            imageUrl: restImageUrl
+            imageUrl: restImageUrl,
+            phone: restPhone
           }
         }
       };
@@ -908,6 +953,9 @@ export default function AdminPanel({
       type: newItemType,
       restaurantName: newItemRestaurantName.trim() || (newItemType === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen"),
       commission: Number(newItemCommission),
+      sizes: newItemType === "food" && newItemSizes.length > 0 ? newItemSizes : undefined,
+      flavors: newItemType === "food" && newItemFlavors.length > 0 ? newItemFlavors : undefined,
+      addOns: newItemType === "food" && newItemAddOns.length > 0 ? newItemAddOns : undefined,
       ...(newItemType === "service" && newItemServiceDuration ? { serviceDuration: newItemServiceDuration } : {}),
     };
 
@@ -922,6 +970,9 @@ export default function AdminPanel({
       setNewItemServiceDuration("");
       setNewItemRestaurantName("");
       setNewItemCommission(0);
+      setNewItemSizes([]);
+      setNewItemFlavors([]);
+      setNewItemAddOns([]);
     } catch (err) {
       console.error(err);
       alert("Check database permissions. Could not add menu item.");
@@ -940,13 +991,16 @@ export default function AdminPanel({
   };
 
   // Price inline editing
-  const handleSavePriceChange = async (dishId: string) => {
+  const handleSavePriceChange = async (dish: Dish) => {
     if (editingPriceInput <= 0) return;
     try {
-      await updateDoc(doc(db, "menu", dishId), {
+      await updateDoc(doc(db, "menu", dish.id), {
         price: editingPriceInput,
         discountPrice: editingDiscountPriceInput > 0 ? editingDiscountPriceInput : null,
         commission: editingCommissionInput,
+        sizes: dish.type === "food" && editingSizes.length > 0 ? editingSizes : null,
+        flavors: dish.type === "food" && editingFlavors.length > 0 ? editingFlavors : null,
+        addOns: dish.type === "food" && editingAddOns.length > 0 ? editingAddOns : null,
       });
       setEditingPriceDishId(null);
     } catch (err) {
@@ -1186,6 +1240,18 @@ export default function AdminPanel({
               <span className="ml-auto bg-emerald-600 text-white font-extrabold px-2 py-0.5 text-[9px] rounded-full">
                 {allUsersList.length}
               </span>
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab("seo")}
+              className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
+                activeSubTab === "seo" 
+                  ? "bg-blue-500/5 border-blue-500/30 text-blue-500 font-extrabold shadow-[0_0_20px_rgba(59,130,246,0.04)]" 
+                  : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-blue-450"
+              }`}
+            >
+              <Globe className="w-4 h-4 text-blue-500 shrink-0" />
+              SEO & Metadata
             </button>
 
           </div>
@@ -1608,6 +1674,17 @@ export default function AdminPanel({
                       </div>
 
                       <div className="pt-2">
+                        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Restaurant Contact Phone</label>
+                        <input
+                          type="text"
+                          value={restPhone}
+                          onChange={(e) => setRestPhone(e.target.value)}
+                          placeholder="e.g. 03277004471"
+                          className="w-full p-3 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-white outline-none focus:border-purple-500/60 transition"
+                        />
+                      </div>
+
+                      <div className="pt-2">
                         <ProductImageSelector
                           imageUrl={restImageUrl}
                           onChange={setRestImageUrl}
@@ -1786,6 +1863,229 @@ export default function AdminPanel({
                       </div>
                     </div>
                   </div>
+
+                  {newItemType === "food" && (
+                    <>
+                      <div className="md:col-span-4 space-y-3">
+                        <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+                          <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Sizes & Prices (Optional)</label>
+                          <button
+                            type="button"
+                            onClick={() => setNewItemSizes([...newItemSizes, { name: "", price: 0, imageUrl: "" }])}
+                            className="bg-amber-500/10 text-amber-500 px-2 py-1 rounded text-[10px] font-bold hover:bg-amber-500/20"
+                          >
+                            + Add Size
+                          </button>
+                        </div>
+                        {newItemSizes.map((size, idx) => (
+                          <div key={idx} className="flex flex-col gap-2 bg-zinc-950 p-3 rounded-xl border border-zinc-800 relative">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newSizes = [...newItemSizes];
+                                newSizes.splice(idx, 1);
+                                setNewItemSizes(newSizes);
+                              }}
+                              className="absolute top-2 right-2 text-red-500 hover:bg-red-500/10 rounded-full p-1"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                            <div className="grid grid-cols-2 gap-2 pr-6">
+                              <input
+                                type="text"
+                                value={size.name}
+                                onChange={(e) => {
+                                  const newSizes = [...newItemSizes];
+                                  newSizes[idx].name = e.target.value;
+                                  setNewItemSizes(newSizes);
+                                }}
+                                placeholder="Size (e.g. Small)"
+                                className="w-full p-2 bg-transparent text-white text-xs outline-none border border-zinc-800 rounded-lg focus:border-amber-500"
+                              />
+                              <input
+                                type="number"
+                                value={size.price || ""}
+                                onChange={(e) => {
+                                  const newSizes = [...newItemSizes];
+                                  newSizes[idx].price = Number(e.target.value);
+                                  setNewItemSizes(newSizes);
+                                }}
+                                placeholder="Price"
+                                className="w-full p-2 bg-transparent text-white text-xs outline-none border border-zinc-800 rounded-lg focus:border-amber-500"
+                              />
+                            </div>
+                            <ProductImageSelector
+                              imageUrl={size.imageUrl || ""}
+                              onChange={(url) => {
+                                const newSizes = [...newItemSizes];
+                                newSizes[idx].imageUrl = url;
+                                setNewItemSizes(newSizes);
+                              }}
+                              label={`Size Image: ${size.name || 'Untitled'}`}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <div className="md:col-span-4 space-y-3">
+                        <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+                          <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Flavors / Variants (Optional)</label>
+                          <button
+                            type="button"
+                            onClick={() => setNewItemFlavors([...newItemFlavors, { name: "", price: 0, imageUrl: "" }])}
+                            className="bg-amber-500/10 text-amber-500 px-2 py-1 rounded text-[10px] font-bold hover:bg-amber-500/20"
+                          >
+                            + Add Flavor
+                          </button>
+                        </div>
+                        {newItemFlavors.map((flavor, idx) => (
+                          <div key={idx} className="flex flex-col gap-2 bg-zinc-950 p-3 rounded-xl border border-zinc-800 relative">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newFlavors = [...newItemFlavors];
+                                newFlavors.splice(idx, 1);
+                                setNewItemFlavors(newFlavors);
+                              }}
+                              className="absolute top-2 right-2 text-red-500 hover:bg-red-500/10 rounded-full p-1"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pr-6">
+                              <input
+                                type="text"
+                                value={flavor.name}
+                                onChange={(e) => {
+                                  const newFlavors = [...newItemFlavors];
+                                  newFlavors[idx].name = e.target.value;
+                                  setNewItemFlavors(newFlavors);
+                                }}
+                                placeholder="Flavor Name"
+                                className="w-full p-2 bg-transparent text-white text-xs outline-none border border-zinc-800 rounded-lg focus:border-amber-500"
+                              />
+                              <input
+                                type="number"
+                                value={flavor.price || ""}
+                                onChange={(e) => {
+                                  const newFlavors = [...newItemFlavors];
+                                  newFlavors[idx].price = Number(e.target.value);
+                                  setNewItemFlavors(newFlavors);
+                                }}
+                                placeholder="Extra Price (0 = Free)"
+                                className="w-full p-2 bg-transparent text-white text-xs outline-none border border-zinc-800 rounded-lg focus:border-amber-500"
+                              />
+                              <input
+                                type="number"
+                                value={flavor.originalPrice || ""}
+                                onChange={(e) => {
+                                  const newFlavors = [...newItemFlavors];
+                                  newFlavors[idx].originalPrice = Number(e.target.value);
+                                  setNewItemFlavors(newFlavors);
+                                }}
+                                placeholder="Original Price"
+                                className="w-full p-2 bg-transparent text-white text-xs outline-none border border-zinc-800 rounded-lg focus:border-amber-500"
+                              />
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <label className="text-xs text-white flex items-center gap-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={flavor.isPopular || false}
+                                  onChange={(e) => {
+                                    const newFlavors = [...newItemFlavors];
+                                    newFlavors[idx].isPopular = e.target.checked;
+                                    setNewItemFlavors(newFlavors);
+                                  }}
+                                  className="w-4 h-4 rounded text-amber-500 bg-zinc-900 border-zinc-700"
+                                />
+                                Mark as Popular
+                              </label>
+                            </div>
+                            <ProductImageSelector
+                              imageUrl={flavor.imageUrl || ""}
+                              onChange={(url) => {
+                                const newFlavors = [...newItemFlavors];
+                                newFlavors[idx].imageUrl = url;
+                                setNewItemFlavors(newFlavors);
+                              }}
+                              label={`Flavor Image: ${flavor.name || 'Untitled'}`}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      <div className="md:col-span-4 space-y-3">
+                        <div className="flex justify-between items-center border-b border-zinc-800 pb-2">
+                          <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Add-ons (Optional)</label>
+                          <button
+                            type="button"
+                            onClick={() => setNewItemAddOns([...newItemAddOns, { name: "", price: 0, imageUrl: "", originalPrice: 0 }])}
+                            className="bg-amber-500/10 text-amber-500 px-2 py-1 rounded text-[10px] font-bold hover:bg-amber-500/20"
+                          >
+                            + Add Add-on
+                          </button>
+                        </div>
+                        {newItemAddOns.map((ad, idx) => (
+                          <div key={idx} className="flex flex-col gap-2 bg-zinc-950 p-3 rounded-xl border border-zinc-800 relative">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newAds = [...newItemAddOns];
+                                newAds.splice(idx, 1);
+                                setNewItemAddOns(newAds);
+                              }}
+                              className="absolute top-2 right-2 text-red-500 hover:bg-red-500/10 rounded-full p-1"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pr-6">
+                              <input
+                                type="text"
+                                value={ad.name}
+                                onChange={(e) => {
+                                  const newAds = [...newItemAddOns];
+                                  newAds[idx].name = e.target.value;
+                                  setNewItemAddOns(newAds);
+                                }}
+                                placeholder="Add-on Name"
+                                className="w-full p-2 bg-transparent text-white text-xs outline-none border border-zinc-800 rounded-lg focus:border-amber-500"
+                              />
+                              <input
+                                type="number"
+                                value={ad.price || ""}
+                                onChange={(e) => {
+                                  const newAds = [...newItemAddOns];
+                                  newAds[idx].price = Number(e.target.value);
+                                  setNewItemAddOns(newAds);
+                                }}
+                                placeholder="Extra Price"
+                                className="w-full p-2 bg-transparent text-white text-xs outline-none border border-zinc-800 rounded-lg focus:border-amber-500"
+                              />
+                              <input
+                                type="number"
+                                value={ad.originalPrice || ""}
+                                onChange={(e) => {
+                                  const newAds = [...newItemAddOns];
+                                  newAds[idx].originalPrice = Number(e.target.value);
+                                  setNewItemAddOns(newAds);
+                                }}
+                                placeholder="Orig. Price"
+                                className="w-full p-2 bg-transparent text-white text-xs outline-none border border-zinc-800 rounded-lg focus:border-amber-500"
+                              />
+                            </div>
+                            <ProductImageSelector
+                              imageUrl={ad.imageUrl || ""}
+                              onChange={(url) => {
+                                const newAds = [...newItemAddOns];
+                                newAds[idx].imageUrl = url;
+                                setNewItemAddOns(newAds);
+                              }}
+                              label={`Add-on Image: ${ad.name || 'Untitled'}`}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div className="flex justify-end pt-2">
@@ -1883,6 +2183,55 @@ export default function AdminPanel({
                                     placeholder="Commission"
                                   />
                                 </div>
+                                {dish.type === "food" && (
+                                  <div className="mt-2 space-y-3 border-t border-zinc-800 pt-2">
+                                    <div className="flex flex-col gap-1">
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-[9px] text-zinc-500 uppercase font-bold">Sizes</span>
+                                        <button onClick={() => setEditingSizes([...editingSizes, {name: '', price: 0, imageUrl: ''}])} className="text-[9px] text-amber-500 hover:underline">+ Add</button>
+                                      </div>
+                                      {editingSizes.map((sz, idx) => (
+                                        <div key={idx} className="flex gap-1">
+                                          <input type="text" value={sz.name} onChange={e => { const n = [...editingSizes]; n[idx].name = e.target.value; setEditingSizes(n); }} placeholder="Name" className="w-16 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]" />
+                                          <input type="number" value={sz.price || ""} onChange={e => { const n = [...editingSizes]; n[idx].price = Number(e.target.value); setEditingSizes(n); }} placeholder="Price" className="w-12 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]" />
+                                          <input type="text" value={sz.imageUrl || ""} onChange={e => { const n = [...editingSizes]; n[idx].imageUrl = e.target.value; setEditingSizes(n); }} placeholder="Img URL" className="flex-1 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]" />
+                                          <button onClick={() => { const n = [...editingSizes]; n.splice(idx, 1); setEditingSizes(n); }} className="text-red-500 text-[10px] px-1">✕</button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-[9px] text-zinc-500 uppercase font-bold">Flavors</span>
+                                        <button onClick={() => setEditingFlavors([...editingFlavors, {name: '', price: 0, imageUrl: ''}])} className="text-[9px] text-amber-500 hover:underline">+ Add</button>
+                                      </div>
+                                      {editingFlavors.map((fl, idx) => (
+                                        <div key={idx} className="flex gap-1 items-center flex-wrap">
+                                          <input type="text" value={fl.name} onChange={e => { const n = [...editingFlavors]; n[idx].name = e.target.value; setEditingFlavors(n); }} placeholder="Name" className="w-16 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]" />
+                                          <input type="number" value={fl.price || ""} onChange={e => { const n = [...editingFlavors]; n[idx].price = Number(e.target.value); setEditingFlavors(n); }} placeholder="Ex Price" className="w-14 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]" />
+                                          <input type="number" value={fl.originalPrice || ""} onChange={e => { const n = [...editingFlavors]; n[idx].originalPrice = Number(e.target.value); setEditingFlavors(n); }} placeholder="Orig" className="w-12 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]" />
+                                          <input type="text" value={fl.imageUrl || ""} onChange={e => { const n = [...editingFlavors]; n[idx].imageUrl = e.target.value; setEditingFlavors(n); }} placeholder="Img URL" className="flex-1 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]" />
+                                          <label className="text-[9px] text-zinc-400 flex items-center gap-0.5"><input type="checkbox" checked={fl.isPopular} onChange={e => { const n = [...editingFlavors]; n[idx].isPopular = e.target.checked; setEditingFlavors(n); }} /> Pop</label>
+                                          <button onClick={() => { const n = [...editingFlavors]; n.splice(idx, 1); setEditingFlavors(n); }} className="text-red-500 text-[10px] px-1">✕</button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    <div className="flex flex-col gap-0.5 mt-1 mb-1">
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-[8px] text-zinc-500 uppercase font-bold">Add-ons (Optional)</span>
+                                        <button onClick={() => setEditingAddOns([...editingAddOns, { name: "", price: 0 }])} className="text-[9px] text-amber-500 font-bold">+ Add</button>
+                                      </div>
+                                      {editingAddOns.map((ad, idx) => (
+                                        <div key={idx} className="flex gap-1 items-center mb-1">
+                                          <input type="text" value={ad.name} onChange={e => { const n = [...editingAddOns]; n[idx].name = e.target.value; setEditingAddOns(n); }} placeholder="Addon Name" className="flex-1 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]" />
+                                          <input type="number" value={ad.price || ""} onChange={e => { const n = [...editingAddOns]; n[idx].price = Number(e.target.value); setEditingAddOns(n); }} placeholder="Extra Price" className="w-16 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]" />
+                                          <input type="number" value={ad.originalPrice || ""} onChange={e => { const n = [...editingAddOns]; n[idx].originalPrice = Number(e.target.value); setEditingAddOns(n); }} placeholder="Orig Price" className="w-16 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]" />
+                                          <input type="text" value={ad.imageUrl || ""} onChange={e => { const n = [...editingAddOns]; n[idx].imageUrl = e.target.value; setEditingAddOns(n); }} placeholder="Img URL" className="flex-1 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]" />
+                                          <button onClick={() => { const n = [...editingAddOns]; n.splice(idx, 1); setEditingAddOns(n); }} className="text-red-500 text-[10px] px-1">✕</button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                                 <div className="flex gap-1 justify-end">
                                   <button
                                     onClick={() => setEditingPriceDishId(null)}
@@ -1891,7 +2240,7 @@ export default function AdminPanel({
                                     Cancel
                                   </button>
                                   <button
-                                    onClick={() => handleSavePriceChange(dish.id)}
+                                    onClick={() => handleSavePriceChange(dish)}
                                     className="px-2 py-0.5 bg-amber-500 text-black rounded text-[9px] font-black cursor-pointer shadow-xs animate-pulse-subtle"
                                   >
                                     Save
@@ -1915,10 +2264,13 @@ export default function AdminPanel({
                                     setEditingPriceInput(dish.price);
                                     setEditingDiscountPriceInput(dish.discountPrice || 0);
                                     setEditingCommissionInput(dish.commission || 0);
+                                    setEditingSizes(dish.sizes ? JSON.parse(JSON.stringify(dish.sizes)) : []);
+                                    setEditingFlavors(dish.flavors ? JSON.parse(JSON.stringify(dish.flavors)) : []);
+                                    setEditingAddOns(dish.addOns ? JSON.parse(JSON.stringify(dish.addOns)) : []);
                                   }}
                                   className="text-[10px] text-amber-500 hover:underline cursor-pointer text-left mt-1 font-bold"
                                 >
-                                  Edit Price & Comm
+                                  Edit Details
                                 </button>
                               </div>
                             )}
@@ -2163,7 +2515,7 @@ export default function AdminPanel({
                                     Cancel
                                   </button>
                                   <button
-                                    onClick={() => handleSavePriceChange(dish.id)}
+                                    onClick={() => handleSavePriceChange(dish)}
                                     className="px-2 py-0.5 bg-blue-500 text-black rounded text-[9px] font-black cursor-pointer shadow-xs animate-pulse-subtle"
                                   >
                                     Save
@@ -2486,24 +2838,41 @@ export default function AdminPanel({
                     This setting governs the base delivery rate added to checkout carts across Dadu24#7 dynamically.
                   </p>
                   
-                  <div className="flex items-center gap-3 text-xs pt-1">
-                    <div className="relative flex-grow">
-                      <span className="absolute left-3.5 top-3.5 text-zinc-500 font-bold">Rs.</span>
-                      <input
-                        type="number"
-                        min="0"
-                        value={deliveryChargeInput}
-                        onChange={(e) => setDeliveryChargeInput(Number(e.target.value))}
-                        className="w-full pl-10 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-white font-extrabold focus:border-amber-500 transition"
-                      />
+                  <div className="flex flex-col gap-3 text-xs pt-1">
+                    <div className="flex items-center gap-3">
+                      <div className="relative flex-grow">
+                        <span className="absolute left-3.5 top-3.5 text-zinc-500 font-bold">Rs.</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={deliveryChargeInput}
+                          onChange={(e) => setDeliveryChargeInput(Number(e.target.value))}
+                          placeholder="Delivery Fee"
+                          className="w-full pl-10 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-white font-extrabold focus:border-amber-500 transition"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleSaveDeliveryConfig}
+                        className="bg-[#D70F64] text-white font-black px-5 py-3 rounded-xl hover:scale-[1.02] active:scale-95 transition cursor-pointer text-xs uppercase"
+                      >
+                        Update Rate
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleSaveDeliveryConfig}
-                      className="bg-[#D70F64] text-white font-black px-5 py-3 rounded-xl hover:scale-[1.02] active:scale-95 transition cursor-pointer text-xs uppercase"
-                    >
-                      Update Rate
-                    </button>
+                    <div className="relative flex-grow mt-2">
+                      <span className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Minimum Order Amount</span>
+                      <div className="relative">
+                        <span className="absolute left-3.5 top-3.5 text-zinc-500 font-bold">Rs.</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={minOrderAmountInput}
+                          onChange={(e) => setMinOrderAmountInput(Number(e.target.value))}
+                          placeholder="0 for no minimum"
+                          className="w-full pl-10 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-white font-extrabold focus:border-amber-500 transition"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -2571,6 +2940,17 @@ export default function AdminPanel({
                           className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-xs text-white focus:border-purple-500/60 outline-none"
                         />
                       </div>
+                    </div>
+
+                    <div className="pt-2">
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Restaurant Contact Phone</label>
+                      <input
+                        type="text"
+                        value={restPhone}
+                        onChange={(e) => setRestPhone(e.target.value)}
+                        placeholder="e.g. 03277004471"
+                        className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-xs text-white focus:border-purple-500/60 outline-none"
+                      />
                     </div>
 
                     <div className="pt-2">
@@ -3544,6 +3924,64 @@ export default function AdminPanel({
                       )}
                     </tbody>
                   </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeSubTab === "seo" && (
+            <div className="space-y-6 animate-fade-in text-left">
+              <div className="bg-[#0b0b0d]/90 border border-zinc-800 rounded-3xl p-6 relative overflow-hidden">
+                <div className="absolute right-0 top-0 w-80 h-80 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none" />
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 text-blue-505">
+                      <Globe className="w-5 h-5 text-blue-500" />
+                      <span className="text-[10px] font-black uppercase tracking-widest bg-blue-500/10 px-2 py-0.5 rounded-full">Global Configuration</span>
+                    </div>
+                    <h2 className="text-xl font-black text-white mt-1">SEO & Metadata</h2>
+                    <p className="text-xs text-zinc-400 font-medium mt-1">Update global SEO tags injected into the document head.</p>
+                  </div>
+                  <button 
+                    onClick={handleSaveSeoConfig}
+                    className="bg-blue-600 hover:bg-blue-500 text-white font-black text-[10px] uppercase tracking-widest py-3 px-5 rounded-xl transition cursor-pointer shrink-0"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-[#0c0c0e] border border-zinc-805/80 rounded-[24px] p-5 lg:p-7 shadow-2xl relative">
+                <div className="space-y-5">
+                  <div>
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block mb-1.5">Meta Title</label>
+                    <input
+                      type="text"
+                      value={seoTitle}
+                      onChange={(e) => setSeoTitle(e.target.value)}
+                      placeholder="e.g. Dadu Food - Premium Delivery"
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-2xl text-xs sm:text-sm outline-none text-white focus:border-blue-500/60 transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block mb-1.5">Meta Description</label>
+                    <textarea
+                      value={seoDescription}
+                      onChange={(e) => setSeoDescription(e.target.value)}
+                      placeholder="e.g. Order fresh food and groceries..."
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-2xl text-xs sm:text-sm outline-none text-white focus:border-blue-500/60 transition resize-none h-24"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block mb-1.5">Meta Keywords</label>
+                    <input
+                      type="text"
+                      value={seoKeywords}
+                      onChange={(e) => setSeoKeywords(e.target.value)}
+                      placeholder="e.g. food delivery, groceries, online ordering"
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-2xl text-xs sm:text-sm outline-none text-white focus:border-blue-500/60 transition"
+                    />
+                  </div>
                 </div>
               </div>
             </div>

@@ -1,0 +1,463 @@
+import React, { useState } from "react";
+import { Dish } from "../types";
+import { AlertTriangle, Clock, Plus, Minus, X, Check } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+
+interface FoodDetailModalProps {
+  dish: Dish | null;
+  onClose: () => void;
+  onAddToCart: (dish: Dish, quantity: number, options?: { size?: string, flavor?: string, addOns?: {name: string, price: number}[], specialInstructions?: string }) => void;
+  isActiveDetailDishClosed: boolean;
+}
+
+export default function FoodDetailModal({
+  dish,
+  onClose,
+  onAddToCart,
+  isActiveDetailDishClosed,
+}: FoodDetailModalProps) {
+  const [quantity, setQuantity] = useState(1);
+  const [selectedSizeObj, setSelectedSizeObj] = useState<{name: string, price: number, imageUrl?: string} | null>(null);
+  const [selectedFlavorObj, setSelectedFlavorObj] = useState<{name: string, price: number, imageUrl?: string} | null>(null);
+  const [selectedAddOns, setSelectedAddOns] = useState<{name: string, price: number}[]>([]);
+  const [specialInstructions, setSpecialInstructions] = useState("");
+  const [sizeError, setSizeError] = useState(false);
+  const [flavorError, setFlavorError] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+
+  React.useEffect(() => {
+    if (dish) {
+      setQuantity(1);
+      setSelectedSizeObj(null);
+      setSelectedFlavorObj(null);
+      setSelectedAddOns([]);
+      setSpecialInstructions("");
+      setSizeError(false);
+      setFlavorError(false);
+      setShowConfirmation(false);
+      setShowToast(false);
+    }
+  }, [dish]);
+
+  if (!dish) return null;
+
+  const isService = dish.type === "service";
+  const basePrice = dish.discountPrice && dish.discountPrice < dish.price ? dish.discountPrice : dish.price;
+  
+  const addOnsTotal = selectedAddOns.reduce((sum, addOn) => sum + addOn.price, 0);
+  const unitPrice = selectedSizeObj ? selectedSizeObj.price : basePrice;
+  const flavorPrice = selectedFlavorObj ? selectedFlavorObj.price : 0;
+  const totalPrice = (unitPrice + flavorPrice + addOnsTotal) * quantity;
+
+  const handleAdd = () => {
+    if (dish.isAvailable && !isActiveDetailDishClosed) {
+      if (!isService) {
+        let hasError = false;
+        if (dish.sizes && dish.sizes.length > 0 && !selectedSizeObj) {
+          setSizeError(true);
+          hasError = true;
+        }
+        if (dish.flavors && dish.flavors.length > 0 && !selectedFlavorObj) {
+          setFlavorError(true);
+          hasError = true;
+        }
+        if (hasError) return;
+
+        const hasCustomization = (dish.sizes && dish.sizes.length > 0) || 
+                                 (dish.flavors && dish.flavors.length > 0) || 
+                                 (dish.addOns && dish.addOns.length > 0);
+
+        if (hasCustomization) {
+          if (!showConfirmation) {
+            setShowConfirmation(true);
+            return;
+          }
+        }
+      }
+
+      onAddToCart(
+        dish, 
+        quantity, 
+        isService ? undefined : { 
+          size: selectedSizeObj ? selectedSizeObj.name : undefined, 
+          flavor: selectedFlavorObj ? selectedFlavorObj.name : undefined,
+          addOns: selectedAddOns.length > 0 ? selectedAddOns : undefined,
+          specialInstructions: specialInstructions.trim() ? specialInstructions.trim() : undefined
+        }
+      );
+      
+      setShowToast(true);
+      setTimeout(() => {
+        setShowToast(false);
+        onClose();
+      }, 1500);
+    }
+  };
+
+  return (
+    <AnimatePresence>
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-6"
+      >
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ type: "spring", damping: 25, stiffness: 300 }}
+          className="bg-white border border-zinc-100 rounded-3xl sm:rounded-[32px] max-w-lg w-full overflow-hidden shadow-2xl relative max-h-[90vh] flex flex-col"
+        >
+          {/* Close Button */}
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 z-10 w-9 h-9 bg-black/40 hover:bg-black/60 backdrop-blur-md text-white rounded-full flex items-center justify-center transition-colors cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          {/* Header Image */}
+          <div className="h-48 sm:h-64 relative shrink-0 bg-zinc-100">
+            <img src={dish.imageUrl} alt={dish.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+            
+            <div className="absolute bottom-4 left-5 flex items-center gap-2">
+              <span className={`text-[10px] font-black uppercase tracking-wider py-1 px-2.5 rounded-lg shadow-sm ${
+                isService ? "bg-amber-500 text-black" : "bg-[#D70F64] text-white"
+              }`}>
+                {isService ? "Licensed Service" : "Fresh Kitchen"}
+              </span>
+              <span className="text-[10px] bg-white/90 backdrop-blur-sm text-zinc-800 font-bold tracking-wider uppercase py-1 px-2.5 rounded-lg shadow-sm">
+                🏪 {dish.restaurantName || (isService ? "Dadu Home Services" : "Dadu Fast Food & Kitchen")}
+              </span>
+            </div>
+          </div>
+
+          {showConfirmation ? (
+             <div className="absolute inset-0 z-20 bg-white flex flex-col overflow-hidden">
+                <div className="h-48 sm:h-56 relative shrink-0">
+                  <img src={dish.imageUrl} alt={dish.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                  <div className="absolute bottom-4 left-5 pr-5">
+                    <h2 className="text-white font-black text-2xl tracking-tight leading-tight">{dish.name}</h2>
+                  </div>
+                </div>
+
+                <div className="p-5 overflow-y-auto scrollbar-none flex-grow bg-zinc-50 space-y-5">
+                   <h3 className="font-black text-zinc-900 text-lg tracking-tight text-center">Confirm Your Order</h3>
+                   
+                   <div className="h-px w-full bg-zinc-200" />
+                   
+                   <div>
+                      <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3">Your Selections</h4>
+                      <div className="space-y-2">
+                        {selectedSizeObj && (
+                           <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-zinc-100 shadow-sm">
+                              <span className="text-sm font-bold text-zinc-800">Size: {selectedSizeObj.name}</span>
+                              <span className="text-sm font-black text-[#D70F64]">Rs. {selectedSizeObj.price}</span>
+                           </div>
+                        )}
+                        {selectedFlavorObj && (
+                           <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-zinc-100 shadow-sm">
+                              <span className="text-sm font-bold text-zinc-800">Flavor: {selectedFlavorObj.name}</span>
+                              <span className="text-sm font-black text-[#D70F64]">{selectedFlavorObj.price > 0 ? `+ Rs. ${selectedFlavorObj.price}` : "Free"}</span>
+                           </div>
+                        )}
+                        {selectedAddOns.map((ad, idx) => (
+                           <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-xl border border-zinc-100 shadow-sm">
+                              <span className="text-sm font-bold text-zinc-800">+ {ad.name}</span>
+                              <span className="text-sm font-black text-[#D70F64]">+ Rs. {ad.price}</span>
+                           </div>
+                        ))}
+                      </div>
+                   </div>
+
+                   <div className="h-px w-full bg-zinc-200" />
+                   
+                   <div>
+                      <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3">Price Breakdown</h4>
+                      <div className="bg-white p-4 rounded-2xl border border-zinc-100 shadow-sm space-y-2.5">
+                         <div className="flex justify-between items-center">
+                            <span className="text-sm font-bold text-zinc-600">Base Price</span>
+                            <span className="text-sm font-black text-zinc-900">Rs. {basePrice.toFixed(2)}</span>
+                         </div>
+                         {selectedSizeObj && selectedSizeObj.price !== basePrice && (
+                            <div className="flex justify-between items-center">
+                               <span className="text-sm font-bold text-zinc-600">Size Update</span>
+                               <span className="text-sm font-black text-zinc-900">Rs. {selectedSizeObj.price.toFixed(2)}</span>
+                            </div>
+                         )}
+                         {selectedFlavorObj && selectedFlavorObj.price > 0 && (
+                            <div className="flex justify-between items-center">
+                               <span className="text-sm font-bold text-zinc-600">Flavor Extra</span>
+                               <span className="text-sm font-black text-zinc-900">+ Rs. {selectedFlavorObj.price.toFixed(2)}</span>
+                            </div>
+                         )}
+                         {selectedAddOns.length > 0 && (
+                            <div className="flex justify-between items-center">
+                               <span className="text-sm font-bold text-zinc-600">Add-ons</span>
+                               <span className="text-sm font-black text-zinc-900">+ Rs. {addOnsTotal.toFixed(2)}</span>
+                            </div>
+                         )}
+                         <div className="flex justify-between items-center">
+                            <span className="text-sm font-bold text-zinc-600">Quantity</span>
+                            <span className="text-sm font-black text-zinc-900">x {quantity}</span>
+                         </div>
+                         <div className="h-px w-full bg-zinc-100 my-2" />
+                         <div className="flex justify-between items-center">
+                            <span className="text-sm font-bold text-zinc-900">Total</span>
+                            <span className="text-lg font-black text-[#D70F64]">Rs. {totalPrice.toFixed(2)}</span>
+                         </div>
+                      </div>
+                   </div>
+
+                   {specialInstructions.trim() && (
+                      <>
+                         <div className="h-px w-full bg-zinc-200" />
+                         <div>
+                            <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Instructions</h4>
+                            <p className="text-sm font-medium text-zinc-700 bg-white p-3 rounded-xl border border-zinc-100 italic">"{specialInstructions}"</p>
+                         </div>
+                      </>
+                   )}
+                </div>
+
+                <div className="p-4 sm:p-5 bg-white border-t border-zinc-100 flex gap-3 sticky bottom-0">
+                  <button onClick={() => setShowConfirmation(false)} className="flex-1 py-4 rounded-full text-sm font-black uppercase tracking-wider border-2 border-zinc-200 text-zinc-600 hover:bg-zinc-50 active:scale-[0.98] transition-all">
+                     Change Selection
+                  </button>
+                  <button onClick={handleAdd} className="flex-[2] py-4 rounded-full text-sm font-black uppercase tracking-wider bg-[#D70F64] text-white hover:bg-[#b00c50] shadow-[#D70F64]/20 shadow-lg active:scale-[0.98] transition-all">
+                     Confirm & Add
+                  </button>
+                </div>
+             </div>
+          ) : (
+            <>
+              {/* Content Body */}
+              <div className="p-5 sm:p-7 overflow-y-auto scrollbar-none flex-grow">
+                <h3 className="font-black text-zinc-900 text-2xl tracking-tight">{dish.name}</h3>
+                <p className="text-sm text-zinc-500 font-medium leading-relaxed mt-2">{dish.description}</p>
+
+                {isService && (
+                  <div className="mt-4 bg-amber-50/50 border border-amber-200/50 text-amber-700 text-xs p-3.5 rounded-xl flex items-start gap-2 leading-relaxed font-semibold">
+                    <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                    <span>
+                      <strong>Visitation Note:</strong> This charge is strictly the visitation and diagnostic fee. General repairs and materials are evaluated and quoted on-site.
+                    </span>
+                  </div>
+                )}
+
+                {isActiveDetailDishClosed && (
+                   <div className="mt-4 bg-red-50 border border-red-100 text-red-600 text-xs p-3.5 rounded-xl flex items-center gap-2 font-bold">
+                     <Clock className="w-4 h-4 shrink-0" />
+                     <span>This vendor is currently unavailable or closed.</span>
+                   </div>
+                )}
+
+            {!isService && (dish.sizes || dish.flavors) && (
+              <div className="space-y-5 mt-6 border-t border-zinc-100 pt-5">
+                {/* Size Selection */}
+                {dish.sizes && dish.sizes.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-bold text-zinc-800 mb-3 flex items-center justify-between">
+                      Select Size
+                      {sizeError && <span className="text-xs font-bold text-red-500">Please select a size first</span>}
+                    </h4>
+                    <div className={`grid grid-cols-2 sm:grid-cols-3 gap-3 ${sizeError ? "p-3 border border-red-500 rounded-2xl bg-red-50/50" : ""}`}>
+                      {dish.sizes.map((sizeObj, idx) => (
+                        <button
+                          key={`${sizeObj.name}-${idx}`}
+                          onClick={() => {
+                            setSelectedSizeObj(sizeObj);
+                            setSizeError(false);
+                          }}
+                          className={`flex flex-col items-center p-3 rounded-xl transition-all border ${
+                            selectedSizeObj === sizeObj 
+                              ? "bg-[#D70F64]/10 border-[#D70F64] text-[#D70F64]" 
+                              : "bg-white border-zinc-200 text-zinc-600 hover:border-zinc-300"
+                          }`}
+                        >
+                          {sizeObj.imageUrl && (
+                            <img src={sizeObj.imageUrl} alt={sizeObj.name} className="w-12 h-12 rounded-full object-cover mb-2" referrerPolicy="no-referrer" />
+                          )}
+                          <div className="text-xs font-bold whitespace-nowrap">{sizeObj.name}</div>
+                          <div className="text-[10px] mt-0.5 opacity-80">Rs. {sizeObj.price}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Flavor Selection */}
+                {dish.flavors && dish.flavors.length > 0 && (
+                  <div className="mt-6 border-t border-zinc-100 pt-5">
+                    <div className="flex justify-between items-start mb-1">
+                      <h4 className="text-lg font-black text-zinc-900">Choose Your {dish.name} Flavor</h4>
+                      <span className="bg-black text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest mt-1">Required</span>
+                    </div>
+                    <p className="text-zinc-500 text-sm mb-4">Select one</p>
+                    <div className={`flex flex-col ${flavorError ? "p-1 border border-red-500 rounded-2xl bg-red-50/50" : ""}`}>
+                      {dish.flavors.map((flavorObj, idx) => {
+                        const isSelected = selectedFlavorObj === flavorObj;
+                        return (
+                          <div 
+                            key={`${flavorObj.name}-${idx}`}
+                            onClick={() => {
+                              setSelectedFlavorObj(flavorObj);
+                              setFlavorError(false);
+                            }}
+                            className={`flex items-center justify-between py-4 cursor-pointer transition-colors ${idx !== dish.flavors!.length - 1 ? 'border-b border-zinc-100' : ''} ${isSelected ? 'bg-zinc-50' : ''}`}
+                          >
+                            <div className="flex flex-col px-2">
+                              <span className="text-base font-black text-zinc-900">{flavorObj.name}</span>
+                              {flavorObj.isPopular && (
+                                <span className="text-[#f04f23] text-xs font-bold flex items-center gap-1 mt-0.5">
+                                  🔥 Popular
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-4 px-2">
+                              <div className="flex flex-col items-end">
+                                {flavorObj.price === 0 ? (
+                                  <span className="text-zinc-500 text-sm font-bold">Free</span>
+                                ) : (
+                                  <span className="text-[#D70F64] text-sm font-bold">+ Rs. {flavorObj.price.toFixed(2)}</span>
+                                )}
+                                {flavorObj.originalPrice && flavorObj.originalPrice > 0 && (
+                                  <span className="text-zinc-400 text-xs line-through mt-0.5">Rs. {flavorObj.originalPrice.toFixed(2)}</span>
+                                )}
+                              </div>
+                              <div className={`w-5 h-5 rounded-full border-[1.5px] flex items-center justify-center ${isSelected ? 'border-[#D70F64] bg-white' : 'border-zinc-300'}`}>
+                                {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-[#D70F64]" />}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {flavorError && <span className="text-xs font-bold text-red-500 block mt-2 text-right px-2">Please select a flavor first</span>}
+                  </div>
+                )}
+
+                {/* Add-ons Selection */}
+                {dish.addOns && dish.addOns.length > 0 && (
+                  <div className="mt-6 border-t border-zinc-100 pt-5">
+                    <div className="flex justify-between items-start mb-1">
+                      <h4 className="text-lg font-black text-zinc-900">Frequently bought together</h4>
+                      <span className="bg-zinc-200 text-zinc-600 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest mt-1">Optional</span>
+                    </div>
+                    <p className="text-zinc-500 text-sm mb-4">Other customers also ordered these</p>
+                    <div className="flex flex-col">
+                      {dish.addOns.map((addOn, idx) => {
+                        const isSelected = selectedAddOns.some(a => a.name === addOn.name);
+                        return (
+                          <label key={`${addOn.name}-${idx}`} className={`flex items-center justify-between py-4 cursor-pointer transition-colors ${idx !== dish.addOns!.length - 1 ? 'border-b border-zinc-100' : ''}`}>
+                            <div className="flex items-center gap-3 px-2">
+                              {addOn.imageUrl ? (
+                                <img src={addOn.imageUrl} alt={addOn.name} className="w-14 h-14 rounded-xl object-cover" referrerPolicy="no-referrer" />
+                              ) : (
+                                <div className="w-14 h-14 rounded-xl bg-zinc-100 flex items-center justify-center">
+                                  <span className="text-zinc-400 text-[10px] font-bold text-center px-1 uppercase">{addOn.name.slice(0, 3)}</span>
+                                </div>
+                              )}
+                              <span className="text-base font-black text-zinc-900">{addOn.name}</span>
+                            </div>
+                            <div className="flex items-center gap-4 px-2">
+                              <div className="flex flex-col items-end">
+                                <span className="text-[#D70F64] text-sm font-bold">+ Rs. {addOn.price.toFixed(2)}</span>
+                                {addOn.originalPrice && addOn.originalPrice > 0 && (
+                                  <span className="text-zinc-400 text-xs line-through mt-0.5">Rs. {addOn.originalPrice.toFixed(2)}</span>
+                                )}
+                              </div>
+                              <input 
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedAddOns([...selectedAddOns, addOn]);
+                                  } else {
+                                    setSelectedAddOns(selectedAddOns.filter(a => a.name !== addOn.name));
+                                  }
+                                }}
+                                className="w-5 h-5 rounded border-zinc-300 text-[#D70F64] focus:ring-[#D70F64]"
+                              />
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Special Instructions */}
+                <div>
+                  <h4 className="text-sm font-bold text-zinc-800 mb-3">Special Instructions</h4>
+                  <textarea
+                    value={specialInstructions}
+                    onChange={(e) => setSpecialInstructions(e.target.value)}
+                    placeholder="e.g. No mayo, extra spicy..."
+                    className="w-full p-3 border border-zinc-200 rounded-xl text-sm outline-none focus:border-[#D70F64] resize-none h-20 placeholder:text-zinc-400"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Footer Action */}
+          <div className="p-4 sm:p-5 bg-white border-t border-zinc-100 shrink-0 flex items-center justify-between gap-3 sticky bottom-0 z-10 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+            <div className="flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-full p-1 shadow-sm shrink-0">
+              <button
+                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-zinc-600 hover:text-[#D70F64] transition-colors"
+              >
+                <Minus className="w-5 h-5" />
+              </button>
+              <span className="font-black text-base w-4 text-center">{quantity}</span>
+              <button
+                onClick={() => setQuantity(quantity + 1)}
+                className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-zinc-600 hover:text-[#D70F64] transition-colors"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <button
+              onClick={handleAdd}
+              disabled={!dish.isAvailable || isActiveDetailDishClosed}
+              className={`flex-1 py-4 rounded-full text-sm font-black capitalize tracking-wide flex items-center justify-between px-6 transition-all shadow-lg ${
+                (!dish.isAvailable || isActiveDetailDishClosed) 
+                  ? 'cursor-not-allowed opacity-60 bg-zinc-200 text-zinc-500 shadow-none' 
+                  : ((dish.sizes && dish.sizes.length > 0 && !selectedSizeObj) || (dish.flavors && dish.flavors.length > 0 && !selectedFlavorObj))
+                    ? 'bg-zinc-200 text-zinc-500 shadow-none hover:bg-zinc-300'
+                    : isService 
+                      ? 'bg-amber-500 text-neutral-950 hover:bg-amber-600 shadow-amber-500/20 active:scale-[0.98]' 
+                      : 'bg-[#D70F64] text-white hover:bg-[#b00c50] shadow-[#D70F64]/20 active:scale-[0.98]'
+              }`}
+            >
+              <span>{isService ? "Book Visitation" : "Add to cart"}</span>
+              <span>Rs. {totalPrice}</span>
+            </button>
+          </div>
+        </>
+        )}
+        </motion.div>
+        
+        {/* Toast Notification */}
+        <AnimatePresence>
+          {showToast && (
+             <motion.div 
+               initial={{ opacity: 0, y: 20 }} 
+               animate={{ opacity: 1, y: 0 }} 
+               exit={{ opacity: 0, y: 10 }} 
+               className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-green-500 text-white px-5 py-3 rounded-full shadow-2xl font-bold flex items-center gap-2 z-[60]"
+             >
+                <Check className="w-5 h-5" /> Item added to cart!
+             </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
