@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { UserProfile, AppNotification, Order } from "../types";
-import { Search, ShoppingBag, User, LogOut, Phone, Bell, ShieldAlert, BadgeCheck, Download, History } from "lucide-react";
+import { Search, ShoppingBag, User, LogOut, Phone, Bell, ShieldAlert, BadgeCheck, Download, History, Heart } from "lucide-react";
 import daduLogo from "../assets/images/dadu_food_logo_new_1782333467889.jpg";
 
 interface FoodpandaHeaderProps {
@@ -18,6 +18,8 @@ interface FoodpandaHeaderProps {
   onClearNotifications: () => void;
   activeCategory?: string;
   setActiveCategory?: (cat: string) => void;
+  onToggleFavorites?: () => void;
+  showFavoritesOnly?: boolean;
   orders?: Order[];
   onTrackOrder?: (order: Order) => void;
   onOpenGroceryCart?: () => void;
@@ -41,6 +43,8 @@ export default function FoodpandaHeader({
   onClearNotifications,
   activeCategory,
   setActiveCategory,
+  onToggleFavorites,
+  showFavoritesOnly,
   orders = [],
   onTrackOrder,
   onOpenGroceryCart = () => {},
@@ -252,6 +256,17 @@ export default function FoodpandaHeader({
                 )}
 
                 <div className="p-1 bg-white">
+                  <button
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      if (onToggleFavorites) onToggleFavorites();
+                    }}
+                    className={`w-full text-left font-bold text-xs px-3.5 py-2 rounded-xl transition flex items-center gap-2 cursor-pointer ${showFavoritesOnly ? 'text-[#D70F64] bg-[#D70F64]/10' : 'text-zinc-700 hover:bg-zinc-50'}`}
+                  >
+                    <Heart className={`w-4 h-4 shrink-0 ${showFavoritesOnly ? 'fill-[#D70F64] text-[#D70F64]' : 'text-[#D70F64]'}`} />
+                    My Favorites
+                  </button>
+
                   <button
                     onClick={() => {
                       setShowUserMenu(false);

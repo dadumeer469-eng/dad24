@@ -269,6 +269,7 @@ export default function AdminPanel({
   const [restStatusUnavailable, setRestStatusUnavailable] = useState(false);
   const [restOpeningTime, setRestOpeningTime] = useState("09:00");
   const [restClosingTime, setRestClosingTime] = useState("23:00");
+  const [restImageUrl, setRestImageUrl] = useState("");
   const [newRestaurantInput, setNewRestaurantInput] = useState("");
 
   // Deal of the Hour states
@@ -289,10 +290,12 @@ export default function AdminPanel({
         setRestStatusUnavailable(specificStatus.isTemporarilyUnavailable);
         setRestOpeningTime(specificStatus.openingTime);
         setRestClosingTime(specificStatus.closingTime);
+        setRestImageUrl(specificStatus.imageUrl || "");
       } else {
         setRestStatusUnavailable(false);
         setRestOpeningTime("09:00");
         setRestClosingTime("23:00");
+        setRestImageUrl("");
       }
     }
   }, [deliverySettings, selectedScheduleRestaurant]);
@@ -704,7 +707,8 @@ export default function AdminPanel({
           [selectedScheduleRestaurant]: {
             isTemporarilyUnavailable: restStatusUnavailable,
             openingTime: restOpeningTime,
-            closingTime: restClosingTime
+            closingTime: restClosingTime,
+            imageUrl: restImageUrl
           }
         }
       };
@@ -1601,6 +1605,16 @@ export default function AdminPanel({
                             className="w-full p-3 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-white outline-none focus:border-purple-500/60 transition"
                           />
                         </div>
+                      </div>
+
+                      <div className="pt-2">
+                        <ProductImageSelector
+                          imageUrl={restImageUrl}
+                          onChange={setRestImageUrl}
+                          label="Restaurant Cover Image"
+                          accentColorClass="purple"
+                          placeholder="Paste image web address (https://...)"
+                        />
                       </div>
                       
                       <div className="flex flex-col gap-2 mt-2">
@@ -2558,6 +2572,17 @@ export default function AdminPanel({
                         />
                       </div>
                     </div>
+
+                    <div className="pt-2">
+                      <ProductImageSelector
+                        imageUrl={restImageUrl}
+                        onChange={setRestImageUrl}
+                        label="Restaurant Cover Image"
+                        accentColorClass="purple"
+                        placeholder="Paste image web address (https://...)"
+                      />
+                    </div>
+
                     <button
                       type="button"
                       onClick={handleSaveDeliveryConfig}

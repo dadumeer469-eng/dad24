@@ -38,6 +38,7 @@ export default function App() {
 
   // Favorites and Deal of the Hour configuration
   const [favoriteDishIds, setFavoriteDishIds] = useState<string[]>([]);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [isExitConfirmationOpen, setIsExitConfirmationOpen] = useState(false);
   const isExitingRef = useRef(false);
   const isProgrammaticBackRef = useRef(false);
@@ -967,10 +968,11 @@ export default function App() {
     const matchesCategory = activeCategory === "All" || dish.category === activeCategory;
     const rName = dish.restaurantName || (dish.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
     const matchesRestaurant = selectedRestaurant === "All Restaurants" || rName === selectedRestaurant;
+    const matchesFavorites = !showFavoritesOnly || favoriteDishIds.includes(dish.id);
     const matchesSearch = dish.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           dish.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           rName.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesRestaurant && matchesSearch;
+    return matchesCategory && matchesRestaurant && matchesSearch && matchesFavorites;
   });
 
   const cartCountTotal = cartItems.reduce((acc, item) => acc + item.quantity, 0);
@@ -1283,6 +1285,8 @@ export default function App() {
         onClearNotifications={handleClearNotificationsAll}
         activeCategory={activeCategory}
         setActiveCategory={setActiveCategory}
+        onToggleFavorites={() => setShowFavoritesOnly(!showFavoritesOnly)}
+        showFavoritesOnly={showFavoritesOnly}
         orders={orders.filter(o => o.status !== "delivered" && o.status !== "completed" && o.status !== "cancelled")}
         onTrackOrder={(order) => {
           setActiveTrackingOrder(order);
@@ -1430,31 +1434,43 @@ export default function App() {
                         )}
                       </div>
 
-                      <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-none scroll-smooth">
+                      <div className="flex items-start gap-2.5 overflow-x-auto pb-2 scrollbar-none scroll-smooth px-1">
                         <button
                           onClick={() => setSelectedRestaurant("All Restaurants")}
-                          className={`py-2 px-3.5 rounded-xl text-xs font-black transition shrink-0 cursor-pointer border ${
+                          className={`w-[85px] h-[100px] rounded-2xl flex flex-col items-center justify-center gap-1 p-2 font-black transition shrink-0 cursor-pointer border ${
                             selectedRestaurant === "All Restaurants"
-                              ? "bg-[#D70F64] text-white border-[#D70F64] font-black shadow-xs shadow-pink-500/10 scale-[1.02]"
-                              : "bg-white text-zinc-505 hover:text-zinc-800 hover:bg-zinc-50 border-zinc-200"
+                              ? "bg-[#D70F64] text-white border-[#D70F64] shadow-md shadow-pink-500/15 scale-105"
+                              : "bg-white text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50 border-zinc-200"
                           }`}
                         >
-                          🎪 All Kitchens & Shops
+                          <span className="text-3xl mb-1">🎪</span>
+                          <span className="text-[10px] text-center uppercase tracking-wider leading-tight">All<br/>Kitchens</span>
                         </button>
-                        {uniqueRestaurants.map((vendor) => (
-                          <button
-                            key={vendor}
-                            onClick={() => setSelectedRestaurant(vendor)}
-                            className={`py-2 px-3.5 rounded-xl text-xs font-black transition shrink-0 cursor-pointer border flex items-center gap-2 ${
-                              selectedRestaurant === vendor
-                                ? "bg-[#D70F64] text-white border-[#D70F64] font-black shadow-xs shadow-pink-500/10 scale-[1.02]"
-                                : "bg-white text-zinc-505 hover:text-zinc-800 hover:bg-zinc-50 border-zinc-200"
-                            }`}
-                          >
-                            <span className="opacity-90">{vendor.includes("Services") || vendor.includes("Pr") || vendor.includes("Re") ? "🛠️" : "🍔"}</span>
-                            <span>{vendor}</span>
-                          </button>
-                        ))}
+                        {uniqueRestaurants.map((vendor) => {
+                          const vendorImageUrl = deliverySettings?.restaurantStatuses?.[vendor]?.imageUrl;
+                          return (
+                            <button
+                              key={vendor}
+                              onClick={() => setSelectedRestaurant(vendor)}
+                              className={`w-[85px] h-[100px] rounded-2xl flex flex-col items-center p-1.5 font-black transition shrink-0 cursor-pointer border overflow-hidden ${
+                                selectedRestaurant === vendor
+                                  ? "bg-[#D70F64] text-white border-[#D70F64] shadow-md shadow-pink-500/15 scale-105"
+                                  : "bg-white text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 border-zinc-200"
+                              }`}
+                            >
+                              <div className="w-full h-[52px] rounded-xl overflow-hidden bg-zinc-100 flex items-center justify-center shrink-0 mb-1.5 shadow-sm">
+                                {vendorImageUrl ? (
+                                  <img src={vendorImageUrl} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  <span className="opacity-90 text-2xl">{vendor.includes("Services") || vendor.includes("Pr") || vendor.includes("Re") ? "🛠️" : "🍔"}</span>
+                                )}
+                              </div>
+                              <span className="text-[9px] text-center tracking-tight leading-[1.1] line-clamp-2 px-0.5 w-full">
+                                {vendor}
+                              </span>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   );
@@ -1646,16 +1662,20 @@ export default function App() {
                 {filteredDishes.length === 0 && (
                   <div className="bg-white/80 backdrop-blur-md border border-pink-100 p-12 rounded-3.5xl text-center space-y-4 shadow-sm max-w-md mx-auto">
                     <div className="w-16 h-16 bg-pink-50 rounded-full flex items-center justify-center mx-auto text-3xl shadow-inner animate-bounce">
-                      🍛
+                      {showFavoritesOnly ? "💔" : "🍛"}
                     </div>
                     <div>
-                      <h4 className="font-black text-sm text-zinc-800 uppercase tracking-tight">No Delicious Dishes Found</h4>
+                      <h4 className="font-black text-sm text-zinc-800 uppercase tracking-tight">
+                        {showFavoritesOnly ? "No Favorites Yet" : "No Delicious Dishes Found"}
+                      </h4>
                       <p className="text-[11px] text-zinc-400 font-semibold leading-relaxed mt-1.5 px-4">
-                        Hamein aapki search query <span className="text-[#D70F64] font-bold">"{searchQuery}"</span> se milti-julti koi dish nahi mili. Kuch naya try karein!
+                        {showFavoritesOnly 
+                          ? "Aapne abhi tak kisi dish ko favorite nahi kiya. Favorite button dabayein!" 
+                          : `Hamein aapki search query "${searchQuery}" se milti-julti koi dish nahi mili. Kuch naya try karein!`}
                       </p>
                     </div>
                     <button
-                      onClick={() => { setSearchQuery(""); setActiveCategory("All"); }}
+                      onClick={() => { setSearchQuery(""); setActiveCategory("All"); setShowFavoritesOnly(false); }}
                       className="bg-[#D70F64] hover:bg-[#b00c50] text-white font-black py-2.5 px-6 text-[10px] uppercase tracking-widest rounded-xl cursor-pointer transition-all shadow-md active:scale-95"
                     >
                       Show All Food Menu 🍽️

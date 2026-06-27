@@ -77,6 +77,7 @@ export interface SystemSettings {
     isTemporarilyUnavailable: boolean;
     openingTime: string;
     closingTime: string;
+    imageUrl?: string;
   }>;
 }
 
