@@ -1,10 +1,33 @@
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { 
-  collection, doc, onSnapshot, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, getDocs 
+import {
+  collection,
+  doc,
+  onSnapshot,
+  getDoc,
+  setDoc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  getDocs,
 } from "firebase/firestore";
 import { auth, db, handleFirestoreError, cleanObject } from "./firebase";
-import { Dish, Order, UserProfile, SystemSettings, AppNotification, OrderItem, GroceryCategory, GroceryProduct, GroceryOrderItem, GroceryDeliveryConfig, GroceryOrder } from "./types";
+import {
+  Dish,
+  Order,
+  UserProfile,
+  SystemSettings,
+  AppNotification,
+  OrderItem,
+  GroceryCategory,
+  GroceryProduct,
+  GroceryOrderItem,
+  GroceryDeliveryConfig,
+  GroceryOrder,
+} from "./types";
 import { INITIAL_MENU_ITEMS } from "./data";
 
 // Import modules
@@ -23,8 +46,26 @@ import OrderHistoryDrawer from "./components/OrderHistoryDrawer";
 import daduLogo from "./assets/images/dadu_food_logo_new_1782333467889.jpg";
 
 // Icons & Motion
-import { 
-  ShieldAlert, Clock, AlertTriangle, AlertCircle, MessageSquare, BadgeAlert, Sparkles, CheckSquare, Wrench, HeartHandshake, UtensilsCrossed, Compass, MapPin, Heart, LogOut, Home, ArrowLeft, Plus, Minus
+import {
+  ShieldAlert,
+  Clock,
+  AlertTriangle,
+  AlertCircle,
+  MessageSquare,
+  BadgeAlert,
+  Sparkles,
+  CheckSquare,
+  Wrench,
+  HeartHandshake,
+  UtensilsCrossed,
+  Compass,
+  MapPin,
+  Heart,
+  LogOut,
+  Home,
+  ArrowLeft,
+  Plus,
+  Minus,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -36,7 +77,14 @@ export default function App() {
   const [isLoadingDishes, setIsLoadingDishes] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [deliverySettings, setDeliverySettings] = useState<SystemSettings>({ deliveryFee: 50, restaurantStatus: { isTemporarilyUnavailable: false, openingTime: "09:00", closingTime: "23:00" } });
+  const [deliverySettings, setDeliverySettings] = useState<SystemSettings>({
+    deliveryFee: 50,
+    restaurantStatus: {
+      isTemporarilyUnavailable: false,
+      openingTime: "09:00",
+      closingTime: "23:00",
+    },
+  });
 
   // Favorites and Deal of the Hour configuration
   const [favoriteDishIds, setFavoriteDishIds] = useState<string[]>([]);
@@ -55,9 +103,12 @@ export default function App() {
     timerMinutes: 30,
     discountPercentage: 25,
     selectedItemIds: ["dish_6", "dish_7"],
-    dealText: "Save 25% on Only Tea & Fresh Platters! Hurry!"
+    dealText: "Save 25% on Only Tea & Fresh Platters! Hurry!",
   });
-  const [dealTimeLeft, setDealTimeLeft] = useState<{ minutes: number; seconds: number }>({ minutes: 0, seconds: 0 });
+  const [dealTimeLeft, setDealTimeLeft] = useState<{
+    minutes: number;
+    seconds: number;
+  }>({ minutes: 0, seconds: 0 });
 
   // Deal of the Hour ticking clock countdown in App.tsx
   useEffect(() => {
@@ -77,32 +128,49 @@ export default function App() {
 
   // Automatically deactivate the deal in Firestore when the timer hits 0:00
   useEffect(() => {
-    if (dealTimeLeft.minutes === 0 && dealTimeLeft.seconds === 0 && dealConfig.isActive) {
-      updateDoc(doc(db, "settings", "deal_config"), { isActive: false }).catch((err) => {
-        console.warn("Failed to deactivate deal of the hour automatically:", err);
-      });
+    if (
+      dealTimeLeft.minutes === 0 &&
+      dealTimeLeft.seconds === 0 &&
+      dealConfig.isActive
+    ) {
+      updateDoc(doc(db, "settings", "deal_config"), { isActive: false }).catch(
+        (err) => {
+          console.warn(
+            "Failed to deactivate deal of the hour automatically:",
+            err,
+          );
+        },
+      );
     }
   }, [dealTimeLeft, dealConfig.isActive]);
 
   // Standalone Grocery Module states
   const [activeModule, setActiveModule] = useState<"food" | "grocery">("food");
-  const [groceryCategories, setGroceryCategories] = useState<GroceryCategory[]>([]);
+  const [groceryCategories, setGroceryCategories] = useState<GroceryCategory[]>(
+    [],
+  );
   const [groceryProducts, setGroceryProducts] = useState<GroceryProduct[]>([]);
   const [isLoadingGrocery, setIsLoadingGrocery] = useState(true);
-  const [groceryDeliveryConfig, setGroceryDeliveryConfig] = useState<GroceryDeliveryConfig>({
-    baseDeliveryFee: 40,
-    freeDeliveryAboveAmount: 1000,
-    allowMixedCart: true,
-  });
-  const [groceryCartItems, setGroceryCartItems] = useState<GroceryOrderItem[]>([]);
+  const [groceryDeliveryConfig, setGroceryDeliveryConfig] =
+    useState<GroceryDeliveryConfig>({
+      baseDeliveryFee: 40,
+      freeDeliveryAboveAmount: 1000,
+      allowMixedCart: true,
+    });
+  const [groceryCartItems, setGroceryCartItems] = useState<GroceryOrderItem[]>(
+    [],
+  );
   const [isGroceryCartOpen, setIsGroceryCartOpen] = useState(false);
 
   // Navigation / Toggles
   const [activeCategory, setActiveCategory] = useState<string>("All");
-  const [selectedRestaurant, setSelectedRestaurant] = useState<string>("All Restaurants");
+  const [selectedRestaurant, setSelectedRestaurant] =
+    useState<string>("All Restaurants");
   const [searchQuery, setSearchQuery] = useState("");
   const [cartItems, setCartItems] = useState<OrderItem[]>([]);
-  const [activeTrackingOrder, setActiveTrackingOrder] = useState<Order | null>(null);
+  const [activeTrackingOrder, setActiveTrackingOrder] = useState<Order | null>(
+    null,
+  );
 
   // Modal Openings
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -110,22 +178,27 @@ export default function App() {
   const [isAdminConsoleOpen, setIsAdminConsoleOpen] = useState(false);
   const [activeDetailDish, setActiveDetailDish] = useState<Dish | null>(null);
   const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
-  const [successAnimationOrder, setSuccessAnimationOrder] = useState<Order | null>(null);
+  const [successAnimationOrder, setSuccessAnimationOrder] =
+    useState<Order | null>(null);
   const [isSuccessAnimationOpen, setIsSuccessAnimationOpen] = useState(false);
   const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
 
   // Visual notify states
-  const [toastNotification, setToastNotification] = useState<{ title: string; message: string } | null>(null);
+  const [toastNotification, setToastNotification] = useState<{
+    title: string;
+    message: string;
+  } | null>(null);
 
   // Audio synthesizer chime tone
   const playChimeSound = () => {
     try {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      const AudioCtx =
+        window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioCtx) return;
-      
+
       const ctx = new AudioCtx();
       const now = ctx.currentTime;
-      
+
       // Tone 1
       const osc1 = ctx.createOscillator();
       const gain1 = ctx.createGain();
@@ -134,7 +207,7 @@ export default function App() {
       osc1.frequency.exponentialRampToValueAtTime(880, now + 0.12); // A5
       gain1.gain.setValueAtTime(0.12, now);
       gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-      
+
       osc1.connect(gain1);
       gain1.connect(ctx.destination);
       osc1.start(now);
@@ -146,14 +219,13 @@ export default function App() {
       osc2.type = "sine";
       osc2.frequency.setValueAtTime(880, now + 0.1); // A5
       osc2.frequency.exponentialRampToValueAtTime(1174.66, now + 0.25); // D6
-      gain2.gain.setValueAtTime(0.10, now + 0.1);
+      gain2.gain.setValueAtTime(0.1, now + 0.1);
       gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
 
       osc2.connect(gain2);
       gain2.connect(ctx.destination);
       osc2.start(now + 0.1);
       osc2.stop(now + 0.4);
-
     } catch (err) {
       console.warn("AudioContext blocked or waiting for user gesture:", err);
     }
@@ -169,7 +241,9 @@ export default function App() {
 
         if (profileSnap.exists()) {
           const data = profileSnap.data();
-          const isAdminEmail = authUser.email === "dadumeer469@gmail.com" || authUser.email === "03277004471@dadu247.com";
+          const isAdminEmail =
+            authUser.email === "dadumeer469@gmail.com" ||
+            authUser.email === "03277004471@dadu247.com";
           if (isAdminEmail && data.role !== "admin") {
             const updated = { ...data, role: "admin" };
             await setDoc(profileRef, updated, { merge: true });
@@ -179,7 +253,9 @@ export default function App() {
           }
         } else {
           // Fallback
-          const isMeerali = authUser.email === "03277004471@dadu247.com" || authUser.email === "dadumeer469@gmail.com";
+          const isMeerali =
+            authUser.email === "03277004471@dadu247.com" ||
+            authUser.email === "dadumeer469@gmail.com";
           const fallback: UserProfile = {
             uid: authUser.uid,
             name: isMeerali ? "meerali120" : "Dadu Guest",
@@ -221,32 +297,40 @@ export default function App() {
   // 2. Real-time Menu Listening & Auto-Seeding
   useEffect(() => {
     console.log("Trace: Initializing Menu collection listener...");
-    const unsubscribe = onSnapshot(collection(db, "menu"), async (snapshot) => {
-      console.log("Trace: Menu snapshot received, empty:", snapshot.empty);
-      if (snapshot.empty) {
-        // Run automatic Firestore database seeding
-        console.log("Empty menu database. Seeding initial items directory...");
-        try {
-          await Promise.all(
-            INITIAL_MENU_ITEMS.map((item) => setDoc(doc(db, "menu", item.id), item))
+    const unsubscribe = onSnapshot(
+      collection(db, "menu"),
+      async (snapshot) => {
+        console.log("Trace: Menu snapshot received, empty:", snapshot.empty);
+        if (snapshot.empty) {
+          // Run automatic Firestore database seeding
+          console.log(
+            "Empty menu database. Seeding initial items directory...",
           );
-        } catch (err) {
-          console.error("Auto seeding failed:", err);
-        } finally {
+          try {
+            await Promise.all(
+              INITIAL_MENU_ITEMS.map((item) =>
+                setDoc(doc(db, "menu", item.id), item),
+              ),
+            );
+          } catch (err) {
+            console.error("Auto seeding failed:", err);
+          } finally {
+            setIsLoadingDishes(false);
+          }
+        } else {
+          const list: Dish[] = [];
+          snapshot.forEach((doc) => {
+            list.push(doc.data() as Dish);
+          });
+          setDishes(list);
           setIsLoadingDishes(false);
         }
-      } else {
-        const list: Dish[] = [];
-        snapshot.forEach((doc) => {
-          list.push(doc.data() as Dish);
-        });
-        setDishes(list);
+      },
+      (err) => {
+        console.error(handleFirestoreError(err));
         setIsLoadingDishes(false);
-      }
-    }, (err) => {
-      console.error(handleFirestoreError(err));
-      setIsLoadingDishes(false);
-    });
+      },
+    );
 
     return () => unsubscribe();
   }, []);
@@ -254,17 +338,34 @@ export default function App() {
   // 3. Real-time Delivery Settings Listening
   useEffect(() => {
     console.log("Trace: Initializing Delivery Settings collection listener...");
-    const unsubscribe = onSnapshot(doc(db, "settings", "delivery_config"), (docSnap) => {
-      console.log("Trace: Delivery Settings snapshot received, exists:", docSnap.exists());
-      if (docSnap.exists()) {
-        setDeliverySettings(docSnap.data() as SystemSettings);
-      } else {
-        // Seed default
-        setDoc(doc(db, "settings", "delivery_config"), { deliveryFee: 50, restaurantStatus: { isTemporarilyUnavailable: false, openingTime: "09:00", closingTime: "23:00" } }).catch(console.error);
-      }
-    }, (err) => {
-      console.warn("Delivery config subscription error:", handleFirestoreError(err));
-    });
+    const unsubscribe = onSnapshot(
+      doc(db, "settings", "delivery_config"),
+      (docSnap) => {
+        console.log(
+          "Trace: Delivery Settings snapshot received, exists:",
+          docSnap.exists(),
+        );
+        if (docSnap.exists()) {
+          setDeliverySettings(docSnap.data() as SystemSettings);
+        } else {
+          // Seed default
+          setDoc(doc(db, "settings", "delivery_config"), {
+            deliveryFee: 50,
+            restaurantStatus: {
+              isTemporarilyUnavailable: false,
+              openingTime: "09:00",
+              closingTime: "23:00",
+            },
+          }).catch(console.error);
+        }
+      },
+      (err) => {
+        console.warn(
+          "Delivery config subscription error:",
+          handleFirestoreError(err),
+        );
+      },
+    );
 
     return () => unsubscribe();
   }, []);
@@ -272,122 +373,156 @@ export default function App() {
   // 3a. Real-time Grocery Categories Listening
   useEffect(() => {
     console.log("Trace: Initializing GroceryCategories collection listener...");
-    const unsubscribe = onSnapshot(collection(db, "groceryCategories"), (snapshot) => {
-      console.log("Trace: GroceryCategories snapshot received, size:", snapshot.size);
-      const list: GroceryCategory[] = [];
-      snapshot.forEach((doc) => {
-        list.push(doc.data() as GroceryCategory);
-      });
-      list.sort((a, b) => (a.position || 0) - (b.position || 0));
-      setGroceryCategories(list);
-      setIsLoadingGrocery(false);
-    }, (err) => {
-      console.error(handleFirestoreError(err));
-      setIsLoadingGrocery(false);
-    });
+    const unsubscribe = onSnapshot(
+      collection(db, "groceryCategories"),
+      (snapshot) => {
+        console.log(
+          "Trace: GroceryCategories snapshot received, size:",
+          snapshot.size,
+        );
+        const list: GroceryCategory[] = [];
+        snapshot.forEach((doc) => {
+          list.push(doc.data() as GroceryCategory);
+        });
+        list.sort((a, b) => (a.position || 0) - (b.position || 0));
+        setGroceryCategories(list);
+        setIsLoadingGrocery(false);
+      },
+      (err) => {
+        console.error(handleFirestoreError(err));
+        setIsLoadingGrocery(false);
+      },
+    );
     return () => unsubscribe();
   }, []);
 
   // 3b. Real-time Grocery Products Listening
   useEffect(() => {
     console.log("Trace: Initializing GroceryProducts collection listener...");
-    const unsubscribe = onSnapshot(collection(db, "groceryProducts"), (snapshot) => {
-      console.log("Trace: GroceryProducts snapshot received, size:", snapshot.size);
-      const list: GroceryProduct[] = [];
-      snapshot.forEach((doc) => {
-        list.push(doc.data() as GroceryProduct);
-      });
-      setGroceryProducts(list);
-    }, (err) => {
-      console.error(handleFirestoreError(err));
-    });
+    const unsubscribe = onSnapshot(
+      collection(db, "groceryProducts"),
+      (snapshot) => {
+        console.log(
+          "Trace: GroceryProducts snapshot received, size:",
+          snapshot.size,
+        );
+        const list: GroceryProduct[] = [];
+        snapshot.forEach((doc) => {
+          list.push(doc.data() as GroceryProduct);
+        });
+        setGroceryProducts(list);
+      },
+      (err) => {
+        console.error(handleFirestoreError(err));
+      },
+    );
     return () => unsubscribe();
   }, []);
 
   // 3c. Real-time Grocery Delivery Config Listening
   useEffect(() => {
-    const unsubscribe = onSnapshot(doc(db, "settings", "groceryDeliveryConfig"), (docSnap) => {
-      if (docSnap.exists()) {
-        setGroceryDeliveryConfig(docSnap.data() as GroceryDeliveryConfig);
-      } else {
-        // Seed default
-        setDoc(doc(db, "settings", "groceryDeliveryConfig"), {
-          baseDeliveryFee: 40,
-          freeDeliveryAboveAmount: 1000,
-          allowMixedCart: true
-        }).catch(console.error);
-      }
-    }, (err) => {
-      console.error(handleFirestoreError(err));
-    });
+    const unsubscribe = onSnapshot(
+      doc(db, "settings", "groceryDeliveryConfig"),
+      (docSnap) => {
+        if (docSnap.exists()) {
+          setGroceryDeliveryConfig(docSnap.data() as GroceryDeliveryConfig);
+        } else {
+          // Seed default
+          setDoc(doc(db, "settings", "groceryDeliveryConfig"), {
+            baseDeliveryFee: 40,
+            freeDeliveryAboveAmount: 1000,
+            allowMixedCart: true,
+          }).catch(console.error);
+        }
+      },
+      (err) => {
+        console.error(handleFirestoreError(err));
+      },
+    );
     return () => unsubscribe();
   }, []);
 
   // 3d. Real-time Deal of the Hour Config Listening
   useEffect(() => {
-    const unsubscribe = onSnapshot(doc(db, "settings", "deal_config"), (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        const minutes = Number(data.timerMinutes) || 0;
-        setDealConfig({
-          isActive: data.isActive !== false,
-          timerMinutes: minutes,
-          discountPercentage: data.discountPercentage || 25,
-          selectedItemIds: data.selectedItemIds || [],
-          dealText: data.dealText || ""
-        });
-        setDealTimeLeft({ minutes, seconds: 0 });
-      } else {
-        // Seed default
-        const defaultDeal = {
-          isActive: true,
-          timerMinutes: 30,
-          discountPercentage: 25,
-          selectedItemIds: ["dish_6", "dish_7"],
-          dealText: "Save 25% on Only Tea & Fresh Platters! Hurry!"
-        };
-        setDoc(doc(db, "settings", "deal_config"), defaultDeal).catch(console.error);
-        setDealTimeLeft({ minutes: 30, seconds: 0 });
-      }
-    }, (err) => {
-      console.warn("Deal config subscription error:", handleFirestoreError(err));
-    });
+    const unsubscribe = onSnapshot(
+      doc(db, "settings", "deal_config"),
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          const minutes = Number(data.timerMinutes) || 0;
+          setDealConfig({
+            isActive: data.isActive !== false,
+            timerMinutes: minutes,
+            discountPercentage: data.discountPercentage || 25,
+            selectedItemIds: data.selectedItemIds || [],
+            dealText: data.dealText || "",
+          });
+          setDealTimeLeft({ minutes, seconds: 0 });
+        } else {
+          // Seed default
+          const defaultDeal = {
+            isActive: true,
+            timerMinutes: 30,
+            discountPercentage: 25,
+            selectedItemIds: ["dish_6", "dish_7"],
+            dealText: "Save 25% on Only Tea & Fresh Platters! Hurry!",
+          };
+          setDoc(doc(db, "settings", "deal_config"), defaultDeal).catch(
+            console.error,
+          );
+          setDealTimeLeft({ minutes: 30, seconds: 0 });
+        }
+      },
+      (err) => {
+        console.warn(
+          "Deal config subscription error:",
+          handleFirestoreError(err),
+        );
+      },
+    );
     return () => unsubscribe();
   }, []);
 
   // 3e. Load SEO config and update document head
   useEffect(() => {
-    const unsubscribe = onSnapshot(doc(db, "settings", "seo_config"), (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        
-        if (data.title) {
-          document.title = data.title;
-        }
-        
-        if (data.description) {
-          let descMeta = document.querySelector('meta[name="description"]');
-          if (!descMeta) {
-            descMeta = document.createElement('meta');
-            descMeta.setAttribute('name', 'description');
-            document.head.appendChild(descMeta);
+    const unsubscribe = onSnapshot(
+      doc(db, "settings", "seo_config"),
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+
+          if (data.title) {
+            document.title = data.title;
           }
-          descMeta.setAttribute('content', data.description);
-        }
-        
-        if (data.keywords) {
-          let keywordsMeta = document.querySelector('meta[name="keywords"]');
-          if (!keywordsMeta) {
-            keywordsMeta = document.createElement('meta');
-            keywordsMeta.setAttribute('name', 'keywords');
-            document.head.appendChild(keywordsMeta);
+
+          if (data.description) {
+            let descMeta = document.querySelector('meta[name="description"]');
+            if (!descMeta) {
+              descMeta = document.createElement("meta");
+              descMeta.setAttribute("name", "description");
+              document.head.appendChild(descMeta);
+            }
+            descMeta.setAttribute("content", data.description);
           }
-          keywordsMeta.setAttribute('content', data.keywords);
+
+          if (data.keywords) {
+            let keywordsMeta = document.querySelector('meta[name="keywords"]');
+            if (!keywordsMeta) {
+              keywordsMeta = document.createElement("meta");
+              keywordsMeta.setAttribute("name", "keywords");
+              document.head.appendChild(keywordsMeta);
+            }
+            keywordsMeta.setAttribute("content", data.keywords);
+          }
         }
-      }
-    }, (err) => {
-      console.warn("SEO config subscription error:", handleFirestoreError(err));
-    });
+      },
+      (err) => {
+        console.warn(
+          "SEO config subscription error:",
+          handleFirestoreError(err),
+        );
+      },
+    );
     return () => unsubscribe();
   }, []);
 
@@ -410,7 +545,10 @@ export default function App() {
 
   // 3f. Save favorites to LocalStorage whenever they change
   useEffect(() => {
-    localStorage.setItem("dadu_favorite_dishes", JSON.stringify(favoriteDishIds));
+    localStorage.setItem(
+      "dadu_favorite_dishes",
+      JSON.stringify(favoriteDishIds),
+    );
   }, [favoriteDishIds]);
 
   const toggleFavorite = (dishId: string) => {
@@ -440,7 +578,6 @@ export default function App() {
     localStorage.setItem("dadu_grocery_cart", JSON.stringify(groceryCartItems));
   }, [groceryCartItems]);
 
-
   // 4. Real-time Orders & Notification Listeners
   useEffect(() => {
     if (!currentUser) {
@@ -454,73 +591,99 @@ export default function App() {
     if (currentUser.role === "admin") {
       ordersQuery = collection(db, "orders");
     } else {
-      ordersQuery = query(collection(db, "orders"), where("userId", "==", currentUser.uid));
+      ordersQuery = query(
+        collection(db, "orders"),
+        where("userId", "==", currentUser.uid),
+      );
     }
 
     console.log("Trace: Initializing Orders collection listener...");
-    const unsubscribeOrders = onSnapshot(ordersQuery, (snapshot) => {
-      console.log("Trace: Orders snapshot received, size:", snapshot.size);
-      const list: Order[] = [];
-      snapshot.forEach((doc) => {
-        list.push(doc.data() as Order);
-      });
-      // Sort newest order first
-      list.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-      setOrders(list);
+    const unsubscribeOrders = onSnapshot(
+      ordersQuery,
+      (snapshot) => {
+        console.log("Trace: Orders snapshot received, size:", snapshot.size);
+        const list: Order[] = [];
+        snapshot.forEach((doc) => {
+          list.push(doc.data() as Order);
+        });
+        // Sort newest order first
+        list.sort(
+          (a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0),
+        );
+        setOrders(list);
 
-      // If buyer has active orders, update our live tracker automatically!
-      if (currentUser.role !== "admin" && list.length > 0) {
-        // Find latest non-completed order to show
-        const latestActive = list.find(o => o.status !== "delivered" && o.status !== "completed" && o.status !== "cancelled");
-        if (latestActive) {
-          setActiveTrackingOrder(latestActive);
-        } else if (!activeTrackingOrder && list[0]) {
-          // If no active, set the absolute latest to tracking list
-          setActiveTrackingOrder(list[0]);
+        // If buyer has active orders, update our live tracker automatically!
+        if (currentUser.role !== "admin" && list.length > 0) {
+          // Find latest non-completed order to show
+          const latestActive = list.find(
+            (o) =>
+              o.status !== "delivered" &&
+              o.status !== "completed" &&
+              o.status !== "cancelled",
+          );
+          if (latestActive) {
+            setActiveTrackingOrder(latestActive);
+          } else if (!activeTrackingOrder && list[0]) {
+            // If no active, set the absolute latest to tracking list
+            setActiveTrackingOrder(list[0]);
+          }
         }
-      }
-    }, (err) => {
-      console.warn("Orders live listening error:", handleFirestoreError(err));
-    });
+      },
+      (err) => {
+        console.warn("Orders live listening error:", handleFirestoreError(err));
+      },
+    );
 
     // Notify listeners mapping
     const notifsQuery = query(
       collection(db, "notifications"),
-      where("userId", "==", currentUser.uid)
+      where("userId", "==", currentUser.uid),
     );
 
     console.log("Trace: Initializing Notifications collection listener...");
-    const unsubscribeNotif = onSnapshot(notifsQuery, (snapshot) => {
-      console.log("Trace: Notifications snapshot received, size:", snapshot.size);
-      const list: AppNotification[] = [];
-      snapshot.forEach((doc) => {
-        list.push({ id: doc.id, ...doc.data() } as AppNotification);
-      });
-      
-      // Sort newest alert first
-      list.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-      
-      // If there's a new unread notification, trigger sliding banner & audio chime!
-      const currentUnread = list.filter(n => !n.read);
-      const oldUnreadCount = notifications.filter(n => !n.read).length;
-
-      if (currentUnread.length > oldUnreadCount && currentUnread[0]) {
-        setToastNotification({
-          title: currentUnread[0].title,
-          message: currentUnread[0].message,
+    const unsubscribeNotif = onSnapshot(
+      notifsQuery,
+      (snapshot) => {
+        console.log(
+          "Trace: Notifications snapshot received, size:",
+          snapshot.size,
+        );
+        const list: AppNotification[] = [];
+        snapshot.forEach((doc) => {
+          list.push({ id: doc.id, ...doc.data() } as AppNotification);
         });
-        playChimeSound(); // Synthesis alarm beeper
-        
-        // Hide toast window in 5 seconds
-        setTimeout(() => {
-          setToastNotification(null);
-        }, 5000);
-      }
 
-      setNotifications(list);
-    }, (err) => {
-      console.warn("Notifications live listening error:", handleFirestoreError(err));
-    });
+        // Sort newest alert first
+        list.sort(
+          (a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0),
+        );
+
+        // If there's a new unread notification, trigger sliding banner & audio chime!
+        const currentUnread = list.filter((n) => !n.read);
+        const oldUnreadCount = notifications.filter((n) => !n.read).length;
+
+        if (currentUnread.length > oldUnreadCount && currentUnread[0]) {
+          setToastNotification({
+            title: currentUnread[0].title,
+            message: currentUnread[0].message,
+          });
+          playChimeSound(); // Synthesis alarm beeper
+
+          // Hide toast window in 5 seconds
+          setTimeout(() => {
+            setToastNotification(null);
+          }, 5000);
+        }
+
+        setNotifications(list);
+      },
+      (err) => {
+        console.warn(
+          "Notifications live listening error:",
+          handleFirestoreError(err),
+        );
+      },
+    );
 
     return () => {
       unsubscribeOrders();
@@ -539,13 +702,13 @@ export default function App() {
 
   // Mobile Back Button Navigation Controller (PWA back button handler with custom Exit Confirmation interceptor)
   useEffect(() => {
-    const isAnyModalOpen = 
-      isAuthOpen || 
-      isCartOpen || 
-      isGroceryCartOpen || 
-      !!activeDetailDish || 
-      isTrackingModalOpen || 
-      isSuccessAnimationOpen || 
+    const isAnyModalOpen =
+      isAuthOpen ||
+      isCartOpen ||
+      isGroceryCartOpen ||
+      !!activeDetailDish ||
+      isTrackingModalOpen ||
+      isSuccessAnimationOpen ||
       isHistoryDrawerOpen ||
       isAdminConsoleOpen ||
       isExitConfirmationOpen;
@@ -572,7 +735,16 @@ export default function App() {
       }
 
       // Close open modals
-      if (isAuthOpen || isCartOpen || isGroceryCartOpen || !!activeDetailDish || isTrackingModalOpen || isSuccessAnimationOpen || isHistoryDrawerOpen || isAdminConsoleOpen) {
+      if (
+        isAuthOpen ||
+        isCartOpen ||
+        isGroceryCartOpen ||
+        !!activeDetailDish ||
+        isTrackingModalOpen ||
+        isSuccessAnimationOpen ||
+        isHistoryDrawerOpen ||
+        isAdminConsoleOpen
+      ) {
         setIsAuthOpen(false);
         setIsCartOpen(false);
         setIsGroceryCartOpen(false);
@@ -600,23 +772,32 @@ export default function App() {
       window.removeEventListener("popstate", handlePopState);
     };
   }, [
-    isAuthOpen, 
-    isCartOpen, 
-    isGroceryCartOpen, 
-    activeDetailDish, 
-    isTrackingModalOpen, 
-    isSuccessAnimationOpen, 
+    isAuthOpen,
+    isCartOpen,
+    isGroceryCartOpen,
+    activeDetailDish,
+    isTrackingModalOpen,
+    isSuccessAnimationOpen,
     isHistoryDrawerOpen,
     isAdminConsoleOpen,
-    isExitConfirmationOpen
+    isExitConfirmationOpen,
   ]);
 
   // --- CART CONTROLLER OPERATIONS ---
-  const handleAddToCart = (dish: Dish, quantityToAdd: number = 1, options?: { size?: string, flavor?: string, addOns?: {name: string, price: number}[], specialInstructions?: string }) => {
+  const handleAddToCart = (
+    dish: Dish,
+    quantityToAdd: number = 1,
+    options?: {
+      size?: string;
+      flavor?: string;
+      addOns?: { name: string; price: number }[];
+      specialInstructions?: string;
+    },
+  ) => {
     // Check if mixed cart is allowed
     if (!groceryDeliveryConfig?.allowMixedCart && groceryCartItems.length > 0) {
       const clearGrocery = window.confirm(
-        "🛒 DISALLOW MIXED BASKET!\n\nYour basket currently contains Grocery products. Dadu Food requires separate delivery runs for hot kitchen meals and retail groceries.\n\nWould you like to auto-clear your Grocery Basket to start your Food order?"
+        "🛒 DISALLOW MIXED BASKET!\n\nYour basket currently contains Grocery products. Dadu Food requires separate delivery runs for hot kitchen meals and retail groceries.\n\nWould you like to auto-clear your Grocery Basket to start your Food order?",
       );
       if (clearGrocery) {
         setGroceryCartItems([]);
@@ -626,20 +807,34 @@ export default function App() {
     }
 
     // Limit cart constraint: Max 2 different restaurants per order
-    let itemRestaurant = dish.restaurantName || (dish.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
-    const isDrink = dish.id.startsWith("drink_") || dish.category === "Drinks" || (dish.category as string) === "Beverages";
-    
+    let itemRestaurant =
+      dish.restaurantName ||
+      (dish.type === "service"
+        ? "Dadu Home Services"
+        : "Dadu Fast Food & Kitchen");
+    const isDrink =
+      dish.id.startsWith("drink_") ||
+      dish.category === "Drinks" ||
+      (dish.category as string) === "Beverages";
+
     if (isDrink && cartItems.length > 0) {
-      itemRestaurant = cartItems[0].restaurantName || "Dadu Fast Food & Kitchen";
+      itemRestaurant =
+        cartItems[0].restaurantName || "Dadu Fast Food & Kitchen";
     }
 
     const currentRestaurants = Array.from(
-      new Set(cartItems.map((item) => item.restaurantName).filter(Boolean))
+      new Set(cartItems.map((item) => item.restaurantName).filter(Boolean)),
     );
 
     // If options are provided, append them to the cart item's ID so they don't get merged with different variants of the same dish.
-    const addOnsKey = options?.addOns?.map(a => a.name).join("-") || "";
-    const cartItemId = options?.size || options?.flavor || addOnsKey || options?.specialInstructions ? `${dish.id}-${options.size || ''}-${options.flavor || ''}-${addOnsKey}-${options.specialInstructions || ''}` : dish.id;
+    const addOnsKey = options?.addOns?.map((a) => a.name).join("-") || "";
+    const cartItemId =
+      options?.size ||
+      options?.flavor ||
+      addOnsKey ||
+      options?.specialInstructions
+        ? `${dish.id}-${options.size || ""}-${options.flavor || ""}-${addOnsKey}-${options.specialInstructions || ""}`
+        : dish.id;
     let variantName = dish.name;
     if (options?.size || options?.flavor) {
       const parts = [];
@@ -648,10 +843,18 @@ export default function App() {
       variantName = `${dish.name} (${parts.join(", ")})`;
     }
 
-    const isAlreadyInCart = cartItems.some((item) => item.dishId === cartItemId);
+    const isAlreadyInCart = cartItems.some(
+      (item) => item.dishId === cartItemId,
+    );
 
-    if (!isAlreadyInCart && !currentRestaurants.includes(itemRestaurant) && currentRestaurants.length >= 2) {
-      alert("You can only order from a maximum of 2 restaurants in a single order.");
+    if (
+      !isAlreadyInCart &&
+      !currentRestaurants.includes(itemRestaurant) &&
+      currentRestaurants.length >= 2
+    ) {
+      alert(
+        "You can only order from a maximum of 2 restaurants in a single order.",
+      );
       return;
     }
 
@@ -659,43 +862,55 @@ export default function App() {
       const existing = prev.find((item) => item.dishId === cartItemId);
       if (existing) {
         return prev.map((item) =>
-          item.dishId === cartItemId ? { ...item, quantity: item.quantity + quantityToAdd } : item
+          item.dishId === cartItemId
+            ? { ...item, quantity: item.quantity + quantityToAdd }
+            : item,
         );
       }
-      
-      const basePrice = dish.discountPrice && dish.discountPrice < dish.price ? dish.discountPrice : dish.price;
-      
+
+      const basePrice =
+        dish.discountPrice && dish.discountPrice < dish.price
+          ? dish.discountPrice
+          : dish.price;
+
       let finalPrice = basePrice;
       if (options?.size) {
-        const sizeObj = dish.sizes?.find(s => s.name === options.size);
+        const sizeObj = dish.sizes?.find((s) => s.name === options.size);
         if (sizeObj) {
           finalPrice = sizeObj.price;
         }
       }
-      
+
       if (options?.addOns) {
-        finalPrice += options.addOns.reduce((sum, addOn) => sum + addOn.price, 0);
+        finalPrice += options.addOns.reduce(
+          (sum, addOn) => sum + addOn.price,
+          0,
+        );
       }
-      
-      return [...prev, { 
-        dishId: cartItemId, 
-        name: variantName, 
-        price: finalPrice, 
-        quantity: quantityToAdd, 
-        type: dish.type, 
-        serviceDuration: dish.serviceDuration,
-        restaurantName: itemRestaurant,
-        commission: dish.commission || 0,
-        selectedSize: options?.size,
-        selectedFlavor: options?.flavor,
-        selectedAddOns: options?.addOns,
-        specialInstructions: options?.specialInstructions
-      }];
+
+      return [
+        ...prev,
+        {
+          dishId: cartItemId,
+          name: variantName,
+          price: finalPrice,
+          quantity: quantityToAdd,
+          type: dish.type,
+          serviceDuration: dish.serviceDuration,
+          restaurantName: itemRestaurant,
+          commission: dish.commission || 0,
+          selectedSize: options?.size,
+          selectedFlavor: options?.flavor,
+          selectedAddOns: options?.addOns,
+          specialInstructions: options?.specialInstructions,
+        },
+      ];
     });
   };
 
   const handleAddExclusiveDrink = (drink: any) => {
-    const firstRestName = cartItems[0]?.restaurantName || "Dadu Fast Food & Kitchen";
+    const firstRestName =
+      cartItems[0]?.restaurantName || "Dadu Fast Food & Kitchen";
     const dishObj = {
       id: drink.id,
       name: drink.name,
@@ -705,7 +920,7 @@ export default function App() {
       category: "Drinks" as const,
       isAvailable: true,
       type: "food" as const,
-      restaurantName: firstRestName
+      restaurantName: firstRestName,
     };
     handleAddToCart(dishObj);
   };
@@ -714,7 +929,7 @@ export default function App() {
     // Check if mixed cart is allowed
     if (!groceryDeliveryConfig?.allowMixedCart && cartItems.length > 0) {
       const clearFood = window.confirm(
-        "🛒 DISALLOW MIXED BASKET!\n\nYour basket currently contains Food items. Dadu Food requires separate delivery runs for hot kitchen meals and retail groceries.\n\nWould you like to auto-clear your Food Cart to start your Grocery purchase?"
+        "🛒 DISALLOW MIXED BASKET!\n\nYour basket currently contains Food items. Dadu Food requires separate delivery runs for hot kitchen meals and retail groceries.\n\nWould you like to auto-clear your Food Cart to start your Grocery purchase?",
       );
       if (clearFood) {
         setCartItems([]);
@@ -724,7 +939,9 @@ export default function App() {
     }
 
     setGroceryCartItems((prev) => {
-      const existingIdx = prev.findIndex((item) => item.productId === product.id);
+      const existingIdx = prev.findIndex(
+        (item) => item.productId === product.id,
+      );
       if (existingIdx > -1) {
         const updated = [...prev];
         updated[existingIdx].quantity += quantity;
@@ -754,18 +971,25 @@ export default function App() {
     setTimeout(() => setToastNotification(null), 3000);
   };
 
-  const handleUpdateGroceryCartQuantity = (productId: string, quantity: number) => {
+  const handleUpdateGroceryCartQuantity = (
+    productId: string,
+    quantity: number,
+  ) => {
     if (quantity <= 0) {
       handleRemoveFromGroceryCart(productId);
       return;
     }
     setGroceryCartItems((prev) =>
-      prev.map((item) => (item.productId === productId ? { ...item, quantity } : item))
+      prev.map((item) =>
+        item.productId === productId ? { ...item, quantity } : item,
+      ),
     );
   };
 
   const handleRemoveFromGroceryCart = (productId: string) => {
-    setGroceryCartItems((prev) => prev.filter((item) => item.productId !== productId));
+    setGroceryCartItems((prev) =>
+      prev.filter((item) => item.productId !== productId),
+    );
   };
 
   const handleReorder = (order: Order) => {
@@ -773,7 +997,7 @@ export default function App() {
       // It's a grocery order
       if (cartItems.length > 0 && !groceryDeliveryConfig?.allowMixedCart) {
         const clearFood = window.confirm(
-          "🛒 DISALLOW MIXED BASKET!\n\nYour basket currently contains Food items. Dadu Food requires separate delivery runs for hot kitchen meals and retail groceries.\n\nWould you like to auto-clear your Food Cart to start your Grocery purchase?"
+          "🛒 DISALLOW MIXED BASKET!\n\nYour basket currently contains Food items. Dadu Food requires separate delivery runs for hot kitchen meals and retail groceries.\n\nWould you like to auto-clear your Food Cart to start your Grocery purchase?",
         );
         if (clearFood) {
           setCartItems([]);
@@ -787,8 +1011,12 @@ export default function App() {
         const updated = [...prev];
         order.items.forEach((item) => {
           // Find matching groceryProduct in current products to restore properties
-          const matchingProduct = groceryProducts.find(p => p.id === item.dishId);
-          const existingIdx = updated.findIndex((gi) => gi.productId === item.dishId);
+          const matchingProduct = groceryProducts.find(
+            (p) => p.id === item.dishId,
+          );
+          const existingIdx = updated.findIndex(
+            (gi) => gi.productId === item.dishId,
+          );
           if (existingIdx > -1) {
             updated[existingIdx].quantity += item.quantity;
           } else {
@@ -799,7 +1027,7 @@ export default function App() {
               quantity: item.quantity,
               unit: matchingProduct?.unit || "piece",
               imageUrl: matchingProduct?.imageUrl || "",
-              category: matchingProduct?.categoryId || ""
+              category: matchingProduct?.categoryId || "",
             });
           }
         });
@@ -808,16 +1036,20 @@ export default function App() {
 
       setToastNotification({
         title: "Grocery Items Restored! 🍏",
-        message: "Items from your previous order have been added to your basket.",
+        message:
+          "Items from your previous order have been added to your basket.",
       });
       setTimeout(() => setToastNotification(null), 4000);
       setIsGroceryCartOpen(true);
       setActiveModule("grocery");
     } else {
       // It's a food or service order
-      if (groceryCartItems.length > 0 && !groceryDeliveryConfig?.allowMixedCart) {
+      if (
+        groceryCartItems.length > 0 &&
+        !groceryDeliveryConfig?.allowMixedCart
+      ) {
         const clearGrocery = window.confirm(
-          "🛒 DISALLOW MIXED BASKET!\n\nYour basket currently contains Grocery products. Dadu Food requires separate delivery runs for hot kitchen meals and retail groceries.\n\nWould you like to auto-clear your Grocery Basket to start your Food order?"
+          "🛒 DISALLOW MIXED BASKET!\n\nYour basket currently contains Grocery products. Dadu Food requires separate delivery runs for hot kitchen meals and retail groceries.\n\nWould you like to auto-clear your Grocery Basket to start your Food order?",
         );
         if (clearGrocery) {
           setGroceryCartItems([]);
@@ -840,7 +1072,7 @@ export default function App() {
               quantity: item.quantity,
               type: item.type || "food",
               serviceDuration: item.serviceDuration,
-              restaurantName: item.restaurantName || "Dadu Food & Service"
+              restaurantName: item.restaurantName || "Dadu Food & Service",
             });
           }
         });
@@ -869,18 +1101,21 @@ export default function App() {
   }) => {
     try {
       const generatedOrderId = `gorder_${Date.now()}`;
-      
+
       // Adapt items array representation
-      const adaptedItems = details.items.map(item => ({
+      const adaptedItems = details.items.map((item) => ({
         dishId: item.productId,
         name: item.name,
         price: item.price,
         quantity: item.quantity,
         restaurantName: "Dadu Grocery Store",
-        commission: item.commission || 0
+        commission: item.commission || 0,
       }));
 
-      const totalCommission = adaptedItems.reduce((acc, itm) => acc + (itm.commission || 0) * itm.quantity, 0);
+      const totalCommission = adaptedItems.reduce(
+        (acc, itm) => acc + (itm.commission || 0) * itm.quantity,
+        0,
+      );
 
       const orderDoc = {
         id: generatedOrderId,
@@ -904,10 +1139,10 @@ export default function App() {
       };
 
       await setDoc(doc(db, "orders", generatedOrderId), orderDoc);
-      
+
       // Clear grocery basket
       setGroceryCartItems([]);
-      
+
       // Trigger success animation modal overlay
       setSuccessAnimationOrder(orderDoc as any);
       setIsSuccessAnimationOpen(true);
@@ -917,14 +1152,15 @@ export default function App() {
     }
   };
 
-
   const handleUpdateCartQuantity = (dishId: string, qty: number) => {
     if (qty <= 0) {
       handleRemoveCartItem(dishId);
       return;
     }
     setCartItems((prev) =>
-      prev.map((item) => (item.dishId === dishId ? { ...item, quantity: qty } : item))
+      prev.map((item) =>
+        item.dishId === dishId ? { ...item, quantity: qty } : item,
+      ),
     );
   };
 
@@ -947,27 +1183,42 @@ export default function App() {
       return;
     }
 
-    const itemsTotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
+    const itemsTotal = cartItems.reduce(
+      (acc, item) => acc + item.price * item.quantity,
+      0,
+    );
 
-    if (details.orderType === "food" && deliverySettings.minOrderAmount && itemsTotal < deliverySettings.minOrderAmount) {
-      alert(`Minimum order amount is Rs. ${deliverySettings.minOrderAmount}. Your current total is Rs. ${itemsTotal}. Please add more items.`);
+    if (
+      details.orderType === "food" &&
+      deliverySettings.minOrderAmount &&
+      itemsTotal < deliverySettings.minOrderAmount
+    ) {
+      alert(
+        `Minimum order amount is Rs. ${deliverySettings.minOrderAmount}. Your current total is Rs. ${itemsTotal}. Please add more items.`,
+      );
       return;
     }
 
-    const baseFee = details.orderType === "food" ? deliverySettings.deliveryFee : 0;
-    const finalFee = (details.orderType === "food" && itemsTotal < 500) ? baseFee * 2 : baseFee;
+    const baseFee =
+      details.orderType === "food" ? deliverySettings.deliveryFee : 0;
+    const finalFee =
+      details.orderType === "food" && itemsTotal < 500 ? baseFee * 2 : baseFee;
     const finalGrandTotal = itemsTotal + finalFee;
 
     const firstService = cartItems.find((itm) => itm.type === "service");
-    const computedServiceTiming = details.orderType === "service"
-      ? (firstService?.serviceDuration || "Expected arrival within 1 hour")
-      : undefined;
+    const computedServiceTiming =
+      details.orderType === "service"
+        ? firstService?.serviceDuration || "Expected arrival within 1 hour"
+        : undefined;
 
     const itemsWithCommission = cartItems.map((item) => ({
       ...item,
-      commission: item.commission || 0
+      commission: item.commission || 0,
     }));
-    const totalCommission = itemsWithCommission.reduce((acc, itm) => acc + (itm.commission || 0) * itm.quantity, 0);
+    const totalCommission = itemsWithCommission.reduce(
+      (acc, itm) => acc + (itm.commission || 0) * itm.quantity,
+      0,
+    );
 
     const uniqueOrderId = `order_${Date.now()}`;
     const orderModel: Order = {
@@ -1008,7 +1259,10 @@ export default function App() {
         address: details.address,
         ordersCount: (currentUser.ordersCount || 0) + 1,
       };
-      await setDoc(doc(db, "users", currentUser.uid), cleanObject(updatedProfile));
+      await setDoc(
+        doc(db, "users", currentUser.uid),
+        cleanObject(updatedProfile),
+      );
       setCurrentUser(updatedProfile);
 
       // 4. Trigger success animation overlay
@@ -1023,7 +1277,7 @@ export default function App() {
   const handleClearNotificationsAll = async () => {
     try {
       await Promise.all(
-        notifications.map((n) => deleteDoc(doc(db, "notifications", n.id)))
+        notifications.map((n) => deleteDoc(doc(db, "notifications", n.id))),
       );
     } catch (err) {
       console.error(err);
@@ -1039,7 +1293,9 @@ export default function App() {
   };
 
   // --- DYNAMIC DEAL OF THE HOUR MODIFIERS ---
-  const isDealActive = dealConfig.isActive && (dealTimeLeft.minutes > 0 || dealTimeLeft.seconds > 0);
+  const isDealActive =
+    dealConfig.isActive &&
+    (dealTimeLeft.minutes > 0 || dealTimeLeft.seconds > 0);
   const finalDishes = dishes.map((dish) => {
     if (isDealActive && dealConfig?.selectedItemIds?.includes(dish.id)) {
       const pct = dealConfig.discountPercentage || 0;
@@ -1055,53 +1311,71 @@ export default function App() {
   const checkIsRestaurantClosed = (restaurantName?: string) => {
     const fallbackName = "Dadu Fast Food & Kitchen";
     const nameToUse = restaurantName || fallbackName;
-    
+
     // Check specific restaurant status first
-    if (deliverySettings?.restaurantStatuses && deliverySettings.restaurantStatuses[nameToUse]) {
-      const { isTemporarilyUnavailable, openingTime, closingTime } = deliverySettings.restaurantStatuses[nameToUse];
+    if (
+      deliverySettings?.restaurantStatuses &&
+      deliverySettings.restaurantStatuses[nameToUse]
+    ) {
+      const { isTemporarilyUnavailable, openingTime, closingTime } =
+        deliverySettings.restaurantStatuses[nameToUse];
       if (isTemporarilyUnavailable) return true;
       if (openingTime && closingTime) {
         const now = new Date();
         const currentHour = now.getHours();
         const currentMinute = now.getMinutes();
-        
-        const [openH, openM] = openingTime.split(':').map(Number);
-        const [closeH, closeM] = closingTime.split(':').map(Number);
-        
+
+        const [openH, openM] = openingTime.split(":").map(Number);
+        const [closeH, closeM] = closingTime.split(":").map(Number);
+
         const currentAbsolute = currentHour * 60 + currentMinute;
         const openAbsolute = openH * 60 + openM;
         const closeAbsolute = closeH * 60 + closeM;
 
         if (closeAbsolute < openAbsolute) {
           // Crosses midnight
-          if (currentAbsolute < openAbsolute && currentAbsolute > closeAbsolute) return true;
+          if (currentAbsolute < openAbsolute && currentAbsolute > closeAbsolute)
+            return true;
         } else {
           // Normal day hours
-          if (currentAbsolute < openAbsolute || currentAbsolute >= closeAbsolute) return true;
+          if (
+            currentAbsolute < openAbsolute ||
+            currentAbsolute >= closeAbsolute
+          )
+            return true;
         }
       }
     }
-    
+
     // Fallback to global store status if no specific status
     if (deliverySettings?.isStoreClosed) return true;
-    if (deliverySettings?.storeOpeningTime && deliverySettings?.storeClosingTime) {
+    if (
+      deliverySettings?.storeOpeningTime &&
+      deliverySettings?.storeClosingTime
+    ) {
       const now = new Date();
       const currentHour = now.getHours();
       const currentMinute = now.getMinutes();
-      
-      const [openH, openM] = deliverySettings.storeOpeningTime.split(':').map(Number);
-      const [closeH, closeM] = deliverySettings.storeClosingTime.split(':').map(Number);
-      
+
+      const [openH, openM] = deliverySettings.storeOpeningTime
+        .split(":")
+        .map(Number);
+      const [closeH, closeM] = deliverySettings.storeClosingTime
+        .split(":")
+        .map(Number);
+
       const currentAbsolute = currentHour * 60 + currentMinute;
       const openAbsolute = openH * 60 + openM;
       const closeAbsolute = closeH * 60 + closeM;
 
       if (closeAbsolute < openAbsolute) {
         // Crosses midnight
-        if (currentAbsolute < openAbsolute && currentAbsolute > closeAbsolute) return true;
+        if (currentAbsolute < openAbsolute && currentAbsolute > closeAbsolute)
+          return true;
       } else {
         // Normal day hours
-        if (currentAbsolute < openAbsolute || currentAbsolute >= closeAbsolute) return true;
+        if (currentAbsolute < openAbsolute || currentAbsolute >= closeAbsolute)
+          return true;
       }
     }
     return false;
@@ -1110,44 +1384,64 @@ export default function App() {
   // --- CATALOG RENDER FILTERS ---
   const filteredDishes = finalDishes.filter((dish) => {
     // Hide checkout-exclusive soft drinks from main browsing screen & panels
-    const isExclusiveDrink = dish.id.startsWith("drink_") || dish.category === "Drinks" || dish.category === "Beverages";
+    const isExclusiveDrink =
+      dish.id.startsWith("drink_") ||
+      dish.category === "Drinks" ||
+      dish.category === "Beverages";
     if (isExclusiveDrink) return false;
 
-    const matchesCategory = activeCategory === "All" || dish.category === activeCategory;
-    const rName = dish.restaurantName || (dish.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
-    const matchesRestaurant = selectedRestaurant === "All Restaurants" || rName === selectedRestaurant;
-    const matchesFavorites = !showFavoritesOnly || favoriteDishIds.includes(dish.id);
-    const matchesSearch = dish.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          dish.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          rName.toLowerCase().includes(searchQuery.toLowerCase());
-                          
+    const matchesCategory =
+      activeCategory === "All" || dish.category === activeCategory;
+    const rName =
+      dish.restaurantName ||
+      (dish.type === "service"
+        ? "Dadu Home Services"
+        : "Dadu Fast Food & Kitchen");
+    const matchesRestaurant =
+      selectedRestaurant === "All Restaurants" || rName === selectedRestaurant;
+    const matchesFavorites =
+      !showFavoritesOnly || favoriteDishIds.includes(dish.id);
+    const matchesSearch =
+      dish.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      dish.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      rName.toLowerCase().includes(searchQuery.toLowerCase());
+
     const isClosed = checkIsRestaurantClosed(rName);
 
-    return matchesCategory && matchesRestaurant && matchesSearch && matchesFavorites && !isClosed;
+    return (
+      matchesCategory && matchesRestaurant && matchesSearch && matchesFavorites
+    );
   });
 
-  const cartCountTotal = cartItems.reduce((acc, item) => acc + item.quantity, 0);
-  const cartPriceTotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
-
-
+  const cartCountTotal = cartItems.reduce(
+    (acc, item) => acc + item.quantity,
+    0,
+  );
+  const cartPriceTotal = cartItems.reduce(
+    (acc, item) => acc + item.price * item.quantity,
+    0,
+  );
 
   if (currentUser?.role === "rider") {
     return (
-      <RiderPanel currentUser={currentUser} onLogout={handleLogout} deliverySettings={deliverySettings} />
+      <RiderPanel
+        currentUser={currentUser}
+        onLogout={handleLogout}
+        deliverySettings={deliverySettings}
+      />
     );
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#FFFDFE] via-[#FDF5F8] to-[#FFFDFE] text-zinc-800 relative pb-28 md:pb-12 flex flex-col font-sans overflow-x-clip">
-      
       {/* Decorative Premium Food Watermark/Pattern Background */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden select-none z-0">
         {/* Subtle grid pattern of culinary shapes */}
-        <div 
-          className="absolute inset-0 w-full h-full opacity-[0.025]" 
-          style={{ 
+        <div
+          className="absolute inset-0 w-full h-full opacity-[0.025]"
+          style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cpath d='M15 15h10v10H15zm40 20h10v10H55zm40-20h10v10H95zM35 75h10v10H35zm40 10h10v10H75zM25 105h10v10H25zm50 5h10v10H75zm40-20h10v10h-10z' fill='%23D70F64'/%3E%3C/svg%3E")`,
-            backgroundSize: "120px 120px"
+            backgroundSize: "120px 120px",
           }}
         />
 
@@ -1157,131 +1451,214 @@ export default function App() {
         <div className="absolute bottom-1/4 left-1/3 w-80 h-80 bg-rose-300/8 rounded-full blur-[100px]" />
 
         {/* Ambient floating elements behind content (visible on tablet and desktop) */}
-        <div className="absolute top-[400px] left-[10%] opacity-[0.06] text-6xl animate-pulse">🍔</div>
-        <div className="absolute top-[650px] right-[8%] opacity-[0.05] text-5xl animate-bounce" style={{ animationDuration: "6s" }}>🍕</div>
-        <div className="absolute top-[1100px] left-[5%] opacity-[0.04] text-7xl animate-pulse" style={{ animationDuration: "8s" }}>🍵</div>
-        <div className="absolute top-[1400px] right-[12%] opacity-[0.05] text-6xl animate-bounce" style={{ animationDuration: "7s" }}>🍗</div>
-        <div className="absolute top-[1900px] left-[12%] opacity-[0.04] text-5xl animate-pulse">🔧</div>
-        <div className="absolute top-[2200px] right-[6%] opacity-[0.06] text-7xl animate-bounce" style={{ animationDuration: "5s" }}>🍏</div>
-        <div className="absolute top-[2700px] left-[8%] opacity-[0.05] text-6xl animate-pulse" style={{ animationDuration: "9s" }}>🍩</div>
+        <div className="absolute top-[400px] left-[10%] opacity-[0.06] text-6xl animate-pulse">
+          🍔
+        </div>
+        <div
+          className="absolute top-[650px] right-[8%] opacity-[0.05] text-5xl animate-bounce"
+          style={{ animationDuration: "6s" }}
+        >
+          🍕
+        </div>
+        <div
+          className="absolute top-[1100px] left-[5%] opacity-[0.04] text-7xl animate-pulse"
+          style={{ animationDuration: "8s" }}
+        >
+          🍵
+        </div>
+        <div
+          className="absolute top-[1400px] right-[12%] opacity-[0.05] text-6xl animate-bounce"
+          style={{ animationDuration: "7s" }}
+        >
+          🍗
+        </div>
+        <div className="absolute top-[1900px] left-[12%] opacity-[0.04] text-5xl animate-pulse">
+          🔧
+        </div>
+        <div
+          className="absolute top-[2200px] right-[6%] opacity-[0.06] text-7xl animate-bounce"
+          style={{ animationDuration: "5s" }}
+        >
+          🍏
+        </div>
+        <div
+          className="absolute top-[2700px] left-[8%] opacity-[0.05] text-6xl animate-pulse"
+          style={{ animationDuration: "9s" }}
+        >
+          🍩
+        </div>
       </div>
 
       {/* Decorative Food Side Panels (Visible only on wide desktop screens to fill the margins) */}
       <div className="hidden xl:flex fixed left-4 top-1/4 bottom-1/4 w-44 flex-col justify-around pointer-events-none select-none z-10">
-        <motion.div 
+        <motion.div
           animate={{ y: [0, -10, 0] }}
           transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
           className="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border border-pink-150/60 shadow-[0_12px_40px_rgba(0,0,0,0.06)] flex flex-col items-center text-center gap-1.5"
         >
-          <img 
-            src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80&w=120" 
-            alt="Hot Burger" 
+          <img
+            src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80&w=120"
+            alt="Hot Burger"
             className="w-14 h-14 rounded-full object-cover border-2 border-pink-200 shadow-sm"
             referrerPolicy="no-referrer"
           />
-          <span className="text-[10px] font-black uppercase text-[#D70F64] tracking-wider mt-1">Hot Burgers</span>
-          <span className="text-[9px] text-zinc-400 font-semibold leading-none">Fresh & Sizzling</span>
+          <span className="text-[10px] font-black uppercase text-[#D70F64] tracking-wider mt-1">
+            Hot Burgers
+          </span>
+          <span className="text-[9px] text-zinc-400 font-semibold leading-none">
+            Fresh & Sizzling
+          </span>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           animate={{ y: [0, 8, 0] }}
           transition={{ repeat: Infinity, duration: 4.5, ease: "easeInOut" }}
           className="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border border-pink-150/60 shadow-[0_12px_40px_rgba(0,0,0,0.06)] flex flex-col items-center text-center gap-1.5"
         >
-          <img 
-            src="https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&q=80&w=120" 
-            alt="Special Tea" 
+          <img
+            src="https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&q=80&w=120"
+            alt="Special Tea"
             className="w-14 h-14 rounded-full object-cover border-2 border-pink-200 shadow-sm"
             referrerPolicy="no-referrer"
           />
-          <span className="text-[10px] font-black uppercase text-[#D70F64] tracking-wider mt-1">Dadu Special Tea</span>
-          <span className="text-[9px] text-zinc-400 font-semibold leading-none">Brewed with love</span>
+          <span className="text-[10px] font-black uppercase text-[#D70F64] tracking-wider mt-1">
+            Dadu Special Tea
+          </span>
+          <span className="text-[9px] text-zinc-400 font-semibold leading-none">
+            Brewed with love
+          </span>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           animate={{ y: [0, -6, 0] }}
           transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut" }}
           className="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border border-pink-150/60 shadow-[0_12px_40px_rgba(0,0,0,0.06)] flex flex-col items-center text-center gap-1.5"
         >
-          <img 
-            src="https://images.unsplash.com/photo-1610348725511-27aae371f0d9?auto=format&fit=crop&q=80&w=120" 
-            alt="Grocery" 
+          <img
+            src="https://images.unsplash.com/photo-1610348725511-27aae371f0d9?auto=format&fit=crop&q=80&w=120"
+            alt="Grocery"
             className="w-14 h-14 rounded-full object-cover border-2 border-orange-200 shadow-sm"
             referrerPolicy="no-referrer"
           />
-          <span className="text-[10px] font-black uppercase text-orange-600 tracking-wider mt-1">Groceries</span>
-          <span className="text-[9px] text-zinc-400 font-semibold leading-none">Delivered under 20m</span>
+          <span className="text-[10px] font-black uppercase text-orange-600 tracking-wider mt-1">
+            Groceries
+          </span>
+          <span className="text-[9px] text-zinc-400 font-semibold leading-none">
+            Delivered under 20m
+          </span>
         </motion.div>
       </div>
 
       <div className="hidden xl:flex fixed right-4 top-1/4 bottom-1/4 w-44 flex-col justify-around pointer-events-none select-none z-10">
-        <motion.div 
+        <motion.div
           animate={{ y: [0, 10, 0] }}
           transition={{ repeat: Infinity, duration: 4.2, ease: "easeInOut" }}
           className="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border border-pink-150/60 shadow-[0_12px_40px_rgba(0,0,0,0.06)] flex flex-col items-center text-center gap-1.5"
         >
-          <img 
-            src="https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&q=80&w=120" 
-            alt="Cheesy Pizza" 
+          <img
+            src="https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&q=80&w=120"
+            alt="Cheesy Pizza"
             className="w-14 h-14 rounded-full object-cover border-2 border-pink-200 shadow-sm"
             referrerPolicy="no-referrer"
           />
-          <span className="text-[10px] font-black uppercase text-[#D70F64] tracking-wider mt-1">Cheesy Pizza</span>
-          <span className="text-[9px] text-zinc-400 font-semibold leading-none">Thick Crust Hot</span>
+          <span className="text-[10px] font-black uppercase text-[#D70F64] tracking-wider mt-1">
+            Cheesy Pizza
+          </span>
+          <span className="text-[9px] text-zinc-400 font-semibold leading-none">
+            Thick Crust Hot
+          </span>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           animate={{ y: [0, -8, 0] }}
           transition={{ repeat: Infinity, duration: 3.8, ease: "easeInOut" }}
           className="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border border-pink-150/60 shadow-[0_12px_40px_rgba(0,0,0,0.06)] flex flex-col items-center text-center gap-1.5"
         >
-          <img 
-            src="https://images.unsplash.com/photo-1633945274405-b6c8069047b0?auto=format&fit=crop&q=80&w=120" 
-            alt="Dadu Biryani" 
+          <img
+            src="https://images.unsplash.com/photo-1633945274405-b6c8069047b0?auto=format&fit=crop&q=80&w=120"
+            alt="Dadu Biryani"
             className="w-14 h-14 rounded-full object-cover border-2 border-pink-200 shadow-sm"
             referrerPolicy="no-referrer"
           />
-          <span className="text-[10px] font-black uppercase text-[#D70F64] tracking-wider mt-1">Dadu Biryani</span>
-          <span className="text-[9px] text-zinc-400 font-semibold leading-none">Spiced to perfection</span>
+          <span className="text-[10px] font-black uppercase text-[#D70F64] tracking-wider mt-1">
+            Dadu Biryani
+          </span>
+          <span className="text-[9px] text-zinc-400 font-semibold leading-none">
+            Spiced to perfection
+          </span>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           animate={{ y: [0, 6, 0] }}
           transition={{ repeat: Infinity, duration: 4.8, ease: "easeInOut" }}
           className="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border border-pink-150/60 shadow-[0_12px_40px_rgba(0,0,0,0.06)] flex flex-col items-center text-center gap-1.5"
         >
-          <img 
-            src="https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&q=80&w=120" 
-            alt="Home Services" 
+          <img
+            src="https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&q=80&w=120"
+            alt="Home Services"
             className="w-14 h-14 rounded-full object-cover border-2 border-zinc-200 shadow-sm"
             referrerPolicy="no-referrer"
           />
-          <span className="text-[10px] font-black uppercase text-zinc-700 tracking-wider mt-1">Home Services</span>
-          <span className="text-[9px] text-zinc-400 font-semibold leading-none">Certified Mechanics</span>
+          <span className="text-[10px] font-black uppercase text-zinc-700 tracking-wider mt-1">
+            Home Services
+          </span>
+          <span className="text-[9px] text-zinc-400 font-semibold leading-none">
+            Certified Mechanics
+          </span>
         </motion.div>
       </div>
-      
+
       {/* Welcome Foodpanda-style Intro Splash Animation Screen */}
       <AnimatePresence mode="wait">
         {showSplash && (
           <motion.div
             initial={{ opacity: 1 }}
-            exit={{ 
+            exit={{
               opacity: 0,
               y: -80,
               scale: 1.05,
-              transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] }
+              transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] },
             }}
             className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#D70F64] text-white select-none overflow-hidden"
           >
             {/* Background floating abstract food & toolkit shapes */}
             <div className="absolute inset-0 opacity-10 pointer-events-none">
-              <div className="absolute top-10 left-10 text-6xl animate-bounce" style={{ animationDuration: "5s" }}>🍔</div>
-              <div className="absolute top-24 right-1/4 text-5xl animate-pulse" style={{ animationDuration: "3.5s" }}>🔧</div>
-              <div className="absolute bottom-20 left-1/5 text-5xl animate-bounce" style={{ animationDuration: "4s" }}>🛵</div>
-              <div className="absolute bottom-16 right-16 text-6xl animate-pulse" style={{ animationDuration: "6s" }}>🍕</div>
-              <div className="absolute top-1/2 left-10 text-4xl animate-bounce" style={{ animationDuration: "5.5s" }}>🍩</div>
-              <div className="absolute top-1/3 right-10 text-5xl animate-pulse" style={{ animationDuration: "4.5s" }}>🛠️</div>
+              <div
+                className="absolute top-10 left-10 text-6xl animate-bounce"
+                style={{ animationDuration: "5s" }}
+              >
+                🍔
+              </div>
+              <div
+                className="absolute top-24 right-1/4 text-5xl animate-pulse"
+                style={{ animationDuration: "3.5s" }}
+              >
+                🔧
+              </div>
+              <div
+                className="absolute bottom-20 left-1/5 text-5xl animate-bounce"
+                style={{ animationDuration: "4s" }}
+              >
+                🛵
+              </div>
+              <div
+                className="absolute bottom-16 right-16 text-6xl animate-pulse"
+                style={{ animationDuration: "6s" }}
+              >
+                🍕
+              </div>
+              <div
+                className="absolute top-1/2 left-10 text-4xl animate-bounce"
+                style={{ animationDuration: "5.5s" }}
+              >
+                🍩
+              </div>
+              <div
+                className="absolute top-1/3 right-10 text-5xl animate-pulse"
+                style={{ animationDuration: "4.5s" }}
+              >
+                🛠️
+              </div>
             </div>
 
             {/* Glowing ambient pink background flash */}
@@ -1302,9 +1679,9 @@ export default function App() {
                 </div>
 
                 {/* Main branding image inside logo box */}
-                <img 
-                  src={daduLogo} 
-                  alt="DaduFood Logo" 
+                <img
+                  src={daduLogo}
+                  alt="DaduFood Logo"
                   className="w-full h-full object-contain"
                   referrerPolicy="no-referrer"
                 />
@@ -1319,7 +1696,9 @@ export default function App() {
                   className="font-sans font-black text-3xl sm:text-4xl tracking-tight text-white uppercase drop-shadow-md flex flex-col sm:block"
                 >
                   <span className="text-white">DADU</span>{" "}
-                  <span className="text-zinc-100 bg-white/10 px-3 py-0.5 rounded-xl border border-white/20">FOOD</span>
+                  <span className="text-zinc-100 bg-white/10 px-3 py-0.5 rounded-xl border border-white/20">
+                    FOOD
+                  </span>
                 </motion.h1>
 
                 <motion.div
@@ -1338,8 +1717,12 @@ export default function App() {
                   className="text-xs text-pink-100/90 font-bold max-w-xs mx-auto leading-relaxed h-8"
                 >
                   {splashProgress < 30 && "Gathering hot kitchens..."}
-                  {splashProgress >= 30 && splashProgress < 65 && "Assigning fastest delivery riders..."}
-                  {splashProgress >= 65 && splashProgress < 90 && "Checking technical repair tools..."}
+                  {splashProgress >= 30 &&
+                    splashProgress < 65 &&
+                    "Assigning fastest delivery riders..."}
+                  {splashProgress >= 65 &&
+                    splashProgress < 90 &&
+                    "Checking technical repair tools..."}
                   {splashProgress >= 90 && "Starting delicious experience!"}
                 </motion.p>
               </div>
@@ -1347,14 +1730,16 @@ export default function App() {
               {/* Infinite foodpanda-themed loading line status indicator */}
               <div className="w-56 space-y-2">
                 <div className="h-1.5 w-full bg-white/20 rounded-full overflow-hidden relative border border-white/5">
-                  <div 
+                  <div
                     className="h-full bg-white rounded-full transition-all duration-75"
                     style={{ width: `${splashProgress}%` }}
                   ></div>
                 </div>
                 <div className="flex items-center justify-between text-[11px] text-pink-100 font-extrabold tracking-widest uppercase font-mono">
                   <span>LOADING applet</span>
-                  <span className="bg-white/15 px-1.5 py-0.5 rounded-md text-white">{splashProgress}%</span>
+                  <span className="bg-white/15 px-1.5 py-0.5 rounded-md text-white">
+                    {splashProgress}%
+                  </span>
                 </div>
               </div>
             </div>
@@ -1382,7 +1767,7 @@ export default function App() {
         title="WhatsApp live support helpline"
       >
         <svg viewBox="0 0 24 24" className="w-6 h-6 fill-current text-white">
-          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z" />
         </svg>
       </a>
 
@@ -1404,21 +1789,28 @@ export default function App() {
         setActiveCategory={setActiveCategory}
         onToggleFavorites={() => setShowFavoritesOnly(!showFavoritesOnly)}
         showFavoritesOnly={showFavoritesOnly}
-        orders={orders.filter(o => o.status !== "delivered" && o.status !== "completed" && o.status !== "cancelled")}
+        orders={orders.filter(
+          (o) =>
+            o.status !== "delivered" &&
+            o.status !== "completed" &&
+            o.status !== "cancelled",
+        )}
         onTrackOrder={(order) => {
           setActiveTrackingOrder(order);
           setIsTrackingModalOpen(true);
         }}
         // Pass open cart triggers depending on current view mode
         onOpenGroceryCart={() => setIsGroceryCartOpen(true)}
-        groceryCartCount={groceryCartItems.reduce((acc, i) => acc + i.quantity, 0)}
+        groceryCartCount={groceryCartItems.reduce(
+          (acc, i) => acc + i.quantity,
+          0,
+        )}
         activeModule={activeModule}
         setActiveModule={setActiveModule}
       />
 
       {!isAdminConsoleOpen ? (
         <div className="flex-1">
-          
           {/* Module Switcher Tabs - Direct & Tactile selection */}
           {!isAuthOpen && (
             <div className="max-w-7xl mx-auto px-4 mt-6">
@@ -1464,18 +1856,26 @@ export default function App() {
           {activeModule === "food" ? (
             <>
               {/* Billboard / category selectors */}
-              <FoodpandaHero activeCategory={activeCategory} setActiveCategory={setActiveCategory} dealConfig={dealConfig} dealTimeLeft={dealTimeLeft} />
+              <FoodpandaHero
+                activeCategory={activeCategory}
+                setActiveCategory={setActiveCategory}
+                dealConfig={dealConfig}
+                dealTimeLeft={dealTimeLeft}
+              />
 
               {/* Active Order Banner Card */}
               {(() => {
                 const activeOrderForBanner = orders.find(
-                  (o) => o.status !== "delivered" && o.status !== "completed" && o.status !== "cancelled"
+                  (o) =>
+                    o.status !== "delivered" &&
+                    o.status !== "completed" &&
+                    o.status !== "cancelled",
                 );
                 if (!currentUser || !activeOrderForBanner) return null;
 
                 return (
                   <div className="max-w-7xl mx-auto px-4 mt-6">
-                    <div 
+                    <div
                       onClick={() => {
                         setActiveTrackingOrder(activeOrderForBanner);
                         setIsTrackingModalOpen(true);
@@ -1487,15 +1887,33 @@ export default function App() {
                           🛵
                         </div>
                         <div className="flex-1 min-w-0">
-                          <span className="text-[9px] font-black uppercase tracking-widest text-[#D70F64] block">Active Placed Order Tracking Live</span>
+                          <span className="text-[9px] font-black uppercase tracking-widest text-[#D70F64] block">
+                            Active Placed Order Tracking Live
+                          </span>
                           <h4 className="text-xs sm:text-sm font-black text-zinc-800 mt-1 leading-normal truncate">
-                            Your Order <span className="font-mono text-zinc-500 font-bold">dadu-{activeOrderForBanner.id.substring(0, 5)}...</span> is currently <span className="text-[#D70F64] uppercase font-bold">{activeOrderForBanner.status === "out_for_delivery" ? "With Foodpanda Rider" : activeOrderForBanner.status === "preparing" ? "Cooking in Kitchen" : "Confirmed & Accepted"}</span>
+                            Your Order{" "}
+                            <span className="font-mono text-zinc-500 font-bold">
+                              dadu-{activeOrderForBanner.id.substring(0, 5)}...
+                            </span>{" "}
+                            is currently{" "}
+                            <span className="text-[#D70F64] uppercase font-bold">
+                              {activeOrderForBanner.status ===
+                              "out_for_delivery"
+                                ? "With Foodpanda Rider"
+                                : activeOrderForBanner.status === "preparing"
+                                  ? "Cooking in Kitchen"
+                                  : "Confirmed & Accepted"}
+                            </span>
                           </h4>
                           {activeOrderForBanner.riderName ? (
                             <div className="flex items-center gap-1.5 mt-1">
                               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                               <span className="text-[10px] text-zinc-500 font-extrabold truncate">
-                                Rider assigned: <span className="text-[#D70F64] font-black">{activeOrderForBanner.riderName}</span> ({activeOrderForBanner.riderPhone})
+                                Rider assigned:{" "}
+                                <span className="text-[#D70F64] font-black">
+                                  {activeOrderForBanner.riderName}
+                                </span>{" "}
+                                ({activeOrderForBanner.riderPhone})
                               </span>
                             </div>
                           ) : (
@@ -1505,7 +1923,7 @@ export default function App() {
                           )}
                         </div>
                       </div>
-                      
+
                       <button className="w-full sm:w-auto bg-[#D70F64] text-white text-xs font-black uppercase tracking-widest px-5 py-3 rounded-xl hover:bg-[#b00c50] transition active:scale-95 shrink-0 shadow-md">
                         Track Live Map 🧭
                       </button>
@@ -1514,415 +1932,563 @@ export default function App() {
                 );
               })()}
 
+              {/* Catalog Listing */}
+              <main className="max-w-7xl mx-auto px-4 py-6">
+                <div className="flex flex-col md:flex-row gap-6">
+                  {/* Left Column: Menu Cards Catalog grid */}
+                  <div className="flex-1 space-y-6">
+                    {/* Dynamic Restaurants & Shop List selector */}
+                    {(() => {
+                      const uniqueRestaurants = Array.from(
+                        new Set(
+                          dishes
+                            .map(
+                              (d) =>
+                                d.restaurantName?.trim() ||
+                                (d.type === "service"
+                                  ? "Dadu Home Services"
+                                  : "Dadu Fast Food & Kitchen"),
+                            )
+                            .filter(Boolean),
+                        ),
+                      ) as string[];
 
-          {/* Catalog Listing */}
-          <main className="max-w-7xl mx-auto px-4 py-6">
-            <div className="flex flex-col md:flex-row gap-6">
-              
-              {/* Left Column: Menu Cards Catalog grid */}
-              <div className="flex-1 space-y-6">
-                
-                {/* Dynamic Restaurants & Shop List selector */}
-                {(() => {
-                  const uniqueRestaurants = Array.from(
-                    new Set(
-                      dishes
-                        .map((d) => d.restaurantName?.trim() || (d.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen"))
-                        .filter(Boolean)
-                    )
-                  ) as string[];
-                  
-                  return (
-                    <div className="bg-gradient-to-br from-white to-pink-50/30 border border-pink-100/60 p-5 rounded-3xl space-y-4 shadow-sm relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#D70F64]/5 to-transparent rounded-full -mr-16 -mt-16 pointer-events-none" />
-                      <div className="flex items-center justify-between relative z-10">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#D70F64] to-pink-500 flex items-center justify-center shadow-lg shadow-pink-500/20 text-white shrink-0">
-                            <Compass className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <h4 className="text-[13px] font-black uppercase tracking-widest text-zinc-900">Partner Shops</h4>
-                            <p className="text-[10px] text-zinc-500 font-bold leading-tight mt-0.5 tracking-wide">Filter by specific vendor</p>
-                          </div>
-                        </div>
-                        {selectedRestaurant !== "All Restaurants" && (
-                          <button
-                            onClick={() => setSelectedRestaurant("All Restaurants")}
-                            className="bg-pink-50 hover:bg-pink-100 text-[#D70F64] px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 cursor-pointer"
-                          >
-                            Reset
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="flex items-start gap-2.5 overflow-x-auto pb-2 scrollbar-none scroll-smooth px-1">
-                        <button
-                          onClick={() => setSelectedRestaurant("All Restaurants")}
-                          className={`w-[85px] h-[100px] rounded-2xl flex flex-col items-center justify-center gap-1 p-2 font-black transition shrink-0 cursor-pointer border ${
-                            selectedRestaurant === "All Restaurants"
-                              ? "bg-[#D70F64] text-white border-[#D70F64] shadow-md shadow-pink-500/15 scale-105"
-                              : "bg-white text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50 border-zinc-200"
-                          }`}
-                        >
-                          <span className="text-3xl mb-1">🎪</span>
-                          <span className="text-[10px] text-center uppercase tracking-wider leading-tight">All<br/>Kitchens</span>
-                        </button>
-                        {isLoadingDishes ? (
-                          Array.from({ length: 5 }).map((_, idx) => (
-                            <div key={`sk-${idx}`} className="w-[85px] h-[100px] rounded-2xl bg-white border border-zinc-200/80 flex flex-col items-center p-1.5 shrink-0 animate-pulse">
-                              <div className="w-full h-[52px] rounded-xl bg-zinc-200 shrink-0 mb-1.5" />
-                              <div className="w-10 h-2 sm:h-3 rounded-full bg-zinc-200 mt-0.5" />
+                      return (
+                        <div className="bg-gradient-to-br from-white to-pink-50/30 border border-pink-100/60 p-5 rounded-3xl space-y-4 shadow-sm relative overflow-hidden">
+                          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#D70F64]/5 to-transparent rounded-full -mr-16 -mt-16 pointer-events-none" />
+                          <div className="flex items-center justify-between relative z-10">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#D70F64] to-pink-500 flex items-center justify-center shadow-lg shadow-pink-500/20 text-white shrink-0">
+                                <Compass className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <h4 className="text-[13px] font-black uppercase tracking-widest text-zinc-900">
+                                  Partner Shops
+                                </h4>
+                                <p className="text-[10px] text-zinc-500 font-bold leading-tight mt-0.5 tracking-wide">
+                                  Filter by specific vendor
+                                </p>
+                              </div>
                             </div>
-                          ))
-                        ) : (
-                          uniqueRestaurants.map((vendor) => {
-                            const vendorImageUrl = deliverySettings?.restaurantStatuses?.[vendor]?.imageUrl;
-                            return (
+                            {selectedRestaurant !== "All Restaurants" && (
                               <button
-                                key={vendor}
-                                onClick={() => setSelectedRestaurant(vendor)}
-                                className={`w-[85px] h-[100px] rounded-2xl flex flex-col items-center p-1.5 font-black transition shrink-0 cursor-pointer border overflow-hidden ${
-                                  selectedRestaurant === vendor
-                                    ? "bg-[#D70F64] text-white border-[#D70F64] shadow-md shadow-pink-500/15 scale-105"
-                                    : "bg-white text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 border-zinc-200"
-                                }`}
+                                onClick={() =>
+                                  setSelectedRestaurant("All Restaurants")
+                                }
+                                className="bg-pink-50 hover:bg-pink-100 text-[#D70F64] px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 cursor-pointer"
                               >
-                                <div className="w-full h-[52px] rounded-xl overflow-hidden bg-zinc-100 flex items-center justify-center shrink-0 mb-1.5 shadow-sm">
-                                  {vendorImageUrl ? (
-                                    <img src={vendorImageUrl} alt="" className="w-full h-full object-cover" />
-                                  ) : (
-                                    <span className="opacity-90 text-2xl">{vendor.includes("Services") || vendor.includes("Pr") || vendor.includes("Re") ? "🛠️" : "🍔"}</span>
-                                  )}
-                                </div>
-                                <span className="text-[9px] text-center tracking-tight leading-[1.1] line-clamp-2 px-0.5 w-full">
-                                  {vendor}
-                                </span>
+                                Reset
                               </button>
-                            );
-                          })
-                        )}
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-extrabold tracking-wider text-zinc-750 uppercase border-b border-pink-100 pb-2">
-                    {selectedRestaurant === "All Restaurants" ? activeCategory : selectedRestaurant} Delicacies ({filteredDishes.length})
-                  </h3>
-                  {searchQuery && (
-                    <span className="text-xs text-zinc-500 font-bold">Matching "{searchQuery}"</span>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
-                  {isLoadingDishes ? (
-                    Array.from({ length: 8 }).map((_, idx) => (
-                      <div key={idx} className="bg-white border border-zinc-200/80 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs animate-pulse flex flex-col h-full">
-                        <div className="h-28 sm:h-44 bg-zinc-200 shrink-0" />
-                        <div className="p-3 sm:p-4 flex-1 flex flex-col gap-3">
-                          <div className="h-2 sm:h-3 w-1/3 bg-zinc-200 rounded-full" />
-                          <div className="h-4 sm:h-5 w-3/4 bg-zinc-200 rounded-full" />
-                          <div className="mt-auto flex justify-between items-center pt-2">
-                             <div className="h-4 sm:h-5 w-1/4 bg-zinc-200 rounded-full" />
-                             <div className="h-8 sm:h-10 w-8 sm:w-10 bg-zinc-200 rounded-full" />
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    filteredDishes.map((dish) => {
-                    const isSvc = dish.type === "service";
-                    const dishRestaurantName = dish.restaurantName || (isSvc ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
-                    const isRestaurantClosed = checkIsRestaurantClosed(dishRestaurantName);
-                    return (
-                      <div
-                        key={dish.id}
-                        className={`bg-white border border-zinc-200/80 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs hover:border-[#D70F64]/30 hover:shadow-md hover:shadow-pink-500/5 transition-all flex flex-col group relative text-zinc-800 ${isRestaurantClosed ? 'opacity-70 grayscale-[20%]' : ''}`}
-                      >
-                        {/* Sold Out Overlay */}
-                        {!dish.isAvailable && !isRestaurantClosed && (
-                          <div className="absolute inset-0 bg-white/95 z-20 flex flex-col items-center justify-center text-center p-2 sm:p-4">
-                            <BadgeAlert className="w-5 h-5 sm:w-8 sm:h-8 text-zinc-400 mb-1" />
-                            <span className="font-extrabold text-[10px] sm:text-sm uppercase tracking-widest text-[#D70F64]">SOLD OUT</span>
-                            <span className="text-[8px] sm:text-[10px] text-zinc-500 mt-0.5 font-bold">Soon</span>
-                          </div>
-                        )}
-                        
-                        {isRestaurantClosed && (
-                           <div className="absolute inset-0 bg-white/60 z-20 flex flex-col items-center justify-center text-center p-2 sm:p-4 cursor-not-allowed">
-                              <Clock className="w-5 h-5 sm:w-8 sm:h-8 text-red-400 mb-1" />
-                              <span className="font-extrabold text-[10px] sm:text-sm uppercase tracking-widest text-red-600">UNAVAILABLE</span>
-                           </div>
-                        )}
-
-                        {/* Card Image */}
-                        <div 
-                          className="relative h-28 sm:h-44 bg-zinc-100 overflow-hidden shrink-0 cursor-pointer" 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (!dish.isAvailable || isRestaurantClosed) return;
-                            const hasCustomization = (dish.sizes && dish.sizes.length > 0) || 
-                                                     (dish.flavors && dish.flavors.length > 0) || 
-                                                     (dish.addOns && dish.addOns.length > 0);
-                            if (hasCustomization) {
-                              setActiveDetailDish(dish);
-                            } else {
-                              handleAddToCart(dish);
-                            }
-                          }}
-                        >
-                          <img
-                            referrerPolicy="no-referrer"
-                            src={dish.imageUrl}
-                            alt={dish.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition duration duration-500"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent"></div>
-                          
-                          {/* Add to Favorite (Heart Icon Button) */}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleFavorite(dish.id);
-                            }}
-                            className="absolute top-2 right-2 z-30 p-1.5 sm:p-2 rounded-full bg-white/90 hover:bg-white text-[#D70F64] hover:scale-110 active:scale-95 shadow-md transition duration-200 cursor-pointer"
-                            title={favoriteDishIds.includes(dish.id) ? "Remove from Favorites" : "Add to Favorites"}
-                          >
-                            <Heart 
-                              className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition duration-200 ${
-                                favoriteDishIds.includes(dish.id) ? "fill-[#D70F64] text-[#D70F64]" : "text-zinc-650 hover:text-[#D70F64]"
-                              }`} 
-                            />
-                          </button>
-                          
-                          {/* Top Tag */}
-                          <div className="absolute top-2 left-2 flex flex-col gap-1 items-start">
-                            <span className={`text-[8px] sm:text-[10px] font-black uppercase tracking-wider py-0.5 sm:py-1 px-1.5 sm:px-2.5 rounded-md sm:rounded-lg shadow-md ${
-                              isSvc ? "bg-amber-500 text-neutral-950 font-extrabold" : "bg-[#D70F64] text-white"
-                            }`}>
-                              {isSvc ? "🛠️ Service" : "🍔 Food"}
-                            </span>
-                            {dish.discountPrice && dish.discountPrice < dish.price && (
-                              <span className="text-[7.5px] sm:text-[9px] font-black uppercase tracking-wider py-0.5 sm:py-0.8 px-1.5 sm:px-2 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-md sm:rounded-lg shadow-md animate-pulse">
-                                🔥 {Math.round(((dish.price - dish.discountPrice) / dish.price) * 100)}% OFF
-                              </span>
                             )}
                           </div>
-                        </div>
 
-                        {/* Card Contents */}
-                        <div className="p-2.5 sm:p-4 flex-1 flex flex-col justify-between space-y-2 sm:space-y-3.5 bg-white">
-                          <div 
-                            className="space-y-1 sm:space-y-1.5 flex-1 cursor-pointer" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (!dish.isAvailable || isRestaurantClosed) return;
-                              const hasCustomization = (dish.sizes && dish.sizes.length > 0) || 
-                                                       (dish.flavors && dish.flavors.length > 0) || 
-                                                       (dish.addOns && dish.addOns.length > 0);
-                              if (hasCustomization) {
-                                setActiveDetailDish(dish);
-                              } else {
-                                handleAddToCart(dish);
+                          <div className="flex items-start gap-2.5 overflow-x-auto pb-2 scrollbar-none scroll-smooth px-1">
+                            <button
+                              onClick={() =>
+                                setSelectedRestaurant("All Restaurants")
                               }
-                            }}
-                          >
-                            <div className="text-[8.5px] sm:text-[10.5px] text-zinc-500 font-extrabold tracking-wider uppercase flex items-center gap-1 truncate max-w-full">
-                              <span>🏪</span> {dish.restaurantName || (dish.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen")}
-                            </div>
-                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-1 sm:gap-1.5">
-                              <h4 className="font-bold text-zinc-800 text-xs sm:text-sm tracking-tight leading-snug group-hover:text-[#D70F64] transition truncate max-w-full">
-                                {dish.name}
-                              </h4>
-                              {dish.discountPrice && dish.discountPrice < dish.price ? (
-                                <div className="flex flex-col items-end shrink-0 leading-none">
-                                  <span className={`font-black text-xs sm:text-sm whitespace-nowrap text-emerald-600`}>
-                                    Rs. {dish.discountPrice}
-                                  </span>
-                                  <span className="text-[9px] sm:text-[10.5px] line-through text-zinc-400 font-bold mt-0.5">
-                                    Rs. {dish.price}
-                                  </span>
-                                </div>
-                              ) : (
-                                <span className={`font-black text-xs sm:text-sm shrink-0 whitespace-nowrap ${isSvc ? "text-amber-600" : "text-[#D70F64]"}`}>
-                                  Rs. {dish.price}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Detail Badging - CUSTOMIZED FOR SERVICES (Hidden on mobile grid for cleanliness) */}
-                          <div className="hidden sm:flex items-center gap-2 border-t border-zinc-100 pt-3 text-[10.5px] font-semibold text-zinc-500">
-                            {isSvc ? (
-                              <>
-                                <Wrench className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                                <span className="text-amber-500 truncate font-bold">Visiting Fee - Repairs onsite</span>
-                              </>
-                            ) : (
-                              <>
-                                <Clock className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                                <span>Prep: 20-30m</span>
-                                <span className="text-zinc-350">•</span>
-                                <span className="text-emerald-600 font-bold">Fast Delivery</span>
-                              </>
-                            )}
-                          </div>
-
-                          {/* Add to checkout CTAs */}
-                          <div className="pt-1 shrink-0">
-                            {(() => {
-                              const cartItem = cartItems.find((item) => item.dishId === dish.id);
-                              const qty = cartItem ? cartItem.quantity : 0;
-                              
-                              if (qty > 0) {
-                                return (
-                                  <div className="flex items-center justify-between bg-zinc-950 border border-zinc-800 p-1.5 rounded-xl">
+                              className={`w-[85px] h-[100px] rounded-2xl flex flex-col items-center justify-center gap-1 p-2 font-black transition shrink-0 cursor-pointer border ${
+                                selectedRestaurant === "All Restaurants"
+                                  ? "bg-[#D70F64] text-white border-[#D70F64] shadow-md shadow-pink-500/15 scale-105"
+                                  : "bg-white text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50 border-zinc-200"
+                              }`}
+                            >
+                              <span className="text-3xl mb-1">🎪</span>
+                              <span className="text-[10px] text-center uppercase tracking-wider leading-tight">
+                                All
+                                <br />
+                                Kitchens
+                              </span>
+                            </button>
+                            {isLoadingDishes
+                              ? Array.from({ length: 5 }).map((_, idx) => (
+                                  <div
+                                    key={`sk-${idx}`}
+                                    className="w-[85px] h-[100px] rounded-2xl bg-white border border-zinc-200/80 flex flex-col items-center p-1.5 shrink-0 animate-pulse"
+                                  >
+                                    <div className="w-full h-[52px] rounded-xl bg-zinc-200 shrink-0 mb-1.5" />
+                                    <div className="w-10 h-2 sm:h-3 rounded-full bg-zinc-200 mt-0.5" />
+                                  </div>
+                                ))
+                              : uniqueRestaurants.map((vendor) => {
+                                  const vendorImageUrl =
+                                    deliverySettings?.restaurantStatuses?.[
+                                      vendor
+                                    ]?.imageUrl;
+                                  return (
                                     <button
-                                      onClick={() => handleUpdateCartQuantity(dish.id, qty - 1)}
-                                      className="w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 transition font-black flex items-center justify-center cursor-pointer active:scale-90"
-                                    >
-                                      <Minus className="w-3.5 h-3.5" />
-                                    </button>
-                                    <span className="text-xs font-black text-white font-mono shrink-0">
-                                      {qty}
-                                    </span>
-                                    <button
-                                      onClick={() => handleUpdateCartQuantity(dish.id, qty + 1)}
-                                      className={`w-8 h-8 rounded-lg transition font-black flex items-center justify-center cursor-pointer active:scale-90 ${
-                                        isSvc ? "bg-amber-500 hover:bg-amber-600 text-[#121212]" : "bg-[#D70F64] hover:bg-[#b00c50] text-white"
+                                      key={vendor}
+                                      onClick={() =>
+                                        setSelectedRestaurant(vendor)
+                                      }
+                                      className={`w-[85px] h-[100px] rounded-2xl flex flex-col items-center p-1.5 font-black transition shrink-0 cursor-pointer border overflow-hidden ${
+                                        selectedRestaurant === vendor
+                                          ? "bg-[#D70F64] text-white border-[#D70F64] shadow-md shadow-pink-500/15 scale-105"
+                                          : "bg-white text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 border-zinc-200"
                                       }`}
                                     >
-                                      <Plus className="w-3.5 h-3.5" />
+                                      <div className="w-full h-[52px] rounded-xl overflow-hidden bg-zinc-100 flex items-center justify-center shrink-0 mb-1.5 shadow-sm">
+                                        {vendorImageUrl ? (
+                                          <img
+                                            src={vendorImageUrl}
+                                            alt=""
+                                            className="w-full h-full object-cover"
+                                          />
+                                        ) : (
+                                          <span className="opacity-90 text-2xl">
+                                            {vendor.includes("Services") ||
+                                            vendor.includes("Pr") ||
+                                            vendor.includes("Re")
+                                              ? "🛠️"
+                                              : "🍔"}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <span className="text-[9px] text-center tracking-tight leading-[1.1] line-clamp-2 px-0.5 w-full">
+                                        {vendor}
+                                      </span>
                                     </button>
-                                  </div>
-                                );
-                              }
+                                  );
+                                })}
+                          </div>
+                        </div>
+                      );
+                    })()}
 
-                              return (
-                                <button
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-extrabold tracking-wider text-zinc-750 uppercase border-b border-pink-100 pb-2">
+                        {selectedRestaurant === "All Restaurants"
+                          ? activeCategory
+                          : selectedRestaurant}{" "}
+                        Delicacies ({filteredDishes.length})
+                      </h3>
+                      {searchQuery && (
+                        <span className="text-xs text-zinc-500 font-bold">
+                          Matching "{searchQuery}"
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
+                      {isLoadingDishes
+                        ? Array.from({ length: 8 }).map((_, idx) => (
+                            <div
+                              key={idx}
+                              className="bg-white border border-zinc-200/80 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs animate-pulse flex flex-col h-full"
+                            >
+                              <div className="h-28 sm:h-44 bg-zinc-200 shrink-0" />
+                              <div className="p-3 sm:p-4 flex-1 flex flex-col gap-3">
+                                <div className="h-2 sm:h-3 w-1/3 bg-zinc-200 rounded-full" />
+                                <div className="h-4 sm:h-5 w-3/4 bg-zinc-200 rounded-full" />
+                                <div className="mt-auto flex justify-between items-center pt-2">
+                                  <div className="h-4 sm:h-5 w-1/4 bg-zinc-200 rounded-full" />
+                                  <div className="h-8 sm:h-10 w-8 sm:w-10 bg-zinc-200 rounded-full" />
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        : filteredDishes.map((dish) => {
+                            const isSvc = dish.type === "service";
+                            const dishRestaurantName =
+                              dish.restaurantName ||
+                              (isSvc
+                                ? "Dadu Home Services"
+                                : "Dadu Fast Food & Kitchen");
+                            const isRestaurantClosed =
+                              checkIsRestaurantClosed(dishRestaurantName);
+                            return (
+                              <div
+                                key={dish.id}
+                                className={`bg-white border border-zinc-200/80 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs hover:border-[#D70F64]/30 hover:shadow-md hover:shadow-pink-500/5 transition-all flex flex-col group relative text-zinc-800 ${isRestaurantClosed ? "opacity-70 grayscale-[20%]" : ""}`}
+                              >
+                                {/* Sold Out Overlay */}
+                                {!dish.isAvailable && !isRestaurantClosed && (
+                                  <div className="absolute inset-0 bg-white/95 z-20 flex flex-col items-center justify-center text-center p-2 sm:p-4">
+                                    <BadgeAlert className="w-5 h-5 sm:w-8 sm:h-8 text-zinc-400 mb-1" />
+                                    <span className="font-extrabold text-[10px] sm:text-sm uppercase tracking-widest text-[#D70F64]">
+                                      SOLD OUT
+                                    </span>
+                                    <span className="text-[8px] sm:text-[10px] text-zinc-500 mt-0.5 font-bold">
+                                      Soon
+                                    </span>
+                                  </div>
+                                )}
+
+                                {isRestaurantClosed && (
+                                  <div className="absolute inset-0 bg-white/70 z-20 flex flex-col items-center justify-center text-center p-2 sm:p-4 cursor-not-allowed">
+                                    <Clock className="w-5 h-5 sm:w-8 sm:h-8 text-red-500 mb-1" />
+                                    <span className="font-extrabold text-[10px] sm:text-sm uppercase tracking-widest text-red-600">
+                                      UNAVAILABLE
+                                    </span>
+                                    <span className="text-[9px] sm:text-xs font-bold text-zinc-800 mt-1 bg-white px-2 py-0.5 rounded shadow-sm border border-red-100">
+                                      Opens at{" "}
+                                      {deliverySettings?.restaurantStatuses?.[
+                                        dishRestaurantName
+                                      ]?.openingTime ||
+                                        deliverySettings?.restaurantStatus
+                                          ?.openingTime ||
+                                        "soon"}
+                                    </span>
+                                  </div>
+                                )}
+
+                                {/* Card Image */}
+                                <div
+                                  className="relative h-28 sm:h-44 bg-zinc-100 overflow-hidden shrink-0 cursor-pointer"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    const hasCustomization = (dish.sizes && dish.sizes.length > 0) || 
-                                                             (dish.flavors && dish.flavors.length > 0) || 
-                                                             (dish.addOns && dish.addOns.length > 0);
+                                    if (!dish.isAvailable || isRestaurantClosed)
+                                      return;
+                                    const hasCustomization =
+                                      (dish.sizes && dish.sizes.length > 0) ||
+                                      (dish.flavors &&
+                                        dish.flavors.length > 0) ||
+                                      (dish.addOns && dish.addOns.length > 0);
                                     if (hasCustomization) {
                                       setActiveDetailDish(dish);
                                     } else {
                                       handleAddToCart(dish);
                                     }
                                   }}
-                                  disabled={!dish.isAvailable || isRestaurantClosed}
-                                  className={`w-full py-1.5 sm:py-2.5 rounded-xl sm:rounded-2xl text-[9px] sm:text-xs font-black uppercase tracking-wider transition shadow-xs flex items-center justify-center gap-1 ${!dish.isAvailable || isRestaurantClosed ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} ${
-                                    isSvc 
-                                      ? "bg-amber-500 hover:bg-amber-600 text-[#121212] font-semibold" 
-                                      : "bg-[#D70F64] hover:bg-[#b00c50] text-white"
-                                  }`}
                                 >
-                                  {isSvc ? (
-                                    <>
-                                      <span className="sm:hidden">+ Book</span>
-                                      <span className="hidden sm:inline">Book Diagnosis (Rs. 500)</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <span className="sm:hidden">+ Add</span>
-                                      <span className="hidden sm:inline">Add To Dadu Cart</span>
-                                    </>
-                                  )}
-                                </button>
-                              );
-                            })()}
-                          </div>
+                                  <img
+                                    referrerPolicy="no-referrer"
+                                    src={dish.imageUrl}
+                                    alt={dish.name}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition duration duration-500"
+                                  />
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent"></div>
+
+                                  {/* Add to Favorite (Heart Icon Button) */}
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleFavorite(dish.id);
+                                    }}
+                                    className="absolute top-2 right-2 z-30 p-1.5 sm:p-2 rounded-full bg-white/90 hover:bg-white text-[#D70F64] hover:scale-110 active:scale-95 shadow-md transition duration-200 cursor-pointer"
+                                    title={
+                                      favoriteDishIds.includes(dish.id)
+                                        ? "Remove from Favorites"
+                                        : "Add to Favorites"
+                                    }
+                                  >
+                                    <Heart
+                                      className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition duration-200 ${
+                                        favoriteDishIds.includes(dish.id)
+                                          ? "fill-[#D70F64] text-[#D70F64]"
+                                          : "text-zinc-650 hover:text-[#D70F64]"
+                                      }`}
+                                    />
+                                  </button>
+
+                                  {/* Top Tag */}
+                                  <div className="absolute top-2 left-2 flex flex-col gap-1 items-start">
+                                    <span
+                                      className={`text-[8px] sm:text-[10px] font-black uppercase tracking-wider py-0.5 sm:py-1 px-1.5 sm:px-2.5 rounded-md sm:rounded-lg shadow-md ${
+                                        isSvc
+                                          ? "bg-amber-500 text-neutral-950 font-extrabold"
+                                          : "bg-[#D70F64] text-white"
+                                      }`}
+                                    >
+                                      {isSvc ? "🛠️ Service" : "🍔 Food"}
+                                    </span>
+                                    {dish.discountPrice &&
+                                      dish.discountPrice < dish.price && (
+                                        <span className="text-[7.5px] sm:text-[9px] font-black uppercase tracking-wider py-0.5 sm:py-0.8 px-1.5 sm:px-2 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-md sm:rounded-lg shadow-md animate-pulse">
+                                          🔥{" "}
+                                          {Math.round(
+                                            ((dish.price - dish.discountPrice) /
+                                              dish.price) *
+                                              100,
+                                          )}
+                                          % OFF
+                                        </span>
+                                      )}
+                                  </div>
+                                </div>
+
+                                {/* Card Contents */}
+                                <div className="p-2.5 sm:p-4 flex-1 flex flex-col justify-between space-y-2 sm:space-y-3.5 bg-white">
+                                  <div
+                                    className="space-y-1 sm:space-y-1.5 flex-1 cursor-pointer"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (
+                                        !dish.isAvailable ||
+                                        isRestaurantClosed
+                                      )
+                                        return;
+                                      const hasCustomization =
+                                        (dish.sizes && dish.sizes.length > 0) ||
+                                        (dish.flavors &&
+                                          dish.flavors.length > 0) ||
+                                        (dish.addOns && dish.addOns.length > 0);
+                                      if (hasCustomization) {
+                                        setActiveDetailDish(dish);
+                                      } else {
+                                        handleAddToCart(dish);
+                                      }
+                                    }}
+                                  >
+                                    <div className="text-[8.5px] sm:text-[10.5px] text-zinc-500 font-extrabold tracking-wider uppercase flex items-center gap-1 truncate max-w-full">
+                                      <span>🏪</span>{" "}
+                                      {dish.restaurantName ||
+                                        (dish.type === "service"
+                                          ? "Dadu Home Services"
+                                          : "Dadu Fast Food & Kitchen")}
+                                    </div>
+                                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-1 sm:gap-1.5">
+                                      <h4 className="font-bold text-zinc-800 text-xs sm:text-sm tracking-tight leading-snug group-hover:text-[#D70F64] transition truncate max-w-full">
+                                        {dish.name}
+                                      </h4>
+                                      {dish.discountPrice &&
+                                      dish.discountPrice < dish.price ? (
+                                        <div className="flex flex-col items-end shrink-0 leading-none">
+                                          <span
+                                            className={`font-black text-xs sm:text-sm whitespace-nowrap text-emerald-600`}
+                                          >
+                                            Rs. {dish.discountPrice}
+                                          </span>
+                                          <span className="text-[9px] sm:text-[10.5px] line-through text-zinc-400 font-bold mt-0.5">
+                                            Rs. {dish.price}
+                                          </span>
+                                        </div>
+                                      ) : (
+                                        <span
+                                          className={`font-black text-xs sm:text-sm shrink-0 whitespace-nowrap ${isSvc ? "text-amber-600" : "text-[#D70F64]"}`}
+                                        >
+                                          Rs. {dish.price}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Detail Badging - CUSTOMIZED FOR SERVICES (Hidden on mobile grid for cleanliness) */}
+                                  <div className="hidden sm:flex items-center gap-2 border-t border-zinc-100 pt-3 text-[10.5px] font-semibold text-zinc-500">
+                                    {isSvc ? (
+                                      <>
+                                        <Wrench className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                                        <span className="text-amber-500 truncate font-bold">
+                                          Visiting Fee - Repairs onsite
+                                        </span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Clock className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                                        <span>Prep: 20-30m</span>
+                                        <span className="text-zinc-350">•</span>
+                                        <span className="text-emerald-600 font-bold">
+                                          Fast Delivery
+                                        </span>
+                                      </>
+                                    )}
+                                  </div>
+
+                                  {/* Add to checkout CTAs */}
+                                  <div className="pt-1 shrink-0">
+                                    {(() => {
+                                      const cartItem = cartItems.find(
+                                        (item) => item.dishId === dish.id,
+                                      );
+                                      const qty = cartItem
+                                        ? cartItem.quantity
+                                        : 0;
+
+                                      if (qty > 0) {
+                                        return (
+                                          <div className="flex items-center justify-between bg-zinc-950 border border-zinc-800 p-1.5 rounded-xl">
+                                            <button
+                                              onClick={() =>
+                                                handleUpdateCartQuantity(
+                                                  dish.id,
+                                                  qty - 1,
+                                                )
+                                              }
+                                              className="w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 transition font-black flex items-center justify-center cursor-pointer active:scale-90"
+                                            >
+                                              <Minus className="w-3.5 h-3.5" />
+                                            </button>
+                                            <span className="text-xs font-black text-white font-mono shrink-0">
+                                              {qty}
+                                            </span>
+                                            <button
+                                              onClick={() =>
+                                                handleUpdateCartQuantity(
+                                                  dish.id,
+                                                  qty + 1,
+                                                )
+                                              }
+                                              className={`w-8 h-8 rounded-lg transition font-black flex items-center justify-center cursor-pointer active:scale-90 ${
+                                                isSvc
+                                                  ? "bg-amber-500 hover:bg-amber-600 text-[#121212]"
+                                                  : "bg-[#D70F64] hover:bg-[#b00c50] text-white"
+                                              }`}
+                                            >
+                                              <Plus className="w-3.5 h-3.5" />
+                                            </button>
+                                          </div>
+                                        );
+                                      }
+
+                                      return (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            const hasCustomization =
+                                              (dish.sizes &&
+                                                dish.sizes.length > 0) ||
+                                              (dish.flavors &&
+                                                dish.flavors.length > 0) ||
+                                              (dish.addOns &&
+                                                dish.addOns.length > 0);
+                                            if (hasCustomization) {
+                                              setActiveDetailDish(dish);
+                                            } else {
+                                              handleAddToCart(dish);
+                                            }
+                                          }}
+                                          disabled={
+                                            !dish.isAvailable ||
+                                            isRestaurantClosed
+                                          }
+                                          className={`w-full py-1.5 sm:py-2.5 rounded-xl sm:rounded-2xl text-[9px] sm:text-xs font-black uppercase tracking-wider transition shadow-xs flex items-center justify-center gap-1 ${!dish.isAvailable || isRestaurantClosed ? "cursor-not-allowed opacity-60" : "cursor-pointer"} ${
+                                            isSvc
+                                              ? "bg-amber-500 hover:bg-amber-600 text-[#121212] font-semibold"
+                                              : "bg-[#D70F64] hover:bg-[#b00c50] text-white"
+                                          }`}
+                                        >
+                                          {isSvc ? (
+                                            <>
+                                              <span className="sm:hidden">
+                                                + Book
+                                              </span>
+                                              <span className="hidden sm:inline">
+                                                Book Diagnosis (Rs. 500)
+                                              </span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <span className="sm:hidden">
+                                                + Add
+                                              </span>
+                                              <span className="hidden sm:inline">
+                                                Add To Dadu Cart
+                                              </span>
+                                            </>
+                                          )}
+                                        </button>
+                                      );
+                                    })()}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                    </div>
+
+                    {!isLoadingDishes && filteredDishes.length === 0 && (
+                      <div className="bg-white/80 backdrop-blur-md border border-pink-100 p-12 rounded-3.5xl text-center space-y-4 shadow-sm max-w-md mx-auto">
+                        <div className="w-16 h-16 bg-pink-50 rounded-full flex items-center justify-center mx-auto text-3xl shadow-inner animate-bounce">
+                          {showFavoritesOnly ? "💔" : "🍛"}
                         </div>
-
+                        <div>
+                          <h4 className="font-black text-sm text-zinc-800 uppercase tracking-tight">
+                            {showFavoritesOnly
+                              ? "No Favorites Yet"
+                              : "No Delicious Dishes Found"}
+                          </h4>
+                          <p className="text-[11px] text-zinc-400 font-semibold leading-relaxed mt-1.5 px-4">
+                            {showFavoritesOnly
+                              ? "Aapne abhi tak kisi dish ko favorite nahi kiya. Favorite button dabayein!"
+                              : `Hamein aapki search query "${searchQuery}" se milti-julti koi dish nahi mili. Kuch naya try karein!`}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setSearchQuery("");
+                            setActiveCategory("All");
+                            setShowFavoritesOnly(false);
+                          }}
+                          className="bg-[#D70F64] hover:bg-[#b00c50] text-white font-black py-2.5 px-6 text-[10px] uppercase tracking-widest rounded-xl cursor-pointer transition-all shadow-md active:scale-95"
+                        >
+                          Show All Food Menu 🍽️
+                        </button>
                       </div>
-                    );
-                  })
-                )}
-                </div>
-
-                {!isLoadingDishes && filteredDishes.length === 0 && (
-                  <div className="bg-white/80 backdrop-blur-md border border-pink-100 p-12 rounded-3.5xl text-center space-y-4 shadow-sm max-w-md mx-auto">
-                    <div className="w-16 h-16 bg-pink-50 rounded-full flex items-center justify-center mx-auto text-3xl shadow-inner animate-bounce">
-                      {showFavoritesOnly ? "💔" : "🍛"}
-                    </div>
-                    <div>
-                      <h4 className="font-black text-sm text-zinc-800 uppercase tracking-tight">
-                        {showFavoritesOnly ? "No Favorites Yet" : "No Delicious Dishes Found"}
-                      </h4>
-                      <p className="text-[11px] text-zinc-400 font-semibold leading-relaxed mt-1.5 px-4">
-                        {showFavoritesOnly 
-                          ? "Aapne abhi tak kisi dish ko favorite nahi kiya. Favorite button dabayein!" 
-                          : `Hamein aapki search query "${searchQuery}" se milti-julti koi dish nahi mili. Kuch naya try karein!`}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => { setSearchQuery(""); setActiveCategory("All"); setShowFavoritesOnly(false); }}
-                      className="bg-[#D70F64] hover:bg-[#b00c50] text-white font-black py-2.5 px-6 text-[10px] uppercase tracking-widest rounded-xl cursor-pointer transition-all shadow-md active:scale-95"
-                    >
-                      Show All Food Menu 🍽️
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Right Column: Tracking Panel or order widgets */}
-              {currentUser && activeTrackingOrder && (
-                <div className="w-full md:w-80 shrink-0 space-y-4">
-                  <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
-                    <h3 className="text-xs font-black uppercase tracking-widest text-zinc-450">Live Tracker Dock</h3>
-                    {orders.length > 1 && (
-                      <span className="text-[10px] text-zinc-500 font-bold">Total: {orders.length} orders</span>
                     )}
                   </div>
 
-                  <OrderTracker order={activeTrackingOrder} />
-                  
-                  {/* Select other past orders dropdown */}
-                  {orders.length > 1 && (
-                    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-3.5 space-y-2 text-xs shadow-xs text-zinc-200">
-                      <label className="text-[10px] font-black uppercase tracking-wider text-zinc-450 block">Select Past Order to View</label>
-                      <select
-                        onChange={(e) => {
-                          const id = e.target.value;
-                          const ord = orders.find((o) => o.id === id);
-                          if (ord) setActiveTrackingOrder(ord);
-                        }}
-                        value={activeTrackingOrder.id}
-                        className="w-full p-2 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-zinc-200 font-mono text-xs focus:border-[#D70F64] transition"
-                      >
-                        {orders.map((o) => (
-                          <option key={o.id} value={o.id} className="bg-zinc-900 text-zinc-200">
-                            dadu-{o.id.substring(0, 5)}... ({o.status.toUpperCase()})
-                          </option>
-                        ))}
-                      </select>
+                  {/* Right Column: Tracking Panel or order widgets */}
+                  {currentUser && activeTrackingOrder && (
+                    <div className="w-full md:w-80 shrink-0 space-y-4">
+                      <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+                        <h3 className="text-xs font-black uppercase tracking-widest text-zinc-450">
+                          Live Tracker Dock
+                        </h3>
+                        {orders.length > 1 && (
+                          <span className="text-[10px] text-zinc-500 font-bold">
+                            Total: {orders.length} orders
+                          </span>
+                        )}
+                      </div>
+
+                      <OrderTracker order={activeTrackingOrder} />
+
+                      {/* Select other past orders dropdown */}
+                      {orders.length > 1 && (
+                        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-3.5 space-y-2 text-xs shadow-xs text-zinc-200">
+                          <label className="text-[10px] font-black uppercase tracking-wider text-zinc-450 block">
+                            Select Past Order to View
+                          </label>
+                          <select
+                            onChange={(e) => {
+                              const id = e.target.value;
+                              const ord = orders.find((o) => o.id === id);
+                              if (ord) setActiveTrackingOrder(ord);
+                            }}
+                            value={activeTrackingOrder.id}
+                            className="w-full p-2 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-zinc-200 font-mono text-xs focus:border-[#D70F64] transition"
+                          >
+                            {orders.map((o) => (
+                              <option
+                                key={o.id}
+                                value={o.id}
+                                className="bg-zinc-900 text-zinc-200"
+                              >
+                                dadu-{o.id.substring(0, 5)}... (
+                                {o.status.toUpperCase()})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
-              )}
-
-            </div>
-          </main>
-          </>
-        ) : (
-          <GroceryModule
-            categories={groceryCategories}
-            products={groceryProducts}
-            isLoading={isLoadingGrocery}
-            onAddToCart={handleAddToGroceryCart}
-            cartItems={groceryCartItems}
-            onUpdateCartQuantity={handleUpdateGroceryCartQuantity}
-            onRemoveFromCart={handleRemoveFromGroceryCart}
-            searchQuery={searchQuery}
-          />
-        )}
-      </div>
+              </main>
+            </>
+          ) : (
+            <GroceryModule
+              categories={groceryCategories}
+              products={groceryProducts}
+              isLoading={isLoadingGrocery}
+              onAddToCart={handleAddToGroceryCart}
+              cartItems={groceryCartItems}
+              onUpdateCartQuantity={handleUpdateGroceryCartQuantity}
+              onRemoveFromCart={handleRemoveFromGroceryCart}
+              searchQuery={searchQuery}
+            />
+          )}
+        </div>
       ) : (
         /* TAB 2: Secure Administrative Console Overlay */
-        <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#09090b] text-zinc-400 font-bold tracking-widest text-sm uppercase">Loading Admin Panel...</div>}>
+        <Suspense
+          fallback={
+            <div className="min-h-screen flex items-center justify-center bg-[#09090b] text-zinc-400 font-bold tracking-widest text-sm uppercase">
+              Loading Admin Panel...
+            </div>
+          }
+        >
           <AdminPanel
             dishes={dishes}
             orders={orders}
@@ -1975,7 +2541,6 @@ export default function App() {
         }}
       />
 
-
       {/* Secure AuthModal logins */}
       <AuthModal
         isOpen={isAuthOpen}
@@ -1987,11 +2552,20 @@ export default function App() {
       />
 
       {/* Menu Item Detailed Popup Modal */}
-      <FoodDetailModal 
-        dish={activeDetailDish} 
-        onClose={() => setActiveDetailDish(null)} 
+      <FoodDetailModal
+        dish={activeDetailDish}
+        onClose={() => setActiveDetailDish(null)}
         onAddToCart={handleAddToCart}
-        isActiveDetailDishClosed={activeDetailDish ? checkIsRestaurantClosed(activeDetailDish.restaurantName || (activeDetailDish.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen")) : false}
+        isActiveDetailDishClosed={
+          activeDetailDish
+            ? checkIsRestaurantClosed(
+                activeDetailDish.restaurantName ||
+                  (activeDetailDish.type === "service"
+                    ? "Dadu Home Services"
+                    : "Dadu Fast Food & Kitchen"),
+              )
+            : false
+        }
       />
 
       {/* Dynamic Pop-up Full-Screen Tracking Modal */}
@@ -2005,11 +2579,11 @@ export default function App() {
             >
               ✕
             </button>
-            
+
             <div className="p-2 sm:p-4 max-h-[90vh] overflow-y-auto scrollbar-none">
-              <OrderTracker 
-                order={activeTrackingOrder} 
-                onClose={() => setIsTrackingModalOpen(false)} 
+              <OrderTracker
+                order={activeTrackingOrder}
+                onClose={() => setIsTrackingModalOpen(false)}
               />
             </div>
           </div>
@@ -2036,8 +2610,12 @@ export default function App() {
             <Sparkles className="w-5 h-5 animate-pulse" />
           </div>
           <div>
-            <h5 className="font-extrabold text-xs text-zinc-100 uppercase tracking-wider">{toastNotification.title}</h5>
-            <p className="text-[11px] text-zinc-400 mt-1 leading-normal font-semibold">{toastNotification.message}</p>
+            <h5 className="font-extrabold text-xs text-zinc-100 uppercase tracking-wider">
+              {toastNotification.title}
+            </h5>
+            <p className="text-[11px] text-zinc-400 mt-1 leading-normal font-semibold">
+              {toastNotification.message}
+            </p>
           </div>
         </div>
       )}
@@ -2047,7 +2625,7 @@ export default function App() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fade-in">
           <div className="bg-zinc-900 border-2 border-[#D70F64]/30 rounded-[32px] max-w-sm w-full overflow-hidden shadow-2xl text-zinc-100 relative">
             <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#D70F64] to-transparent" />
-            
+
             <div className="p-6 text-center space-y-5">
               {/* Animated Icon Container */}
               <div className="mx-auto w-16 h-16 rounded-full bg-[#D70F64]/10 border border-[#D70F64]/20 flex items-center justify-center text-[#D70F64]">
@@ -2056,9 +2634,12 @@ export default function App() {
 
               {/* Title & Description */}
               <div className="space-y-2">
-                <h3 className="text-lg font-black uppercase tracking-wide text-zinc-100">Exit Dadu Food?</h3>
+                <h3 className="text-lg font-black uppercase tracking-wide text-zinc-100">
+                  Exit Dadu Food?
+                </h3>
                 <p className="text-xs text-zinc-400 font-semibold leading-relaxed">
-                  Are you sure you want to exit? You can stay to explore delicious meals, fresh groceries, or trusted local services!
+                  Are you sure you want to exit? You can stay to explore
+                  delicious meals, fresh groceries, or trusted local services!
                 </p>
               </div>
 
@@ -2104,8 +2685,12 @@ export default function App() {
               {cartCountTotal}
             </div>
             <div className="text-left">
-              <span className="text-[10px] text-zinc-400 font-bold block leading-none">TOTAL PRICE</span>
-              <span className="text-zinc-100 font-extrabold text-xs sm:text-sm font-mono mt-1 block leading-none">Rs. {cartPriceTotal}</span>
+              <span className="text-[10px] text-zinc-400 font-bold block leading-none">
+                TOTAL PRICE
+              </span>
+              <span className="text-zinc-100 font-extrabold text-xs sm:text-sm font-mono mt-1 block leading-none">
+                Rs. {cartPriceTotal}
+              </span>
             </div>
           </div>
           <button
@@ -2120,13 +2705,18 @@ export default function App() {
       {/* Footer support details */}
       <footer className="max-w-7xl mx-auto px-4 mt-12 pt-8 border-t border-zinc-800 text-center space-y-4">
         <p className="text-xs text-zinc-500 font-semibold">
-          © {new Date().getFullYear()} DADUFOOD Delivery Services. All Rights Reserved. Support helpline:{" "}
-          <a href="https://wa.me/923277004471" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 transition hover:underline">
+          © {new Date().getFullYear()} DADUFOOD Delivery Services. All Rights
+          Reserved. Support helpline:{" "}
+          <a
+            href="https://wa.me/923277004471"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-emerald-400 hover:text-emerald-300 transition hover:underline"
+          >
             03277004471 (WhatsApp Support)
           </a>
         </p>
       </footer>
-
     </div>
   );
 }

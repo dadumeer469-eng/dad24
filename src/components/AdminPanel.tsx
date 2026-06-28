@@ -1,18 +1,81 @@
 import React, { useState, useEffect } from "react";
-import { UserProfile, Dish, Order, SystemSettings, AppNotification, GroceryCategory, GroceryProduct, GroceryDeliveryConfig } from "../types";
-import { 
-  doc, setDoc, deleteDoc, collection, addDoc, updateDoc, query, where, onSnapshot, getDocs, getFirestore
+import {
+  UserProfile,
+  Dish,
+  Order,
+  SystemSettings,
+  AppNotification,
+  GroceryCategory,
+  GroceryProduct,
+  GroceryDeliveryConfig,
+} from "../types";
+import {
+  doc,
+  setDoc,
+  deleteDoc,
+  collection,
+  addDoc,
+  updateDoc,
+  query,
+  where,
+  onSnapshot,
+  getDocs,
+  getFirestore,
 } from "firebase/firestore";
 import { db, firebaseConfig, databaseId, cleanObject } from "../firebase";
 import { initializeApp, deleteApp } from "firebase/app";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
-import { 
-  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  AreaChart,
+  Area,
 } from "recharts";
-import { 
-  Plus, Settings, LayoutDashboard, ShoppingCart, ListCollapse, ToggleLeft, ToggleRight, Trash2, 
-  HelpCircle, RefreshCw, Smartphone, TrendingUp, DollarSign, Package, CheckCheck, Save, Send, EyeOff, Wrench,
-  UserPlus, User, Loader2, Key, Truck, Compass, Phone, ShoppingBasket, AlertTriangle, Users, Percent, Clock, X, Globe
+import {
+  Plus,
+  Settings,
+  LayoutDashboard,
+  ShoppingCart,
+  ListCollapse,
+  ToggleLeft,
+  ToggleRight,
+  Trash2,
+  HelpCircle,
+  RefreshCw,
+  Smartphone,
+  TrendingUp,
+  DollarSign,
+  Package,
+  CheckCheck,
+  Save,
+  Send,
+  EyeOff,
+  Wrench,
+  UserPlus,
+  User,
+  Loader2,
+  Key,
+  Truck,
+  Compass,
+  Phone,
+  ShoppingBasket,
+  AlertTriangle,
+  Users,
+  Percent,
+  Clock,
+  X,
+  Globe,
 } from "lucide-react";
 
 interface AdminPanelProps {
@@ -34,7 +97,13 @@ interface ProductImageSelectorProps {
   placeholder?: string;
 }
 
-function ProductImageSelector({ imageUrl, onChange, accentColorClass = "amber", label, placeholder }: ProductImageSelectorProps) {
+function ProductImageSelector({
+  imageUrl,
+  onChange,
+  accentColorClass = "amber",
+  label,
+  placeholder,
+}: ProductImageSelectorProps) {
   const [isDragOver, setIsDragOver] = React.useState(false);
   const [mode, setMode] = React.useState<"url" | "file">("file");
   const [urlInput, setUrlInput] = React.useState(imageUrl);
@@ -131,8 +200,8 @@ function ProductImageSelector({ imageUrl, onChange, accentColorClass = "amber", 
             type="button"
             onClick={() => setMode("file")}
             className={`px-2 py-0.5 text-[8px] uppercase font-black tracking-wide rounded transition cursor-pointer ${
-              mode === "file" 
-                ? "bg-zinc-800 text-white" 
+              mode === "file"
+                ? "bg-zinc-800 text-white"
                 : "text-zinc-500 hover:text-zinc-300"
             }`}
           >
@@ -142,8 +211,8 @@ function ProductImageSelector({ imageUrl, onChange, accentColorClass = "amber", 
             type="button"
             onClick={() => setMode("url")}
             className={`px-2 py-0.5 text-[8px] uppercase font-black tracking-wide rounded transition cursor-pointer ${
-              mode === "url" 
-                ? "bg-zinc-800 text-white" 
+              mode === "url"
+                ? "bg-zinc-800 text-white"
                 : "text-zinc-500 hover:text-zinc-300"
             }`}
           >
@@ -159,7 +228,9 @@ function ProductImageSelector({ imageUrl, onChange, accentColorClass = "amber", 
           onDrop={handleDrop}
           className={`border-2 border-dashed rounded-xl p-3 text-center transition relative flex flex-col items-center justify-center min-h-[95px] ${
             isDragOver
-              ? accentColorClass === "amber" ? "border-amber-500 bg-amber-500/5" : "border-orange-500 bg-orange-500/5"
+              ? accentColorClass === "amber"
+                ? "border-amber-500 bg-amber-500/5"
+                : "border-orange-500 bg-orange-500/5"
               : "border-zinc-800 hover:border-zinc-700 bg-zinc-950/50"
           }`}
         >
@@ -172,7 +243,9 @@ function ProductImageSelector({ imageUrl, onChange, accentColorClass = "amber", 
           {isProcessing ? (
             <div className="flex flex-col items-center space-y-1">
               <Loader2 className="w-5 h-5 text-[#D70F64] animate-spin" />
-              <span className="text-[9px] text-zinc-400 font-extrabold">COMPRESSING IMAGE...</span>
+              <span className="text-[9px] text-zinc-400 font-extrabold">
+                COMPRESSING IMAGE...
+              </span>
             </div>
           ) : imageUrl ? (
             <div className="relative flex items-center justify-center">
@@ -190,15 +263,28 @@ function ProductImageSelector({ imageUrl, onChange, accentColorClass = "amber", 
                 }}
                 className="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-700 text-white rounded-full p-1 shadow-md cursor-pointer transition transform hover:scale-105"
               >
-                <span className="font-bold text-[8px] leading-none block px-0.5">✕</span>
+                <span className="font-bold text-[8px] leading-none block px-0.5">
+                  ✕
+                </span>
               </button>
             </div>
           ) : (
             <div className="space-y-1">
               <p className="text-[10px] text-zinc-400 font-bold">
-                Drag & drop image here or <span className={accentColorClass === "amber" ? "text-amber-500 font-black" : "text-orange-500 font-black"}>Browse</span>
+                Drag & drop image here or{" "}
+                <span
+                  className={
+                    accentColorClass === "amber"
+                      ? "text-amber-500 font-black"
+                      : "text-orange-500 font-black"
+                  }
+                >
+                  Browse
+                </span>
               </p>
-              <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-wider">Supports PNG, JPG, JPEG</p>
+              <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-wider">
+                Supports PNG, JPG, JPEG
+              </p>
             </div>
           )}
         </div>
@@ -219,12 +305,16 @@ function ProductImageSelector({ imageUrl, onChange, accentColorClass = "amber", 
                 className="h-10 w-10 object-cover rounded-lg border border-zinc-800 shrink-0"
                 referrerPolicy="no-referrer"
                 onError={(e) => {
-                  (e.target as HTMLElement).style.display = 'none';
+                  (e.target as HTMLElement).style.display = "none";
                 }}
               />
               <div className="truncate flex-1">
-                <p className="text-[9px] font-bold text-zinc-400">Live Web Preview connected</p>
-                <p className="text-[8.5px] text-zinc-500 truncate font-mono">{imageUrl}</p>
+                <p className="text-[9px] font-bold text-zinc-400">
+                  Live Web Preview connected
+                </p>
+                <p className="text-[8.5px] text-zinc-500 truncate font-mono">
+                  {imageUrl}
+                </p>
               </div>
               <button
                 type="button"
@@ -251,20 +341,44 @@ export default function AdminPanel({
   groceryProducts = [],
   groceryDeliveryConfig,
 }: AdminPanelProps) {
-  const [activeSubTab, setActiveSubTab] = useState<"analytics" | "restaurants" | "items" | "orders" | "riders" | "grocery" | "services" | "users" | "seo">("analytics");
+  const [activeSubTab, setActiveSubTab] = useState<
+    | "analytics"
+    | "restaurants"
+    | "items"
+    | "orders"
+    | "riders"
+    | "grocery"
+    | "services"
+    | "users"
+    | "seo"
+  >("analytics");
   const [allUsersList, setAllUsersList] = useState<UserProfile[]>([]);
   const [userSearchTerm, setUserSearchTerm] = useState("");
-  
+
   // Dynamic Restaurants list based on unique values in dishes and existing config
-  const uniqueRestaurants = Array.from(new Set([
-    ...dishes.map(d => d.restaurantName || (d.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen")),
-    ...Object.keys(deliverySettings?.restaurantStatuses || {})
-  ]));
-  const [selectedScheduleRestaurant, setSelectedScheduleRestaurant] = useState(uniqueRestaurants[0] || "Dadu Fast Food & Kitchen");
-  
+  const uniqueRestaurants = Array.from(
+    new Set([
+      ...dishes.map(
+        (d) =>
+          d.restaurantName ||
+          (d.type === "service"
+            ? "Dadu Home Services"
+            : "Dadu Fast Food & Kitchen"),
+      ),
+      ...Object.keys(deliverySettings?.restaurantStatuses || {}),
+    ]),
+  );
+  const [selectedScheduleRestaurant, setSelectedScheduleRestaurant] = useState(
+    uniqueRestaurants[0] || "Dadu Fast Food & Kitchen",
+  );
+
   // Delivery config state
-  const [deliveryChargeInput, setDeliveryChargeInput] = useState(deliverySettings?.deliveryFee || 50);
-  const [minOrderAmountInput, setMinOrderAmountInput] = useState(deliverySettings?.minOrderAmount || 0);
+  const [deliveryChargeInput, setDeliveryChargeInput] = useState(
+    deliverySettings?.deliveryFee || 50,
+  );
+  const [minOrderAmountInput, setMinOrderAmountInput] = useState(
+    deliverySettings?.minOrderAmount || 0,
+  );
 
   // Restaurant Status Management
   const [restStatusUnavailable, setRestStatusUnavailable] = useState(false);
@@ -291,9 +405,10 @@ export default function AdminPanel({
     if (deliverySettings) {
       setDeliveryChargeInput(deliverySettings.deliveryFee || 50);
       setMinOrderAmountInput(deliverySettings.minOrderAmount || 0);
-      
+
       // Load specific restaurant status or fallback to global/default
-      const specificStatus = deliverySettings.restaurantStatuses?.[selectedScheduleRestaurant];
+      const specificStatus =
+        deliverySettings.restaurantStatuses?.[selectedScheduleRestaurant];
       if (specificStatus) {
         setRestStatusUnavailable(specificStatus.isTemporarilyUnavailable);
         setRestOpeningTime(specificStatus.openingTime);
@@ -312,27 +427,37 @@ export default function AdminPanel({
 
   // Live Deal of the Hour settings subscription
   useEffect(() => {
-    const unsubscribe = onSnapshot(doc(db, "settings", "deal_config"), (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setDealActive(data.isActive !== false);
-        setDealTimer(data.timerMinutes || 30);
-        setDealDiscount(data.discountPercentage || 25);
-        setDealItems(data.selectedItemIds || []);
-        setDealText(data.dealText || "");
-      }
-    }, (err) => {
-      console.warn("Error subscribing to deal config inside AdminPanel:", err);
-    });
+    const unsubscribe = onSnapshot(
+      doc(db, "settings", "deal_config"),
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setDealActive(data.isActive !== false);
+          setDealTimer(data.timerMinutes || 30);
+          setDealDiscount(data.discountPercentage || 25);
+          setDealItems(data.selectedItemIds || []);
+          setDealText(data.dealText || "");
+        }
+      },
+      (err) => {
+        console.warn(
+          "Error subscribing to deal config inside AdminPanel:",
+          err,
+        );
+      },
+    );
 
-    const unsubscribeSeo = onSnapshot(doc(db, "settings", "seo_config"), (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setSeoTitle(data.title || "");
-        setSeoDescription(data.description || "");
-        setSeoKeywords(data.keywords || "");
-      }
-    });
+    const unsubscribeSeo = onSnapshot(
+      doc(db, "settings", "seo_config"),
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setSeoTitle(data.title || "");
+          setSeoDescription(data.description || "");
+          setSeoKeywords(data.keywords || "");
+        }
+      },
+    );
 
     return () => {
       unsubscribe();
@@ -347,7 +472,8 @@ export default function AdminPanel({
         timerMinutes: Number(dealTimer),
         discountPercentage: Number(dealDiscount),
         selectedItemIds: dealItems,
-        dealText: dealText || `Save ${dealDiscount}% on our selected items! Hurry!`
+        dealText:
+          dealText || `Save ${dealDiscount}% on our selected items! Hurry!`,
       });
       alert(`Deal of the Hour successfully saved!`);
     } catch (err) {
@@ -358,11 +484,15 @@ export default function AdminPanel({
 
   const handleSaveSeoConfig = async () => {
     try {
-      await setDoc(doc(db, "settings", "seo_config"), {
-        title: seoTitle,
-        description: seoDescription,
-        keywords: seoKeywords
-      }, { merge: true });
+      await setDoc(
+        doc(db, "settings", "seo_config"),
+        {
+          title: seoTitle,
+          description: seoDescription,
+          keywords: seoKeywords,
+        },
+        { merge: true },
+      );
       alert(`SEO settings successfully saved!`);
     } catch (err) {
       console.error(err);
@@ -371,16 +501,24 @@ export default function AdminPanel({
   };
 
   // Grocery settings inputs
-  const [gBaseDeliveryFee, setGBaseDeliveryFee] = useState(groceryDeliveryConfig?.baseDeliveryFee || 40);
-  const [gFreeDeliveryAbove, setGFreeDeliveryAbove] = useState(groceryDeliveryConfig?.freeDeliveryAboveAmount || 1000);
-  const [gAllowMixed, setGAllowMixed] = useState(groceryDeliveryConfig?.allowMixedCart ?? false);
+  const [gBaseDeliveryFee, setGBaseDeliveryFee] = useState(
+    groceryDeliveryConfig?.baseDeliveryFee || 40,
+  );
+  const [gFreeDeliveryAbove, setGFreeDeliveryAbove] = useState(
+    groceryDeliveryConfig?.freeDeliveryAboveAmount || 1000,
+  );
+  const [gAllowMixed, setGAllowMixed] = useState(
+    groceryDeliveryConfig?.allowMixedCart ?? false,
+  );
 
   // Form states for adding grocery category
   const [newCatName, setNewCatName] = useState("");
   const [newCatImageUrl, setNewCatImageUrl] = useState("");
   const [newCatPosition, setNewCatPosition] = useState(1);
 
-  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(
+    null,
+  );
   const [editingCategoryImageUrl, setEditingCategoryImageUrl] = useState("");
 
   // Form states for adding grocery product
@@ -388,20 +526,28 @@ export default function AdminPanel({
   const [newGProdImageUrl, setNewGProdImageUrl] = useState("");
   const [newGProdPrice, setNewGProdPrice] = useState<number>(100);
   const [newGProdDiscountPrice, setNewGProdDiscountPrice] = useState<number>(0);
-  const [newGProdUnit, setNewGProdUnit] = useState<"kg" | "litre" | "piece" | "pack">("kg");
+  const [newGProdUnit, setNewGProdUnit] = useState<
+    "kg" | "litre" | "piece" | "pack"
+  >("kg");
   const [newGProdStock, setNewGProdStock] = useState<number>(10);
   const [newGProdCategoryId, setNewGProdCategoryId] = useState("");
   const [newGProdCommission, setNewGProdCommission] = useState<number>(0);
 
   // Edit grocery states
-  const [editingGProductId, setEditingGProductId] = useState<string | null>(null);
-  const [editingGProdPriceInput, setEditingGProdPriceInput] = useState<number>(0);
-  const [editingGProdStockInput, setEditingGProdStockInput] = useState<number>(0);
-  const [editingGProdCommissionInput, setEditingGProdCommissionInput] = useState<number>(0);
+  const [editingGProductId, setEditingGProductId] = useState<string | null>(
+    null,
+  );
+  const [editingGProdPriceInput, setEditingGProdPriceInput] =
+    useState<number>(0);
+  const [editingGProdStockInput, setEditingGProdStockInput] =
+    useState<number>(0);
+  const [editingGProdCommissionInput, setEditingGProdCommissionInput] =
+    useState<number>(0);
 
   // Form states for adding items
   const [newItemName, setNewItemName] = useState("");
-  const [newItemCategory, setNewItemCategory] = useState<Dish["category"]>("Burgers");
+  const [newItemCategory, setNewItemCategory] =
+    useState<Dish["category"]>("Burgers");
   const [newItemPrice, setNewItemPrice] = useState<number>(300);
   const [newItemDiscountPrice, setNewItemDiscountPrice] = useState<number>(0);
   const [newItemDescription, setNewItemDescription] = useState("");
@@ -410,18 +556,46 @@ export default function AdminPanel({
   const [newItemServiceDuration, setNewItemServiceDuration] = useState("");
   const [newItemRestaurantName, setNewItemRestaurantName] = useState("");
   const [newItemCommission, setNewItemCommission] = useState<number>(0);
-  const [newItemSizes, setNewItemSizes] = useState<{name: string; price: number; imageUrl?: string}[]>([]);
-  const [newItemFlavors, setNewItemFlavors] = useState<{name: string; price: number; imageUrl?: string; isPopular?: boolean; originalPrice?: number}[]>([]);
-  const [newItemAddOns, setNewItemAddOns] = useState<{name: string; price: number; imageUrl?: string; originalPrice?: number}[]>([]);
+  const [newItemSizes, setNewItemSizes] = useState<
+    { name: string; price: number; imageUrl?: string }[]
+  >([]);
+  const [newItemFlavors, setNewItemFlavors] = useState<
+    {
+      name: string;
+      price: number;
+      imageUrl?: string;
+      isPopular?: boolean;
+      originalPrice?: number;
+    }[]
+  >([]);
+  const [newItemAddOns, setNewItemAddOns] = useState<
+    { name: string; price: number; imageUrl?: string; originalPrice?: number }[]
+  >([]);
 
   // Inline editing state for prices
-  const [editingPriceDishId, setEditingPriceDishId] = useState<string | null>(null);
+  const [editingPriceDishId, setEditingPriceDishId] = useState<string | null>(
+    null,
+  );
   const [editingPriceInput, setEditingPriceInput] = useState<number>(0);
-  const [editingDiscountPriceInput, setEditingDiscountPriceInput] = useState<number>(0);
-  const [editingCommissionInput, setEditingCommissionInput] = useState<number>(0);
-  const [editingSizes, setEditingSizes] = useState<{name: string; price: number; imageUrl?: string}[]>([]);
-  const [editingFlavors, setEditingFlavors] = useState<{name: string; price: number; imageUrl?: string; isPopular?: boolean; originalPrice?: number}[]>([]);
-  const [editingAddOns, setEditingAddOns] = useState<{name: string; price: number; imageUrl?: string; originalPrice?: number}[]>([]);
+  const [editingDiscountPriceInput, setEditingDiscountPriceInput] =
+    useState<number>(0);
+  const [editingCommissionInput, setEditingCommissionInput] =
+    useState<number>(0);
+  const [editingSizes, setEditingSizes] = useState<
+    { name: string; price: number; imageUrl?: string }[]
+  >([]);
+  const [editingFlavors, setEditingFlavors] = useState<
+    {
+      name: string;
+      price: number;
+      imageUrl?: string;
+      isPopular?: boolean;
+      originalPrice?: number;
+    }[]
+  >([]);
+  const [editingAddOns, setEditingAddOns] = useState<
+    { name: string; price: number; imageUrl?: string; originalPrice?: number }[]
+  >([]);
 
   // Custom confirmation dialog
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -431,12 +605,16 @@ export default function AdminPanel({
   } | null>(null);
 
   // Rider/ETA state overrides
-  const [riderNames, setRiderNames] = useState<{ [orderId: string]: string }>({});
+  const [riderNames, setRiderNames] = useState<{ [orderId: string]: string }>(
+    {},
+  );
   const [orderEtas, setOrderEtas] = useState<{ [orderId: string]: string }>({});
 
   // Alert dispatcher state
   const [alertTitle, setAlertTitle] = useState("Dadu Specials Alert!");
-  const [alertMessage, setAlertMessage] = useState("A new professional is ready to deliver hot burgers and help!");
+  const [alertMessage, setAlertMessage] = useState(
+    "A new professional is ready to deliver hot burgers and help!",
+  );
 
   // Rider registration form states
   const [riderNameInput, setRiderNameInput] = useState("");
@@ -448,30 +626,38 @@ export default function AdminPanel({
   // Real-time listen to registered riders list
   useEffect(() => {
     const q = query(collection(db, "users"), where("role", "==", "rider"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const list: UserProfile[] = [];
-      snapshot.forEach((doc) => {
-        list.push({ uid: doc.id, ...doc.data() } as UserProfile);
-      });
-      setRidersSubset(list);
-    }, (err) => {
-      console.error("Failed to fetch real-time riders:", err);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const list: UserProfile[] = [];
+        snapshot.forEach((doc) => {
+          list.push({ uid: doc.id, ...doc.data() } as UserProfile);
+        });
+        setRidersSubset(list);
+      },
+      (err) => {
+        console.error("Failed to fetch real-time riders:", err);
+      },
+    );
     return () => unsubscribe();
   }, []);
 
   // Real-time listen to all registered users list
   useEffect(() => {
     const q = query(collection(db, "users"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const list: UserProfile[] = [];
-      snapshot.forEach((doc) => {
-        list.push({ uid: doc.id, ...doc.data() } as UserProfile);
-      });
-      setAllUsersList(list);
-    }, (err) => {
-      console.error("Failed to fetch real-time users list:", err);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const list: UserProfile[] = [];
+        snapshot.forEach((doc) => {
+          list.push({ uid: doc.id, ...doc.data() } as UserProfile);
+        });
+        setAllUsersList(list);
+      },
+      (err) => {
+        console.error("Failed to fetch real-time users list:", err);
+      },
+    );
     return () => unsubscribe();
   }, []);
 
@@ -508,9 +694,13 @@ export default function AdminPanel({
       return cleaned;
     };
 
-    const isUsername = /[a-zA-Z]/.test(phoneOrUsername) || (phoneOrUsername.length > 0 && phoneOrUsername.length < 10 && !/^\d+$/.test(phoneOrUsername));
-    const cleanPhone = isUsername 
-      ? phoneOrUsername.toLowerCase() 
+    const isUsername =
+      /[a-zA-Z]/.test(phoneOrUsername) ||
+      (phoneOrUsername.length > 0 &&
+        phoneOrUsername.length < 10 &&
+        !/^\d+$/.test(phoneOrUsername));
+    const cleanPhone = isUsername
+      ? phoneOrUsername.toLowerCase()
       : sanitizePhone(phoneOrUsername);
 
     setRiderRegLoading(true);
@@ -520,17 +710,19 @@ export default function AdminPanel({
 
       // 1. Check if user already exists in standard Firestore database first
       const q = query(
-        collection(db, "users"), 
-        where("phone", "==", cleanPhone)
+        collection(db, "users"),
+        where("phone", "==", cleanPhone),
       );
       const snap = await getDocs(q);
-      
+
       if (!snap.empty) {
         const existingDoc = snap.docs[0];
         const existingData = existingDoc.data() as UserProfile;
-        
+
         if (existingData.role === "rider") {
-          alert(`Rider "${existingData.name}" with phone/username "${cleanPhone}" is already registered (UID: ${existingData.uid}).`);
+          alert(
+            `Rider "${existingData.name}" with phone/username "${cleanPhone}" is already registered (UID: ${existingData.uid}).`,
+          );
           setRiderNameInput("");
           setRiderPhoneInput("");
           setRiderPasswordInput("");
@@ -539,14 +731,16 @@ export default function AdminPanel({
         }
 
         const confirmUpgrade = window.confirm(
-          `User "${existingData.name}" already exists in the system with role: "${existingData.role}".\nDo you want to escalate this user's profile to a Rider duty?`
+          `User "${existingData.name}" already exists in the system with role: "${existingData.role}".\nDo you want to escalate this user's profile to a Rider duty?`,
         );
         if (confirmUpgrade) {
           await updateDoc(doc(db, "users", existingData.uid), {
             role: "rider",
             vehicleNumber: "Active Rider",
           });
-          alert(`Success! "${existingData.name}" has been upgraded to Rider duty successfully.`);
+          alert(
+            `Success! "${existingData.name}" has been upgraded to Rider duty successfully.`,
+          );
           setRiderNameInput("");
           setRiderPhoneInput("");
           setRiderPasswordInput("");
@@ -562,35 +756,47 @@ export default function AdminPanel({
       const uniqueAppName = `RiderApp_${Date.now()}`;
       tempApp = initializeApp(firebaseConfig, uniqueAppName);
       const tempAuth = getAuth(tempApp);
-      const tempDb = databaseId ? getFirestore(tempApp, databaseId) : getFirestore(tempApp);
+      const tempDb = databaseId
+        ? getFirestore(tempApp, databaseId)
+        : getFirestore(tempApp);
 
       let createdUid = "";
       try {
         // Create new Auth credential
-        const userCredential = await createUserWithEmailAndPassword(tempAuth, computedEmail, password);
+        const userCredential = await createUserWithEmailAndPassword(
+          tempAuth,
+          computedEmail,
+          password,
+        );
         createdUid = userCredential.user.uid;
       } catch (authErr: any) {
         console.warn("Rider Auth registration warning:", authErr);
         const errCode = authErr?.code || "";
         const errMsg = authErr?.message || String(authErr);
         const joinedErr = `${errCode} ${errMsg}`.toLowerCase();
-        
-        const isEmailAlreadyInUse = 
-          errCode === "auth/email-already-in-use" || 
-          joinedErr.includes("already-in-use") || 
-          joinedErr.includes("already in use") || 
+
+        const isEmailAlreadyInUse =
+          errCode === "auth/email-already-in-use" ||
+          joinedErr.includes("already-in-use") ||
+          joinedErr.includes("already in use") ||
           joinedErr.includes("email-already-in-use") ||
           joinedErr.includes("already");
 
         if (isEmailAlreadyInUse) {
           // Attempt to log in with provided username and password to claim the already created account
           try {
-            const userCredential = await signInWithEmailAndPassword(tempAuth, computedEmail, password);
+            const userCredential = await signInWithEmailAndPassword(
+              tempAuth,
+              computedEmail,
+              password,
+            );
             createdUid = userCredential.user.uid;
           } catch (signinErr: any) {
             console.warn("Rider claiming sign-in mismatch warning:", signinErr);
             // Authentication profile exists but matches with a different password
-            throw new Error(`This phone/username "${cleanPhone}" is already taken! Please choose a different unique phone or username.`);
+            throw new Error(
+              `This phone/username "${cleanPhone}" is already taken! Please choose a different unique phone or username.`,
+            );
           }
         } else {
           throw authErr;
@@ -610,7 +816,9 @@ export default function AdminPanel({
 
       await setDoc(doc(tempDb, "users", createdUid), newRiderProfile);
 
-      alert(`Success! Rider "${name}" has been successfully registered with username/phone: "${cleanPhone}" and password: "${password}"!`);
+      alert(
+        `Success! Rider "${name}" has been successfully registered with username/phone: "${cleanPhone}" and password: "${password}"!`,
+      );
 
       // Clear states
       setRiderNameInput("");
@@ -641,24 +849,44 @@ export default function AdminPanel({
           await deleteDoc(doc(db, "users", uid));
         } catch (err) {
           console.error("Failed to delete rider profile:", err);
-          alert("Error: Database permission denied or insufficient administrative credentials.");
+          alert(
+            "Error: Database permission denied or insufficient administrative credentials.",
+          );
         }
-      }
+      },
     });
   };
 
   // --- BUSINESS LOGIC MATH FOR ANALYTICS ---
   // Calculates live numbers
-  const deliveredOrders = orders.filter((o) => o.status === "delivered" || o.status === "completed");
-  const totalRevenue = deliveredOrders.reduce((sum, o) => sum + o.grandTotal, 0);
+  const deliveredOrders = orders.filter(
+    (o) => o.status === "delivered" || o.status === "completed",
+  );
+  const totalRevenue = deliveredOrders.reduce(
+    (sum, o) => sum + o.grandTotal,
+    0,
+  );
   const totalCompletedCount = deliveredOrders.length;
-  const totalCancelledCount = orders.filter((o) => o.status === "cancelled").length;
-  const totalActiveCount = orders.filter((o) => o.status !== "delivered" && o.status !== "completed" && o.status !== "cancelled").length;
+  const totalCancelledCount = orders.filter(
+    (o) => o.status === "cancelled",
+  ).length;
+  const totalActiveCount = orders.filter(
+    (o) =>
+      o.status !== "delivered" &&
+      o.status !== "completed" &&
+      o.status !== "cancelled",
+  ).length;
 
   const totalCommissionSum = deliveredOrders.reduce((sum, o) => {
-    return sum + (o.totalCommission !== undefined 
-      ? o.totalCommission 
-      : (o.items || []).reduce((itemSum, item) => itemSum + (item.commission || 0) * item.quantity, 0));
+    return (
+      sum +
+      (o.totalCommission !== undefined
+        ? o.totalCommission
+        : (o.items || []).reduce(
+            (itemSum, item) => itemSum + (item.commission || 0) * item.quantity,
+            0,
+          ))
+    );
   }, 0);
 
   // Render Category distributions
@@ -668,7 +896,8 @@ export default function AdminPanel({
       order.items.forEach((item) => {
         const dish = dishes.find((d) => d.name === item.name);
         if (dish) {
-          categoryMap[dish.category] = (categoryMap[dish.category] || 0) + item.quantity;
+          categoryMap[dish.category] =
+            (categoryMap[dish.category] || 0) + item.quantity;
         } else {
           categoryMap["Others"] = (categoryMap["Others"] || 0) + item.quantity;
         }
@@ -685,8 +914,11 @@ export default function AdminPanel({
     const revenueMap: { [date: string]: number } = {};
     deliveredOrders.forEach((order) => {
       // Group by hours or basic dates depending on data points
-      const date = order.createdAt?.seconds 
-        ? new Date(order.createdAt.seconds * 1000).toLocaleDateString(undefined, { month: "short", day: "numeric" }) 
+      const date = order.createdAt?.seconds
+        ? new Date(order.createdAt.seconds * 1000).toLocaleDateString(
+            undefined,
+            { month: "short", day: "numeric" },
+          )
         : "Latest";
       revenueMap[date] = (revenueMap[date] || 0) + order.grandTotal;
     });
@@ -710,25 +942,31 @@ export default function AdminPanel({
         restaurantStatus: deliverySettings?.restaurantStatus || {
           isTemporarilyUnavailable: false,
           openingTime: "09:00",
-          closingTime: "23:00"
+          closingTime: "23:00",
         },
         restaurantStatuses: {
           ...existingStatuses,
           [newRestaurantInput.trim()]: {
             isTemporarilyUnavailable: false,
             openingTime: "09:00",
-            closingTime: "23:00"
-          }
-        }
+            closingTime: "23:00",
+          },
+        },
       };
-      
-      await setDoc(doc(db, "settings", "delivery_config"), newSettings, { merge: true });
+
+      await setDoc(doc(db, "settings", "delivery_config"), newSettings, {
+        merge: true,
+      });
       setSelectedScheduleRestaurant(newRestaurantInput.trim());
       setNewRestaurantInput("");
-      alert(`Successfully registered new Restaurant / Vendor: ${newRestaurantInput.trim()}`);
+      alert(
+        `Successfully registered new Restaurant / Vendor: ${newRestaurantInput.trim()}`,
+      );
     } catch (err) {
       console.error(err);
-      alert("Permission denied or Firestore configuration missing while saving new restaurant.");
+      alert(
+        "Permission denied or Firestore configuration missing while saving new restaurant.",
+      );
     }
   };
 
@@ -736,7 +974,7 @@ export default function AdminPanel({
   const handleSaveDeliveryConfig = async () => {
     try {
       const existingStatuses = deliverySettings?.restaurantStatuses || {};
-      
+
       const newSettings = {
         deliveryFee: Number(deliveryChargeInput),
         minOrderAmount: Number(minOrderAmountInput),
@@ -744,7 +982,7 @@ export default function AdminPanel({
         restaurantStatus: deliverySettings?.restaurantStatus || {
           isTemporarilyUnavailable: false,
           openingTime: "09:00",
-          closingTime: "23:00"
+          closingTime: "23:00",
         },
         restaurantStatuses: {
           ...existingStatuses,
@@ -753,16 +991,18 @@ export default function AdminPanel({
             openingTime: restOpeningTime,
             closingTime: restClosingTime,
             imageUrl: restImageUrl,
-            phone: restPhone
-          }
-        }
+            phone: restPhone,
+          },
+        },
       };
-      
+
       await setDoc(doc(db, "settings", "delivery_config"), newSettings);
       alert(`Settings successfully saved for ${selectedScheduleRestaurant}!`);
     } catch (err) {
       console.error(err);
-      alert("Permission denied or Firestore configuration missing while saving settings.");
+      alert(
+        "Permission denied or Firestore configuration missing while saving settings.",
+      );
     }
   };
 
@@ -772,7 +1012,7 @@ export default function AdminPanel({
       await setDoc(doc(db, "settings", "groceryDeliveryConfig"), {
         baseDeliveryFee: Number(gBaseDeliveryFee),
         freeDeliveryAboveAmount: Number(gFreeDeliveryAbove),
-        allowMixedCart: Boolean(gAllowMixed)
+        allowMixedCart: Boolean(gAllowMixed),
       });
       alert("Grocery store settings saved successfully!");
     } catch (err) {
@@ -785,18 +1025,21 @@ export default function AdminPanel({
   const handleClearAllOrderHistory = async () => {
     setConfirmDialog({
       title: "Clear All Sales & Order History",
-      message: "WARNING: This will permanently delete all order history and sales records. This action cannot be undone. Are you sure you want to proceed?",
+      message:
+        "WARNING: This will permanently delete all order history and sales records. This action cannot be undone. Are you sure you want to proceed?",
       onConfirm: async () => {
         try {
           const snapshot = await getDocs(collection(db, "orders"));
-          const deletePromises = snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref));
+          const deletePromises = snapshot.docs.map((docSnap) =>
+            deleteDoc(docSnap.ref),
+          );
           await Promise.all(deletePromises);
           alert("All sales and order history have been cleared successfully!");
         } catch (err) {
           console.error("Error clearing order history:", err);
           alert("Failed to clear history. Check database rules.");
         }
-      }
+      },
     });
   };
 
@@ -811,11 +1054,11 @@ export default function AdminPanel({
         name: newCatName.trim(),
         imageUrl: newCatImageUrl.trim(),
         isAvailable: true,
-        position: Number(newCatPosition)
+        position: Number(newCatPosition),
       });
       setNewCatName("");
       setNewCatImageUrl("");
-      setNewCatPosition(prev => prev + 1);
+      setNewCatPosition((prev) => prev + 1);
       alert(`Category "${newCatName}" added successfully!`);
     } catch (err) {
       console.error(err);
@@ -832,19 +1075,26 @@ export default function AdminPanel({
     }
     try {
       const generatedId = `gprod_${Date.now()}`;
-      const defaultImg = newGProdImageUrl.trim() || "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400";
-      await setDoc(doc(db, "groceryProducts", generatedId), cleanObject({
-        id: generatedId,
-        name: newGProdName.trim(),
-        imageUrl: defaultImg,
-        price: Number(newGProdPrice),
-        discountPrice: newGProdDiscountPrice ? Number(newGProdDiscountPrice) : undefined,
-        unit: newGProdUnit,
-        stock: Number(newGProdStock),
-        categoryId: newGProdCategoryId,
-        isAvailable: true,
-        commission: Number(newGProdCommission)
-      }));
+      const defaultImg =
+        newGProdImageUrl.trim() ||
+        "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400";
+      await setDoc(
+        doc(db, "groceryProducts", generatedId),
+        cleanObject({
+          id: generatedId,
+          name: newGProdName.trim(),
+          imageUrl: defaultImg,
+          price: Number(newGProdPrice),
+          discountPrice: newGProdDiscountPrice
+            ? Number(newGProdDiscountPrice)
+            : undefined,
+          unit: newGProdUnit,
+          stock: Number(newGProdStock),
+          categoryId: newGProdCategoryId,
+          isAvailable: true,
+          commission: Number(newGProdCommission),
+        }),
+      );
       setNewGProdName("");
       setNewGProdImageUrl("");
       setNewGProdPrice(100);
@@ -858,9 +1108,14 @@ export default function AdminPanel({
     }
   };
 
-  const handleToggleCategoryAvailable = async (catId: string, current: boolean) => {
+  const handleToggleCategoryAvailable = async (
+    catId: string,
+    current: boolean,
+  ) => {
     try {
-      await updateDoc(doc(db, "groceryCategories", catId), { isAvailable: !current });
+      await updateDoc(doc(db, "groceryCategories", catId), {
+        isAvailable: !current,
+      });
     } catch (err) {
       console.error(err);
     }
@@ -868,7 +1123,9 @@ export default function AdminPanel({
 
   const handleUpdateCategoryImageUrl = async (id: string) => {
     try {
-      await updateDoc(doc(db, "groceryCategories", id), { imageUrl: editingCategoryImageUrl.trim() });
+      await updateDoc(doc(db, "groceryCategories", id), {
+        imageUrl: editingCategoryImageUrl.trim(),
+      });
       setEditingCategoryId(null);
     } catch (err) {
       console.error("Failed to update category image", err);
@@ -878,20 +1135,26 @@ export default function AdminPanel({
   const handleDeleteCategory = (catId: string) => {
     setConfirmDialog({
       title: "Delete Category",
-      message: "Are you sure you want to delete this grocery category? All products in it will be orphaned!",
+      message:
+        "Are you sure you want to delete this grocery category? All products in it will be orphaned!",
       onConfirm: async () => {
         try {
           await deleteDoc(doc(db, "groceryCategories", catId));
         } catch (err) {
           console.error(err);
         }
-      }
+      },
     });
   };
 
-  const handleToggleProductAvailable = async (prodId: string, current: boolean) => {
+  const handleToggleProductAvailable = async (
+    prodId: string,
+    current: boolean,
+  ) => {
     try {
-      await updateDoc(doc(db, "groceryProducts", prodId), { isAvailable: !current });
+      await updateDoc(doc(db, "groceryProducts", prodId), {
+        isAvailable: !current,
+      });
     } catch (err) {
       console.error(err);
     }
@@ -907,7 +1170,7 @@ export default function AdminPanel({
         } catch (err) {
           console.error(err);
         }
-      }
+      },
     });
   };
 
@@ -916,14 +1179,13 @@ export default function AdminPanel({
       await updateDoc(doc(db, "groceryProducts", prodId), {
         price: Number(editingGProdPriceInput),
         stock: Number(editingGProdStockInput),
-        commission: Number(editingGProdCommissionInput)
+        commission: Number(editingGProdCommissionInput),
       });
       setEditingGProductId(null);
     } catch (err) {
       console.error(err);
     }
   };
-
 
   // Create new dish/service (Admin click handles)
   const handleAddNewItem = async (e: React.FormEvent) => {
@@ -934,9 +1196,11 @@ export default function AdminPanel({
     let finalImg = newItemImageUrl.trim();
     if (!finalImg) {
       if (newItemType === "service") {
-        finalImg = "https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&q=80&w=400";
+        finalImg =
+          "https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&q=80&w=400";
       } else {
-        finalImg = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=400";
+        finalImg =
+          "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=400";
       }
     }
 
@@ -946,17 +1210,33 @@ export default function AdminPanel({
       name: newItemName,
       description: newItemDescription,
       price: Number(newItemPrice),
-      discountPrice: newItemDiscountPrice > 0 ? Number(newItemDiscountPrice) : undefined,
+      discountPrice:
+        newItemDiscountPrice > 0 ? Number(newItemDiscountPrice) : undefined,
       category: newItemType === "service" ? "Home Services" : newItemCategory,
       imageUrl: finalImg,
       isAvailable: true,
       type: newItemType,
-      restaurantName: newItemRestaurantName.trim() || (newItemType === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen"),
+      restaurantName:
+        newItemRestaurantName.trim() ||
+        (newItemType === "service"
+          ? "Dadu Home Services"
+          : "Dadu Fast Food & Kitchen"),
       commission: Number(newItemCommission),
-      sizes: newItemType === "food" && newItemSizes.length > 0 ? newItemSizes : undefined,
-      flavors: newItemType === "food" && newItemFlavors.length > 0 ? newItemFlavors : undefined,
-      addOns: newItemType === "food" && newItemAddOns.length > 0 ? newItemAddOns : undefined,
-      ...(newItemType === "service" && newItemServiceDuration ? { serviceDuration: newItemServiceDuration } : {}),
+      sizes:
+        newItemType === "food" && newItemSizes.length > 0
+          ? newItemSizes
+          : undefined,
+      flavors:
+        newItemType === "food" && newItemFlavors.length > 0
+          ? newItemFlavors
+          : undefined,
+      addOns:
+        newItemType === "food" && newItemAddOns.length > 0
+          ? newItemAddOns
+          : undefined,
+      ...(newItemType === "service" && newItemServiceDuration
+        ? { serviceDuration: newItemServiceDuration }
+        : {}),
     };
 
     try {
@@ -996,11 +1276,19 @@ export default function AdminPanel({
     try {
       await updateDoc(doc(db, "menu", dish.id), {
         price: editingPriceInput,
-        discountPrice: editingDiscountPriceInput > 0 ? editingDiscountPriceInput : null,
+        discountPrice:
+          editingDiscountPriceInput > 0 ? editingDiscountPriceInput : null,
         commission: editingCommissionInput,
-        sizes: dish.type === "food" && editingSizes.length > 0 ? editingSizes : null,
-        flavors: dish.type === "food" && editingFlavors.length > 0 ? editingFlavors : null,
-        addOns: dish.type === "food" && editingAddOns.length > 0 ? editingAddOns : null,
+        sizes:
+          dish.type === "food" && editingSizes.length > 0 ? editingSizes : null,
+        flavors:
+          dish.type === "food" && editingFlavors.length > 0
+            ? editingFlavors
+            : null,
+        addOns:
+          dish.type === "food" && editingAddOns.length > 0
+            ? editingAddOns
+            : null,
       });
       setEditingPriceDishId(null);
     } catch (err) {
@@ -1019,17 +1307,64 @@ export default function AdminPanel({
         } catch (err) {
           console.error(err);
         }
-      }
+      },
+    });
+  };
+
+  const handleDeleteRestaurant = (restaurantName: string) => {
+    setConfirmDialog({
+      title: "Delete Restaurant/Vendor",
+      message: `WARNING: Are you sure you want to completely delete "${restaurantName}" and all its menu items? This cannot be undone.`,
+      onConfirm: async () => {
+        try {
+          const existingStatuses = deliverySettings?.restaurantStatuses || {};
+          const newStatuses = { ...existingStatuses };
+          delete newStatuses[restaurantName];
+
+          await updateDoc(doc(db, "settings", "delivery_config"), {
+            restaurantStatuses: newStatuses,
+          });
+
+          const dishesToDelete = dishes.filter(
+            (d) =>
+              (d.restaurantName ||
+                (d.type === "service"
+                  ? "Dadu Home Services"
+                  : "Dadu Fast Food & Kitchen")) === restaurantName,
+          );
+
+          const deletePromises = dishesToDelete.map((d) =>
+            deleteDoc(doc(db, "menu", d.id)),
+          );
+          await Promise.all(deletePromises);
+
+          if (selectedScheduleRestaurant === restaurantName) {
+            setSelectedScheduleRestaurant(
+              uniqueRestaurants.find((r) => r !== restaurantName) ||
+                "Dadu Fast Food & Kitchen",
+            );
+          }
+          alert(
+            `Restaurant "${restaurantName}" and its items have been deleted.`,
+          );
+        } catch (err) {
+          console.error(err);
+          alert("Failed to delete restaurant.");
+        }
+      },
     });
   };
 
   // Manual orders status controls
-  const handleUpdateOrderStatus = async (orderId: string, nextStatus: string) => {
+  const handleUpdateOrderStatus = async (
+    orderId: string,
+    nextStatus: string,
+  ) => {
     try {
       await updateDoc(doc(db, "orders", orderId), {
         status: nextStatus,
       });
-      
+
       // Dispatch an automatic in-app notification to the customer profile!
       // This will sound a beautiful chime!
       const targetOrder = orders.find((o) => o.id === orderId);
@@ -1037,10 +1372,13 @@ export default function AdminPanel({
         let statusText = nextStatus;
         if (nextStatus === "confirmed") statusText = "Accepted & Scheduled";
         if (nextStatus === "preparing") statusText = "Being cooked hot";
-        if (nextStatus === "out_for_delivery") statusText = "With dispatch rider";
-        if (nextStatus === "delivered") statusText = "Successfully delivered! Enjoy!";
-        if (nextStatus === "completed") statusText = "Technician Job Completed successfully!";
-        
+        if (nextStatus === "out_for_delivery")
+          statusText = "With dispatch rider";
+        if (nextStatus === "delivered")
+          statusText = "Successfully delivered! Enjoy!";
+        if (nextStatus === "completed")
+          statusText = "Technician Job Completed successfully!";
+
         await addDoc(collection(db, "notifications"), {
           userId: targetOrder.userId,
           title: `Order Update #${orderId.substring(0, 5)}`,
@@ -1085,22 +1423,22 @@ export default function AdminPanel({
     try {
       // Find all unique customer uids to notify
       const uniqueUids = Array.from(new Set(orders.map((o) => o.userId)));
-      
+
       if (uniqueUids.length === 0) {
         // Send to meerali if no orders yet
         uniqueUids.push("admin_broadcast");
       }
 
       await Promise.all(
-        uniqueUids.map((uid) => 
+        uniqueUids.map((uid) =>
           addDoc(collection(db, "notifications"), {
             userId: uid,
             title: alertTitle,
             message: alertMessage,
             createdAt: { seconds: Date.now() / 1000 },
             read: false,
-          })
-        )
+          }),
+        ),
       );
 
       alert("Push notifications fired to all active users!");
@@ -1112,7 +1450,6 @@ export default function AdminPanel({
 
   return (
     <div className="fixed inset-0 z-50 bg-gradient-to-b from-[#050505] via-[#09090b] to-[#030303] text-zinc-100 overflow-y-auto font-sans flex flex-col antialiased">
-      
       {/* Header Admin Strip */}
       <div className="bg-[#09090b]/90 backdrop-blur-md border-b border-zinc-800/60 p-5 sticky top-0 z-20 flex items-center justify-between shadow-xl">
         <div className="flex items-center gap-4">
@@ -1122,9 +1459,13 @@ export default function AdminPanel({
           <div>
             <h2 className="text-base font-black tracking-tight text-white flex items-center gap-2">
               Dadu24#7 System Hub
-              <span className="text-amber-500 font-mono text-xs select-all bg-amber-500/5 px-2 py-0.5 rounded border border-amber-500/20">@{adminUsername}</span>
+              <span className="text-amber-500 font-mono text-xs select-all bg-amber-500/5 px-2 py-0.5 rounded border border-amber-500/20">
+                @{adminUsername}
+              </span>
             </h2>
-            <span className="text-[11px] text-zinc-400 font-medium font-sans">Enterprise Business Management Control & Live Logistics Telemetry</span>
+            <span className="text-[11px] text-zinc-400 font-medium font-sans">
+              Enterprise Business Management Control & Live Logistics Telemetry
+            </span>
           </div>
         </div>
 
@@ -1138,143 +1479,179 @@ export default function AdminPanel({
 
       {/* Main Container Dashboard */}
       <div className="max-w-7xl mx-auto w-full px-4 py-8 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8 pb-24">
-        
         {/* Navigation Admin Side Rail */}
         <div className="col-span-1 lg:col-span-3 space-y-4">
-          <div className="bg-[#0b0b0d]/90 border border-zinc-800/80 p-4.5 rounded-[24px] space-y-2.5 shadow-2xl relative overflow-hidden">
-            {/* Ambient golden top line */}
-            <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
-            
-            <span className="text-[9.5px] font-black text-zinc-500 block uppercase tracking-widest pl-1 mb-1">Navigation Terminals</span>
-            
-            <button
-              onClick={() => setActiveSubTab("analytics")}
-              className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
-                activeSubTab === "analytics" 
-                  ? "bg-amber-500/5 border-amber-500/30 text-amber-500 font-extrabold shadow-[0_0_20px_rgba(245,158,11,0.04)]" 
-                  : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-zinc-200"
-              }`}
-            >
-              <LayoutDashboard className="w-4 h-4 shrink-0" />
-              Realtime Analytics
-            </button>
-
-            <button
-              onClick={() => setActiveSubTab("restaurants")}
-              className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
-                activeSubTab === "restaurants" 
-                  ? "bg-purple-500/5 border-purple-500/30 text-purple-500 font-extrabold shadow-[0_0_20px_rgba(168,85,247,0.04)]" 
-                  : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-zinc-200"
-              }`}
-            >
-              <Clock className="w-4 h-4 shrink-0" />
-              Manage Restaurants
-            </button>
-
-            <button
-              onClick={() => setActiveSubTab("orders")}
-              className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
-                activeSubTab === "orders" 
-                  ? "bg-amber-500/5 border-amber-500/30 text-amber-500 font-extrabold shadow-[0_0_20px_rgba(245,158,11,0.04)]" 
-                  : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-zinc-200"
-              }`}
-            >
-              <ShoppingCart className="w-4 h-4 shrink-0" />
-              Live Orders Manager
-              {totalActiveCount > 0 && (
-                <span className="ml-auto bg-[#D70F64] text-white font-black px-2.5 py-0.5 text-[9.5px] rounded-full shadow-[0_2px_10px_rgba(215,15,100,0.2)]">
-                  {totalActiveCount}
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => setActiveSubTab("riders")}
-              className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
-                activeSubTab === "riders" 
-                  ? "bg-amber-500/5 border-amber-500/30 text-amber-500 font-extrabold shadow-[0_0_20px_rgba(245,158,11,0.04)]" 
-                  : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-zinc-200"
-              }`}
-            >
-              <User className="w-4 h-4 shrink-0" />
-              Manage Riders Directory
-            </button>
-
-            <button
-              onClick={() => setActiveSubTab("grocery")}
-              className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
-                activeSubTab === "grocery" 
-                  ? "bg-orange-500/5 border-orange-500/35 text-orange-500 font-extrabold shadow-[0_0_20px_rgba(249,115,22,0.05)] scale-[1.01]" 
-                  : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-orange-400/90"
-              }`}
-            >
-              <ShoppingBasket className="w-4 h-4 text-orange-500 shrink-0" />
-              Manage Grocery Store
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveSubTab("services");
-                setNewItemType("service");
-              }}
-              className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
-                activeSubTab === "services" 
-                  ? "bg-blue-500/5 border-blue-500/30 text-blue-500 font-extrabold shadow-[0_0_20px_rgba(59,130,246,0.04)]" 
-                  : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-blue-400"
-              }`}
-            >
-              <Settings className="w-4 h-4 text-blue-500 shrink-0" />
-              Manage Services
-            </button>
-
-            <button
-              onClick={() => setActiveSubTab("users")}
-              className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
-                activeSubTab === "users" 
-                  ? "bg-emerald-500/5 border-emerald-500/30 text-emerald-500 font-extrabold shadow-[0_0_20px_rgba(16,185,129,0.04)]" 
-                  : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-emerald-450"
-              }`}
-            >
-              <Users className="w-4 h-4 text-emerald-500 shrink-0" />
-              Manage Users Directory
-              <span className="ml-auto bg-emerald-600 text-white font-extrabold px-2 py-0.5 text-[9px] rounded-full">
-                {allUsersList.length}
+          <div className="space-y-4">
+            <div className="bg-[#0b0b0d]/90 border border-zinc-800/80 p-4.5 rounded-[24px] space-y-2.5 shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
+              <span className="text-[9.5px] font-black text-zinc-500 block uppercase tracking-widest pl-1 mb-1">
+                Core Terminals
               </span>
-            </button>
 
-            <button
-              onClick={() => setActiveSubTab("seo")}
-              className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
-                activeSubTab === "seo" 
-                  ? "bg-blue-500/5 border-blue-500/30 text-blue-500 font-extrabold shadow-[0_0_20px_rgba(59,130,246,0.04)]" 
-                  : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-blue-450"
-              }`}
-            >
-              <Globe className="w-4 h-4 text-blue-500 shrink-0" />
-              SEO & Metadata
-            </button>
+              <button
+                onClick={() => setActiveSubTab("analytics")}
+                className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
+                  activeSubTab === "analytics"
+                    ? "bg-amber-500/5 border-amber-500/30 text-amber-500 font-extrabold shadow-[0_0_20px_rgba(245,158,11,0.04)]"
+                    : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-zinc-200"
+                }`}
+              >
+                <LayoutDashboard className="w-4 h-4 shrink-0" />
+                Realtime Analytics
+              </button>
 
+              <button
+                onClick={() => setActiveSubTab("orders")}
+                className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
+                  activeSubTab === "orders"
+                    ? "bg-amber-500/5 border-amber-500/30 text-amber-500 font-extrabold shadow-[0_0_20px_rgba(245,158,11,0.04)]"
+                    : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-zinc-200"
+                }`}
+              >
+                <ShoppingCart className="w-4 h-4 shrink-0" />
+                Live Orders Manager
+                {totalActiveCount > 0 && (
+                  <span className="ml-auto bg-[#D70F64] text-white font-black px-2.5 py-0.5 text-[9.5px] rounded-full shadow-[0_2px_10px_rgba(215,15,100,0.2)]">
+                    {totalActiveCount}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            <div className="bg-[#0b0b0d]/90 border border-zinc-800/80 p-4.5 rounded-[24px] space-y-2.5 shadow-2xl relative overflow-hidden">
+              <span className="text-[9.5px] font-black text-zinc-500 block uppercase tracking-widest pl-1 mb-1">
+                Vendors & Catalog
+              </span>
+
+              <button
+                onClick={() => setActiveSubTab("restaurants")}
+                className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
+                  activeSubTab === "restaurants"
+                    ? "bg-purple-500/5 border-purple-500/30 text-purple-500 font-extrabold shadow-[0_0_20px_rgba(168,85,247,0.04)]"
+                    : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-zinc-200"
+                }`}
+              >
+                <Clock className="w-4 h-4 shrink-0" />
+                Manage Restaurants
+              </button>
+
+              <button
+                onClick={() => setActiveSubTab("grocery")}
+                className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
+                  activeSubTab === "grocery"
+                    ? "bg-orange-500/5 border-orange-500/35 text-orange-500 font-extrabold shadow-[0_0_20px_rgba(249,115,22,0.05)] scale-[1.01]"
+                    : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-orange-400/90"
+                }`}
+              >
+                <ShoppingBasket className="w-4 h-4 text-orange-500 shrink-0" />
+                Manage Grocery Store
+              </button>
+
+              <button
+                onClick={() => {
+                  setActiveSubTab("services");
+                  setNewItemType("service");
+                }}
+                className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
+                  activeSubTab === "services"
+                    ? "bg-blue-500/5 border-blue-500/30 text-blue-500 font-extrabold shadow-[0_0_20px_rgba(59,130,246,0.04)]"
+                    : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-blue-400"
+                }`}
+              >
+                <Settings className="w-4 h-4 text-blue-500 shrink-0" />
+                Manage Services
+              </button>
+            </div>
+
+            <div className="bg-[#0b0b0d]/90 border border-zinc-800/80 p-4.5 rounded-[24px] space-y-2.5 shadow-2xl relative overflow-hidden">
+              <span className="text-[9.5px] font-black text-zinc-500 block uppercase tracking-widest pl-1 mb-1">
+                Fleet & Users
+              </span>
+
+              <button
+                onClick={() => setActiveSubTab("riders")}
+                className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
+                  activeSubTab === "riders"
+                    ? "bg-amber-500/5 border-amber-500/30 text-amber-500 font-extrabold shadow-[0_0_20px_rgba(245,158,11,0.04)]"
+                    : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-zinc-200"
+                }`}
+              >
+                <User className="w-4 h-4 shrink-0" />
+                Manage Riders Directory
+              </button>
+
+              <button
+                onClick={() => setActiveSubTab("users")}
+                className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
+                  activeSubTab === "users"
+                    ? "bg-emerald-500/5 border-emerald-500/30 text-emerald-500 font-extrabold shadow-[0_0_20px_rgba(16,185,129,0.04)]"
+                    : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-emerald-450"
+                }`}
+              >
+                <Users className="w-4 h-4 text-emerald-500 shrink-0" />
+                Manage Users Directory
+                <span className="ml-auto bg-emerald-600 text-white font-extrabold px-2 py-0.5 text-[9px] rounded-full">
+                  {allUsersList.length}
+                </span>
+              </button>
+            </div>
+
+            <div className="bg-[#0b0b0d]/90 border border-zinc-800/80 p-4.5 rounded-[24px] space-y-2.5 shadow-2xl relative overflow-hidden">
+              <span className="text-[9.5px] font-black text-zinc-500 block uppercase tracking-widest pl-1 mb-1">
+                System
+              </span>
+
+              <button
+                onClick={() => setActiveSubTab("seo")}
+                className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
+                  activeSubTab === "seo"
+                    ? "bg-blue-500/5 border-blue-500/30 text-blue-500 font-extrabold shadow-[0_0_20px_rgba(59,130,246,0.04)]"
+                    : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-blue-450"
+                }`}
+              >
+                <Globe className="w-4 h-4 text-blue-500 shrink-0" />
+                SEO & Metadata
+              </button>
+            </div>
           </div>
 
           {/* Quick Stats overview panel */}
           <div className="bg-[#0b0b0d]/90 border border-zinc-800/80 p-5 rounded-[24px] space-y-4 shadow-2xl relative overflow-hidden text-xs">
-            <span className="text-[9.5px] font-black text-zinc-500 block uppercase tracking-widest">Financial Coordinates</span>
+            <span className="text-[9.5px] font-black text-zinc-500 block uppercase tracking-widest">
+              Financial Coordinates
+            </span>
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-zinc-950/80 border border-zinc-900/80 p-3 rounded-2xl hover:border-amber-500/20 transition-all group">
-                <span className="text-zinc-500 block text-[9.5px] font-bold uppercase tracking-wider">Gross Rev</span>
-                <span className="text-[15px] font-black text-amber-500 mt-1 block">Rs. {totalRevenue}</span>
+                <span className="text-zinc-500 block text-[9.5px] font-bold uppercase tracking-wider">
+                  Gross Rev
+                </span>
+                <span className="text-[15px] font-black text-amber-500 mt-1 block">
+                  Rs. {totalRevenue}
+                </span>
               </div>
               <div className="bg-zinc-950/80 border border-zinc-900/80 p-3 rounded-2xl hover:border-emerald-500/20 transition-all">
-                <span className="text-zinc-500 block text-[9.5px] font-bold uppercase tracking-wider">Your Comm</span>
-                <span className="text-[15px] font-black text-emerald-400 mt-1 block">Rs. {totalCommissionSum}</span>
+                <span className="text-zinc-500 block text-[9.5px] font-bold uppercase tracking-wider">
+                  Your Comm
+                </span>
+                <span className="text-[15px] font-black text-emerald-400 mt-1 block">
+                  Rs. {totalCommissionSum}
+                </span>
               </div>
               <div className="bg-zinc-950/80 border border-zinc-900/80 p-3 rounded-2xl hover:border-emerald-500/20 transition-all">
-                <span className="text-zinc-500 block text-[9.5px] font-bold uppercase tracking-wider">Completed</span>
-                <span className="text-[15px] font-black text-zinc-200 mt-1 block">{totalCompletedCount}</span>
+                <span className="text-zinc-500 block text-[9.5px] font-bold uppercase tracking-wider">
+                  Completed
+                </span>
+                <span className="text-[15px] font-black text-zinc-200 mt-1 block">
+                  {totalCompletedCount}
+                </span>
               </div>
               <div className="bg-zinc-950/80 border border-zinc-900/80 p-3 rounded-2xl hover:border-pink-500/20 transition-all">
-                <span className="text-zinc-500 block text-[9.5px] font-bold uppercase tracking-wider">Active</span>
-                <span className="text-[15px] font-black text-[#D70F64] mt-1 block">{totalActiveCount}</span>
+                <span className="text-zinc-500 block text-[9.5px] font-bold uppercase tracking-wider">
+                  Active
+                </span>
+                <span className="text-[15px] font-black text-[#D70F64] mt-1 block">
+                  {totalActiveCount}
+                </span>
               </div>
             </div>
           </div>
@@ -1282,14 +1659,11 @@ export default function AdminPanel({
 
         {/* Dashboard Panels Area */}
         <div className="col-span-1 lg:col-span-9 space-y-8">
-
           {/* TAB 1: Real-time Analytics Dashboard */}
           {activeSubTab === "analytics" && (
             <div className="space-y-8 animate-fade-in">
-              
               {/* Graphical Recharts Visual Analytics blocks */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                
                 {/* Gross revenue timeline Recharts Area scale */}
                 <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl relative">
                   <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-500/10 to-transparent" />
@@ -1299,23 +1673,63 @@ export default function AdminPanel({
                         <TrendingUp className="w-4 h-4 text-amber-500" />
                         Delivered Order Revenue Pipeline
                       </h4>
-                      <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Gross delivered totals mapped chronologically</span>
+                      <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                        Gross delivered totals mapped chronologically
+                      </span>
                     </div>
                   </div>
                   <div className="h-56 w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={getRevenueTimelineData()}>
                         <defs>
-                          <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.25}/>
-                            <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
+                          <linearGradient
+                            id="colorRevenue"
+                            x1="0"
+                            y1="0"
+                            x2="0"
+                            y2="1"
+                          >
+                            <stop
+                              offset="5%"
+                              stopColor="#f59e0b"
+                              stopOpacity={0.25}
+                            />
+                            <stop
+                              offset="95%"
+                              stopColor="#f59e0b"
+                              stopOpacity={0}
+                            />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#222" opacity={0.3}/>
-                        <XAxis dataKey="date" stroke="#666" fontSize={9} fontStyle="bold"/>
-                        <YAxis stroke="#666" fontSize={9} fontStyle="bold"/>
-                        <Tooltip contentStyle={{ backgroundColor: "#0b0b0d", border: "1px solid #333", borderRadius: "14px", fontSize: "11px", color: "#fff" }}/>
-                        <Area type="monotone" dataKey="revenue" stroke="#f59e0b" strokeWidth={2.5} fillOpacity={1} fill="url(#colorRevenue)" />
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke="#222"
+                          opacity={0.3}
+                        />
+                        <XAxis
+                          dataKey="date"
+                          stroke="#666"
+                          fontSize={9}
+                          fontStyle="bold"
+                        />
+                        <YAxis stroke="#666" fontSize={9} fontStyle="bold" />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "#0b0b0d",
+                            border: "1px solid #333",
+                            borderRadius: "14px",
+                            fontSize: "11px",
+                            color: "#fff",
+                          }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="revenue"
+                          stroke="#f59e0b"
+                          strokeWidth={2.5}
+                          fillOpacity={1}
+                          fill="url(#colorRevenue)"
+                        />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
@@ -1330,27 +1744,48 @@ export default function AdminPanel({
                         <Package className="w-4 h-4 text-[#D70F64]" />
                         Category Quantity Demand Analytics
                       </h4>
-                      <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Volume of products purchased from database</span>
+                      <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                        Volume of products purchased from database
+                      </span>
                     </div>
                   </div>
                   <div className="h-56 w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={getCategoryChartData()}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#222" opacity={0.3}/>
-                        <XAxis dataKey="name" stroke="#666" fontSize={9} fontStyle="bold"/>
-                        <YAxis stroke="#666" fontSize={9} fontStyle="bold"/>
-                        <Tooltip contentStyle={{ backgroundColor: "#0b0b0d", border: "1px solid #333", borderRadius: "14px", fontSize: "11px", color: "#fff" }}/>
-                        <Bar dataKey="sales" fill="#D70F64" radius={[6, 6, 0, 0]} />
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke="#222"
+                          opacity={0.3}
+                        />
+                        <XAxis
+                          dataKey="name"
+                          stroke="#666"
+                          fontSize={9}
+                          fontStyle="bold"
+                        />
+                        <YAxis stroke="#666" fontSize={9} fontStyle="bold" />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "#0b0b0d",
+                            border: "1px solid #333",
+                            borderRadius: "14px",
+                            fontSize: "11px",
+                            color: "#fff",
+                          }}
+                        />
+                        <Bar
+                          dataKey="sales"
+                          fill="#D70F64"
+                          radius={[6, 6, 0, 0]}
+                        />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
-
               </div>
 
               {/* Delivery Charge Setup Card & Broadcast Manager */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-
                 {/* Delivery Fee Adjustment form */}
                 <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl space-y-5 relative">
                   <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-500/10 to-transparent" />
@@ -1360,7 +1795,9 @@ export default function AdminPanel({
                       Delivery Charges Controller
                     </h4>
                     <p className="text-[11px] text-zinc-400 mt-2.5 leading-relaxed font-medium">
-                      Overwrite the default delivery charges for food deliveries instantly on user screens. (Services are automatically forced to Rs. 0).
+                      Overwrite the default delivery charges for food deliveries
+                      instantly on user screens. (Services are automatically
+                      forced to Rs. 0).
                     </p>
                   </div>
 
@@ -1369,7 +1806,9 @@ export default function AdminPanel({
                       <input
                         type="number"
                         value={deliveryChargeInput}
-                        onChange={(e) => setDeliveryChargeInput(Number(e.target.value))}
+                        onChange={(e) =>
+                          setDeliveryChargeInput(Number(e.target.value))
+                        }
                         placeholder="e.g. 100"
                         className="flex-1 p-3 bg-zinc-950 border border-zinc-800/80 rounded-2xl text-xs sm:text-sm outline-none text-white focus:border-amber-500/60 transition focus:ring-1 focus:ring-amber-500/10"
                       />
@@ -1382,7 +1821,8 @@ export default function AdminPanel({
                       </button>
                     </div>
                     <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block leading-relaxed">
-                      💡 Stored coordinates: settings/delivery_config with Firestore.
+                      💡 Stored coordinates: settings/delivery_config with
+                      Firestore.
                     </span>
                   </div>
                 </div>
@@ -1396,7 +1836,8 @@ export default function AdminPanel({
                       In-App Broadcast Dispatcher
                     </h4>
                     <p className="text-[11px] text-zinc-400 mt-2.5 leading-relaxed font-medium">
-                      Broadcasting triggers a text alert banner accompanied by a musical sound on customer screens!
+                      Broadcasting triggers a text alert banner accompanied by a
+                      musical sound on customer screens!
                     </p>
                   </div>
 
@@ -1426,13 +1867,12 @@ export default function AdminPanel({
                     </div>
                   </div>
                 </div>
-
               </div>
 
               {/* Deal of the Hour Full Control Manager */}
               <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl relative space-y-6">
                 <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#D70F64]/10 to-transparent" />
-                
+
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-800/50">
                   <div>
                     <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 uppercase tracking-wide">
@@ -1440,7 +1880,9 @@ export default function AdminPanel({
                       Deal of the Hour Controller
                     </h4>
                     <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed font-medium">
-                      Configure the high-intensity countdown timer, set the custom discount rate, and dynamically pick featured dishes/services on sale.
+                      Configure the high-intensity countdown timer, set the
+                      custom discount rate, and dynamically pick featured
+                      dishes/services on sale.
                     </p>
                   </div>
                   <button
@@ -1456,13 +1898,17 @@ export default function AdminPanel({
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-6 text-xs text-zinc-100">
                   <div className="md:col-span-12 flex items-center justify-between bg-zinc-950 p-4 rounded-2xl border border-zinc-800">
                     <div>
-                      <h5 className="font-bold text-sm text-zinc-100">Enable Deal of the Hour</h5>
-                      <p className="text-[10px] text-zinc-500 mt-1">Toggle this on or off to control visibility instantly.</p>
+                      <h5 className="font-bold text-sm text-zinc-100">
+                        Enable Deal of the Hour
+                      </h5>
+                      <p className="text-[10px] text-zinc-500 mt-1">
+                        Toggle this on or off to control visibility instantly.
+                      </p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer group">
-                      <input 
-                        type="checkbox" 
-                        className="sr-only peer" 
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
                         checked={dealActive}
                         onChange={(e) => setDealActive(e.target.checked)}
                       />
@@ -1479,7 +1925,9 @@ export default function AdminPanel({
                       min={1}
                       max={1440}
                       value={dealTimer}
-                      onChange={(e) => setDealTimer(Math.max(1, Number(e.target.value)))}
+                      onChange={(e) =>
+                        setDealTimer(Math.max(1, Number(e.target.value)))
+                      }
                       placeholder="e.g. 30"
                       className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-2xl text-xs sm:text-sm outline-none text-white focus:border-[#D70F64]/60 transition"
                     />
@@ -1494,7 +1942,11 @@ export default function AdminPanel({
                       min={0}
                       max={95}
                       value={dealDiscount}
-                      onChange={(e) => setDealDiscount(Math.max(0, Math.min(95, Number(e.target.value))))}
+                      onChange={(e) =>
+                        setDealDiscount(
+                          Math.max(0, Math.min(95, Number(e.target.value))),
+                        )
+                      }
                       placeholder="e.g. 25"
                       className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-2xl text-xs sm:text-sm outline-none text-white focus:border-[#D70F64]/60 transition"
                     />
@@ -1528,7 +1980,9 @@ export default function AdminPanel({
                           type="button"
                           onClick={() => {
                             if (isSelected) {
-                              setDealItems(dealItems.filter(id => id !== dish.id));
+                              setDealItems(
+                                dealItems.filter((id) => id !== dish.id),
+                              );
                             } else {
                               setDealItems([...dealItems, dish.id]);
                             }
@@ -1546,7 +2000,9 @@ export default function AdminPanel({
                             className="accent-[#D70F64] scale-105 pointer-events-none"
                           />
                           <div className="truncate flex-1">
-                            <p className="font-bold truncate text-zinc-200 leading-snug">{dish.name}</p>
+                            <p className="font-bold truncate text-zinc-200 leading-snug">
+                              {dish.name}
+                            </p>
                             <p className="text-[9.5px] text-zinc-500 font-extrabold uppercase mt-0.5 tracking-wide">
                               {dish.category} • Rs. {dish.price}
                             </p>
@@ -1556,12 +2012,11 @@ export default function AdminPanel({
                     })}
                   </div>
                   <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block leading-relaxed">
-                    💡 Active Deal of the Hour items will dynamically show the discounted price calculated from your discount rate.
+                    💡 Active Deal of the Hour items will dynamically show the
+                    discounted price calculated from your discount rate.
                   </span>
                 </div>
-
               </div>
-
             </div>
           )}
 
@@ -1575,8 +2030,12 @@ export default function AdminPanel({
                     <Clock className="w-5 h-5 text-purple-500" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-black text-white tracking-wide uppercase">Restaurants & Vendors Manager</h3>
-                    <p className="text-[11px] text-zinc-400 font-medium">Control opening/closing hours and register new partners</p>
+                    <h3 className="text-lg font-black text-white tracking-wide uppercase">
+                      Restaurants & Vendors Manager
+                    </h3>
+                    <p className="text-[11px] text-zinc-400 font-medium">
+                      Control opening/closing hours and register new partners
+                    </p>
                   </div>
                 </div>
 
@@ -1584,10 +2043,13 @@ export default function AdminPanel({
                   {/* Register New Restaurant */}
                   <div className="bg-zinc-950 border border-zinc-800/80 p-5 rounded-2xl space-y-4">
                     <h4 className="font-bold text-xs text-white uppercase tracking-wider flex items-center gap-2">
-                      <Plus className="w-3.5 h-3.5 text-emerald-400" /> Add New Restaurant
+                      <Plus className="w-3.5 h-3.5 text-emerald-400" /> Add New
+                      Restaurant
                     </h4>
                     <div className="space-y-3">
-                      <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Restaurant Name</label>
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                        Restaurant Name
+                      </label>
                       <input
                         type="text"
                         value={newRestaurantInput}
@@ -1599,9 +2061,9 @@ export default function AdminPanel({
                         onClick={handleAddNewRestaurant}
                         disabled={!newRestaurantInput.trim()}
                         className={`w-full py-3 rounded-xl font-black text-[11px] uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
-                          !newRestaurantInput.trim() 
-                            ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' 
-                            : 'bg-emerald-500 hover:bg-emerald-600 text-black shadow-lg shadow-emerald-500/10 cursor-pointer hover:scale-[1.02] active:scale-95'
+                          !newRestaurantInput.trim()
+                            ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
+                            : "bg-emerald-500 hover:bg-emerald-600 text-black shadow-lg shadow-emerald-500/10 cursor-pointer hover:scale-[1.02] active:scale-95"
                         }`}
                       >
                         <UserPlus className="w-4 h-4 shrink-0" />
@@ -1613,24 +2075,42 @@ export default function AdminPanel({
                   {/* Schedule Manager */}
                   <div className="bg-zinc-950 border border-zinc-800/80 p-5 rounded-2xl space-y-4">
                     <h4 className="font-bold text-xs text-white uppercase tracking-wider flex items-center gap-2">
-                      <Settings className="w-3.5 h-3.5 text-purple-400" /> Manage Timings
+                      <Settings className="w-3.5 h-3.5 text-purple-400" />{" "}
+                      Manage Timings
                     </h4>
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Select Vendor</label>
+                        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">
+                          Select Vendor
+                        </label>
                         <div className="relative">
                           <select
                             value={selectedScheduleRestaurant}
-                            onChange={(e) => setSelectedScheduleRestaurant(e.target.value)}
+                            onChange={(e) =>
+                              setSelectedScheduleRestaurant(e.target.value)
+                            }
                             className="w-full p-3 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-white outline-none appearance-none focus:border-purple-500/60 transition"
                           >
-                            {uniqueRestaurants.map(rest => (
-                              <option key={rest} value={rest}>{rest}</option>
+                            {uniqueRestaurants.map((rest) => (
+                              <option key={rest} value={rest}>
+                                {rest}
+                              </option>
                             ))}
                           </select>
                           <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
-                            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            <svg
+                              width="14"
+                              height="14"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 9l-7 7-7-7"
+                              />
                             </svg>
                           </div>
                         </div>
@@ -1638,15 +2118,21 @@ export default function AdminPanel({
 
                       <div className="flex items-center justify-between bg-zinc-900 p-3 rounded-xl border border-zinc-800">
                         <div>
-                          <h5 className="font-bold text-xs text-zinc-100">Temporarily Unavailable</h5>
-                          <p className="text-[9px] text-zinc-500 mt-0.5">Pause orders immediately</p>
+                          <h5 className="font-bold text-xs text-zinc-100">
+                            Temporarily Unavailable
+                          </h5>
+                          <p className="text-[9px] text-zinc-500 mt-0.5">
+                            Pause orders immediately
+                          </p>
                         </div>
                         <label className="relative inline-flex items-center cursor-pointer group">
-                          <input 
-                            type="checkbox" 
-                            className="sr-only peer" 
+                          <input
+                            type="checkbox"
+                            className="sr-only peer"
                             checked={restStatusUnavailable}
-                            onChange={(e) => setRestStatusUnavailable(e.target.checked)}
+                            onChange={(e) =>
+                              setRestStatusUnavailable(e.target.checked)
+                            }
                           />
                           <div className="w-10 h-5 bg-zinc-800 rounded-full peer peer-focus:ring-2 peer-focus:ring-purple-500/40 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-300 after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500"></div>
                         </label>
@@ -1654,7 +2140,9 @@ export default function AdminPanel({
 
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Open Time</label>
+                          <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">
+                            Open Time
+                          </label>
                           <input
                             type="time"
                             value={restOpeningTime}
@@ -1663,7 +2151,9 @@ export default function AdminPanel({
                           />
                         </div>
                         <div>
-                          <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Close Time</label>
+                          <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">
+                            Close Time
+                          </label>
                           <input
                             type="time"
                             value={restClosingTime}
@@ -1674,7 +2164,9 @@ export default function AdminPanel({
                       </div>
 
                       <div className="pt-2">
-                        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Restaurant Contact Phone</label>
+                        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">
+                          Restaurant Contact Phone
+                        </label>
                         <input
                           type="text"
                           value={restPhone}
@@ -1693,7 +2185,7 @@ export default function AdminPanel({
                           placeholder="Paste image web address (https://...)"
                         />
                       </div>
-                      
+
                       <div className="flex flex-col gap-2 mt-2">
                         <button
                           onClick={handleSaveDeliveryConfig}
@@ -1702,10 +2194,12 @@ export default function AdminPanel({
                           <Save className="w-4 h-4 shrink-0" />
                           Save Operating Times
                         </button>
-                        
+
                         <button
                           onClick={() => {
-                            setNewItemRestaurantName(selectedScheduleRestaurant);
+                            setNewItemRestaurantName(
+                              selectedScheduleRestaurant,
+                            );
                             setActiveSubTab("items");
                             setNewItemType("food");
                             window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1715,8 +2209,17 @@ export default function AdminPanel({
                           <ListCollapse className="w-4 h-4 shrink-0" />
                           Manage Menu / Items
                         </button>
+
+                        <button
+                          onClick={() =>
+                            handleDeleteRestaurant(selectedScheduleRestaurant)
+                          }
+                          className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 transition-all font-black py-3 rounded-xl text-[11px] uppercase tracking-wider cursor-pointer flex items-center justify-center gap-2"
+                        >
+                          <Trash2 className="w-4 h-4 shrink-0" />
+                          Delete Vendor & Items
+                        </button>
                       </div>
-                      
                     </div>
                   </div>
                 </div>
@@ -1733,8 +2236,15 @@ export default function AdminPanel({
                     <ListCollapse className="w-5 h-5 text-amber-500" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-black text-white tracking-wide uppercase">Managing Menu</h3>
-                    <p className="text-[11px] text-zinc-400 font-medium">For: <span className="text-amber-500 font-bold">{newItemRestaurantName || "All Vendors"}</span></p>
+                    <h3 className="text-sm font-black text-white tracking-wide uppercase">
+                      Managing Menu
+                    </h3>
+                    <p className="text-[11px] text-zinc-400 font-medium">
+                      For:{" "}
+                      <span className="text-amber-500 font-bold">
+                        {newItemRestaurantName || "All Vendors"}
+                      </span>
+                    </p>
                   </div>
                 </div>
                 <button
@@ -1744,15 +2254,29 @@ export default function AdminPanel({
                   }}
                   className="bg-zinc-900 hover:bg-zinc-800 text-white px-4 py-2 rounded-xl text-[10px] uppercase font-black tracking-wider transition-colors border border-zinc-800 hover:border-zinc-700 flex items-center gap-2"
                 >
-                  <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  <svg
+                    width="12"
+                    height="12"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                    />
                   </svg>
                   Back to Restaurants
                 </button>
               </div>
-              
+
               {/* Add New Dish / Home Service Product Form */}
-              <form onSubmit={handleAddNewItem} className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl space-y-5 relative">
+              <form
+                onSubmit={handleAddNewItem}
+                className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl space-y-5 relative"
+              >
                 <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-500/10 to-transparent" />
                 <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 pb-3 border-b border-zinc-800/50 uppercase tracking-wide">
                   <Plus className="w-4 h-4 text-amber-500" />
@@ -1761,7 +2285,9 @@ export default function AdminPanel({
 
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-5 text-xs">
                   <div className="md:col-span-3 space-y-1.5">
-                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Title Name</label>
+                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">
+                      Title Name
+                    </label>
                     <input
                       type="text"
                       required
@@ -1773,10 +2299,14 @@ export default function AdminPanel({
                   </div>
 
                   <div className="md:col-span-2 space-y-1.5">
-                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Catalog Category</label>
+                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">
+                      Catalog Category
+                    </label>
                     <select
                       value={newItemCategory}
-                      onChange={(e) => setNewItemCategory(e.target.value as Dish["category"])}
+                      onChange={(e) =>
+                        setNewItemCategory(e.target.value as Dish["category"])
+                      }
                       className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 cursor-pointer transition focus:ring-1 focus:ring-amber-500/10"
                     >
                       <option value="Burgers">Burgers 🍔</option>
@@ -1788,7 +2318,9 @@ export default function AdminPanel({
                   </div>
 
                   <div className="md:col-span-2 space-y-1.5">
-                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Base Price (Rs.)</label>
+                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">
+                      Base Price (Rs.)
+                    </label>
                     <input
                       type="number"
                       required
@@ -1800,30 +2332,40 @@ export default function AdminPanel({
                   </div>
 
                   <div className="md:col-span-2 space-y-1.5">
-                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Discount Price (Rs.)</label>
+                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">
+                      Discount Price (Rs.)
+                    </label>
                     <input
                       type="number"
                       value={newItemDiscountPrice || ""}
-                      onChange={(e) => setNewItemDiscountPrice(Number(e.target.value))}
+                      onChange={(e) =>
+                        setNewItemDiscountPrice(Number(e.target.value))
+                      }
                       placeholder="Optional"
                       className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 transition focus:ring-1 focus:ring-amber-500/10"
                     />
                   </div>
 
                   <div className="md:col-span-2 space-y-1.5">
-                    <label className="text-emerald-500 font-bold uppercase tracking-widest text-[9px]">Commission (Rs.)</label>
+                    <label className="text-emerald-500 font-bold uppercase tracking-widest text-[9px]">
+                      Commission (Rs.)
+                    </label>
                     <input
                       type="number"
                       min="0"
                       value={newItemCommission}
-                      onChange={(e) => setNewItemCommission(Number(e.target.value))}
+                      onChange={(e) =>
+                        setNewItemCommission(Number(e.target.value))
+                      }
                       placeholder="Commission"
                       className="w-full p-3 bg-zinc-950 border border-emerald-900 rounded-xl text-white outline-none focus:border-emerald-500 transition focus:ring-1 focus:ring-emerald-500/10 font-bold"
                     />
                   </div>
 
                   <div className="md:col-span-3 space-y-1.5">
-                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Description Information</label>
+                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">
+                      Description Information
+                    </label>
                     <input
                       type="text"
                       value={newItemDescription}
@@ -1844,21 +2386,40 @@ export default function AdminPanel({
                   </div>
 
                   <div className="md:col-span-4 space-y-1.5">
-                    <label className="text-amber-500 font-bold uppercase tracking-widest text-[9px]">Restaurant / Partner Shop Name</label>
+                    <label className="text-amber-500 font-bold uppercase tracking-widest text-[9px]">
+                      Restaurant / Partner Shop Name
+                    </label>
                     <div className="relative">
                       <select
                         value={newItemRestaurantName}
-                        onChange={(e) => setNewItemRestaurantName(e.target.value)}
+                        onChange={(e) =>
+                          setNewItemRestaurantName(e.target.value)
+                        }
                         className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none appearance-none focus:border-amber-500 transition focus:ring-1 focus:ring-amber-500/10"
                       >
-                        <option value="">Default (Auto-selects based on category)</option>
-                        {uniqueRestaurants.map(rest => (
-                          <option key={rest} value={rest}>{rest}</option>
+                        <option value="">
+                          Default (Auto-selects based on category)
+                        </option>
+                        {uniqueRestaurants.map((rest) => (
+                          <option key={rest} value={rest}>
+                            {rest}
+                          </option>
                         ))}
                       </select>
                       <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
-                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        <svg
+                          width="14"
+                          height="14"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                          />
                         </svg>
                       </div>
                     </div>
@@ -1868,17 +2429,27 @@ export default function AdminPanel({
                     <>
                       <div className="md:col-span-4 space-y-3">
                         <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
-                          <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Sizes & Prices (Optional)</label>
+                          <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">
+                            Sizes & Prices (Optional)
+                          </label>
                           <button
                             type="button"
-                            onClick={() => setNewItemSizes([...newItemSizes, { name: "", price: 0, imageUrl: "" }])}
+                            onClick={() =>
+                              setNewItemSizes([
+                                ...newItemSizes,
+                                { name: "", price: 0, imageUrl: "" },
+                              ])
+                            }
                             className="bg-amber-500/10 text-amber-500 px-2 py-1 rounded text-[10px] font-bold hover:bg-amber-500/20"
                           >
                             + Add Size
                           </button>
                         </div>
                         {newItemSizes.map((size, idx) => (
-                          <div key={idx} className="flex flex-col gap-2 bg-zinc-950 p-3 rounded-xl border border-zinc-800 relative">
+                          <div
+                            key={idx}
+                            className="flex flex-col gap-2 bg-zinc-950 p-3 rounded-xl border border-zinc-800 relative"
+                          >
                             <button
                               type="button"
                               onClick={() => {
@@ -1921,25 +2492,35 @@ export default function AdminPanel({
                                 newSizes[idx].imageUrl = url;
                                 setNewItemSizes(newSizes);
                               }}
-                              label={`Size Image: ${size.name || 'Untitled'}`}
+                              label={`Size Image: ${size.name || "Untitled"}`}
                             />
                           </div>
                         ))}
                       </div>
-                      
+
                       <div className="md:col-span-4 space-y-3">
                         <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
-                          <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Flavors / Variants (Optional)</label>
+                          <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">
+                            Flavors / Variants (Optional)
+                          </label>
                           <button
                             type="button"
-                            onClick={() => setNewItemFlavors([...newItemFlavors, { name: "", price: 0, imageUrl: "" }])}
+                            onClick={() =>
+                              setNewItemFlavors([
+                                ...newItemFlavors,
+                                { name: "", price: 0, imageUrl: "" },
+                              ])
+                            }
                             className="bg-amber-500/10 text-amber-500 px-2 py-1 rounded text-[10px] font-bold hover:bg-amber-500/20"
                           >
                             + Add Flavor
                           </button>
                         </div>
                         {newItemFlavors.map((flavor, idx) => (
-                          <div key={idx} className="flex flex-col gap-2 bg-zinc-950 p-3 rounded-xl border border-zinc-800 relative">
+                          <div
+                            key={idx}
+                            className="flex flex-col gap-2 bg-zinc-950 p-3 rounded-xl border border-zinc-800 relative"
+                          >
                             <button
                               type="button"
                               onClick={() => {
@@ -1968,7 +2549,9 @@ export default function AdminPanel({
                                 value={flavor.price || ""}
                                 onChange={(e) => {
                                   const newFlavors = [...newItemFlavors];
-                                  newFlavors[idx].price = Number(e.target.value);
+                                  newFlavors[idx].price = Number(
+                                    e.target.value,
+                                  );
                                   setNewItemFlavors(newFlavors);
                                 }}
                                 placeholder="Extra Price (0 = Free)"
@@ -1979,7 +2562,9 @@ export default function AdminPanel({
                                 value={flavor.originalPrice || ""}
                                 onChange={(e) => {
                                   const newFlavors = [...newItemFlavors];
-                                  newFlavors[idx].originalPrice = Number(e.target.value);
+                                  newFlavors[idx].originalPrice = Number(
+                                    e.target.value,
+                                  );
                                   setNewItemFlavors(newFlavors);
                                 }}
                                 placeholder="Original Price"
@@ -1993,7 +2578,8 @@ export default function AdminPanel({
                                   checked={flavor.isPopular || false}
                                   onChange={(e) => {
                                     const newFlavors = [...newItemFlavors];
-                                    newFlavors[idx].isPopular = e.target.checked;
+                                    newFlavors[idx].isPopular =
+                                      e.target.checked;
                                     setNewItemFlavors(newFlavors);
                                   }}
                                   className="w-4 h-4 rounded text-amber-500 bg-zinc-900 border-zinc-700"
@@ -2008,24 +2594,39 @@ export default function AdminPanel({
                                 newFlavors[idx].imageUrl = url;
                                 setNewItemFlavors(newFlavors);
                               }}
-                              label={`Flavor Image: ${flavor.name || 'Untitled'}`}
+                              label={`Flavor Image: ${flavor.name || "Untitled"}`}
                             />
                           </div>
                         ))}
                       </div>
                       <div className="md:col-span-4 space-y-3">
                         <div className="flex justify-between items-center border-b border-zinc-800 pb-2">
-                          <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Add-ons (Optional)</label>
+                          <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">
+                            Add-ons (Optional)
+                          </label>
                           <button
                             type="button"
-                            onClick={() => setNewItemAddOns([...newItemAddOns, { name: "", price: 0, imageUrl: "", originalPrice: 0 }])}
+                            onClick={() =>
+                              setNewItemAddOns([
+                                ...newItemAddOns,
+                                {
+                                  name: "",
+                                  price: 0,
+                                  imageUrl: "",
+                                  originalPrice: 0,
+                                },
+                              ])
+                            }
                             className="bg-amber-500/10 text-amber-500 px-2 py-1 rounded text-[10px] font-bold hover:bg-amber-500/20"
                           >
                             + Add Add-on
                           </button>
                         </div>
                         {newItemAddOns.map((ad, idx) => (
-                          <div key={idx} className="flex flex-col gap-2 bg-zinc-950 p-3 rounded-xl border border-zinc-800 relative">
+                          <div
+                            key={idx}
+                            className="flex flex-col gap-2 bg-zinc-950 p-3 rounded-xl border border-zinc-800 relative"
+                          >
                             <button
                               type="button"
                               onClick={() => {
@@ -2065,7 +2666,9 @@ export default function AdminPanel({
                                 value={ad.originalPrice || ""}
                                 onChange={(e) => {
                                   const newAds = [...newItemAddOns];
-                                  newAds[idx].originalPrice = Number(e.target.value);
+                                  newAds[idx].originalPrice = Number(
+                                    e.target.value,
+                                  );
                                   setNewItemAddOns(newAds);
                                 }}
                                 placeholder="Orig. Price"
@@ -2079,7 +2682,7 @@ export default function AdminPanel({
                                 newAds[idx].imageUrl = url;
                                 setNewItemAddOns(newAds);
                               }}
-                              label={`Add-on Image: ${ad.name || 'Untitled'}`}
+                              label={`Add-on Image: ${ad.name || "Untitled"}`}
                             />
                           </div>
                         ))}
@@ -2103,8 +2706,12 @@ export default function AdminPanel({
               <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 rounded-[24px] overflow-hidden shadow-2xl relative">
                 <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-500/10 to-transparent" />
                 <div className="p-5 border-b border-zinc-800/50 bg-zinc-900/15">
-                  <h4 className="font-black text-sm text-zinc-100 uppercase tracking-wide">Operational Catalog Directory</h4>
-                  <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Enable availability controls and edit prices instantly</span>
+                  <h4 className="font-black text-sm text-zinc-100 uppercase tracking-wide">
+                    Operational Catalog Directory
+                  </h4>
+                  <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                    Enable availability controls and edit prices instantly
+                  </span>
                 </div>
 
                 <div className="overflow-x-auto">
@@ -2120,194 +2727,487 @@ export default function AdminPanel({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-900/40">
-                      {dishes.filter(dish => {
-                        if (dish.type === "service") return false;
-                        if (!newItemRestaurantName) return true;
-                        const dishRest = dish.restaurantName || "Dadu Fast Food & Kitchen";
-                        return dishRest === newItemRestaurantName;
-                      }).map((dish) => (
-                        <tr key={dish.id} className="hover:bg-zinc-900/20 transition-colors">
-                          <td className="p-4 font-bold text-gray-200">
-                            <div className="flex items-center gap-3">
-                              <img src={dish.imageUrl} alt={dish.name} className="w-8 h-8 rounded-lg object-cover bg-zinc-950 shrink-0" referrerPolicy="no-referrer"/>
-                              <div className="truncate max-w-xs">
-                                <div>{dish.name}</div>
-                                <div className="text-[10px] text-zinc-500 font-medium font-sans mt-0.5">
-                                  🏪 Shop: <span className="text-amber-500 font-bold">{dish.restaurantName || (dish.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen")}</span>
-                                </div>
-                                {dish.type === "service" && dish.serviceDuration && (
+                      {dishes
+                        .filter((dish) => {
+                          if (dish.type === "service") return false;
+                          if (!newItemRestaurantName) return true;
+                          const dishRest =
+                            dish.restaurantName || "Dadu Fast Food & Kitchen";
+                          return dishRest === newItemRestaurantName;
+                        })
+                        .map((dish) => (
+                          <tr
+                            key={dish.id}
+                            className="hover:bg-zinc-900/20 transition-colors"
+                          >
+                            <td className="p-4 font-bold text-gray-200">
+                              <div className="flex items-center gap-3">
+                                <img
+                                  src={dish.imageUrl}
+                                  alt={dish.name}
+                                  className="w-8 h-8 rounded-lg object-cover bg-zinc-950 shrink-0"
+                                  referrerPolicy="no-referrer"
+                                />
+                                <div className="truncate max-w-xs">
+                                  <div>{dish.name}</div>
                                   <div className="text-[10px] text-zinc-500 font-medium font-sans mt-0.5">
-                                    ⏱️ Duration: <span className="text-amber-500 font-bold">{dish.serviceDuration}</span>
+                                    🏪 Shop:{" "}
+                                    <span className="text-amber-500 font-bold">
+                                      {dish.restaurantName ||
+                                        (dish.type === "service"
+                                          ? "Dadu Home Services"
+                                          : "Dadu Fast Food & Kitchen")}
+                                    </span>
                                   </div>
-                                )}
+                                  {dish.type === "service" &&
+                                    dish.serviceDuration && (
+                                      <div className="text-[10px] text-zinc-500 font-medium font-sans mt-0.5">
+                                        ⏱️ Duration:{" "}
+                                        <span className="text-amber-500 font-bold">
+                                          {dish.serviceDuration}
+                                        </span>
+                                      </div>
+                                    )}
+                                </div>
                               </div>
-                            </div>
-                          </td>
-                          <td className="p-4">{dish.category}</td>
-                          <td className="p-4">
-                            <span className={`px-2 py-0.5 rounded-md font-bold text-[9px] uppercase ${
-                              dish.type === "service" ? "bg-amber-950 border border-amber-900 text-amber-500" : "bg-zinc-900 border border-zinc-800 text-zinc-300"
-                            }`}>
-                              {dish.type}
-                            </span>
-                          </td>
-                          <td className="p-4">
-                            {editingPriceDishId === dish.id ? (
-                              <div className="flex flex-col gap-1.5 max-w-[150px]">
-                                <div className="flex items-center gap-1">
-                                  <span className="text-[8px] text-zinc-500 uppercase font-bold w-12">Price:</span>
-                                  <input
-                                    type="number"
-                                    value={editingPriceInput}
-                                    onChange={(e) => setEditingPriceInput(Number(e.target.value))}
-                                    className="w-20 p-1 bg-[#1a1a1a] border border-amber-500 text-white rounded text-xs leading-none"
-                                  />
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <span className="text-[8px] text-zinc-500 uppercase font-bold w-12">Discount:</span>
-                                  <input
-                                    type="number"
-                                    value={editingDiscountPriceInput}
-                                    onChange={(e) => setEditingDiscountPriceInput(Number(e.target.value))}
-                                    className="w-20 p-1 bg-[#1a1a1a] border border-amber-500 text-white rounded text-xs leading-none"
-                                    placeholder="0 for none"
-                                  />
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <span className="text-[8px] text-emerald-400 uppercase font-bold w-12">Comm:</span>
-                                  <input
-                                    type="number"
-                                    value={editingCommissionInput}
-                                    onChange={(e) => setEditingCommissionInput(Number(e.target.value))}
-                                    className="w-20 p-1 bg-[#1a1a1a] border border-emerald-500 text-white rounded text-xs leading-none"
-                                    placeholder="Commission"
-                                  />
-                                </div>
-                                {dish.type === "food" && (
-                                  <div className="mt-2 space-y-3 border-t border-zinc-800 pt-2">
-                                    <div className="flex flex-col gap-1">
-                                      <div className="flex justify-between items-center">
-                                        <span className="text-[9px] text-zinc-500 uppercase font-bold">Sizes</span>
-                                        <button onClick={() => setEditingSizes([...editingSizes, {name: '', price: 0, imageUrl: ''}])} className="text-[9px] text-amber-500 hover:underline">+ Add</button>
-                                      </div>
-                                      {editingSizes.map((sz, idx) => (
-                                        <div key={idx} className="flex gap-1">
-                                          <input type="text" value={sz.name} onChange={e => { const n = [...editingSizes]; n[idx].name = e.target.value; setEditingSizes(n); }} placeholder="Name" className="w-16 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]" />
-                                          <input type="number" value={sz.price || ""} onChange={e => { const n = [...editingSizes]; n[idx].price = Number(e.target.value); setEditingSizes(n); }} placeholder="Price" className="w-12 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]" />
-                                          <input type="text" value={sz.imageUrl || ""} onChange={e => { const n = [...editingSizes]; n[idx].imageUrl = e.target.value; setEditingSizes(n); }} placeholder="Img URL" className="flex-1 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]" />
-                                          <button onClick={() => { const n = [...editingSizes]; n.splice(idx, 1); setEditingSizes(n); }} className="text-red-500 text-[10px] px-1">✕</button>
-                                        </div>
-                                      ))}
-                                    </div>
-                                    <div className="flex flex-col gap-1">
-                                      <div className="flex justify-between items-center">
-                                        <span className="text-[9px] text-zinc-500 uppercase font-bold">Flavors</span>
-                                        <button onClick={() => setEditingFlavors([...editingFlavors, {name: '', price: 0, imageUrl: ''}])} className="text-[9px] text-amber-500 hover:underline">+ Add</button>
-                                      </div>
-                                      {editingFlavors.map((fl, idx) => (
-                                        <div key={idx} className="flex gap-1 items-center flex-wrap">
-                                          <input type="text" value={fl.name} onChange={e => { const n = [...editingFlavors]; n[idx].name = e.target.value; setEditingFlavors(n); }} placeholder="Name" className="w-16 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]" />
-                                          <input type="number" value={fl.price || ""} onChange={e => { const n = [...editingFlavors]; n[idx].price = Number(e.target.value); setEditingFlavors(n); }} placeholder="Ex Price" className="w-14 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]" />
-                                          <input type="number" value={fl.originalPrice || ""} onChange={e => { const n = [...editingFlavors]; n[idx].originalPrice = Number(e.target.value); setEditingFlavors(n); }} placeholder="Orig" className="w-12 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]" />
-                                          <input type="text" value={fl.imageUrl || ""} onChange={e => { const n = [...editingFlavors]; n[idx].imageUrl = e.target.value; setEditingFlavors(n); }} placeholder="Img URL" className="flex-1 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]" />
-                                          <label className="text-[9px] text-zinc-400 flex items-center gap-0.5"><input type="checkbox" checked={fl.isPopular} onChange={e => { const n = [...editingFlavors]; n[idx].isPopular = e.target.checked; setEditingFlavors(n); }} /> Pop</label>
-                                          <button onClick={() => { const n = [...editingFlavors]; n.splice(idx, 1); setEditingFlavors(n); }} className="text-red-500 text-[10px] px-1">✕</button>
-                                        </div>
-                                      ))}
-                                    </div>
-                                    <div className="flex flex-col gap-0.5 mt-1 mb-1">
-                                      <div className="flex justify-between items-center">
-                                        <span className="text-[8px] text-zinc-500 uppercase font-bold">Add-ons (Optional)</span>
-                                        <button onClick={() => setEditingAddOns([...editingAddOns, { name: "", price: 0 }])} className="text-[9px] text-amber-500 font-bold">+ Add</button>
-                                      </div>
-                                      {editingAddOns.map((ad, idx) => (
-                                        <div key={idx} className="flex gap-1 items-center mb-1">
-                                          <input type="text" value={ad.name} onChange={e => { const n = [...editingAddOns]; n[idx].name = e.target.value; setEditingAddOns(n); }} placeholder="Addon Name" className="flex-1 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]" />
-                                          <input type="number" value={ad.price || ""} onChange={e => { const n = [...editingAddOns]; n[idx].price = Number(e.target.value); setEditingAddOns(n); }} placeholder="Extra Price" className="w-16 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]" />
-                                          <input type="number" value={ad.originalPrice || ""} onChange={e => { const n = [...editingAddOns]; n[idx].originalPrice = Number(e.target.value); setEditingAddOns(n); }} placeholder="Orig Price" className="w-16 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]" />
-                                          <input type="text" value={ad.imageUrl || ""} onChange={e => { const n = [...editingAddOns]; n[idx].imageUrl = e.target.value; setEditingAddOns(n); }} placeholder="Img URL" className="flex-1 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]" />
-                                          <button onClick={() => { const n = [...editingAddOns]; n.splice(idx, 1); setEditingAddOns(n); }} className="text-red-500 text-[10px] px-1">✕</button>
-                                        </div>
-                                      ))}
-                                    </div>
+                            </td>
+                            <td className="p-4">{dish.category}</td>
+                            <td className="p-4">
+                              <span
+                                className={`px-2 py-0.5 rounded-md font-bold text-[9px] uppercase ${
+                                  dish.type === "service"
+                                    ? "bg-amber-950 border border-amber-900 text-amber-500"
+                                    : "bg-zinc-900 border border-zinc-800 text-zinc-300"
+                                }`}
+                              >
+                                {dish.type}
+                              </span>
+                            </td>
+                            <td className="p-4">
+                              {editingPriceDishId === dish.id ? (
+                                <div className="flex flex-col gap-1.5 max-w-[150px]">
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[8px] text-zinc-500 uppercase font-bold w-12">
+                                      Price:
+                                    </span>
+                                    <input
+                                      type="number"
+                                      value={editingPriceInput}
+                                      onChange={(e) =>
+                                        setEditingPriceInput(
+                                          Number(e.target.value),
+                                        )
+                                      }
+                                      className="w-20 p-1 bg-[#1a1a1a] border border-amber-500 text-white rounded text-xs leading-none"
+                                    />
                                   </div>
-                                )}
-                                <div className="flex gap-1 justify-end">
-                                  <button
-                                    onClick={() => setEditingPriceDishId(null)}
-                                    className="px-2 py-0.5 bg-zinc-800 text-zinc-300 rounded text-[9px] font-bold cursor-pointer"
-                                  >
-                                    Cancel
-                                  </button>
-                                  <button
-                                    onClick={() => handleSavePriceChange(dish)}
-                                    className="px-2 py-0.5 bg-amber-500 text-black rounded text-[9px] font-black cursor-pointer shadow-xs animate-pulse-subtle"
-                                  >
-                                    Save
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="flex flex-col gap-0.5">
-                                {dish.discountPrice && dish.discountPrice < dish.price ? (
-                                  <>
-                                    <span className="font-extrabold text-emerald-400 text-xs">Rs. {dish.discountPrice}</span>
-                                    <span className="font-bold text-zinc-500 text-[10px] line-through">Rs. {dish.price}</span>
-                                  </>
-                                ) : (
-                                  <span className="font-extrabold text-white">Rs. {dish.price}</span>
-                                )}
-                                <span className="text-[10px] text-emerald-400 font-bold block mt-0.5">Comm: Rs. {dish.commission || 0}</span>
-                                <button
-                                  onClick={() => {
-                                    setEditingPriceDishId(dish.id);
-                                    setEditingPriceInput(dish.price);
-                                    setEditingDiscountPriceInput(dish.discountPrice || 0);
-                                    setEditingCommissionInput(dish.commission || 0);
-                                    setEditingSizes(dish.sizes ? JSON.parse(JSON.stringify(dish.sizes)) : []);
-                                    setEditingFlavors(dish.flavors ? JSON.parse(JSON.stringify(dish.flavors)) : []);
-                                    setEditingAddOns(dish.addOns ? JSON.parse(JSON.stringify(dish.addOns)) : []);
-                                  }}
-                                  className="text-[10px] text-amber-500 hover:underline cursor-pointer text-left mt-1 font-bold"
-                                >
-                                  Edit Details
-                                </button>
-                              </div>
-                            )}
-                          </td>
-                          <td className="p-4 text-center">
-                            <button
-                              onClick={() => handleToggleAvailability(dish)}
-                              className="inline-flex justify-center transition cursor-pointer"
-                            >
-                              {dish.isAvailable ? (
-                                <div className="flex items-center gap-1.5 text-emerald-400">
-                                  <ToggleRight className="w-7 h-7 stroke-[1.5]" />
-                                  <span className="text-[10px] uppercase font-bold tracking-wide">Available</span>
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[8px] text-zinc-500 uppercase font-bold w-12">
+                                      Discount:
+                                    </span>
+                                    <input
+                                      type="number"
+                                      value={editingDiscountPriceInput}
+                                      onChange={(e) =>
+                                        setEditingDiscountPriceInput(
+                                          Number(e.target.value),
+                                        )
+                                      }
+                                      className="w-20 p-1 bg-[#1a1a1a] border border-amber-500 text-white rounded text-xs leading-none"
+                                      placeholder="0 for none"
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[8px] text-emerald-400 uppercase font-bold w-12">
+                                      Comm:
+                                    </span>
+                                    <input
+                                      type="number"
+                                      value={editingCommissionInput}
+                                      onChange={(e) =>
+                                        setEditingCommissionInput(
+                                          Number(e.target.value),
+                                        )
+                                      }
+                                      className="w-20 p-1 bg-[#1a1a1a] border border-emerald-500 text-white rounded text-xs leading-none"
+                                      placeholder="Commission"
+                                    />
+                                  </div>
+                                  {dish.type === "food" && (
+                                    <div className="mt-2 space-y-3 border-t border-zinc-800 pt-2">
+                                      <div className="flex flex-col gap-1">
+                                        <div className="flex justify-between items-center">
+                                          <span className="text-[9px] text-zinc-500 uppercase font-bold">
+                                            Sizes
+                                          </span>
+                                          <button
+                                            onClick={() =>
+                                              setEditingSizes([
+                                                ...editingSizes,
+                                                {
+                                                  name: "",
+                                                  price: 0,
+                                                  imageUrl: "",
+                                                },
+                                              ])
+                                            }
+                                            className="text-[9px] text-amber-500 hover:underline"
+                                          >
+                                            + Add
+                                          </button>
+                                        </div>
+                                        {editingSizes.map((sz, idx) => (
+                                          <div key={idx} className="flex gap-1">
+                                            <input
+                                              type="text"
+                                              value={sz.name}
+                                              onChange={(e) => {
+                                                const n = [...editingSizes];
+                                                n[idx].name = e.target.value;
+                                                setEditingSizes(n);
+                                              }}
+                                              placeholder="Name"
+                                              className="w-16 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
+                                            />
+                                            <input
+                                              type="number"
+                                              value={sz.price || ""}
+                                              onChange={(e) => {
+                                                const n = [...editingSizes];
+                                                n[idx].price = Number(
+                                                  e.target.value,
+                                                );
+                                                setEditingSizes(n);
+                                              }}
+                                              placeholder="Price"
+                                              className="w-12 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
+                                            />
+                                            <input
+                                              type="text"
+                                              value={sz.imageUrl || ""}
+                                              onChange={(e) => {
+                                                const n = [...editingSizes];
+                                                n[idx].imageUrl =
+                                                  e.target.value;
+                                                setEditingSizes(n);
+                                              }}
+                                              placeholder="Img URL"
+                                              className="flex-1 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
+                                            />
+                                            <button
+                                              onClick={() => {
+                                                const n = [...editingSizes];
+                                                n.splice(idx, 1);
+                                                setEditingSizes(n);
+                                              }}
+                                              className="text-red-500 text-[10px] px-1"
+                                            >
+                                              ✕
+                                            </button>
+                                          </div>
+                                        ))}
+                                      </div>
+                                      <div className="flex flex-col gap-1">
+                                        <div className="flex justify-between items-center">
+                                          <span className="text-[9px] text-zinc-500 uppercase font-bold">
+                                            Flavors
+                                          </span>
+                                          <button
+                                            onClick={() =>
+                                              setEditingFlavors([
+                                                ...editingFlavors,
+                                                {
+                                                  name: "",
+                                                  price: 0,
+                                                  imageUrl: "",
+                                                },
+                                              ])
+                                            }
+                                            className="text-[9px] text-amber-500 hover:underline"
+                                          >
+                                            + Add
+                                          </button>
+                                        </div>
+                                        {editingFlavors.map((fl, idx) => (
+                                          <div
+                                            key={idx}
+                                            className="flex gap-1 items-center flex-wrap"
+                                          >
+                                            <input
+                                              type="text"
+                                              value={fl.name}
+                                              onChange={(e) => {
+                                                const n = [...editingFlavors];
+                                                n[idx].name = e.target.value;
+                                                setEditingFlavors(n);
+                                              }}
+                                              placeholder="Name"
+                                              className="w-16 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
+                                            />
+                                            <input
+                                              type="number"
+                                              value={fl.price || ""}
+                                              onChange={(e) => {
+                                                const n = [...editingFlavors];
+                                                n[idx].price = Number(
+                                                  e.target.value,
+                                                );
+                                                setEditingFlavors(n);
+                                              }}
+                                              placeholder="Ex Price"
+                                              className="w-14 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
+                                            />
+                                            <input
+                                              type="number"
+                                              value={fl.originalPrice || ""}
+                                              onChange={(e) => {
+                                                const n = [...editingFlavors];
+                                                n[idx].originalPrice = Number(
+                                                  e.target.value,
+                                                );
+                                                setEditingFlavors(n);
+                                              }}
+                                              placeholder="Orig"
+                                              className="w-12 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
+                                            />
+                                            <input
+                                              type="text"
+                                              value={fl.imageUrl || ""}
+                                              onChange={(e) => {
+                                                const n = [...editingFlavors];
+                                                n[idx].imageUrl =
+                                                  e.target.value;
+                                                setEditingFlavors(n);
+                                              }}
+                                              placeholder="Img URL"
+                                              className="flex-1 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
+                                            />
+                                            <label className="text-[9px] text-zinc-400 flex items-center gap-0.5">
+                                              <input
+                                                type="checkbox"
+                                                checked={fl.isPopular}
+                                                onChange={(e) => {
+                                                  const n = [...editingFlavors];
+                                                  n[idx].isPopular =
+                                                    e.target.checked;
+                                                  setEditingFlavors(n);
+                                                }}
+                                              />{" "}
+                                              Pop
+                                            </label>
+                                            <button
+                                              onClick={() => {
+                                                const n = [...editingFlavors];
+                                                n.splice(idx, 1);
+                                                setEditingFlavors(n);
+                                              }}
+                                              className="text-red-500 text-[10px] px-1"
+                                            >
+                                              ✕
+                                            </button>
+                                          </div>
+                                        ))}
+                                      </div>
+                                      <div className="flex flex-col gap-0.5 mt-1 mb-1">
+                                        <div className="flex justify-between items-center">
+                                          <span className="text-[8px] text-zinc-500 uppercase font-bold">
+                                            Add-ons (Optional)
+                                          </span>
+                                          <button
+                                            onClick={() =>
+                                              setEditingAddOns([
+                                                ...editingAddOns,
+                                                { name: "", price: 0 },
+                                              ])
+                                            }
+                                            className="text-[9px] text-amber-500 font-bold"
+                                          >
+                                            + Add
+                                          </button>
+                                        </div>
+                                        {editingAddOns.map((ad, idx) => (
+                                          <div
+                                            key={idx}
+                                            className="flex gap-1 items-center mb-1"
+                                          >
+                                            <input
+                                              type="text"
+                                              value={ad.name}
+                                              onChange={(e) => {
+                                                const n = [...editingAddOns];
+                                                n[idx].name = e.target.value;
+                                                setEditingAddOns(n);
+                                              }}
+                                              placeholder="Addon Name"
+                                              className="flex-1 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
+                                            />
+                                            <input
+                                              type="number"
+                                              value={ad.price || ""}
+                                              onChange={(e) => {
+                                                const n = [...editingAddOns];
+                                                n[idx].price = Number(
+                                                  e.target.value,
+                                                );
+                                                setEditingAddOns(n);
+                                              }}
+                                              placeholder="Extra Price"
+                                              className="w-16 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
+                                            />
+                                            <input
+                                              type="number"
+                                              value={ad.originalPrice || ""}
+                                              onChange={(e) => {
+                                                const n = [...editingAddOns];
+                                                n[idx].originalPrice = Number(
+                                                  e.target.value,
+                                                );
+                                                setEditingAddOns(n);
+                                              }}
+                                              placeholder="Orig Price"
+                                              className="w-16 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
+                                            />
+                                            <input
+                                              type="text"
+                                              value={ad.imageUrl || ""}
+                                              onChange={(e) => {
+                                                const n = [...editingAddOns];
+                                                n[idx].imageUrl =
+                                                  e.target.value;
+                                                setEditingAddOns(n);
+                                              }}
+                                              placeholder="Img URL"
+                                              className="flex-1 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
+                                            />
+                                            <button
+                                              onClick={() => {
+                                                const n = [...editingAddOns];
+                                                n.splice(idx, 1);
+                                                setEditingAddOns(n);
+                                              }}
+                                              className="text-red-500 text-[10px] px-1"
+                                            >
+                                              ✕
+                                            </button>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  <div className="flex gap-1 justify-end">
+                                    <button
+                                      onClick={() =>
+                                        setEditingPriceDishId(null)
+                                      }
+                                      className="px-2 py-0.5 bg-zinc-800 text-zinc-300 rounded text-[9px] font-bold cursor-pointer"
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        handleSavePriceChange(dish)
+                                      }
+                                      className="px-2 py-0.5 bg-amber-500 text-black rounded text-[9px] font-black cursor-pointer shadow-xs animate-pulse-subtle"
+                                    >
+                                      Save
+                                    </button>
+                                  </div>
                                 </div>
                               ) : (
-                                <div className="flex items-center gap-1.5 text-zinc-650">
-                                  <ToggleLeft className="w-7 h-7 stroke-[1.5]" />
-                                  <span className="text-[10px] uppercase font-bold tracking-wide text-zinc-500">Sold Out</span>
+                                <div className="flex flex-col gap-0.5">
+                                  {dish.discountPrice &&
+                                  dish.discountPrice < dish.price ? (
+                                    <>
+                                      <span className="font-extrabold text-emerald-400 text-xs">
+                                        Rs. {dish.discountPrice}
+                                      </span>
+                                      <span className="font-bold text-zinc-500 text-[10px] line-through">
+                                        Rs. {dish.price}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <span className="font-extrabold text-white">
+                                      Rs. {dish.price}
+                                    </span>
+                                  )}
+                                  <span className="text-[10px] text-emerald-400 font-bold block mt-0.5">
+                                    Comm: Rs. {dish.commission || 0}
+                                  </span>
+                                  <button
+                                    onClick={() => {
+                                      setEditingPriceDishId(dish.id);
+                                      setEditingPriceInput(dish.price);
+                                      setEditingDiscountPriceInput(
+                                        dish.discountPrice || 0,
+                                      );
+                                      setEditingCommissionInput(
+                                        dish.commission || 0,
+                                      );
+                                      setEditingSizes(
+                                        dish.sizes
+                                          ? JSON.parse(
+                                              JSON.stringify(dish.sizes),
+                                            )
+                                          : [],
+                                      );
+                                      setEditingFlavors(
+                                        dish.flavors
+                                          ? JSON.parse(
+                                              JSON.stringify(dish.flavors),
+                                            )
+                                          : [],
+                                      );
+                                      setEditingAddOns(
+                                        dish.addOns
+                                          ? JSON.parse(
+                                              JSON.stringify(dish.addOns),
+                                            )
+                                          : [],
+                                      );
+                                    }}
+                                    className="text-[10px] text-amber-500 hover:underline cursor-pointer text-left mt-1 font-bold"
+                                  >
+                                    Edit Details
+                                  </button>
                                 </div>
                               )}
-                            </button>
-                          </td>
-                          <td className="p-4 text-center">
-                            <button
-                              onClick={() => handleDeleteItem(dish.id)}
-                              className="p-2 text-zinc-650 hover:text-red-500 hover:bg-red-950/20 rounded-xl transition cursor-pointer"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                            </td>
+                            <td className="p-4 text-center">
+                              <button
+                                onClick={() => handleToggleAvailability(dish)}
+                                className="inline-flex justify-center transition cursor-pointer"
+                              >
+                                {dish.isAvailable ? (
+                                  <div className="flex items-center gap-1.5 text-emerald-400">
+                                    <ToggleRight className="w-7 h-7 stroke-[1.5]" />
+                                    <span className="text-[10px] uppercase font-bold tracking-wide">
+                                      Available
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1.5 text-zinc-650">
+                                    <ToggleLeft className="w-7 h-7 stroke-[1.5]" />
+                                    <span className="text-[10px] uppercase font-bold tracking-wide text-zinc-500">
+                                      Sold Out
+                                    </span>
+                                  </div>
+                                )}
+                              </button>
+                            </td>
+                            <td className="p-4 text-center">
+                              <button
+                                onClick={() => handleDeleteItem(dish.id)}
+                                className="p-2 text-zinc-650 hover:text-red-500 hover:bg-red-950/20 rounded-xl transition cursor-pointer"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
                     </tbody>
                   </table>
                 </div>
               </div>
-
             </div>
           )}
 
@@ -2320,13 +3220,20 @@ export default function AdminPanel({
                     <Settings className="w-5 h-5 text-blue-500" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-black text-white tracking-wide uppercase">Managing Services</h3>
-                    <p className="text-[11px] text-zinc-400 font-medium">Home Services & Repair directory</p>
+                    <h3 className="text-sm font-black text-white tracking-wide uppercase">
+                      Managing Services
+                    </h3>
+                    <p className="text-[11px] text-zinc-400 font-medium">
+                      Home Services & Repair directory
+                    </p>
                   </div>
                 </div>
               </div>
-              
-              <form onSubmit={handleAddNewItem} className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl space-y-5 relative">
+
+              <form
+                onSubmit={handleAddNewItem}
+                className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl space-y-5 relative"
+              >
                 <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-blue-500/10 to-transparent" />
                 <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 pb-3 border-b border-zinc-800/50 uppercase tracking-wide">
                   <Plus className="w-4 h-4 text-blue-500" />
@@ -2335,7 +3242,9 @@ export default function AdminPanel({
 
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-5 text-xs">
                   <div className="md:col-span-3 space-y-1.5">
-                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Title Name</label>
+                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">
+                      Title Name
+                    </label>
                     <input
                       type="text"
                       required
@@ -2347,7 +3256,9 @@ export default function AdminPanel({
                   </div>
 
                   <div className="md:col-span-2 space-y-1.5">
-                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Base Price (Rs.)</label>
+                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">
+                      Base Price (Rs.)
+                    </label>
                     <input
                       type="number"
                       required
@@ -2359,30 +3270,40 @@ export default function AdminPanel({
                   </div>
 
                   <div className="md:col-span-2 space-y-1.5">
-                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Discount Price (Rs.)</label>
+                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">
+                      Discount Price (Rs.)
+                    </label>
                     <input
                       type="number"
                       value={newItemDiscountPrice || ""}
-                      onChange={(e) => setNewItemDiscountPrice(Number(e.target.value))}
+                      onChange={(e) =>
+                        setNewItemDiscountPrice(Number(e.target.value))
+                      }
                       placeholder="Optional"
                       className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-blue-500 transition focus:ring-1 focus:ring-blue-500/10"
                     />
                   </div>
 
                   <div className="md:col-span-2 space-y-1.5">
-                    <label className="text-emerald-500 font-bold uppercase tracking-widest text-[9px]">Commission (Rs.)</label>
+                    <label className="text-emerald-500 font-bold uppercase tracking-widest text-[9px]">
+                      Commission (Rs.)
+                    </label>
                     <input
                       type="number"
                       min="0"
                       value={newItemCommission}
-                      onChange={(e) => setNewItemCommission(Number(e.target.value))}
+                      onChange={(e) =>
+                        setNewItemCommission(Number(e.target.value))
+                      }
                       placeholder="Commission"
                       className="w-full p-3 bg-zinc-950 border border-emerald-900 rounded-xl text-white outline-none focus:border-emerald-500 transition focus:ring-1 focus:ring-emerald-500/10 font-bold"
                     />
                   </div>
 
                   <div className="md:col-span-3 space-y-1.5">
-                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">Description Information</label>
+                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">
+                      Description Information
+                    </label>
                     <input
                       type="text"
                       value={newItemDescription}
@@ -2403,32 +3324,55 @@ export default function AdminPanel({
                   </div>
 
                   <div className="md:col-span-4 space-y-1.5">
-                    <label className="text-blue-500 font-bold uppercase tracking-widest text-[9px]">Service Provider / Partner Name</label>
+                    <label className="text-blue-500 font-bold uppercase tracking-widest text-[9px]">
+                      Service Provider / Partner Name
+                    </label>
                     <div className="relative">
                       <select
                         value={newItemRestaurantName}
-                        onChange={(e) => setNewItemRestaurantName(e.target.value)}
+                        onChange={(e) =>
+                          setNewItemRestaurantName(e.target.value)
+                        }
                         className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none appearance-none focus:border-blue-500 transition focus:ring-1 focus:ring-blue-500/10"
                       >
-                        <option value="">Default (Auto-selects based on category)</option>
-                        {uniqueRestaurants.map(rest => (
-                          <option key={rest} value={rest}>{rest}</option>
+                        <option value="">
+                          Default (Auto-selects based on category)
+                        </option>
+                        {uniqueRestaurants.map((rest) => (
+                          <option key={rest} value={rest}>
+                            {rest}
+                          </option>
                         ))}
                       </select>
                       <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
-                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        <svg
+                          width="14"
+                          height="14"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                          />
                         </svg>
                       </div>
                     </div>
                   </div>
 
                   <div className="md:col-span-4 space-y-1.5">
-                    <label className="text-blue-500 font-bold uppercase tracking-widest text-[9px]">Service Duration / Timing</label>
+                    <label className="text-blue-500 font-bold uppercase tracking-widest text-[9px]">
+                      Service Duration / Timing
+                    </label>
                     <input
                       type="text"
                       value={newItemServiceDuration}
-                      onChange={(e) => setNewItemServiceDuration(e.target.value)}
+                      onChange={(e) =>
+                        setNewItemServiceDuration(e.target.value)
+                      }
                       placeholder="e.g. Expected arrival within 1 hour"
                       className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-blue-500 transition focus:ring-1 focus:ring-blue-500/10"
                     />
@@ -2450,8 +3394,12 @@ export default function AdminPanel({
               <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 rounded-[24px] overflow-hidden shadow-2xl relative">
                 <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-blue-500/10 to-transparent" />
                 <div className="p-5 border-b border-zinc-800/50 bg-zinc-900/15">
-                  <h4 className="font-black text-sm text-zinc-100 uppercase tracking-wide">Operational Services Directory</h4>
-                  <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Enable availability controls and edit prices instantly</span>
+                  <h4 className="font-black text-sm text-zinc-100 uppercase tracking-wide">
+                    Operational Services Directory
+                  </h4>
+                  <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                    Enable availability controls and edit prices instantly
+                  </span>
                 </div>
 
                 <div className="overflow-x-auto">
@@ -2465,134 +3413,187 @@ export default function AdminPanel({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-900/40">
-                      {dishes.filter(dish => dish.type === "service").map((dish) => (
-                        <tr key={dish.id} className="hover:bg-zinc-900/20 transition-colors">
-                          <td className="p-4 font-bold text-gray-200">
-                            <div className="flex items-center gap-3">
-                              <img src={dish.imageUrl} alt={dish.name} className="w-8 h-8 rounded-lg object-cover bg-zinc-950 shrink-0" referrerPolicy="no-referrer"/>
-                              <div className="truncate max-w-xs">
-                                <div>{dish.name}</div>
-                                <div className="text-[10px] text-zinc-500 font-medium font-sans mt-0.5">
-                                  🏪 Provider: <span className="text-blue-500 font-bold">{dish.restaurantName || "Dadu Home Services"}</span>
-                                </div>
-                                {dish.serviceDuration && (
+                      {dishes
+                        .filter((dish) => dish.type === "service")
+                        .map((dish) => (
+                          <tr
+                            key={dish.id}
+                            className="hover:bg-zinc-900/20 transition-colors"
+                          >
+                            <td className="p-4 font-bold text-gray-200">
+                              <div className="flex items-center gap-3">
+                                <img
+                                  src={dish.imageUrl}
+                                  alt={dish.name}
+                                  className="w-8 h-8 rounded-lg object-cover bg-zinc-950 shrink-0"
+                                  referrerPolicy="no-referrer"
+                                />
+                                <div className="truncate max-w-xs">
+                                  <div>{dish.name}</div>
                                   <div className="text-[10px] text-zinc-500 font-medium font-sans mt-0.5">
-                                    ⏱️ Duration: <span className="text-blue-500 font-bold">{dish.serviceDuration}</span>
+                                    🏪 Provider:{" "}
+                                    <span className="text-blue-500 font-bold">
+                                      {dish.restaurantName ||
+                                        "Dadu Home Services"}
+                                    </span>
                                   </div>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="p-4">
-                            {editingPriceDishId === dish.id ? (
-                              <div className="flex flex-col gap-1.5 max-w-[150px]">
-                                <input
-                                  type="number"
-                                  value={editingPriceInput}
-                                  onChange={(e) => setEditingPriceInput(Number(e.target.value))}
-                                  className="w-full p-2 bg-zinc-950 text-white text-xs border border-zinc-700 focus:border-blue-500 outline-none rounded"
-                                  placeholder="New Price"
-                                />
-                                <input
-                                  type="number"
-                                  value={editingDiscountPriceInput}
-                                  onChange={(e) => setEditingDiscountPriceInput(Number(e.target.value))}
-                                  className="w-full p-2 bg-zinc-950 text-white text-xs border border-zinc-700 focus:border-blue-500 outline-none rounded"
-                                  placeholder="Discount"
-                                />
-                                <input
-                                  type="number"
-                                  value={editingCommissionInput}
-                                  onChange={(e) => setEditingCommissionInput(Number(e.target.value))}
-                                  className="w-full p-2 bg-zinc-950 text-white text-[10px] border border-emerald-900 focus:border-emerald-500 outline-none rounded"
-                                  placeholder="Comm."
-                                />
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => setEditingPriceDishId(null)}
-                                    className="px-2 py-0.5 bg-zinc-800 text-zinc-300 rounded text-[9px] font-bold cursor-pointer"
-                                  >
-                                    Cancel
-                                  </button>
-                                  <button
-                                    onClick={() => handleSavePriceChange(dish)}
-                                    className="px-2 py-0.5 bg-blue-500 text-black rounded text-[9px] font-black cursor-pointer shadow-xs animate-pulse-subtle"
-                                  >
-                                    Save
-                                  </button>
+                                  {dish.serviceDuration && (
+                                    <div className="text-[10px] text-zinc-500 font-medium font-sans mt-0.5">
+                                      ⏱️ Duration:{" "}
+                                      <span className="text-blue-500 font-bold">
+                                        {dish.serviceDuration}
+                                      </span>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
-                            ) : (
-                              <div className="flex flex-col gap-0.5">
-                                {dish.discountPrice && dish.discountPrice < dish.price ? (
-                                  <>
-                                    <span className="font-extrabold text-emerald-400 text-xs">Rs. {dish.discountPrice}</span>
-                                    <span className="font-bold text-zinc-500 text-[10px] line-through">Rs. {dish.price}</span>
-                                  </>
-                                ) : (
-                                  <span className="font-extrabold text-white">Rs. {dish.price}</span>
-                                )}
-                                <span className="text-[10px] text-emerald-400 font-bold block mt-0.5">Comm: Rs. {dish.commission || 0}</span>
-                                <button
-                                  onClick={() => {
-                                    setEditingPriceDishId(dish.id);
-                                    setEditingPriceInput(dish.price);
-                                    setEditingDiscountPriceInput(dish.discountPrice || 0);
-                                    setEditingCommissionInput(dish.commission || 0);
-                                  }}
-                                  className="text-[10px] text-blue-500 hover:underline cursor-pointer text-left mt-1 font-bold"
-                                >
-                                  Edit Price & Comm
-                                </button>
-                              </div>
-                            )}
-                          </td>
-                          <td className="p-4 text-center">
-                            <button
-                              onClick={() => handleToggleAvailability(dish)}
-                              className="inline-flex justify-center transition cursor-pointer"
-                            >
-                              {dish.isAvailable ? (
-                                <div className="flex items-center gap-1.5 text-emerald-400">
-                                  <ToggleRight className="w-7 h-7 stroke-[1.5]" />
-                                  <span className="text-[10px] uppercase font-bold tracking-wide">Available</span>
+                            </td>
+                            <td className="p-4">
+                              {editingPriceDishId === dish.id ? (
+                                <div className="flex flex-col gap-1.5 max-w-[150px]">
+                                  <input
+                                    type="number"
+                                    value={editingPriceInput}
+                                    onChange={(e) =>
+                                      setEditingPriceInput(
+                                        Number(e.target.value),
+                                      )
+                                    }
+                                    className="w-full p-2 bg-zinc-950 text-white text-xs border border-zinc-700 focus:border-blue-500 outline-none rounded"
+                                    placeholder="New Price"
+                                  />
+                                  <input
+                                    type="number"
+                                    value={editingDiscountPriceInput}
+                                    onChange={(e) =>
+                                      setEditingDiscountPriceInput(
+                                        Number(e.target.value),
+                                      )
+                                    }
+                                    className="w-full p-2 bg-zinc-950 text-white text-xs border border-zinc-700 focus:border-blue-500 outline-none rounded"
+                                    placeholder="Discount"
+                                  />
+                                  <input
+                                    type="number"
+                                    value={editingCommissionInput}
+                                    onChange={(e) =>
+                                      setEditingCommissionInput(
+                                        Number(e.target.value),
+                                      )
+                                    }
+                                    className="w-full p-2 bg-zinc-950 text-white text-[10px] border border-emerald-900 focus:border-emerald-500 outline-none rounded"
+                                    placeholder="Comm."
+                                  />
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() =>
+                                        setEditingPriceDishId(null)
+                                      }
+                                      className="px-2 py-0.5 bg-zinc-800 text-zinc-300 rounded text-[9px] font-bold cursor-pointer"
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        handleSavePriceChange(dish)
+                                      }
+                                      className="px-2 py-0.5 bg-blue-500 text-black rounded text-[9px] font-black cursor-pointer shadow-xs animate-pulse-subtle"
+                                    >
+                                      Save
+                                    </button>
+                                  </div>
                                 </div>
                               ) : (
-                                <div className="flex items-center gap-1.5 text-zinc-650">
-                                  <ToggleLeft className="w-7 h-7 stroke-[1.5]" />
-                                  <span className="text-[10px] uppercase font-bold tracking-wide text-zinc-500">Sold Out</span>
+                                <div className="flex flex-col gap-0.5">
+                                  {dish.discountPrice &&
+                                  dish.discountPrice < dish.price ? (
+                                    <>
+                                      <span className="font-extrabold text-emerald-400 text-xs">
+                                        Rs. {dish.discountPrice}
+                                      </span>
+                                      <span className="font-bold text-zinc-500 text-[10px] line-through">
+                                        Rs. {dish.price}
+                                      </span>
+                                    </>
+                                  ) : (
+                                    <span className="font-extrabold text-white">
+                                      Rs. {dish.price}
+                                    </span>
+                                  )}
+                                  <span className="text-[10px] text-emerald-400 font-bold block mt-0.5">
+                                    Comm: Rs. {dish.commission || 0}
+                                  </span>
+                                  <button
+                                    onClick={() => {
+                                      setEditingPriceDishId(dish.id);
+                                      setEditingPriceInput(dish.price);
+                                      setEditingDiscountPriceInput(
+                                        dish.discountPrice || 0,
+                                      );
+                                      setEditingCommissionInput(
+                                        dish.commission || 0,
+                                      );
+                                    }}
+                                    className="text-[10px] text-blue-500 hover:underline cursor-pointer text-left mt-1 font-bold"
+                                  >
+                                    Edit Price & Comm
+                                  </button>
                                 </div>
                               )}
-                            </button>
-                          </td>
-                          <td className="p-4 text-center">
-                            <button
-                              onClick={() => handleDeleteItem(dish.id)}
-                              className="p-2 text-zinc-650 hover:text-red-500 hover:bg-red-950/20 rounded-xl transition cursor-pointer"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                            </td>
+                            <td className="p-4 text-center">
+                              <button
+                                onClick={() => handleToggleAvailability(dish)}
+                                className="inline-flex justify-center transition cursor-pointer"
+                              >
+                                {dish.isAvailable ? (
+                                  <div className="flex items-center gap-1.5 text-emerald-400">
+                                    <ToggleRight className="w-7 h-7 stroke-[1.5]" />
+                                    <span className="text-[10px] uppercase font-bold tracking-wide">
+                                      Available
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1.5 text-zinc-650">
+                                    <ToggleLeft className="w-7 h-7 stroke-[1.5]" />
+                                    <span className="text-[10px] uppercase font-bold tracking-wide text-zinc-500">
+                                      Sold Out
+                                    </span>
+                                  </div>
+                                )}
+                              </button>
+                            </td>
+                            <td className="p-4 text-center">
+                              <button
+                                onClick={() => handleDeleteItem(dish.id)}
+                                className="p-2 text-zinc-650 hover:text-red-500 hover:bg-red-950/20 rounded-xl transition cursor-pointer"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
                     </tbody>
                   </table>
                 </div>
               </div>
-
             </div>
           )}
 
           {/* TAB 3: Live Orders Manager */}
           {activeSubTab === "orders" && (
             <div className="space-y-8 animate-fade-in">
-
               <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 rounded-[24px] overflow-hidden shadow-2xl relative">
                 <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-500/10 to-transparent" />
                 <div className="p-6 border-b border-zinc-800/50 bg-zinc-900/15 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <h4 className="font-black text-sm text-zinc-100 uppercase tracking-wide">Live Operational Orders Pipeline</h4>
-                    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Monitor order transactions and assign dispatchers in real-time</span>
+                    <h4 className="font-black text-sm text-zinc-100 uppercase tracking-wide">
+                      Live Operational Orders Pipeline
+                    </h4>
+                    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                      Monitor order transactions and assign dispatchers in
+                      real-time
+                    </span>
                   </div>
                   {orders.length > 0 && (
                     <button
@@ -2608,16 +3609,22 @@ export default function AdminPanel({
                 <div className="divide-y divide-zinc-900/30">
                   {orders.length === 0 ? (
                     <div className="p-16 text-center text-xs text-zinc-500 font-bold uppercase tracking-wider">
-                      Logs directory is blank. Waiting for live user transactions...
+                      Logs directory is blank. Waiting for live user
+                      transactions...
                     </div>
                   ) : (
                     orders.map((order) => {
                       const isSvc = order.orderType === "service";
-                      const isActive = order.status !== "delivered" && order.status !== "completed" && order.status !== "cancelled";
+                      const isActive =
+                        order.status !== "delivered" &&
+                        order.status !== "completed" &&
+                        order.status !== "cancelled";
 
                       return (
-                        <div key={order.id} className="p-6 hover:bg-zinc-900/10 transition-all space-y-5">
-                          
+                        <div
+                          key={order.id}
+                          className="p-6 hover:bg-zinc-900/10 transition-all space-y-5"
+                        >
                           {/* Top metadata strip */}
                           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-zinc-950 p-4 rounded-2xl border border-zinc-900">
                             <div>
@@ -2625,38 +3632,62 @@ export default function AdminPanel({
                                 <span className="font-mono text-xs font-black text-white uppercase bg-zinc-900 border border-zinc-800 py-1.5 px-3 rounded-lg shadow-inner">
                                   dadu-{order.id.substring(0, 8)}
                                 </span>
-                                <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${
-                                  isSvc ? "bg-amber-950/80 border border-amber-900/40 text-amber-500" : "bg-pink-950/80 border border-pink-900/40 text-[#D70F64]"
-                                }`}>
+                                <span
+                                  className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${
+                                    isSvc
+                                      ? "bg-amber-950/80 border border-amber-900/40 text-amber-500"
+                                      : "bg-pink-950/80 border border-pink-900/40 text-[#D70F64]"
+                                  }`}
+                                >
                                   {order.orderType}
                                 </span>
                               </div>
                               <div className="flex flex-wrap gap-3 items-center mt-3 text-xs text-zinc-400">
-                                <span className="font-extrabold text-zinc-200">{order.userName}</span>
+                                <span className="font-extrabold text-zinc-200">
+                                  {order.userName}
+                                </span>
                                 <span className="text-zinc-700">|</span>
-                                <span className="font-medium text-zinc-300">Phone: <span className="font-bold text-white">{order.userPhone}</span></span>
+                                <span className="font-medium text-zinc-300">
+                                  Phone:{" "}
+                                  <span className="font-bold text-white">
+                                    {order.userPhone}
+                                  </span>
+                                </span>
                                 <span className="text-zinc-700">|</span>
-                                <span className="font-medium text-zinc-300">Total: <span className="font-black text-amber-500">Rs. {order.grandTotal}</span></span>
+                                <span className="font-medium text-zinc-300">
+                                  Total:{" "}
+                                  <span className="font-black text-amber-500">
+                                    Rs. {order.grandTotal}
+                                  </span>
+                                </span>
                               </div>
                             </div>
 
                             {/* Status label banner */}
                             <div className="text-left sm:text-right">
-                              <span className="text-[10px] uppercase tracking-widest font-black text-zinc-500 block">Current Status</span>
-                              <span className={`text-xs font-black uppercase mt-1.5 inline-flex items-center gap-1.5 py-1 px-2.5 rounded-lg bg-zinc-900/60 ${
-                                order.status === "delivered" || order.status === "completed" 
-                                  ? "text-emerald-400 border border-emerald-950/65" 
-                                  : order.status === "cancelled" 
-                                    ? "text-red-500 border border-red-950/65"
-                                    : "text-amber-500 border border-amber-950/65"
-                              }`}>
-                                <span className={`w-1.5 h-1.5 rounded-full animate-ping ${
-                                  order.status === "delivered" || order.status === "completed" 
-                                    ? "bg-emerald-400" 
-                                    : order.status === "cancelled" 
-                                      ? "bg-red-500"
-                                      : "bg-amber-500"
-                                }`} />
+                              <span className="text-[10px] uppercase tracking-widest font-black text-zinc-500 block">
+                                Current Status
+                              </span>
+                              <span
+                                className={`text-xs font-black uppercase mt-1.5 inline-flex items-center gap-1.5 py-1 px-2.5 rounded-lg bg-zinc-900/60 ${
+                                  order.status === "delivered" ||
+                                  order.status === "completed"
+                                    ? "text-emerald-400 border border-emerald-950/65"
+                                    : order.status === "cancelled"
+                                      ? "text-red-500 border border-red-950/65"
+                                      : "text-amber-500 border border-amber-950/65"
+                                }`}
+                              >
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full animate-ping ${
+                                    order.status === "delivered" ||
+                                    order.status === "completed"
+                                      ? "bg-emerald-400"
+                                      : order.status === "cancelled"
+                                        ? "bg-red-500"
+                                        : "bg-amber-500"
+                                  }`}
+                                />
                                 {order.status}
                               </span>
                             </div>
@@ -2665,32 +3696,53 @@ export default function AdminPanel({
                           {/* Items descriptions and customer address */}
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs font-medium">
                             <div className="bg-zinc-950 p-4 rounded-2xl border border-zinc-900 space-y-3">
-                              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block">Cart Summary</span>
+                              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block">
+                                Cart Summary
+                              </span>
                               <div className="divide-y divide-zinc-900/60">
                                 {order.items.map((item, id) => (
-                                  <div key={id} className="py-2 flex justify-between">
+                                  <div
+                                    key={id}
+                                    className="py-2 flex justify-between"
+                                  >
                                     <span className="text-gray-300 font-medium">
                                       {item.name}{" "}
                                       <span className="text-xs text-[#D70F64] font-black font-sans">
-                                        ({item.restaurantName || (item.type === "service" ? "Dadu Home Services" : "Dadu Fast Food")})
+                                        (
+                                        {item.restaurantName ||
+                                          (item.type === "service"
+                                            ? "Dadu Home Services"
+                                            : "Dadu Fast Food")}
+                                        )
                                       </span>{" "}
-                                      <span className="text-zinc-500 font-bold">x{item.quantity}</span>
+                                      <span className="text-zinc-500 font-bold">
+                                        x{item.quantity}
+                                      </span>
                                     </span>
-                                    <span className="font-extrabold text-zinc-400">Rs. {item.price * item.quantity}</span>
+                                    <span className="font-extrabold text-zinc-400">
+                                      Rs. {item.price * item.quantity}
+                                    </span>
                                   </div>
                                 ))}
                               </div>
                               <div className="text-[10px] text-zinc-500 pt-2 border-t border-zinc-900/60 leading-normal font-bold uppercase tracking-wider">
                                 {isSvc ? (
-                                  <span className="text-amber-500/80">🛠️ Service inspection visit - PAY ON VISIT</span>
+                                  <span className="text-amber-500/80">
+                                    🛠️ Service inspection visit - PAY ON VISIT
+                                  </span>
                                 ) : (
-                                  <span className="text-orange-500/80">🍔 Fast food parcel dispatch - CASH ON DELIVERY</span>
+                                  <span className="text-orange-500/80">
+                                    🍔 Fast food parcel dispatch - CASH ON
+                                    DELIVERY
+                                  </span>
                                 )}
                               </div>
                             </div>
 
                             <div className="bg-zinc-950 p-4 rounded-2xl border border-zinc-900 space-y-3">
-                              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block">Destination address Coordinates</span>
+                              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block">
+                                Destination address Coordinates
+                              </span>
                               <p className="text-gray-300 leading-relaxed bg-zinc-900/20 p-3 rounded-xl border border-zinc-900 truncate">
                                 📍 {order.userAddress}
                               </p>
@@ -2700,13 +3752,28 @@ export default function AdminPanel({
                                 <div className="pt-2.5 border-t border-zinc-900/60 flex gap-3">
                                   <div className="flex-1 space-y-1">
                                     <span className="text-[8.5px] font-black text-zinc-500 tracking-widest block uppercase">
-                                      {isSvc ? "Technician Name" : "Delivery Rider"}
+                                      {isSvc
+                                        ? "Technician Name"
+                                        : "Delivery Rider"}
                                     </span>
                                     <input
                                       type="text"
-                                      placeholder={isSvc ? "e.g. Asif (Tech)" : "e.g. Ali (Rider)"}
-                                      value={riderNames[order.id] || order.riderName || ""}
-                                      onChange={(e) => setRiderNames({ ...riderNames, [order.id]: e.target.value })}
+                                      placeholder={
+                                        isSvc
+                                          ? "e.g. Asif (Tech)"
+                                          : "e.g. Ali (Rider)"
+                                      }
+                                      value={
+                                        riderNames[order.id] ||
+                                        order.riderName ||
+                                        ""
+                                      }
+                                      onChange={(e) =>
+                                        setRiderNames({
+                                          ...riderNames,
+                                          [order.id]: e.target.value,
+                                        })
+                                      }
                                       className="w-full text-xs p-2 bg-zinc-900 border border-zinc-800 rounded-lg text-white font-medium outline-none focus:border-amber-500"
                                     />
                                   </div>
@@ -2718,14 +3785,23 @@ export default function AdminPanel({
                                     <input
                                       type="text"
                                       placeholder={isSvc ? "1 Hour" : "25 mins"}
-                                      value={orderEtas[order.id] || order.eta || ""}
-                                      onChange={(e) => setOrderEtas({ ...orderEtas, [order.id]: e.target.value })}
+                                      value={
+                                        orderEtas[order.id] || order.eta || ""
+                                      }
+                                      onChange={(e) =>
+                                        setOrderEtas({
+                                          ...orderEtas,
+                                          [order.id]: e.target.value,
+                                        })
+                                      }
                                       className="w-full text-xs p-2 bg-zinc-900 border border-zinc-800 rounded-lg text-white font-medium outline-none focus:border-amber-500"
                                     />
                                   </div>
 
                                   <button
-                                    onClick={() => handleSaveRiderAndEta(order.id)}
+                                    onClick={() =>
+                                      handleSaveRiderAndEta(order.id)
+                                    }
                                     className="bg-amber-500 hover:bg-amber-600 text-black font-black p-2 px-3 rounded-lg self-end text-[10px] uppercase tracking-wider cursor-pointer h-9 shadow-md transition-all flex items-center justify-center shrink-0 hover:scale-[1.02] active:scale-95"
                                   >
                                     Apply
@@ -2738,31 +3814,53 @@ export default function AdminPanel({
                           {/* Interactive order dispatch pipelines selectors */}
                           {isActive && (
                             <div className="pt-2 flex flex-wrap gap-2.5 items-center">
-                              <span className="text-[9.5px] font-black uppercase text-amber-500/90 tracking-widest mr-1">Configure Next State:</span>
-                              
+                              <span className="text-[9.5px] font-black uppercase text-amber-500/90 tracking-widest mr-1">
+                                Configure Next State:
+                              </span>
+
                               {/* FOOD SPECIFIC DISPATCH BUTTONS */}
                               {!isSvc && (
                                 <>
                                   <button
-                                    onClick={() => handleUpdateOrderStatus(order.id, "confirmed")}
+                                    onClick={() =>
+                                      handleUpdateOrderStatus(
+                                        order.id,
+                                        "confirmed",
+                                      )
+                                    }
                                     className="bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-gray-300 px-3.5 py-2 rounded-xl transition cursor-pointer text-[10px] font-black uppercase tracking-wider hover:scale-[1.02] active:scale-95"
                                   >
                                     🤝 Confirmed
                                   </button>
                                   <button
-                                    onClick={() => handleUpdateOrderStatus(order.id, "preparing")}
+                                    onClick={() =>
+                                      handleUpdateOrderStatus(
+                                        order.id,
+                                        "preparing",
+                                      )
+                                    }
                                     className="bg-purple-950/20 border border-purple-900/40 text-purple-400 px-3.5 py-2 rounded-xl hover:bg-purple-950/50 transition cursor-pointer text-[10px] font-black uppercase tracking-wider hover:scale-[1.02] active:scale-95"
                                   >
                                     👩‍🍳 Cooking
                                   </button>
                                   <button
-                                    onClick={() => handleUpdateOrderStatus(order.id, "out_for_delivery")}
+                                    onClick={() =>
+                                      handleUpdateOrderStatus(
+                                        order.id,
+                                        "out_for_delivery",
+                                      )
+                                    }
                                     className="bg-teal-950/20 border border-teal-900/40 text-teal-400 px-3.5 py-2 rounded-xl hover:bg-teal-950/50 transition cursor-pointer text-[10px] font-black uppercase tracking-wider hover:scale-[1.02] active:scale-95"
                                   >
                                     🛵 Dispatched
                                   </button>
                                   <button
-                                    onClick={() => handleUpdateOrderStatus(order.id, "delivered")}
+                                    onClick={() =>
+                                      handleUpdateOrderStatus(
+                                        order.id,
+                                        "delivered",
+                                      )
+                                    }
                                     className="bg-emerald-950/40 border border-emerald-500/40 text-emerald-400 px-4 py-2 rounded-xl hover:bg-emerald-950/60 transition cursor-pointer text-[10.5px] font-black uppercase tracking-wider hover:scale-[1.02] active:scale-95 shadow-md shadow-emerald-500/5"
                                   >
                                     ✅ Delivered Done
@@ -2774,25 +3872,45 @@ export default function AdminPanel({
                               {isSvc && (
                                 <>
                                   <button
-                                    onClick={() => handleUpdateOrderStatus(order.id, "confirmed")}
+                                    onClick={() =>
+                                      handleUpdateOrderStatus(
+                                        order.id,
+                                        "confirmed",
+                                      )
+                                    }
                                     className="bg-zinc-900 border border-zinc-800 hover:border-zinc-750 text-gray-300 px-3.5 py-2 rounded-xl transition cursor-pointer text-[10px] font-black uppercase tracking-wider hover:scale-[1.02] active:scale-95"
                                   >
                                     🤝 Confirm Booking
                                   </button>
                                   <button
-                                    onClick={() => handleUpdateOrderStatus(order.id, "diagnostic_on_way")}
+                                    onClick={() =>
+                                      handleUpdateOrderStatus(
+                                        order.id,
+                                        "diagnostic_on_way",
+                                      )
+                                    }
                                     className="bg-sky-950/20 border border-sky-900/40 text-sky-400 px-3.5 py-2 rounded-xl hover:bg-sky-950/50 transition cursor-pointer text-[10px] font-black uppercase tracking-wider hover:scale-[1.02] active:scale-95"
                                   >
                                     🛵 Mechanic Out
                                   </button>
                                   <button
-                                    onClick={() => handleUpdateOrderStatus(order.id, "diagnostic_underway")}
+                                    onClick={() =>
+                                      handleUpdateOrderStatus(
+                                        order.id,
+                                        "diagnostic_underway",
+                                      )
+                                    }
                                     className="bg-yellow-950/20 border border-yellow-900/40 text-yellow-500 px-3.5 py-2 rounded-xl hover:bg-yellow-950/50 transition cursor-pointer text-[10px] font-black uppercase tracking-wider hover:scale-[1.02] active:scale-95"
                                   >
                                     🛠️ Underway
                                   </button>
                                   <button
-                                    onClick={() => handleUpdateOrderStatus(order.id, "completed")}
+                                    onClick={() =>
+                                      handleUpdateOrderStatus(
+                                        order.id,
+                                        "completed",
+                                      )
+                                    }
                                     className="bg-emerald-950/40 border border-emerald-500/40 text-emerald-400 px-4 py-2 rounded-xl hover:bg-emerald-950/60 transition cursor-pointer text-[10.5px] font-black uppercase tracking-wider hover:scale-[1.02] active:scale-95 shadow-md shadow-emerald-500/5"
                                   >
                                     ✅ Job Completed
@@ -2802,31 +3920,29 @@ export default function AdminPanel({
 
                               {/* CANCEL COMMON ACTIONS */}
                               <button
-                                onClick={() => handleUpdateOrderStatus(order.id, "cancelled")}
+                                onClick={() =>
+                                  handleUpdateOrderStatus(order.id, "cancelled")
+                                }
                                 className="ml-auto bg-red-950/20 border border-red-900/30 text-red-500 px-3.5 py-2 rounded-xl hover:bg-red-950/40 transition cursor-pointer text-[10px] font-black uppercase tracking-wider hover:scale-[1.02] active:scale-95"
                               >
                                 Cancel Order
                               </button>
                             </div>
                           )}
-
                         </div>
                       );
                     })
                   )}
                 </div>
               </div>
-
             </div>
           )}
 
           {/* TAB 4: Manage Riders Directory */}
           {activeSubTab === "riders" && (
             <div className="space-y-8 animate-fade-in text-zinc-100 col-span-1 lg:col-span-9">
-              
               {/* Top Row: General Settings & Status Metrics */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
                 {/* Global Delivery Charge Config */}
                 <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl relative space-y-4">
                   <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-500/10 to-transparent" />
@@ -2835,18 +3951,23 @@ export default function AdminPanel({
                     Set Global Delivery Charges
                   </h4>
                   <p className="text-[10.5px] text-zinc-400 font-medium leading-relaxed">
-                    This setting governs the base delivery rate added to checkout carts across Dadu24#7 dynamically.
+                    This setting governs the base delivery rate added to
+                    checkout carts across Dadu24#7 dynamically.
                   </p>
-                  
+
                   <div className="flex flex-col gap-3 text-xs pt-1">
                     <div className="flex items-center gap-3">
                       <div className="relative flex-grow">
-                        <span className="absolute left-3.5 top-3.5 text-zinc-500 font-bold">Rs.</span>
+                        <span className="absolute left-3.5 top-3.5 text-zinc-500 font-bold">
+                          Rs.
+                        </span>
                         <input
                           type="number"
                           min="0"
                           value={deliveryChargeInput}
-                          onChange={(e) => setDeliveryChargeInput(Number(e.target.value))}
+                          onChange={(e) =>
+                            setDeliveryChargeInput(Number(e.target.value))
+                          }
                           placeholder="Delivery Fee"
                           className="w-full pl-10 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-white font-extrabold focus:border-amber-500 transition"
                         />
@@ -2860,14 +3981,20 @@ export default function AdminPanel({
                       </button>
                     </div>
                     <div className="relative flex-grow mt-2">
-                      <span className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Minimum Order Amount</span>
+                      <span className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">
+                        Minimum Order Amount
+                      </span>
                       <div className="relative">
-                        <span className="absolute left-3.5 top-3.5 text-zinc-500 font-bold">Rs.</span>
+                        <span className="absolute left-3.5 top-3.5 text-zinc-500 font-bold">
+                          Rs.
+                        </span>
                         <input
                           type="number"
                           min="0"
                           value={minOrderAmountInput}
-                          onChange={(e) => setMinOrderAmountInput(Number(e.target.value))}
+                          onChange={(e) =>
+                            setMinOrderAmountInput(Number(e.target.value))
+                          }
                           placeholder="0 for no minimum"
                           className="w-full pl-10 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-white font-extrabold focus:border-amber-500 transition"
                         />
@@ -2883,23 +4010,40 @@ export default function AdminPanel({
                     <Clock className="w-4 h-4 text-purple-500" />
                     Restaurant Schedule
                   </h4>
-                  
+
                   <div className="space-y-4 pt-1">
                     <div>
-                      <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Select Restaurant / Vendor</label>
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">
+                        Select Restaurant / Vendor
+                      </label>
                       <div className="relative">
                         <select
                           value={selectedScheduleRestaurant}
-                          onChange={(e) => setSelectedScheduleRestaurant(e.target.value)}
+                          onChange={(e) =>
+                            setSelectedScheduleRestaurant(e.target.value)
+                          }
                           className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-xs text-white focus:border-purple-500/60 outline-none appearance-none"
                         >
-                          {uniqueRestaurants.map(rest => (
-                            <option key={rest} value={rest}>{rest}</option>
+                          {uniqueRestaurants.map((rest) => (
+                            <option key={rest} value={rest}>
+                              {rest}
+                            </option>
                           ))}
                         </select>
                         <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
-                          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          <svg
+                            width="14"
+                            height="14"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 9l-7 7-7-7"
+                            />
                           </svg>
                         </div>
                       </div>
@@ -2907,15 +4051,21 @@ export default function AdminPanel({
 
                     <div className="flex items-center justify-between bg-zinc-950 p-4 rounded-xl border border-zinc-800">
                       <div>
-                        <h5 className="font-bold text-xs text-zinc-100">Temporarily Unavailable</h5>
-                        <p className="text-[10px] text-zinc-500">Pause orders immediately</p>
+                        <h5 className="font-bold text-xs text-zinc-100">
+                          Temporarily Unavailable
+                        </h5>
+                        <p className="text-[10px] text-zinc-500">
+                          Pause orders immediately
+                        </p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer group">
-                        <input 
-                          type="checkbox" 
-                          className="sr-only peer" 
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
                           checked={restStatusUnavailable}
-                          onChange={(e) => setRestStatusUnavailable(e.target.checked)}
+                          onChange={(e) =>
+                            setRestStatusUnavailable(e.target.checked)
+                          }
                         />
                         <div className="w-10 h-5 bg-zinc-800 rounded-full peer peer-focus:ring-2 peer-focus:ring-purple-500/40 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-300 after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500"></div>
                       </label>
@@ -2923,7 +4073,9 @@ export default function AdminPanel({
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Open Time</label>
+                        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">
+                          Open Time
+                        </label>
                         <input
                           type="time"
                           value={restOpeningTime}
@@ -2932,7 +4084,9 @@ export default function AdminPanel({
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Close Time</label>
+                        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">
+                          Close Time
+                        </label>
                         <input
                           type="time"
                           value={restClosingTime}
@@ -2943,7 +4097,9 @@ export default function AdminPanel({
                     </div>
 
                     <div className="pt-2">
-                      <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">Restaurant Contact Phone</label>
+                      <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">
+                        Restaurant Contact Phone
+                      </label>
                       <input
                         type="text"
                         value={restPhone}
@@ -2982,22 +4138,37 @@ export default function AdminPanel({
                   </h4>
                   <div className="grid grid-cols-2 gap-4 text-xs pt-2">
                     <div className="bg-zinc-950/40 border border-zinc-850 p-3.5 rounded-xl text-center">
-                      <span className="text-[9px] text-[#D70F64] uppercase tracking-widest font-black block">active shipments</span>
+                      <span className="text-[9px] text-[#D70F64] uppercase tracking-widest font-black block">
+                        active shipments
+                      </span>
                       <span className="text-xl font-black text-white block mt-1">
-                        {orders.filter((o) => o.riderId && o.status !== "delivered" && o.status !== "cancelled").length}
+                        {
+                          orders.filter(
+                            (o) =>
+                              o.riderId &&
+                              o.status !== "delivered" &&
+                              o.status !== "cancelled",
+                          ).length
+                        }
                       </span>
                     </div>
                     <div className="bg-zinc-950/40 border border-zinc-850 p-3.5 rounded-xl text-center">
-                      <span className="text-[9px] text-zinc-400 uppercase tracking-widest font-black block">rider registry</span>
-                      <span className="text-xl font-black text-white block mt-1">{ridersSubset.length} Riders</span>
+                      <span className="text-[9px] text-zinc-400 uppercase tracking-widest font-black block">
+                        rider registry
+                      </span>
+                      <span className="text-xl font-black text-white block mt-1">
+                        {ridersSubset.length} Riders
+                      </span>
                     </div>
                   </div>
                 </div>
-
               </div>
 
               {/* Secure Registration form */}
-              <form onSubmit={handleRegisterRiderSubmit} className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl space-y-5 relative">
+              <form
+                onSubmit={handleRegisterRiderSubmit}
+                className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl space-y-5 relative"
+              >
                 <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#D70F64]/20 to-transparent" />
                 <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 pb-3 border-b border-zinc-800/50 uppercase tracking-wide">
                   <UserPlus className="w-4 h-4 text-[#D70F64]" />
@@ -3021,7 +4192,8 @@ export default function AdminPanel({
 
                   <div className="space-y-1.5">
                     <label className="text-zinc-400 font-black uppercase tracking-widest text-[9px] flex items-center gap-1">
-                      <Phone className="w-3 h-3 text-[#D70F64]" /> Phone / Username
+                      <Phone className="w-3 h-3 text-[#D70F64]" /> Phone /
+                      Username
                     </label>
                     <input
                       type="text"
@@ -3083,29 +4255,46 @@ export default function AdminPanel({
                       📦 No accepted shipments currently on active duty route.
                     </div>
                   ) : (
-                    orders.filter((o) => o.riderId).map((order) => (
-                      <div key={order.id} className="bg-zinc-950 border border-zinc-850 p-4.5 rounded-2xl flex items-center justify-between gap-4 flex-wrap text-xs">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-extrabold text-[#D70F64]">dadu-{order.id.substring(0, 8)}</span>
-                            <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest ${
-                              order.status === "delivered" 
-                                ? "bg-emerald-500/10 text-emerald-400" 
-                                : "bg-amber-500/10 text-amber-500 animate-pulse"
-                            }`}>
-                              {order.status}
+                    orders
+                      .filter((o) => o.riderId)
+                      .map((order) => (
+                        <div
+                          key={order.id}
+                          className="bg-zinc-950 border border-zinc-850 p-4.5 rounded-2xl flex items-center justify-between gap-4 flex-wrap text-xs"
+                        >
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-extrabold text-[#D70F64]">
+                                dadu-{order.id.substring(0, 8)}
+                              </span>
+                              <span
+                                className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest ${
+                                  order.status === "delivered"
+                                    ? "bg-emerald-500/10 text-emerald-400"
+                                    : "bg-amber-500/10 text-amber-500 animate-pulse"
+                                }`}
+                              >
+                                {order.status}
+                              </span>
+                            </div>
+                            <p className="text-zinc-400 text-[11px] font-semibold mt-1">
+                              Customer: {order.userName} ({order.userAddress})
+                            </p>
+                          </div>
+
+                          <div className="bg-zinc-900 border border-zinc-850 p-3 rounded-xl min-w-[200px] text-right text-xs">
+                            <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-black block">
+                              assigned driver
+                            </span>
+                            <span className="text-zinc-100 font-extrabold block text-xs mt-0.5">
+                              {order.riderName}
+                            </span>
+                            <span className="text-emerald-450 block font-mono text-[10px]">
+                              {order.riderPhone}
                             </span>
                           </div>
-                          <p className="text-zinc-400 text-[11px] font-semibold mt-1">Customer: {order.userName} ({order.userAddress})</p>
                         </div>
-
-                        <div className="bg-zinc-900 border border-zinc-850 p-3 rounded-xl min-w-[200px] text-right text-xs">
-                          <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-black block">assigned driver</span>
-                          <span className="text-zinc-100 font-extrabold block text-xs mt-0.5">{order.riderName}</span>
-                          <span className="text-emerald-450 block font-mono text-[10px]">{order.riderPhone}</span>
-                        </div>
-                      </div>
-                    ))
+                      ))
                   )}
                 </div>
               </div>
@@ -3128,19 +4317,31 @@ export default function AdminPanel({
                       // Calculate sales performance stats for each rider
                       const stats = (() => {
                         const completedRiderOrders = orders.filter(
-                          (o) => o.riderId === rider.uid && (o.status === "delivered" || o.status === "completed")
+                          (o) =>
+                            o.riderId === rider.uid &&
+                            (o.status === "delivered" ||
+                              o.status === "completed"),
                         );
 
                         const now = new Date();
-                        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-                        
-                        // Time limitations
-                        const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-                        const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+                        const todayStart = new Date(
+                          now.getFullYear(),
+                          now.getMonth(),
+                          now.getDate(),
+                        ).getTime();
 
-                        let todayC = 0, todayS = 0;
-                        let weekC = 0, weekS = 0;
-                        let monthC = 0, monthS = 0;
+                        // Time limitations
+                        const sevenDaysAgo =
+                          Date.now() - 7 * 24 * 60 * 60 * 1000;
+                        const thirtyDaysAgo =
+                          Date.now() - 30 * 24 * 60 * 60 * 1000;
+
+                        let todayC = 0,
+                          todayS = 0;
+                        let weekC = 0,
+                          weekS = 0;
+                        let monthC = 0,
+                          monthS = 0;
 
                         completedRiderOrders.forEach((o) => {
                           let t = 0;
@@ -3172,34 +4373,54 @@ export default function AdminPanel({
                           }
                         });
 
-                        const totalCommission = completedRiderOrders.reduce((sum, o) => {
-                          return sum + (o.totalCommission !== undefined 
-                            ? o.totalCommission 
-                            : (o.items || []).reduce((itemSum, item) => itemSum + (item.commission || 0) * item.quantity, 0));
-                        }, 0);
+                        const totalCommission = completedRiderOrders.reduce(
+                          (sum, o) => {
+                            return (
+                              sum +
+                              (o.totalCommission !== undefined
+                                ? o.totalCommission
+                                : (o.items || []).reduce(
+                                    (itemSum, item) =>
+                                      itemSum +
+                                      (item.commission || 0) * item.quantity,
+                                    0,
+                                  ))
+                            );
+                          },
+                          0,
+                        );
 
                         return {
                           today: { count: todayC, sales: todayS },
                           week: { count: weekC, sales: weekS },
                           month: { count: monthC, sales: monthS },
                           totalCompleted: completedRiderOrders.length,
-                          totalCommission
+                          totalCommission,
                         };
                       })();
 
                       return (
-                        <div key={rider.uid} className="bg-zinc-950 border border-zinc-850 p-4.5 rounded-2xl space-y-3 shadow-xs">
+                        <div
+                          key={rider.uid}
+                          className="bg-zinc-950 border border-zinc-850 p-4.5 rounded-2xl space-y-3 shadow-xs"
+                        >
                           <div className="flex justify-between items-start">
                             <div>
-                              <span className="text-[10.5px] font-black tracking-wider text-white block">Rider Name: {rider.name}</span>
+                              <span className="text-[10.5px] font-black tracking-wider text-white block">
+                                Rider Name: {rider.name}
+                              </span>
                               <span className="text-[9px] text-[#D70F64] font-bold block bg-[#D70F64]/5 border border-[#D70F64]/20 px-2.5 py-0.5 rounded-full w-max mt-1 uppercase">
                                 Vehicle/Owner No: {rider.vehicleNumber || "N/A"}
                               </span>
                             </div>
                             <div className="flex items-center gap-1.5">
-                              <span className="font-mono text-[9px] text-zinc-550">{rider.uid.substring(0, 8)}</span>
+                              <span className="font-mono text-[9px] text-zinc-550">
+                                {rider.uid.substring(0, 8)}
+                              </span>
                               <button
-                                onClick={() => handleDeleteRider(rider.uid, rider.name)}
+                                onClick={() =>
+                                  handleDeleteRider(rider.uid, rider.name)
+                                }
                                 className="text-red-400 hover:text-red-300 p-1.5 rounded-lg hover:bg-red-500/10 transition cursor-pointer shrink-0"
                                 title="Delete Rider Permanent"
                               >
@@ -3208,21 +4429,36 @@ export default function AdminPanel({
                             </div>
                           </div>
                           <div className="border-t border-zinc-900 pt-2 text-[11px] font-semibold text-zinc-400 font-sans space-y-1">
-                            <div>📞 Contact Phone: <span className="font-mono text-zinc-200">{rider.phone}</span></div>
+                            <div>
+                              📞 Contact Phone:{" "}
+                              <span className="font-mono text-zinc-200">
+                                {rider.phone}
+                              </span>
+                            </div>
                             <div className="flex items-center justify-between gap-2">
                               <span>📍 Logged-in HQ Status:</span>
-                              <span className="text-emerald-440 font-bold uppercase text-[9px]">ONLINE DUTY</span>
+                              <span className="text-emerald-440 font-bold uppercase text-[9px]">
+                                ONLINE DUTY
+                              </span>
                             </div>
 
                             {/* Rider Total Deliveries & Earned Commission */}
                             <div className="bg-emerald-950/20 border border-emerald-900/40 rounded-xl p-3 mt-2.5 flex items-center justify-between gap-3 text-xs font-semibold">
                               <div>
-                                <span className="text-[9px] text-emerald-400 uppercase tracking-widest font-black block">delivered runs</span>
-                                <span className="text-xs font-extrabold text-white block mt-0.5">{stats.totalCompleted} Orders</span>
+                                <span className="text-[9px] text-emerald-400 uppercase tracking-widest font-black block">
+                                  delivered runs
+                                </span>
+                                <span className="text-xs font-extrabold text-white block mt-0.5">
+                                  {stats.totalCompleted} Orders
+                                </span>
                               </div>
                               <div className="text-right">
-                                <span className="text-[9px] text-emerald-400 uppercase tracking-widest font-black block font-sans">earned commission</span>
-                                <span className="text-xs font-black text-emerald-400 block mt-0.5">Rs. {stats.totalCommission}</span>
+                                <span className="text-[9px] text-emerald-400 uppercase tracking-widest font-black block font-sans">
+                                  earned commission
+                                </span>
+                                <span className="text-xs font-black text-emerald-400 block mt-0.5">
+                                  Rs. {stats.totalCommission}
+                                </span>
                               </div>
                             </div>
 
@@ -3231,75 +4467,94 @@ export default function AdminPanel({
                               <span className="text-[9.5px] font-black uppercase text-pink-500 tracking-wider flex items-center gap-1">
                                 📊 Rider Earnings & Sales Stats
                               </span>
-                              
+
                               <div className="grid grid-cols-3 gap-2 text-center">
                                 {/* Today */}
                                 <div className="bg-zinc-900/60 border border-zinc-854 p-2 rounded-lg">
-                                  <span className="text-[8px] text-zinc-500 uppercase font-black block">Aaj (Today)</span>
-                                  <span className="text-[10.5px] font-black text-rose-500 block mt-0.5">{stats.today.count} Orders</span>
-                                  <span className="text-[9.5px] font-bold text-zinc-200 block font-mono mt-0.5">Rs. {stats.today.sales}</span>
+                                  <span className="text-[8px] text-zinc-500 uppercase font-black block">
+                                    Aaj (Today)
+                                  </span>
+                                  <span className="text-[10.5px] font-black text-rose-500 block mt-0.5">
+                                    {stats.today.count} Orders
+                                  </span>
+                                  <span className="text-[9.5px] font-bold text-zinc-200 block font-mono mt-0.5">
+                                    Rs. {stats.today.sales}
+                                  </span>
                                 </div>
 
                                 {/* Week */}
                                 <div className="bg-zinc-900/60 border border-zinc-854 p-2 rounded-lg">
-                                  <span className="text-[8px] text-zinc-500 uppercase font-black block">Hafta (Week)</span>
-                                  <span className="text-[10.5px] font-black text-amber-500 block mt-0.5">{stats.week.count} Orders</span>
-                                  <span className="text-[9.5px] font-bold text-zinc-200 block font-mono mt-0.5">Rs. {stats.week.sales}</span>
+                                  <span className="text-[8px] text-zinc-500 uppercase font-black block">
+                                    Hafta (Week)
+                                  </span>
+                                  <span className="text-[10.5px] font-black text-amber-500 block mt-0.5">
+                                    {stats.week.count} Orders
+                                  </span>
+                                  <span className="text-[9.5px] font-bold text-zinc-200 block font-mono mt-0.5">
+                                    Rs. {stats.week.sales}
+                                  </span>
                                 </div>
 
                                 {/* Month */}
                                 <div className="bg-zinc-900/60 border border-zinc-854 p-2 rounded-lg">
-                                  <span className="text-[8px] text-zinc-500 uppercase font-black block">Mahina (Month)</span>
-                                  <span className="text-[10.5px] font-black text-emerald-500 block mt-0.5">{stats.month.count} Orders</span>
-                                  <span className="text-[9.5px] font-bold text-zinc-200 block font-mono mt-0.5">Rs. {stats.month.sales}</span>
+                                  <span className="text-[8px] text-zinc-500 uppercase font-black block">
+                                    Mahina (Month)
+                                  </span>
+                                  <span className="text-[10.5px] font-black text-emerald-500 block mt-0.5">
+                                    {stats.month.count} Orders
+                                  </span>
+                                  <span className="text-[9.5px] font-bold text-zinc-200 block font-mono mt-0.5">
+                                    Rs. {stats.month.sales}
+                                  </span>
                                 </div>
                               </div>
                             </div>
 
                             {rider.riderCoords ? (
-                            <div className="bg-emerald-950/10 border border-emerald-950 p-2.5 rounded-xl mt-1.5 space-y-1.5 text-zinc-300">
-                              <div className="flex items-center justify-between text-[10px]">
-                                <span className="text-emerald-400 font-black flex items-center gap-1">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                                  LIVE GPS SIGNAL
-                                </span>
-                                <span className="text-[9px] text-zinc-500">
-                                  {rider.riderCoords.lastUpdated ? `${Math.round((Date.now() - rider.riderCoords.lastUpdated) / 1000)}s ago` : "Active"}
-                                </span>
+                              <div className="bg-emerald-950/10 border border-emerald-950 p-2.5 rounded-xl mt-1.5 space-y-1.5 text-zinc-300">
+                                <div className="flex items-center justify-between text-[10px]">
+                                  <span className="text-emerald-400 font-black flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                    LIVE GPS SIGNAL
+                                  </span>
+                                  <span className="text-[9px] text-zinc-500">
+                                    {rider.riderCoords.lastUpdated
+                                      ? `${Math.round((Date.now() - rider.riderCoords.lastUpdated) / 1000)}s ago`
+                                      : "Active"}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between gap-1">
+                                  <span className="font-mono text-[9.5px] text-zinc-400">
+                                    {rider.riderCoords.latitude.toFixed(5)},{" "}
+                                    {rider.riderCoords.longitude.toFixed(5)}
+                                  </span>
+                                  <a
+                                    href={`https://www.google.com/maps/search/?api=1&query=${rider.riderCoords.latitude},${rider.riderCoords.longitude}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="bg-emerald-500 text-zinc-950 font-black text-[9px] px-2.5 py-1 rounded-lg hover:bg-emerald-400 transition uppercase tracking-widest leading-none block shrink-0"
+                                  >
+                                    Open Map 🗺️
+                                  </a>
+                                </div>
                               </div>
-                              <div className="flex items-center justify-between gap-1">
-                                <span className="font-mono text-[9.5px] text-zinc-400">
-                                  {rider.riderCoords.latitude.toFixed(5)}, {rider.riderCoords.longitude.toFixed(5)}
-                                </span>
-                                <a
-                                  href={`https://www.google.com/maps/search/?api=1&query=${rider.riderCoords.latitude},${rider.riderCoords.longitude}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="bg-emerald-500 text-zinc-950 font-black text-[9px] px-2.5 py-1 rounded-lg hover:bg-emerald-400 transition uppercase tracking-widest leading-none block shrink-0"
-                                >
-                                  Open Map 🗺️
-                                </a>
+                            ) : (
+                              <div className="text-zinc-500 text-[10px] italic mt-2 bg-zinc-900/30 p-2 rounded-xl border border-zinc-900 text-center">
+                                📡 Awaiting active GPS tracking signal...
                               </div>
-                            </div>
-                          ) : (
-                            <div className="text-zinc-500 text-[10px] italic mt-2 bg-zinc-900/30 p-2 rounded-xl border border-zinc-900 text-center">
-                              📡 Awaiting active GPS tracking signal...
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })
+                      );
+                    })
                   )}
                 </div>
               </div>
-
             </div>
           )}
 
           {activeSubTab === "grocery" && (
             <div className="space-y-8 animate-fade-in text-zinc-100 col-span-1 lg:col-span-12 lg:col-start-4 font-sans">
-              
               {/* Top Row: Grocery-specific store settings */}
               <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl relative space-y-4">
                 <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-orange-500/10 to-transparent" />
@@ -3308,46 +4563,63 @@ export default function AdminPanel({
                   Grocery Delivery Configuration Settings
                 </h4>
                 <p className="text-[10.5px] text-zinc-400 font-medium leading-relaxed">
-                  These metrics govern shipping charges, thresholds, and checkout policies for standalone retail groceries.
+                  These metrics govern shipping charges, thresholds, and
+                  checkout policies for standalone retail groceries.
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4.5 pt-1 text-xs">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Base Shipping Fee</label>
+                    <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+                      Base Shipping Fee
+                    </label>
                     <div className="relative">
-                      <span className="absolute left-3.5 top-3.5 text-zinc-400 font-bold">Rs.</span>
+                      <span className="absolute left-3.5 top-3.5 text-zinc-400 font-bold">
+                        Rs.
+                      </span>
                       <input
                         type="number"
                         min="0"
                         value={gBaseDeliveryFee}
-                        onChange={(e) => setGBaseDeliveryFee(Number(e.target.value))}
+                        onChange={(e) =>
+                          setGBaseDeliveryFee(Number(e.target.value))
+                        }
                         className="w-full pl-10 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-white font-extrabold focus:border-orange-500 transition"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase tracking-wider text-zinc-405 font-sans">Free Delivery Above</label>
+                    <label className="text-[10px] font-black uppercase tracking-wider text-zinc-405 font-sans">
+                      Free Delivery Above
+                    </label>
                     <div className="relative">
-                      <span className="absolute left-3.5 top-3.5 text-zinc-450 font-bold">Rs.</span>
+                      <span className="absolute left-3.5 top-3.5 text-zinc-450 font-bold">
+                        Rs.
+                      </span>
                       <input
                         type="number"
                         min="0"
                         value={gFreeDeliveryAbove}
-                        onChange={(e) => setGFreeDeliveryAbove(Number(e.target.value))}
+                        onChange={(e) =>
+                          setGFreeDeliveryAbove(Number(e.target.value))
+                        }
                         className="w-full pl-10 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-white font-extrabold focus:border-orange-500 transition"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block font-sans">Mixed Basket Checkout Policy</span>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block font-sans">
+                      Mixed Basket Checkout Policy
+                    </span>
                     <button
                       type="button"
                       onClick={() => setGAllowMixed(!gAllowMixed)}
                       className="w-full py-3 px-4 bg-zinc-950 rounded-xl border border-zinc-800 hover:border-orange-500/20 transition flex items-center justify-between cursor-pointer"
                     >
-                      <span className="font-semibold text-zinc-300">Allow Food + Grocery</span>
+                      <span className="font-semibold text-zinc-300">
+                        Allow Food + Grocery
+                      </span>
                       {gAllowMixed ? (
                         <ToggleRight className="w-6 h-6 text-orange-500 shrink-0" />
                       ) : (
@@ -3370,16 +4642,20 @@ export default function AdminPanel({
 
               {/* Middle Row: Create Category, and list of current ones */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
                 {/* 1. Category Form */}
                 <div className="bg-[#0b0b0d]/80 border border-zinc-800/80 p-6 rounded-[24px] space-y-4">
                   <h4 className="font-black text-xs text-zinc-200 uppercase tracking-widest text-orange-500 flex items-center gap-2">
                     <Plus className="w-4 h-4 text-orange-500" />
                     Create Grocery Division
                   </h4>
-                  <form onSubmit={handleAddGroceryCategory} className="space-y-3.5 text-xs">
+                  <form
+                    onSubmit={handleAddGroceryCategory}
+                    className="space-y-3.5 text-xs"
+                  >
                     <div className="space-y-1">
-                      <label className="text-[9.5px] font-bold text-zinc-400 block uppercase">Division Category Name</label>
+                      <label className="text-[9.5px] font-bold text-zinc-400 block uppercase">
+                        Division Category Name
+                      </label>
                       <input
                         type="text"
                         required
@@ -3399,12 +4675,16 @@ export default function AdminPanel({
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[9.5px] font-bold text-zinc-400 block uppercase">Display Order Position</label>
+                      <label className="text-[9.5px] font-bold text-zinc-400 block uppercase">
+                        Display Order Position
+                      </label>
                       <input
                         type="number"
                         min="1"
                         value={newCatPosition}
-                        onChange={(e) => setNewCatPosition(Number(e.target.value))}
+                        onChange={(e) =>
+                          setNewCatPosition(Number(e.target.value))
+                        }
                         className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl outline-none focus:border-orange-500 transition text-white font-mono font-bold"
                       />
                     </div>
@@ -3424,22 +4704,35 @@ export default function AdminPanel({
                   </h4>
                   <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                     {groceryCategories.map((cat) => (
-                      <div key={cat.id} className="bg-zinc-950 p-2.5 rounded-xl border border-zinc-900 w-full flex flex-col gap-2">
+                      <div
+                        key={cat.id}
+                        className="bg-zinc-950 p-2.5 rounded-xl border border-zinc-900 w-full flex flex-col gap-2"
+                      >
                         <div className="flex items-center justify-between text-xs font-semibold gap-3">
                           <div className="flex items-center gap-2 min-w-0">
                             {cat.imageUrl && (
-                              <img src={cat.imageUrl} alt="" className="w-8 h-8 rounded-lg object-cover bg-zinc-900 shrink-0 border border-zinc-800" />
+                              <img
+                                src={cat.imageUrl}
+                                alt=""
+                                className="w-8 h-8 rounded-lg object-cover bg-zinc-900 shrink-0 border border-zinc-800"
+                              />
                             )}
                             <div className="truncate">
-                              <span className="text-zinc-500 pr-1.5 font-bold font-mono">#{cat.position || 0}</span>
-                              <span className="text-zinc-250 font-bold">{cat.name}</span>
+                              <span className="text-zinc-500 pr-1.5 font-bold font-mono">
+                                #{cat.position || 0}
+                              </span>
+                              <span className="text-zinc-250 font-bold">
+                                {cat.name}
+                              </span>
                             </div>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
                             <button
                               type="button"
                               onClick={() => {
-                                setEditingCategoryId(editingCategoryId === cat.id ? null : cat.id);
+                                setEditingCategoryId(
+                                  editingCategoryId === cat.id ? null : cat.id,
+                                );
                                 setEditingCategoryImageUrl(cat.imageUrl || "");
                               }}
                               className="p-1 px-2 rounded text-[10px] font-black uppercase cursor-pointer bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition"
@@ -3448,9 +4741,16 @@ export default function AdminPanel({
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleToggleCategoryAvailable(cat.id, cat.isAvailable)}
+                              onClick={() =>
+                                handleToggleCategoryAvailable(
+                                  cat.id,
+                                  cat.isAvailable,
+                                )
+                              }
                               className={`p-1 px-2 rounded text-[10px] font-black uppercase cursor-pointer ${
-                                cat.isAvailable ? "bg-orange-500/10 text-orange-400" : "bg-zinc-850 text-zinc-500"
+                                cat.isAvailable
+                                  ? "bg-orange-500/10 text-orange-400"
+                                  : "bg-zinc-850 text-zinc-500"
                               }`}
                             >
                               {cat.isAvailable ? "Available" : "Disabled"}
@@ -3476,7 +4776,9 @@ export default function AdminPanel({
                             <div className="flex justify-end">
                               <button
                                 type="button"
-                                onClick={() => handleUpdateCategoryImageUrl(cat.id)}
+                                onClick={() =>
+                                  handleUpdateCategoryImageUrl(cat.id)
+                                }
                                 className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-xs font-bold cursor-pointer transition w-full"
                               >
                                 Save Changes
@@ -3487,25 +4789,30 @@ export default function AdminPanel({
                       </div>
                     ))}
                     {groceryCategories.length === 0 && (
-                      <p className="text-[10px] italic text-zinc-500 text-center py-6">No custom grocery categories yet.</p>
+                      <p className="text-[10px] italic text-zinc-500 text-center py-6">
+                        No custom grocery categories yet.
+                      </p>
                     )}
                   </div>
                 </div>
-
               </div>
 
               {/* Bottom Row: Create product, and product grid directory */}
               <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-                
                 {/* 1. Product creator column */}
                 <div className="bg-[#0b0b0d]/80 border border-zinc-800/85 p-6 rounded-[24px] col-span-1 md:col-span-5 space-y-4">
                   <h4 className="font-black text-xs text-zinc-200 uppercase tracking-widest text-orange-500 flex items-center gap-2">
                     <Plus className="w-4 h-4 text-orange-500" />
                     Add Grocery Product
                   </h4>
-                  <form onSubmit={handleAddGroceryProduct} className="space-y-3 text-xs">
+                  <form
+                    onSubmit={handleAddGroceryProduct}
+                    className="space-y-3 text-xs"
+                  >
                     <div className="space-y-1">
-                      <label className="text-[9px] font-bold text-zinc-400 block uppercase">Product Title / Name</label>
+                      <label className="text-[9px] font-bold text-zinc-400 block uppercase">
+                        Product Title / Name
+                      </label>
                       <input
                         type="text"
                         required
@@ -3518,23 +4825,31 @@ export default function AdminPanel({
 
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-zinc-400 block uppercase font-sans">Price (Rs.)</label>
+                        <label className="text-[9px] font-bold text-zinc-400 block uppercase font-sans">
+                          Price (Rs.)
+                        </label>
                         <input
                           type="number"
                           required
                           min="1"
                           value={newGProdPrice}
-                          onChange={(e) => setNewGProdPrice(Number(e.target.value))}
+                          onChange={(e) =>
+                            setNewGProdPrice(Number(e.target.value))
+                          }
                           className="w-full p-2.5 bg-zinc-950 border border-zinc-800 rounded-xl outline-none focus:border-orange-500 text-white text-xs font-mono font-bold"
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-zinc-400 block uppercase font-sans">Offered Price (Rs.)</label>
+                        <label className="text-[9px] font-bold text-zinc-400 block uppercase font-sans">
+                          Offered Price (Rs.)
+                        </label>
                         <input
                           type="number"
                           min="0"
                           value={newGProdDiscountPrice}
-                          onChange={(e) => setNewGProdDiscountPrice(Number(e.target.value))}
+                          onChange={(e) =>
+                            setNewGProdDiscountPrice(Number(e.target.value))
+                          }
                           className="w-full p-2.5 bg-zinc-955 border border-zinc-800 rounded-xl outline-none focus:border-orange-500 text-white text-xs font-mono font-semibold"
                         />
                       </div>
@@ -3542,7 +4857,9 @@ export default function AdminPanel({
 
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-zinc-400 block uppercase font-sans">Unit Metric</label>
+                        <label className="text-[9px] font-bold text-zinc-400 block uppercase font-sans">
+                          Unit Metric
+                        </label>
                         <select
                           value={newGProdUnit}
                           onChange={(e: any) => setNewGProdUnit(e.target.value)}
@@ -3555,32 +4872,42 @@ export default function AdminPanel({
                         </select>
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-zinc-455 block uppercase">Stock Count</label>
+                        <label className="text-[9px] font-bold text-zinc-455 block uppercase">
+                          Stock Count
+                        </label>
                         <input
                           type="number"
                           required
                           min="0"
                           value={newGProdStock}
-                          onChange={(e) => setNewGProdStock(Number(e.target.value))}
+                          onChange={(e) =>
+                            setNewGProdStock(Number(e.target.value))
+                          }
                           className="w-full p-2.5 bg-zinc-955 border border-zinc-800 rounded-xl outline-none focus:border-orange-500 text-white text-xs font-mono font-bold"
                         />
                       </div>
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[9px] font-bold text-emerald-400 block uppercase font-sans">Admin Commission (Rs.)</label>
+                      <label className="text-[9px] font-bold text-emerald-400 block uppercase font-sans">
+                        Admin Commission (Rs.)
+                      </label>
                       <input
                         type="number"
                         min="0"
                         value={newGProdCommission}
-                        onChange={(e) => setNewGProdCommission(Number(e.target.value))}
+                        onChange={(e) =>
+                          setNewGProdCommission(Number(e.target.value))
+                        }
                         className="w-full p-2.5 bg-zinc-955 border border-zinc-800 rounded-xl outline-none focus:border-emerald-500 text-white text-xs font-mono font-bold"
                         placeholder="Commission in Rs."
                       />
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[9px] font-bold text-zinc-450 block uppercase">Choose Category Division</label>
+                      <label className="text-[9px] font-bold text-zinc-450 block uppercase">
+                        Choose Category Division
+                      </label>
                       <select
                         required
                         value={newGProdCategoryId}
@@ -3588,8 +4915,10 @@ export default function AdminPanel({
                         className="w-full p-2.5 bg-zinc-955 border border-zinc-800 text-white outline-none focus:border-orange-500 rounded-xl text-xs font-semibold"
                       >
                         <option value="">-- Choose Segment --</option>
-                        {groceryCategories.map(c => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
+                        {groceryCategories.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
                         ))}
                       </select>
                     </div>
@@ -3630,20 +4959,36 @@ export default function AdminPanel({
                       </thead>
                       <tbody>
                         {groceryProducts.map((p) => {
-                          const catName = groceryCategories.find(c => c.id === p.categoryId)?.name || "Segment";
+                          const catName =
+                            groceryCategories.find((c) => c.id === p.categoryId)
+                              ?.name || "Segment";
                           const isEditing = editingGProductId === p.id;
 
                           return (
-                            <tr key={p.id} className="border-b border-zinc-900 hover:bg-zinc-950/40 text-[11px] font-semibold">
+                            <tr
+                              key={p.id}
+                              className="border-b border-zinc-900 hover:bg-zinc-950/40 text-[11px] font-semibold"
+                            >
                               <td className="py-3 px-2 flex items-center gap-2 min-w-[150px]">
-                                <img src={p.imageUrl} alt={p.name} className="w-8 h-8 rounded-lg object-cover shrink-0 bg-zinc-900 border border-zinc-800" referrerPolicy="no-referrer" />
+                                <img
+                                  src={p.imageUrl}
+                                  alt={p.name}
+                                  className="w-8 h-8 rounded-lg object-cover shrink-0 bg-zinc-900 border border-zinc-800"
+                                  referrerPolicy="no-referrer"
+                                />
                                 <div className="truncate">
-                                  <span className="text-zinc-200 font-bold block truncate leading-tight">{p.name}</span>
-                                  <span className="text-[9px] text-zinc-500 block font-mono font-semibold">ID: {p.id.substring(0,6)}...</span>
+                                  <span className="text-zinc-200 font-bold block truncate leading-tight">
+                                    {p.name}
+                                  </span>
+                                  <span className="text-[9px] text-zinc-500 block font-mono font-semibold">
+                                    ID: {p.id.substring(0, 6)}...
+                                  </span>
                                 </div>
                               </td>
                               <td className="py-3 px-2 text-zinc-400">
-                                <span className="bg-zinc-950/80 px-2 py-0.5 rounded border border-zinc-900 text-[10px] uppercase font-bold">{catName}</span>
+                                <span className="bg-zinc-950/80 px-2 py-0.5 rounded border border-zinc-900 text-[10px] uppercase font-bold">
+                                  {catName}
+                                </span>
                               </td>
                               <td className="py-3 px-2 relational-price-box">
                                 {isEditing ? (
@@ -3651,34 +4996,54 @@ export default function AdminPanel({
                                     <input
                                       type="number"
                                       value={editingGProdPriceInput}
-                                      onChange={(e) => setEditingGProdPriceInput(Number(e.target.value))}
+                                      onChange={(e) =>
+                                        setEditingGProdPriceInput(
+                                          Number(e.target.value),
+                                        )
+                                      }
                                       placeholder="Price"
                                       className="p-1 text-xs text-white bg-black border border-orange-500 rounded font-bold w-full"
                                     />
                                     <input
                                       type="number"
                                       value={editingGProdStockInput}
-                                      onChange={(e) => setEditingGProdStockInput(Number(e.target.value))}
+                                      onChange={(e) =>
+                                        setEditingGProdStockInput(
+                                          Number(e.target.value),
+                                        )
+                                      }
                                       placeholder="Stock"
                                       className="p-1 text-xs text-white bg-black border border-orange-500 rounded font-semibold w-full"
                                     />
                                     <input
                                       type="number"
                                       value={editingGProdCommissionInput}
-                                      onChange={(e) => setEditingGProdCommissionInput(Number(e.target.value))}
+                                      onChange={(e) =>
+                                        setEditingGProdCommissionInput(
+                                          Number(e.target.value),
+                                        )
+                                      }
                                       placeholder="Comm"
                                       className="p-1 text-xs text-white bg-black border border-emerald-500 rounded font-semibold w-full"
                                     />
                                   </div>
                                 ) : (
                                   <div>
-                                    <span className="text-orange-555 font-bold block font-mono">Rs. {p.price} /{p.unit}</span>
+                                    <span className="text-orange-555 font-bold block font-mono">
+                                      Rs. {p.price} /{p.unit}
+                                    </span>
                                     {p.stock <= 0 ? (
-                                      <span className="text-red-500 text-[9px] uppercase font-black">Out of Stock</span>
+                                      <span className="text-red-500 text-[9px] uppercase font-black">
+                                        Out of Stock
+                                      </span>
                                     ) : (
-                                      <span className="text-zinc-500 text-[9px] font-semibold">Stock: {p.stock} units</span>
+                                      <span className="text-zinc-500 text-[9px] font-semibold">
+                                        Stock: {p.stock} units
+                                      </span>
                                     )}
-                                    <span className="text-emerald-400 text-[10px] block font-bold mt-0.5">Comm: Rs. {p.commission || 0}</span>
+                                    <span className="text-emerald-400 text-[10px] block font-bold mt-0.5">
+                                      Comm: Rs. {p.commission || 0}
+                                    </span>
                                   </div>
                                 )}
                               </td>
@@ -3688,14 +5053,18 @@ export default function AdminPanel({
                                     <>
                                       <button
                                         type="button"
-                                        onClick={() => handleSaveInlineGProductEdit(p.id)}
+                                        onClick={() =>
+                                          handleSaveInlineGProductEdit(p.id)
+                                        }
                                         className="bg-emerald-600 text-white font-black px-1.5 py-0.5 rounded text-[9.5px] uppercase cursor-pointer"
                                       >
                                         Save
                                       </button>
                                       <button
                                         type="button"
-                                        onClick={() => setEditingGProductId(null)}
+                                        onClick={() =>
+                                          setEditingGProductId(null)
+                                        }
                                         className="bg-zinc-800 text-zinc-450 px-1.5 py-0.5 rounded text-[9.5px] cursor-pointer"
                                       >
                                         ✕
@@ -3709,7 +5078,9 @@ export default function AdminPanel({
                                           setEditingGProductId(p.id);
                                           setEditingGProdPriceInput(p.price);
                                           setEditingGProdStockInput(p.stock);
-                                          setEditingGProdCommissionInput(p.commission || 0);
+                                          setEditingGProdCommissionInput(
+                                            p.commission || 0,
+                                          );
                                         }}
                                         className="text-orange-500 hover:underline text-[10px] font-bold cursor-pointer"
                                       >
@@ -3717,16 +5088,25 @@ export default function AdminPanel({
                                       </button>
                                       <button
                                         type="button"
-                                        onClick={() => handleToggleProductAvailable(p.id, p.isAvailable)}
+                                        onClick={() =>
+                                          handleToggleProductAvailable(
+                                            p.id,
+                                            p.isAvailable,
+                                          )
+                                        }
                                         className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase cursor-pointer ${
-                                          p.isAvailable ? "bg-orange-600/10 text-orange-400" : "bg-zinc-800 text-zinc-500"
+                                          p.isAvailable
+                                            ? "bg-orange-600/10 text-orange-400"
+                                            : "bg-zinc-800 text-zinc-500"
                                         }`}
                                       >
                                         {p.isAvailable ? "Live" : "Hold"}
                                       </button>
                                       <button
                                         type="button"
-                                        onClick={() => handleDeleteProduct(p.id)}
+                                        onClick={() =>
+                                          handleDeleteProduct(p.id)
+                                        }
                                         className="p-1 px-1.5 bg-red-950/20 text-red-400 hover:text-red-300 transition shrink-0 cursor-pointer text-xs font-black rounded"
                                       >
                                         ✕
@@ -3742,9 +5122,7 @@ export default function AdminPanel({
                     </table>
                   </div>
                 </div>
-
               </div>
-
             </div>
           )}
 
@@ -3757,18 +5135,27 @@ export default function AdminPanel({
                   <div>
                     <div className="flex items-center gap-2 text-emerald-505">
                       <Users className="w-5 h-5 text-emerald-500 animate-pulse" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Registered Directory</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">
+                        Registered Directory
+                      </span>
                     </div>
-                    <h2 className="text-xl font-black text-white mt-1">Dadu Food User Database</h2>
+                    <h2 className="text-xl font-black text-white mt-1">
+                      Dadu Food User Database
+                    </h2>
                     <p className="text-[11px] text-zinc-400 font-semibold mt-0.5">
-                      View, search and manage all registered customers, riders and administrators.
+                      View, search and manage all registered customers, riders
+                      and administrators.
                     </p>
                   </div>
-                  
+
                   {/* Totals Badge */}
                   <div className="bg-[#121215] border border-zinc-805/80 rounded-2xl px-5 py-3 text-center sm:text-right">
-                    <span className="text-[9.5px] font-black text-zinc-500 uppercase tracking-wider block">Total Registered Users</span>
-                    <span className="text-2xl font-black text-emerald-400">{allUsersList.length}</span>
+                    <span className="text-[9.5px] font-black text-zinc-500 uppercase tracking-wider block">
+                      Total Registered Users
+                    </span>
+                    <span className="text-2xl font-black text-emerald-400">
+                      {allUsersList.length}
+                    </span>
                   </div>
                 </div>
 
@@ -3797,15 +5184,26 @@ export default function AdminPanel({
               {/* Users Table Box */}
               <div className="bg-[#0b0b0d]/90 border border-zinc-800/80 rounded-3xl overflow-hidden shadow-xl">
                 <div className="p-5 border-b border-zinc-850/60 flex items-center justify-between">
-                  <h3 className="font-black text-xs uppercase tracking-widest text-zinc-300">User Ledger</h3>
+                  <h3 className="font-black text-xs uppercase tracking-widest text-zinc-300">
+                    User Ledger
+                  </h3>
                   <span className="text-[10.5px] font-bold text-zinc-500">
-                    Showing {
-                      allUsersList.filter(u => 
-                        (u.name || "").toLowerCase().includes(userSearchTerm.toLowerCase()) ||
-                        (u.phone || "").toLowerCase().includes(userSearchTerm.toLowerCase()) ||
-                        (u.address || "").toLowerCase().includes(userSearchTerm.toLowerCase())
+                    Showing{" "}
+                    {
+                      allUsersList.filter(
+                        (u) =>
+                          (u.name || "")
+                            .toLowerCase()
+                            .includes(userSearchTerm.toLowerCase()) ||
+                          (u.phone || "")
+                            .toLowerCase()
+                            .includes(userSearchTerm.toLowerCase()) ||
+                          (u.address || "")
+                            .toLowerCase()
+                            .includes(userSearchTerm.toLowerCase()),
                       ).length
-                    } of {allUsersList.length}
+                    }{" "}
+                    of {allUsersList.length}
                   </span>
                 </div>
 
@@ -3823,19 +5221,26 @@ export default function AdminPanel({
                     </thead>
                     <tbody className="divide-y divide-zinc-900">
                       {allUsersList
-                        .filter(u => {
+                        .filter((u) => {
                           const queryStr = userSearchTerm.toLowerCase();
                           return (
                             (u.name || "").toLowerCase().includes(queryStr) ||
                             (u.phone || "").toLowerCase().includes(queryStr) ||
-                            (u.address || "").toLowerCase().includes(queryStr) ||
+                            (u.address || "")
+                              .toLowerCase()
+                              .includes(queryStr) ||
                             (u.role || "").toLowerCase().includes(queryStr)
                           );
                         })
                         .map((u) => {
-                          const isSpecialAdmin = u.uid === "Wf1NfRofZ9dhre1t4WIsas7b6fJ3" || u.role === "admin";
+                          const isSpecialAdmin =
+                            u.uid === "Wf1NfRofZ9dhre1t4WIsas7b6fJ3" ||
+                            u.role === "admin";
                           return (
-                            <tr key={u.uid} className="hover:bg-zinc-900/35 transition-all">
+                            <tr
+                              key={u.uid}
+                              className="hover:bg-zinc-900/35 transition-all"
+                            >
                               {/* User Info */}
                               <td className="py-4 px-5">
                                 <div className="flex items-center gap-3">
@@ -3843,21 +5248,27 @@ export default function AdminPanel({
                                     {u.name ? u.name.slice(0, 2) : "DU"}
                                   </div>
                                   <div>
-                                    <span className="text-zinc-100 font-black text-xs block">{u.name || "Dadu User"}</span>
-                                    <span className="text-[10px] text-zinc-500 font-mono block select-all">{u.uid}</span>
+                                    <span className="text-zinc-100 font-black text-xs block">
+                                      {u.name || "Dadu User"}
+                                    </span>
+                                    <span className="text-[10px] text-zinc-500 font-mono block select-all">
+                                      {u.uid}
+                                    </span>
                                   </div>
                                 </div>
                               </td>
 
                               {/* Role */}
                               <td className="py-4 px-5">
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
-                                  u.role === "admin" 
-                                    ? "bg-red-500/10 text-red-400 border border-red-500/20" 
-                                    : u.role === "rider"
-                                    ? "bg-sky-500/10 text-sky-400 border border-sky-500/20"
-                                    : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                                }`}>
+                                <span
+                                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                                    u.role === "admin"
+                                      ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                                      : u.role === "rider"
+                                        ? "bg-sky-500/10 text-sky-400 border border-sky-500/20"
+                                        : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                  }`}
+                                >
                                   {u.role || "buyer"}
                                 </span>
                               </td>
@@ -3894,17 +5305,24 @@ export default function AdminPanel({
                                       message: `Are you sure you want to PERMANENTLY delete user "${u.name || "Dadu User"}"?`,
                                       onConfirm: async () => {
                                         try {
-                                          await deleteDoc(doc(db, "users", u.uid));
+                                          await deleteDoc(
+                                            doc(db, "users", u.uid),
+                                          );
                                         } catch (err) {
-                                          console.error("Failed to delete user profile", err);
-                                          alert("Error: Database permission denied.");
+                                          console.error(
+                                            "Failed to delete user profile",
+                                            err,
+                                          );
+                                          alert(
+                                            "Error: Database permission denied.",
+                                          );
                                         }
-                                      }
+                                      },
                                     });
                                   }}
                                   className={`p-1 px-2.5 rounded text-[10px] font-black uppercase transition-all ${
-                                    isSpecialAdmin 
-                                      ? "bg-zinc-900 text-zinc-700 cursor-not-allowed" 
+                                    isSpecialAdmin
+                                      ? "bg-zinc-900 text-zinc-700 cursor-not-allowed"
                                       : "bg-red-950/30 text-red-400 hover:bg-red-900/30 cursor-pointer"
                                   }`}
                                 >
@@ -3917,7 +5335,10 @@ export default function AdminPanel({
 
                       {allUsersList.length === 0 && (
                         <tr>
-                          <td colSpan={6} className="text-center py-10 text-zinc-500 font-black">
+                          <td
+                            colSpan={6}
+                            className="text-center py-10 text-zinc-500 font-black"
+                          >
                             No registered users found in database.
                           </td>
                         </tr>
@@ -3937,12 +5358,18 @@ export default function AdminPanel({
                   <div>
                     <div className="flex items-center gap-2 text-blue-505">
                       <Globe className="w-5 h-5 text-blue-500" />
-                      <span className="text-[10px] font-black uppercase tracking-widest bg-blue-500/10 px-2 py-0.5 rounded-full">Global Configuration</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest bg-blue-500/10 px-2 py-0.5 rounded-full">
+                        Global Configuration
+                      </span>
                     </div>
-                    <h2 className="text-xl font-black text-white mt-1">SEO & Metadata</h2>
-                    <p className="text-xs text-zinc-400 font-medium mt-1">Update global SEO tags injected into the document head.</p>
+                    <h2 className="text-xl font-black text-white mt-1">
+                      SEO & Metadata
+                    </h2>
+                    <p className="text-xs text-zinc-400 font-medium mt-1">
+                      Update global SEO tags injected into the document head.
+                    </p>
                   </div>
-                  <button 
+                  <button
                     onClick={handleSaveSeoConfig}
                     className="bg-blue-600 hover:bg-blue-500 text-white font-black text-[10px] uppercase tracking-widest py-3 px-5 rounded-xl transition cursor-pointer shrink-0"
                   >
@@ -3954,7 +5381,9 @@ export default function AdminPanel({
               <div className="bg-[#0c0c0e] border border-zinc-805/80 rounded-[24px] p-5 lg:p-7 shadow-2xl relative">
                 <div className="space-y-5">
                   <div>
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block mb-1.5">Meta Title</label>
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block mb-1.5">
+                      Meta Title
+                    </label>
                     <input
                       type="text"
                       value={seoTitle}
@@ -3964,7 +5393,9 @@ export default function AdminPanel({
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block mb-1.5">Meta Description</label>
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block mb-1.5">
+                      Meta Description
+                    </label>
                     <textarea
                       value={seoDescription}
                       onChange={(e) => setSeoDescription(e.target.value)}
@@ -3973,7 +5404,9 @@ export default function AdminPanel({
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block mb-1.5">Meta Keywords</label>
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block mb-1.5">
+                      Meta Keywords
+                    </label>
                     <input
                       type="text"
                       value={seoKeywords}
@@ -3986,10 +5419,7 @@ export default function AdminPanel({
               </div>
             </div>
           )}
-
-
         </div>
-
       </div>
 
       {confirmDialog && (
@@ -3997,7 +5427,9 @@ export default function AdminPanel({
           <div className="bg-[#0c0c0e] border border-zinc-805/80 rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl text-zinc-100 p-6 space-y-4">
             <div className="flex items-center gap-2.5 text-red-500">
               <AlertTriangle className="w-5 h-5 shrink-0 animate-pulse" />
-              <h4 className="font-black text-xs uppercase tracking-widest">{confirmDialog.title}</h4>
+              <h4 className="font-black text-xs uppercase tracking-widest">
+                {confirmDialog.title}
+              </h4>
             </div>
             <p className="text-[11px] text-zinc-400 font-semibold leading-relaxed">
               {confirmDialog.message}
@@ -4025,7 +5457,6 @@ export default function AdminPanel({
           </div>
         </div>
       )}
-
     </div>
   );
 }
