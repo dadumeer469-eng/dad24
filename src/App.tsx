@@ -33,6 +33,7 @@ export default function App() {
   const [splashProgress, setSplashProgress] = useState(0);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [dishes, setDishes] = useState<Dish[]>([]);
+  const [isLoadingDishes, setIsLoadingDishes] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [deliverySettings, setDeliverySettings] = useState<SystemSettings>({ deliveryFee: 50, restaurantStatus: { isTemporarilyUnavailable: false, openingTime: "09:00", closingTime: "23:00" } });
@@ -87,6 +88,7 @@ export default function App() {
   const [activeModule, setActiveModule] = useState<"food" | "grocery">("food");
   const [groceryCategories, setGroceryCategories] = useState<GroceryCategory[]>([]);
   const [groceryProducts, setGroceryProducts] = useState<GroceryProduct[]>([]);
+  const [isLoadingGrocery, setIsLoadingGrocery] = useState(true);
   const [groceryDeliveryConfig, setGroceryDeliveryConfig] = useState<GroceryDeliveryConfig>({
     baseDeliveryFee: 40,
     freeDeliveryAboveAmount: 1000,
@@ -235,9 +237,11 @@ export default function App() {
           list.push(doc.data() as Dish);
         });
         setDishes(list);
+        setIsLoadingDishes(false);
       }
     }, (err) => {
       console.error(handleFirestoreError(err));
+      setIsLoadingDishes(false);
     });
 
     return () => unsubscribe();
@@ -268,8 +272,10 @@ export default function App() {
       });
       list.sort((a, b) => (a.position || 0) - (b.position || 0));
       setGroceryCategories(list);
+      setIsLoadingGrocery(false);
     }, (err) => {
       console.error(handleFirestoreError(err));
+      setIsLoadingGrocery(false);
     });
     return () => unsubscribe();
   }, []);
@@ -1521,31 +1527,40 @@ export default function App() {
                           <span className="text-3xl mb-1">🎪</span>
                           <span className="text-[10px] text-center uppercase tracking-wider leading-tight">All<br/>Kitchens</span>
                         </button>
-                        {uniqueRestaurants.map((vendor) => {
-                          const vendorImageUrl = deliverySettings?.restaurantStatuses?.[vendor]?.imageUrl;
-                          return (
-                            <button
-                              key={vendor}
-                              onClick={() => setSelectedRestaurant(vendor)}
-                              className={`w-[85px] h-[100px] rounded-2xl flex flex-col items-center p-1.5 font-black transition shrink-0 cursor-pointer border overflow-hidden ${
-                                selectedRestaurant === vendor
-                                  ? "bg-[#D70F64] text-white border-[#D70F64] shadow-md shadow-pink-500/15 scale-105"
-                                  : "bg-white text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 border-zinc-200"
-                              }`}
-                            >
-                              <div className="w-full h-[52px] rounded-xl overflow-hidden bg-zinc-100 flex items-center justify-center shrink-0 mb-1.5 shadow-sm">
-                                {vendorImageUrl ? (
-                                  <img src={vendorImageUrl} alt="" className="w-full h-full object-cover" />
-                                ) : (
-                                  <span className="opacity-90 text-2xl">{vendor.includes("Services") || vendor.includes("Pr") || vendor.includes("Re") ? "🛠️" : "🍔"}</span>
-                                )}
-                              </div>
-                              <span className="text-[9px] text-center tracking-tight leading-[1.1] line-clamp-2 px-0.5 w-full">
-                                {vendor}
-                              </span>
-                            </button>
-                          );
-                        })}
+                        {isLoadingDishes ? (
+                          Array.from({ length: 5 }).map((_, idx) => (
+                            <div key={`sk-${idx}`} className="w-[85px] h-[100px] rounded-2xl bg-white border border-zinc-200/80 flex flex-col items-center p-1.5 shrink-0 animate-pulse">
+                              <div className="w-full h-[52px] rounded-xl bg-zinc-200 shrink-0 mb-1.5" />
+                              <div className="w-10 h-2 sm:h-3 rounded-full bg-zinc-200 mt-0.5" />
+                            </div>
+                          ))
+                        ) : (
+                          uniqueRestaurants.map((vendor) => {
+                            const vendorImageUrl = deliverySettings?.restaurantStatuses?.[vendor]?.imageUrl;
+                            return (
+                              <button
+                                key={vendor}
+                                onClick={() => setSelectedRestaurant(vendor)}
+                                className={`w-[85px] h-[100px] rounded-2xl flex flex-col items-center p-1.5 font-black transition shrink-0 cursor-pointer border overflow-hidden ${
+                                  selectedRestaurant === vendor
+                                    ? "bg-[#D70F64] text-white border-[#D70F64] shadow-md shadow-pink-500/15 scale-105"
+                                    : "bg-white text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 border-zinc-200"
+                                }`}
+                              >
+                                <div className="w-full h-[52px] rounded-xl overflow-hidden bg-zinc-100 flex items-center justify-center shrink-0 mb-1.5 shadow-sm">
+                                  {vendorImageUrl ? (
+                                    <img src={vendorImageUrl} alt="" className="w-full h-full object-cover" />
+                                  ) : (
+                                    <span className="opacity-90 text-2xl">{vendor.includes("Services") || vendor.includes("Pr") || vendor.includes("Re") ? "🛠️" : "🍔"}</span>
+                                  )}
+                                </div>
+                                <span className="text-[9px] text-center tracking-tight leading-[1.1] line-clamp-2 px-0.5 w-full">
+                                  {vendor}
+                                </span>
+                              </button>
+                            );
+                          })
+                        )}
                       </div>
                     </div>
                   );
@@ -1561,7 +1576,22 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
-                  {filteredDishes.map((dish) => {
+                  {isLoadingDishes ? (
+                    Array.from({ length: 8 }).map((_, idx) => (
+                      <div key={idx} className="bg-white border border-zinc-200/80 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs animate-pulse flex flex-col h-full">
+                        <div className="h-28 sm:h-44 bg-zinc-200 shrink-0" />
+                        <div className="p-3 sm:p-4 flex-1 flex flex-col gap-3">
+                          <div className="h-2 sm:h-3 w-1/3 bg-zinc-200 rounded-full" />
+                          <div className="h-4 sm:h-5 w-3/4 bg-zinc-200 rounded-full" />
+                          <div className="mt-auto flex justify-between items-center pt-2">
+                             <div className="h-4 sm:h-5 w-1/4 bg-zinc-200 rounded-full" />
+                             <div className="h-8 sm:h-10 w-8 sm:w-10 bg-zinc-200 rounded-full" />
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    filteredDishes.map((dish) => {
                     const isSvc = dish.type === "service";
                     const dishRestaurantName = dish.restaurantName || (isSvc ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
                     const isRestaurantClosed = checkIsRestaurantClosed(dishRestaurantName);
@@ -1741,10 +1771,11 @@ export default function App() {
 
                       </div>
                     );
-                  })}
+                  })
+                )}
                 </div>
 
-                {filteredDishes.length === 0 && (
+                {!isLoadingDishes && filteredDishes.length === 0 && (
                   <div className="bg-white/80 backdrop-blur-md border border-pink-100 p-12 rounded-3.5xl text-center space-y-4 shadow-sm max-w-md mx-auto">
                     <div className="w-16 h-16 bg-pink-50 rounded-full flex items-center justify-center mx-auto text-3xl shadow-inner animate-bounce">
                       {showFavoritesOnly ? "💔" : "🍛"}
@@ -1812,6 +1843,7 @@ export default function App() {
           <GroceryModule
             categories={groceryCategories}
             products={groceryProducts}
+            isLoading={isLoadingGrocery}
             onAddToCart={handleAddToGroceryCart}
             cartItems={groceryCartItems}
             onUpdateCartQuantity={handleUpdateGroceryCartQuantity}

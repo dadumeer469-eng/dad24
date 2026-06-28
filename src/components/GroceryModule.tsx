@@ -5,6 +5,7 @@ import { ShoppingBasket, Package, Plus, Slash, Minus, Sparkles, Star, AlertCircl
 interface GroceryModuleProps {
   categories: GroceryCategory[];
   products: GroceryProduct[];
+  isLoading?: boolean;
   onAddToCart: (product: GroceryProduct) => void;
   cartItems: GroceryOrderItem[];
   onUpdateCartQuantity: (productId: string, quantity: number) => void;
@@ -15,6 +16,7 @@ interface GroceryModuleProps {
 export default function GroceryModule({
   categories = [],
   products = [],
+  isLoading = false,
   onAddToCart,
   cartItems = [],
   onUpdateCartQuantity,
@@ -97,26 +99,35 @@ export default function GroceryModule({
               </div>
               <span className="text-center leading-tight line-clamp-2 mt-0.5">All Items</span>
             </button>
-            {activeCategories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategoryId(cat.id)}
-                className={`p-2 w-[76px] sm:w-[88px] rounded-2xl text-[9px] sm:text-[10px] font-extrabold tracking-wide uppercase transition shrink-0 cursor-pointer select-none border flex flex-col items-center justify-start gap-1.5 ${
-                  selectedCategoryId === cat.id
-                    ? "bg-orange-500/10 text-orange-400 border-orange-500 shadow-lg shadow-orange-500/10"
-                    : "bg-zinc-900/50 text-zinc-400 border-zinc-800/50 hover:bg-zinc-800"
-                }`}
-              >
-                {cat.imageUrl ? (
-                  <img src={cat.imageUrl} alt="" className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover shrink-0 transition-transform border-2 ${selectedCategoryId === cat.id ? "border-orange-500 scale-105" : "border-transparent"}`} />
-                ) : (
-                  <div className={`w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center rounded-full text-xl sm:text-2xl shrink-0 transition-transform border-2 ${selectedCategoryId === cat.id ? "bg-orange-500 text-white border-orange-500 scale-105" : "bg-zinc-800 text-zinc-400 border-transparent"}`}>
-                    📦
-                  </div>
-                )}
-                <span className="text-center leading-tight line-clamp-2 mt-0.5">{cat.name}</span>
-              </button>
-            ))}
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, idx) => (
+                <div key={idx} className="p-2 w-[76px] sm:w-[88px] rounded-2xl border border-zinc-800/50 bg-zinc-900/50 flex flex-col items-center justify-start gap-1.5 shrink-0 animate-pulse">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-zinc-800 shrink-0" />
+                  <div className="w-10 h-2 sm:h-3 rounded-full bg-zinc-800 mt-0.5" />
+                </div>
+              ))
+            ) : (
+              activeCategories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategoryId(cat.id)}
+                  className={`p-2 w-[76px] sm:w-[88px] rounded-2xl text-[9px] sm:text-[10px] font-extrabold tracking-wide uppercase transition shrink-0 cursor-pointer select-none border flex flex-col items-center justify-start gap-1.5 ${
+                    selectedCategoryId === cat.id
+                      ? "bg-orange-500/10 text-orange-400 border-orange-500 shadow-lg shadow-orange-500/10"
+                      : "bg-zinc-900/50 text-zinc-400 border-zinc-800/50 hover:bg-zinc-800"
+                  }`}
+                >
+                  {cat.imageUrl ? (
+                    <img src={cat.imageUrl} alt="" className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover shrink-0 transition-transform border-2 ${selectedCategoryId === cat.id ? "border-orange-500 scale-105" : "border-transparent"}`} />
+                  ) : (
+                    <div className={`w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center rounded-full text-xl sm:text-2xl shrink-0 transition-transform border-2 ${selectedCategoryId === cat.id ? "bg-orange-500 text-white border-orange-500 scale-105" : "bg-zinc-800 text-zinc-400 border-transparent"}`}>
+                      📦
+                    </div>
+                  )}
+                  <span className="text-center leading-tight line-clamp-2 mt-0.5">{cat.name}</span>
+                </button>
+              ))
+            )}
           </div>
         </div>
 
@@ -137,7 +148,27 @@ export default function GroceryModule({
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
-            {filteredProducts.map((p) => {
+            {isLoading ? (
+              Array.from({ length: 8 }).map((_, idx) => (
+                <div key={idx} className="bg-zinc-900 border border-zinc-800 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl animate-pulse flex flex-col h-full">
+                  <div className="h-28 sm:h-44 bg-zinc-800 shrink-0" />
+                  <div className="p-3 sm:p-4.5 flex-1 flex flex-col gap-3">
+                    <div className="h-2 sm:h-3 w-1/3 bg-zinc-800 rounded-full" />
+                    <div className="h-4 sm:h-5 w-3/4 bg-zinc-800 rounded-full" />
+                    <div className="mt-auto h-8 sm:h-10 w-full bg-zinc-800 rounded-xl" />
+                  </div>
+                </div>
+              ))
+            ) : filteredProducts.length === 0 ? (
+              <div className="col-span-full py-16 flex flex-col items-center justify-center text-center space-y-4">
+                <Package className="w-16 h-16 text-zinc-800 mb-2" />
+                <h4 className="font-black text-sm text-zinc-100 uppercase tracking-tight">No Products Found</h4>
+                <p className="text-[11px] text-zinc-500 font-bold max-w-xs leading-relaxed">
+                  We couldn't find any grocery items matching your criteria. Try adjusting your search or category filter.
+                </p>
+              </div>
+            ) : (
+              filteredProducts.map((p) => {
               const qty = getProductQuantityInCart(p.id);
               const hasDiscount = p.discountPrice && p.discountPrice < p.price;
               const displayPrice = hasDiscount ? p.discountPrice : p.price;
@@ -235,23 +266,9 @@ export default function GroceryModule({
                   </div>
                 </div>
               );
-            })}
-          </div>
-
-          {filteredProducts.length === 0 && (
-            <div className="bg-zinc-900 border border-zinc-850 p-12 rounded-3xl text-center space-y-3 max-w-md mx-auto mt-6">
-              <ShoppingBag className="w-10 h-10 text-zinc-500 mx-auto" />
-              <p className="text-xs text-zinc-400 font-bold uppercase tracking-widest">
-                We couldn't find any grocery products matching "{searchQuery}"!
-              </p>
-              <button
-                onClick={() => setSelectedCategoryId("All")}
-                className="bg-zinc-800 hover:bg-zinc-750 text-zinc-200 font-bold py-2 px-5 text-xs rounded-xl cursor-pointer transition-colors"
-              >
-                Reset Category
-              </button>
-            </div>
+            })
           )}
+          </div>
         </div>
       </div>
     </div>
