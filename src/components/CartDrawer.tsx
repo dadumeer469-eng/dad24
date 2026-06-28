@@ -94,11 +94,10 @@ export default function CartDrawer({
 
     let activeCoords = userCoords;
 
-    // Checks if first-order condition applies to prompt user for GPS pinpoint map coordinates
-    const isFirstTime = !currentUser || !currentUser.ordersCount || currentUser.ordersCount === 0;
-    if (isFirstTime && !activeCoords) {
+    // Enforce GPS pinpoint map coordinates for every order if not already active
+    if (!activeCoords) {
       const wantGPS = window.confirm(
-        "📢 PINPOINT YOUR LOCATION VIA GPS! (First-Time User)\n\nSetting a precise GPS pin helper helps our delivery riders navigate directly to your doorstep using Google Maps without confusing path directions.\n\nWould you like to auto-detect your delivery coordinates right now?"
+        "📍 PINPOINT YOUR LOCATION VIA GPS!\n\nWe require your precise GPS location to ensure our riders navigate directly to your doorstep.\n\nPlease allow auto-detect location to continue placing your order."
       );
       if (wantGPS) {
         try {
@@ -114,8 +113,14 @@ export default function CartDrawer({
           setUserCoords(coords);
           alert("📍 GPS coordinates locked successfully! Your rider is routed turn-by-turn.");
         } catch (err: any) {
-          alert("Note: Could not fetch GPS location. No problem, we will ship directly to your written address!");
+          alert("❌ Could not fetch GPS location. Location access is required to place an order!");
+          setSubmitting(false);
+          return;
         }
+      } else {
+        alert("❌ Location access is required to place an order!");
+        setSubmitting(false);
+        return;
       }
     }
 
@@ -550,13 +555,51 @@ export default function CartDrawer({
               </div>
             </div>
 
+            {!userCoords && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-center flex flex-col items-center justify-center gap-2">
+                <span className="text-red-400 text-xs font-bold uppercase tracking-tight flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5" /> Location Access Required
+                </span>
+                <span className="text-red-300/70 text-[10px] leading-tight max-w-[250px]">
+                  Please allow GPS location access to place your order. This ensures accurate and fast delivery to your exact doorstep.
+                </span>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      alert("Getting high precision coordinates... Please permit browser prompts if any.");
+                      const coords = await new Promise<{ latitude: number, longitude: number }>((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(
+                          (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+                          (err) => reject(err),
+                          { enableHighAccuracy: true, timeout: 8000 }
+                        );
+                      });
+                      setUserCoords(coords);
+                      alert("📍 GPS coordinates locked successfully! Your rider is routed turn-by-turn.");
+                    } catch (err: any) {
+                      alert("❌ Could not fetch GPS location. Location access is required to place an order!");
+                    }
+                  }}
+                  className="mt-1 bg-red-500 hover:bg-red-600 text-white font-bold text-[10px] uppercase tracking-wider py-2 px-5 rounded-lg transition-colors cursor-pointer"
+                >
+                  Allow Location Access
+                </button>
+              </div>
+            )}
+
             <button
               onClick={handleSubmitOrder}
               disabled={submitting}
-              className="w-full bg-[#D70F64] hover:bg-[#b00c50] text-white py-3 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75"
+              className={`w-full ${!userCoords ? 'bg-orange-600 hover:bg-orange-700' : 'bg-[#D70F64] hover:bg-[#b00c50]'} text-white py-3 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75`}
             >
               {submitting ? (
                 <>Loading...</>
+              ) : !userCoords ? (
+                <>
+                  <MapPin className="w-4 h-4" />
+                  Grant Location to Place Order
+                </>
               ) : hasService && !hasFood ? (
                 <>
                   <ShieldCheck className="w-4 h-4" />

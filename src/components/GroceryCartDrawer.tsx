@@ -105,11 +105,10 @@ export default function GroceryCartDrawer({
 
     let activeCoords = userCoords;
 
-    // Detect GPS pointer for new buyers
-    const isFirstTime = !currentUser || !currentUser.ordersCount || currentUser.ordersCount === 0;
-    if (isFirstTime && !activeCoords) {
+    // Enforce GPS pinpoint map coordinates for every order if not already active
+    if (!activeCoords) {
       const wantGPS = window.confirm(
-        "📍 LOCATE VIA GPS! (Recommended)\n\nPinning your high accuracy GPS coordinates helps Dadu rider navigate straight to your doorstep without getting lost.\n\nWould you like to auto-grab your coordinates right now?"
+        "📍 LOCATE VIA GPS!\n\nWe require your precise GPS location to ensure our riders navigate directly to your doorstep.\n\nPlease allow auto-detect location to continue placing your order."
       );
       if (wantGPS) {
         try {
@@ -125,8 +124,14 @@ export default function GroceryCartDrawer({
           setUserCoords(coords);
           alert("📍 GPS pinpoint successfully attached! Your rider will receive turn-by-turn directions.");
         } catch (err) {
-          console.warn("GPS lookup bypassed:", err);
+          alert("❌ Could not fetch GPS location. Location access is required to place an order!");
+          setSubmitting(false);
+          return;
         }
+      } else {
+        alert("❌ Location access is required to place an order!");
+        setSubmitting(false);
+        return;
       }
     }
 
@@ -396,12 +401,54 @@ export default function GroceryCartDrawer({
                 </div>
               </div>
 
+              {!userCoords && (
+                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-center flex flex-col items-center justify-center gap-2">
+                  <span className="text-red-400 text-xs font-bold uppercase tracking-tight flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5" /> Location Access Required
+                  </span>
+                  <span className="text-red-300/70 text-[10px] leading-tight max-w-[250px]">
+                    Please allow GPS location access to place your order. This ensures accurate and fast delivery to your exact doorstep.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        alert("Getting high precision coordinates... Please permit browser prompts if any.");
+                        const coords = await new Promise<{ latitude: number, longitude: number }>((resolve, reject) => {
+                          navigator.geolocation.getCurrentPosition(
+                            (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+                            (err) => reject(err),
+                            { enableHighAccuracy: true, timeout: 8000 }
+                          );
+                        });
+                        setUserCoords(coords);
+                        alert("📍 GPS pinpoint successfully attached! Your rider will receive turn-by-turn directions.");
+                      } catch (err: any) {
+                        alert("❌ Could not fetch GPS location. Location access is required to place an order!");
+                      }
+                    }}
+                    className="mt-1 bg-red-500 hover:bg-red-600 text-white font-bold text-[10px] uppercase tracking-wider py-2 px-5 rounded-lg transition-colors cursor-pointer"
+                  >
+                    Allow Location Access
+                  </button>
+                </div>
+              )}
+
               <button
                 onClick={handleCheckoutSubmit}
                 disabled={submitting}
                 className="w-full py-3.5 bg-orange-600 hover:bg-orange-700 disabled:bg-orange-850 text-white font-black text-xs uppercase tracking-widest rounded-2-xl shadow-xl shadow-orange-600/10 transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                {submitting ? "Packing Shipment..." : "Place Express Grocery Order (COD) 🛒"}
+                {submitting ? (
+                  <>Packing Shipment...</>
+                ) : !userCoords ? (
+                  <>
+                    <MapPin className="w-4 h-4" />
+                    Grant Location to Place Order
+                  </>
+                ) : (
+                  <>Place Express Grocery Order (COD) 🛒</>
+                )}
               </button>
             </div>
           )}

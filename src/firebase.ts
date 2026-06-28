@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { initializeFirestore } from "firebase/firestore";
+import { getFirestore } from "firebase/firestore";
 import appletConfig from "../firebase-applet-config.json";
 
 // Safe loading of config using Vite environment variables or local applet fallback
@@ -14,13 +14,14 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase App
+console.log("Firebase Init Config:", { ...firebaseConfig, apiKey: "***" });
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 // Initialize Firestore
 const databaseId = (import.meta as any).env.VITE_FIREBASE_DATABASE_ID || appletConfig.firestoreDatabaseId;
-const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
-}, databaseId);
+console.log("Firestore Initializing with Database ID:", databaseId);
+const db = databaseId ? getFirestore(app, databaseId) : getFirestore(app);
+console.log("Firestore instance initialized successfully.");
 
 // Initialize Auth
 const auth = getAuth(app);

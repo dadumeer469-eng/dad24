@@ -220,7 +220,9 @@ export default function App() {
 
   // 2. Real-time Menu Listening & Auto-Seeding
   useEffect(() => {
+    console.log("Trace: Initializing Menu collection listener...");
     const unsubscribe = onSnapshot(collection(db, "menu"), async (snapshot) => {
+      console.log("Trace: Menu snapshot received, empty:", snapshot.empty);
       if (snapshot.empty) {
         // Run automatic Firestore database seeding
         console.log("Empty menu database. Seeding initial items directory...");
@@ -230,6 +232,8 @@ export default function App() {
           );
         } catch (err) {
           console.error("Auto seeding failed:", err);
+        } finally {
+          setIsLoadingDishes(false);
         }
       } else {
         const list: Dish[] = [];
@@ -249,7 +253,9 @@ export default function App() {
 
   // 3. Real-time Delivery Settings Listening
   useEffect(() => {
+    console.log("Trace: Initializing Delivery Settings collection listener...");
     const unsubscribe = onSnapshot(doc(db, "settings", "delivery_config"), (docSnap) => {
+      console.log("Trace: Delivery Settings snapshot received, exists:", docSnap.exists());
       if (docSnap.exists()) {
         setDeliverySettings(docSnap.data() as SystemSettings);
       } else {
@@ -265,7 +271,9 @@ export default function App() {
 
   // 3a. Real-time Grocery Categories Listening
   useEffect(() => {
+    console.log("Trace: Initializing GroceryCategories collection listener...");
     const unsubscribe = onSnapshot(collection(db, "groceryCategories"), (snapshot) => {
+      console.log("Trace: GroceryCategories snapshot received, size:", snapshot.size);
       const list: GroceryCategory[] = [];
       snapshot.forEach((doc) => {
         list.push(doc.data() as GroceryCategory);
@@ -282,7 +290,9 @@ export default function App() {
 
   // 3b. Real-time Grocery Products Listening
   useEffect(() => {
+    console.log("Trace: Initializing GroceryProducts collection listener...");
     const unsubscribe = onSnapshot(collection(db, "groceryProducts"), (snapshot) => {
+      console.log("Trace: GroceryProducts snapshot received, size:", snapshot.size);
       const list: GroceryProduct[] = [];
       snapshot.forEach((doc) => {
         list.push(doc.data() as GroceryProduct);
@@ -447,7 +457,9 @@ export default function App() {
       ordersQuery = query(collection(db, "orders"), where("userId", "==", currentUser.uid));
     }
 
+    console.log("Trace: Initializing Orders collection listener...");
     const unsubscribeOrders = onSnapshot(ordersQuery, (snapshot) => {
+      console.log("Trace: Orders snapshot received, size:", snapshot.size);
       const list: Order[] = [];
       snapshot.forEach((doc) => {
         list.push(doc.data() as Order);
@@ -477,7 +489,9 @@ export default function App() {
       where("userId", "==", currentUser.uid)
     );
 
+    console.log("Trace: Initializing Notifications collection listener...");
     const unsubscribeNotif = onSnapshot(notifsQuery, (snapshot) => {
+      console.log("Trace: Notifications snapshot received, size:", snapshot.size);
       const list: AppNotification[] = [];
       snapshot.forEach((doc) => {
         list.push({ id: doc.id, ...doc.data() } as AppNotification);
@@ -1037,25 +1051,6 @@ export default function App() {
     return dish;
   });
 
-  // --- CATALOG RENDER FILTERS ---
-  const filteredDishes = finalDishes.filter((dish) => {
-    // Hide checkout-exclusive soft drinks from main browsing screen & panels
-    const isExclusiveDrink = dish.id.startsWith("drink_") || dish.category === "Drinks" || dish.category === "Beverages";
-    if (isExclusiveDrink) return false;
-
-    const matchesCategory = activeCategory === "All" || dish.category === activeCategory;
-    const rName = dish.restaurantName || (dish.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
-    const matchesRestaurant = selectedRestaurant === "All Restaurants" || rName === selectedRestaurant;
-    const matchesFavorites = !showFavoritesOnly || favoriteDishIds.includes(dish.id);
-    const matchesSearch = dish.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          dish.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          rName.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesRestaurant && matchesSearch && matchesFavorites;
-  });
-
-  const cartCountTotal = cartItems.reduce((acc, item) => acc + item.quantity, 0);
-  const cartPriceTotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
-
   // --- RESTAURANT AVAILABILITY CHECK ---
   const checkIsRestaurantClosed = (restaurantName?: string) => {
     const fallbackName = "Dadu Fast Food & Kitchen";
@@ -1085,12 +1080,56 @@ export default function App() {
           if (currentAbsolute < openAbsolute || currentAbsolute >= closeAbsolute) return true;
         }
       }
-      return false;
     }
+    
+    // Fallback to global store status if no specific status
+    if (deliverySettings?.isStoreClosed) return true;
+    if (deliverySettings?.storeOpeningTime && deliverySettings?.storeClosingTime) {
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+      
+      const [openH, openM] = deliverySettings.storeOpeningTime.split(':').map(Number);
+      const [closeH, closeM] = deliverySettings.storeClosingTime.split(':').map(Number);
+      
+      const currentAbsolute = currentHour * 60 + currentMinute;
+      const openAbsolute = openH * 60 + openM;
+      const closeAbsolute = closeH * 60 + closeM;
 
-    // Fallback to legacy global setting if no specific setting exists
+      if (closeAbsolute < openAbsolute) {
+        // Crosses midnight
+        if (currentAbsolute < openAbsolute && currentAbsolute > closeAbsolute) return true;
+      } else {
+        // Normal day hours
+        if (currentAbsolute < openAbsolute || currentAbsolute >= closeAbsolute) return true;
+      }
+    }
     return false;
   };
+
+  // --- CATALOG RENDER FILTERS ---
+  const filteredDishes = finalDishes.filter((dish) => {
+    // Hide checkout-exclusive soft drinks from main browsing screen & panels
+    const isExclusiveDrink = dish.id.startsWith("drink_") || dish.category === "Drinks" || dish.category === "Beverages";
+    if (isExclusiveDrink) return false;
+
+    const matchesCategory = activeCategory === "All" || dish.category === activeCategory;
+    const rName = dish.restaurantName || (dish.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
+    const matchesRestaurant = selectedRestaurant === "All Restaurants" || rName === selectedRestaurant;
+    const matchesFavorites = !showFavoritesOnly || favoriteDishIds.includes(dish.id);
+    const matchesSearch = dish.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          dish.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          rName.toLowerCase().includes(searchQuery.toLowerCase());
+                          
+    const isClosed = checkIsRestaurantClosed(rName);
+
+    return matchesCategory && matchesRestaurant && matchesSearch && matchesFavorites && !isClosed;
+  });
+
+  const cartCountTotal = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+  const cartPriceTotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
+
+
 
   if (currentUser?.role === "rider") {
     return (
@@ -1492,6 +1531,7 @@ export default function App() {
                         .filter(Boolean)
                     )
                   ) as string[];
+                  
                   return (
                     <div className="bg-gradient-to-br from-white to-pink-50/30 border border-pink-100/60 p-5 rounded-3xl space-y-4 shadow-sm relative overflow-hidden">
                       <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#D70F64]/5 to-transparent rounded-full -mr-16 -mt-16 pointer-events-none" />
