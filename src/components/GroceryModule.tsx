@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { GroceryCategory, GroceryProduct, GroceryOrderItem } from "../types";
 import { ShoppingBasket, Package, Plus, Slash, Minus, Sparkles, Star, AlertCircle, ShoppingBag } from "lucide-react";
+import { LazyImage } from "./LazyImage";
 
 interface GroceryModuleProps {
   categories: GroceryCategory[];
@@ -118,7 +119,7 @@ export default function GroceryModule({
                   }`}
                 >
                   {cat.imageUrl ? (
-                    <img src={cat.imageUrl} alt="" className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover shrink-0 transition-transform border-2 ${selectedCategoryId === cat.id ? "border-orange-500 scale-105" : "border-transparent"}`} />
+                    <LazyImage src={cat.imageUrl} alt="" className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full shrink-0 transition-transform border-2 overflow-hidden ${selectedCategoryId === cat.id ? "border-orange-500 scale-105" : "border-transparent"}`} />
                   ) : (
                     <div className={`w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center rounded-full text-xl sm:text-2xl shrink-0 transition-transform border-2 ${selectedCategoryId === cat.id ? "bg-orange-500 text-white border-orange-500 scale-105" : "bg-zinc-800 text-zinc-400 border-transparent"}`}>
                       📦
@@ -200,11 +201,12 @@ export default function GroceryModule({
 
                   {/* Item Image */}
                   <div className="relative h-28 sm:h-44 bg-zinc-950 shrink-0 select-none overflow-hidden">
-                    <img
+                    <LazyImage
                       referrerPolicy="no-referrer"
                       src={p.imageUrl}
                       alt={p.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                      className="w-full h-full"
+                      imgClassName="group-hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/40 via-transparent to-transparent"></div>
                   </div>

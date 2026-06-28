@@ -1,0 +1,237 @@
+82-  const [deliverySettings, setDeliverySettings] = useState<SystemSettings>({
+83-    deliveryFee: 50,
+84:    restaurantStatus: {
+85-      isTemporarilyUnavailable: false,
+86-      openingTime: "09:00",
+--
+168-  // Navigation / Toggles
+169-  const [activeCategory, setActiveCategory] = useState<string>("All");
+170:  const [selectedRestaurant, setSelectedRestaurant] =
+171:    useState<string>("All Restaurants");
+172-  const [searchQuery, setSearchQuery] = useState("");
+173-  const [cartItems, setCartItems] = useState<OrderItem[]>([]);
+--
+355-          setDoc(doc(db, "settings", "delivery_config"), {
+356-            deliveryFee: 50,
+357:            restaurantStatus: {
+358-              isTemporarilyUnavailable: false,
+359-              openingTime: "09:00",
+--
+953-    }
+954-
+955:    // Limit cart constraint: Max 2 different restaurants per order
+956:    let itemRestaurant =
+957:      dish.restaurantName ||
+958-      (dish.type === "service"
+959-        ? "Dadu Home Services"
+--
+965-
+966-    if (isDrink && cartItems.length > 0) {
+967:      itemRestaurant =
+968:        cartItems[0].restaurantName || "Dadu Fast Food & Kitchen";
+969-    }
+970-
+971:    const currentRestaurants = Array.from(
+972:      new Set(cartItems.map((item) => item.restaurantName).filter(Boolean)),
+973-    );
+974-
+--
+996-    if (
+997-      !isAlreadyInCart &&
+998:      !currentRestaurants.includes(itemRestaurant) &&
+999:      currentRestaurants.length >= 2
+1000-    ) {
+1001-      alert(
+1002:        "You can only order from a maximum of 2 restaurants in a single order.",
+1003-      );
+1004-      return;
+--
+1044-          type: dish.type,
+1045-          serviceDuration: dish.serviceDuration,
+1046:          restaurantName: itemRestaurant,
+1047-          commission: dish.commission || 0,
+1048-          selectedSize: options?.size,
+--
+1057-  const handleAddExclusiveDrink = (drink: any) => {
+1058-    const firstRestName =
+1059:      cartItems[0]?.restaurantName || "Dadu Fast Food & Kitchen";
+1060-    const dishObj = {
+1061-      id: drink.id,
+--
+1067-      isAvailable: true,
+1068-      type: "food" as const,
+1069:      restaurantName: firstRestName,
+1070-    };
+1071-    handleAddToCart(dishObj);
+--
+1219-              type: item.type || "food",
+1220-              serviceDuration: item.serviceDuration,
+1221:              restaurantName: item.restaurantName || "Dadu Food & Service",
+1222-            });
+1223-          }
+--
+1255-        price: item.price,
+1256-        quantity: item.quantity,
+1257:        restaurantName: "Dadu Grocery Store",
+1258-        commission: item.commission || 0,
+1259-      }));
+--
+1454-  });
+1455-
+1456:  // --- RESTAURANT AVAILABILITY CHECK ---
+1457:  const checkIsRestaurantClosed = (restaurantName?: string) => {
+1458-    const fallbackName = "Dadu Fast Food & Kitchen";
+1459:    const nameToUse = restaurantName || fallbackName;
+1460-
+1461:    // Check specific restaurant status first
+1462-    if (
+1463:      deliverySettings?.restaurantStatuses &&
+1464:      deliverySettings.restaurantStatuses[nameToUse]
+1465-    ) {
+1466-      const { isTemporarilyUnavailable, openingTime, closingTime } =
+1467:        deliverySettings.restaurantStatuses[nameToUse];
+1468-      if (isTemporarilyUnavailable) return true;
+1469-      if (openingTime && closingTime) {
+--
+1540-      activeCategory === "All" || dish.category === activeCategory;
+1541-    const rName =
+1542:      dish.restaurantName ||
+1543-      (dish.type === "service"
+1544-        ? "Dadu Home Services"
+1545-        : "Dadu Fast Food & Kitchen");
+1546:    const matchesRestaurant =
+1547:      selectedRestaurant === "All Restaurants" || rName === selectedRestaurant;
+1548-    const matchesFavorites =
+1549-      !showFavoritesOnly || favoriteDishIds.includes(dish.id);
+--
+1553-      rName.toLowerCase().includes(searchQuery.toLowerCase());
+1554-
+1555:    const isClosed = checkIsRestaurantClosed(rName);
+1556-
+1557-    return (
+1558:      matchesCategory && matchesRestaurant && matchesSearch && matchesFavorites
+1559-    );
+1560-  });
+--
+2085-                  {/* Left Column: Menu Cards Catalog grid */}
+2086-                  <div className="flex-1 space-y-6">
+2087:                    {/* Dynamic Restaurants & Shop List selector */}
+2088-                    {(() => {
+2089:                      const uniqueRestaurants = Array.from(
+2090-                        new Set(
+2091-                          dishes
+2092-                            .map(
+2093-                              (d) =>
+2094:                                d.restaurantName?.trim() ||
+2095-                                (d.type === "service"
+2096-                                  ? "Dadu Home Services"
+--
+2118-                              </div>
+2119-                            </div>
+2120:                            {selectedRestaurant !== "All Restaurants" && (
+2121-                              <button
+2122-                                onClick={() =>
+2123:                                  setSelectedRestaurant("All Restaurants")
+2124-                                }
+2125-                                className="bg-pink-50 hover:bg-pink-100 text-[#D70F64] px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 cursor-pointer"
+--
+2133-                            <button
+2134-                              onClick={() =>
+2135:                                setSelectedRestaurant("All Restaurants")
+2136-                              }
+2137-                              className={`w-[85px] h-[100px] rounded-2xl flex flex-col items-center justify-center gap-1 p-2 font-black transition shrink-0 cursor-pointer border ${
+2138:                                selectedRestaurant === "All Restaurants"
+2139-                                  ? "bg-[#D70F64] text-white border-[#D70F64] shadow-md shadow-pink-500/15 scale-105"
+2140-                                  : "bg-white text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50 border-zinc-200"
+--
+2158-                                  </div>
+2159-                                ))
+2160:                              : uniqueRestaurants.map((vendor) => {
+2161-                                  const vendorImageUrl =
+2162:                                    deliverySettings?.restaurantStatuses?.[
+2163-                                      vendor
+2164-                                    ]?.imageUrl;
+--
+2167-                                      key={vendor}
+2168-                                      onClick={() =>
+2169:                                        setSelectedRestaurant(vendor)
+2170-                                      }
+2171-                                      className={`w-[85px] h-[100px] rounded-2xl flex flex-col items-center p-1.5 font-black transition shrink-0 cursor-pointer border overflow-hidden ${
+2172:                                        selectedRestaurant === vendor
+2173-                                          ? "bg-[#D70F64] text-white border-[#D70F64] shadow-md shadow-pink-500/15 scale-105"
+2174-                                          : "bg-white text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 border-zinc-200"
+--
+2205-                    <div className="flex items-center justify-between">
+2206-                      <h3 className="text-sm font-extrabold tracking-wider text-zinc-750 uppercase border-b border-pink-100 pb-2">
+2207:                        {selectedRestaurant === "All Restaurants"
+2208-                          ? activeCategory
+2209:                          : selectedRestaurant}{" "}
+2210-                        Delicacies ({filteredDishes.length})
+2211-                      </h3>
+--
+2237-                        : filteredDishes.map((dish) => {
+2238-                            const isSvc = dish.type === "service";
+2239:                            const dishRestaurantName =
+2240:                              dish.restaurantName ||
+2241-                              (isSvc
+2242-                                ? "Dadu Home Services"
+2243-                                : "Dadu Fast Food & Kitchen");
+2244:                            const isRestaurantClosed =
+2245:                              checkIsRestaurantClosed(dishRestaurantName);
+2246-                            return (
+2247-                              <div
+2248-                                key={dish.id}
+2249:                                className={`bg-white border border-zinc-200/80 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs hover:border-[#D70F64]/30 hover:shadow-md hover:shadow-pink-500/5 transition-all flex flex-col group relative text-zinc-800 ${isRestaurantClosed ? "opacity-70 grayscale-[20%]" : ""}`}
+2250-                              >
+2251-                                {/* Sold Out Overlay */}
+2252:                                {!dish.isAvailable && !isRestaurantClosed && (
+2253-                                  <div className="absolute inset-0 bg-white/95 z-20 flex flex-col items-center justify-center text-center p-2 sm:p-4">
+2254-                                    <BadgeAlert className="w-5 h-5 sm:w-8 sm:h-8 text-zinc-400 mb-1" />
+--
+2262-                                )}
+2263-
+2264:                                {isRestaurantClosed && (
+2265-                                  <div className="absolute inset-0 bg-white/70 z-20 flex flex-col items-center justify-center text-center p-2 sm:p-4 cursor-not-allowed">
+2266-                                    <Clock className="w-5 h-5 sm:w-8 sm:h-8 text-red-500 mb-1" />
+--
+2270-                                    <span className="text-[9px] sm:text-xs font-bold text-zinc-800 mt-1 bg-white px-2 py-0.5 rounded shadow-sm border border-red-100">
+2271-                                      Opens at{" "}
+2272:                                      {deliverySettings?.restaurantStatuses?.[
+2273:                                        dishRestaurantName
+2274-                                      ]?.openingTime ||
+2275:                                        deliverySettings?.restaurantStatus
+2276-                                          ?.openingTime ||
+2277-                                        "soon"}
+--
+2285-                                  onClick={(e) => {
+2286-                                    e.stopPropagation();
+2287:                                    if (!dish.isAvailable || isRestaurantClosed)
+2288-                                      return;
+2289-                                    const hasCustomization =
+--
+2365-                                      if (
+2366-                                        !dish.isAvailable ||
+2367:                                        isRestaurantClosed
+2368-                                      )
+2369-                                        return;
+--
+2382-                                    <div className="text-[8.5px] sm:text-[10.5px] text-zinc-500 font-extrabold tracking-wider uppercase flex items-center gap-1 truncate max-w-full">
+2383-                                      <span>🏪</span>{" "}
+2384:                                      {dish.restaurantName ||
+2385-                                        (dish.type === "service"
+2386-                                          ? "Dadu Home Services"
+--
+2499-                                          disabled={
+2500-                                            !dish.isAvailable ||
+2501:                                            isRestaurantClosed
+2502-                                          }
+2503:                                          className={`w-full py-1.5 sm:py-2.5 rounded-xl sm:rounded-2xl text-[9px] sm:text-xs font-black uppercase tracking-wider transition shadow-xs flex items-center justify-center gap-1 ${!dish.isAvailable || isRestaurantClosed ? "cursor-not-allowed opacity-60" : "cursor-pointer"} ${
+2504-                                            isSvc
+2505-                                              ? "bg-amber-500 hover:bg-amber-600 text-[#121212] font-semibold"
+--
+2708-        isActiveDetailDishClosed={
+2709-          activeDetailDish
+2710:            ? checkIsRestaurantClosed(
+2711:                activeDetailDish.restaurantName ||
+2712-                  (activeDetailDish.type === "service"
+2713-                    ? "Dadu Home Services"

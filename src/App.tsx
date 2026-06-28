@@ -22,6 +22,7 @@ import {
   SystemSettings,
   AppNotification,
   OrderItem,
+  FoodCategory,
   GroceryCategory,
   GroceryProduct,
   GroceryOrderItem,
@@ -43,6 +44,7 @@ import GroceryModule from "./components/GroceryModule";
 import GroceryCartDrawer from "./components/GroceryCartDrawer";
 import OrderSuccessAnimation from "./components/OrderSuccessAnimation";
 import OrderHistoryDrawer from "./components/OrderHistoryDrawer";
+import { LazyImage } from "./components/LazyImage";
 import daduLogo from "./assets/images/dadu_food_logo_new_1782333467889.jpg";
 
 // Icons & Motion
@@ -68,6 +70,8 @@ import {
   Minus,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+
+import FoodpandaRestaurantPage from "./components/FoodpandaRestaurantPage";
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -146,6 +150,7 @@ export default function App() {
 
   // Standalone Grocery Module states
   const [activeModule, setActiveModule] = useState<"food" | "grocery">("food");
+  const [foodCategories, setFoodCategories] = useState<FoodCategory[]>([]);
   const [groceryCategories, setGroceryCategories] = useState<GroceryCategory[]>(
     [],
   );
@@ -370,7 +375,150 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // 3a. Real-time Grocery Categories Listening
+  // 3a. Real-time Food Categories Listening
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      collection(db, "foodCategories"),
+      async (snapshot) => {
+        const list: FoodCategory[] = [];
+        snapshot.forEach((doc) => {
+          list.push(doc.data() as FoodCategory);
+        });
+
+        if (list.length === 0) {
+          // Seed default categories
+          const defaultCats: FoodCategory[] = [
+            {
+              id: "cat_all",
+              name: "All",
+              emoji: "🍽️",
+              subtitle: "Sab Kuch",
+              color: "from-[#D70F64] to-[#f22c80]",
+              isAvailable: true,
+              position: 0,
+            },
+            {
+              id: "cat_pizza",
+              name: "Pizza",
+              emoji: "🍕",
+              subtitle: "Hot Pizzas",
+              color: "from-red-500 to-rose-600",
+              isAvailable: true,
+              position: 1,
+            },
+            {
+              id: "cat_burgers",
+              name: "Burgers",
+              emoji: "🍔",
+              subtitle: "Zesty Burgers",
+              color: "from-amber-500 to-orange-600",
+              isAvailable: true,
+              position: 2,
+            },
+            {
+              id: "cat_broast",
+              name: "Broast",
+              emoji: "🍗",
+              subtitle: "Crispy Broast",
+              color: "from-yellow-500 to-amber-600",
+              isAvailable: true,
+              position: 3,
+            },
+            {
+              id: "cat_rolls",
+              name: "Rolls & Wraps",
+              emoji: "🌯",
+              subtitle: "Tasty Rolls",
+              color: "from-orange-500 to-red-600",
+              isAvailable: true,
+              position: 4,
+            },
+            {
+              id: "cat_pasta",
+              name: "Pasta",
+              emoji: "🍝",
+              subtitle: "Creamy Pasta",
+              color: "from-yellow-600 to-orange-600",
+              isAvailable: true,
+              position: 5,
+            },
+            {
+              id: "cat_lazania",
+              name: "Lazania",
+              emoji: "🫓",
+              subtitle: "Cheesy Lazania",
+              color: "from-red-600 to-rose-700",
+              isAvailable: true,
+              position: 6,
+            },
+            {
+              id: "cat_fries",
+              name: "Fries",
+              emoji: "🍟",
+              subtitle: "Loaded Fries",
+              color: "from-amber-400 to-yellow-600",
+              isAvailable: true,
+              position: 7,
+            },
+            {
+              id: "cat_paratha",
+              name: "Paratha",
+              emoji: "🫓",
+              subtitle: "Hot Parathas",
+              color: "from-amber-600 to-orange-700",
+              isAvailable: true,
+              position: 8,
+            },
+            {
+              id: "cat_sandwich",
+              name: "Sandwich",
+              emoji: "🥪",
+              subtitle: "Grilled Sandwiches",
+              color: "from-yellow-500 to-orange-500",
+              isAvailable: true,
+              position: 9,
+            },
+            {
+              id: "cat_specials",
+              name: "Specials",
+              emoji: "⭐️",
+              subtitle: "Dadu Premium",
+              color: "from-purple-500 to-indigo-600",
+              isAvailable: true,
+              position: 10,
+            },
+            {
+              id: "cat_services",
+              name: "Home Services",
+              emoji: "🛠️",
+              subtitle: "Expert Repairs",
+              color: "from-sky-500 to-blue-600",
+              isAvailable: true,
+              position: 11,
+            },
+          ];
+
+          try {
+            const seedPromises = defaultCats.map((c) =>
+              setDoc(doc(db, "foodCategories", c.id), c),
+            );
+            await Promise.all(seedPromises);
+          } catch (err) {
+            console.error("Failed to seed food categories", err);
+          }
+        } else {
+          list.sort((a, b) => (a.position || 0) - (b.position || 0));
+          setFoodCategories(list);
+        }
+      },
+      (err) => {
+        console.error(handleFirestoreError(err));
+      },
+    );
+    return () => unsubscribe();
+  }, []);
+
+  // 3b. Real-time Grocery Categories Listening
   useEffect(() => {
     console.log("Trace: Initializing GroceryCategories collection listener...");
     const unsubscribe = onSnapshot(
@@ -1432,6 +1580,23 @@ export default function App() {
     );
   }
 
+  if (selectedRestaurant === "Tasty Bites Dadu") {
+    return (
+      <FoodpandaRestaurantPage
+        restaurantName={selectedRestaurant}
+        dishes={dishes.filter(d => d.restaurantName === "Tasty Bites Dadu" && d.isAvailable)}
+        onBack={() => setSelectedRestaurant("All Restaurants")}
+        onAddToCart={handleAddToCart}
+        cartItems={cartItems}
+        cartCountTotal={cartCountTotal}
+        cartPriceTotal={cartPriceTotal}
+        onViewCart={() => setIsCartOpen(true)}
+        toggleFavorite={toggleFavorite}
+        favoriteDishIds={favoriteDishIds}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#FFFDFE] via-[#FDF5F8] to-[#FFFDFE] text-zinc-800 relative pb-28 md:pb-12 flex flex-col font-sans overflow-x-clip">
       {/* Decorative Premium Food Watermark/Pattern Background */}
@@ -1861,6 +2026,7 @@ export default function App() {
                 setActiveCategory={setActiveCategory}
                 dealConfig={dealConfig}
                 dealTimeLeft={dealTimeLeft}
+                foodCategories={foodCategories}
               />
 
               {/* Active Order Banner Card */}
@@ -2151,11 +2317,12 @@ export default function App() {
                                     }
                                   }}
                                 >
-                                  <img
+                                  <LazyImage
                                     referrerPolicy="no-referrer"
-                                    src={dish.imageUrl}
+                                    src={dish.imageUrl || (dish.type === "service" ? "https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&q=80&w=400" : "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=400")}
                                     alt={dish.name}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition duration duration-500"
+                                    className="w-full h-full"
+                                    imgClassName="group-hover:scale-105"
                                   />
                                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent"></div>
 
@@ -2495,6 +2662,7 @@ export default function App() {
             onClose={() => setIsAdminConsoleOpen(false)}
             adminUsername="meerali120"
             deliverySettings={deliverySettings}
+            foodCategories={foodCategories}
             groceryCategories={groceryCategories}
             groceryProducts={groceryProducts}
             groceryDeliveryConfig={groceryDeliveryConfig}

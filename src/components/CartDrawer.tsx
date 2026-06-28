@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { UserProfile, OrderItem } from "../types";
 import { X, ShoppingBag, MapPin, Phone, User, AlertTriangle, ShieldCheck, Heart, Edit2, Compass } from "lucide-react";
 import { CHECKOUT_DRINKS } from "../data";
+import { LazyImage } from "./LazyImage";
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -257,10 +258,10 @@ export default function CartDrawer({
                       className="bg-zinc-950 border border-zinc-800/80 rounded-2xl p-2.5 w-36 shrink-0 flex flex-col justify-between gap-2 snap-start hover:border-[#D70F64]/30 transition"
                     >
                       <div className="relative h-20 rounded-xl overflow-hidden bg-zinc-900 shrink-0">
-                        <img 
+                        <LazyImage 
                           src={drink.imageUrl} 
                           alt={drink.name} 
-                          className="w-full h-full object-cover"
+                          className="w-full h-full"
                           referrerPolicy="no-referrer"
                         />
                         <div className="absolute top-1 left-1 bg-black/60 backdrop-blur-xs text-[8px] font-black text-white px-1.5 py-0.5 rounded">

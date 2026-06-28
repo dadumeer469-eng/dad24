@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 import appletConfig from "../firebase-applet-config.json";
 
 // Safe loading of config using Vite environment variables or local applet fallback
@@ -34,6 +35,7 @@ console.log("Firestore instance initialized successfully.");
 
 // Initialize Auth
 const auth = getAuth(app);
+const storage = getStorage(app);
 
 // Graceful FireStore Error Mapper for diagnostics
 export function handleFirestoreError(err: any): string {
@@ -66,4 +68,4 @@ export function cleanObject<T = any>(obj: any): T {
   return obj;
 }
 
-export { app, db, auth, firebaseConfig, databaseId };
+export { app, db, auth, storage, firebaseConfig, databaseId };

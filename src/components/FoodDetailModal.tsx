@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Dish } from "../types";
 import { AlertTriangle, Clock, Plus, Minus, X, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { LazyImage } from "./LazyImage";
 
 interface FoodDetailModalProps {
   dish: Dish | null;
@@ -235,7 +236,7 @@ export default function FoodDetailModal({
             <>
               {/* Header Image */}
               <div className="h-48 sm:h-64 relative shrink-0 bg-zinc-100">
-                <img src={dish.imageUrl} alt={dish.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <LazyImage src={dish.imageUrl || (isService ? "https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&q=80&w=400" : "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=400")} alt={dish.name} className="w-full h-full" referrerPolicy="no-referrer" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                 
                 <div className="absolute bottom-4 left-5 flex items-center gap-2">
@@ -295,7 +296,7 @@ export default function FoodDetailModal({
                           }`}
                         >
                           {sizeObj.imageUrl && (
-                            <img src={sizeObj.imageUrl} alt={sizeObj.name} className="w-12 h-12 rounded-full object-cover mb-2" referrerPolicy="no-referrer" />
+                            <LazyImage src={sizeObj.imageUrl} alt={sizeObj.name} className="w-12 h-12 rounded-full overflow-hidden mb-2" referrerPolicy="no-referrer" />
                           )}
                           <div className="text-xs font-bold whitespace-nowrap">{sizeObj.name}</div>
                           <div className="text-[10px] mt-0.5 opacity-80">Rs. {sizeObj.price}</div>
@@ -371,7 +372,7 @@ export default function FoodDetailModal({
                           <label key={`${addOn.name}-${idx}`} className={`flex items-center justify-between py-4 cursor-pointer transition-colors ${idx !== dish.addOns!.length - 1 ? 'border-b border-zinc-100' : ''}`}>
                             <div className="flex items-center gap-3 px-2">
                               {addOn.imageUrl ? (
-                                <img src={addOn.imageUrl} alt={addOn.name} className="w-14 h-14 rounded-xl object-cover" referrerPolicy="no-referrer" />
+                                <LazyImage src={addOn.imageUrl} alt={addOn.name} className="w-14 h-14 rounded-xl overflow-hidden" referrerPolicy="no-referrer" />
                               ) : (
                                 <div className="w-14 h-14 rounded-xl bg-zinc-100 flex items-center justify-center">
                                   <span className="text-zinc-400 text-[10px] font-bold text-center px-1 uppercase">{addOn.name.slice(0, 3)}</span>

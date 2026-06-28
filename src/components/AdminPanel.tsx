@@ -5,6 +5,7 @@ import {
   Order,
   SystemSettings,
   AppNotification,
+  FoodCategory,
   GroceryCategory,
   GroceryProduct,
   GroceryDeliveryConfig,
@@ -22,7 +23,8 @@ import {
   getDocs,
   getFirestore,
 } from "firebase/firestore";
-import { db, firebaseConfig, databaseId, cleanObject } from "../firebase";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { db, firebaseConfig, databaseId, cleanObject, storage } from "../firebase";
 import { initializeApp, deleteApp } from "firebase/app";
 import {
   getAuth,
@@ -76,6 +78,8 @@ import {
   Clock,
   X,
   Globe,
+  Grid,
+  Pencil,
 } from "lucide-react";
 
 interface AdminPanelProps {
@@ -84,6 +88,7 @@ interface AdminPanelProps {
   onClose: () => void;
   adminUsername: string;
   deliverySettings: SystemSettings;
+  foodCategories: FoodCategory[];
   groceryCategories: GroceryCategory[];
   groceryProducts: GroceryProduct[];
   groceryDeliveryConfig: GroceryDeliveryConfig;
@@ -118,51 +123,46 @@ function ProductImageSelector({
     onChange(val);
   };
 
-  const processFile = (file: File) => {
+  const processFile = async (file: File) => {
     if (!file.type.startsWith("image/")) {
       alert("Please select a valid image file (PNG, JPG, JPEG, etc.)");
       return;
     }
 
     setIsProcessing(true);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        let width = img.width;
-        let height = img.height;
-        const max_size = 400; // Limit image dimensions to fit within Firestore limit (~40-60KB size range)
+    try {
+      const extension = file.name.split('.').pop() || 'jpg';
+      const uniqueName = `images/${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${extension}`;
+      const storageRef = ref(storage, uniqueName);
+      
+      const uploadTask = uploadBytesResumable(storageRef, file);
 
-        if (width > height) {
-          if (width > max_size) {
-            height *= max_size / width;
-            width = max_size;
+      uploadTask.on(
+        "state_changed",
+        (snapshot) => {
+          // You could track progress here if needed
+        },
+        (error) => {
+          console.error("Upload error:", error);
+          alert("Failed to upload image. " + error.message);
+          setIsProcessing(false);
+        },
+        async () => {
+          try {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            onChange(downloadURL);
+          } catch (urlError) {
+             console.error("Error getting download URL:", urlError);
+             alert("Failed to get image URL.");
           }
-        } else {
-          if (height > max_size) {
-            width *= max_size / height;
-            height = max_size;
-          }
+          setIsProcessing(false);
         }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          const dataUrl = canvas.toDataURL("image/jpeg", 0.7); // 70% quality JPEG is perfect size & visual quality
-          onChange(dataUrl);
-        }
-        setIsProcessing(false);
-      };
-      img.onerror = () => {
-        alert("Failed to read selection as a valid image.");
-        setIsProcessing(false);
-      };
-      img.src = e.target?.result as string;
-    };
-    reader.readAsDataURL(file);
+      );
+    } catch (err) {
+      console.error(err);
+      alert("Error uploading image");
+      setIsProcessing(false);
+    }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -244,29 +244,40 @@ function ProductImageSelector({
             <div className="flex flex-col items-center space-y-1">
               <Loader2 className="w-5 h-5 text-[#D70F64] animate-spin" />
               <span className="text-[9px] text-zinc-400 font-extrabold">
-                COMPRESSING IMAGE...
+                UPLOADING IMAGE...
               </span>
             </div>
           ) : imageUrl ? (
-            <div className="relative flex items-center justify-center">
+            <div className="flex flex-col items-center gap-2 relative z-10 pointer-events-none">
               <img
                 src={imageUrl}
                 alt="Upload Preview"
                 className="h-16 w-16 object-cover rounded-lg border border-zinc-800/80 shadow-md"
                 referrerPolicy="no-referrer"
               />
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onChange("");
-                }}
-                className="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-700 text-white rounded-full p-1 shadow-md cursor-pointer transition transform hover:scale-105"
-              >
-                <span className="font-bold text-[8px] leading-none block px-0.5">
-                  ✕
-                </span>
-              </button>
+              <div className="flex gap-2 pointer-events-auto">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const input = e.currentTarget.parentElement?.parentElement?.parentElement?.querySelector('input[type="file"]') as HTMLInputElement;
+                    if (input) input.click();
+                  }}
+                  className="bg-zinc-800 hover:bg-zinc-700 text-xs font-bold px-3 py-1 rounded text-white"
+                >
+                  Change Image
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onChange("");
+                  }}
+                  className="bg-red-900/50 hover:bg-red-800 text-xs font-bold px-3 py-1 rounded text-red-200"
+                >
+                  Remove Image
+                </button>
+              </div>
             </div>
           ) : (
             <div className="space-y-1">
@@ -337,6 +348,7 @@ export default function AdminPanel({
   onClose,
   adminUsername,
   deliverySettings,
+  foodCategories = [],
   groceryCategories = [],
   groceryProducts = [],
   groceryDeliveryConfig,
@@ -482,6 +494,163 @@ export default function AdminPanel({
     }
   };
 
+  const handleMigrateCategories = async () => {
+    try {
+      const categoryMap: Record<string, string> = {
+        "Tikka Pizza": "Pizza",
+        "Fajita Pizza": "Pizza",
+        "Hot N Spicy Pizza": "Pizza",
+        "Supreme Pizza": "Pizza",
+        "Mexican Pizza": "Pizza",
+        "Vaggi Lover Pizza": "Pizza",
+        "Peri Peri Pizza": "Pizza",
+        "Chilli Chicken Pizza": "Pizza",
+        "Garlic Creamy Tikka": "Pizza",
+        "Spicy Runch Pizza": "Pizza",
+        "BBQ Tikka Pizza": "Pizza",
+        "Afghani Feast Pizza": "Pizza",
+        "Chilli Garlic Cream": "Pizza",
+        "Bihari Boti Pizza": "Pizza",
+        "Tastybites Special Pizza": "Pizza",
+        "Creamy Pizza": "Pizza",
+        "Malai Boti": "Pizza",
+        "All Cheese": "Pizza",
+        "Kabab Dlight": "Pizza",
+        "Mughlai Beast Pizza": "Pizza",
+        "Kababish Pizza": "Pizza",
+        "Crown Crust Pizza": "Pizza",
+        "Crown Lover Pizza": "Pizza",
+        "Souce Crust Pizza": "Pizza",
+        "Kofta Kabab Pizza": "Pizza",
+        "Melt Malai Pizza": "Pizza",
+        "Cheese Crust Pizza": "Pizza",
+        "Chees Stick Pizza": "Pizza",
+        "Tastys Zinger": "Burgers",
+        "Zinger Burger": "Burgers",
+        "Chicken Single Patty Burger": "Burgers",
+        "Chicken Double Patty Burger": "Burgers",
+        "Crunch Burger": "Burgers",
+        "Mighty Burger": "Burgers",
+        "Pizza Burger": "Burgers",
+        "Tastys Signature": "Burgers",
+        "Jumbo Patty Burger": "Burgers",
+        "Jumbo Double Patty Burger": "Burgers",
+        "MAC Burger": "Burgers",
+        "Beef Single Patty Burger": "Burgers",
+        "Beef Double Party Burger": "Burgers",
+        "Full Fried Burger": "Burgers",
+        "Cheese Beef Burger": "Burgers",
+        "Lava Beef Burger": "Burgers",
+        "Grilled Charcoal Burger": "Burgers",
+        "Grilled Jalapeno Burger": "Burgers",
+        "Broast 2Pc": "Broast",
+        "Chest Broast 2Pc": "Broast",
+        "Injected Broast 2Pc with Bun": "Broast",
+        "Fried Chicken Per Pc": "Broast",
+        "Hot Wings 8Pc": "Broast",
+        "Sweet Chili Wings 8Pc": "Broast",
+        "BBQ Wings 8Pc": "Broast",
+        "Garlic Wings 8Pc": "Broast",
+        "Peri Peri Wings 8Pc": "Broast",
+        "Honey Mustard Wings 8Pc": "Broast",
+        "Nuggets 10Pc": "Broast",
+        "Grilled Paratha Roll": "Rolls & Wraps",
+        "Grilled Cheese Paratha Roll": "Rolls & Wraps",
+        "Mayo Roll": "Rolls & Wraps",
+        "Vaggi Roll": "Rolls & Wraps",
+        "Zingratha Roll": "Rolls & Wraps",
+        "Twister Roll": "Rolls & Wraps",
+        "Tortilla Wrap": "Rolls & Wraps",
+        "Burrito Wrap": "Rolls & Wraps",
+        "Grilled Wrap": "Rolls & Wraps",
+        "Creamy Pasta": "Pasta",
+        "Cheese Pasta": "Pasta",
+        "Red Sauce Pasta": "Pasta",
+        "Crispy Pasta": "Pasta",
+        "Alfrido Pasta": "Pasta",
+        "Plan Lazania": "Lazania",
+        "Fajita Lazania": "Lazania",
+        "Malai Boti Lazania": "Lazania",
+        "Crispy Lazania": "Lazania",
+        "Crispy Fries 100gr": "Fries",
+        "Crispy Fries 200gr": "Fries",
+        "Crispy Masala Fries": "Fries",
+        "Crispy Pizza Fries": "Fries",
+        "Crispy Loaded Fries": "Fries",
+        "Chicken Salad": "Fries",
+        "Pizza Paratha": "Paratha",
+        "Chocolate Paratha": "Paratha",
+        "Cheese Paratha": "Paratha",
+        "Plan Paratha": "Paratha",
+        "Malai Boti Pizza Paratha": "Paratha",
+        "Grilled Sandwich": "Sandwich",
+        "Malai Boti Sandwich": "Sandwich",
+      };
+
+      let count = 0;
+      for (const dish of dishes) {
+        const correctCategory = categoryMap[dish.name.trim()];
+        if (correctCategory && dish.category !== correctCategory) {
+          await updateDoc(doc(db, "menu", dish.id), {
+            category: correctCategory,
+          });
+          count++;
+        }
+      }
+      alert(`Migrated ${count} items!`);
+    } catch (err) {
+      console.error(err);
+      alert("Error migrating");
+    }
+  };
+
+  const [newFoodCategory, setNewFoodCategory] = useState({
+    name: "",
+    subtitle: "",
+    imageUrl: "",
+    emoji: "",
+    color: "from-pink-500 to-rose-600",
+    position: 0,
+    isAvailable: true,
+  });
+
+  const handleAddFoodCategory = async () => {
+    if (!newFoodCategory.name) {
+      alert("Name is required");
+      return;
+    }
+    try {
+      const catId = `cat_${Date.now()}`;
+      await setDoc(doc(db, "foodCategories", catId), {
+        ...newFoodCategory,
+        id: catId,
+      });
+      setNewFoodCategory({
+        name: "",
+        subtitle: "",
+        imageUrl: "",
+        emoji: "",
+        color: "from-pink-500 to-rose-600",
+        position: 0,
+        isAvailable: true,
+      });
+      alert("Category added successfully!");
+    } catch (err) {
+      console.error(err);
+      alert("Error adding category");
+    }
+  };
+
+  const handleDeleteFoodCategory = async (id: string) => {
+    if (confirm("Are you sure you want to delete this category?")) {
+      try {
+        await deleteDoc(doc(db, "foodCategories", id));
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
   const handleSaveSeoConfig = async () => {
     try {
       await setDoc(
@@ -576,6 +745,7 @@ export default function AdminPanel({
   const [editingPriceDishId, setEditingPriceDishId] = useState<string | null>(
     null,
   );
+  const [editingImageUrl, setEditingImageUrl] = useState<string>("");
   const [editingPriceInput, setEditingPriceInput] = useState<number>(0);
   const [editingDiscountPriceInput, setEditingDiscountPriceInput] =
     useState<number>(0);
@@ -1192,17 +1362,8 @@ export default function AdminPanel({
     e.preventDefault();
     if (!newItemName.trim()) return;
 
-    // Set default illustrations based on category
+    // Ensure the image URL is trimmed
     let finalImg = newItemImageUrl.trim();
-    if (!finalImg) {
-      if (newItemType === "service") {
-        finalImg =
-          "https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&q=80&w=400";
-      } else {
-        finalImg =
-          "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=400";
-      }
-    }
 
     const uniqueId = `custom_${Date.now()}`;
     const dishModel: Dish = {
@@ -1274,7 +1435,7 @@ export default function AdminPanel({
   const handleSavePriceChange = async (dish: Dish) => {
     if (editingPriceInput <= 0) return;
     try {
-      await updateDoc(doc(db, "menu", dish.id), {
+      const updates: any = {
         price: editingPriceInput,
         discountPrice:
           editingDiscountPriceInput > 0 ? editingDiscountPriceInput : null,
@@ -1289,7 +1450,11 @@ export default function AdminPanel({
           dish.type === "food" && editingAddOns.length > 0
             ? editingAddOns
             : null,
-      });
+      };
+      if (editingImageUrl) {
+        updates.imageUrl = editingImageUrl;
+      }
+      await updateDoc(doc(db, "menu", dish.id), updates);
       setEditingPriceDishId(null);
     } catch (err) {
       console.error(err);
@@ -1355,14 +1520,76 @@ export default function AdminPanel({
     });
   };
 
+  const handleRenameRestaurant = (oldName: string) => {
+    const newName = prompt(`Enter new name for "${oldName}":`, oldName);
+    if (!newName || newName.trim() === "" || newName.trim() === oldName) return;
+
+    setConfirmDialog({
+      title: "Rename Restaurant",
+      message: `Are you sure you want to rename "${oldName}" to "${newName.trim()}"? This will update all its menu items.`,
+      onConfirm: async () => {
+        try {
+          const finalNewName = newName.trim();
+
+          // 1. Update delivery config statuses
+          const existingStatuses = deliverySettings?.restaurantStatuses || {};
+          const oldStatus = existingStatuses[oldName] || {
+            isTemporarilyUnavailable: false,
+            openingTime: "09:00",
+            closingTime: "23:00",
+          };
+
+          const newStatuses = { ...existingStatuses };
+          newStatuses[finalNewName] = oldStatus;
+          delete newStatuses[oldName];
+
+          await setDoc(doc(db, "settings", "delivery_config"), {
+            ...deliverySettings,
+            restaurantStatuses: newStatuses,
+          });
+
+          // 2. Update all menu items for this restaurant
+          const dishesToUpdate = dishes.filter(
+            (d) =>
+              (d.restaurantName ||
+                (d.type === "service"
+                  ? "Dadu Home Services"
+                  : "Dadu Fast Food & Kitchen")) === oldName,
+          );
+
+          const updatePromises = dishesToUpdate.map((d) =>
+            updateDoc(doc(db, "menu", d.id), { restaurantName: finalNewName }),
+          );
+          await Promise.all(updatePromises);
+
+          setSelectedScheduleRestaurant(finalNewName);
+          alert(`Restaurant successfully renamed to "${finalNewName}".`);
+        } catch (err) {
+          console.error(err);
+          alert("Failed to rename restaurant.");
+        }
+      },
+    });
+  };
+
   // Manual orders status controls
   const handleUpdateOrderStatus = async (
     orderId: string,
     nextStatus: string,
   ) => {
     try {
+      let cancelReason = "";
+      if (nextStatus === "cancelled") {
+        const reason = prompt(
+          "Please enter a reason for cancelling this order (this will be sent to the customer):",
+        );
+        if (reason === null) return; // User pressed cancel on the prompt
+        cancelReason = reason || "Order was cancelled by administration.";
+      }
+
       await updateDoc(doc(db, "orders", orderId), {
         status: nextStatus,
+        ...(cancelReason ? { cancelReason } : {}),
       });
 
       // Dispatch an automatic in-app notification to the customer profile!
@@ -1394,14 +1621,22 @@ export default function AdminPanel({
 
   // Save customized Rider & custom ETA
   const handleSaveRiderAndEta = async (orderId: string) => {
-    const riderNameValue = riderNames[orderId]?.trim() || "";
+    const riderIdValue = riderNames[orderId]?.trim() || "";
     const etaValue = orderEtas[orderId]?.trim() || "";
 
-    if (!riderNameValue && !etaValue) return;
+    if (!riderIdValue && !etaValue) return;
 
     try {
       const updates: any = {};
-      if (riderNameValue) updates.riderName = riderNameValue;
+      if (riderIdValue) {
+        const selectedRider = ridersSubset.find(r => r.uid === riderIdValue);
+        if (selectedRider) {
+          updates.riderId = selectedRider.uid;
+          updates.riderName = selectedRider.name;
+        } else {
+          updates.riderName = riderIdValue; // fallback for string
+        }
+      }
       if (etaValue) {
         updates.eta = etaValue;
         const targetOrder = orders.find((o) => o.id === orderId);
@@ -1533,6 +1768,18 @@ export default function AdminPanel({
               >
                 <Clock className="w-4 h-4 shrink-0" />
                 Manage Restaurants
+              </button>
+
+              <button
+                onClick={() => setActiveSubTab("food_categories")}
+                className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
+                  activeSubTab === "food_categories"
+                    ? "bg-pink-500/5 border-pink-500/35 text-pink-500 font-extrabold shadow-[0_0_20px_rgba(236,72,153,0.05)] scale-[1.01]"
+                    : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-pink-400/90"
+                }`}
+              >
+                <Grid className="w-4 h-4 text-pink-500 shrink-0" />
+                Manage Food Categories
               </button>
 
               <button
@@ -2212,6 +2459,16 @@ export default function AdminPanel({
 
                         <button
                           onClick={() =>
+                            handleRenameRestaurant(selectedScheduleRestaurant)
+                          }
+                          className="w-full bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 border border-blue-500/30 transition-all font-black py-3 rounded-xl text-[11px] uppercase tracking-wider cursor-pointer flex items-center justify-center gap-2"
+                        >
+                          <Pencil className="w-4 h-4 shrink-0" />
+                          Rename Vendor
+                        </button>
+
+                        <button
+                          onClick={() =>
                             handleDeleteRestaurant(selectedScheduleRestaurant)
                           }
                           className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 transition-all font-black py-3 rounded-xl text-[11px] uppercase tracking-wider cursor-pointer flex items-center justify-center gap-2"
@@ -2309,11 +2566,11 @@ export default function AdminPanel({
                       }
                       className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 cursor-pointer transition focus:ring-1 focus:ring-amber-500/10"
                     >
-                      <option value="Burgers">Burgers 🍔</option>
-                      <option value="Pizzas">Pizzas 🍕</option>
-                      <option value="Chicken & Rice">Chicken & Rice 🍗</option>
-                      <option value="Only Tea">Only Tea ☕</option>
-                      <option value="Specials">Specials (Offers) ⭐️</option>
+                      {foodCategories.map((cat) => (
+                        <option key={cat.id} value={cat.name}>
+                          {cat.name} {cat.emoji}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -2742,12 +2999,18 @@ export default function AdminPanel({
                           >
                             <td className="p-4 font-bold text-gray-200">
                               <div className="flex items-center gap-3">
-                                <img
-                                  src={dish.imageUrl}
-                                  alt={dish.name}
-                                  className="w-8 h-8 rounded-lg object-cover bg-zinc-950 shrink-0"
-                                  referrerPolicy="no-referrer"
-                                />
+                                {dish.imageUrl ? (
+                                  <img
+                                    src={dish.imageUrl}
+                                    alt={dish.name}
+                                    className="w-8 h-8 rounded-lg object-cover bg-zinc-950 shrink-0"
+                                    referrerPolicy="no-referrer"
+                                  />
+                                ) : (
+                                  <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0">
+                                    <span className="text-[7px] text-zinc-500 font-black uppercase text-center leading-tight">No<br/>Img</span>
+                                  </div>
+                                )}
                                 <div className="truncate max-w-xs">
                                   <div>{dish.name}</div>
                                   <div className="text-[10px] text-zinc-500 font-medium font-sans mt-0.5">
@@ -2785,7 +3048,15 @@ export default function AdminPanel({
                             </td>
                             <td className="p-4">
                               {editingPriceDishId === dish.id ? (
-                                <div className="flex flex-col gap-1.5 max-w-[150px]">
+                                <div className="flex flex-col gap-1.5 min-w-[200px]">
+                                  <div className="mb-2">
+                                    <ProductImageSelector
+                                      imageUrl={editingImageUrl}
+                                      onChange={setEditingImageUrl}
+                                      label="Update Image"
+                                      accentColorClass="amber"
+                                    />
+                                  </div>
                                   <div className="flex items-center gap-1">
                                     <span className="text-[8px] text-zinc-500 uppercase font-bold w-12">
                                       Price:
@@ -2857,53 +3128,52 @@ export default function AdminPanel({
                                           </button>
                                         </div>
                                         {editingSizes.map((sz, idx) => (
-                                          <div key={idx} className="flex gap-1">
-                                            <input
-                                              type="text"
-                                              value={sz.name}
-                                              onChange={(e) => {
+                                          <div key={idx} className="flex flex-col gap-2 p-2 bg-zinc-900/50 rounded border border-zinc-800">
+                                            <div className="flex gap-1">
+                                              <input
+                                                type="text"
+                                                value={sz.name}
+                                                onChange={(e) => {
+                                                  const n = [...editingSizes];
+                                                  n[idx].name = e.target.value;
+                                                  setEditingSizes(n);
+                                                }}
+                                                placeholder="Name"
+                                                className="flex-1 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
+                                              />
+                                              <input
+                                                type="number"
+                                                value={sz.price || ""}
+                                                onChange={(e) => {
+                                                  const n = [...editingSizes];
+                                                  n[idx].price = Number(
+                                                    e.target.value,
+                                                  );
+                                                  setEditingSizes(n);
+                                                }}
+                                                placeholder="Price"
+                                                className="w-16 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
+                                              />
+                                              <button
+                                                onClick={() => {
+                                                  const n = [...editingSizes];
+                                                  n.splice(idx, 1);
+                                                  setEditingSizes(n);
+                                                }}
+                                                className="text-red-500 text-[10px] px-1 bg-red-500/10 rounded ml-1"
+                                              >
+                                                ✕
+                                              </button>
+                                            </div>
+                                            <ProductImageSelector
+                                              imageUrl={sz.imageUrl || ""}
+                                              onChange={(url) => {
                                                 const n = [...editingSizes];
-                                                n[idx].name = e.target.value;
+                                                n[idx].imageUrl = url;
                                                 setEditingSizes(n);
                                               }}
-                                              placeholder="Name"
-                                              className="w-16 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
+                                              label="Size Image"
                                             />
-                                            <input
-                                              type="number"
-                                              value={sz.price || ""}
-                                              onChange={(e) => {
-                                                const n = [...editingSizes];
-                                                n[idx].price = Number(
-                                                  e.target.value,
-                                                );
-                                                setEditingSizes(n);
-                                              }}
-                                              placeholder="Price"
-                                              className="w-12 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
-                                            />
-                                            <input
-                                              type="text"
-                                              value={sz.imageUrl || ""}
-                                              onChange={(e) => {
-                                                const n = [...editingSizes];
-                                                n[idx].imageUrl =
-                                                  e.target.value;
-                                                setEditingSizes(n);
-                                              }}
-                                              placeholder="Img URL"
-                                              className="flex-1 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
-                                            />
-                                            <button
-                                              onClick={() => {
-                                                const n = [...editingSizes];
-                                                n.splice(idx, 1);
-                                                setEditingSizes(n);
-                                              }}
-                                              className="text-red-500 text-[10px] px-1"
-                                            >
-                                              ✕
-                                            </button>
                                           </div>
                                         ))}
                                       </div>
@@ -2931,80 +3201,79 @@ export default function AdminPanel({
                                         {editingFlavors.map((fl, idx) => (
                                           <div
                                             key={idx}
-                                            className="flex gap-1 items-center flex-wrap"
+                                            className="flex flex-col gap-2 p-2 bg-zinc-900/50 rounded border border-zinc-800"
                                           >
-                                            <input
-                                              type="text"
-                                              value={fl.name}
-                                              onChange={(e) => {
-                                                const n = [...editingFlavors];
-                                                n[idx].name = e.target.value;
-                                                setEditingFlavors(n);
-                                              }}
-                                              placeholder="Name"
-                                              className="w-16 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
-                                            />
-                                            <input
-                                              type="number"
-                                              value={fl.price || ""}
-                                              onChange={(e) => {
-                                                const n = [...editingFlavors];
-                                                n[idx].price = Number(
-                                                  e.target.value,
-                                                );
-                                                setEditingFlavors(n);
-                                              }}
-                                              placeholder="Ex Price"
-                                              className="w-14 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
-                                            />
-                                            <input
-                                              type="number"
-                                              value={fl.originalPrice || ""}
-                                              onChange={(e) => {
-                                                const n = [...editingFlavors];
-                                                n[idx].originalPrice = Number(
-                                                  e.target.value,
-                                                );
-                                                setEditingFlavors(n);
-                                              }}
-                                              placeholder="Orig"
-                                              className="w-12 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
-                                            />
-                                            <input
-                                              type="text"
-                                              value={fl.imageUrl || ""}
-                                              onChange={(e) => {
-                                                const n = [...editingFlavors];
-                                                n[idx].imageUrl =
-                                                  e.target.value;
-                                                setEditingFlavors(n);
-                                              }}
-                                              placeholder="Img URL"
-                                              className="flex-1 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
-                                            />
-                                            <label className="text-[9px] text-zinc-400 flex items-center gap-0.5">
+                                            <div className="flex gap-1 items-center flex-wrap">
                                               <input
-                                                type="checkbox"
-                                                checked={fl.isPopular}
+                                                type="text"
+                                                value={fl.name}
                                                 onChange={(e) => {
                                                   const n = [...editingFlavors];
-                                                  n[idx].isPopular =
-                                                    e.target.checked;
+                                                  n[idx].name = e.target.value;
                                                   setEditingFlavors(n);
                                                 }}
-                                              />{" "}
-                                              Pop
-                                            </label>
-                                            <button
-                                              onClick={() => {
+                                                placeholder="Name"
+                                                className="w-16 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
+                                              />
+                                              <input
+                                                type="number"
+                                                value={fl.price || ""}
+                                                onChange={(e) => {
+                                                  const n = [...editingFlavors];
+                                                  n[idx].price = Number(
+                                                    e.target.value,
+                                                  );
+                                                  setEditingFlavors(n);
+                                                }}
+                                                placeholder="Ex Price"
+                                                className="w-14 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
+                                              />
+                                              <input
+                                                type="number"
+                                                value={fl.originalPrice || ""}
+                                                onChange={(e) => {
+                                                  const n = [...editingFlavors];
+                                                  n[idx].originalPrice = Number(
+                                                    e.target.value,
+                                                  );
+                                                  setEditingFlavors(n);
+                                                }}
+                                                placeholder="Orig"
+                                                className="w-12 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
+                                              />
+                                              <label className="text-[9px] text-zinc-400 flex items-center gap-0.5 ml-auto">
+                                                <input
+                                                  type="checkbox"
+                                                  checked={fl.isPopular}
+                                                  onChange={(e) => {
+                                                    const n = [...editingFlavors];
+                                                    n[idx].isPopular =
+                                                      e.target.checked;
+                                                    setEditingFlavors(n);
+                                                  }}
+                                                />{" "}
+                                                Pop
+                                              </label>
+                                              <button
+                                                onClick={() => {
+                                                  const n = [...editingFlavors];
+                                                  n.splice(idx, 1);
+                                                  setEditingFlavors(n);
+                                                }}
+                                                className="text-red-500 text-[10px] px-1 bg-red-500/10 rounded ml-1"
+                                              >
+                                                ✕
+                                              </button>
+                                            </div>
+                                            <ProductImageSelector
+                                              imageUrl={fl.imageUrl || ""}
+                                              onChange={(url) => {
                                                 const n = [...editingFlavors];
-                                                n.splice(idx, 1);
+                                                n[idx].imageUrl = url;
                                                 setEditingFlavors(n);
                                               }}
-                                              className="text-red-500 text-[10px] px-1"
-                                            >
-                                              ✕
-                                            </button>
+                                              label="Flavor Image"
+                                            />
                                           </div>
                                         ))}
                                       </div>
@@ -3028,67 +3297,66 @@ export default function AdminPanel({
                                         {editingAddOns.map((ad, idx) => (
                                           <div
                                             key={idx}
-                                            className="flex gap-1 items-center mb-1"
+                                            className="flex flex-col gap-2 p-2 bg-zinc-900/50 rounded border border-zinc-800 mb-1"
                                           >
-                                            <input
-                                              type="text"
-                                              value={ad.name}
-                                              onChange={(e) => {
+                                            <div className="flex gap-1 items-center">
+                                              <input
+                                                type="text"
+                                                value={ad.name}
+                                                onChange={(e) => {
+                                                  const n = [...editingAddOns];
+                                                  n[idx].name = e.target.value;
+                                                  setEditingAddOns(n);
+                                                }}
+                                                placeholder="Addon Name"
+                                                className="flex-1 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
+                                              />
+                                              <input
+                                                type="number"
+                                                value={ad.price || ""}
+                                                onChange={(e) => {
+                                                  const n = [...editingAddOns];
+                                                  n[idx].price = Number(
+                                                    e.target.value,
+                                                  );
+                                                  setEditingAddOns(n);
+                                                }}
+                                                placeholder="Extra Price"
+                                                className="w-16 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
+                                              />
+                                              <input
+                                                type="number"
+                                                value={ad.originalPrice || ""}
+                                                onChange={(e) => {
+                                                  const n = [...editingAddOns];
+                                                  n[idx].originalPrice = Number(
+                                                    e.target.value,
+                                                  );
+                                                  setEditingAddOns(n);
+                                                }}
+                                                placeholder="Orig Price"
+                                                className="w-16 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
+                                              />
+                                              <button
+                                                onClick={() => {
+                                                  const n = [...editingAddOns];
+                                                  n.splice(idx, 1);
+                                                  setEditingAddOns(n);
+                                                }}
+                                                className="text-red-500 text-[10px] px-1 bg-red-500/10 rounded ml-1"
+                                              >
+                                                ✕
+                                              </button>
+                                            </div>
+                                            <ProductImageSelector
+                                              imageUrl={ad.imageUrl || ""}
+                                              onChange={(url) => {
                                                 const n = [...editingAddOns];
-                                                n[idx].name = e.target.value;
+                                                n[idx].imageUrl = url;
                                                 setEditingAddOns(n);
                                               }}
-                                              placeholder="Addon Name"
-                                              className="flex-1 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
+                                              label="Add-on Image"
                                             />
-                                            <input
-                                              type="number"
-                                              value={ad.price || ""}
-                                              onChange={(e) => {
-                                                const n = [...editingAddOns];
-                                                n[idx].price = Number(
-                                                  e.target.value,
-                                                );
-                                                setEditingAddOns(n);
-                                              }}
-                                              placeholder="Extra Price"
-                                              className="w-16 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
-                                            />
-                                            <input
-                                              type="number"
-                                              value={ad.originalPrice || ""}
-                                              onChange={(e) => {
-                                                const n = [...editingAddOns];
-                                                n[idx].originalPrice = Number(
-                                                  e.target.value,
-                                                );
-                                                setEditingAddOns(n);
-                                              }}
-                                              placeholder="Orig Price"
-                                              className="w-16 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
-                                            />
-                                            <input
-                                              type="text"
-                                              value={ad.imageUrl || ""}
-                                              onChange={(e) => {
-                                                const n = [...editingAddOns];
-                                                n[idx].imageUrl =
-                                                  e.target.value;
-                                                setEditingAddOns(n);
-                                              }}
-                                              placeholder="Img URL"
-                                              className="flex-1 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
-                                            />
-                                            <button
-                                              onClick={() => {
-                                                const n = [...editingAddOns];
-                                                n.splice(idx, 1);
-                                                setEditingAddOns(n);
-                                              }}
-                                              className="text-red-500 text-[10px] px-1"
-                                            >
-                                              ✕
-                                            </button>
                                           </div>
                                         ))}
                                       </div>
@@ -3136,6 +3404,7 @@ export default function AdminPanel({
                                   <button
                                     onClick={() => {
                                       setEditingPriceDishId(dish.id);
+                                      setEditingImageUrl(dish.imageUrl || "");
                                       setEditingPriceInput(dish.price);
                                       setEditingDiscountPriceInput(
                                         dish.discountPrice || 0,
@@ -3422,12 +3691,18 @@ export default function AdminPanel({
                           >
                             <td className="p-4 font-bold text-gray-200">
                               <div className="flex items-center gap-3">
-                                <img
-                                  src={dish.imageUrl}
-                                  alt={dish.name}
-                                  className="w-8 h-8 rounded-lg object-cover bg-zinc-950 shrink-0"
-                                  referrerPolicy="no-referrer"
-                                />
+                                {dish.imageUrl ? (
+                                  <img
+                                    src={dish.imageUrl}
+                                    alt={dish.name}
+                                    className="w-8 h-8 rounded-lg object-cover bg-zinc-950 shrink-0"
+                                    referrerPolicy="no-referrer"
+                                  />
+                                ) : (
+                                  <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0">
+                                    <span className="text-[7px] text-zinc-500 font-black uppercase text-center leading-tight">No<br/>Img</span>
+                                  </div>
+                                )}
                                 <div className="truncate max-w-xs">
                                   <div>{dish.name}</div>
                                   <div className="text-[10px] text-zinc-500 font-medium font-sans mt-0.5">
@@ -3450,7 +3725,15 @@ export default function AdminPanel({
                             </td>
                             <td className="p-4">
                               {editingPriceDishId === dish.id ? (
-                                <div className="flex flex-col gap-1.5 max-w-[150px]">
+                                <div className="flex flex-col gap-1.5 min-w-[200px]">
+                                  <div className="mb-2">
+                                    <ProductImageSelector
+                                      imageUrl={editingImageUrl}
+                                      onChange={setEditingImageUrl}
+                                      label="Update Image"
+                                      accentColorClass="blue"
+                                    />
+                                  </div>
                                   <input
                                     type="number"
                                     value={editingPriceInput}
@@ -3526,6 +3809,7 @@ export default function AdminPanel({
                                   <button
                                     onClick={() => {
                                       setEditingPriceDishId(dish.id);
+                                      setEditingImageUrl(dish.imageUrl || "");
                                       setEditingPriceInput(dish.price);
                                       setEditingDiscountPriceInput(
                                         dish.discountPrice || 0,
@@ -3647,11 +3931,18 @@ export default function AdminPanel({
                                   {order.userName}
                                 </span>
                                 <span className="text-zinc-700">|</span>
-                                <span className="font-medium text-zinc-300">
+                                <span className="font-medium text-zinc-300 flex items-center gap-2">
                                   Phone:{" "}
                                   <span className="font-bold text-white">
                                     {order.userPhone}
                                   </span>
+                                  <a
+                                    href={`tel:${order.userPhone}`}
+                                    className="inline-flex items-center justify-center p-1.5 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white rounded-md transition-colors border border-emerald-500/30"
+                                    title="Call Customer"
+                                  >
+                                    📞 Call
+                                  </a>
                                 </span>
                                 <span className="text-zinc-700">|</span>
                                 <span className="font-medium text-zinc-300">
@@ -3756,16 +4047,10 @@ export default function AdminPanel({
                                         ? "Technician Name"
                                         : "Delivery Rider"}
                                     </span>
-                                    <input
-                                      type="text"
-                                      placeholder={
-                                        isSvc
-                                          ? "e.g. Asif (Tech)"
-                                          : "e.g. Ali (Rider)"
-                                      }
+                                    <select
                                       value={
                                         riderNames[order.id] ||
-                                        order.riderName ||
+                                        order.riderId ||
                                         ""
                                       }
                                       onChange={(e) =>
@@ -3774,8 +4059,15 @@ export default function AdminPanel({
                                           [order.id]: e.target.value,
                                         })
                                       }
-                                      className="w-full text-xs p-2 bg-zinc-900 border border-zinc-800 rounded-lg text-white font-medium outline-none focus:border-amber-500"
-                                    />
+                                      className="w-full text-xs p-2 bg-zinc-900 border border-zinc-800 rounded-lg text-white font-medium outline-none focus:border-amber-500 appearance-none"
+                                    >
+                                      <option value="">-- Select --</option>
+                                      {ridersSubset.map((r) => (
+                                        <option key={r.uid} value={r.uid}>
+                                          {r.name}
+                                        </option>
+                                      ))}
+                                    </select>
                                   </div>
 
                                   <div className="flex-1 space-y-1">
@@ -4548,6 +4840,148 @@ export default function AdminPanel({
                       );
                     })
                   )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeSubTab === "food_categories" && (
+            <div className="space-y-8 animate-fade-in text-zinc-100 col-span-1 lg:col-span-12 lg:col-start-4 font-sans">
+              <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl relative space-y-6">
+                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-pink-500/10 to-transparent" />
+                <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 pb-2.5 border-b border-zinc-805/50 uppercase tracking-widest text-pink-500">
+                  <Grid className="w-4 h-4 text-pink-500" />
+                  Add New Food Category
+                </h4>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+                      Category Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={newFoodCategory.name}
+                      onChange={(e) =>
+                        setNewFoodCategory({
+                          ...newFoodCategory,
+                          name: e.target.value,
+                        })
+                      }
+                      placeholder="e.g. Pizza"
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:border-pink-500 outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+                      Subtitle
+                    </label>
+                    <input
+                      type="text"
+                      value={newFoodCategory.subtitle}
+                      onChange={(e) =>
+                        setNewFoodCategory({
+                          ...newFoodCategory,
+                          subtitle: e.target.value,
+                        })
+                      }
+                      placeholder="e.g. Hot Pizzas"
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:border-pink-500 outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+                      Emoji (Fallback if no image)
+                    </label>
+                    <input
+                      type="text"
+                      value={newFoodCategory.emoji}
+                      onChange={(e) =>
+                        setNewFoodCategory({
+                          ...newFoodCategory,
+                          emoji: e.target.value,
+                        })
+                      }
+                      placeholder="e.g. 🍕"
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:border-pink-500 outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+                      Position (Sorting)
+                    </label>
+                    <input
+                      type="number"
+                      value={newFoodCategory.position}
+                      onChange={(e) =>
+                        setNewFoodCategory({
+                          ...newFoodCategory,
+                          position: Number(e.target.value),
+                        })
+                      }
+                      placeholder="0"
+                      className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:border-pink-500 outline-none"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <ProductImageSelector
+                      imageUrl={newFoodCategory.imageUrl}
+                      onChange={(url) =>
+                        setNewFoodCategory({
+                          ...newFoodCategory,
+                          imageUrl: url,
+                        })
+                      }
+                      label="Category Image"
+                      accentColorClass="purple"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleAddFoodCategory}
+                  className="w-full bg-pink-600 hover:bg-pink-500 text-white font-black py-4 rounded-xl text-[11px] uppercase tracking-wider shadow-lg transition-all"
+                >
+                  Add Category
+                </button>
+              </div>
+
+              <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl relative space-y-4">
+                <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 pb-2.5 border-b border-zinc-805/50 uppercase tracking-widest text-pink-500">
+                  <Grid className="w-4 h-4 text-pink-500" />
+                  Existing Food Categories
+                </h4>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                  {foodCategories.map((cat) => (
+                    <div
+                      key={cat.id}
+                      className="bg-zinc-950 border border-zinc-800 rounded-xl p-3 flex flex-col relative overflow-hidden"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        {cat.imageUrl ? (
+                          <img
+                            src={cat.imageUrl}
+                            alt={cat.name}
+                            className="w-8 h-8 rounded-lg object-cover"
+                          />
+                        ) : (
+                          <span className="text-2xl">{cat.emoji || "🍽️"}</span>
+                        )}
+                        <button
+                          onClick={() => handleDeleteFoodCategory(cat.id)}
+                          className="text-zinc-500 hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <span className="font-bold text-xs">{cat.name}</span>
+                      <span className="text-[10px] text-zinc-500">
+                        {cat.subtitle}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -5369,12 +5803,20 @@ export default function AdminPanel({
                       Update global SEO tags injected into the document head.
                     </p>
                   </div>
-                  <button
-                    onClick={handleSaveSeoConfig}
-                    className="bg-blue-600 hover:bg-blue-500 text-white font-black text-[10px] uppercase tracking-widest py-3 px-5 rounded-xl transition cursor-pointer shrink-0"
-                  >
-                    Save Changes
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleMigrateCategories}
+                      className="bg-amber-600 hover:bg-amber-500 text-white font-black text-[10px] uppercase tracking-widest py-3 px-5 rounded-xl transition cursor-pointer shrink-0"
+                    >
+                      Run Category Migration
+                    </button>
+                    <button
+                      onClick={handleSaveSeoConfig}
+                      className="bg-blue-600 hover:bg-blue-500 text-white font-black text-[10px] uppercase tracking-widest py-3 px-5 rounded-xl transition cursor-pointer shrink-0"
+                    >
+                      Save Changes
+                    </button>
+                  </div>
                 </div>
               </div>
 

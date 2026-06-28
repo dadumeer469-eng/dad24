@@ -99,6 +99,17 @@ export interface AppNotification {
   read: boolean;
 }
 
+export interface FoodCategory {
+  id: string;
+  name: string;
+  subtitle?: string;
+  imageUrl?: string;
+  emoji?: string;
+  color?: string;
+  position?: number;
+  isAvailable: boolean;
+}
+
 export interface GroceryCategory {
   id: string;
   name: string;
