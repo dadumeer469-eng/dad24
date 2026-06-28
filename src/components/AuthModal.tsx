@@ -508,27 +508,9 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
               {/* Primary Fast login option: Sign in with Google and Github (Only show on Sign In tab, hidden on Register to make it compact) */}
               {!isSignUp && (
                 <div className="mb-4 space-y-2.5">
-                  <button
-                    type="button"
-                    onClick={handleGoogleSignIn}
-                    disabled={loading}
-                    className="w-full bg-zinc-950 hover:bg-zinc-855 border border-zinc-800 transition text-[#D70F64] py-3 rounded-2xl font-black text-xs uppercase tracking-wide shadow-md flex items-center justify-center gap-2.5 cursor-pointer"
-                  >
-                    <LogIn className="w-4 h-4 text-[#D70F64] shrink-0" />
-                    <span>Sign In with Google</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleGithubSignIn}
-                    disabled={loading}
-                    className="w-full bg-zinc-950 hover:bg-zinc-855 border border-zinc-800 transition text-zinc-300 py-3 rounded-2xl font-black text-xs uppercase tracking-wide shadow-md flex items-center justify-center gap-2.5 cursor-pointer"
-                  >
-                    <Github className="w-4 h-4 text-zinc-300 shrink-0" />
-                    <span>Sign In with Github</span>
-                  </button>
                   <div className="relative flex py-3 items-center">
                     <div className="flex-grow border-t border-zinc-800"></div>
-                    <span className="flex-shrink mx-4 text-zinc-500 text-[10px] font-black tracking-widest uppercase">Or Phone Login</span>
+                    <span className="flex-shrink mx-4 text-zinc-500 text-[10px] font-black tracking-widest uppercase">Phone Login</span>
                     <div className="flex-grow border-t border-zinc-800"></div>
                   </div>
                 </div>
