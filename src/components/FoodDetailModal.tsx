@@ -118,123 +118,137 @@ export default function FoodDetailModal({
             <X className="w-5 h-5" />
           </button>
 
-          {/* Header Image */}
-          <div className="h-48 sm:h-64 relative shrink-0 bg-zinc-100">
-            <img src={dish.imageUrl} alt={dish.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-            
-            <div className="absolute bottom-4 left-5 flex items-center gap-2">
-              <span className={`text-[10px] font-black uppercase tracking-wider py-1 px-2.5 rounded-lg shadow-sm ${
-                isService ? "bg-amber-500 text-black" : "bg-[#D70F64] text-white"
-              }`}>
-                {isService ? "Licensed Service" : "Fresh Kitchen"}
-              </span>
-              <span className="text-[10px] bg-white/90 backdrop-blur-sm text-zinc-800 font-bold tracking-wider uppercase py-1 px-2.5 rounded-lg shadow-sm">
-                🏪 {dish.restaurantName || (isService ? "Dadu Home Services" : "Dadu Fast Food & Kitchen")}
-              </span>
-            </div>
-          </div>
-
+          {/* Conditional Content */}
           {showConfirmation ? (
-             <div className="absolute inset-0 z-20 bg-white flex flex-col overflow-hidden">
-                <div className="h-48 sm:h-56 relative shrink-0">
-                  <img src={dish.imageUrl} alt={dish.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                  <div className="absolute bottom-4 left-5 pr-5">
-                    <h2 className="text-white font-black text-2xl tracking-tight leading-tight">{dish.name}</h2>
+             <div className="flex flex-col bg-white overflow-hidden w-full">
+                 <div className="p-6 sm:p-8 bg-white border-b border-zinc-100 shrink-0 text-center flex flex-col items-center justify-center relative">
+                  <div className="w-12 h-12 bg-zinc-100 rounded-full flex items-center justify-center mb-4">
+                     <span className="text-2xl">📋</span>
                   </div>
+                  <span className="text-[#D70F64] font-black uppercase tracking-widest text-[10px] mb-2 inline-block bg-[#D70F64]/5 px-3 py-1 rounded-full">Order Summary</span>
+                  <h2 className="text-zinc-900 font-black text-2xl sm:text-3xl tracking-tight leading-tight px-4">{dish.name}</h2>
                 </div>
 
-                <div className="p-5 overflow-y-auto scrollbar-none flex-grow bg-zinc-50 space-y-5">
-                   <h3 className="font-black text-zinc-900 text-lg tracking-tight text-center">Confirm Your Order</h3>
-                   
-                   <div className="h-px w-full bg-zinc-200" />
+                <div className="p-5 sm:p-7 overflow-y-auto scrollbar-none flex-grow bg-zinc-50 space-y-6">
                    
                    <div>
-                      <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3">Your Selections</h4>
-                      <div className="space-y-2">
+                      <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <span className="w-5 h-px bg-zinc-300"></span>
+                        Your Selections
+                      </h4>
+                      <div className="space-y-2.5">
                         {selectedSizeObj && (
-                           <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-zinc-100 shadow-sm">
-                              <span className="text-sm font-bold text-zinc-800">Size: {selectedSizeObj.name}</span>
+                           <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-zinc-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] transition-all hover:shadow-md">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-lg">📏</div>
+                                <span className="text-sm font-bold text-zinc-800">Size: {selectedSizeObj.name}</span>
+                              </div>
                               <span className="text-sm font-black text-[#D70F64]">Rs. {selectedSizeObj.price}</span>
                            </div>
                         )}
                         {selectedFlavorObj && (
-                           <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-zinc-100 shadow-sm">
-                              <span className="text-sm font-bold text-zinc-800">Flavor: {selectedFlavorObj.name}</span>
+                           <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-zinc-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] transition-all hover:shadow-md">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-lg">🌶️</div>
+                                <span className="text-sm font-bold text-zinc-800">Flavor: {selectedFlavorObj.name}</span>
+                              </div>
                               <span className="text-sm font-black text-[#D70F64]">{selectedFlavorObj.price > 0 ? `+ Rs. ${selectedFlavorObj.price}` : "Free"}</span>
                            </div>
                         )}
                         {selectedAddOns.map((ad, idx) => (
-                           <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-xl border border-zinc-100 shadow-sm">
-                              <span className="text-sm font-bold text-zinc-800">+ {ad.name}</span>
+                           <div key={idx} className="flex justify-between items-center bg-white p-4 rounded-2xl border border-zinc-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] transition-all hover:shadow-md">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-lg">➕</div>
+                                <span className="text-sm font-bold text-zinc-800">{ad.name}</span>
+                              </div>
                               <span className="text-sm font-black text-[#D70F64]">+ Rs. {ad.price}</span>
                            </div>
                         ))}
                       </div>
                    </div>
 
-                   <div className="h-px w-full bg-zinc-200" />
-                   
                    <div>
-                      <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3">Price Breakdown</h4>
-                      <div className="bg-white p-4 rounded-2xl border border-zinc-100 shadow-sm space-y-2.5">
+                      <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <span className="w-5 h-px bg-zinc-300"></span>
+                        Price Breakdown
+                      </h4>
+                      <div className="bg-white p-5 rounded-[24px] border border-zinc-100 shadow-[0_4px_20px_-8px_rgba(0,0,0,0.08)] space-y-3.5">
                          <div className="flex justify-between items-center">
-                            <span className="text-sm font-bold text-zinc-600">Base Price</span>
-                            <span className="text-sm font-black text-zinc-900">Rs. {basePrice.toFixed(2)}</span>
+                            <span className="text-sm font-bold text-zinc-500">Base Price</span>
+                            <span className="text-sm font-black text-zinc-800">Rs. {basePrice.toFixed(2)}</span>
                          </div>
                          {selectedSizeObj && selectedSizeObj.price !== basePrice && (
                             <div className="flex justify-between items-center">
-                               <span className="text-sm font-bold text-zinc-600">Size Update</span>
-                               <span className="text-sm font-black text-zinc-900">Rs. {selectedSizeObj.price.toFixed(2)}</span>
+                               <span className="text-sm font-bold text-zinc-500">Size Update</span>
+                               <span className="text-sm font-black text-zinc-800">Rs. {selectedSizeObj.price.toFixed(2)}</span>
                             </div>
                          )}
                          {selectedFlavorObj && selectedFlavorObj.price > 0 && (
                             <div className="flex justify-between items-center">
-                               <span className="text-sm font-bold text-zinc-600">Flavor Extra</span>
-                               <span className="text-sm font-black text-zinc-900">+ Rs. {selectedFlavorObj.price.toFixed(2)}</span>
+                               <span className="text-sm font-bold text-zinc-500">Flavor Extra</span>
+                               <span className="text-sm font-black text-zinc-800">+ Rs. {selectedFlavorObj.price.toFixed(2)}</span>
                             </div>
                          )}
                          {selectedAddOns.length > 0 && (
                             <div className="flex justify-between items-center">
-                               <span className="text-sm font-bold text-zinc-600">Add-ons</span>
-                               <span className="text-sm font-black text-zinc-900">+ Rs. {addOnsTotal.toFixed(2)}</span>
+                               <span className="text-sm font-bold text-zinc-500">Add-ons</span>
+                               <span className="text-sm font-black text-zinc-800">+ Rs. {addOnsTotal.toFixed(2)}</span>
                             </div>
                          )}
                          <div className="flex justify-between items-center">
-                            <span className="text-sm font-bold text-zinc-600">Quantity</span>
-                            <span className="text-sm font-black text-zinc-900">x {quantity}</span>
+                            <span className="text-sm font-bold text-zinc-500">Quantity</span>
+                            <span className="text-sm font-black text-zinc-800 bg-zinc-100 px-2.5 py-0.5 rounded-md">x {quantity}</span>
                          </div>
-                         <div className="h-px w-full bg-zinc-100 my-2" />
-                         <div className="flex justify-between items-center">
-                            <span className="text-sm font-bold text-zinc-900">Total</span>
-                            <span className="text-lg font-black text-[#D70F64]">Rs. {totalPrice.toFixed(2)}</span>
+                         <div className="h-px w-full bg-zinc-200/60 my-2" />
+                         <div className="flex justify-between items-center pt-1">
+                            <span className="text-base font-black text-zinc-900">Total Amount</span>
+                            <span className="text-2xl font-black text-[#D70F64]">Rs. {totalPrice.toFixed(2)}</span>
                          </div>
                       </div>
                    </div>
 
                    {specialInstructions.trim() && (
-                      <>
-                         <div className="h-px w-full bg-zinc-200" />
-                         <div>
-                            <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-2">Instructions</h4>
-                            <p className="text-sm font-medium text-zinc-700 bg-white p-3 rounded-xl border border-zinc-100 italic">"{specialInstructions}"</p>
+                      <div>
+                         <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                           <span className="w-5 h-px bg-zinc-300"></span>
+                           Instructions
+                         </h4>
+                         <div className="bg-orange-50/50 p-4 rounded-2xl border border-orange-100/50 relative overflow-hidden">
+                           <div className="absolute top-0 left-0 w-1 h-full bg-orange-400" />
+                           <p className="text-sm font-bold text-zinc-700 italic pl-2">"{specialInstructions}"</p>
                          </div>
-                      </>
+                      </div>
                    )}
                 </div>
 
-                <div className="p-4 sm:p-5 bg-white border-t border-zinc-100 flex gap-3 sticky bottom-0">
-                  <button onClick={() => setShowConfirmation(false)} className="flex-1 py-4 rounded-full text-sm font-black uppercase tracking-wider border-2 border-zinc-200 text-zinc-600 hover:bg-zinc-50 active:scale-[0.98] transition-all">
+                <div className="p-4 sm:p-6 bg-white border-t border-zinc-100 flex flex-col sm:flex-row gap-3 sticky bottom-0 shadow-[0_-10px_30px_-10px_rgba(0,0,0,0.05)]">
+                  <button onClick={() => setShowConfirmation(false)} className="flex-1 py-4 sm:py-4.5 rounded-2xl text-sm font-black uppercase tracking-wider border-2 border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 hover:border-zinc-300 active:scale-[0.98] transition-all">
                      Change Selection
                   </button>
-                  <button onClick={handleAdd} className="flex-[2] py-4 rounded-full text-sm font-black uppercase tracking-wider bg-[#D70F64] text-white hover:bg-[#b00c50] shadow-[#D70F64]/20 shadow-lg active:scale-[0.98] transition-all">
-                     Confirm & Add
+                  <button onClick={handleAdd} className="flex-[2] py-4 sm:py-4.5 rounded-2xl text-sm font-black uppercase tracking-wider bg-[#D70F64] text-white hover:bg-[#b00c50] shadow-[0_8px_25px_-8px_rgba(215,15,100,0.5)] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                     Confirm & Add to Cart <span className="text-lg leading-none">🛒</span>
                   </button>
                 </div>
              </div>
           ) : (
             <>
+              {/* Header Image */}
+              <div className="h-48 sm:h-64 relative shrink-0 bg-zinc-100">
+                <img src={dish.imageUrl} alt={dish.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                
+                <div className="absolute bottom-4 left-5 flex items-center gap-2">
+                  <span className={`text-[10px] font-black uppercase tracking-wider py-1 px-2.5 rounded-lg shadow-sm ${
+                    isService ? "bg-amber-500 text-black" : "bg-[#D70F64] text-white"
+                  }`}>
+                    {isService ? "Licensed Service" : "Fresh Kitchen"}
+                  </span>
+                  <span className="text-[10px] bg-white/90 backdrop-blur-sm text-zinc-800 font-bold tracking-wider uppercase py-1 px-2.5 rounded-lg shadow-sm">
+                    🏪 {dish.restaurantName || (isService ? "Dadu Home Services" : "Dadu Fast Food & Kitchen")}
+                  </span>
+                </div>
+              </div>
+
               {/* Content Body */}
               <div className="p-5 sm:p-7 overflow-y-auto scrollbar-none flex-grow">
                 <h3 className="font-black text-zinc-900 text-2xl tracking-tight">{dish.name}</h3>

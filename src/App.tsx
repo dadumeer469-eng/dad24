@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { 
   collection, doc, onSnapshot, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, getDocs 
@@ -12,7 +12,7 @@ import FoodpandaHeader from "./components/FoodpandaHeader";
 import FoodpandaHero from "./components/FoodpandaHero";
 import CartDrawer from "./components/CartDrawer";
 import OrderTracker from "./components/OrderTracker";
-import AdminPanel from "./components/AdminPanel";
+const AdminPanel = React.lazy(() => import("./components/AdminPanel"));
 import AuthModal from "./components/AuthModal";
 import RiderPanel from "./components/RiderPanel";
 import FoodDetailModal from "./components/FoodDetailModal";
@@ -1822,16 +1822,18 @@ export default function App() {
       </div>
       ) : (
         /* TAB 2: Secure Administrative Console Overlay */
-        <AdminPanel
-          dishes={dishes}
-          orders={orders}
-          onClose={() => setIsAdminConsoleOpen(false)}
-          adminUsername="meerali120"
-          deliverySettings={deliverySettings}
-          groceryCategories={groceryCategories}
-          groceryProducts={groceryProducts}
-          groceryDeliveryConfig={groceryDeliveryConfig}
-        />
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#09090b] text-zinc-400 font-bold tracking-widest text-sm uppercase">Loading Admin Panel...</div>}>
+          <AdminPanel
+            dishes={dishes}
+            orders={orders}
+            onClose={() => setIsAdminConsoleOpen(false)}
+            adminUsername="meerali120"
+            deliverySettings={deliverySettings}
+            groceryCategories={groceryCategories}
+            groceryProducts={groceryProducts}
+            groceryDeliveryConfig={groceryDeliveryConfig}
+          />
+        </Suspense>
       )}
 
       {/* Cart Slider Drawer */}
