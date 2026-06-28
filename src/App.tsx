@@ -1657,7 +1657,21 @@ export default function App() {
                         )}
 
                         {/* Card Image */}
-                        <div className="relative h-28 sm:h-44 bg-zinc-100 overflow-hidden shrink-0 cursor-pointer" onClick={() => setActiveDetailDish(dish)}>
+                        <div 
+                          className="relative h-28 sm:h-44 bg-zinc-100 overflow-hidden shrink-0 cursor-pointer" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!dish.isAvailable || isRestaurantClosed) return;
+                            const hasCustomization = (dish.sizes && dish.sizes.length > 0) || 
+                                                     (dish.flavors && dish.flavors.length > 0) || 
+                                                     (dish.addOns && dish.addOns.length > 0);
+                            if (hasCustomization) {
+                              setActiveDetailDish(dish);
+                            } else {
+                              handleAddToCart(dish);
+                            }
+                          }}
+                        >
                           <img
                             referrerPolicy="no-referrer"
                             src={dish.imageUrl}
@@ -1700,7 +1714,21 @@ export default function App() {
 
                         {/* Card Contents */}
                         <div className="p-2.5 sm:p-4 flex-1 flex flex-col justify-between space-y-2 sm:space-y-3.5 bg-white">
-                          <div className="space-y-1 sm:space-y-1.5 flex-1 cursor-pointer" onClick={() => setActiveDetailDish(dish)}>
+                          <div 
+                            className="space-y-1 sm:space-y-1.5 flex-1 cursor-pointer" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!dish.isAvailable || isRestaurantClosed) return;
+                              const hasCustomization = (dish.sizes && dish.sizes.length > 0) || 
+                                                       (dish.flavors && dish.flavors.length > 0) || 
+                                                       (dish.addOns && dish.addOns.length > 0);
+                              if (hasCustomization) {
+                                setActiveDetailDish(dish);
+                              } else {
+                                handleAddToCart(dish);
+                              }
+                            }}
+                          >
                             <div className="text-[8.5px] sm:text-[10.5px] text-zinc-500 font-extrabold tracking-wider uppercase flex items-center gap-1 truncate max-w-full">
                               <span>🏪</span> {dish.restaurantName || (dish.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen")}
                             </div>

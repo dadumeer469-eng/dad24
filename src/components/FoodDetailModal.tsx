@@ -68,12 +68,13 @@ export default function FoodDetailModal({
                                  (dish.flavors && dish.flavors.length > 0) || 
                                  (dish.addOns && dish.addOns.length > 0);
 
-        if (hasCustomization) {
-          if (!showConfirmation) {
-            setShowConfirmation(true);
-            return;
-          }
-        }
+        // Bypass the confirmation screen as requested by the user
+        // if (hasCustomization) {
+        //   if (!showConfirmation) {
+        //     setShowConfirmation(true);
+        //     return;
+        //   }
+        // }
       }
 
       onAddToCart(
