@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ChevronLeft, Heart, Search, Star, MapPin, Clock } from "lucide-react";
-import { Dish, OrderItem } from "../types";
+import { Dish, OrderItem, SystemSettings } from "../types";
 import { LazyImage } from "./LazyImage";
 import FoodDetailModal from "./FoodDetailModal";
 
 interface FoodpandaRestaurantPageProps {
   restaurantName: string;
   dishes: Dish[];
+  deliverySettings?: SystemSettings;
   onBack: () => void;
   onAddToCart: (dish: Dish, quantityToAdd?: number, options?: { size?: string; flavor?: string; addOns?: { name: string; price: number; }[]; specialInstructions?: string; }) => void;
   cartItems: OrderItem[];
@@ -20,6 +21,7 @@ interface FoodpandaRestaurantPageProps {
 export default function FoodpandaRestaurantPage({
   restaurantName,
   dishes,
+  deliverySettings,
   onBack,
   onAddToCart,
   cartItems,
@@ -57,11 +59,19 @@ export default function FoodpandaRestaurantPage({
     d.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const restaurantImageUrl = deliverySettings?.restaurantStatuses?.[restaurantName]?.imageUrl;
+
   return (
     <div className="min-h-screen bg-white text-zinc-900 font-sans pb-24">
       {/* Top Banner */}
-      <div className="relative h-48 md:h-64 bg-amber-400 w-full">
-        {/* You can replace this with actual banner URL from db if available */}
+      <div className="relative h-48 md:h-64 bg-amber-400 w-full overflow-hidden">
+        {restaurantImageUrl && (
+          <img 
+            src={restaurantImageUrl} 
+            alt={restaurantName}
+            className="w-full h-full object-cover opacity-90 mix-blend-overlay"
+          />
+        )}
         <div className="absolute inset-0 bg-black/10" />
         <button 
           onClick={onBack}
@@ -78,8 +88,11 @@ export default function FoodpandaRestaurantPage({
       <div className="px-4 py-4 md:px-8 max-w-4xl mx-auto">
         <div className="flex items-start gap-4 -mt-10 relative z-10 mb-4">
           <div className="w-20 h-20 bg-white rounded-2xl shadow-md border-2 border-white overflow-hidden shrink-0">
-             {/* Logo placeholder */}
-             <div className="w-full h-full bg-zinc-100 flex items-center justify-center text-zinc-400 font-bold text-xl">TB</div>
+             {restaurantImageUrl ? (
+               <img src={restaurantImageUrl} alt={restaurantName} className="w-full h-full object-cover" />
+             ) : (
+               <div className="w-full h-full bg-zinc-100 flex items-center justify-center text-zinc-400 font-bold text-xl">TB</div>
+             )}
           </div>
         </div>
 

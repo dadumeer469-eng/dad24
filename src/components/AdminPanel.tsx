@@ -23,7 +23,6 @@ import {
   getDocs,
   getFirestore,
 } from "firebase/firestore";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { db, firebaseConfig, databaseId, cleanObject, storage } from "../firebase";
 import { initializeApp, deleteApp } from "firebase/app";
 import {
@@ -148,43 +147,62 @@ function ProductImageSelector({
     }
 
     setIsProcessing(true);
-    try {
-      const extension = file.name.split('.').pop() || 'jpg';
-      const uniqueName = uploadPath 
-        ? `${uploadPath}.${extension}`
-        : `images/${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${extension}`;
-      const storageRef = ref(storage, uniqueName);
-      
-      const uploadTask = uploadBytesResumable(storageRef, file);
+    setUploadProgress(30);
 
-      uploadTask.on(
-        "state_changed",
-        (snapshot) => {
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          setUploadProgress(progress);
-        },
-        (error) => {
-          console.error("Upload error:", error);
-          setUploadError("Failed to upload image. " + error.message);
-          setFailedFile(file);
-          setIsProcessing(false);
-        },
-        async () => {
-          try {
-            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            onChange(downloadURL);
-            setUploadProgress(100);
-          } catch (urlError) {
-             console.error("Error getting download URL:", urlError);
-             setUploadError("Failed to get image URL.");
-             setFailedFile(file);
+    try {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          setUploadProgress(60);
+          const canvas = document.createElement("canvas");
+          
+          // Max dimensions
+          const MAX_WIDTH = 800;
+          const MAX_HEIGHT = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height = Math.round((height * MAX_WIDTH) / width);
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width = Math.round((width * MAX_HEIGHT) / height);
+              height = MAX_HEIGHT;
+            }
           }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+            setUploadProgress(100);
+            onChange(dataUrl);
+            setIsProcessing(false);
+          } else {
+            throw new Error("Failed to get canvas context");
+          }
+        };
+        img.onerror = () => {
+          setUploadError("Error reading image file");
           setIsProcessing(false);
-        }
-      );
+        };
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => {
+        setUploadError("Error reading file");
+        setIsProcessing(false);
+      };
+      reader.readAsDataURL(file);
     } catch (err) {
       console.error(err);
-      setUploadError("Error uploading image");
+      setUploadError("Error processing image");
       setFailedFile(file);
       setIsProcessing(false);
     }

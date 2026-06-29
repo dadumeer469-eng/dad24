@@ -1788,6 +1788,7 @@ export default function App() {
         <FoodpandaRestaurantPage
           restaurantName={selectedRestaurant}
           dishes={restaurantDishes}
+          deliverySettings={deliverySettings}
           onBack={() => setSelectedRestaurant("All Restaurants")}
           onAddToCart={handleAddToCart}
           cartItems={cartItems}
