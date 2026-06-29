@@ -7,6 +7,7 @@ export interface Dish {
   category: "Burgers" | "Pizzas" | "Chicken & Rice" | "Only Tea" | "Home Services" | "Specials" | "Drinks" | "Pizza" | "Burger" | "Broast" | "Rolls" | "Pasta" | "Lazania" | "Fries" | "Paratha" | "Sandwich" | "Ice Cream" | "Dessert" | "Milkshake" | "Limca" | "Beverages" | string;
   imageUrl: string;
   isAvailable: boolean; // ON/OFF toggle switch from admin
+  isFeatured?: boolean; // Highlighted / favorite item shown in top spots
   type: "food" | "service";
   serviceDuration?: string;
   restaurantName?: string;
@@ -87,6 +88,8 @@ export interface SystemSettings {
     closingTime: string;
     imageUrl?: string;
     phone?: string;
+    minOrder?: string;
+    deliveryCharge?: string;
   }>;
 }
 

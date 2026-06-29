@@ -1,7 +1,11 @@
 import React, { useState } from "react";
 
 interface LazyImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
+  src?: string;
+  alt?: string;
+  className?: string;
   imgClassName?: string;
+  referrerPolicy?: React.HTMLAttributeReferrerPolicy;
 }
 
 export function LazyImage({

@@ -8,7 +8,7 @@ interface FoodpandaRestaurantPageProps {
   restaurantName: string;
   dishes: Dish[];
   onBack: () => void;
-  onAddToCart: (item: OrderItem) => void;
+  onAddToCart: (dish: Dish, quantityToAdd?: number, options?: { size?: string; flavor?: string; addOns?: { name: string; price: number; }[]; specialInstructions?: string; }) => void;
   cartItems: OrderItem[];
   cartCountTotal: number;
   cartPriceTotal: number;
@@ -200,8 +200,9 @@ export default function FoodpandaRestaurantPage({
         <FoodDetailModal 
           dish={activeDetailDish} 
           onClose={() => setActiveDetailDish(null)}
-          onAddToCart={(item) => {
-            onAddToCart(item);
+          isActiveDetailDishClosed={false}
+          onAddToCart={(item, qty, opts) => {
+            onAddToCart(item, qty, opts);
             setActiveDetailDish(null);
           }}
         />
@@ -210,7 +211,7 @@ export default function FoodpandaRestaurantPage({
   );
 }
 
-function DishCard({ dish, onAdd }: { dish: Dish, onAdd: () => void }) {
+function DishCard({ dish, onAdd }: { dish: Dish, onAdd: () => void, key?: React.Key }) {
   const hasOptions = (dish.sizes && dish.sizes.length > 0) || (dish.flavors && dish.flavors.length > 0) || (dish.addOns && dish.addOns.length > 0);
   
   return (

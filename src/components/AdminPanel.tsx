@@ -80,6 +80,7 @@ import {
   Globe,
   Grid,
   Pencil,
+  Star,
 } from "lucide-react";
 
 interface AdminPanelProps {
@@ -398,6 +399,8 @@ export default function AdminPanel({
   const [restClosingTime, setRestClosingTime] = useState("23:00");
   const [restImageUrl, setRestImageUrl] = useState("");
   const [restPhone, setRestPhone] = useState("");
+  const [restMinOrder, setRestMinOrder] = useState("");
+  const [restDeliveryCharge, setRestDeliveryCharge] = useState("");
   const [newRestaurantInput, setNewRestaurantInput] = useState("");
 
   // Deal of the Hour states
@@ -427,12 +430,16 @@ export default function AdminPanel({
         setRestClosingTime(specificStatus.closingTime);
         setRestImageUrl(specificStatus.imageUrl || "");
         setRestPhone(specificStatus.phone || "");
+        setRestMinOrder(specificStatus.minOrder?.toString() || "");
+        setRestDeliveryCharge(specificStatus.deliveryCharge || "");
       } else {
         setRestStatusUnavailable(false);
         setRestOpeningTime("09:00");
         setRestClosingTime("23:00");
         setRestImageUrl("");
         setRestPhone("");
+        setRestMinOrder("");
+        setRestDeliveryCharge("");
       }
     }
   }, [deliverySettings, selectedScheduleRestaurant]);
@@ -715,6 +722,8 @@ export default function AdminPanel({
 
   // Form states for adding items
   const [newItemName, setNewItemName] = useState("");
+  const [isImportingTasty, setIsImportingTasty] = useState(false);
+  const [importProgressTasty, setImportProgressTasty] = useState(0);
   const [newItemCategory, setNewItemCategory] =
     useState<Dish["category"]>("Burgers");
   const [newItemPrice, setNewItemPrice] = useState<number>(300);
@@ -1162,6 +1171,8 @@ export default function AdminPanel({
             closingTime: restClosingTime,
             imageUrl: restImageUrl,
             phone: restPhone,
+            minOrder: restMinOrder ? Number(restMinOrder) : undefined,
+            deliveryCharge: restDeliveryCharge,
           },
         },
       };
@@ -1417,6 +1428,148 @@ export default function AdminPanel({
     } catch (err) {
       console.error(err);
       alert("Check database permissions. Could not add menu item.");
+    }
+  };
+
+  const handleToggleFeatured = async (dish: Dish) => {
+    try {
+      await updateDoc(doc(db, "menu", dish.id), {
+        isFeatured: !dish.isFeatured,
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleImportTastyBites = async () => {
+    if (!window.confirm("Import Tasty Bites Dadu menu? This will take a moment.")) return;
+    setIsImportingTasty(true);
+    setImportProgressTasty(0);
+    try {
+      const restaurantName = "Tasty Bites Dadu";
+      const burgerAddOns = [
+        { name: "Extra Cheese", price: 100 },
+        { name: "Extra Sauce", price: 50 },
+      ];
+      
+      const menuData: any[] = [
+        { name: "Tikka Pizza", description: "Chicken tikka chunks, Mozzarella cheese, black olives, onion, capsicum", price: 400, category: "Pizza", sizes: [{ name: "Small", price: 400 }, { name: "Medium", price: 700 }, { name: "Large", price: 1000 }], imageUrl: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&q=80", isAvailable: true, type: "food", restaurantName },
+        { name: "Fajita Pizza", description: "Chicken Fajita Chunks, Mozzarella Cheese, Tomato, onion, capsicum", price: 400, category: "Pizza", sizes: [{ name: "Small", price: 400 }, { name: "Medium", price: 700 }, { name: "Large", price: 1000 }], imageUrl: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&q=80", isAvailable: true, type: "food", restaurantName },
+        { name: "Hot N Spicy Pizza", description: "Spicy Chicken Chunks, Jalapeno, capsicum, green chilli, Mozzarella Cheese", price: 400, category: "Pizza", sizes: [{ name: "Small", price: 400 }, { name: "Medium", price: 700 }, { name: "Large", price: 1000 }], imageUrl: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=800&q=80", isAvailable: true, type: "food", restaurantName },
+        { name: "Supreme Pizza", description: "Chicken Tikka Chunks, Mozzarella Cheese, Mashroom, capsicum, onion", price: 400, category: "Pizza", sizes: [{ name: "Small", price: 400 }, { name: "Medium", price: 700 }, { name: "Large", price: 1000 }], imageUrl: "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?w=800&q=80", isAvailable: true, type: "food", restaurantName },
+        { name: "Mexican Pizza", description: "Buffalo Chicken chunks, mozzarella cheese, sweet corn, onion, capsicum, Chipotle Sauce", price: 400, category: "Pizza", sizes: [{ name: "Small", price: 400 }, { name: "Medium", price: 700 }, { name: "Large", price: 1000 }], imageUrl: "https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?w=800&q=80", isAvailable: true, type: "food", restaurantName },
+        { name: "Vaggi Lover Pizza", description: "Mozzarella Cheese, Black olives, Mashroom, sweet corn, Tomato, capsicum, Onion, runch Sauce", price: 400, category: "Pizza", sizes: [{ name: "Small", price: 400 }, { name: "Medium", price: 700 }, { name: "Large", price: 1000 }], imageUrl: "https://images.unsplash.com/photo-1576458088443-04a19bb13da6?w=800&q=80", isAvailable: true, type: "food", restaurantName },
+
+        { name: "Peri Peri Pizza", description: "Buffalo Chicken chunks, Mozzarella Cheese, Peri Peri hot Sauce, Jalapenos, Onions", price: 550, category: "Pizza", sizes: [{ name: "Small", price: 550 }, { name: "Medium", price: 900 }, { name: "Large", price: 1400 }], imageUrl: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&q=80", isAvailable: true, type: "food", restaurantName },
+        { name: "Chilli Chicken Pizza", description: "Spicy chilli Chicken, mozzarella cheese, capsicum, onion, green chilli, Spicy tomato sauce", price: 550, category: "Pizza", sizes: [{ name: "Small", price: 550 }, { name: "Medium", price: 900 }, { name: "Large", price: 1400 }], imageUrl: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&q=80", isAvailable: true, type: "food", restaurantName },
+        { name: "Garlic Creamy Tikka Pizza", description: "Chicken Tikka Chunks, mozzarella cheese, butter, onion, Garlic sauce", price: 550, category: "Pizza", sizes: [{ name: "Small", price: 550 }, { name: "Medium", price: 900 }, { name: "Large", price: 1400 }], imageUrl: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=800&q=80", isAvailable: true, type: "food", restaurantName },
+        { name: "Spicy Runch Pizza", description: "Spicy Buffalo Chicken chunks, Mozzarella Cheese, Jalapenos, onions, Creamy runch Sauce", price: 550, category: "Pizza", sizes: [{ name: "Small", price: 550 }, { name: "Medium", price: 900 }, { name: "Large", price: 1400 }], imageUrl: "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?w=800&q=80", isAvailable: true, type: "food", restaurantName },
+        { name: "BBQ Tikka Pizza", description: "BBQ tikka Chunks, mozzarella cheese, Olives, jalapeno, BBQ Sauce Drizzle", price: 550, category: "Pizza", sizes: [{ name: "Small", price: 550 }, { name: "Medium", price: 900 }, { name: "Large", price: 1400 }], imageUrl: "https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?w=800&q=80", isAvailable: true, type: "food", restaurantName },
+        { name: "Afghani Feast Pizza", description: "Creamy Afghani style chicken, mozzarella cheese, Mashroom, onion, Tomato Sauce", price: 550, category: "Pizza", sizes: [{ name: "Small", price: 550 }, { name: "Medium", price: 900 }, { name: "Large", price: 1400 }], imageUrl: "https://images.unsplash.com/photo-1576458088443-04a19bb13da6?w=800&q=80", isAvailable: true, type: "food", restaurantName },
+        { name: "Chilli Garlic Cream Pizza", description: "Chilli Garlic sauce base, Buffalo hot Chicken chunks, mozzarella cheese, capsicum, onion, creamy garlic sauce", price: 550, category: "Pizza", sizes: [{ name: "Small", price: 550 }, { name: "Medium", price: 900 }, { name: "Large", price: 1400 }], imageUrl: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&q=80", isAvailable: true, type: "food", restaurantName },
+        { name: "Bihari Boti Pizza", description: "Bihari boti Style Chicken, mozzarella cheese, onion, Mashroom, creamy Sauce", price: 550, category: "Pizza", sizes: [{ name: "Small", price: 550 }, { name: "Medium", price: 900 }, { name: "Large", price: 1400 }], imageUrl: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&q=80", isAvailable: true, type: "food", restaurantName },
+
+        { name: "Tastybites Special Pizza", description: "Chicken fajita Chunks, Mozzarella Cheese, Black olives, Mashroom, capsicum, onion, sweet corn, jalapenos, tomato, Special Sauce", price: 500, category: "Pizza", sizes: [{ name: "Small", price: 500 }, { name: "Medium", price: 800 }, { name: "Large", price: 1200 }], imageUrl: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=800&q=80", isAvailable: true, type: "food", restaurantName },
+        { name: "Creamy Pizza", description: "Chicken Malai Boti chunks, Mozzarella cheese, sweet corn, tomato, creamy runch Sauce", price: 500, category: "Pizza", sizes: [{ name: "Small", price: 500 }, { name: "Medium", price: 800 }, { name: "Large", price: 1200 }], imageUrl: "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?w=800&q=80", isAvailable: true, type: "food", restaurantName },
+        { name: "Malai Boti Pizza", description: "Chicken Malai Boti Chunks, Mozzarella cheese, Sweet corn, tomato, Tomato Sauce", price: 500, category: "Pizza", sizes: [{ name: "Small", price: 500 }, { name: "Medium", price: 800 }, { name: "Large", price: 1200 }], imageUrl: "https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?w=800&q=80", isAvailable: true, type: "food", restaurantName },
+        { name: "All Cheese Pizza", description: "Creamy Runch Souce, All Mozzarella Cheese", price: 500, category: "Pizza", sizes: [{ name: "Small", price: 500 }, { name: "Medium", price: 800 }, { name: "Large", price: 1200 }], imageUrl: "https://images.unsplash.com/photo-1576458088443-04a19bb13da6?w=800&q=80", isAvailable: true, type: "food", restaurantName },
+        { name: "Kabab Dlight Pizza", description: "Chicken tikka Chunks, mozzarella Cheese, Seekh Kabab Cubes", price: 500, category: "Pizza", sizes: [{ name: "Small", price: 500 }, { name: "Medium", price: 800 }, { name: "Large", price: 1200 }], imageUrl: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&q=80", isAvailable: true, type: "food", restaurantName },
+        { name: "Mughlai Beast Pizza", description: "Chicken Mughali, Jalapeno Runch Souce, Mozzarella Cheese", price: 500, category: "Pizza", sizes: [{ name: "Small", price: 500 }, { name: "Medium", price: 800 }, { name: "Large", price: 1200 }], imageUrl: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&q=80", isAvailable: true, type: "food", restaurantName },
+
+        { name: "Kababish Pizza", description: "Seekh Kabab Pieces, spicy tomato sauce, mozzarella cheese, onion, capsicum, black olives", price: 900, category: "Pizza", sizes: [{ name: "Medium", price: 900 }, { name: "Large", price: 1400 }], imageUrl: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=800&q=80", isAvailable: true, type: "food", restaurantName },
+        { name: "Crown Crust Pizza", description: "Dough Shaped Into Crown edges, Kabab cubes, mozzarella cheese, chicken tikka chunks, onion, capsicum, black olives", price: 900, category: "Pizza", sizes: [{ name: "Medium", price: 900 }, { name: "Large", price: 1400 }], imageUrl: "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?w=800&q=80", isAvailable: true, type: "food", restaurantName },
+        { name: "Crown Lover Pizza", description: "Chicken tikka chunks, Mozzarella cheese, black olives, onion, capsicum", price: 900, category: "Pizza", sizes: [{ name: "Medium", price: 900 }, { name: "Large", price: 1400 }], imageUrl: "https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?w=800&q=80", isAvailable: true, type: "food", restaurantName },
+        { name: "Souce Crust Pizza", description: "Crust infused with creamy garlic or Tomato sauce, mozzarella cheese, chicken fajita chunks, capsicum, onion, Tomato", price: 900, category: "Pizza", sizes: [{ name: "Medium", price: 900 }, { name: "Large", price: 1400 }], imageUrl: "https://images.unsplash.com/photo-1576458088443-04a19bb13da6?w=800&q=80", isAvailable: true, type: "food", restaurantName },
+        { name: "Kofta Kabab Pizza", description: "Spicy kofta Chicken, mozzarella cheese, Tomato sauce, onion, chicken chunks", price: 900, category: "Pizza", sizes: [{ name: "Medium", price: 900 }, { name: "Large", price: 1400 }], imageUrl: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&q=80", isAvailable: true, type: "food", restaurantName },
+        { name: "Melt Malai Pizza", description: "Malai Chicken filling in crust, creamy base, Chicken Malai boti Chunks, Mashroom, onion", price: 900, category: "Pizza", sizes: [{ name: "Medium", price: 900 }, { name: "Large", price: 1400 }], imageUrl: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&q=80", isAvailable: true, type: "food", restaurantName },
+        { name: "Cheese Crust Pizza", description: "Mozzarella filled crust, tomato sauce, chicken tikka chunks", price: 900, category: "Pizza", sizes: [{ name: "Medium", price: 900 }, { name: "Large", price: 1400 }], imageUrl: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=800&q=80", isAvailable: true, type: "food", restaurantName },
+        { name: "Chees Stick Pizza", description: "Chicken chunks, Vaggis and Cheese Filled in dough, doughnut shaped pizza", price: 900, category: "Pizza", sizes: [{ name: "Medium", price: 900 }, { name: "Large", price: 1400 }], imageUrl: "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?w=800&q=80", isAvailable: true, type: "food", restaurantName },
+
+        { name: "Crunch Burger", price: 250, category: "Burgers", addOns: burgerAddOns, imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Crispy chicken crunch burger" },
+        { name: "Chicken Single Patty Burger", price: 300, category: "Burgers", addOns: burgerAddOns, imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Classic single patty chicken burger" },
+        { name: "Zinger Burger", price: 350, category: "Burgers", addOns: burgerAddOns, imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Crispy zinger chicken fillet" },
+        { name: "Jumbo Patty Burger", price: 400, category: "Burgers", addOns: burgerAddOns, imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Extra large chicken patty burger" },
+        { name: "Tastys Zinger", price: 450, category: "Burgers", addOns: burgerAddOns, imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Our special signature Zinger" },
+        { name: "Chicken Double Patty Burger", price: 500, category: "Burgers", addOns: burgerAddOns, imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Two chicken patties" },
+        { name: "Mighty Burger", price: 600, category: "Burgers", addOns: burgerAddOns, imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Mighty double zinger burger" },
+        { name: "Pizza Burger", price: 600, category: "Burgers", addOns: burgerAddOns, imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Pizza flavours in a burger" },
+        { name: "Jumbo Double Patty Burger", price: 600, category: "Burgers", addOns: burgerAddOns, imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Two extra large patties" },
+        { name: "MAC Burger", price: 600, category: "Burgers", addOns: burgerAddOns, imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Special MAC style burger" },
+        { name: "Tastys Signature", price: 800, category: "Burgers", addOns: burgerAddOns, imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "The ultimate Tasty Bites signature burger" },
+
+        { name: "Beef Single Patty Burger", price: 300, category: "Burgers", addOns: burgerAddOns, imageUrl: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Juicy beef patty" },
+        { name: "Beef Double Party Burger", price: 500, category: "Burgers", addOns: burgerAddOns, imageUrl: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Double beef patties" },
+        { name: "Full Fried Burger", price: 600, category: "Burgers", addOns: burgerAddOns, imageUrl: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Fully fried beef burger" },
+        { name: "Cheese Beef Burger", price: 600, category: "Burgers", addOns: burgerAddOns, imageUrl: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Beef burger with extra cheese slice" },
+        { name: "Lava Beef Burger", price: 800, category: "Burgers", addOns: burgerAddOns, imageUrl: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Lava cheese filled beef burger" },
+
+        { name: "Grilled Charcoal Burger", price: 450, category: "Burgers", addOns: burgerAddOns, imageUrl: "https://images.unsplash.com/photo-1594212691516-436ad271c591?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Charcoal grilled patty" },
+        { name: "Grilled Jalapeno Burger", price: 500, category: "Burgers", addOns: burgerAddOns, imageUrl: "https://images.unsplash.com/photo-1594212691516-436ad271c591?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Grilled patty with jalapenos" },
+
+        { name: "Fried Chicken Per Pc", price: 200, category: "Broast", imageUrl: "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Crispy fried chicken piece" },
+        { name: "Broast 2Pc", price: 450, category: "Broast", imageUrl: "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "2 pieces of crispy broast" },
+        { name: "Chest Broast 2Pc", price: 500, category: "Broast", imageUrl: "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "2 pieces of chest broast" },
+        { name: "Injected Broast 2Pc with Bun", price: 550, category: "Broast", imageUrl: "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Flavor injected broast with bun" },
+        { name: "Nuggets 10Pc", price: 500, category: "Broast", imageUrl: "https://images.unsplash.com/photo-1562967914-608f82629710?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "10 pieces of crispy chicken nuggets" },
+
+        { name: "Hot Wings 8Pc", price: 550, category: "Broast", imageUrl: "https://images.unsplash.com/photo-1524114664604-cd8133cd67ad?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "8 pieces of hot wings" },
+        { name: "Sweet Chili Wings 8Pc", price: 650, category: "Broast", imageUrl: "https://images.unsplash.com/photo-1524114664604-cd8133cd67ad?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "8 pieces of sweet chili wings" },
+        { name: "BBQ Wings 8Pc", price: 650, category: "Broast", imageUrl: "https://images.unsplash.com/photo-1524114664604-cd8133cd67ad?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "8 pieces of BBQ wings" },
+        { name: "Garlic Wings 8Pc", price: 650, category: "Broast", imageUrl: "https://images.unsplash.com/photo-1524114664604-cd8133cd67ad?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "8 pieces of garlic wings" },
+        { name: "Peri Peri Wings 8Pc", price: 650, category: "Broast", imageUrl: "https://images.unsplash.com/photo-1524114664604-cd8133cd67ad?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "8 pieces of peri peri wings" },
+        { name: "Honey Mustard Wings 8Pc", price: 650, category: "Broast", imageUrl: "https://images.unsplash.com/photo-1524114664604-cd8133cd67ad?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "8 pieces of honey mustard wings" },
+
+        { name: "Grilled Paratha Roll", price: 200, category: "Rolls", imageUrl: "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Grilled chicken paratha roll" },
+        { name: "Mayo Roll", price: 200, category: "Rolls", imageUrl: "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Chicken mayo roll" },
+        { name: "Vaggi Roll", price: 200, category: "Rolls", imageUrl: "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Vegetable roll" },
+        { name: "Grilled Cheese Paratha Roll", price: 250, category: "Rolls", imageUrl: "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Grilled chicken cheese paratha roll" },
+        { name: "Zingratha Roll", price: 300, category: "Rolls", imageUrl: "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Zinger paratha roll" },
+        { name: "Twister Roll", price: 350, category: "Rolls", imageUrl: "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Crispy twister roll" },
+        { name: "Tortilla Wrap", price: 500, category: "Rolls", imageUrl: "https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Chicken tortilla wrap" },
+        { name: "Burrito Wrap", price: 500, category: "Rolls", imageUrl: "https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Mexican style burrito wrap" },
+        { name: "Grilled Wrap", price: 500, category: "Rolls", imageUrl: "https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Grilled chicken wrap" },
+
+        { name: "Plan Lazania", price: 500, sizes: [{ name: "Small", price: 500 }, { name: "Large", price: 600 }], category: "Lazania", imageUrl: "https://images.unsplash.com/photo-1574894709920-11b28e7367e3?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Classic plain lazania" },
+        { name: "Fajita Lazania", price: 550, sizes: [{ name: "Small", price: 550 }, { name: "Large", price: 650 }], category: "Lazania", imageUrl: "https://images.unsplash.com/photo-1574894709920-11b28e7367e3?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Fajita flavored lazania" },
+        { name: "Malai Boti Lazania", price: 550, sizes: [{ name: "Small", price: 550 }, { name: "Large", price: 650 }], category: "Lazania", imageUrl: "https://images.unsplash.com/photo-1574894709920-11b28e7367e3?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Creamy malai boti lazania" },
+        { name: "Crispy Lazania", price: 600, sizes: [{ name: "Small", price: 600 }, { name: "Large", price: 750 }], category: "Lazania", imageUrl: "https://images.unsplash.com/photo-1574894709920-11b28e7367e3?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Special crispy lazania" },
+
+        { name: "Creamy Pasta", price: 400, sizes: [{ name: "Small", price: 400 }, { name: "Large", price: 600 }], category: "Pasta", imageUrl: "https://images.unsplash.com/photo-1621996311239-f9c3eb7b2253?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Rich creamy pasta" },
+        { name: "Cheese Pasta", price: 400, sizes: [{ name: "Small", price: 400 }, { name: "Large", price: 600 }], category: "Pasta", imageUrl: "https://images.unsplash.com/photo-1621996311239-f9c3eb7b2253?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Cheesy pasta" },
+        { name: "Red Sauce Pasta", price: 400, sizes: [{ name: "Small", price: 400 }, { name: "Large", price: 600 }], category: "Pasta", imageUrl: "https://images.unsplash.com/photo-1621996311239-f9c3eb7b2253?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Classic red sauce pasta" },
+        { name: "Crispy Pasta", price: 600, sizes: [{ name: "Small", price: 600 }, { name: "Large", price: 750 }], category: "Pasta", imageUrl: "https://images.unsplash.com/photo-1621996311239-f9c3eb7b2253?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Special crispy pasta" },
+        { name: "Alfrido Pasta", price: 600, sizes: [{ name: "Small", price: 600 }, { name: "Large", price: 750 }], category: "Pasta", imageUrl: "https://images.unsplash.com/photo-1621996311239-f9c3eb7b2253?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Classic Alfredo pasta" },
+
+        { name: "Crispy Fries 100gr", price: 150, category: "Fries", imageUrl: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "100g crispy french fries" },
+        { name: "Crispy Fries 200gr", price: 250, category: "Fries", imageUrl: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "200g crispy french fries" },
+        { name: "Crispy Masala Fries", price: 350, category: "Fries", imageUrl: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Crispy masala french fries" },
+        { name: "Chicken Salad", price: 500, category: "Fries", imageUrl: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Fresh chicken salad" },
+        { name: "Crispy Pizza Fries", price: 550, category: "Fries", imageUrl: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Pizza flavor loaded fries" },
+        { name: "Crispy Loaded Fries", price: 650, category: "Fries", imageUrl: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Special loaded fries" },
+
+        { name: "Plan Paratha", price: 100, category: "Paratha", imageUrl: "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Plain paratha" },
+        { name: "Cheese Paratha", price: 350, category: "Paratha", imageUrl: "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Cheese stuffed paratha" },
+        { name: "Pizza Paratha", price: 400, category: "Paratha", imageUrl: "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Pizza style stuffed paratha" },
+        { name: "Chocolate Paratha", price: 400, category: "Paratha", imageUrl: "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Chocolate stuffed paratha" },
+        { name: "Malai Boti Pizza Paratha", price: 500, category: "Paratha", imageUrl: "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Malai boti and cheese stuffed paratha" },
+
+        { name: "Malai Boti Sandwich", price: 400, category: "Sandwich", imageUrl: "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Malai boti filled sandwich" },
+        { name: "Grilled Sandwich", price: 450, category: "Sandwich", imageUrl: "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=800&q=80", isAvailable: true, type: "food", restaurantName, description: "Grilled chicken sandwich" }
+      ];
+
+      for (let i = 0; i < menuData.length; i++) {
+        const item = menuData[i];
+        const docId = `tasty_bites_${item.category.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${item.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+        await setDoc(doc(db, "menu", docId), cleanObject(item));
+        setImportProgressTasty(Math.round(((i + 1) / menuData.length) * 100));
+      }
+      
+      alert("Tasty Bites Menu imported successfully!");
+    } catch (err) {
+      console.error(err);
+      alert("Import failed. See console.");
+    } finally {
+      setIsImportingTasty(false);
     }
   };
 
@@ -2423,6 +2576,33 @@ export default function AdminPanel({
                         />
                       </div>
 
+                      <div className="grid grid-cols-2 gap-3 pt-2">
+                        <div>
+                          <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">
+                            Min Order
+                          </label>
+                          <input
+                            type="number"
+                            value={restMinOrder}
+                            onChange={(e) => setRestMinOrder(e.target.value)}
+                            placeholder="e.g. 300"
+                            className="w-full p-3 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-white outline-none focus:border-purple-500/60 transition"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">
+                            Delivery Charge Text
+                          </label>
+                          <input
+                            type="text"
+                            value={restDeliveryCharge}
+                            onChange={(e) => setRestDeliveryCharge(e.target.value)}
+                            placeholder="e.g. Rs. 50-100"
+                            className="w-full p-3 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-white outline-none focus:border-purple-500/60 transition"
+                          />
+                        </div>
+                      </div>
+
                       <div className="pt-2">
                         <ProductImageSelector
                           imageUrl={restImageUrl}
@@ -2504,13 +2684,40 @@ export default function AdminPanel({
                     </p>
                   </div>
                 </div>
-                <button
-                  onClick={() => {
-                    setActiveSubTab("restaurants");
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                  className="bg-zinc-900 hover:bg-zinc-800 text-white px-4 py-2 rounded-xl text-[10px] uppercase font-black tracking-wider transition-colors border border-zinc-800 hover:border-zinc-700 flex items-center gap-2"
-                >
+                <div className="flex gap-2">
+                  <button
+                    onClick={async () => {
+                      if (window.confirm("Are you SURE you want to completely delete all menu items in the database? This cannot be undone!")) {
+                        try {
+                          const menuRef = collection(db, "menu");
+                          const snapshot = await getDocs(menuRef);
+                          const deletePromises = snapshot.docs.map(document => deleteDoc(doc(db, "menu", document.id)));
+                          await Promise.all(deletePromises);
+                          alert("Menu database has been completely wiped.");
+                        } catch (err) {
+                          console.error(err);
+                          alert("Failed to delete menu. Check permissions.");
+                        }
+                      }
+                    }}
+                    className="bg-red-950/40 hover:bg-red-900/60 text-red-500 px-4 py-2 rounded-xl text-[10px] uppercase font-black tracking-wider transition-colors border border-red-900/50 hover:border-red-500/50 flex items-center gap-2"
+                  >
+                    🔥 CLEAR ENTIRE MENU
+                  </button>
+                  <button
+                    onClick={handleImportTastyBites}
+                    disabled={isImportingTasty}
+                    className="bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-neutral-950 px-4 py-2 rounded-xl text-[10px] uppercase font-black tracking-wider transition-colors border border-amber-400 flex items-center gap-2"
+                  >
+                    {isImportingTasty ? `⏳ IMPORTING (${importProgressTasty}%)` : `📥 IMPORT TASTY BITES`}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveSubTab("restaurants");
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                    className="bg-zinc-900 hover:bg-zinc-800 text-white px-4 py-2 rounded-xl text-[10px] uppercase font-black tracking-wider transition-colors border border-zinc-800 hover:border-zinc-700 flex items-center gap-2"
+                  >
                   <svg
                     width="12"
                     height="12"
@@ -2527,6 +2734,7 @@ export default function AdminPanel({
                   </svg>
                   Back to Restaurants
                 </button>
+              </div>
               </div>
 
               {/* Add New Dish / Home Service Product Form */}
@@ -2979,6 +3187,7 @@ export default function AdminPanel({
                         <th className="p-4.5">Category</th>
                         <th className="p-4.5">Type</th>
                         <th className="p-4.5">Price (Rs.)</th>
+                        <th className="p-4.5 text-center">Featured</th>
                         <th className="p-4.5 text-center">ON/OFF Toggle</th>
                         <th className="p-4.5 text-center">Actions</th>
                       </tr>
@@ -3440,6 +3649,19 @@ export default function AdminPanel({
                                   </button>
                                 </div>
                               )}
+                            </td>
+                            <td className="p-4 text-center">
+                              <button
+                                onClick={() => handleToggleFeatured(dish)}
+                                className="inline-flex justify-center transition cursor-pointer text-amber-500 hover:scale-110"
+                                title="Toggle Featured / Favorite Status"
+                              >
+                                {dish.isFeatured ? (
+                                  <Star className="w-5 h-5 fill-current" />
+                                ) : (
+                                  <Star className="w-5 h-5 text-zinc-650" />
+                                )}
+                              </button>
                             </td>
                             <td className="p-4 text-center">
                               <button
@@ -4399,6 +4621,33 @@ export default function AdminPanel({
                         placeholder="e.g. 03277004471"
                         className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-xs text-white focus:border-purple-500/60 outline-none"
                       />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-2">
+                      <div>
+                        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">
+                          Min Order
+                        </label>
+                        <input
+                          type="number"
+                          value={restMinOrder}
+                          onChange={(e) => setRestMinOrder(e.target.value)}
+                          placeholder="e.g. 300"
+                          className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-xs text-white focus:border-purple-500/60 outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">
+                          Delivery Charge Text
+                        </label>
+                        <input
+                          type="text"
+                          value={restDeliveryCharge}
+                          onChange={(e) => setRestDeliveryCharge(e.target.value)}
+                          placeholder="e.g. Rs. 50-100"
+                          className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-xs text-white focus:border-purple-500/60 outline-none"
+                        />
+                      </div>
                     </div>
 
                     <div className="pt-2">

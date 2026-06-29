@@ -68,6 +68,8 @@ import {
   ArrowLeft,
   Plus,
   Minus,
+  Star,
+  ChevronRight,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -307,25 +309,13 @@ export default function App() {
       async (snapshot) => {
         console.log("Trace: Menu snapshot received, empty:", snapshot.empty);
         if (snapshot.empty) {
-          // Run automatic Firestore database seeding
-          console.log(
-            "Empty menu database. Seeding initial items directory...",
-          );
-          try {
-            await Promise.all(
-              INITIAL_MENU_ITEMS.map((item) =>
-                setDoc(doc(db, "menu", item.id), item),
-              ),
-            );
-          } catch (err) {
-            console.error("Auto seeding failed:", err);
-          } finally {
-            setIsLoadingDishes(false);
-          }
+          console.log("Menu database is empty.");
+          setDishes([]);
+          setIsLoadingDishes(false);
         } else {
           const list: Dish[] = [];
           snapshot.forEach((doc) => {
-            list.push(doc.data() as Dish);
+            list.push({ id: doc.id, ...doc.data() } as Dish);
           });
           setDishes(list);
           setIsLoadingDishes(false);
@@ -382,7 +372,7 @@ export default function App() {
       async (snapshot) => {
         const list: FoodCategory[] = [];
         snapshot.forEach((doc) => {
-          list.push(doc.data() as FoodCategory);
+          list.push({ id: doc.id, ...doc.data() } as FoodCategory);
         });
 
         if (list.length === 0) {
@@ -530,7 +520,7 @@ export default function App() {
         );
         const list: GroceryCategory[] = [];
         snapshot.forEach((doc) => {
-          list.push(doc.data() as GroceryCategory);
+          list.push({ id: doc.id, ...doc.data() } as GroceryCategory);
         });
         list.sort((a, b) => (a.position || 0) - (b.position || 0));
         setGroceryCategories(list);
@@ -556,7 +546,7 @@ export default function App() {
         );
         const list: GroceryProduct[] = [];
         snapshot.forEach((doc) => {
-          list.push(doc.data() as GroceryProduct);
+          list.push({ id: doc.id, ...doc.data() } as GroceryProduct);
         });
         setGroceryProducts(list);
       },
@@ -752,7 +742,7 @@ export default function App() {
         console.log("Trace: Orders snapshot received, size:", snapshot.size);
         const list: Order[] = [];
         snapshot.forEach((doc) => {
-          list.push(doc.data() as Order);
+          list.push({ id: doc.id, ...doc.data() } as Order);
         });
         // Sort newest order first
         list.sort(
@@ -1026,6 +1016,13 @@ export default function App() {
         const sizeObj = dish.sizes?.find((s) => s.name === options.size);
         if (sizeObj) {
           finalPrice = sizeObj.price;
+        }
+      }
+
+      if (options?.flavor) {
+        const flavorObj = dish.flavors?.find((f) => f.name === options.flavor);
+        if (flavorObj) {
+          finalPrice += flavorObj.price;
         }
       }
 
@@ -1336,21 +1333,41 @@ export default function App() {
       0,
     );
 
+    const firstCartItem = cartItems[0];
+    const itemRestaurant = firstCartItem?.restaurantName || "Dadu Fast Food & Kitchen";
+    const specificStatus = deliverySettings?.restaurantStatuses?.[itemRestaurant];
+    
+    let effectiveMinOrder = deliverySettings.minOrderAmount || 0;
+    if (specificStatus && specificStatus.minOrder !== undefined) {
+      effectiveMinOrder = specificStatus.minOrder;
+    }
+
     if (
       details.orderType === "food" &&
-      deliverySettings.minOrderAmount &&
-      itemsTotal < deliverySettings.minOrderAmount
+      effectiveMinOrder > 0 &&
+      itemsTotal < effectiveMinOrder
     ) {
       alert(
-        `Minimum order amount is Rs. ${deliverySettings.minOrderAmount}. Your current total is Rs. ${itemsTotal}. Please add more items.`,
+        `Minimum order amount for ${itemRestaurant} is Rs. ${effectiveMinOrder}. Your current total is Rs. ${itemsTotal}. Please add more items.`,
       );
       return;
     }
 
+    let parsedDeliveryFee = deliverySettings.deliveryFee;
+    if (specificStatus && specificStatus.deliveryCharge) {
+       const match = specificStatus.deliveryCharge.match(/\d+/);
+       if (match) {
+         parsedDeliveryFee = parseInt(match[0], 10);
+       }
+    }
+
     const baseFee =
-      details.orderType === "food" ? deliverySettings.deliveryFee : 0;
+      details.orderType === "food" ? parsedDeliveryFee : 0;
+    
+    // We only apply the 2x multiplier rule if there is no specific restaurant delivery fee set, or depending on business rules.
+    // Assuming we want to stick to exact baseFee if specificStatus.deliveryCharge exists.
     const finalFee =
-      details.orderType === "food" && itemsTotal < 500 ? baseFee * 2 : baseFee;
+      details.orderType === "food" && itemsTotal < 500 && (!specificStatus || !specificStatus.deliveryCharge) ? baseFee * 2 : baseFee;
     const finalGrandTotal = itemsTotal + finalFee;
 
     const firstService = cartItems.find((itm) => itm.type === "service");
@@ -1580,11 +1597,20 @@ export default function App() {
     );
   }
 
-  if (selectedRestaurant === "Tasty Bites Dadu") {
+  if (selectedRestaurant !== "All Restaurants") {
+    const restaurantDishes = dishes.filter((d) => {
+      const rName =
+        d.restaurantName?.trim() ||
+        (d.type === "service"
+          ? "Dadu Home Services"
+          : "Dadu Fast Food & Kitchen");
+      return rName === selectedRestaurant && d.isAvailable !== false;
+    });
+
     return (
       <FoodpandaRestaurantPage
         restaurantName={selectedRestaurant}
-        dishes={dishes.filter(d => d.restaurantName === "Tasty Bites Dadu" && d.isAvailable)}
+        dishes={restaurantDishes}
         onBack={() => setSelectedRestaurant("All Restaurants")}
         onAddToCart={handleAddToCart}
         cartItems={cartItems}
@@ -2235,8 +2261,134 @@ export default function App() {
                       )}
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
-                      {isLoadingDishes
+                    {selectedRestaurant === "All Restaurants" && activeCategory === "All" && !searchQuery ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                        {(() => {
+                          const uniqueRestaurantsList = Array.from(
+                            new Set(
+                              dishes
+                                .map(
+                                  (d) =>
+                                    d.restaurantName?.trim() ||
+                                    (d.type === "service"
+                                      ? "Dadu Home Services"
+                                      : "Dadu Fast Food & Kitchen"),
+                                )
+                                .filter(Boolean),
+                            ),
+                          ) as string[];
+
+                          return uniqueRestaurantsList.map((vendor) => {
+                            const vendorImageUrl =
+                              deliverySettings?.restaurantStatuses?.[vendor]
+                                ?.imageUrl;
+                            const vendorDishes = dishes
+                              .filter(
+                                (d) =>
+                                  (d.restaurantName?.trim() ||
+                                    (d.type === "service"
+                                      ? "Dadu Home Services"
+                                      : "Dadu Fast Food & Kitchen")) ===
+                                    vendor && d.isAvailable !== false,
+                              )
+                              .sort((a, b) => (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0))
+                              .slice(0, 4);
+
+                            const isClosed = checkIsRestaurantClosed(vendor);
+
+                            return (
+                              <div
+                                key={vendor}
+                                onClick={() => setSelectedRestaurant(vendor)}
+                                className={`bg-white border border-zinc-200/80 rounded-3xl overflow-hidden shadow-xs hover:shadow-md transition-all cursor-pointer group flex flex-col ${isClosed ? "opacity-70 grayscale-[20%]" : ""}`}
+                              >
+                                <div className="h-40 bg-zinc-100 relative overflow-hidden shrink-0">
+                                  {vendorImageUrl ? (
+                                    <LazyImage
+                                      src={vendorImageUrl}
+                                      alt={vendor}
+                                      className="w-full h-full"
+                                      imgClassName="object-cover group-hover:scale-105 transition duration-500"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-pink-50 text-5xl">
+                                      {vendor.includes("Services")
+                                        ? "🛠️"
+                                        : "🍔"}
+                                    </div>
+                                  )}
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                                  <div className="absolute bottom-3 left-4 text-white">
+                                    <h3 className="font-black text-xl tracking-tight shadow-sm leading-none mb-1.5">
+                                      {vendor}
+                                    </h3>
+                                    <p className="text-[11px] font-bold text-white/90 flex items-center gap-2">
+                                      <span className="flex items-center bg-white/20 px-1.5 py-0.5 rounded-md backdrop-blur-md">
+                                        <Star className="w-3 h-3 text-amber-400 mr-1 fill-current" />{" "}
+                                        {deliverySettings?.restaurantStatuses?.[
+                                          vendor
+                                        ]?.rating || "4.5"}
+                                      </span>
+                                      <span>•</span>
+                                      <span className="flex items-center">
+                                        <Clock className="w-3 h-3 mr-1" /> 20-30
+                                        min
+                                      </span>
+                                      <span>•</span>
+                                      <span className="flex items-center">
+                                        <MapPin className="w-3 h-3 mr-1" />{" "}
+                                        {deliverySettings?.restaurantStatuses?.[
+                                          vendor
+                                        ]?.deliveryCharge || "Rs. 50"}
+                                      </span>
+                                    </p>
+                                  </div>
+                                  {isClosed && (
+                                    <div className="absolute top-3 right-3 bg-white/90 text-red-600 px-2 py-1 rounded-lg text-xs font-black shadow-sm flex items-center gap-1">
+                                      <Clock className="w-3.5 h-3.5" />
+                                      Closed
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="p-3 bg-white flex items-center gap-3 overflow-x-auto scrollbar-none border-t border-zinc-100">
+                                  {vendorDishes.map((d) => (
+                                    <div
+                                      key={d.id}
+                                      className="flex flex-col gap-1 w-20 shrink-0"
+                                    >
+                                      <div className="w-full h-20 rounded-xl overflow-hidden bg-zinc-100 border border-zinc-100">
+                                        <LazyImage
+                                          src={
+                                            d.imageUrl ||
+                                            "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=400"
+                                          }
+                                          className="w-full h-full"
+                                          imgClassName="object-cover"
+                                        />
+                                      </div>
+                                      <span className="text-[10px] font-bold text-zinc-700 line-clamp-1">
+                                        {d.name}
+                                      </span>
+                                      <span className="text-[10px] text-[#D70F64] font-black leading-none">
+                                        Rs. {d.price}
+                                      </span>
+                                    </div>
+                                  ))}
+                                  <div className="w-16 h-20 flex flex-col items-center justify-center gap-1 shrink-0 bg-pink-50/50 rounded-xl text-[#D70F64] hover:bg-pink-100 transition border border-pink-100/50">
+                                    <ChevronRight className="w-5 h-5" />
+                                    <span className="text-[9px] font-black uppercase">
+                                      Menu
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          });
+                        })()}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
+                        {isLoadingDishes
                         ? Array.from({ length: 8 }).map((_, idx) => (
                             <div
                               key={idx}
@@ -2552,7 +2704,8 @@ export default function App() {
                               </div>
                             );
                           })}
-                    </div>
+                      </div>
+                    )}
 
                     {!isLoadingDishes && filteredDishes.length === 0 && (
                       <div className="bg-white/80 backdrop-blur-md border border-pink-100 p-12 rounded-3.5xl text-center space-y-4 shadow-sm max-w-md mx-auto">
@@ -2671,18 +2824,37 @@ export default function App() {
       )}
 
       {/* Cart Slider Drawer */}
-      <CartDrawer
-        isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
-        cartItems={cartItems}
-        onUpdateQuantity={handleUpdateCartQuantity}
-        onRemoveItem={handleRemoveCartItem}
-        currentUser={currentUser}
-        onOpenAuth={() => setIsAuthOpen(true)}
-        deliveryFee={deliverySettings.deliveryFee}
-        onPlaceOrder={handlePlaceOrderSubmit}
-        onAddDrink={handleAddExclusiveDrink}
-      />
+      {(() => {
+        const firstItem = cartItems[0];
+        const itemRestaurant = firstItem?.restaurantName || "Dadu Fast Food & Kitchen";
+        const specificStatus = deliverySettings?.restaurantStatuses?.[itemRestaurant];
+        
+        // Compute effective delivery fee
+        let computedDeliveryFee = deliverySettings.deliveryFee;
+        if (specificStatus && specificStatus.deliveryCharge) {
+           const match = specificStatus.deliveryCharge.match(/\d+/);
+           if (match) {
+             computedDeliveryFee = parseInt(match[0], 10);
+           }
+        }
+        // Apply 2x multiplier rule (legacy compatibility) for small orders, unless a fixed charge exists?
+        // Let's keep it simple and just use the parsed number or global fee.
+        
+        return (
+          <CartDrawer
+            isOpen={isCartOpen}
+            onClose={() => setIsCartOpen(false)}
+            cartItems={cartItems}
+            onUpdateQuantity={handleUpdateCartQuantity}
+            onRemoveItem={handleRemoveCartItem}
+            currentUser={currentUser}
+            onOpenAuth={() => setIsAuthOpen(true)}
+            deliveryFee={computedDeliveryFee}
+            onPlaceOrder={handlePlaceOrderSubmit}
+            onAddDrink={handleAddExclusiveDrink}
+          />
+        );
+      })()}
 
       {/* Standalone Grocery Basket Drawer */}
       <GroceryCartDrawer
