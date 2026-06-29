@@ -1587,6 +1587,182 @@ export default function App() {
     0,
   );
 
+  const commonModals = (
+    <>
+      {/* Cart Slider Drawer */}
+      {(() => {
+        const firstItem = cartItems[0];
+        const itemRestaurant = firstItem?.restaurantName || "Dadu Fast Food & Kitchen";
+        const specificStatus = deliverySettings?.restaurantStatuses?.[itemRestaurant];
+        
+        let computedDeliveryFee = deliverySettings.deliveryFee;
+        if (specificStatus && specificStatus.deliveryCharge) {
+           const match = specificStatus.deliveryCharge.match(/\d+/);
+           if (match) {
+             computedDeliveryFee = parseInt(match[0], 10);
+           }
+        }
+        
+        return (
+          <CartDrawer
+            isOpen={isCartOpen}
+            onClose={() => setIsCartOpen(false)}
+            cartItems={cartItems}
+            onUpdateQuantity={handleUpdateCartQuantity}
+            onRemoveItem={handleRemoveCartItem}
+            currentUser={currentUser}
+            onOpenAuth={() => setIsAuthOpen(true)}
+            deliveryFee={computedDeliveryFee}
+            onPlaceOrder={handlePlaceOrderSubmit}
+            onAddDrink={handleAddExclusiveDrink}
+          />
+        );
+      })()}
+
+      <GroceryCartDrawer
+        isOpen={isGroceryCartOpen}
+        onClose={() => setIsGroceryCartOpen(false)}
+        cartItems={groceryCartItems}
+        onUpdateQuantity={handleUpdateGroceryCartQuantity}
+        onRemoveItem={handleRemoveFromGroceryCart}
+        currentUser={currentUser}
+        onOpenAuth={() => setIsAuthOpen(true)}
+        deliveryConfig={groceryDeliveryConfig}
+        onPlaceGroceryOrder={handlePlaceGroceryOrder}
+      />
+
+      <OrderHistoryDrawer
+        isOpen={isHistoryDrawerOpen}
+        onClose={() => setIsHistoryDrawerOpen(false)}
+        orders={orders}
+        onReorder={handleReorder}
+        onTrackOrder={(order) => {
+          setActiveTrackingOrder(order);
+          setIsTrackingModalOpen(true);
+        }}
+      />
+
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        onAuthSuccess={(profile) => {
+          setCurrentUser(profile);
+          setIsAuthOpen(false);
+        }}
+      />
+
+      <FoodDetailModal
+        dish={activeDetailDish}
+        onClose={() => setActiveDetailDish(null)}
+        onAddToCart={handleAddToCart}
+        isActiveDetailDishClosed={
+          activeDetailDish
+            ? checkIsRestaurantClosed(
+                activeDetailDish.restaurantName ||
+                  (activeDetailDish.type === "service"
+                    ? "Dadu Home Services"
+                    : "Dadu Fast Food & Kitchen"),
+              )
+            : false
+        }
+      />
+
+      {isTrackingModalOpen && activeTrackingOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/90 p-4 overflow-y-auto backdrop-blur-md">
+          <div className="w-full max-w-2xl bg-zinc-900 rounded-2xl border border-zinc-800 shadow-2xl relative overflow-hidden my-8">
+            <button
+              onClick={() => setIsTrackingModalOpen(false)}
+              className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-zinc-950/80 hover:bg-zinc-950 text-zinc-400 hover:text-white flex items-center justify-center border border-zinc-800 transition cursor-pointer"
+            >
+              ✕
+            </button>
+            <div className="p-2 sm:p-4 max-h-[90vh] overflow-y-auto scrollbar-none">
+              <OrderTracker
+                order={activeTrackingOrder}
+                onClose={() => setIsTrackingModalOpen(false)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      <OrderSuccessAnimation
+        isOpen={isSuccessAnimationOpen}
+        onClose={() => setIsSuccessAnimationOpen(false)}
+        order={successAnimationOrder}
+        onTrackOrder={() => {
+          if (successAnimationOrder) {
+            setActiveTrackingOrder(successAnimationOrder);
+            setIsTrackingModalOpen(true);
+          }
+        }}
+      />
+
+      {toastNotification && (
+        <div className="fixed bottom-6 right-6 z-50 p-4 max-w-sm bg-zinc-900 border-2 border-[#D70F64]/40 text-zinc-100 rounded-2xl shadow-2xl flex items-start gap-3 animate-slide-in">
+          <div className="bg-[#D70F64] text-white p-2.5 rounded-xl shrink-0">
+            <Sparkles className="w-5 h-5 animate-pulse" />
+          </div>
+          <div>
+            <h5 className="font-extrabold text-xs text-zinc-100 uppercase tracking-wider">
+              {toastNotification.title}
+            </h5>
+            <p className="text-[11px] text-zinc-400 mt-1 leading-normal font-semibold">
+              {toastNotification.message}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {isExitConfirmationOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fade-in">
+          <div className="bg-zinc-900 border-2 border-[#D70F64]/30 rounded-[32px] max-w-sm w-full overflow-hidden shadow-2xl text-zinc-100 relative">
+            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#D70F64] to-transparent" />
+            <div className="p-6 text-center space-y-5">
+              <div className="mx-auto w-16 h-16 rounded-full bg-[#D70F64]/10 border border-[#D70F64]/20 flex items-center justify-center text-[#D70F64]">
+                <LogOut className="w-8 h-8 animate-pulse" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-black uppercase tracking-wide text-zinc-100">
+                  Exit Dadu Food?
+                </h3>
+                <p className="text-xs text-zinc-400 font-semibold leading-relaxed">
+                  Are you sure you want to exit? You can stay to explore
+                  delicious meals, fresh groceries, or trusted local services!
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsExitConfirmationOpen(false)}
+                  className="w-full bg-[#D70F64] hover:bg-[#b00c50] text-white py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider transition active:scale-95 shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <UtensilsCrossed className="w-4 h-4" />
+                  Keep Ordering
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    isExitingRef.current = true;
+                    setIsExitConfirmationOpen(false);
+                    window.history.back();
+                    setTimeout(() => {
+                      window.location.href = "about:blank";
+                    }, 150);
+                  }}
+                  className="w-full bg-zinc-800 hover:bg-zinc-750 text-zinc-200 py-3 rounded-2xl font-extrabold text-xs uppercase tracking-wider transition active:scale-95 border border-zinc-700/80 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4 text-red-500" />
+                  Exit App
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+
   if (currentUser?.role === "rider") {
     return (
       <RiderPanel
@@ -1608,18 +1784,21 @@ export default function App() {
     });
 
     return (
-      <FoodpandaRestaurantPage
-        restaurantName={selectedRestaurant}
-        dishes={restaurantDishes}
-        onBack={() => setSelectedRestaurant("All Restaurants")}
-        onAddToCart={handleAddToCart}
-        cartItems={cartItems}
-        cartCountTotal={cartCountTotal}
-        cartPriceTotal={cartPriceTotal}
-        onViewCart={() => setIsCartOpen(true)}
-        toggleFavorite={toggleFavorite}
-        favoriteDishIds={favoriteDishIds}
-      />
+      <>
+        <FoodpandaRestaurantPage
+          restaurantName={selectedRestaurant}
+          dishes={restaurantDishes}
+          onBack={() => setSelectedRestaurant("All Restaurants")}
+          onAddToCart={handleAddToCart}
+          cartItems={cartItems}
+          cartCountTotal={cartCountTotal}
+          cartPriceTotal={cartPriceTotal}
+          onViewCart={() => setIsCartOpen(true)}
+          toggleFavorite={toggleFavorite}
+          favoriteDishIds={favoriteDishIds}
+        />
+        {commonModals}
+      </>
     );
   }
 
@@ -2823,199 +3002,7 @@ export default function App() {
         </Suspense>
       )}
 
-      {/* Cart Slider Drawer */}
-      {(() => {
-        const firstItem = cartItems[0];
-        const itemRestaurant = firstItem?.restaurantName || "Dadu Fast Food & Kitchen";
-        const specificStatus = deliverySettings?.restaurantStatuses?.[itemRestaurant];
-        
-        // Compute effective delivery fee
-        let computedDeliveryFee = deliverySettings.deliveryFee;
-        if (specificStatus && specificStatus.deliveryCharge) {
-           const match = specificStatus.deliveryCharge.match(/\d+/);
-           if (match) {
-             computedDeliveryFee = parseInt(match[0], 10);
-           }
-        }
-        // Apply 2x multiplier rule (legacy compatibility) for small orders, unless a fixed charge exists?
-        // Let's keep it simple and just use the parsed number or global fee.
-        
-        return (
-          <CartDrawer
-            isOpen={isCartOpen}
-            onClose={() => setIsCartOpen(false)}
-            cartItems={cartItems}
-            onUpdateQuantity={handleUpdateCartQuantity}
-            onRemoveItem={handleRemoveCartItem}
-            currentUser={currentUser}
-            onOpenAuth={() => setIsAuthOpen(true)}
-            deliveryFee={computedDeliveryFee}
-            onPlaceOrder={handlePlaceOrderSubmit}
-            onAddDrink={handleAddExclusiveDrink}
-          />
-        );
-      })()}
-
-      {/* Standalone Grocery Basket Drawer */}
-      <GroceryCartDrawer
-        isOpen={isGroceryCartOpen}
-        onClose={() => setIsGroceryCartOpen(false)}
-        cartItems={groceryCartItems}
-        onUpdateQuantity={handleUpdateGroceryCartQuantity}
-        onRemoveItem={handleRemoveFromGroceryCart}
-        currentUser={currentUser}
-        onOpenAuth={() => setIsAuthOpen(true)}
-        deliveryConfig={groceryDeliveryConfig}
-        onPlaceGroceryOrder={handlePlaceGroceryOrder}
-      />
-
-      {/* Slide-over User Order History & Reorder Drawer */}
-      <OrderHistoryDrawer
-        isOpen={isHistoryDrawerOpen}
-        onClose={() => setIsHistoryDrawerOpen(false)}
-        orders={orders}
-        onReorder={handleReorder}
-        onTrackOrder={(order) => {
-          setActiveTrackingOrder(order);
-          setIsTrackingModalOpen(true);
-        }}
-      />
-
-      {/* Secure AuthModal logins */}
-      <AuthModal
-        isOpen={isAuthOpen}
-        onClose={() => setIsAuthOpen(false)}
-        onAuthSuccess={(profile) => {
-          setCurrentUser(profile);
-          setIsAuthOpen(false);
-        }}
-      />
-
-      {/* Menu Item Detailed Popup Modal */}
-      <FoodDetailModal
-        dish={activeDetailDish}
-        onClose={() => setActiveDetailDish(null)}
-        onAddToCart={handleAddToCart}
-        isActiveDetailDishClosed={
-          activeDetailDish
-            ? checkIsRestaurantClosed(
-                activeDetailDish.restaurantName ||
-                  (activeDetailDish.type === "service"
-                    ? "Dadu Home Services"
-                    : "Dadu Fast Food & Kitchen"),
-              )
-            : false
-        }
-      />
-
-      {/* Dynamic Pop-up Full-Screen Tracking Modal */}
-      {isTrackingModalOpen && activeTrackingOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/90 p-4 overflow-y-auto backdrop-blur-md">
-          <div className="w-full max-w-2xl bg-zinc-900 rounded-2xl border border-zinc-800 shadow-2xl relative overflow-hidden my-8">
-            {/* Top close button */}
-            <button
-              onClick={() => setIsTrackingModalOpen(false)}
-              className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-zinc-950/80 hover:bg-zinc-950 text-zinc-400 hover:text-white flex items-center justify-center border border-zinc-800 transition cursor-pointer"
-            >
-              ✕
-            </button>
-
-            <div className="p-2 sm:p-4 max-h-[90vh] overflow-y-auto scrollbar-none">
-              <OrderTracker
-                order={activeTrackingOrder}
-                onClose={() => setIsTrackingModalOpen(false)}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Visual Success Confetti & Rider Animation Overlay */}
-      <OrderSuccessAnimation
-        isOpen={isSuccessAnimationOpen}
-        onClose={() => setIsSuccessAnimationOpen(false)}
-        order={successAnimationOrder}
-        onTrackOrder={() => {
-          if (successAnimationOrder) {
-            setActiveTrackingOrder(successAnimationOrder);
-            setIsTrackingModalOpen(true);
-          }
-        }}
-      />
-
-      {/* sliding push alerts toast widget */}
-      {toastNotification && (
-        <div className="fixed bottom-6 right-6 z-50 p-4 max-w-sm bg-zinc-900 border-2 border-[#D70F64]/40 text-zinc-100 rounded-2xl shadow-2xl flex items-start gap-3 animate-slide-in">
-          <div className="bg-[#D70F64] text-white p-2.5 rounded-xl shrink-0">
-            <Sparkles className="w-5 h-5 animate-pulse" />
-          </div>
-          <div>
-            <h5 className="font-extrabold text-xs text-zinc-100 uppercase tracking-wider">
-              {toastNotification.title}
-            </h5>
-            <p className="text-[11px] text-zinc-400 mt-1 leading-normal font-semibold">
-              {toastNotification.message}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Custom Exit/Back Confirmation Dialog */}
-      {isExitConfirmationOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fade-in">
-          <div className="bg-zinc-900 border-2 border-[#D70F64]/30 rounded-[32px] max-w-sm w-full overflow-hidden shadow-2xl text-zinc-100 relative">
-            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#D70F64] to-transparent" />
-
-            <div className="p-6 text-center space-y-5">
-              {/* Animated Icon Container */}
-              <div className="mx-auto w-16 h-16 rounded-full bg-[#D70F64]/10 border border-[#D70F64]/20 flex items-center justify-center text-[#D70F64]">
-                <LogOut className="w-8 h-8 animate-pulse" />
-              </div>
-
-              {/* Title & Description */}
-              <div className="space-y-2">
-                <h3 className="text-lg font-black uppercase tracking-wide text-zinc-100">
-                  Exit Dadu Food?
-                </h3>
-                <p className="text-xs text-zinc-400 font-semibold leading-relaxed">
-                  Are you sure you want to exit? You can stay to explore
-                  delicious meals, fresh groceries, or trusted local services!
-                </p>
-              </div>
-
-              {/* Interaction Buttons */}
-              <div className="flex flex-col gap-2 pt-2">
-                {/* Stay & order */}
-                <button
-                  type="button"
-                  onClick={() => setIsExitConfirmationOpen(false)}
-                  className="w-full bg-[#D70F64] hover:bg-[#b00c50] text-white py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider transition active:scale-95 shadow-md flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <UtensilsCrossed className="w-4 h-4" />
-                  Keep Ordering
-                </button>
-
-                {/* Exit Website */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    isExitingRef.current = true;
-                    setIsExitConfirmationOpen(false);
-                    window.history.back();
-                    setTimeout(() => {
-                      window.location.href = "about:blank";
-                    }, 150);
-                  }}
-                  className="w-full bg-zinc-800 hover:bg-zinc-750 text-zinc-200 py-3 rounded-2xl font-extrabold text-xs uppercase tracking-wider transition active:scale-95 border border-zinc-700/80 flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <ArrowLeft className="w-4 h-4 text-red-500" />
-                  Exit App
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {commonModals}
 
       {/* Floating Bottom Cart for mobile screens */}
       {cartCountTotal > 0 && (

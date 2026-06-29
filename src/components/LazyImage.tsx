@@ -19,18 +19,15 @@ export function LazyImage({
 
   return (
     <div className={`relative overflow-hidden bg-zinc-200 ${className || "w-full h-full"}`}>
-      {/* Placeholder / Blur skeleton */}
-      <div
-        className={`absolute inset-0 bg-zinc-200 animate-pulse transition-opacity duration-500 ${
-          isLoaded ? "opacity-0" : "opacity-100"
-        }`}
-      />
+      {!isLoaded && (
+        <div className="absolute inset-0 bg-zinc-200" />
+      )}
       
       {/* Actual Image */}
       <img
         src={src}
         alt={alt}
-        className={`w-full h-full object-cover transition-opacity duration-500 ${
+        className={`w-full h-full object-cover ${
           isLoaded ? "opacity-100" : "opacity-0"
         } ${imgClassName || ""}`}
         referrerPolicy={referrerPolicy}

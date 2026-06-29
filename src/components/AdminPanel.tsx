@@ -101,6 +101,7 @@ interface ProductImageSelectorProps {
   accentColorClass?: "amber" | "orange" | "purple" | "blue" | "emerald";
   label: string;
   placeholder?: string;
+  uploadPath?: string;
 }
 
 function ProductImageSelector({
@@ -109,14 +110,18 @@ function ProductImageSelector({
   accentColorClass = "amber",
   label,
   placeholder,
+  uploadPath,
 }: ProductImageSelectorProps) {
   const [isDragOver, setIsDragOver] = React.useState(false);
   const [mode, setMode] = React.useState<"url" | "file">("file");
-  const [urlInput, setUrlInput] = React.useState(imageUrl);
+  const [urlInput, setUrlInput] = React.useState(imageUrl || "");
   const [isProcessing, setIsProcessing] = React.useState(false);
+  const [uploadProgress, setUploadProgress] = React.useState(0);
+  const [uploadError, setUploadError] = React.useState("");
+  const [failedFile, setFailedFile] = React.useState<File | null>(null);
 
   React.useEffect(() => {
-    setUrlInput(imageUrl);
+    setUrlInput(imageUrl || "");
   }, [imageUrl]);
 
   const handleUrlChange = (val: string) => {
@@ -125,15 +130,29 @@ function ProductImageSelector({
   };
 
   const processFile = async (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      alert("Please select a valid image file (PNG, JPG, JPEG, etc.)");
+    setUploadError("");
+    setFailedFile(null);
+    setUploadProgress(0);
+
+    const validTypes = ["image/png", "image/jpg", "image/jpeg", "image/webp"];
+    if (!validTypes.includes(file.type)) {
+      setUploadError("Invalid format. Please select PNG, JPG, JPEG, or WEBP.");
+      setFailedFile(file);
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError("File too large. Maximum size is 5MB.");
+      setFailedFile(file);
       return;
     }
 
     setIsProcessing(true);
     try {
       const extension = file.name.split('.').pop() || 'jpg';
-      const uniqueName = `images/${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${extension}`;
+      const uniqueName = uploadPath 
+        ? `${uploadPath}.${extension}`
+        : `images/${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${extension}`;
       const storageRef = ref(storage, uniqueName);
       
       const uploadTask = uploadBytesResumable(storageRef, file);
@@ -141,27 +160,32 @@ function ProductImageSelector({
       uploadTask.on(
         "state_changed",
         (snapshot) => {
-          // You could track progress here if needed
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          setUploadProgress(progress);
         },
         (error) => {
           console.error("Upload error:", error);
-          alert("Failed to upload image. " + error.message);
+          setUploadError("Failed to upload image. " + error.message);
+          setFailedFile(file);
           setIsProcessing(false);
         },
         async () => {
           try {
             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
             onChange(downloadURL);
+            setUploadProgress(100);
           } catch (urlError) {
              console.error("Error getting download URL:", urlError);
-             alert("Failed to get image URL.");
+             setUploadError("Failed to get image URL.");
+             setFailedFile(file);
           }
           setIsProcessing(false);
         }
       );
     } catch (err) {
       console.error(err);
-      alert("Error uploading image");
+      setUploadError("Error uploading image");
+      setFailedFile(file);
       setIsProcessing(false);
     }
   };
@@ -237,26 +261,51 @@ function ProductImageSelector({
         >
           <input
             type="file"
-            accept="image/*"
+            accept="image/png, image/jpeg, image/jpg, image/webp"
             onChange={handleFileChange}
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
           />
           {isProcessing ? (
-            <div className="flex flex-col items-center space-y-1">
+            <div className="flex flex-col items-center space-y-2 w-full px-4 relative z-10 pointer-events-none">
               <Loader2 className="w-5 h-5 text-[#D70F64] animate-spin" />
-              <span className="text-[9px] text-zinc-400 font-extrabold">
-                UPLOADING IMAGE...
+              <span className="text-[9px] text-zinc-400 font-extrabold uppercase tracking-wider">
+                Uploading Image... {Math.round(uploadProgress)}%
               </span>
+              <div className="w-full bg-zinc-800 rounded-full h-1.5 overflow-hidden">
+                <div 
+                  className={`h-full bg-${accentColorClass}-500 transition-all duration-300`} 
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            </div>
+          ) : uploadError ? (
+            <div className="flex flex-col items-center gap-2 relative z-10 p-2">
+              <AlertTriangle className="w-6 h-6 text-red-500 mb-1" />
+              <p className="text-[10px] text-red-400 font-bold text-center leading-tight">
+                {uploadError}
+              </p>
+              {failedFile && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    processFile(failedFile);
+                  }}
+                  className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 text-[10px] font-black px-4 py-1.5 rounded-lg mt-1 transition-colors pointer-events-auto"
+                >
+                  RETRY UPLOAD
+                </button>
+              )}
             </div>
           ) : imageUrl ? (
-            <div className="flex flex-col items-center gap-2 relative z-10 pointer-events-none">
+            <div className="flex flex-col items-center gap-2 relative z-10 pointer-events-none w-full">
               <img
                 src={imageUrl}
                 alt="Upload Preview"
-                className="h-16 w-16 object-cover rounded-lg border border-zinc-800/80 shadow-md"
+                className="h-16 w-auto max-w-full object-contain rounded-lg border border-zinc-800/80 shadow-md bg-black/50"
                 referrerPolicy="no-referrer"
               />
-              <div className="flex gap-2 pointer-events-auto">
+              <div className="flex gap-2 pointer-events-auto mt-1">
                 <button
                   type="button"
                   onClick={(e) => {
@@ -264,7 +313,7 @@ function ProductImageSelector({
                     const input = e.currentTarget.parentElement?.parentElement?.parentElement?.querySelector('input[type="file"]') as HTMLInputElement;
                     if (input) input.click();
                   }}
-                  className="bg-zinc-800 hover:bg-zinc-700 text-xs font-bold px-3 py-1 rounded text-white"
+                  className="bg-zinc-800 hover:bg-zinc-700 text-[10px] font-bold px-3 py-1.5 rounded-md text-white transition-colors border border-zinc-700"
                 >
                   Change Image
                 </button>
@@ -274,14 +323,14 @@ function ProductImageSelector({
                     e.stopPropagation();
                     onChange("");
                   }}
-                  className="bg-red-900/50 hover:bg-red-800 text-xs font-bold px-3 py-1 rounded text-red-200"
+                  className="bg-red-500/10 hover:bg-red-500/20 text-[10px] font-bold px-3 py-1.5 rounded-md text-red-400 transition-colors border border-red-500/20"
                 >
                   Remove Image
                 </button>
               </div>
             </div>
           ) : (
-            <div className="space-y-1">
+            <div className="space-y-1 relative z-10 pointer-events-none">
               <p className="text-[10px] text-zinc-400 font-bold">
                 Drag & drop image here or{" "}
                 <span
@@ -295,7 +344,7 @@ function ProductImageSelector({
                 </span>
               </p>
               <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-wider">
-                Supports PNG, JPG, JPEG
+                Max 5MB (PNG, JPG, JPEG, WEBP)
               </p>
             </div>
           )}
@@ -304,7 +353,7 @@ function ProductImageSelector({
         <div className="space-y-2">
           <input
             type="text"
-            value={urlInput}
+            value={urlInput || ""}
             onChange={(e) => handleUrlChange(e.target.value)}
             placeholder={placeholder || "Paste image web address (https://...)"}
             className="w-full p-2.5 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500/85 transition text-xs font-mono font-medium"
@@ -1133,7 +1182,7 @@ export default function AdminPanel({
         },
       };
 
-      await setDoc(doc(db, "settings", "delivery_config"), newSettings, {
+      await setDoc(doc(db, "settings", "delivery_config"), cleanObject(newSettings), {
         merge: true,
       });
       setSelectedScheduleRestaurant(newRestaurantInput.trim());
@@ -1171,13 +1220,13 @@ export default function AdminPanel({
             closingTime: restClosingTime,
             imageUrl: restImageUrl,
             phone: restPhone,
-            minOrder: restMinOrder ? Number(restMinOrder) : undefined,
+            minOrder: restMinOrder ? String(restMinOrder) : null,
             deliveryCharge: restDeliveryCharge,
           },
         },
       };
 
-      await setDoc(doc(db, "settings", "delivery_config"), newSettings);
+      await setDoc(doc(db, "settings", "delivery_config"), cleanObject(newSettings));
       alert(`Settings successfully saved for ${selectedScheduleRestaurant}!`);
     } catch (err) {
       console.error(err);
@@ -1413,7 +1462,7 @@ export default function AdminPanel({
 
     try {
       await setDoc(doc(db, "menu", uniqueId), cleanObject(dishModel));
-      alert("New and fresh dish or service added successfully!");
+      console.log("New and fresh dish or service added successfully!");
       setNewItemName("");
       setNewItemDescription("");
       setNewItemPrice(300);
@@ -1427,7 +1476,7 @@ export default function AdminPanel({
       setNewItemAddOns([]);
     } catch (err) {
       console.error(err);
-      alert("Check database permissions. Could not add menu item.");
+      console.log("Check database permissions. Could not add menu item.");
     }
   };
 
@@ -1442,7 +1491,6 @@ export default function AdminPanel({
   };
 
   const handleImportTastyBites = async () => {
-    if (!window.confirm("Import Tasty Bites Dadu menu? This will take a moment.")) return;
     setIsImportingTasty(true);
     setImportProgressTasty(0);
     try {
@@ -1726,11 +1774,11 @@ export default function AdminPanel({
         setImportProgressTasty(Math.round(((i + 1) / menuData.length) * 100));
       }
       
-      alert("Tasty Bites Menu imported successfully!");
+      console.log("Tasty Bites Menu imported successfully!");
+      setImportProgressTasty(100);
+      setTimeout(() => setIsImportingTasty(false), 1500);
     } catch (err) {
       console.error(err);
-      alert("Import failed. See console.");
-    } finally {
       setIsImportingTasty(false);
     }
   };
@@ -1801,9 +1849,9 @@ export default function AdminPanel({
           const newStatuses = { ...existingStatuses };
           delete newStatuses[restaurantName];
 
-          await updateDoc(doc(db, "settings", "delivery_config"), {
+          await updateDoc(doc(db, "settings", "delivery_config"), cleanObject({
             restaurantStatuses: newStatuses,
-          });
+          }));
 
           const dishesToDelete = dishes.filter(
             (d) =>
@@ -1858,10 +1906,10 @@ export default function AdminPanel({
           newStatuses[finalNewName] = oldStatus;
           delete newStatuses[oldName];
 
-          await setDoc(doc(db, "settings", "delivery_config"), {
+          await setDoc(doc(db, "settings", "delivery_config"), cleanObject({
             ...deliverySettings,
             restaurantStatuses: newStatuses,
-          });
+          }));
 
           // 2. Update all menu items for this restaurant
           const dishesToUpdate = dishes.filter(
@@ -2772,6 +2820,7 @@ export default function AdminPanel({
                           label="Restaurant Cover Image"
                           accentColorClass="purple"
                           placeholder="Paste image web address (https://...)"
+                          uploadPath={`restaurants/${selectedScheduleRestaurant}/cover`}
                         />
                       </div>
 
@@ -2849,19 +2898,50 @@ export default function AdminPanel({
                 <div className="flex gap-2">
                   <button
                     onClick={async () => {
-                      if (window.confirm("Are you SURE you want to completely delete all menu items in the database? This cannot be undone!")) {
+                        const btn = document.getElementById("clear-menu-btn");
+                        if (btn && btn.getAttribute("data-confirm") !== "true") {
+                           btn.setAttribute("data-confirm", "true");
+                           btn.innerText = "🔥 ARE YOU SURE? CLICK AGAIN!";
+                           setTimeout(() => {
+                               if (btn) {
+                                   btn.removeAttribute("data-confirm");
+                                   btn.innerText = "🔥 CLEAR ENTIRE MENU";
+                               }
+                           }, 3000);
+                           return;
+                        }
+                        
+                        if (btn) {
+                            btn.innerText = "⏳ DELETING...";
+                        }
                         try {
                           const menuRef = collection(db, "menu");
                           const snapshot = await getDocs(menuRef);
                           const deletePromises = snapshot.docs.map(document => deleteDoc(doc(db, "menu", document.id)));
                           await Promise.all(deletePromises);
-                          alert("Menu database has been completely wiped.");
+                          console.log("Menu database has been completely wiped.");
+                          if (btn) {
+                              btn.innerText = "✅ CLEARED";
+                              setTimeout(() => {
+                                  if (btn) {
+                                      btn.removeAttribute("data-confirm");
+                                      btn.innerText = "🔥 CLEAR ENTIRE MENU";
+                                  }
+                              }, 2000);
+                          }
                         } catch (err) {
                           console.error(err);
-                          alert("Failed to delete menu. Check permissions.");
+                          console.log("Failed to delete menu. Check permissions.");
+                          if (btn) {
+                              btn.removeAttribute("data-confirm");
+                              btn.innerText = "❌ FAILED (CHECK CONSOLE)";
+                              setTimeout(() => {
+                                 if (btn) btn.innerText = "🔥 CLEAR ENTIRE MENU";
+                              }, 2000);
+                          }
                         }
-                      }
                     }}
+                    id="clear-menu-btn"
                     className="bg-red-950/40 hover:bg-red-900/60 text-red-500 px-4 py-2 rounded-xl text-[10px] uppercase font-black tracking-wider transition-colors border border-red-900/50 hover:border-red-500/50 flex items-center gap-2"
                   >
                     🔥 CLEAR ENTIRE MENU
@@ -4819,6 +4899,7 @@ export default function AdminPanel({
                         label="Restaurant Cover Image"
                         accentColorClass="purple"
                         placeholder="Paste image web address (https://...)"
+                        uploadPath={`restaurants/${selectedScheduleRestaurant}/cover`}
                       />
                     </div>
 
