@@ -725,6 +725,20 @@ export default function AdminPanel({
     }
   };
 
+  const handleUpdateFoodCategory = async () => {
+    if (!editingFoodCategory || !editingFoodCategory.name) return;
+    try {
+      await updateDoc(doc(db, "foodCategories", editingFoodCategory.id), {
+        ...editingFoodCategory
+      });
+      setEditingFoodCategory(null);
+      alert("Category updated successfully!");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to update category.");
+    }
+  };
+
   const handleSaveSeoConfig = async () => {
     try {
       await setDoc(
@@ -763,6 +777,8 @@ export default function AdminPanel({
     null,
   );
   const [editingCategoryImageUrl, setEditingCategoryImageUrl] = useState("");
+
+  const [editingFoodCategory, setEditingFoodCategory] = useState<FoodCategory | null>(null);
 
   // Form states for adding grocery product
   const [newGProdName, setNewGProdName] = useState("");
@@ -5463,7 +5479,7 @@ export default function AdminPanel({
                   Existing Food Categories
                 </h4>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
                   {foodCategories.map((cat) => (
                     <div
                       key={cat.id}
@@ -5474,22 +5490,63 @@ export default function AdminPanel({
                           <img
                             src={cat.imageUrl}
                             alt={cat.name}
-                            className="w-8 h-8 rounded-lg object-cover"
+                            className="w-12 h-12 rounded-lg object-cover"
                           />
                         ) : (
-                          <span className="text-2xl">{cat.emoji || "🍽️"}</span>
+                          <span className="text-3xl">{cat.emoji || "🍽️"}</span>
                         )}
-                        <button
-                          onClick={() => handleDeleteFoodCategory(cat.id)}
-                          className="text-zinc-500 hover:text-red-500 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setEditingFoodCategory(editingFoodCategory?.id === cat.id ? null : cat)}
+                            className="text-zinc-500 hover:text-blue-500 transition-colors"
+                          >
+                            <span className="text-xs uppercase font-bold tracking-wider">Edit</span>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteFoodCategory(cat.id)}
+                            className="text-zinc-500 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
-                      <span className="font-bold text-xs">{cat.name}</span>
-                      <span className="text-[10px] text-zinc-500">
-                        {cat.subtitle}
-                      </span>
+                      
+                      {editingFoodCategory?.id === cat.id ? (
+                        <div className="mt-4 space-y-3 border-t border-zinc-800 pt-3">
+                          <input 
+                            type="text"
+                            value={editingFoodCategory.name}
+                            onChange={(e) => setEditingFoodCategory({...editingFoodCategory, name: e.target.value})}
+                            className="w-full p-2 bg-zinc-900 border border-zinc-700 rounded-lg text-xs outline-none"
+                            placeholder="Name"
+                          />
+                          <input 
+                            type="text"
+                            value={editingFoodCategory.subtitle || ""}
+                            onChange={(e) => setEditingFoodCategory({...editingFoodCategory, subtitle: e.target.value})}
+                            className="w-full p-2 bg-zinc-900 border border-zinc-700 rounded-lg text-xs outline-none"
+                            placeholder="Subtitle"
+                          />
+                          <ProductImageSelector 
+                            imageUrl={editingFoodCategory.imageUrl || ""}
+                            onChange={(url) => setEditingFoodCategory({...editingFoodCategory, imageUrl: url})}
+                            label="Image URL"
+                          />
+                          <button 
+                            onClick={handleUpdateFoodCategory}
+                            className="w-full bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold uppercase py-2 rounded-lg transition"
+                          >
+                            Save Changes
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <span className="font-bold text-sm mt-1">{cat.name}</span>
+                          <span className="text-[10px] text-zinc-500">
+                            {cat.subtitle}
+                          </span>
+                        </>
+                      )}
                     </div>
                   ))}
                 </div>

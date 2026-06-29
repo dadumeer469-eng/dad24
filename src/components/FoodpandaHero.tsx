@@ -49,7 +49,7 @@ export default function FoodpandaHero({
 
   const displayCategories =
     foodCategories && foodCategories.length > 0
-      ? foodCategories
+      ? [...foodCategories].sort((a, b) => (a.position || 0) - (b.position || 0))
       : defaultCategories;
 
   return (
