@@ -849,7 +849,8 @@ export default function App() {
       isSuccessAnimationOpen ||
       isHistoryDrawerOpen ||
       isAdminConsoleOpen ||
-      isExitConfirmationOpen;
+      isExitConfirmationOpen ||
+      selectedRestaurant !== "All Restaurants";
 
     if (isAnyModalOpen) {
       if (window.history.state?.modalOpen !== true) {
@@ -881,7 +882,8 @@ export default function App() {
         isTrackingModalOpen ||
         isSuccessAnimationOpen ||
         isHistoryDrawerOpen ||
-        isAdminConsoleOpen
+        isAdminConsoleOpen ||
+        selectedRestaurant !== "All Restaurants"
       ) {
         setIsAuthOpen(false);
         setIsCartOpen(false);
@@ -891,6 +893,7 @@ export default function App() {
         setIsSuccessAnimationOpen(false);
         setIsHistoryDrawerOpen(false);
         setIsAdminConsoleOpen(false);
+        setSelectedRestaurant("All Restaurants");
         return;
       }
 
@@ -919,6 +922,7 @@ export default function App() {
     isHistoryDrawerOpen,
     isAdminConsoleOpen,
     isExitConfirmationOpen,
+    selectedRestaurant,
   ]);
 
   // --- CART CONTROLLER OPERATIONS ---
@@ -1789,6 +1793,7 @@ export default function App() {
           restaurantName={selectedRestaurant}
           dishes={restaurantDishes}
           deliverySettings={deliverySettings}
+          isRestaurantClosed={checkIsRestaurantClosed(selectedRestaurant)}
           onBack={() => setSelectedRestaurant("All Restaurants")}
           onAddToCart={handleAddToCart}
           cartItems={cartItems}

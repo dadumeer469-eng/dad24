@@ -8,6 +8,7 @@ interface FoodpandaRestaurantPageProps {
   restaurantName: string;
   dishes: Dish[];
   deliverySettings?: SystemSettings;
+  isRestaurantClosed?: boolean;
   onBack: () => void;
   onAddToCart: (dish: Dish, quantityToAdd?: number, options?: { size?: string; flavor?: string; addOns?: { name: string; price: number; }[]; specialInstructions?: string; }) => void;
   cartItems: OrderItem[];
@@ -22,6 +23,7 @@ export default function FoodpandaRestaurantPage({
   restaurantName,
   dishes,
   deliverySettings,
+  isRestaurantClosed,
   onBack,
   onAddToCart,
   cartItems,
@@ -96,7 +98,14 @@ export default function FoodpandaRestaurantPage({
           </div>
         </div>
 
-        <h1 className="text-2xl md:text-3xl font-black text-zinc-900 uppercase tracking-tight">{restaurantName}</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl md:text-3xl font-black text-zinc-900 uppercase tracking-tight">{restaurantName}</h1>
+          {isRestaurantClosed && (
+            <span className="bg-red-100 text-red-600 px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest shrink-0">
+              Closed
+            </span>
+          )}
+        </div>
         <p className="text-zinc-500 font-medium text-sm mt-0.5">The Taste of Trust</p>
         
         <div className="flex flex-wrap items-center gap-3 mt-3 text-xs font-semibold text-zinc-600">
@@ -117,9 +126,13 @@ export default function FoodpandaRestaurantPage({
         </div>
 
         <div className="flex flex-wrap items-center gap-3 mt-3 text-xs font-medium">
-          <span className="text-green-600 font-bold bg-green-50 px-2 py-1 rounded-md">🟢 Open Now</span>
-          <span className="bg-zinc-100 text-zinc-600 px-2 py-1 rounded-md">Min order: Rs. 300</span>
-          <span className="bg-zinc-100 text-zinc-600 px-2 py-1 rounded-md">Delivery: Rs. 50</span>
+          {isRestaurantClosed ? (
+            <span className="text-red-600 font-bold bg-red-50 px-2 py-1 rounded-md">🔴 Closed</span>
+          ) : (
+            <span className="text-green-600 font-bold bg-green-50 px-2 py-1 rounded-md">🟢 Open Now</span>
+          )}
+          <span className="bg-zinc-100 text-zinc-600 px-2 py-1 rounded-md">Min order: Rs. {deliverySettings?.restaurantStatuses?.[restaurantName]?.minOrder || deliverySettings?.minOrderAmount || 0}</span>
+          <span className="bg-zinc-100 text-zinc-600 px-2 py-1 rounded-md">Delivery: {deliverySettings?.restaurantStatuses?.[restaurantName]?.deliveryCharge || `Rs. ${deliverySettings?.deliveryFee || 50}`}</span>
         </div>
 
         {/* Search */}
@@ -161,7 +174,7 @@ export default function FoodpandaRestaurantPage({
              <h2 className="text-lg font-black text-zinc-800 mb-4">Search Results</h2>
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {filteredDishes.map(dish => (
-                  <DishCard key={dish.id} dish={dish} onAdd={() => setActiveDetailDish(dish)} />
+                  <DishCard key={dish.id} dish={dish} onAdd={() => setActiveDetailDish(dish)} isClosed={isRestaurantClosed} />
                 ))}
                 {filteredDishes.length === 0 && (
                   <p className="text-zinc-500 text-sm py-8 text-center col-span-full">No items found.</p>
@@ -181,7 +194,7 @@ export default function FoodpandaRestaurantPage({
                 <h2 className="text-xl md:text-2xl font-black text-zinc-900 mb-4 tracking-tight">{cat}</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {catDishes.map(dish => (
-                    <DishCard key={dish.id} dish={dish} onAdd={() => setActiveDetailDish(dish)} />
+                    <DishCard key={dish.id} dish={dish} onAdd={() => setActiveDetailDish(dish)} isClosed={isRestaurantClosed} />
                   ))}
                 </div>
               </div>
@@ -224,17 +237,20 @@ export default function FoodpandaRestaurantPage({
   );
 }
 
-function DishCard({ dish, onAdd }: { dish: Dish, onAdd: () => void, key?: React.Key }) {
+function DishCard({ dish, onAdd, isClosed }: { dish: Dish, onAdd: () => void, key?: React.Key, isClosed?: boolean }) {
   const hasOptions = (dish.sizes && dish.sizes.length > 0) || (dish.flavors && dish.flavors.length > 0) || (dish.addOns && dish.addOns.length > 0);
   
   return (
     <div 
-      className="flex gap-4 p-4 bg-white border border-zinc-100 rounded-2xl shadow-sm hover:shadow-md transition cursor-pointer active:scale-[0.98]"
-      onClick={onAdd}
+      className={`flex gap-4 p-4 bg-white border border-zinc-100 rounded-2xl shadow-sm transition ${!dish.isAvailable || isClosed ? "opacity-60 grayscale-[20%] cursor-not-allowed" : "hover:shadow-md cursor-pointer active:scale-[0.98]"}`}
+      onClick={() => { if (!isClosed && dish.isAvailable !== false) onAdd(); }}
     >
       <div className="flex-1 min-w-0 flex flex-col justify-between">
         <div>
           <h3 className="font-bold text-zinc-900 text-sm md:text-base leading-tight">{dish.name}</h3>
+          {!dish.isAvailable && !isClosed && (
+            <span className="inline-block mt-1 bg-red-100 text-red-600 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider">Out of stock</span>
+          )}
           {dish.description && (
             <p className="text-xs text-zinc-500 mt-1 line-clamp-2 leading-relaxed">{dish.description}</p>
           )}
@@ -258,9 +274,10 @@ function DishCard({ dish, onAdd }: { dish: Dish, onAdd: () => void, key?: React.
         <button 
           onClick={(e) => {
             e.stopPropagation();
-            onAdd();
+            if (!isClosed && dish.isAvailable !== false) onAdd();
           }}
-          className="absolute bottom-[-1px] right-[-1px] bg-white text-[#D70F64] border border-[#D70F64]/20 shadow-sm w-8 h-8 rounded-tl-xl flex items-center justify-center font-bold text-lg hover:bg-[#D70F64] hover:text-white transition"
+          disabled={isClosed || dish.isAvailable === false}
+          className={`absolute bottom-[-1px] right-[-1px] bg-white border shadow-sm w-8 h-8 rounded-tl-xl flex items-center justify-center font-bold text-lg transition ${isClosed || dish.isAvailable === false ? "text-zinc-300 border-zinc-100 cursor-not-allowed" : "text-[#D70F64] border-[#D70F64]/20 hover:bg-[#D70F64] hover:text-white"}`}
         >
           +
         </button>
