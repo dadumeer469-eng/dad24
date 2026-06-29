@@ -873,33 +873,47 @@ export default function App() {
         return;
       }
 
-      // Close open modals
-      if (
-        isAuthOpen ||
-        isCartOpen ||
-        isGroceryCartOpen ||
-        !!activeDetailDish ||
-        isTrackingModalOpen ||
-        isSuccessAnimationOpen ||
-        isHistoryDrawerOpen ||
-        isAdminConsoleOpen ||
-        selectedRestaurant !== "All Restaurants"
-      ) {
-        setIsAuthOpen(false);
-        setIsCartOpen(false);
-        setIsGroceryCartOpen(false);
-        setActiveDetailDish(null);
-        setIsTrackingModalOpen(false);
-        setIsSuccessAnimationOpen(false);
-        setIsHistoryDrawerOpen(false);
-        setIsAdminConsoleOpen(false);
-        setSelectedRestaurant("All Restaurants");
-        return;
-      }
-
       // Close exit confirmation if open
       if (isExitConfirmationOpen) {
         setIsExitConfirmationOpen(false);
+        return;
+      }
+
+      // Close open modals ONE by ONE, starting from topmost overlay
+      if (!!activeDetailDish) {
+        setActiveDetailDish(null);
+        return;
+      }
+      if (isAuthOpen) {
+        setIsAuthOpen(false);
+        return;
+      }
+      if (isCartOpen) {
+        setIsCartOpen(false);
+        return;
+      }
+      if (isGroceryCartOpen) {
+        setIsGroceryCartOpen(false);
+        return;
+      }
+      if (isTrackingModalOpen) {
+        setIsTrackingModalOpen(false);
+        return;
+      }
+      if (isSuccessAnimationOpen) {
+        setIsSuccessAnimationOpen(false);
+        return;
+      }
+      if (isHistoryDrawerOpen) {
+        setIsHistoryDrawerOpen(false);
+        return;
+      }
+      if (isAdminConsoleOpen) {
+        setIsAdminConsoleOpen(false);
+        return;
+      }
+      if (selectedRestaurant !== "All Restaurants") {
+        setSelectedRestaurant("All Restaurants");
         return;
       }
 
@@ -2476,8 +2490,18 @@ export default function App() {
                                       : "Dadu Fast Food & Kitchen")) ===
                                     vendor && d.isAvailable !== false,
                               )
-                              .sort((a, b) => (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0))
-                              .slice(0, 4);
+                              .sort((a, b) => {
+                                if (a.isFeatured !== b.isFeatured) {
+                                  return (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
+                                }
+                                const aTime = a.id.startsWith("custom_") ? parseInt(a.id.split("_")[1]) || 0 : 0;
+                                const bTime = b.id.startsWith("custom_") ? parseInt(b.id.split("_")[1]) || 0 : 0;
+                                if (aTime !== bTime) {
+                                  return bTime - aTime;
+                                }
+                                return String(b.id).localeCompare(String(a.id));
+                              })
+                              .slice(0, 8);
 
                             const isClosed = checkIsRestaurantClosed(vendor);
 
@@ -2559,7 +2583,13 @@ export default function App() {
                                       </span>
                                     </div>
                                   ))}
-                                  <div className="w-16 h-20 flex flex-col items-center justify-center gap-1 shrink-0 bg-pink-50/50 rounded-xl text-[#D70F64] hover:bg-pink-100 transition border border-pink-100/50">
+                                  <div
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedRestaurant(vendor);
+                                    }}
+                                    className="w-16 h-20 flex flex-col items-center justify-center gap-1 shrink-0 bg-pink-50/50 rounded-xl text-[#D70F64] hover:bg-pink-100 transition border border-pink-100/50 cursor-pointer"
+                                  >
                                     <ChevronRight className="w-5 h-5" />
                                     <span className="text-[9px] font-black uppercase">
                                       Menu
@@ -2590,7 +2620,19 @@ export default function App() {
                               </div>
                             </div>
                           ))
-                        : filteredDishes.map((dish) => {
+                        : [...filteredDishes]
+                            .sort((a, b) => {
+                              if (a.isFeatured !== b.isFeatured) {
+                                return (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
+                              }
+                              const aTime = a.id.startsWith("custom_") ? parseInt(a.id.split("_")[1]) || 0 : 0;
+                              const bTime = b.id.startsWith("custom_") ? parseInt(b.id.split("_")[1]) || 0 : 0;
+                              if (aTime !== bTime) {
+                                return bTime - aTime;
+                              }
+                              return String(b.id).localeCompare(String(a.id));
+                            })
+                            .map((dish) => {
                             const isSvc = dish.type === "service";
                             const dishRestaurantName =
                               dish.restaurantName ||
