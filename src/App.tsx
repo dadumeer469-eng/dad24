@@ -33,17 +33,17 @@ import { INITIAL_MENU_ITEMS } from "./data";
 
 // Import modules
 import FoodpandaHeader from "./components/FoodpandaHeader";
-import FoodpandaHero from "./components/FoodpandaHero";
-import CartDrawer from "./components/CartDrawer";
-import OrderTracker from "./components/OrderTracker";
+const FoodpandaHero = React.lazy(() => import("./components/FoodpandaHero"));
+const CartDrawer = React.lazy(() => import("./components/CartDrawer"));
+const OrderTracker = React.lazy(() => import("./components/OrderTracker"));
 const AdminPanel = React.lazy(() => import("./components/AdminPanel"));
-import AuthModal from "./components/AuthModal";
-import RiderPanel from "./components/RiderPanel";
-import FoodDetailModal from "./components/FoodDetailModal";
-import GroceryModule from "./components/GroceryModule";
-import GroceryCartDrawer from "./components/GroceryCartDrawer";
-import OrderSuccessAnimation from "./components/OrderSuccessAnimation";
-import OrderHistoryDrawer from "./components/OrderHistoryDrawer";
+const AuthModal = React.lazy(() => import("./components/AuthModal"));
+const RiderPanel = React.lazy(() => import("./components/RiderPanel"));
+const FoodDetailModal = React.lazy(() => import("./components/FoodDetailModal"));
+const GroceryModule = React.lazy(() => import("./components/GroceryModule"));
+const GroceryCartDrawer = React.lazy(() => import("./components/GroceryCartDrawer"));
+const OrderSuccessAnimation = React.lazy(() => import("./components/OrderSuccessAnimation"));
+const OrderHistoryDrawer = React.lazy(() => import("./components/OrderHistoryDrawer"));
 import { LazyImage } from "./components/LazyImage";
 import daduLogo from "./assets/images/dadu_food_logo_new_1782333467889.jpg";
 
@@ -73,7 +73,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
-import FoodpandaRestaurantPage from "./components/FoodpandaRestaurantPage";
+const FoodpandaRestaurantPage = React.lazy(() => import("./components/FoodpandaRestaurantPage"));
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -1533,19 +1533,22 @@ export default function App() {
   const isDealActive =
     dealConfig.isActive &&
     (dealTimeLeft.minutes > 0 || dealTimeLeft.seconds > 0);
-  const finalDishes = dishes.map((dish) => {
-    if (isDealActive && dealConfig?.selectedItemIds?.includes(dish.id)) {
-      const pct = dealConfig.discountPercentage || 0;
-      if (pct > 0) {
-        const discountPrice = Math.round(dish.price * (1 - pct / 100));
-        return { ...dish, discountPrice };
+    
+  const finalDishes = React.useMemo(() => {
+    return dishes.map((dish) => {
+      if (isDealActive && dealConfig?.selectedItemIds?.includes(dish.id)) {
+        const pct = dealConfig.discountPercentage || 0;
+        if (pct > 0) {
+          const discountPrice = Math.round(dish.price * (1 - pct / 100));
+          return { ...dish, discountPrice };
+        }
       }
-    }
-    return dish;
-  });
+      return dish;
+    });
+  }, [dishes, isDealActive, dealConfig]);
 
   // --- RESTAURANT AVAILABILITY CHECK ---
-  const checkIsRestaurantClosed = (restaurantName?: string) => {
+  const checkIsRestaurantClosed = React.useCallback((restaurantName?: string) => {
     const fallbackName = "Dadu Fast Food & Kitchen";
     const nameToUse = restaurantName || fallbackName;
 
@@ -1616,39 +1619,63 @@ export default function App() {
       }
     }
     return false;
-  };
+  }, [deliverySettings]);
 
   // --- CATALOG RENDER FILTERS ---
-  const filteredDishes = finalDishes.filter((dish) => {
-    // Hide checkout-exclusive soft drinks from main browsing screen & panels
-    const isExclusiveDrink =
-      dish.id.startsWith("drink_") ||
-      dish.category === "Drinks" ||
-      dish.category === "Beverages";
-    if (isExclusiveDrink) return false;
+  const uniqueRestaurants = React.useMemo(() => {
+    const list = Array.from(
+      new Set(
+        dishes
+          .map(
+            (d) =>
+              d.restaurantName?.trim() ||
+              (d.type === "service"
+                ? "Dadu Home Services"
+                : "Dadu Fast Food & Kitchen"),
+          )
+          .filter(Boolean),
+      ),
+    ) as string[];
 
-    const matchesCategory =
-      activeCategory === "All" || dish.category === activeCategory;
-    const rName =
-      dish.restaurantName ||
-      (dish.type === "service"
-        ? "Dadu Home Services"
-        : "Dadu Fast Food & Kitchen");
-    const matchesRestaurant =
-      selectedRestaurant === "All Restaurants" || rName === selectedRestaurant;
-    const matchesFavorites =
-      !showFavoritesOnly || favoriteDishIds.includes(dish.id);
-    const matchesSearch =
-      dish.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      dish.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      rName.toLowerCase().includes(searchQuery.toLowerCase());
+    list.sort((a, b) => {
+      const aClosed = checkIsRestaurantClosed(a) ? 1 : 0;
+      const bClosed = checkIsRestaurantClosed(b) ? 1 : 0;
+      if (aClosed !== bClosed) return aClosed - bClosed;
+      return a.localeCompare(b);
+    });
+    return list;
+  }, [dishes, checkIsRestaurantClosed]);
 
-    const isClosed = checkIsRestaurantClosed(rName);
+  const filteredDishes = React.useMemo(() => {
+    return finalDishes.filter((dish) => {
+      // Hide checkout-exclusive soft drinks from main browsing screen & panels
+      const isExclusiveDrink =
+        dish.id.startsWith("drink_") ||
+        dish.category === "Drinks" ||
+        dish.category === "Beverages";
+      if (isExclusiveDrink) return false;
 
-    return (
-      matchesCategory && matchesRestaurant && matchesSearch && matchesFavorites
-    );
-  });
+      const matchesCategory =
+        activeCategory === "All" || dish.category === activeCategory;
+      const rName =
+        dish.restaurantName ||
+        (dish.type === "service"
+          ? "Dadu Home Services"
+          : "Dadu Fast Food & Kitchen");
+      const matchesRestaurant =
+        selectedRestaurant === "All Restaurants" || rName === selectedRestaurant;
+      const matchesFavorites =
+        !showFavoritesOnly || favoriteDishIds.includes(dish.id);
+      const matchesSearch =
+        dish.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        dish.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        rName.toLowerCase().includes(searchQuery.toLowerCase());
+
+      return (
+        matchesCategory && matchesRestaurant && matchesSearch && matchesFavorites
+      );
+    });
+  }, [finalDishes, activeCategory, selectedRestaurant, showFavoritesOnly, favoriteDishIds, searchQuery]);
 
   const cartCountTotal = cartItems.reduce(
     (acc, item) => acc + item.quantity,
@@ -1660,7 +1687,7 @@ export default function App() {
   );
 
   const commonModals = (
-    <>
+    <Suspense fallback={null}>
       {/* Cart Slider Drawer */}
       {(() => {
         const firstItem = cartItems[0];
@@ -1843,7 +1870,7 @@ export default function App() {
           </div>
         </div>
       )}
-    </>
+    </Suspense>
   );
 
   if (currentUser?.role === "rider") {
@@ -1867,7 +1894,7 @@ export default function App() {
     });
 
     return (
-      <>
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-zinc-50"><div className="w-10 h-10 border-4 border-[#d70f64] border-t-transparent rounded-full animate-spin" /></div>}>
         <FoodpandaRestaurantPage
           restaurantName={selectedRestaurant}
           dishes={restaurantDishes}
@@ -1887,7 +1914,7 @@ export default function App() {
           favoriteDishIds={favoriteDishIds}
         />
         {commonModals}
-      </>
+      </Suspense>
     );
   }
 
@@ -1955,10 +1982,10 @@ export default function App() {
           transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
           className="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border border-pink-150/60 shadow-[0_12px_40px_rgba(0,0,0,0.06)] flex flex-col items-center text-center gap-1.5"
         >
-          <img
+          <LazyImage
             src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80&w=120"
             alt="Hot Burger"
-            className="w-14 h-14 rounded-full object-cover border-2 border-pink-200 shadow-sm"
+            className="w-14 h-14 rounded-full overflow-hidden border-2 border-pink-200 shadow-sm"
             referrerPolicy="no-referrer"
           />
           <span className="text-[10px] font-black uppercase text-[#d70f64] tracking-wider mt-1">
@@ -1974,10 +2001,10 @@ export default function App() {
           transition={{ repeat: Infinity, duration: 4.5, ease: "easeInOut" }}
           className="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border border-pink-150/60 shadow-[0_12px_40px_rgba(0,0,0,0.06)] flex flex-col items-center text-center gap-1.5"
         >
-          <img
+          <LazyImage
             src="https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&q=80&w=120"
             alt="Special Tea"
-            className="w-14 h-14 rounded-full object-cover border-2 border-pink-200 shadow-sm"
+            className="w-14 h-14 rounded-full overflow-hidden border-2 border-pink-200 shadow-sm"
             referrerPolicy="no-referrer"
           />
           <span className="text-[10px] font-black uppercase text-[#d70f64] tracking-wider mt-1">
@@ -1993,10 +2020,10 @@ export default function App() {
           transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut" }}
           className="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border border-pink-150/60 shadow-[0_12px_40px_rgba(0,0,0,0.06)] flex flex-col items-center text-center gap-1.5"
         >
-          <img
+          <LazyImage
             src="https://images.unsplash.com/photo-1610348725511-27aae371f0d9?auto=format&fit=crop&q=80&w=120"
             alt="Grocery"
-            className="w-14 h-14 rounded-full object-cover border-2 border-orange-200 shadow-sm"
+            className="w-14 h-14 rounded-full overflow-hidden border-2 border-orange-200 shadow-sm"
             referrerPolicy="no-referrer"
           />
           <span className="text-[10px] font-black uppercase text-pink-600 tracking-wider mt-1">
@@ -2014,10 +2041,10 @@ export default function App() {
           transition={{ repeat: Infinity, duration: 4.2, ease: "easeInOut" }}
           className="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border border-pink-150/60 shadow-[0_12px_40px_rgba(0,0,0,0.06)] flex flex-col items-center text-center gap-1.5"
         >
-          <img
+          <LazyImage
             src="https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&q=80&w=120"
             alt="Cheesy Pizza"
-            className="w-14 h-14 rounded-full object-cover border-2 border-pink-200 shadow-sm"
+            className="w-14 h-14 rounded-full overflow-hidden border-2 border-pink-200 shadow-sm"
             referrerPolicy="no-referrer"
           />
           <span className="text-[10px] font-black uppercase text-[#d70f64] tracking-wider mt-1">
@@ -2033,10 +2060,10 @@ export default function App() {
           transition={{ repeat: Infinity, duration: 3.8, ease: "easeInOut" }}
           className="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border border-pink-150/60 shadow-[0_12px_40px_rgba(0,0,0,0.06)] flex flex-col items-center text-center gap-1.5"
         >
-          <img
+          <LazyImage
             src="https://images.unsplash.com/photo-1633945274405-b6c8069047b0?auto=format&fit=crop&q=80&w=120"
             alt="Dadu Biryani"
-            className="w-14 h-14 rounded-full object-cover border-2 border-pink-200 shadow-sm"
+            className="w-14 h-14 rounded-full overflow-hidden border-2 border-pink-200 shadow-sm"
             referrerPolicy="no-referrer"
           />
           <span className="text-[10px] font-black uppercase text-[#d70f64] tracking-wider mt-1">
@@ -2052,10 +2079,10 @@ export default function App() {
           transition={{ repeat: Infinity, duration: 4.8, ease: "easeInOut" }}
           className="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border border-pink-150/60 shadow-[0_12px_40px_rgba(0,0,0,0.06)] flex flex-col items-center text-center gap-1.5"
         >
-          <img
+          <LazyImage
             src="https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&q=80&w=120"
             alt="Home Services"
-            className="w-14 h-14 rounded-full object-cover border-2 border-zinc-200 shadow-sm"
+            className="w-14 h-14 rounded-full overflow-hidden border-2 border-zinc-200 shadow-sm"
             referrerPolicy="no-referrer"
           />
           <span className="text-[10px] font-black uppercase text-zinc-700 tracking-wider mt-1">
@@ -2312,45 +2339,23 @@ export default function App() {
             </div>
           )}
 
-          {activeModule === "food" ? (
-            <>
-              {/* Billboard / category selectors */}
-              <FoodpandaHero
-                activeCategory={activeCategory}
-                setActiveCategory={setActiveCategory}
-                dealConfig={dealConfig}
-                dealTimeLeft={dealTimeLeft}
-                foodCategories={foodCategories}
-              >
+          <Suspense fallback={<div className="p-10 text-center animate-pulse">Loading modules...</div>}>
+            {activeModule === "food" ? (
+              <>
+                {/* Billboard / category selectors */}
+                <FoodpandaHero
+                  activeCategory={activeCategory}
+                  setActiveCategory={setActiveCategory}
+                  dealConfig={dealConfig}
+                  dealTimeLeft={dealTimeLeft}
+                  foodCategories={foodCategories}
+                >
                 <div className="max-w-7xl mx-auto px-4 mt-6 mb-2">
-                  {(() => {
-                    const uniqueRestaurants = Array.from(
-                      new Set(
-                        dishes
-                          .map(
-                            (d) =>
-                              d.restaurantName?.trim() ||
-                              (d.type === "service"
-                                ? "Dadu Home Services"
-                                : "Dadu Fast Food & Kitchen"),
-                          )
-                          .filter(Boolean),
-                      ),
-                    ) as string[];
-
-                    uniqueRestaurants.sort((a, b) => {
-                      const aClosed = checkIsRestaurantClosed(a) ? 1 : 0;
-                      const bClosed = checkIsRestaurantClosed(b) ? 1 : 0;
-                      if (aClosed !== bClosed) return aClosed - bClosed;
-                      return a.localeCompare(b);
-                    });
-
-                    return (
-                      <div className="bg-gradient-to-br from-white to-pink-50/30 border border-red-100/60 p-5 rounded-3xl space-y-4 shadow-sm relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#d70f64]/5 to-transparent rounded-full -mr-16 -mt-16 pointer-events-none" />
-                        <div className="flex items-center justify-between relative z-10">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#d70f64] to-pink-500 flex items-center justify-center shadow-lg shadow-red-500/20 text-white shrink-0">
+                  <div className="bg-gradient-to-br from-white to-pink-50/30 border border-red-100/60 p-5 rounded-3xl space-y-4 shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#d70f64]/5 to-transparent rounded-full -mr-16 -mt-16 pointer-events-none" />
+                    <div className="flex items-center justify-between relative z-10">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#d70f64] to-pink-500 flex items-center justify-center shadow-lg shadow-red-500/20 text-white shrink-0">
                               <Compass className="w-5 h-5" />
                             </div>
                             <div>
@@ -2421,9 +2426,9 @@ export default function App() {
                                   >
                                     <div className="w-full h-[52px] rounded-xl overflow-hidden bg-zinc-100 flex items-center justify-center shrink-0 mb-1.5 shadow-sm">
                                       {vendorImageUrl ? (
-                                        <img
+                                        <LazyImage
                                           src={vendorImageUrl}
-                                          alt=""
+                                          alt={vendor}
                                           className="w-full h-full object-cover"
                                         />
                                       ) : (
@@ -2444,9 +2449,7 @@ export default function App() {
                               })}
                         </div>
                       </div>
-                    );
-                  })()}
-                </div>
+                    </div>
               </FoodpandaHero>
 
               {/* Active Order Banner Card */}
@@ -3112,6 +3115,7 @@ export default function App() {
               searchQuery={searchQuery}
             />
           )}
+          </Suspense>
         </div>
       ) : (
         /* TAB 2: Secure Administrative Console Overlay */
