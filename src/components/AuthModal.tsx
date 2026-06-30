@@ -138,9 +138,9 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
     e.preventDefault();
     setErrorMessage("");
     
-    const cleanPhone = sanitizePhone(phoneNumber);
-    if (cleanPhone.length < 10) {
-      setErrorMessage("Please enter a valid Phone Number (Min 10 digits).");
+    const cleanPhone = phoneNumber.trim();
+    if (!/^03\d{9}$/.test(cleanPhone)) {
+      setErrorMessage("Please enter a valid 11-digit mobile number starting with 03.");
       return;
     }
 
@@ -181,24 +181,13 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
     setErrorMessage("");
     setLoading(true);
 
-    // Support both username (contains letters or has short length) and standard phone numbers
-    const isUsername = /[a-zA-Z]/.test(phoneNumber) || (phoneNumber.trim().length > 0 && phoneNumber.trim().length < 10 && !/^\d+$/.test(phoneNumber.trim()));
-    const cleanIdentifier = isUsername 
-      ? phoneNumber.trim().toLowerCase() 
-      : sanitizePhone(phoneNumber);
-    const cleanPhone = cleanIdentifier;
-
-    if (!isUsername && cleanIdentifier.length < 10) {
-      setErrorMessage("Please enter a valid Phone Number (Kam se kam 10 hindsay).");
+    const cleanPhone = phoneNumber.trim();
+    if (!/^03\d{9}$/.test(cleanPhone)) {
+      setErrorMessage("Please enter a valid 11-digit mobile number starting with 03.");
       setLoading(false);
       return;
     }
-
-    if (isUsername && cleanIdentifier.length < 3) {
-      setErrorMessage("Username must be at least 3 characters.");
-      setLoading(false);
-      return;
-    }
+    const cleanIdentifier = cleanPhone;
 
     if (password.length < 6) {
       setErrorMessage("Password must be at least 6 characters long (Kam se kam 6 hindsay).");
@@ -535,13 +524,13 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
                 )}
 
                 <div className="space-y-0.5">
-                  <label className={`font-bold text-zinc-400 block uppercase tracking-wider ${isSignUp ? "text-[10px]" : "text-xs"}`}>Phone / Username</label>
+                  <label className={`font-bold text-zinc-400 block uppercase tracking-wider ${isSignUp ? "text-[10px]" : "text-xs"}`}>Phone Number</label>
                   <div className="relative">
                     <Phone className={`absolute left-3 text-zinc-550 ${isSignUp ? "top-2 w-3.5 h-3.5" : "top-3 w-4 h-4"}`} />
                     <input
                       type="text"
                       required
-                      placeholder="e.g. 03277004471 or rider_username"
+                      placeholder="e.g. 03277004471"
                       value={phoneNumber}
                       onChange={(e) => setPhoneNumber(e.target.value)}
                       className={`w-full pr-4 border border-zinc-800 outline-none focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition bg-zinc-950 text-zinc-200 font-semibold ${
