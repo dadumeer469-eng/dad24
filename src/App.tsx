@@ -45,7 +45,7 @@ import GroceryCartDrawer from "./components/GroceryCartDrawer";
 import OrderSuccessAnimation from "./components/OrderSuccessAnimation";
 import OrderHistoryDrawer from "./components/OrderHistoryDrawer";
 import { LazyImage } from "./components/LazyImage";
-import daduLogo from "./assets/images/new_logo.png";
+import daduLogo from "./assets/images/dadu_food_logo_new_1782333467889.jpg";
 
 // Icons & Motion
 import {
