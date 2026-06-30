@@ -199,7 +199,6 @@ export default function App() {
   // PWA Install State
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
-  const [showInstallBubble, setShowInstallBubble] = useState(false);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -208,8 +207,6 @@ export default function App() {
       // Show banner if not dismissed before
       if (!localStorage.getItem("pwaInstallDismissed")) {
         setShowInstallBanner(true);
-      } else {
-        setShowInstallBubble(true);
       }
     };
 
@@ -227,13 +224,11 @@ export default function App() {
     if (outcome === "accepted") {
       setDeferredPrompt(null);
       setShowInstallBanner(false);
-      setShowInstallBubble(false);
     }
   };
 
   const handleDismissInstallBanner = () => {
     setShowInstallBanner(false);
-    setShowInstallBubble(true);
     localStorage.setItem("pwaInstallDismissed", "true");
   };
 
@@ -2776,16 +2771,7 @@ export default function App() {
                                     e.stopPropagation();
                                     if (!dish.isAvailable || isRestaurantClosed)
                                       return;
-                                    const hasCustomization =
-                                      (dish.sizes && dish.sizes.length > 0) ||
-                                      (dish.flavors &&
-                                        dish.flavors.length > 0) ||
-                                      (dish.addOns && dish.addOns.length > 0);
-                                    if (hasCustomization) {
-                                      setActiveDetailDish(dish);
-                                    } else {
-                                      handleAddToCart(dish);
-                                    }
+                                    setActiveDetailDish(dish);
                                   }}
                                 >
                                   <LazyImage
@@ -2857,19 +2843,10 @@ export default function App() {
                                         isRestaurantClosed
                                       )
                                         return;
-                                      const hasCustomization =
-                                        (dish.sizes && dish.sizes.length > 0) ||
-                                        (dish.flavors &&
-                                          dish.flavors.length > 0) ||
-                                        (dish.addOns && dish.addOns.length > 0);
-                                      if (hasCustomization) {
-                                        setActiveDetailDish(dish);
-                                      } else {
-                                        handleAddToCart(dish);
-                                      }
+                                      setActiveDetailDish(dish);
                                     }}
                                   >
-                                    <div className="text-[8.5px] sm:text-[10.5px] text-zinc-500 font-extrabold tracking-wider uppercase flex items-center gap-1 truncate max-w-full">
+                                    <div className="text-[8.5px] sm:text-[10.5px] text-zinc-500 font-extrabold tracking-wider uppercase flex items-center gap-1 break-words">
                                       <span>🏪</span>{" "}
                                       {dish.restaurantName ||
                                         (dish.type === "service"
@@ -2877,7 +2854,7 @@ export default function App() {
                                           : "Dadu Fast Food & Kitchen")}
                                     </div>
                                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-1 sm:gap-1.5">
-                                      <h4 className="font-bold text-zinc-800 text-xs sm:text-sm tracking-tight leading-snug group-hover:text-[#dc2626] transition truncate max-w-full">
+                                      <h4 className="font-bold text-zinc-800 text-xs sm:text-sm tracking-tight leading-snug group-hover:text-[#dc2626] transition break-words">
                                         {dish.name}
                                       </h4>
                                       {dish.discountPrice &&
@@ -3221,24 +3198,7 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* PWA Install Bubble */}
-      <AnimatePresence>
-        {showInstallBubble && deferredPrompt && !showInstallBanner && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.8, x: -50 }}
-            animate={{ opacity: 1, scale: 1, x: 0 }}
-            exit={{ opacity: 0, scale: 0.8, x: -50 }}
-            onClick={handleInstallClick}
-            className="fixed bottom-20 left-4 z-40 md:hidden bg-zinc-900 border border-zinc-800 shadow-xl rounded-full px-4 py-2.5 flex items-center gap-2 hover:bg-zinc-800 transition active:scale-95 group"
-          >
-            <div className="w-6 h-6 rounded-md overflow-hidden shrink-0">
-              <img src={daduLogo} alt="Logo" className="w-full h-full object-cover" />
-            </div>
-            <span className="text-zinc-200 font-bold text-xs">Install App</span>
-            <Plus className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-200" />
-          </motion.button>
-        )}
-      </AnimatePresence>
+
     </div>
   );
 }
