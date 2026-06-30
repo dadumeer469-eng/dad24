@@ -196,6 +196,47 @@ export default function App() {
     message: string;
   } | null>(null);
 
+  // PWA Install State
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const [showInstallBubble, setShowInstallBubble] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      // Show banner if not dismissed before
+      if (!localStorage.getItem("pwaInstallDismissed")) {
+        setShowInstallBanner(true);
+      } else {
+        setShowInstallBubble(true);
+      }
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === "accepted") {
+      setDeferredPrompt(null);
+      setShowInstallBanner(false);
+      setShowInstallBubble(false);
+    }
+  };
+
+  const handleDismissInstallBanner = () => {
+    setShowInstallBanner(false);
+    setShowInstallBubble(true);
+    localStorage.setItem("pwaInstallDismissed", "true");
+  };
+
   // Audio synthesizer chime tone
   const playChimeSound = () => {
     try {
@@ -3106,7 +3147,7 @@ export default function App() {
       )}
 
       {/* Footer support details */}
-      <footer className="max-w-7xl mx-auto px-4 mt-12 pt-8 border-t border-zinc-800 text-center space-y-4">
+      <footer className="max-w-7xl mx-auto px-4 mt-12 pt-8 border-t border-zinc-800 text-center space-y-4 pb-24 md:pb-8">
         <p className="text-xs text-zinc-500 font-semibold">
           © {new Date().getFullYear()} DADUFOOD Delivery Services. All Rights
           Reserved. Support helpline:{" "}
@@ -3120,6 +3161,61 @@ export default function App() {
           </a>
         </p>
       </footer>
+
+      {/* PWA Install Banner */}
+      <AnimatePresence>
+        {showInstallBanner && deferredPrompt && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-zinc-900 border-t border-zinc-800 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] md:hidden flex items-center justify-between gap-4 backdrop-blur-md"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#dc2626] to-red-500 flex items-center justify-center shrink-0">
+                <img src={daduLogo} alt="Logo" className="w-full h-full object-cover rounded-xl" />
+              </div>
+              <div>
+                <h4 className="text-zinc-100 font-bold text-sm leading-tight">Install Dadu Food</h4>
+                <p className="text-zinc-400 text-[10px] leading-tight mt-0.5">Add to home screen for fast ordering</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={handleDismissInstallBanner}
+                className="text-zinc-400 hover:text-zinc-200 text-xs font-bold px-2 py-2 uppercase tracking-wider"
+              >
+                Later
+              </button>
+              <button
+                onClick={handleInstallClick}
+                className="bg-[#dc2626] hover:bg-red-700 text-white font-black text-[10px] uppercase tracking-wider px-4 py-2 rounded-lg transition"
+              >
+                Install
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* PWA Install Bubble */}
+      <AnimatePresence>
+        {showInstallBubble && deferredPrompt && !showInstallBanner && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8, x: -50 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            exit={{ opacity: 0, scale: 0.8, x: -50 }}
+            onClick={handleInstallClick}
+            className="fixed bottom-20 left-4 z-40 md:hidden bg-zinc-900 border border-zinc-800 shadow-xl rounded-full px-4 py-2.5 flex items-center gap-2 hover:bg-zinc-800 transition active:scale-95 group"
+          >
+            <div className="w-6 h-6 rounded-md overflow-hidden shrink-0">
+              <img src={daduLogo} alt="Logo" className="w-full h-full object-cover" />
+            </div>
+            <span className="text-zinc-200 font-bold text-xs">Install App</span>
+            <Plus className="w-3.5 h-3.5 text-zinc-400 group-hover:text-zinc-200" />
+          </motion.button>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
