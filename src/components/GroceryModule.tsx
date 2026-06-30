@@ -63,11 +63,11 @@ export default function GroceryModule({
           }}
         >
           {/* VIP Premium overlay */}
-          <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/80 to-orange-950/40 z-0"></div>
-          <div className="absolute -top-12 -right-12 w-32 h-32 bg-orange-500/10 rounded-full blur-2xl z-0"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/80 to-pink-950/40 z-0"></div>
+          <div className="absolute -top-12 -right-12 w-32 h-32 bg-pink-500/10 rounded-full blur-2xl z-0"></div>
           
           <div className="relative space-y-2.5 z-10 text-center md:text-left">
-            <span className="inline-flex items-center gap-1.5 bg-orange-600/20 border border-orange-500/40 text-orange-300 py-1.5 px-4 rounded-full text-[10px] font-black uppercase tracking-wider backdrop-blur-md">
+            <span className="inline-flex items-center gap-1.5 bg-orange-600/20 border border-orange-500/40 text-pink-300 py-1.5 px-4 rounded-full text-[10px] font-black uppercase tracking-wider backdrop-blur-md">
               <Sparkles className="w-3.5 h-3.5 animate-pulse text-orange-400" />
               Dadu Fresh VIP Mart
             </span>

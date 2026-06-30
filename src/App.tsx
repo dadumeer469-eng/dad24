@@ -199,6 +199,7 @@ export default function App() {
   // PWA Install State
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const [showInstallBubble, setShowInstallBubble] = useState(false);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -207,6 +208,8 @@ export default function App() {
       // Show banner if not dismissed before
       if (!localStorage.getItem("pwaInstallDismissed")) {
         setShowInstallBanner(true);
+      } else {
+        setShowInstallBubble(true);
       }
     };
 
@@ -224,11 +227,13 @@ export default function App() {
     if (outcome === "accepted") {
       setDeferredPrompt(null);
       setShowInstallBanner(false);
+      setShowInstallBubble(false);
     }
   };
 
   const handleDismissInstallBanner = () => {
     setShowInstallBanner(false);
+    setShowInstallBubble(true);
     localStorage.setItem("pwaInstallDismissed", "true");
   };
 
@@ -419,7 +424,7 @@ export default function App() {
               name: "All",
               emoji: "🍽️",
               subtitle: "Sab Kuch",
-              color: "from-[#dc2626] to-[#f22c80]",
+              color: "from-[#d70f64] to-[#f22c80]",
               isAvailable: true,
               position: 0,
             },
@@ -428,7 +433,7 @@ export default function App() {
               name: "Pizza",
               emoji: "🍕",
               subtitle: "Hot Pizzas",
-              color: "from-red-500 to-rose-600",
+              color: "from-pink-500 to-rose-600",
               isAvailable: true,
               position: 1,
             },
@@ -437,7 +442,7 @@ export default function App() {
               name: "Burgers",
               emoji: "🍔",
               subtitle: "Zesty Burgers",
-              color: "from-amber-500 to-orange-600",
+              color: "from-amber-500 to-pink-600",
               isAvailable: true,
               position: 2,
             },
@@ -455,7 +460,7 @@ export default function App() {
               name: "Rolls & Wraps",
               emoji: "🌯",
               subtitle: "Tasty Rolls",
-              color: "from-orange-500 to-red-600",
+              color: "from-pink-500 to-pink-600",
               isAvailable: true,
               position: 4,
             },
@@ -473,7 +478,7 @@ export default function App() {
               name: "Lazania",
               emoji: "🫓",
               subtitle: "Cheesy Lazania",
-              color: "from-red-600 to-rose-700",
+              color: "from-pink-600 to-rose-700",
               isAvailable: true,
               position: 6,
             },
@@ -1765,8 +1770,8 @@ export default function App() {
       />
 
       {toastNotification && (
-        <div className="fixed bottom-6 right-6 z-50 p-4 max-w-sm bg-zinc-900 border-2 border-[#dc2626]/40 text-zinc-100 rounded-2xl shadow-2xl flex items-start gap-3 animate-slide-in">
-          <div className="bg-[#dc2626] text-white p-2.5 rounded-xl shrink-0">
+        <div className="fixed bottom-6 right-6 z-50 p-4 max-w-sm bg-zinc-900 border-2 border-[#d70f64]/40 text-zinc-100 rounded-2xl shadow-2xl flex items-start gap-3 animate-slide-in">
+          <div className="bg-[#d70f64] text-white p-2.5 rounded-xl shrink-0">
             <Sparkles className="w-5 h-5 animate-pulse" />
           </div>
           <div>
@@ -1782,10 +1787,10 @@ export default function App() {
 
       {isExitConfirmationOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fade-in">
-          <div className="bg-zinc-900 border-2 border-[#dc2626]/30 rounded-[32px] max-w-sm w-full overflow-hidden shadow-2xl text-zinc-100 relative">
-            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#dc2626] to-transparent" />
+          <div className="bg-zinc-900 border-2 border-[#d70f64]/30 rounded-[32px] max-w-sm w-full overflow-hidden shadow-2xl text-zinc-100 relative">
+            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#d70f64] to-transparent" />
             <div className="p-6 text-center space-y-5">
-              <div className="mx-auto w-16 h-16 rounded-full bg-[#dc2626]/10 border border-[#dc2626]/20 flex items-center justify-center text-[#dc2626]">
+              <div className="mx-auto w-16 h-16 rounded-full bg-[#d70f64]/10 border border-[#d70f64]/20 flex items-center justify-center text-[#d70f64]">
                 <LogOut className="w-8 h-8 animate-pulse" />
               </div>
               <div className="space-y-2">
@@ -1801,7 +1806,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setIsExitConfirmationOpen(false)}
-                  className="w-full bg-[#dc2626] hover:bg-[#b00c50] text-white py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider transition active:scale-95 shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full bg-[#d70f64] hover:bg-[#b00c50] text-white py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider transition active:scale-95 shadow-md flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <UtensilsCrossed className="w-4 h-4" />
                   Keep Ordering
@@ -1896,7 +1901,7 @@ export default function App() {
 
         {/* Floating Glowing Culinary Accents (Sunset & Pink gradients) */}
         <div className="absolute top-1/4 -left-48 w-96 h-96 bg-pink-400/10 rounded-full blur-[120px]" />
-        <div className="absolute top-1/2 -right-48 w-96 h-96 bg-orange-300/10 rounded-full blur-[120px]" />
+        <div className="absolute top-1/2 -right-48 w-96 h-96 bg-pink-300/10 rounded-full blur-[120px]" />
         <div className="absolute bottom-1/4 left-1/3 w-80 h-80 bg-rose-300/8 rounded-full blur-[100px]" />
 
         {/* Ambient floating elements behind content (visible on tablet and desktop) */}
@@ -1951,7 +1956,7 @@ export default function App() {
             className="w-14 h-14 rounded-full object-cover border-2 border-pink-200 shadow-sm"
             referrerPolicy="no-referrer"
           />
-          <span className="text-[10px] font-black uppercase text-[#dc2626] tracking-wider mt-1">
+          <span className="text-[10px] font-black uppercase text-[#d70f64] tracking-wider mt-1">
             Hot Burgers
           </span>
           <span className="text-[9px] text-zinc-400 font-semibold leading-none">
@@ -1970,7 +1975,7 @@ export default function App() {
             className="w-14 h-14 rounded-full object-cover border-2 border-pink-200 shadow-sm"
             referrerPolicy="no-referrer"
           />
-          <span className="text-[10px] font-black uppercase text-[#dc2626] tracking-wider mt-1">
+          <span className="text-[10px] font-black uppercase text-[#d70f64] tracking-wider mt-1">
             Dadu Special Tea
           </span>
           <span className="text-[9px] text-zinc-400 font-semibold leading-none">
@@ -1989,7 +1994,7 @@ export default function App() {
             className="w-14 h-14 rounded-full object-cover border-2 border-orange-200 shadow-sm"
             referrerPolicy="no-referrer"
           />
-          <span className="text-[10px] font-black uppercase text-orange-600 tracking-wider mt-1">
+          <span className="text-[10px] font-black uppercase text-pink-600 tracking-wider mt-1">
             Groceries
           </span>
           <span className="text-[9px] text-zinc-400 font-semibold leading-none">
@@ -2010,7 +2015,7 @@ export default function App() {
             className="w-14 h-14 rounded-full object-cover border-2 border-pink-200 shadow-sm"
             referrerPolicy="no-referrer"
           />
-          <span className="text-[10px] font-black uppercase text-[#dc2626] tracking-wider mt-1">
+          <span className="text-[10px] font-black uppercase text-[#d70f64] tracking-wider mt-1">
             Cheesy Pizza
           </span>
           <span className="text-[9px] text-zinc-400 font-semibold leading-none">
@@ -2029,7 +2034,7 @@ export default function App() {
             className="w-14 h-14 rounded-full object-cover border-2 border-pink-200 shadow-sm"
             referrerPolicy="no-referrer"
           />
-          <span className="text-[10px] font-black uppercase text-[#dc2626] tracking-wider mt-1">
+          <span className="text-[10px] font-black uppercase text-[#d70f64] tracking-wider mt-1">
             Dadu Biryani
           </span>
           <span className="text-[9px] text-zinc-400 font-semibold leading-none">
@@ -2068,7 +2073,7 @@ export default function App() {
               scale: 1.05,
               transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] },
             }}
-            className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#dc2626] text-white select-none overflow-hidden"
+            className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#d70f64] text-white select-none overflow-hidden"
           >
             {/* Background floating abstract food & toolkit shapes */}
             <div className="absolute inset-0 opacity-10 pointer-events-none">
@@ -2122,7 +2127,7 @@ export default function App() {
                 className="w-64 h-36 bg-white rounded-3xl flex items-center justify-center shadow-2xl relative p-4 overflow-hidden border border-white/20"
               >
                 {/* Visual badge highlight */}
-                <div className="absolute -top-1 -right-1 bg-[#dc2626] text-white font-black text-[8px] uppercase tracking-widest py-0.5 px-2 rounded-full shadow-lg border border-white flex items-center gap-0.5 animate-pulse z-10">
+                <div className="absolute -top-1 -right-1 bg-[#d70f64] text-white font-black text-[8px] uppercase tracking-widest py-0.5 px-2 rounded-full shadow-lg border border-white flex items-center gap-0.5 animate-pulse z-10">
                   <span className="w-1 h-1 bg-white rounded-full"></span>
                   DADU CITY
                 </div>
@@ -2163,7 +2168,7 @@ export default function App() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 0.85 }}
                   transition={{ delay: 0.45, duration: 0.5 }}
-                  className="text-xs text-red-100/90 font-bold max-w-xs mx-auto leading-relaxed h-8"
+                  className="text-xs text-pink-100/90 font-bold max-w-xs mx-auto leading-relaxed h-8"
                 >
                   {splashProgress < 30 && "Gathering hot kitchens..."}
                   {splashProgress >= 30 &&
@@ -2272,7 +2277,7 @@ export default function App() {
                   }}
                   className={`flex-1 py-2 sm:py-3 text-[10.5px] font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                     activeModule === "food"
-                      ? "bg-[#dc2626] text-white shadow-md scale-[1.01]"
+                      ? "bg-[#d70f64] text-white shadow-md scale-[1.01]"
                       : "text-zinc-600 hover:bg-zinc-200/50 hover:text-zinc-805"
                   }`}
                 >
@@ -2286,14 +2291,14 @@ export default function App() {
                   }}
                   className={`flex-1 py-2 sm:py-3 text-[10.5px] font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                     activeModule === "grocery"
-                      ? "bg-orange-600 text-white shadow-md scale-[1.01]"
-                      : "text-zinc-650 hover:bg-zinc-200/50 hover:text-orange-600"
+                      ? "bg-pink-600 text-white shadow-md scale-[1.01]"
+                      : "text-zinc-650 hover:bg-zinc-200/50 hover:text-pink-600"
                   }`}
                 >
                   <span className="text-xs">🍏</span>
                   <span>Groceries</span>
                   {groceryCartItems.length > 0 && (
-                    <span className="bg-orange-500 text-white font-mono text-[9px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center animate-pulse leading-none shrink-0 font-black">
+                    <span className="bg-pink-500 text-white font-mono text-[9px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center animate-pulse leading-none shrink-0 font-black">
                       {groceryCartItems.reduce((acc, i) => acc + i.quantity, 0)}
                     </span>
                   )}
@@ -2337,10 +2342,10 @@ export default function App() {
 
                     return (
                       <div className="bg-gradient-to-br from-white to-pink-50/30 border border-red-100/60 p-5 rounded-3xl space-y-4 shadow-sm relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#dc2626]/5 to-transparent rounded-full -mr-16 -mt-16 pointer-events-none" />
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#d70f64]/5 to-transparent rounded-full -mr-16 -mt-16 pointer-events-none" />
                         <div className="flex items-center justify-between relative z-10">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#dc2626] to-pink-500 flex items-center justify-center shadow-lg shadow-red-500/20 text-white shrink-0">
+                            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#d70f64] to-pink-500 flex items-center justify-center shadow-lg shadow-red-500/20 text-white shrink-0">
                               <Compass className="w-5 h-5" />
                             </div>
                             <div>
@@ -2357,7 +2362,7 @@ export default function App() {
                               onClick={() =>
                                 setSelectedRestaurant("All Restaurants")
                               }
-                              className="bg-red-50 hover:bg-red-100 text-[#dc2626] px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 cursor-pointer"
+                              className="bg-pink-50 hover:bg-pink-100 text-[#d70f64] px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 cursor-pointer"
                             >
                               Reset
                             </button>
@@ -2371,7 +2376,7 @@ export default function App() {
                             }
                             className={`w-[85px] h-[100px] rounded-2xl flex flex-col items-center justify-center gap-1 p-2 font-black transition shrink-0 cursor-pointer border ${
                               selectedRestaurant === "All Restaurants"
-                                ? "bg-[#dc2626] text-white border-[#dc2626] shadow-md shadow-red-500/15 scale-105"
+                                ? "bg-[#d70f64] text-white border-[#d70f64] shadow-md shadow-red-500/15 scale-105"
                                 : "bg-white text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50 border-zinc-200"
                             }`}
                           >
@@ -2405,7 +2410,7 @@ export default function App() {
                                     }
                                     className={`w-[85px] h-[100px] rounded-2xl flex flex-col items-center p-1.5 font-black transition shrink-0 cursor-pointer border overflow-hidden ${
                                       selectedRestaurant === vendor
-                                        ? "bg-[#dc2626] text-white border-[#dc2626] shadow-md shadow-red-500/15 scale-105"
+                                        ? "bg-[#d70f64] text-white border-[#d70f64] shadow-md shadow-red-500/15 scale-105"
                                         : "bg-white text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 border-zinc-200"
                                     }`}
                                   >
@@ -2456,14 +2461,14 @@ export default function App() {
                         setActiveTrackingOrder(activeOrderForBanner);
                         setIsTrackingModalOpen(true);
                       }}
-                      className="bg-white border-2 border-[#dc2626] p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 cursor-pointer hover:bg-zinc-50 transition-all shadow-xl shadow-red-500/5 group"
+                      className="bg-white border-2 border-[#d70f64] p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 cursor-pointer hover:bg-zinc-50 transition-all shadow-xl shadow-red-500/5 group"
                     >
                       <div className="flex items-center gap-4.5 w-full sm:w-auto">
-                        <div className="w-12 h-12 rounded-full bg-[#dc2626]/10 border border-[#dc2626]/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition duration-300">
+                        <div className="w-12 h-12 rounded-full bg-[#d70f64]/10 border border-[#d70f64]/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition duration-300">
                           🛵
                         </div>
                         <div className="flex-1 min-w-0">
-                          <span className="text-[9px] font-black uppercase tracking-widest text-[#dc2626] block">
+                          <span className="text-[9px] font-black uppercase tracking-widest text-[#d70f64] block">
                             Active Placed Order Tracking Live
                           </span>
                           <h4 className="text-xs sm:text-sm font-black text-zinc-800 mt-1 leading-normal truncate">
@@ -2472,7 +2477,7 @@ export default function App() {
                               dadu-{activeOrderForBanner.id.substring(0, 5)}...
                             </span>{" "}
                             is currently{" "}
-                            <span className="text-[#dc2626] uppercase font-bold">
+                            <span className="text-[#d70f64] uppercase font-bold">
                               {activeOrderForBanner.status ===
                               "out_for_delivery"
                                 ? "With Foodpanda Rider"
@@ -2486,7 +2491,7 @@ export default function App() {
                               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                               <span className="text-[10px] text-zinc-500 font-extrabold truncate">
                                 Rider assigned:{" "}
-                                <span className="text-[#dc2626] font-black">
+                                <span className="text-[#d70f64] font-black">
                                   {activeOrderForBanner.riderName}
                                 </span>{" "}
                                 ({activeOrderForBanner.riderPhone})
@@ -2500,7 +2505,7 @@ export default function App() {
                         </div>
                       </div>
 
-                      <button className="w-full sm:w-auto bg-[#dc2626] text-white text-xs font-black uppercase tracking-widest px-5 py-3 rounded-xl hover:bg-[#b00c50] transition active:scale-95 shrink-0 shadow-md">
+                      <button className="w-full sm:w-auto bg-[#d70f64] text-white text-xs font-black uppercase tracking-widest px-5 py-3 rounded-xl hover:bg-[#b00c50] transition active:scale-95 shrink-0 shadow-md">
                         Track Live Map 🧭
                       </button>
                     </div>
@@ -2628,7 +2633,7 @@ export default function App() {
                                     </p>
                                   </div>
                                   {isClosed && (
-                                    <div className="absolute top-3 right-3 bg-white/90 text-red-600 px-2 py-1 rounded-lg text-xs font-black shadow-sm flex items-center gap-1">
+                                    <div className="absolute top-3 right-3 bg-white/90 text-pink-600 px-2 py-1 rounded-lg text-xs font-black shadow-sm flex items-center gap-1">
                                       <Clock className="w-3.5 h-3.5" />
                                       Closed
                                     </div>
@@ -2653,7 +2658,7 @@ export default function App() {
                                       <span className="text-[10px] font-bold text-zinc-700 line-clamp-1">
                                         {d.name}
                                       </span>
-                                      <span className="text-[10px] text-[#dc2626] font-black leading-none">
+                                      <span className="text-[10px] text-[#d70f64] font-black leading-none">
                                         Rs. {d.price}
                                       </span>
                                     </div>
@@ -2663,7 +2668,7 @@ export default function App() {
                                       e.stopPropagation();
                                       setSelectedRestaurant(vendor);
                                     }}
-                                    className="w-16 h-20 flex flex-col items-center justify-center gap-1 shrink-0 bg-red-50/50 rounded-xl text-[#dc2626] hover:bg-red-100 transition border border-red-100/50 cursor-pointer"
+                                    className="w-16 h-20 flex flex-col items-center justify-center gap-1 shrink-0 bg-red-50/50 rounded-xl text-[#d70f64] hover:bg-red-100 transition border border-red-100/50 cursor-pointer"
                                   >
                                     <ChevronRight className="w-5 h-5" />
                                     <span className="text-[9px] font-black uppercase">
@@ -2731,13 +2736,13 @@ export default function App() {
                             return (
                               <div
                                 key={dish.id}
-                                className={`bg-white border border-zinc-200/80 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs hover:border-[#dc2626]/30 hover:shadow-md hover:shadow-red-500/5 transition-all flex flex-col group relative text-zinc-800 ${isRestaurantClosed ? "opacity-70 grayscale-[20%]" : ""}`}
+                                className={`bg-white border border-zinc-200/80 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs hover:border-[#d70f64]/30 hover:shadow-md hover:shadow-red-500/5 transition-all flex flex-col group relative text-zinc-800 ${isRestaurantClosed ? "opacity-70 grayscale-[20%]" : ""}`}
                               >
                                 {/* Sold Out Overlay */}
                                 {!dish.isAvailable && !isRestaurantClosed && (
                                   <div className="absolute inset-0 bg-white/95 z-20 flex flex-col items-center justify-center text-center p-2 sm:p-4">
                                     <BadgeAlert className="w-5 h-5 sm:w-8 sm:h-8 text-zinc-400 mb-1" />
-                                    <span className="font-extrabold text-[10px] sm:text-sm uppercase tracking-widest text-[#dc2626]">
+                                    <span className="font-extrabold text-[10px] sm:text-sm uppercase tracking-widest text-[#d70f64]">
                                       SOLD OUT
                                     </span>
                                     <span className="text-[8px] sm:text-[10px] text-zinc-500 mt-0.5 font-bold">
@@ -2749,7 +2754,7 @@ export default function App() {
                                 {isRestaurantClosed && (
                                   <div className="absolute inset-0 bg-white/70 z-20 flex flex-col items-center justify-center text-center p-2 sm:p-4 cursor-not-allowed">
                                     <Clock className="w-5 h-5 sm:w-8 sm:h-8 text-red-500 mb-1" />
-                                    <span className="font-extrabold text-[10px] sm:text-sm uppercase tracking-widest text-red-600">
+                                    <span className="font-extrabold text-[10px] sm:text-sm uppercase tracking-widest text-pink-600">
                                       UNAVAILABLE
                                     </span>
                                     <span className="text-[9px] sm:text-xs font-bold text-zinc-800 mt-1 bg-white px-2 py-0.5 rounded shadow-sm border border-red-100">
@@ -2790,7 +2795,7 @@ export default function App() {
                                       e.stopPropagation();
                                       toggleFavorite(dish.id);
                                     }}
-                                    className="absolute top-2 right-2 z-30 p-1.5 sm:p-2 rounded-full bg-white/90 hover:bg-white text-[#dc2626] hover:scale-110 active:scale-95 shadow-md transition duration-200 cursor-pointer"
+                                    className="absolute top-2 right-2 z-30 p-1.5 sm:p-2 rounded-full bg-white/90 hover:bg-white text-[#d70f64] hover:scale-110 active:scale-95 shadow-md transition duration-200 cursor-pointer"
                                     title={
                                       favoriteDishIds.includes(dish.id)
                                         ? "Remove from Favorites"
@@ -2800,8 +2805,8 @@ export default function App() {
                                     <Heart
                                       className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition duration-200 ${
                                         favoriteDishIds.includes(dish.id)
-                                          ? "fill-[#dc2626] text-[#dc2626]"
-                                          : "text-zinc-650 hover:text-[#dc2626]"
+                                          ? "fill-[#d70f64] text-[#d70f64]"
+                                          : "text-zinc-650 hover:text-[#d70f64]"
                                       }`}
                                     />
                                   </button>
@@ -2812,14 +2817,14 @@ export default function App() {
                                       className={`text-[8px] sm:text-[10px] font-black uppercase tracking-wider py-0.5 sm:py-1 px-1.5 sm:px-2.5 rounded-md sm:rounded-lg shadow-md ${
                                         isSvc
                                           ? "bg-amber-500 text-neutral-950 font-extrabold"
-                                          : "bg-[#dc2626] text-white"
+                                          : "bg-[#d70f64] text-white"
                                       }`}
                                     >
                                       {isSvc ? "🛠️ Service" : "🍔 Food"}
                                     </span>
                                     {dish.discountPrice &&
                                       dish.discountPrice < dish.price && (
-                                        <span className="text-[7.5px] sm:text-[9px] font-black uppercase tracking-wider py-0.5 sm:py-0.8 px-1.5 sm:px-2 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-md sm:rounded-lg shadow-md animate-pulse">
+                                        <span className="text-[7.5px] sm:text-[9px] font-black uppercase tracking-wider py-0.5 sm:py-0.8 px-1.5 sm:px-2 bg-gradient-to-r from-pink-500 to-pink-400 text-white rounded-md sm:rounded-lg shadow-md animate-pulse">
                                           🔥{" "}
                                           {Math.round(
                                             ((dish.price - dish.discountPrice) /
@@ -2854,7 +2859,7 @@ export default function App() {
                                           : "Dadu Fast Food & Kitchen")}
                                     </div>
                                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-1 sm:gap-1.5">
-                                      <h4 className="font-bold text-zinc-800 text-xs sm:text-sm tracking-tight leading-snug group-hover:text-[#dc2626] transition break-words">
+                                      <h4 className="font-bold text-zinc-800 text-xs sm:text-sm tracking-tight leading-snug group-hover:text-[#d70f64] transition break-words">
                                         {dish.name}
                                       </h4>
                                       {dish.discountPrice &&
@@ -2871,7 +2876,7 @@ export default function App() {
                                         </div>
                                       ) : (
                                         <span
-                                          className={`font-black text-xs sm:text-sm shrink-0 whitespace-nowrap ${isSvc ? "text-amber-600" : "text-[#dc2626]"}`}
+                                          className={`font-black text-xs sm:text-sm shrink-0 whitespace-nowrap ${isSvc ? "text-amber-600" : "text-[#d70f64]"}`}
                                         >
                                           Rs. {dish.price}
                                         </span>
@@ -2937,7 +2942,7 @@ export default function App() {
                                               className={`w-8 h-8 rounded-lg transition font-black flex items-center justify-center cursor-pointer active:scale-90 ${
                                                 isSvc
                                                   ? "bg-amber-500 hover:bg-amber-600 text-[#121212]"
-                                                  : "bg-[#dc2626] hover:bg-[#b00c50] text-white"
+                                                  : "bg-[#d70f64] hover:bg-[#b00c50] text-white"
                                               }`}
                                             >
                                               <Plus className="w-3.5 h-3.5" />
@@ -2970,7 +2975,7 @@ export default function App() {
                                           className={`w-full py-1.5 sm:py-2.5 rounded-xl sm:rounded-2xl text-[9px] sm:text-xs font-black uppercase tracking-wider transition shadow-xs flex items-center justify-center gap-1 ${!dish.isAvailable || isRestaurantClosed ? "cursor-not-allowed opacity-60" : "cursor-pointer"} ${
                                             isSvc
                                               ? "bg-amber-500 hover:bg-amber-600 text-[#121212] font-semibold"
-                                              : "bg-[#dc2626] hover:bg-[#b00c50] text-white"
+                                              : "bg-[#d70f64] hover:bg-[#b00c50] text-white"
                                           }`}
                                         >
                                           {isSvc ? (
@@ -3026,7 +3031,7 @@ export default function App() {
                             setActiveCategory("All");
                             setShowFavoritesOnly(false);
                           }}
-                          className="bg-[#dc2626] hover:bg-[#b00c50] text-white font-black py-2.5 px-6 text-[10px] uppercase tracking-widest rounded-xl cursor-pointer transition-all shadow-md active:scale-95"
+                          className="bg-[#d70f64] hover:bg-[#b00c50] text-white font-black py-2.5 px-6 text-[10px] uppercase tracking-widest rounded-xl cursor-pointer transition-all shadow-md active:scale-95"
                         >
                           Show All Food Menu 🍽️
                         </button>
@@ -3063,7 +3068,7 @@ export default function App() {
                               if (ord) setActiveTrackingOrder(ord);
                             }}
                             value={activeTrackingOrder.id}
-                            className="w-full p-2 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-zinc-200 font-mono text-xs focus:border-[#dc2626] transition"
+                            className="w-full p-2 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-zinc-200 font-mono text-xs focus:border-[#d70f64] transition"
                           >
                             {orders.map((o) => (
                               <option
@@ -3125,7 +3130,7 @@ export default function App() {
       {cartCountTotal > 0 && (
         <div className="fixed bottom-4 left-4 right-4 z-40 md:hidden bg-zinc-900/95 border border-zinc-805 p-3 rounded-2xl shadow-2xl flex items-center justify-between gap-3 backdrop-blur-md">
           <div className="flex items-center gap-2">
-            <div className="bg-[#dc2626] text-white px-2 rounded-lg font-black text-xs h-7 flex items-center justify-center min-w-[28px]">
+            <div className="bg-[#d70f64] text-white px-2 rounded-lg font-black text-xs h-7 flex items-center justify-center min-w-[28px]">
               {cartCountTotal}
             </div>
             <div className="text-left">
@@ -3139,7 +3144,7 @@ export default function App() {
           </div>
           <button
             onClick={() => setIsCartOpen(true)}
-            className="bg-[#dc2626] text-white font-black text-xs uppercase tracking-wider py-2 px-3.5 rounded-xl hover:bg-[#b00c50] transition active:scale-95 shadow-md flex items-center gap-1 shrink-0"
+            className="bg-[#d70f64] text-white font-black text-xs uppercase tracking-wider py-2 px-3.5 rounded-xl hover:bg-[#b00c50] transition active:scale-95 shadow-md flex items-center gap-1 shrink-0"
           >
             Review & Order 🛍
           </button>
@@ -3172,7 +3177,7 @@ export default function App() {
             className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-zinc-900 border-t border-zinc-800 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] md:hidden flex items-center justify-between gap-4 backdrop-blur-md"
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#dc2626] to-red-500 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#d70f64] to-red-500 flex items-center justify-center shrink-0">
                 <img src={daduLogo} alt="Logo" className="w-full h-full object-cover rounded-xl" />
               </div>
               <div>
@@ -3189,7 +3194,7 @@ export default function App() {
               </button>
               <button
                 onClick={handleInstallClick}
-                className="bg-[#dc2626] hover:bg-red-700 text-white font-black text-[10px] uppercase tracking-wider px-4 py-2 rounded-lg transition"
+                className="bg-[#d70f64] hover:bg-pink-700 text-white font-black text-[10px] uppercase tracking-wider px-4 py-2 rounded-lg transition"
               >
                 Install
               </button>
@@ -3198,7 +3203,23 @@ export default function App() {
         )}
       </AnimatePresence>
 
-
+      {/* PWA Install Bubble (Very Small) */}
+      <AnimatePresence>
+        {showInstallBubble && deferredPrompt && !showInstallBanner && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8, x: -50 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            exit={{ opacity: 0, scale: 0.8, x: -50 }}
+            onClick={handleInstallClick}
+            className="fixed bottom-24 left-4 z-40 md:hidden bg-zinc-900/90 backdrop-blur-md border border-zinc-800 shadow-xl rounded-full p-1.5 flex items-center gap-1.5 hover:bg-zinc-800 transition active:scale-95 group"
+          >
+            <div className="w-5 h-5 rounded-md overflow-hidden shrink-0">
+              <img src={daduLogo} alt="Logo" className="w-full h-full object-cover" />
+            </div>
+            <span className="text-zinc-200 font-bold text-[9px] uppercase tracking-wider pr-1">Install</span>
+          </motion.button>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

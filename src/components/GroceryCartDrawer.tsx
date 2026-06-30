@@ -165,7 +165,7 @@ export default function GroceryCartDrawer({
           {/* Header */}
           <div className="p-5 border-b border-zinc-900 flex items-center justify-between bg-zinc-900/40">
             <div className="flex items-center gap-2">
-              <ShoppingBag className="w-5 h-5 text-orange-500" />
+              <ShoppingBag className="w-5 h-5 text-pink-500" />
               <div>
                 <h3 className="text-sm font-black uppercase tracking-wider text-zinc-100">Dadu Grocery Basket</h3>
                 <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mt-0.5">Standalone Express Checkout</p>
@@ -183,7 +183,7 @@ export default function GroceryCartDrawer({
           <div className="flex-1 overflow-y-auto p-5 space-y-4">
             {cartItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center text-center py-20 space-y-4">
-                <div className="w-16 h-16 bg-orange-600/10 border border-orange-500/20 rounded-full flex items-center justify-center text-orange-500">
+                <div className="w-16 h-16 bg-pink-600/10 border border-orange-500/20 rounded-full flex items-center justify-center text-orange-500">
                   <ShoppingBag className="w-8 h-8" />
                 </div>
                 <div className="space-y-1">
@@ -226,7 +226,7 @@ export default function GroceryCartDrawer({
 
                     <button
                       onClick={() => onRemoveItem(item.productId)}
-                      className="p-1.5 bg-red-950/20 hover:bg-red-950 text-red-400 rounded-lg hover:text-red-300 transition shrink-0 cursor-pointer"
+                      className="p-1.5 bg-pink-950/20 hover:bg-pink-950 text-pink-400 rounded-lg hover:text-pink-300 transition shrink-0 cursor-pointer"
                       title="Remove product"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -403,11 +403,11 @@ export default function GroceryCartDrawer({
               </div>
 
               {!userCoords && (
-                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-center flex flex-col items-center justify-center gap-2">
-                  <span className="text-red-400 text-xs font-bold uppercase tracking-tight flex items-center gap-1.5">
+                <div className="bg-pink-500/10 border border-red-500/20 rounded-xl p-3 text-center flex flex-col items-center justify-center gap-2">
+                  <span className="text-pink-400 text-xs font-bold uppercase tracking-tight flex items-center gap-1.5">
                     <MapPin className="w-3.5 h-3.5" /> Location Access Required
                   </span>
-                  <span className="text-red-300/70 text-[10px] leading-tight max-w-[250px]">
+                  <span className="text-pink-300/70 text-[10px] leading-tight max-w-[250px]">
                     Please allow GPS location access to place your order. This ensures accurate and fast delivery to your exact doorstep.
                   </span>
                   <button
@@ -428,7 +428,7 @@ export default function GroceryCartDrawer({
                         alert("❌ Could not fetch GPS location. Location access is required to place an order!");
                       }
                     }}
-                    className="mt-1 bg-red-500 hover:bg-red-600 text-white font-bold text-[10px] uppercase tracking-wider py-2 px-5 rounded-lg transition-colors cursor-pointer"
+                    className="mt-1 bg-red-500 hover:bg-pink-600 text-white font-bold text-[10px] uppercase tracking-wider py-2 px-5 rounded-lg transition-colors cursor-pointer"
                   >
                     Allow Location Access
                   </button>

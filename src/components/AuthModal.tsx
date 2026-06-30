@@ -407,8 +407,8 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
               </div>
 
               {errorMessage && (
-                <div className="bg-red-950/20 border border-red-900/40 text-red-400 text-xs p-3 rounded-2xl mb-2 flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                <div className="bg-pink-950/20 border border-pink-900/40 text-pink-400 text-xs p-3 rounded-2xl mb-2 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-pink-500 shrink-0 mt-0.5" />
                   <span>{errorMessage}</span>
                 </div>
               )}
@@ -499,7 +499,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalP
               </div>
 
               {errorMessage && (
-                <div className={`bg-red-950/20 border border-red-900/40 text-red-400 text-xs p-3 rounded-xl flex items-start gap-2 shadow-3xs leading-relaxed font-semibold ${isSignUp ? "mb-3" : "mb-4"}`}>
+                <div className={`bg-pink-950/20 border border-pink-900/40 text-pink-400 text-xs p-3 rounded-xl flex items-start gap-2 shadow-3xs leading-relaxed font-semibold ${isSignUp ? "mb-3" : "mb-4"}`}>
                   <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
                   <span>{errorMessage}</span>
                 </div>

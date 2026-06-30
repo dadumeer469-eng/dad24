@@ -452,7 +452,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
             {/* Logout button on mobile */}
             <button
               onClick={onLogout}
-              className="sm:hidden bg-zinc-950 text-red-400 hover:text-red-300 border border-zinc-800 p-2.5 rounded-xl transition cursor-pointer active:scale-95"
+              className="sm:hidden bg-zinc-950 text-pink-400 hover:text-pink-300 border border-zinc-800 p-2.5 rounded-xl transition cursor-pointer active:scale-95"
               title="Sign Out rider profile"
             >
               <LogOut className="w-4.5 h-4.5 shrink-0" />
@@ -487,7 +487,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
 
             <button
               onClick={onLogout}
-              className="hidden sm:inline-block bg-zinc-950 text-red-400 hover:text-red-300 border border-zinc-800 p-2 rounded-xl transition cursor-pointer"
+              className="hidden sm:inline-block bg-zinc-950 text-pink-400 hover:text-pink-300 border border-zinc-800 p-2 rounded-xl transition cursor-pointer"
               title="Sign Out rider profile"
             >
               <LogOut className="w-4 h-4 shrink-0" />
@@ -505,8 +505,8 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
             
             {/* Continuous Loud Alarm status indicator */}
             {availableOrders.length > 0 && (
-              <div className="bg-red-950/40 border border-red-900/40 p-4 sm:p-5 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-2xl pointer-events-none -mt-8 -mr-8 bg-red-500/10"></div>
+              <div className="bg-pink-950/40 border border-pink-900/40 p-4 sm:p-5 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-2xl pointer-events-none -mt-8 -mr-8 bg-pink-500/10"></div>
                 <div className="flex items-center gap-3 text-center md:text-left relative z-10">
                   <span className="text-2xl animate-bounce shrink-0">🚨</span>
                   <div>
@@ -596,7 +596,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                     🛡️ Active Order Shipment
                   </h2>
                   {riderActiveOrders.length > 0 && (
-                    <span className="text-[9px] sm:text-[10px] bg-red-500/10 text-red-400 py-0.5 px-2.5 rounded-full font-black uppercase">
+                    <span className="text-[9px] sm:text-[10px] bg-red-500/10 text-pink-400 py-0.5 px-2.5 rounded-full font-black uppercase">
                       {riderActiveOrders.length}/3 Accepted
                     </span>
                   )}
@@ -882,7 +882,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                       <button
                         onClick={() => handleCancelOrder(riderActiveOrder.id)}
                         disabled={loadingActionId === riderActiveOrder.id}
-                        className="w-full bg-red-950/20 border border-red-900/30 hover:bg-red-950/40 text-red-500 font-black py-4 rounded-2xl transition text-xs tracking-wider uppercase flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
+                        className="w-full bg-pink-950/20 border border-pink-900/30 hover:bg-pink-950/40 text-red-500 font-black py-4 rounded-2xl transition text-xs tracking-wider uppercase flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
                       >
                         <XCircle className="w-5 h-5" />
                         Cancel / Return Order
@@ -907,7 +907,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                   <h2 className="text-xs sm:text-sm font-black uppercase tracking-widest text-[#D70F64]">
                     🔔 Available Food Shipments ({availableOrders.length})
                   </h2>
-                  <span className="text-[9px] bg-red-500/10 text-red-400 py-0.5 px-2 rounded-full font-black uppercase animate-pulse">
+                  <span className="text-[9px] bg-red-500/10 text-pink-400 py-0.5 px-2 rounded-full font-black uppercase animate-pulse">
                     On-Screen Live Check
                   </span>
                 </div>

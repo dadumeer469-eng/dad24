@@ -215,7 +215,7 @@ export default function FoodDetailModal({
                            <span className="w-5 h-px bg-zinc-300"></span>
                            Instructions
                          </h4>
-                         <div className="bg-orange-50/50 p-4 rounded-2xl border border-orange-100/50 relative overflow-hidden">
+                         <div className="bg-pink-50/50 p-4 rounded-2xl border border-orange-100/50 relative overflow-hidden">
                            <div className="absolute top-0 left-0 w-1 h-full bg-orange-400" />
                            <p className="text-sm font-bold text-zinc-700 italic pl-2">"{specialInstructions}"</p>
                          </div>
@@ -266,7 +266,7 @@ export default function FoodDetailModal({
                 )}
 
                 {isActiveDetailDishClosed && (
-                   <div className="mt-4 bg-red-50 border border-red-100 text-red-600 text-xs p-3.5 rounded-xl flex items-center gap-2 font-bold">
+                   <div className="mt-4 bg-pink-50 border border-pink-100 text-pink-600 text-xs p-3.5 rounded-xl flex items-center gap-2 font-bold">
                      <Clock className="w-4 h-4 shrink-0" />
                      <span>This vendor is currently unavailable or closed.</span>
                    </div>
@@ -279,9 +279,9 @@ export default function FoodDetailModal({
                   <div>
                     <h4 className="text-sm font-bold text-zinc-800 mb-3 flex items-center justify-between">
                       Select Size
-                      {sizeError && <span className="text-xs font-bold text-red-500">Please select a size first</span>}
+                      {sizeError && <span className="text-xs font-bold text-pink-500">Please select a size first</span>}
                     </h4>
-                    <div className={`grid grid-cols-2 sm:grid-cols-3 gap-3 ${sizeError ? "p-3 border border-red-500 rounded-2xl bg-red-50/50" : ""}`}>
+                    <div className={`grid grid-cols-2 sm:grid-cols-3 gap-3 ${sizeError ? "p-3 border border-red-500 rounded-2xl bg-pink-50/50" : ""}`}>
                       {dish.sizes.map((sizeObj, idx) => (
                         <button
                           key={`${sizeObj.name}-${idx}`}

@@ -273,7 +273,7 @@ function ProductImageSelector({
             isDragOver
               ? accentColorClass === "amber"
                 ? "border-[#D70F64] bg-[#D70F64]/5"
-                : "border-orange-500 bg-orange-500/5"
+                : "border-orange-500 bg-pink-500/5"
               : "border-slate-200 hover:border-slate-300 bg-white border border-slate-200/50"
           }`}
         >
@@ -298,8 +298,8 @@ function ProductImageSelector({
             </div>
           ) : uploadError ? (
             <div className="flex flex-col items-center gap-2 relative z-10 p-2">
-              <AlertTriangle className="w-6 h-6 text-red-500 mb-1" />
-              <p className="text-[10px] text-red-400 font-bold text-center leading-tight">
+              <AlertTriangle className="w-6 h-6 text-pink-500 mb-1" />
+              <p className="text-[10px] text-pink-400 font-bold text-center leading-tight">
                 {uploadError}
               </p>
               {failedFile && (
@@ -309,7 +309,7 @@ function ProductImageSelector({
                     e.stopPropagation();
                     processFile(failedFile);
                   }}
-                  className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 text-[10px] font-black px-4 py-1.5 rounded-lg mt-1 transition-colors pointer-events-auto"
+                  className="bg-pink-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 text-[10px] font-black px-4 py-1.5 rounded-lg mt-1 transition-colors pointer-events-auto"
                 >
                   RETRY UPLOAD
                 </button>
@@ -341,7 +341,7 @@ function ProductImageSelector({
                     e.stopPropagation();
                     onChange("");
                   }}
-                  className="bg-red-500/10 hover:bg-red-500/20 text-[10px] font-bold px-3 py-1.5 rounded-md text-red-400 transition-colors border border-red-500/20"
+                  className="bg-red-500/10 hover:bg-red-500/20 text-[10px] font-bold px-3 py-1.5 rounded-md text-pink-400 transition-colors border border-red-500/20"
                 >
                   Remove Image
                 </button>
@@ -355,7 +355,7 @@ function ProductImageSelector({
                   className={
                     accentColorClass === "amber"
                       ? "text-[#D70F64] font-black"
-                      : "text-orange-500 font-black"
+                      : "text-pink-500 font-black"
                   }
                 >
                   Browse
@@ -398,7 +398,7 @@ function ProductImageSelector({
               <button
                 type="button"
                 onClick={() => onChange("")}
-                className="text-red-500 hover:text-red-400 text-[10px] font-extrabold uppercase shrink-0 px-2 cursor-pointer"
+                className="text-red-500 hover:text-pink-400 text-[10px] font-extrabold uppercase shrink-0 px-2 cursor-pointer"
               >
                 Clear
               </button>
@@ -2924,7 +2924,7 @@ export default function AdminPanel({
                         </span>
                         <button
                           onClick={() => handleDeleteRestaurant(restName)}
-                          className="w-7 h-7 flex items-center justify-center rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-slate-900 transition-colors shrink-0 cursor-pointer"
+                          className="w-7 h-7 flex items-center justify-center rounded-lg bg-red-500/10 text-pink-400 hover:bg-red-500 hover:text-slate-900 transition-colors shrink-0 cursor-pointer"
                           title={`Delete ${restName}`}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -3007,7 +3007,7 @@ export default function AdminPanel({
                         }
                     }}
                     id="clear-menu-btn"
-                    className="bg-red-950/40 hover:bg-red-900/60 text-red-500 px-4 py-2 rounded-xl text-[10px] uppercase font-black tracking-wider transition-colors border border-red-900/50 hover:border-red-500/50 flex items-center gap-2"
+                    className="bg-pink-950/40 hover:bg-pink-900/60 text-red-500 px-4 py-2 rounded-xl text-[10px] uppercase font-black tracking-wider transition-colors border border-pink-900/50 hover:border-red-500/50 flex items-center gap-2"
                   >
                     🔥 CLEAR ENTIRE MENU
                   </button>
@@ -4009,7 +4009,7 @@ export default function AdminPanel({
                             <td className="p-4 text-center">
                               <button
                                 onClick={() => handleDeleteItem(dish.id)}
-                                className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-950/20 rounded-xl transition cursor-pointer"
+                                className="p-2 text-slate-500 hover:text-red-500 hover:bg-pink-950/20 rounded-xl transition cursor-pointer"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
@@ -4403,7 +4403,7 @@ export default function AdminPanel({
                             <td className="p-4 text-center">
                               <button
                                 onClick={() => handleDeleteItem(dish.id)}
-                                className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-950/20 rounded-xl transition cursor-pointer"
+                                className="p-2 text-slate-500 hover:text-red-500 hover:bg-pink-950/20 rounded-xl transition cursor-pointer"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
@@ -4436,7 +4436,7 @@ export default function AdminPanel({
                     <button
                       type="button"
                       onClick={handleClearAllOrderHistory}
-                      className="px-4 py-2 bg-red-955/40 hover:bg-red-900/30 text-red-400 border border-red-900/45 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer transition shrink-0"
+                      className="px-4 py-2 bg-pink-950/40 hover:bg-pink-900/30 text-pink-400 border border-pink-900/45 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer transition shrink-0"
                     >
                       Clear Sales History 🧹
                     </button>
@@ -4518,7 +4518,7 @@ export default function AdminPanel({
                                   order.status === "completed"
                                     ? "text-emerald-400 border border-emerald-950/65"
                                     : order.status === "cancelled"
-                                      ? "text-red-500 border border-red-950/65"
+                                      ? "text-red-500 border border-pink-950/65"
                                       : "text-[#D70F64] border border-amber-950/65"
                                 }`}
                               >
@@ -4768,7 +4768,7 @@ export default function AdminPanel({
                                 onClick={() =>
                                   handleUpdateOrderStatus(order.id, "cancelled")
                                 }
-                                className="ml-auto bg-red-950/20 border border-red-900/30 text-red-500 px-3.5 py-2 rounded-xl hover:bg-red-950/40 transition cursor-pointer text-[10px] font-black uppercase tracking-wider hover:scale-[1.02] active:scale-95"
+                                className="ml-auto bg-pink-950/20 border border-pink-900/30 text-red-500 px-3.5 py-2 rounded-xl hover:bg-pink-950/40 transition cursor-pointer text-[10px] font-black uppercase tracking-wider hover:scale-[1.02] active:scale-95"
                               >
                                 Cancel / Return
                               </button>
@@ -5294,7 +5294,7 @@ export default function AdminPanel({
                                 onClick={() =>
                                   handleDeleteRider(rider.uid, rider.name)
                                 }
-                                className="text-red-400 hover:text-red-300 p-1.5 rounded-lg hover:bg-red-500/10 transition cursor-pointer shrink-0"
+                                className="text-pink-400 hover:text-pink-300 p-1.5 rounded-lg hover:bg-red-500/10 transition cursor-pointer shrink-0"
                                 title="Delete Rider Permanent"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -5814,7 +5814,7 @@ export default function AdminPanel({
                             <button
                               type="button"
                               onClick={() => handleDeleteCategory(cat.id)}
-                              className="p-1 px-1.5 rounded bg-red-950/20 text-red-400 hover:text-red-300 transition"
+                              className="p-1 px-1.5 rounded bg-pink-950/20 text-pink-400 hover:text-pink-300 transition"
                             >
                               ✕
                             </button>
@@ -6163,7 +6163,7 @@ export default function AdminPanel({
                                         onClick={() =>
                                           handleDeleteProduct(p.id)
                                         }
-                                        className="p-1 px-1.5 bg-red-950/20 text-red-400 hover:text-red-300 transition shrink-0 cursor-pointer text-xs font-black rounded"
+                                        className="p-1 px-1.5 bg-pink-950/20 text-pink-400 hover:text-pink-300 transition shrink-0 cursor-pointer text-xs font-black rounded"
                                       >
                                         ✕
                                       </button>
@@ -6319,7 +6319,7 @@ export default function AdminPanel({
                                 <span
                                   className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
                                     u.role === "admin"
-                                      ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                                      ? "bg-red-500/10 text-pink-400 border border-red-500/20"
                                       : u.role === "rider"
                                         ? "bg-sky-500/10 text-sky-400 border border-sky-500/20"
                                         : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
@@ -6379,7 +6379,7 @@ export default function AdminPanel({
                                   className={`p-1 px-2.5 rounded text-[10px] font-black uppercase transition-all ${
                                     isSpecialAdmin
                                       ? "bg-slate-100 text-slate-300 cursor-not-allowed"
-                                      : "bg-red-950/30 text-red-400 hover:bg-red-900/30 cursor-pointer"
+                                      : "bg-pink-950/30 text-pink-400 hover:bg-pink-900/30 cursor-pointer"
                                   }`}
                                 >
                                   {isSpecialAdmin ? "Locked" : "Delete"}
@@ -6513,7 +6513,7 @@ export default function AdminPanel({
                   setConfirmDialog(null);
                   await callback();
                 }}
-                className="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-slate-900 rounded-xl text-[10px] font-black hover:brightness-110 shadow-md cursor-pointer transition uppercase tracking-wide"
+                className="px-4 py-2 bg-gradient-to-r from-pink-600 to-pink-700 text-slate-900 rounded-xl text-[10px] font-black hover:brightness-110 shadow-md cursor-pointer transition uppercase tracking-wide"
               >
                 Delete Permanently
               </button>

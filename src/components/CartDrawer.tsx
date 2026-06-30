@@ -467,7 +467,7 @@ export default function CartDrawer({
           {cartItems.length > 0 && (
             <div className="bg-zinc-900 border border-zinc-850 p-4 rounded-3xl space-y-2 mt-4">
               <div className="flex items-center justify-between border-b border-zinc-850 pb-2">
-                <span className="text-[10px] font-black uppercase text-orange-400 tracking-wider flex items-center gap-1.5">
+                <span className="text-[10px] font-black uppercase text-pink-400 tracking-wider flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5" /> GPS PINPOINT TRACKING
                 </span>
                 {userCoords ? (
@@ -483,7 +483,7 @@ export default function CartDrawer({
                   <button
                     type="button"
                     onClick={() => setUserCoords(null)}
-                    className="text-red-400 text-[10px] hover:underline font-bold cursor-pointer"
+                    className="text-pink-400 text-[10px] hover:underline font-bold cursor-pointer"
                   >
                     Remove
                   </button>
@@ -557,11 +557,11 @@ export default function CartDrawer({
             </div>
 
             {!userCoords && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-center flex flex-col items-center justify-center gap-2">
-                <span className="text-red-400 text-xs font-bold uppercase tracking-tight flex items-center gap-1.5">
+              <div className="bg-pink-500/10 border border-red-500/20 rounded-xl p-3 text-center flex flex-col items-center justify-center gap-2">
+                <span className="text-pink-400 text-xs font-bold uppercase tracking-tight flex items-center gap-1.5">
                   <MapPin className="w-3.5 h-3.5" /> Location Access Required
                 </span>
-                <span className="text-red-300/70 text-[10px] leading-tight max-w-[250px]">
+                <span className="text-pink-300/70 text-[10px] leading-tight max-w-[250px]">
                   Please allow GPS location access to place your order. This ensures accurate and fast delivery to your exact doorstep.
                 </span>
                 <button
@@ -582,7 +582,7 @@ export default function CartDrawer({
                       alert("❌ Could not fetch GPS location. Location access is required to place an order!");
                     }
                   }}
-                  className="mt-1 bg-red-500 hover:bg-red-600 text-white font-bold text-[10px] uppercase tracking-wider py-2 px-5 rounded-lg transition-colors cursor-pointer"
+                  className="mt-1 bg-pink-500 hover:bg-pink-600 text-white font-bold text-[10px] uppercase tracking-wider py-2 px-5 rounded-lg transition-colors cursor-pointer"
                 >
                   Allow Location Access
                 </button>
@@ -592,7 +592,7 @@ export default function CartDrawer({
             <button
               onClick={handleSubmitOrder}
               disabled={submitting}
-              className={`w-full ${!userCoords ? 'bg-orange-600 hover:bg-orange-700' : 'bg-[#D70F64] hover:bg-[#b00c50]'} text-white py-3 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75`}
+              className={`w-full ${!userCoords ? 'bg-pink-600 hover:bg-orange-700' : 'bg-[#D70F64] hover:bg-[#b00c50]'} text-white py-3 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75`}
             >
               {submitting ? (
                 <>Loading...</>

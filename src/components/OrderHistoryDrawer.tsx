@@ -68,10 +68,10 @@ export default function OrderHistoryDrawer({
       preparing: { bg: "bg-indigo-50 text-indigo-700 border-indigo-200 animate-pulse", text: "text-indigo-700", label: "Kitchen/Preparing" },
       out_for_delivery: { bg: "bg-pink-50 text-[#D70F64] border-pink-200 animate-pulse", text: "text-[#D70F64]", label: "On the way 🛵" },
       delivered: { bg: "bg-emerald-50 text-emerald-700 border-emerald-200", text: "text-emerald-700", label: "Delivered 🎉" },
-      cancelled: { bg: "bg-red-50 text-red-700 border-red-200", text: "text-red-700", label: "Cancelled" },
+      cancelled: { bg: "bg-pink-50 text-pink-700 border-pink-200", text: "text-pink-700", label: "Cancelled" },
       // Service statuses
       booked: { bg: "bg-yellow-50 text-yellow-800 border-yellow-300", text: "text-yellow-800", label: "Booked" },
-      diagnostic_on_way: { bg: "bg-orange-50 text-orange-700 border-orange-200", text: "text-orange-700", label: "Expert en Route" },
+      diagnostic_on_way: { bg: "bg-pink-50 text-pink-700 border-orange-200", text: "text-orange-700", label: "Expert en Route" },
       diagnostic_underway: { bg: "bg-sky-50 text-sky-700 border-sky-200 animate-pulse", text: "text-sky-700", label: "Diagnostic Check" },
       completed: { bg: "bg-teal-50 text-teal-700 border-teal-200", text: "text-teal-700", label: "Completed" },
     };

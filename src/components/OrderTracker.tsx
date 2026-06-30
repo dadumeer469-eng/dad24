@@ -77,7 +77,7 @@ export default function OrderTracker({ order, onClose }: OrderTrackerProps) {
       preparing: { bg: "bg-purple-500/10 border-purple-500/20", text: "text-purple-400", label: "Cooking" },
       out_for_delivery: { bg: "bg-pink-500/10 border-pink-500/20", text: "text-pink-400", label: "Out For Delivery" },
       delivered: { bg: "bg-emerald-500/10 border-emerald-500/20", text: "text-emerald-400", label: "Delivered" },
-      cancelled: { bg: "bg-red-500/10 border-red-500/20", text: "text-red-400", label: "Cancelled x" },
+      cancelled: { bg: "bg-pink-500/10 border-red-500/20", text: "text-pink-400", label: "Cancelled x" },
       
       booked: { bg: "bg-yellow-500/10 border-yellow-500/20", text: "text-yellow-500", label: "Booked" },
       diagnostic_on_way: { bg: "bg-[#D70F64]/10 border-[#D70F64]/20", text: "text-[#D70F64]", label: "Traveling" },
@@ -271,7 +271,7 @@ export default function OrderTracker({ order, onClose }: OrderTrackerProps) {
       {/* Status Indicators list */}
       <div className="mt-6 space-y-4">
         {isCancelled ? (
-          <div className="bg-red-950/20 border border-red-900/40 text-red-400 rounded-2xl p-4 text-center shadow-xs">
+          <div className="bg-pink-950/20 border border-pink-900/40 text-pink-400 rounded-2xl p-4 text-center shadow-xs">
             <span className="font-extrabold text-sm block">🚫 Order Cancelled</span>
             <p className="text-xs text-zinc-400 mt-1 leading-normal font-semibold">
               This order has been cancelled by the administrator. For assistance, reach out directly to our WhatsApp Hotline 03277004471.

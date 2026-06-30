@@ -101,7 +101,7 @@ export default function FoodpandaRestaurantPage({
         <div className="flex items-center gap-3">
           <h1 className="text-2xl md:text-3xl font-black text-zinc-900 uppercase tracking-tight">{restaurantName}</h1>
           {isRestaurantClosed && (
-            <span className="bg-red-100 text-red-600 px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest shrink-0">
+            <span className="bg-pink-100 text-pink-600 px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-widest shrink-0">
               Closed
             </span>
           )}
@@ -127,7 +127,7 @@ export default function FoodpandaRestaurantPage({
 
         <div className="flex flex-wrap items-center gap-3 mt-3 text-xs font-medium">
           {isRestaurantClosed ? (
-            <span className="text-red-600 font-bold bg-red-50 px-2 py-1 rounded-md">🔴 Closed</span>
+            <span className="text-pink-600 font-bold bg-pink-50 px-2 py-1 rounded-md">🔴 Closed</span>
           ) : (
             <span className="text-green-600 font-bold bg-green-50 px-2 py-1 rounded-md">🟢 Open Now</span>
           )}
@@ -249,7 +249,7 @@ function DishCard({ dish, onAdd, isClosed }: { dish: Dish, onAdd: () => void, ke
         <div>
           <h3 className="font-bold text-zinc-900 text-sm md:text-base leading-tight">{dish.name}</h3>
           {!dish.isAvailable && !isClosed && (
-            <span className="inline-block mt-1 bg-red-100 text-red-600 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider">Out of stock</span>
+            <span className="inline-block mt-1 bg-pink-100 text-pink-600 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider">Out of stock</span>
           )}
           {dish.description && (
             <p className="text-xs text-zinc-500 mt-1 line-clamp-2 leading-relaxed">{dish.description}</p>
