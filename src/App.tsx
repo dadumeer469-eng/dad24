@@ -891,7 +891,9 @@ export default function App() {
       isHistoryDrawerOpen ||
       isAdminConsoleOpen ||
       isExitConfirmationOpen ||
-      selectedRestaurant !== "All Restaurants";
+      selectedRestaurant !== "All Restaurants" ||
+      activeCategory !== "All" ||
+      searchQuery !== "";
 
     if (isAnyModalOpen) {
       if (window.history.state?.modalOpen !== true) {
@@ -957,6 +959,14 @@ export default function App() {
         setSelectedRestaurant("All Restaurants");
         return;
       }
+      if (activeCategory !== "All") {
+        setActiveCategory("All");
+        return;
+      }
+      if (searchQuery !== "") {
+        setSearchQuery("");
+        return;
+      }
 
       // No modal open: trigger exit confirmation dialogue and push state back to trap next back click
       setIsExitConfirmationOpen(true);
@@ -978,6 +988,8 @@ export default function App() {
     isAdminConsoleOpen,
     isExitConfirmationOpen,
     selectedRestaurant,
+    activeCategory,
+    searchQuery,
   ]);
 
   // --- CART CONTROLLER OPERATIONS ---
@@ -1804,10 +1816,21 @@ export default function App() {
                   onClick={() => {
                     isExitingRef.current = true;
                     setIsExitConfirmationOpen(false);
+                    
+                    // Attempt to close the PWA/Window
+                    try {
+                      window.close();
+                    } catch (e) {
+                      // ignore
+                    }
+
+                    // Fallback: trigger history back to try and pop out of the app natively
                     window.history.back();
+                    
+                    // Final Fallback: if it's still open, redirect to blank page
                     setTimeout(() => {
                       window.location.href = "about:blank";
-                    }, 150);
+                    }, 300);
                   }}
                   className="w-full bg-zinc-800 hover:bg-zinc-750 text-zinc-200 py-3 rounded-2xl font-extrabold text-xs uppercase tracking-wider transition active:scale-95 border border-zinc-700/80 flex items-center justify-center gap-2 cursor-pointer"
                 >
