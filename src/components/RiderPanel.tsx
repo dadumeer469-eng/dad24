@@ -6,7 +6,7 @@ import { db, handleFirestoreError } from "../firebase";
 import { Order, UserProfile } from "../types";
 import { 
   CheckCircle2, Compass, Coins, CalendarDays, TrendingUp, History, User, 
-  MapPin, PhoneCall, LogOut, ArrowRight, ClipboardList, DollarSign, Clock, Check, Store
+  MapPin, PhoneCall, LogOut, ArrowRight, ClipboardList, DollarSign, Clock, Check, Store, XCircle
 } from "lucide-react";
 
 interface RiderPanelProps {
@@ -309,6 +309,42 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
       });
     } catch (err) {
       alert("Acceptance failed: " + handleFirestoreError(err));
+    } finally {
+      setLoadingActionId(null);
+    }
+  };
+
+  // Rider Action: Cancel/Return Order
+  const handleCancelOrder = async (orderId: string) => {
+    const reason = prompt("Please provide a reason for cancelling / returning the order (e.g. Customer not responding, location not found):");
+    if (reason === null) return;
+    if (reason.trim() === "") {
+      alert("Reason is required to cancel an order.");
+      return;
+    }
+
+    setLoadingActionId(orderId);
+    try {
+      const orderRef = doc(db, "orders", orderId);
+      await updateDoc(orderRef, {
+        status: "cancelled",
+        cancelReason: `Rider Cancelled: ${reason}`,
+        cancelledBy: "rider",
+        cancelledAt: Timestamp.now()
+      });
+      // Optionally notify admin/customer
+      const targetOrder = myOrders.find(o => o.id === orderId);
+      if (targetOrder) {
+        await addDoc(collection(db, "notifications"), {
+          userId: targetOrder.userId,
+          title: "Order Cancelled",
+          body: `Your order was cancelled by the rider. Reason: ${reason}`,
+          createdAt: { seconds: Date.now() / 1000 },
+          read: false,
+        }).catch(() => {});
+      }
+    } catch (err) {
+      alert("Cancel transaction failed: " + handleFirestoreError(err));
     } finally {
       setLoadingActionId(null);
     }
@@ -825,23 +861,33 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                     </div>
 
                     {/* Completion Action Button */}
-                    <button
-                      onClick={() => handleMarkAsDelivered(riderActiveOrder.id)}
-                      disabled={loadingActionId === riderActiveOrder.id}
-                      className="w-full bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-black py-4 rounded-2xl transition shadow-lg text-xs tracking-wider uppercase flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-2 active:scale-95"
-                    >
-                      {loadingActionId === riderActiveOrder.id ? (
-                        <>
-                          <Clock className="w-5 h-5 animate-spin text-dark" />
-                          Marking as delivered...
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle2 className="w-5 h-5" />
-                          Mark Order as Delivered & Collect Charges
-                        </>
-                      )}
-                    </button>
+                    <div className="flex flex-col gap-2 mt-2">
+                      <button
+                        onClick={() => handleMarkAsDelivered(riderActiveOrder.id)}
+                        disabled={loadingActionId === riderActiveOrder.id}
+                        className="w-full bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-black py-4 rounded-2xl transition shadow-lg text-xs tracking-wider uppercase flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
+                      >
+                        {loadingActionId === riderActiveOrder.id ? (
+                          <>
+                            <Clock className="w-5 h-5 animate-spin text-dark" />
+                            Marking as delivered...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="w-5 h-5" />
+                            Mark Order as Delivered & Collect Charges
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleCancelOrder(riderActiveOrder.id)}
+                        disabled={loadingActionId === riderActiveOrder.id}
+                        className="w-full bg-red-950/20 border border-red-900/30 hover:bg-red-950/40 text-red-500 font-black py-4 rounded-2xl transition text-xs tracking-wider uppercase flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
+                      >
+                        <XCircle className="w-5 h-5" />
+                        Cancel / Return Order
+                      </button>
+                    </div>
 
                   </div>
                 ) : (

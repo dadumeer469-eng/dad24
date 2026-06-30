@@ -2476,6 +2476,13 @@ export default function App() {
                                 .filter(Boolean),
                             ),
                           ) as string[];
+                          
+                          uniqueRestaurantsList.sort((a, b) => {
+                            const aClosed = checkIsRestaurantClosed(a) ? 1 : 0;
+                            const bClosed = checkIsRestaurantClosed(b) ? 1 : 0;
+                            if (aClosed !== bClosed) return aClosed - bClosed;
+                            return a.localeCompare(b);
+                          });
 
                           return uniqueRestaurantsList.map((vendor) => {
                             const vendorImageUrl =
@@ -2622,6 +2629,18 @@ export default function App() {
                           ))
                         : [...filteredDishes]
                             .sort((a, b) => {
+                              const isSvcA = a.type === "service";
+                              const dishRestaurantNameA = a.restaurantName || (isSvcA ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
+                              const aClosed = checkIsRestaurantClosed(dishRestaurantNameA) ? 1 : 0;
+                              
+                              const isSvcB = b.type === "service";
+                              const dishRestaurantNameB = b.restaurantName || (isSvcB ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
+                              const bClosed = checkIsRestaurantClosed(dishRestaurantNameB) ? 1 : 0;
+
+                              if (aClosed !== bClosed) {
+                                return aClosed - bClosed;
+                              }
+
                               if (a.isFeatured !== b.isFeatured) {
                                 return (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
                               }

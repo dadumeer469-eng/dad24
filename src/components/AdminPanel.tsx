@@ -4770,7 +4770,7 @@ export default function AdminPanel({
                                 }
                                 className="ml-auto bg-red-950/20 border border-red-900/30 text-red-500 px-3.5 py-2 rounded-xl hover:bg-red-950/40 transition cursor-pointer text-[10px] font-black uppercase tracking-wider hover:scale-[1.02] active:scale-95"
                               >
-                                Cancel Order
+                                Cancel / Return
                               </button>
                             </div>
                           )}
