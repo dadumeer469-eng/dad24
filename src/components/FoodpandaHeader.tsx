@@ -72,7 +72,7 @@ export default function FoodpandaHeader({
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md text-zinc-800 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)] border-b border-pink-100/60">
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md text-zinc-800 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)] border-b border-red-100/60">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           
           {/* Logo and Brand */}
@@ -90,7 +90,7 @@ export default function FoodpandaHeader({
             />
           </div>
           <span className="text-base sm:text-xl font-black tracking-tight text-zinc-900">
-            DADU<span className="text-[#D70F64]">FOOD</span>
+            DADU<span className="text-[#dc2626]">FOOD</span>
           </span>
         </div>
 
@@ -110,7 +110,7 @@ export default function FoodpandaHeader({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search delicious burgers, pizza or repairs..."
-            className="w-full pl-10 pr-4 py-2 bg-zinc-100 border border-zinc-250 rounded-full text-sm text-zinc-800 placeholder-zinc-400 outline-none focus:bg-white focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition"
+            className="w-full pl-10 pr-4 py-2 bg-zinc-100 border border-zinc-250 rounded-full text-sm text-zinc-800 placeholder-zinc-400 outline-none focus:bg-white focus:border-[#dc2626] focus:ring-1 focus:ring-[#dc2626] transition"
           />
         </div>
 
@@ -128,7 +128,7 @@ export default function FoodpandaHeader({
             >
               <Bell className="w-4 h-4 text-zinc-700" />
               {unreadNotifications.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-[#D70F64] text-white text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center animate-bounce">
+                <span className="absolute -top-1 -right-1 bg-[#dc2626] text-white text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center animate-bounce">
                   {unreadNotifications.length}
                 </span>
               )}
@@ -144,7 +144,7 @@ export default function FoodpandaHeader({
                         onClearNotifications();
                         setShowNotifications(false);
                       }}
-                      className="text-[10px] text-[#D70F64] font-bold hover:underline cursor-pointer"
+                      className="text-[10px] text-[#dc2626] font-bold hover:underline cursor-pointer"
                     >
                       Clear All
                     </button>
@@ -175,7 +175,7 @@ export default function FoodpandaHeader({
             className={`flex items-center gap-1.5 transition py-2 px-3.5 rounded-xl text-xs font-black shadow-md cursor-pointer shrink-0 ${
               activeModule === "grocery"
                 ? "bg-orange-600 hover:bg-orange-700 text-white shadow-orange-500/10"
-                : "bg-[#D70F64] hover:bg-[#b00c50] text-white"
+                : "bg-[#dc2626] hover:bg-[#b00c50] text-white"
             }`}
           >
             <ShoppingBag className="w-4 h-4" />
@@ -198,7 +198,7 @@ export default function FoodpandaHeader({
                   setShowUserMenu(!showUserMenu);
                   setShowNotifications(false);
                 }}
-                className="flex items-center justify-center w-9.5 h-9.5 rounded-xl bg-zinc-100 border border-zinc-200 font-extrabold text-sm text-[#D70F64] hover:border-pink-500/40 cursor-pointer shadow-xs transition"
+                className="flex items-center justify-center w-9.5 h-9.5 rounded-xl bg-zinc-100 border border-zinc-200 font-extrabold text-sm text-[#dc2626] hover:border-pink-500/40 cursor-pointer shadow-xs transition"
               >
                 {user.name.charAt(0).toUpperCase()}
               </button>
@@ -218,11 +218,11 @@ export default function FoodpandaHeader({
                   <div className="flex items-center gap-1 font-bold text-sm text-zinc-900">
                     {user.name}
                     {user.role === "admin" && (
-                      <BadgeCheck className="w-4 h-4 text-[#D70F64] shrink-0" />
+                      <BadgeCheck className="w-4 h-4 text-[#dc2626] shrink-0" />
                     )}
                   </div>
                   <span className="text-[10px] text-zinc-500 font-medium">Phone: {user.phone}</span>
-                  <div className="bg-[#D70F64]/10 border border-[#D70F64]/20 text-[#D70F64] px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-widest rounded-md mt-1.5">
+                  <div className="bg-[#dc2626]/10 border border-[#dc2626]/20 text-[#dc2626] px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-widest rounded-md mt-1.5">
                     Orders Placed: {user.ordersCount || 0}
                   </div>
                 </div>
@@ -230,7 +230,7 @@ export default function FoodpandaHeader({
                 {/* Active Placed Orders List inside User profile dropdown */}
                 {orders && orders.length > 0 && (
                   <div className="p-2 border-b border-zinc-200 bg-zinc-50/50">
-                    <span className="text-[8.5px] uppercase font-black tracking-widest text-[#D70F64] px-1.5 block mb-1">
+                    <span className="text-[8.5px] uppercase font-black tracking-widest text-[#dc2626] px-1.5 block mb-1">
                       Live Delivery Tracker
                     </span>
                     <div className="max-h-36 overflow-y-auto space-y-1">
@@ -246,7 +246,7 @@ export default function FoodpandaHeader({
                           <span className="truncate max-w-[110px] text-zinc-800">
                             dadu-{o.id.substring(0, 5)}
                           </span>
-                          <span className="text-[8px] font-black uppercase text-[#D70F64] bg-[#D70F64]/10 px-1.5 py-0.5 rounded leading-none shrink-0 border border-[#D70F64]/20">
+                          <span className="text-[8px] font-black uppercase text-[#dc2626] bg-[#dc2626]/10 px-1.5 py-0.5 rounded leading-none shrink-0 border border-[#dc2626]/20">
                             {o.status === "out_for_delivery" ? "Transit 🛵" : o.status === "preparing" ? "Kitchen 🍳" : o.status === "accepted" ? "Cook 🍳" : "Placed"}
                           </span>
                         </button>
@@ -261,9 +261,9 @@ export default function FoodpandaHeader({
                       setShowUserMenu(false);
                       if (onToggleFavorites) onToggleFavorites();
                     }}
-                    className={`w-full text-left font-bold text-xs px-3.5 py-2 rounded-xl transition flex items-center gap-2 cursor-pointer ${showFavoritesOnly ? 'text-[#D70F64] bg-[#D70F64]/10' : 'text-zinc-700 hover:bg-zinc-50'}`}
+                    className={`w-full text-left font-bold text-xs px-3.5 py-2 rounded-xl transition flex items-center gap-2 cursor-pointer ${showFavoritesOnly ? 'text-[#dc2626] bg-[#dc2626]/10' : 'text-zinc-700 hover:bg-zinc-50'}`}
                   >
-                    <Heart className={`w-4 h-4 shrink-0 ${showFavoritesOnly ? 'fill-[#D70F64] text-[#D70F64]' : 'text-[#D70F64]'}`} />
+                    <Heart className={`w-4 h-4 shrink-0 ${showFavoritesOnly ? 'fill-[#dc2626] text-[#dc2626]' : 'text-[#dc2626]'}`} />
                     My Favorites
                   </button>
 
@@ -275,7 +275,7 @@ export default function FoodpandaHeader({
                     className="w-full text-left font-bold text-xs text-zinc-700 px-3.5 py-2 hover:bg-zinc-50 rounded-xl transition flex items-center gap-2 cursor-pointer"
                     id="history-menu-btn"
                   >
-                    <History className="w-4 h-4 text-[#D70F64] shrink-0" />
+                    <History className="w-4 h-4 text-[#dc2626] shrink-0" />
                     Order History
                   </button>
 
@@ -320,7 +320,7 @@ export default function FoodpandaHeader({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search pizza, burger, electrician..."
-            className="w-full pl-10 pr-4 py-2 bg-white border border-zinc-200 rounded-full text-xs text-zinc-800 placeholder-zinc-400 outline-none focus:border-[#D70F64]"
+            className="w-full pl-10 pr-4 py-2 bg-white border border-zinc-200 rounded-full text-xs text-zinc-800 placeholder-zinc-400 outline-none focus:border-[#dc2626]"
           />
         </div>
       </div>

@@ -383,7 +383,7 @@ export default function App() {
               name: "All",
               emoji: "🍽️",
               subtitle: "Sab Kuch",
-              color: "from-[#D70F64] to-[#f22c80]",
+              color: "from-[#dc2626] to-[#f22c80]",
               isAvailable: true,
               position: 0,
             },
@@ -1717,8 +1717,8 @@ export default function App() {
       />
 
       {toastNotification && (
-        <div className="fixed bottom-6 right-6 z-50 p-4 max-w-sm bg-zinc-900 border-2 border-[#D70F64]/40 text-zinc-100 rounded-2xl shadow-2xl flex items-start gap-3 animate-slide-in">
-          <div className="bg-[#D70F64] text-white p-2.5 rounded-xl shrink-0">
+        <div className="fixed bottom-6 right-6 z-50 p-4 max-w-sm bg-zinc-900 border-2 border-[#dc2626]/40 text-zinc-100 rounded-2xl shadow-2xl flex items-start gap-3 animate-slide-in">
+          <div className="bg-[#dc2626] text-white p-2.5 rounded-xl shrink-0">
             <Sparkles className="w-5 h-5 animate-pulse" />
           </div>
           <div>
@@ -1734,10 +1734,10 @@ export default function App() {
 
       {isExitConfirmationOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fade-in">
-          <div className="bg-zinc-900 border-2 border-[#D70F64]/30 rounded-[32px] max-w-sm w-full overflow-hidden shadow-2xl text-zinc-100 relative">
-            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#D70F64] to-transparent" />
+          <div className="bg-zinc-900 border-2 border-[#dc2626]/30 rounded-[32px] max-w-sm w-full overflow-hidden shadow-2xl text-zinc-100 relative">
+            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#dc2626] to-transparent" />
             <div className="p-6 text-center space-y-5">
-              <div className="mx-auto w-16 h-16 rounded-full bg-[#D70F64]/10 border border-[#D70F64]/20 flex items-center justify-center text-[#D70F64]">
+              <div className="mx-auto w-16 h-16 rounded-full bg-[#dc2626]/10 border border-[#dc2626]/20 flex items-center justify-center text-[#dc2626]">
                 <LogOut className="w-8 h-8 animate-pulse" />
               </div>
               <div className="space-y-2">
@@ -1753,7 +1753,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setIsExitConfirmationOpen(false)}
-                  className="w-full bg-[#D70F64] hover:bg-[#b00c50] text-white py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider transition active:scale-95 shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full bg-[#dc2626] hover:bg-[#b00c50] text-white py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider transition active:scale-95 shadow-md flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <UtensilsCrossed className="w-4 h-4" />
                   Keep Ordering
@@ -1892,7 +1892,7 @@ export default function App() {
             className="w-14 h-14 rounded-full object-cover border-2 border-pink-200 shadow-sm"
             referrerPolicy="no-referrer"
           />
-          <span className="text-[10px] font-black uppercase text-[#D70F64] tracking-wider mt-1">
+          <span className="text-[10px] font-black uppercase text-[#dc2626] tracking-wider mt-1">
             Hot Burgers
           </span>
           <span className="text-[9px] text-zinc-400 font-semibold leading-none">
@@ -1911,7 +1911,7 @@ export default function App() {
             className="w-14 h-14 rounded-full object-cover border-2 border-pink-200 shadow-sm"
             referrerPolicy="no-referrer"
           />
-          <span className="text-[10px] font-black uppercase text-[#D70F64] tracking-wider mt-1">
+          <span className="text-[10px] font-black uppercase text-[#dc2626] tracking-wider mt-1">
             Dadu Special Tea
           </span>
           <span className="text-[9px] text-zinc-400 font-semibold leading-none">
@@ -1951,7 +1951,7 @@ export default function App() {
             className="w-14 h-14 rounded-full object-cover border-2 border-pink-200 shadow-sm"
             referrerPolicy="no-referrer"
           />
-          <span className="text-[10px] font-black uppercase text-[#D70F64] tracking-wider mt-1">
+          <span className="text-[10px] font-black uppercase text-[#dc2626] tracking-wider mt-1">
             Cheesy Pizza
           </span>
           <span className="text-[9px] text-zinc-400 font-semibold leading-none">
@@ -1970,7 +1970,7 @@ export default function App() {
             className="w-14 h-14 rounded-full object-cover border-2 border-pink-200 shadow-sm"
             referrerPolicy="no-referrer"
           />
-          <span className="text-[10px] font-black uppercase text-[#D70F64] tracking-wider mt-1">
+          <span className="text-[10px] font-black uppercase text-[#dc2626] tracking-wider mt-1">
             Dadu Biryani
           </span>
           <span className="text-[9px] text-zinc-400 font-semibold leading-none">
@@ -2009,7 +2009,7 @@ export default function App() {
               scale: 1.05,
               transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] },
             }}
-            className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#D70F64] text-white select-none overflow-hidden"
+            className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#dc2626] text-white select-none overflow-hidden"
           >
             {/* Background floating abstract food & toolkit shapes */}
             <div className="absolute inset-0 opacity-10 pointer-events-none">
@@ -2063,7 +2063,7 @@ export default function App() {
                 className="w-64 h-36 bg-white rounded-3xl flex items-center justify-center shadow-2xl relative p-4 overflow-hidden border border-white/20"
               >
                 {/* Visual badge highlight */}
-                <div className="absolute -top-1 -right-1 bg-[#D70F64] text-white font-black text-[8px] uppercase tracking-widest py-0.5 px-2 rounded-full shadow-lg border border-white flex items-center gap-0.5 animate-pulse z-10">
+                <div className="absolute -top-1 -right-1 bg-[#dc2626] text-white font-black text-[8px] uppercase tracking-widest py-0.5 px-2 rounded-full shadow-lg border border-white flex items-center gap-0.5 animate-pulse z-10">
                   <span className="w-1 h-1 bg-white rounded-full"></span>
                   DADU CITY
                 </div>
@@ -2104,7 +2104,7 @@ export default function App() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 0.85 }}
                   transition={{ delay: 0.45, duration: 0.5 }}
-                  className="text-xs text-pink-100/90 font-bold max-w-xs mx-auto leading-relaxed h-8"
+                  className="text-xs text-red-100/90 font-bold max-w-xs mx-auto leading-relaxed h-8"
                 >
                   {splashProgress < 30 && "Gathering hot kitchens..."}
                   {splashProgress >= 30 &&
@@ -2125,7 +2125,7 @@ export default function App() {
                     style={{ width: `${splashProgress}%` }}
                   ></div>
                 </div>
-                <div className="flex items-center justify-between text-[11px] text-pink-100 font-extrabold tracking-widest uppercase font-mono">
+                <div className="flex items-center justify-between text-[11px] text-red-100 font-extrabold tracking-widest uppercase font-mono">
                   <span>LOADING applet</span>
                   <span className="bg-white/15 px-1.5 py-0.5 rounded-md text-white">
                     {splashProgress}%
@@ -2213,7 +2213,7 @@ export default function App() {
                   }}
                   className={`flex-1 py-2 sm:py-3 text-[10.5px] font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                     activeModule === "food"
-                      ? "bg-[#D70F64] text-white shadow-md scale-[1.01]"
+                      ? "bg-[#dc2626] text-white shadow-md scale-[1.01]"
                       : "text-zinc-600 hover:bg-zinc-200/50 hover:text-zinc-805"
                   }`}
                 >
@@ -2277,11 +2277,11 @@ export default function App() {
                     });
 
                     return (
-                      <div className="bg-gradient-to-br from-white to-pink-50/30 border border-pink-100/60 p-5 rounded-3xl space-y-4 shadow-sm relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#D70F64]/5 to-transparent rounded-full -mr-16 -mt-16 pointer-events-none" />
+                      <div className="bg-gradient-to-br from-white to-pink-50/30 border border-red-100/60 p-5 rounded-3xl space-y-4 shadow-sm relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#dc2626]/5 to-transparent rounded-full -mr-16 -mt-16 pointer-events-none" />
                         <div className="flex items-center justify-between relative z-10">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#D70F64] to-pink-500 flex items-center justify-center shadow-lg shadow-pink-500/20 text-white shrink-0">
+                            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#dc2626] to-pink-500 flex items-center justify-center shadow-lg shadow-red-500/20 text-white shrink-0">
                               <Compass className="w-5 h-5" />
                             </div>
                             <div>
@@ -2298,7 +2298,7 @@ export default function App() {
                               onClick={() =>
                                 setSelectedRestaurant("All Restaurants")
                               }
-                              className="bg-pink-50 hover:bg-pink-100 text-[#D70F64] px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 cursor-pointer"
+                              className="bg-red-50 hover:bg-red-100 text-[#dc2626] px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 cursor-pointer"
                             >
                               Reset
                             </button>
@@ -2312,7 +2312,7 @@ export default function App() {
                             }
                             className={`w-[85px] h-[100px] rounded-2xl flex flex-col items-center justify-center gap-1 p-2 font-black transition shrink-0 cursor-pointer border ${
                               selectedRestaurant === "All Restaurants"
-                                ? "bg-[#D70F64] text-white border-[#D70F64] shadow-md shadow-pink-500/15 scale-105"
+                                ? "bg-[#dc2626] text-white border-[#dc2626] shadow-md shadow-red-500/15 scale-105"
                                 : "bg-white text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50 border-zinc-200"
                             }`}
                           >
@@ -2346,7 +2346,7 @@ export default function App() {
                                     }
                                     className={`w-[85px] h-[100px] rounded-2xl flex flex-col items-center p-1.5 font-black transition shrink-0 cursor-pointer border overflow-hidden ${
                                       selectedRestaurant === vendor
-                                        ? "bg-[#D70F64] text-white border-[#D70F64] shadow-md shadow-pink-500/15 scale-105"
+                                        ? "bg-[#dc2626] text-white border-[#dc2626] shadow-md shadow-red-500/15 scale-105"
                                         : "bg-white text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 border-zinc-200"
                                     }`}
                                   >
@@ -2397,14 +2397,14 @@ export default function App() {
                         setActiveTrackingOrder(activeOrderForBanner);
                         setIsTrackingModalOpen(true);
                       }}
-                      className="bg-white border-2 border-[#D70F64] p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 cursor-pointer hover:bg-zinc-50 transition-all shadow-xl shadow-pink-500/5 group"
+                      className="bg-white border-2 border-[#dc2626] p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 cursor-pointer hover:bg-zinc-50 transition-all shadow-xl shadow-red-500/5 group"
                     >
                       <div className="flex items-center gap-4.5 w-full sm:w-auto">
-                        <div className="w-12 h-12 rounded-full bg-[#D70F64]/10 border border-[#D70F64]/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition duration-300">
+                        <div className="w-12 h-12 rounded-full bg-[#dc2626]/10 border border-[#dc2626]/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition duration-300">
                           🛵
                         </div>
                         <div className="flex-1 min-w-0">
-                          <span className="text-[9px] font-black uppercase tracking-widest text-[#D70F64] block">
+                          <span className="text-[9px] font-black uppercase tracking-widest text-[#dc2626] block">
                             Active Placed Order Tracking Live
                           </span>
                           <h4 className="text-xs sm:text-sm font-black text-zinc-800 mt-1 leading-normal truncate">
@@ -2413,7 +2413,7 @@ export default function App() {
                               dadu-{activeOrderForBanner.id.substring(0, 5)}...
                             </span>{" "}
                             is currently{" "}
-                            <span className="text-[#D70F64] uppercase font-bold">
+                            <span className="text-[#dc2626] uppercase font-bold">
                               {activeOrderForBanner.status ===
                               "out_for_delivery"
                                 ? "With Foodpanda Rider"
@@ -2427,7 +2427,7 @@ export default function App() {
                               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                               <span className="text-[10px] text-zinc-500 font-extrabold truncate">
                                 Rider assigned:{" "}
-                                <span className="text-[#D70F64] font-black">
+                                <span className="text-[#dc2626] font-black">
                                   {activeOrderForBanner.riderName}
                                 </span>{" "}
                                 ({activeOrderForBanner.riderPhone})
@@ -2441,7 +2441,7 @@ export default function App() {
                         </div>
                       </div>
 
-                      <button className="w-full sm:w-auto bg-[#D70F64] text-white text-xs font-black uppercase tracking-widest px-5 py-3 rounded-xl hover:bg-[#b00c50] transition active:scale-95 shrink-0 shadow-md">
+                      <button className="w-full sm:w-auto bg-[#dc2626] text-white text-xs font-black uppercase tracking-widest px-5 py-3 rounded-xl hover:bg-[#b00c50] transition active:scale-95 shrink-0 shadow-md">
                         Track Live Map 🧭
                       </button>
                     </div>
@@ -2456,7 +2456,7 @@ export default function App() {
                   <div className="flex-1 space-y-6">
 
                     <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-extrabold tracking-wider text-zinc-750 uppercase border-b border-pink-100 pb-2">
+                      <h3 className="text-sm font-extrabold tracking-wider text-zinc-750 uppercase border-b border-red-100 pb-2">
                         {selectedRestaurant === "All Restaurants"
                           ? activeCategory
                           : selectedRestaurant}{" "}
@@ -2536,7 +2536,7 @@ export default function App() {
                                       imgClassName="object-cover group-hover:scale-105 transition duration-500"
                                     />
                                   ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-pink-50 text-5xl">
+                                    <div className="w-full h-full flex items-center justify-center bg-red-50 text-5xl">
                                       {vendor.includes("Services")
                                         ? "🛠️"
                                         : "🍔"}
@@ -2594,7 +2594,7 @@ export default function App() {
                                       <span className="text-[10px] font-bold text-zinc-700 line-clamp-1">
                                         {d.name}
                                       </span>
-                                      <span className="text-[10px] text-[#D70F64] font-black leading-none">
+                                      <span className="text-[10px] text-[#dc2626] font-black leading-none">
                                         Rs. {d.price}
                                       </span>
                                     </div>
@@ -2604,7 +2604,7 @@ export default function App() {
                                       e.stopPropagation();
                                       setSelectedRestaurant(vendor);
                                     }}
-                                    className="w-16 h-20 flex flex-col items-center justify-center gap-1 shrink-0 bg-pink-50/50 rounded-xl text-[#D70F64] hover:bg-pink-100 transition border border-pink-100/50 cursor-pointer"
+                                    className="w-16 h-20 flex flex-col items-center justify-center gap-1 shrink-0 bg-red-50/50 rounded-xl text-[#dc2626] hover:bg-red-100 transition border border-red-100/50 cursor-pointer"
                                   >
                                     <ChevronRight className="w-5 h-5" />
                                     <span className="text-[9px] font-black uppercase">
@@ -2672,13 +2672,13 @@ export default function App() {
                             return (
                               <div
                                 key={dish.id}
-                                className={`bg-white border border-zinc-200/80 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs hover:border-[#D70F64]/30 hover:shadow-md hover:shadow-pink-500/5 transition-all flex flex-col group relative text-zinc-800 ${isRestaurantClosed ? "opacity-70 grayscale-[20%]" : ""}`}
+                                className={`bg-white border border-zinc-200/80 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs hover:border-[#dc2626]/30 hover:shadow-md hover:shadow-red-500/5 transition-all flex flex-col group relative text-zinc-800 ${isRestaurantClosed ? "opacity-70 grayscale-[20%]" : ""}`}
                               >
                                 {/* Sold Out Overlay */}
                                 {!dish.isAvailable && !isRestaurantClosed && (
                                   <div className="absolute inset-0 bg-white/95 z-20 flex flex-col items-center justify-center text-center p-2 sm:p-4">
                                     <BadgeAlert className="w-5 h-5 sm:w-8 sm:h-8 text-zinc-400 mb-1" />
-                                    <span className="font-extrabold text-[10px] sm:text-sm uppercase tracking-widest text-[#D70F64]">
+                                    <span className="font-extrabold text-[10px] sm:text-sm uppercase tracking-widest text-[#dc2626]">
                                       SOLD OUT
                                     </span>
                                     <span className="text-[8px] sm:text-[10px] text-zinc-500 mt-0.5 font-bold">
@@ -2740,7 +2740,7 @@ export default function App() {
                                       e.stopPropagation();
                                       toggleFavorite(dish.id);
                                     }}
-                                    className="absolute top-2 right-2 z-30 p-1.5 sm:p-2 rounded-full bg-white/90 hover:bg-white text-[#D70F64] hover:scale-110 active:scale-95 shadow-md transition duration-200 cursor-pointer"
+                                    className="absolute top-2 right-2 z-30 p-1.5 sm:p-2 rounded-full bg-white/90 hover:bg-white text-[#dc2626] hover:scale-110 active:scale-95 shadow-md transition duration-200 cursor-pointer"
                                     title={
                                       favoriteDishIds.includes(dish.id)
                                         ? "Remove from Favorites"
@@ -2750,8 +2750,8 @@ export default function App() {
                                     <Heart
                                       className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition duration-200 ${
                                         favoriteDishIds.includes(dish.id)
-                                          ? "fill-[#D70F64] text-[#D70F64]"
-                                          : "text-zinc-650 hover:text-[#D70F64]"
+                                          ? "fill-[#dc2626] text-[#dc2626]"
+                                          : "text-zinc-650 hover:text-[#dc2626]"
                                       }`}
                                     />
                                   </button>
@@ -2762,7 +2762,7 @@ export default function App() {
                                       className={`text-[8px] sm:text-[10px] font-black uppercase tracking-wider py-0.5 sm:py-1 px-1.5 sm:px-2.5 rounded-md sm:rounded-lg shadow-md ${
                                         isSvc
                                           ? "bg-amber-500 text-neutral-950 font-extrabold"
-                                          : "bg-[#D70F64] text-white"
+                                          : "bg-[#dc2626] text-white"
                                       }`}
                                     >
                                       {isSvc ? "🛠️ Service" : "🍔 Food"}
@@ -2813,7 +2813,7 @@ export default function App() {
                                           : "Dadu Fast Food & Kitchen")}
                                     </div>
                                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-1 sm:gap-1.5">
-                                      <h4 className="font-bold text-zinc-800 text-xs sm:text-sm tracking-tight leading-snug group-hover:text-[#D70F64] transition truncate max-w-full">
+                                      <h4 className="font-bold text-zinc-800 text-xs sm:text-sm tracking-tight leading-snug group-hover:text-[#dc2626] transition truncate max-w-full">
                                         {dish.name}
                                       </h4>
                                       {dish.discountPrice &&
@@ -2830,7 +2830,7 @@ export default function App() {
                                         </div>
                                       ) : (
                                         <span
-                                          className={`font-black text-xs sm:text-sm shrink-0 whitespace-nowrap ${isSvc ? "text-amber-600" : "text-[#D70F64]"}`}
+                                          className={`font-black text-xs sm:text-sm shrink-0 whitespace-nowrap ${isSvc ? "text-amber-600" : "text-[#dc2626]"}`}
                                         >
                                           Rs. {dish.price}
                                         </span>
@@ -2896,7 +2896,7 @@ export default function App() {
                                               className={`w-8 h-8 rounded-lg transition font-black flex items-center justify-center cursor-pointer active:scale-90 ${
                                                 isSvc
                                                   ? "bg-amber-500 hover:bg-amber-600 text-[#121212]"
-                                                  : "bg-[#D70F64] hover:bg-[#b00c50] text-white"
+                                                  : "bg-[#dc2626] hover:bg-[#b00c50] text-white"
                                               }`}
                                             >
                                               <Plus className="w-3.5 h-3.5" />
@@ -2929,7 +2929,7 @@ export default function App() {
                                           className={`w-full py-1.5 sm:py-2.5 rounded-xl sm:rounded-2xl text-[9px] sm:text-xs font-black uppercase tracking-wider transition shadow-xs flex items-center justify-center gap-1 ${!dish.isAvailable || isRestaurantClosed ? "cursor-not-allowed opacity-60" : "cursor-pointer"} ${
                                             isSvc
                                               ? "bg-amber-500 hover:bg-amber-600 text-[#121212] font-semibold"
-                                              : "bg-[#D70F64] hover:bg-[#b00c50] text-white"
+                                              : "bg-[#dc2626] hover:bg-[#b00c50] text-white"
                                           }`}
                                         >
                                           {isSvc ? (
@@ -2963,8 +2963,8 @@ export default function App() {
                     )}
 
                     {!isLoadingDishes && filteredDishes.length === 0 && (
-                      <div className="bg-white/80 backdrop-blur-md border border-pink-100 p-12 rounded-3.5xl text-center space-y-4 shadow-sm max-w-md mx-auto">
-                        <div className="w-16 h-16 bg-pink-50 rounded-full flex items-center justify-center mx-auto text-3xl shadow-inner animate-bounce">
+                      <div className="bg-white/80 backdrop-blur-md border border-red-100 p-12 rounded-3.5xl text-center space-y-4 shadow-sm max-w-md mx-auto">
+                        <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto text-3xl shadow-inner animate-bounce">
                           {showFavoritesOnly ? "💔" : "🍛"}
                         </div>
                         <div>
@@ -2985,7 +2985,7 @@ export default function App() {
                             setActiveCategory("All");
                             setShowFavoritesOnly(false);
                           }}
-                          className="bg-[#D70F64] hover:bg-[#b00c50] text-white font-black py-2.5 px-6 text-[10px] uppercase tracking-widest rounded-xl cursor-pointer transition-all shadow-md active:scale-95"
+                          className="bg-[#dc2626] hover:bg-[#b00c50] text-white font-black py-2.5 px-6 text-[10px] uppercase tracking-widest rounded-xl cursor-pointer transition-all shadow-md active:scale-95"
                         >
                           Show All Food Menu 🍽️
                         </button>
@@ -3022,7 +3022,7 @@ export default function App() {
                               if (ord) setActiveTrackingOrder(ord);
                             }}
                             value={activeTrackingOrder.id}
-                            className="w-full p-2 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-zinc-200 font-mono text-xs focus:border-[#D70F64] transition"
+                            className="w-full p-2 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-zinc-200 font-mono text-xs focus:border-[#dc2626] transition"
                           >
                             {orders.map((o) => (
                               <option
@@ -3084,7 +3084,7 @@ export default function App() {
       {cartCountTotal > 0 && (
         <div className="fixed bottom-4 left-4 right-4 z-40 md:hidden bg-zinc-900/95 border border-zinc-805 p-3 rounded-2xl shadow-2xl flex items-center justify-between gap-3 backdrop-blur-md">
           <div className="flex items-center gap-2">
-            <div className="bg-[#D70F64] text-white px-2 rounded-lg font-black text-xs h-7 flex items-center justify-center min-w-[28px]">
+            <div className="bg-[#dc2626] text-white px-2 rounded-lg font-black text-xs h-7 flex items-center justify-center min-w-[28px]">
               {cartCountTotal}
             </div>
             <div className="text-left">
@@ -3098,7 +3098,7 @@ export default function App() {
           </div>
           <button
             onClick={() => setIsCartOpen(true)}
-            className="bg-[#D70F64] text-white font-black text-xs uppercase tracking-wider py-2 px-3.5 rounded-xl hover:bg-[#b00c50] transition active:scale-95 shadow-md flex items-center gap-1 shrink-0"
+            className="bg-[#dc2626] text-white font-black text-xs uppercase tracking-wider py-2 px-3.5 rounded-xl hover:bg-[#b00c50] transition active:scale-95 shadow-md flex items-center gap-1 shrink-0"
           >
             Review & Order 🛍
           </button>

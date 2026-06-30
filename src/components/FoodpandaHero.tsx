@@ -35,7 +35,7 @@ export default function FoodpandaHero({
   children,
 }: FoodpandaHeroProps) {
   const defaultCategories = [
-    { name: "All", emoji: "🍽️", subtitle: "Sab Kuch", color: "from-[#D70F64] to-[#f22c80]" },
+    { name: "All", emoji: "🍽️", subtitle: "Sab Kuch", color: "from-[#dc2626] to-[#f22c80]" },
     { name: "Pizza", emoji: "🍕", subtitle: "Hot Pizzas", color: "from-red-500 to-rose-600" },
     { name: "Burgers", emoji: "🍔", subtitle: "Zesty Burgers", color: "from-amber-500 to-orange-600" },
     { name: "Broast", emoji: "🍗", subtitle: "Crispy Broast", color: "from-yellow-500 to-amber-600" },
@@ -58,39 +58,39 @@ export default function FoodpandaHero({
     <div className="bg-transparent relative">
       {/* Prime Billboard Layout */}
       <div className="max-w-7xl mx-auto px-4 pt-4 pb-1">
-        <div className="bg-gradient-to-br from-[#D70F64] via-[#b80b54] to-[#8c043c] border border-pink-500/15 overflow-hidden rounded-[28px] sm:rounded-[36px] p-6 sm:p-10 relative flex flex-col md:flex-row items-center justify-between gap-8 shadow-[0_20px_50px_rgba(215,15,100,0.15)] min-h-[250px] transition-all">
+        <div className="bg-gradient-to-br from-zinc-900 via-zinc-800 to-black border border-zinc-700/50 overflow-hidden rounded-[28px] sm:rounded-[36px] p-6 sm:p-10 relative flex flex-col md:flex-row items-center justify-between gap-8 shadow-[0_20px_50px_rgba(0,0,0,0.5)] min-h-[250px] transition-all">
           {/* Professional Dark Culinary & Service Background Image */}
           <div className="absolute inset-0 z-0">
             <img
-              src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=1200"
+              src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&q=80&w=1200"
               alt="Gourmet food background backdrop"
-              className="w-full h-full object-cover opacity-20 select-none"
+              className="w-full h-full object-cover opacity-30 select-none"
               referrerPolicy="no-referrer"
             />
             {/* Dark gradient mapping to make text highly legible and aesthetic */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-[#D70F64]/40 to-[#D70F64]/15" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/60 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30" />
             {/* Ambient back glows */}
-            <div className="absolute right-1/3 top-1/4 w-80 h-80 bg-white/5 rounded-full blur-[110px] pointer-events-none" />
+            <div className="absolute right-1/3 top-1/4 w-80 h-80 bg-red-500/10 rounded-full blur-[110px] pointer-events-none" />
             <div className="absolute left-10 bottom-5 w-64 h-64 bg-amber-500/10 rounded-full blur-[90px] pointer-events-none" />
           </div>
 
           {/* Subtle branding absolute label in background */}
-          <div className="absolute right-12 bottom-[-10px] text-[90px] select-none font-black text-white/[0.03] tracking-widest pointer-events-none hidden md:block uppercase font-mono">
-            DADU
+          <div className="absolute right-12 top-[-20px] text-[110px] select-none font-black text-white/[0.03] tracking-tighter pointer-events-none hidden md:block uppercase font-sans">
+            DADU FOOD
           </div>
 
           {/* Left Column: Promos and Call to Action */}
           <div className="flex-1 max-w-xl text-center md:text-left z-10 space-y-3.5">
-            <div className="inline-flex items-center gap-1.5 bg-white/10 text-white py-1.5 px-3.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-white/10 shadow-lg">
+            <div className="inline-flex items-center gap-1.5 bg-red-500/20 text-red-200 py-1.5 px-3.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-red-500/30 shadow-lg">
               <Flame className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-              Limited Time VIP Promo
+              Welcome to Dadu Food
             </div>
 
-            <h1 className="text-3xl sm:text-4.5xl font-black tracking-tight text-white leading-tight">
-              Fresh & Hot Food, <br className="hidden sm:inline" />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-pink-200 to-white font-black">
-                with Expert Repairs!
+            <h1 className="text-3xl sm:text-5xl font-black tracking-tighter text-white leading-[1.1]">
+              Premium Taste, <br className="hidden sm:inline" />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-red-500 font-black">
+                Delivered Fast.
               </span>
             </h1>
 
@@ -100,13 +100,13 @@ export default function FoodpandaHero({
                   const el = document.getElementById("catalog-section");
                   el?.scrollIntoView({ behavior: "smooth" });
                 }}
-                className="bg-white hover:bg-neutral-50 active:scale-95 transition-all duration-300 text-[#D70F64] px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-pink-950/20 cursor-pointer flex items-center gap-1.5 hover:scale-[1.03]"
+                className="bg-white hover:bg-neutral-50 active:scale-95 transition-all duration-300 text-red-600 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-red-950/20 cursor-pointer flex items-center gap-1.5 hover:scale-[1.03]"
               >
                 Order Now
               </button>
 
-              <div className="inline-flex items-center gap-1.5 bg-black/25 border border-white/10 text-[10px] text-pink-100 py-2.5 px-4 rounded-2xl font-black uppercase tracking-wider shadow-inner">
-                🛡️ 100% Certified Booking
+              <div className="inline-flex items-center gap-1.5 bg-black/40 border border-white/10 text-[10px] text-red-100 py-2.5 px-4 rounded-2xl font-black uppercase tracking-wider shadow-inner">
+                🛡️ 100% Quality Assured
               </div>
             </div>
           </div>
@@ -115,7 +115,7 @@ export default function FoodpandaHero({
           <div className="hidden md:flex items-center justify-center relative w-full md:w-1/3 h-52 z-10 shrink-0">
             <div className="relative w-full h-full flex items-center justify-center">
               {/* Radial background flare */}
-              <div className="absolute w-52 h-52 bg-[#D70F64]/30 rounded-full blur-3xl animate-pulse"></div>
+              <div className="absolute w-52 h-52 bg-red-600/30 rounded-full blur-3xl animate-pulse"></div>
 
               {/* Floating Burger Card */}
               <motion.img
@@ -167,10 +167,10 @@ export default function FoodpandaHero({
       {dealConfig.isActive &&
         (dealTimeLeft.minutes > 0 || dealTimeLeft.seconds > 0) && (
           <div className="max-w-7xl mx-auto px-4 py-2">
-            <div className="bg-white border border-pink-100 py-3 px-5 sm:px-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-xs">
+            <div className="bg-white border border-red-100 py-3 px-5 sm:px-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-xs">
               <div className="flex items-center gap-2 text-xs text-zinc-700 font-medium">
-                <Clock className="w-4 h-4 text-[#D70F64]" />
-                <span className="font-extrabold text-[#D70F64]">
+                <Clock className="w-4 h-4 text-[#dc2626]" />
+                <span className="font-extrabold text-[#dc2626]">
                   Deal of the Hour:
                 </span>
                 <span>
@@ -182,7 +182,7 @@ export default function FoodpandaHero({
                 <span className="text-[10px] uppercase tracking-wider font-extrabold text-zinc-400">
                   Deal Closes In
                 </span>
-                <div className="bg-[#D70F64]/10 border border-[#D70F64]/20 text-[#D70F64] font-black text-xs px-3 py-1 rounded-lg">
+                <div className="bg-[#dc2626]/10 border border-[#dc2626]/20 text-[#dc2626] font-black text-xs px-3 py-1 rounded-lg">
                   {String(dealTimeLeft.minutes).padStart(2, "0")} :{" "}
                   {String(dealTimeLeft.seconds).padStart(2, "0")}
                 </div>
@@ -208,7 +208,7 @@ export default function FoodpandaHero({
                 onClick={() => setActiveCategory(cat.name)}
                 className={`flex items-center gap-3 py-2 px-4.5 rounded-2xl text-xs font-bold shrink-0 transition-all cursor-pointer border relative overflow-hidden snap-start ${
                   isSelected
-                    ? `bg-gradient-to-r ${cat.color || "from-[#D70F64] to-[#f22c80]"} text-white border-transparent shadow-lg shadow-pink-500/15`
+                    ? `bg-gradient-to-r ${cat.color || "from-[#dc2626] to-[#f22c80]"} text-white border-transparent shadow-lg shadow-red-500/15`
                     : "bg-white text-zinc-700 border-zinc-200/80 hover:bg-zinc-50 hover:border-zinc-300"
                 }`}
               >
@@ -235,7 +235,7 @@ export default function FoodpandaHero({
                   </span>
                   <span
                     className={`block text-[8.5px] font-semibold mt-0.5 leading-none ${
-                      isSelected ? "text-pink-100" : "text-zinc-400"
+                      isSelected ? "text-red-100" : "text-zinc-400"
                     }`}
                   >
                     {cat.subtitle}
