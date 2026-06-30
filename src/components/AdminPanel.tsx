@@ -838,6 +838,7 @@ export default function AdminPanel({
     null,
   );
   const [editingImageUrl, setEditingImageUrl] = useState<string>("");
+  const [editingNameInput, setEditingNameInput] = useState<string>("");
   const [editingPriceInput, setEditingPriceInput] = useState<number>(0);
   const [editingDiscountPriceInput, setEditingDiscountPriceInput] =
     useState<number>(0);
@@ -1830,9 +1831,10 @@ export default function AdminPanel({
 
   // Price inline editing
   const handleSavePriceChange = async (dish: Dish) => {
-    if (editingPriceInput <= 0) return;
+    if (editingPriceInput <= 0 || !editingNameInput.trim()) return;
     try {
       const updates: any = {
+        name: editingNameInput.trim(),
         price: editingPriceInput,
         discountPrice:
           editingDiscountPriceInput > 0 ? editingDiscountPriceInput : null,
@@ -2905,6 +2907,35 @@ export default function AdminPanel({
                     </div>
                   </div>
                 </div>
+
+                {/* Existing Restaurants Directory */}
+                <div className="mt-8 bg-zinc-950 border border-zinc-800/80 p-5 rounded-2xl space-y-4">
+                  <h4 className="font-bold text-xs text-white uppercase tracking-wider flex items-center gap-2">
+                    <ListCollapse className="w-3.5 h-3.5 text-purple-400" /> Existing Vendors Directory
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {uniqueRestaurants.map((restName) => (
+                      <div
+                        key={restName}
+                        className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 flex items-center justify-between group hover:border-purple-500/30 transition-colors"
+                      >
+                        <span className="text-xs font-bold text-zinc-200 line-clamp-1 pr-2">
+                          {restName}
+                        </span>
+                        <button
+                          onClick={() => handleDeleteRestaurant(restName)}
+                          className="w-7 h-7 flex items-center justify-center rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-colors shrink-0 cursor-pointer"
+                          title={`Delete ${restName}`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                    {uniqueRestaurants.length === 0 && (
+                      <p className="text-[10px] text-zinc-500 italic col-span-full">No vendors found.</p>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -3544,6 +3575,19 @@ export default function AdminPanel({
                                   </div>
                                   <div className="flex items-center gap-1">
                                     <span className="text-[8px] text-zinc-500 uppercase font-bold w-12">
+                                      Name:
+                                    </span>
+                                    <input
+                                      type="text"
+                                      value={editingNameInput}
+                                      onChange={(e) =>
+                                        setEditingNameInput(e.target.value)
+                                      }
+                                      className="flex-1 p-1 bg-[#1a1a1a] border border-amber-500 text-white rounded text-xs leading-none"
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[8px] text-zinc-500 uppercase font-bold w-12">
                                       Price:
                                     </span>
                                     <input
@@ -3889,6 +3933,7 @@ export default function AdminPanel({
                                   <button
                                     onClick={() => {
                                       setEditingPriceDishId(dish.id);
+                                      setEditingNameInput(dish.name);
                                       setEditingImageUrl(dish.imageUrl || "");
                                       setEditingPriceInput(dish.price);
                                       setEditingDiscountPriceInput(
@@ -4233,6 +4278,15 @@ export default function AdminPanel({
                                     />
                                   </div>
                                   <input
+                                    type="text"
+                                    value={editingNameInput}
+                                    onChange={(e) =>
+                                      setEditingNameInput(e.target.value)
+                                    }
+                                    className="w-full p-2 bg-zinc-950 text-white text-xs border border-zinc-700 focus:border-blue-500 outline-none rounded"
+                                    placeholder="Service Name"
+                                  />
+                                  <input
                                     type="number"
                                     value={editingPriceInput}
                                     onChange={(e) =>
@@ -4307,6 +4361,7 @@ export default function AdminPanel({
                                   <button
                                     onClick={() => {
                                       setEditingPriceDishId(dish.id);
+                                      setEditingNameInput(dish.name);
                                       setEditingImageUrl(dish.imageUrl || "");
                                       setEditingPriceInput(dish.price);
                                       setEditingDiscountPriceInput(
@@ -4318,7 +4373,7 @@ export default function AdminPanel({
                                     }}
                                     className="text-[10px] text-blue-500 hover:underline cursor-pointer text-left mt-1 font-bold"
                                   >
-                                    Edit Price & Comm
+                                    Edit Name, Price & Comm
                                   </button>
                                 </div>
                               )}
