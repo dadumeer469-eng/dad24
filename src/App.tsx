@@ -2252,7 +2252,133 @@ export default function App() {
                 dealConfig={dealConfig}
                 dealTimeLeft={dealTimeLeft}
                 foodCategories={foodCategories}
-              />
+              >
+                <div className="max-w-7xl mx-auto px-4 mt-6 mb-2">
+                  {(() => {
+                    const uniqueRestaurants = Array.from(
+                      new Set(
+                        dishes
+                          .map(
+                            (d) =>
+                              d.restaurantName?.trim() ||
+                              (d.type === "service"
+                                ? "Dadu Home Services"
+                                : "Dadu Fast Food & Kitchen"),
+                          )
+                          .filter(Boolean),
+                      ),
+                    ) as string[];
+
+                    uniqueRestaurants.sort((a, b) => {
+                      const aClosed = checkIsRestaurantClosed(a) ? 1 : 0;
+                      const bClosed = checkIsRestaurantClosed(b) ? 1 : 0;
+                      if (aClosed !== bClosed) return aClosed - bClosed;
+                      return a.localeCompare(b);
+                    });
+
+                    return (
+                      <div className="bg-gradient-to-br from-white to-pink-50/30 border border-pink-100/60 p-5 rounded-3xl space-y-4 shadow-sm relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#D70F64]/5 to-transparent rounded-full -mr-16 -mt-16 pointer-events-none" />
+                        <div className="flex items-center justify-between relative z-10">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#D70F64] to-pink-500 flex items-center justify-center shadow-lg shadow-pink-500/20 text-white shrink-0">
+                              <Compass className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <h4 className="text-[13px] font-black uppercase tracking-widest text-zinc-900">
+                                Partner Shops
+                              </h4>
+                              <p className="text-[10px] text-zinc-500 font-bold leading-tight mt-0.5 tracking-wide">
+                                Filter by specific vendor
+                              </p>
+                            </div>
+                          </div>
+                          {selectedRestaurant !== "All Restaurants" && (
+                            <button
+                              onClick={() =>
+                                setSelectedRestaurant("All Restaurants")
+                              }
+                              className="bg-pink-50 hover:bg-pink-100 text-[#D70F64] px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 cursor-pointer"
+                            >
+                              Reset
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="flex items-start gap-2.5 overflow-x-auto pb-2 scrollbar-none scroll-smooth px-1">
+                          <button
+                            onClick={() =>
+                              setSelectedRestaurant("All Restaurants")
+                            }
+                            className={`w-[85px] h-[100px] rounded-2xl flex flex-col items-center justify-center gap-1 p-2 font-black transition shrink-0 cursor-pointer border ${
+                              selectedRestaurant === "All Restaurants"
+                                ? "bg-[#D70F64] text-white border-[#D70F64] shadow-md shadow-pink-500/15 scale-105"
+                                : "bg-white text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50 border-zinc-200"
+                            }`}
+                          >
+                            <span className="text-3xl mb-1">🎪</span>
+                            <span className="text-[10px] text-center uppercase tracking-wider leading-tight">
+                              All
+                              <br />
+                              Kitchens
+                            </span>
+                          </button>
+                          {isLoadingDishes
+                            ? Array.from({ length: 5 }).map((_, idx) => (
+                                <div
+                                  key={`sk-${idx}`}
+                                  className="w-[85px] h-[100px] rounded-2xl bg-white border border-zinc-200/80 flex flex-col items-center p-1.5 shrink-0 animate-pulse"
+                                >
+                                  <div className="w-full h-[52px] rounded-xl bg-zinc-200 shrink-0 mb-1.5" />
+                                  <div className="w-10 h-2 sm:h-3 rounded-full bg-zinc-200 mt-0.5" />
+                                </div>
+                              ))
+                            : uniqueRestaurants.map((vendor) => {
+                                const vendorImageUrl =
+                                  deliverySettings?.restaurantStatuses?.[
+                                    vendor
+                                  ]?.imageUrl;
+                                return (
+                                  <button
+                                    key={vendor}
+                                    onClick={() =>
+                                      setSelectedRestaurant(vendor)
+                                    }
+                                    className={`w-[85px] h-[100px] rounded-2xl flex flex-col items-center p-1.5 font-black transition shrink-0 cursor-pointer border overflow-hidden ${
+                                      selectedRestaurant === vendor
+                                        ? "bg-[#D70F64] text-white border-[#D70F64] shadow-md shadow-pink-500/15 scale-105"
+                                        : "bg-white text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 border-zinc-200"
+                                    }`}
+                                  >
+                                    <div className="w-full h-[52px] rounded-xl overflow-hidden bg-zinc-100 flex items-center justify-center shrink-0 mb-1.5 shadow-sm">
+                                      {vendorImageUrl ? (
+                                        <img
+                                          src={vendorImageUrl}
+                                          alt=""
+                                          className="w-full h-full object-cover"
+                                        />
+                                      ) : (
+                                        <span className="opacity-90 text-2xl">
+                                          {vendor.includes("Services") ||
+                                          vendor.includes("Pr") ||
+                                          vendor.includes("Re")
+                                            ? "🛠️"
+                                            : "🍔"}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span className="text-[9px] text-center tracking-tight leading-[1.1] line-clamp-2 px-0.5 w-full">
+                                      {vendor}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </FoodpandaHero>
 
               {/* Active Order Banner Card */}
               {(() => {
@@ -2328,123 +2454,6 @@ export default function App() {
                 <div className="flex flex-col md:flex-row gap-6">
                   {/* Left Column: Menu Cards Catalog grid */}
                   <div className="flex-1 space-y-6">
-                    {/* Dynamic Restaurants & Shop List selector */}
-                    {(() => {
-                      const uniqueRestaurants = Array.from(
-                        new Set(
-                          dishes
-                            .map(
-                              (d) =>
-                                d.restaurantName?.trim() ||
-                                (d.type === "service"
-                                  ? "Dadu Home Services"
-                                  : "Dadu Fast Food & Kitchen"),
-                            )
-                            .filter(Boolean),
-                        ),
-                      ) as string[];
-
-                      return (
-                        <div className="bg-gradient-to-br from-white to-pink-50/30 border border-pink-100/60 p-5 rounded-3xl space-y-4 shadow-sm relative overflow-hidden">
-                          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#D70F64]/5 to-transparent rounded-full -mr-16 -mt-16 pointer-events-none" />
-                          <div className="flex items-center justify-between relative z-10">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#D70F64] to-pink-500 flex items-center justify-center shadow-lg shadow-pink-500/20 text-white shrink-0">
-                                <Compass className="w-5 h-5" />
-                              </div>
-                              <div>
-                                <h4 className="text-[13px] font-black uppercase tracking-widest text-zinc-900">
-                                  Partner Shops
-                                </h4>
-                                <p className="text-[10px] text-zinc-500 font-bold leading-tight mt-0.5 tracking-wide">
-                                  Filter by specific vendor
-                                </p>
-                              </div>
-                            </div>
-                            {selectedRestaurant !== "All Restaurants" && (
-                              <button
-                                onClick={() =>
-                                  setSelectedRestaurant("All Restaurants")
-                                }
-                                className="bg-pink-50 hover:bg-pink-100 text-[#D70F64] px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 cursor-pointer"
-                              >
-                                Reset
-                              </button>
-                            )}
-                          </div>
-
-                          <div className="flex items-start gap-2.5 overflow-x-auto pb-2 scrollbar-none scroll-smooth px-1">
-                            <button
-                              onClick={() =>
-                                setSelectedRestaurant("All Restaurants")
-                              }
-                              className={`w-[85px] h-[100px] rounded-2xl flex flex-col items-center justify-center gap-1 p-2 font-black transition shrink-0 cursor-pointer border ${
-                                selectedRestaurant === "All Restaurants"
-                                  ? "bg-[#D70F64] text-white border-[#D70F64] shadow-md shadow-pink-500/15 scale-105"
-                                  : "bg-white text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50 border-zinc-200"
-                              }`}
-                            >
-                              <span className="text-3xl mb-1">🎪</span>
-                              <span className="text-[10px] text-center uppercase tracking-wider leading-tight">
-                                All
-                                <br />
-                                Kitchens
-                              </span>
-                            </button>
-                            {isLoadingDishes
-                              ? Array.from({ length: 5 }).map((_, idx) => (
-                                  <div
-                                    key={`sk-${idx}`}
-                                    className="w-[85px] h-[100px] rounded-2xl bg-white border border-zinc-200/80 flex flex-col items-center p-1.5 shrink-0 animate-pulse"
-                                  >
-                                    <div className="w-full h-[52px] rounded-xl bg-zinc-200 shrink-0 mb-1.5" />
-                                    <div className="w-10 h-2 sm:h-3 rounded-full bg-zinc-200 mt-0.5" />
-                                  </div>
-                                ))
-                              : uniqueRestaurants.map((vendor) => {
-                                  const vendorImageUrl =
-                                    deliverySettings?.restaurantStatuses?.[
-                                      vendor
-                                    ]?.imageUrl;
-                                  return (
-                                    <button
-                                      key={vendor}
-                                      onClick={() =>
-                                        setSelectedRestaurant(vendor)
-                                      }
-                                      className={`w-[85px] h-[100px] rounded-2xl flex flex-col items-center p-1.5 font-black transition shrink-0 cursor-pointer border overflow-hidden ${
-                                        selectedRestaurant === vendor
-                                          ? "bg-[#D70F64] text-white border-[#D70F64] shadow-md shadow-pink-500/15 scale-105"
-                                          : "bg-white text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 border-zinc-200"
-                                      }`}
-                                    >
-                                      <div className="w-full h-[52px] rounded-xl overflow-hidden bg-zinc-100 flex items-center justify-center shrink-0 mb-1.5 shadow-sm">
-                                        {vendorImageUrl ? (
-                                          <img
-                                            src={vendorImageUrl}
-                                            alt=""
-                                            className="w-full h-full object-cover"
-                                          />
-                                        ) : (
-                                          <span className="opacity-90 text-2xl">
-                                            {vendor.includes("Services") ||
-                                            vendor.includes("Pr") ||
-                                            vendor.includes("Re")
-                                              ? "🛠️"
-                                              : "🍔"}
-                                          </span>
-                                        )}
-                                      </div>
-                                      <span className="text-[9px] text-center tracking-tight leading-[1.1] line-clamp-2 px-0.5 w-full">
-                                        {vendor}
-                                      </span>
-                                    </button>
-                                  );
-                                })}
-                          </div>
-                        </div>
-                      );
-                    })()}
 
                     <div className="flex items-center justify-between">
                       <h3 className="text-sm font-extrabold tracking-wider text-zinc-750 uppercase border-b border-pink-100 pb-2">

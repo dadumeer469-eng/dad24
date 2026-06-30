@@ -23,6 +23,7 @@ interface FoodpandaHeroProps {
   };
   dealTimeLeft: { minutes: number; seconds: number };
   foodCategories?: FoodCategory[];
+  children?: React.ReactNode;
 }
 
 export default function FoodpandaHero({
@@ -31,6 +32,7 @@ export default function FoodpandaHero({
   dealConfig,
   dealTimeLeft,
   foodCategories = [],
+  children,
 }: FoodpandaHeroProps) {
   const defaultCategories = [
     { name: "All", emoji: "🍽️", subtitle: "Sab Kuch", color: "from-[#D70F64] to-[#f22c80]" },
@@ -188,6 +190,8 @@ export default function FoodpandaHero({
             </div>
           </div>
         )}
+
+      {children}
 
       {/* Category Horizontal Filter Bar (Spacing tightly adjusted, headers removed) */}
       <div id="catalog-section" className="max-w-7xl mx-auto px-4 pt-1.5 pb-2">
