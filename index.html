@@ -76,85 +76,92 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      // Safe environment check to prevent SecurityError and cross-origin "Script error" in sandboxed development preview iframes
-      let isTopLevel = false;
-      try {
-        isTopLevel = (window.parent === window);
-      } catch (e) {
-        isTopLevel = false;
+      // Register Service Worker reliably
+      if ('serviceWorker' in navigator) {
+        const registerSW = async () => {
+          try {
+            const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+            console.log('ServiceWorker registered successfully:', reg.scope);
+          } catch (err) {
+            console.warn('ServiceWorker registration failed:', err);
+          }
+        };
+
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+          registerSW();
+        } else {
+          window.addEventListener('load', registerSW);
+        }
       }
 
-      if (isTopLevel) {
-        if ('serviceWorker' in navigator) {
-          const registerSW = () => {
-            try {
-              navigator.serviceWorker.register('/sw.js').then((reg) => {
-                console.log('ServiceWorker registered successfully:', reg.scope);
-              }).catch((err) => {
-                console.warn('ServiceWorker registration failed:', err);
-              });
-            } catch (e) {
-              console.warn('ServiceWorker registration error:', e);
-            }
-          };
+      let deferredPrompt;
+      const pwaBanner = document.getElementById('pwaBanner');
+      const installBtn = document.getElementById('installBtn');
+      const closeBannerBtn = document.getElementById('closeBannerBtn');
 
-          if (document.readyState === 'complete' || document.readyState === 'interactive') {
-            registerSW();
-          } else {
-            window.addEventListener('load', registerSW);
-          }
+      // Use localStorage to remember if user dismissed banner across sessions
+      const isBannerDismissed = localStorage.getItem('pwa-banner-dismissed');
+
+      // Helper to detect if app is already installed
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                           navigator.standalone || 
+                           document.referrer.includes('android-app://');
+
+      // 1. Android / Chrome - Standard beforeinstallprompt
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        if (pwaBanner && !isBannerDismissed && !isStandalone) {
+          pwaBanner.style.display = 'block';
         }
+      });
 
-        let deferredPrompt;
-        const pwaBanner = document.getElementById('pwaBanner');
-        const installBtn = document.getElementById('installBtn');
-        const closeBannerBtn = document.getElementById('closeBannerBtn');
-
-        // Check if user dismissed the banner previously in this session
-        const isBannerDismissed = sessionStorage.getItem('pwa-banner-dismissed');
-
-        window.addEventListener('beforeinstallprompt', (e) => {
-          e.preventDefault();
-          deferredPrompt = e;
-          if (pwaBanner && !isBannerDismissed) {
-            pwaBanner.style.display = 'block';
-          }
-        });
-
-        if (installBtn) {
-          installBtn.addEventListener('click', async () => {
-            if (deferredPrompt) {
-              try {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                  if (pwaBanner) {
-                    pwaBanner.style.display = 'none';
-                  }
-                }
-              } catch (err) {
-                console.warn('Prompt failed or cancelled:', err);
-              }
-              deferredPrompt = null;
-            }
-          });
-        }
-
-        if (closeBannerBtn) {
-          closeBannerBtn.addEventListener('click', () => {
-            if (pwaBanner) {
-              pwaBanner.style.display = 'none';
-            }
-            sessionStorage.setItem('pwa-banner-dismissed', 'true');
-          });
-        }
-
-        window.addEventListener('appinstalled', () => {
+      // 2. iOS Safari - Fallback (No beforeinstallprompt support)
+      const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+      if (isIos && !isStandalone && !isBannerDismissed) {
+        // Delay slightly so it doesn't jarringly pop up immediately on first load
+        setTimeout(() => {
           if (pwaBanner) {
-            pwaBanner.style.display = 'none';
+            pwaBanner.style.display = 'block';
+            if (installBtn) {
+              installBtn.innerHTML = 'Share <span style="font-size:14px">⍐</span> to Install';
+              // iOS needs manual instruction
+              installBtn.onclick = (e) => {
+                e.preventDefault();
+                alert('To install on iOS:\\n1. Tap the Share button at the bottom of Safari.\\n2. Tap "Add to Home Screen".');
+              };
+            }
+          }
+        }, 2000);
+      }
+
+      if (installBtn && !isIos) {
+        installBtn.addEventListener('click', async () => {
+          if (deferredPrompt) {
+            try {
+              deferredPrompt.prompt();
+              const { outcome } = await deferredPrompt.userChoice;
+              if (outcome === 'accepted' && pwaBanner) {
+                pwaBanner.style.display = 'none';
+              }
+            } catch (err) {
+              console.warn('Prompt failed:', err);
+            }
+            deferredPrompt = null;
           }
         });
       }
+
+      if (closeBannerBtn) {
+        closeBannerBtn.addEventListener('click', () => {
+          if (pwaBanner) pwaBanner.style.display = 'none';
+          localStorage.setItem('pwa-banner-dismissed', 'true');
+        });
+      }
+
+      window.addEventListener('appinstalled', () => {
+        if (pwaBanner) pwaBanner.style.display = 'none';
+      });
     </script>
   </body>
 </html>
