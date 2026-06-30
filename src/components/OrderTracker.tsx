@@ -180,8 +180,8 @@ export default function OrderTracker({ order, onClose }: OrderTrackerProps) {
           </div>
         ) : (
           <div className="flex items-center gap-3.5 py-1">
-            <div className="w-12 h-12 rounded-full bg-zinc-950 border border-zinc-850 flex items-center justify-center text-zinc-400 animate-bounce shrink-0">
-              🛵
+            <div className="w-12 h-12 rounded-full bg-[#D70F64]/10 border border-[#D70F64]/20 flex items-center justify-center text-[#D70F64] shrink-0 shadow-sm">
+              <MapPin className="w-5 h-5" />
             </div>
             <div>
               <span className="text-xs font-black text-zinc-350 block uppercase tracking-wide">Assigning Premier Rider...</span>
@@ -380,6 +380,34 @@ export default function OrderTracker({ order, onClose }: OrderTrackerProps) {
           </div>
         )}
       </div>
+
+      {/* Delivery Pinpoint Map */}
+      {order.userCoords && (
+        <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 mt-4 relative overflow-hidden shadow-xs">
+          <h4 className="font-bold text-[10px] text-zinc-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-zinc-800 pb-2 mb-3">
+            <MapPin className="w-3.5 h-3.5 text-[#D70F64]" />
+            Your Delivery Pinpoint
+          </h4>
+          <div className="relative w-full h-40 sm:h-48 rounded-xl overflow-hidden border border-zinc-800 bg-zinc-900 shadow-inner">
+            <iframe
+              title="Delivery Location"
+              width="100%"
+              height="100%"
+              frameBorder="0"
+              scrolling="no"
+              marginHeight={0}
+              marginWidth={0}
+              src={`https://www.openstreetmap.org/export/embed.html?bbox=${order.userCoords.longitude - 0.003}%2C${order.userCoords.latitude - 0.003}%2C${order.userCoords.longitude + 0.003}%2C${order.userCoords.latitude + 0.003}&layer=mapnik&marker=${order.userCoords.latitude}%2C${order.userCoords.longitude}`}
+              style={{ filter: "invert(90%) hue-rotate(180deg) brightness(95%) contrast(90%)" }}
+              className="w-full h-full rounded-xl pointer-events-none"
+            ></iframe>
+            <div className="absolute bottom-2.5 right-2.5 bg-zinc-950/90 border border-zinc-850 py-1 px-2.5 rounded-lg text-[8px] sm:text-[9px] font-black tracking-wider text-emerald-400 shadow flex items-center gap-1.5 pointer-events-none backdrop-blur-md">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              DELIVERY DESTINATION
+            </div>
+          </div>
+        </div>
+      )}
 
       {onClose && (
         <button

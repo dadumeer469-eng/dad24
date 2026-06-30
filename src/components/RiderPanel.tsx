@@ -122,60 +122,8 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
     return Array.from(new Set(names));
   };
 
-  // Single/Periodic GPS Pinpoint update (only runs once per active order to optimize database writes/reads)
-  useEffect(() => {
-    const activeOrders = myOrders.filter((o) => o.status === "accepted" || o.status === "preparing" || o.status === "out_for_delivery");
-    if (activeOrders.length === 0) {
-      if (autoPinnedOrderId) {
-        setAutoPinnedOrderId("");
-      }
-      return;
-    }
-
-    // Direct exit if already auto-pinned for the primary active order (or any of them)
-    const latestActiveOrder = activeOrders[0];
-    if (autoPinnedOrderId === latestActiveOrder.id) return;
-
-    if (!navigator.geolocation) {
-      console.warn("Geolocation API offline/unsupported.");
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        
-        // 1. Update location for all active orders
-        for (const order of activeOrders) {
-          try {
-            await updateDoc(doc(db, "orders", order.id), {
-              riderCoords: { latitude: lat, longitude: lng, lastUpdated: Date.now() }
-            });
-            console.log(`Successfully updated tracking location for order: ${order.id}`);
-          } catch (orderErr) {
-            console.error(`Failed to update tracking location for order ${order.id}:`, orderErr);
-          }
-        }
-
-        // 2. Update location on user profile doc
-        try {
-          await updateDoc(doc(db, "users", currentUser.uid), {
-            riderCoords: { latitude: lat, longitude: lng, lastUpdated: Date.now() }
-          });
-          console.log(`Successfully updated tracking location for user profile: ${currentUser.uid}`);
-        } catch (userErr) {
-          console.error(`Failed to update tracking location on user profile ${currentUser.uid}:`, userErr);
-        }
-
-        setAutoPinnedOrderId(latestActiveOrder.id);
-      },
-      (err) => {
-        console.warn("Initial rider GPS pinpoint fetch failed:", err.message);
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  }, [myOrders, currentUser?.uid, autoPinnedOrderId]);
+  // Removed live rider GPS pinpoint tracking to save data usage and database writes.
+  // The system now only relies on static user delivery coordinates.
 
   // 1. Subscribe to Available Orders (unaccepted status === "pending" or "placed" for food deliveries)
   useEffect(() => {
