@@ -8,6 +8,7 @@ interface FoodpandaRestaurantPageProps {
   restaurantName: string;
   dishes: Dish[];
   deliverySettings?: SystemSettings;
+  initialCategory?: string;
   isRestaurantClosed?: boolean;
   onBack: () => void;
   onAddToCart: (dish: Dish, quantityToAdd?: number, options?: { size?: string; flavor?: string; addOns?: { name: string; price: number; }[]; specialInstructions?: string; }) => void;
@@ -23,6 +24,7 @@ export default function FoodpandaRestaurantPage({
   restaurantName,
   dishes,
   deliverySettings,
+  initialCategory,
   isRestaurantClosed,
   onBack,
   onAddToCart,
@@ -34,7 +36,7 @@ export default function FoodpandaRestaurantPage({
   favoriteDishIds
 }: FoodpandaRestaurantPageProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState<string>("");
+  const [activeCategory, setActiveCategory] = useState<string>(initialCategory || "");
   const [activeDetailDish, setActiveDetailDish] = useState<Dish | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -55,6 +57,14 @@ export default function FoodpandaRestaurantPage({
       window.scrollTo({ top: y, behavior: 'smooth' });
     }
   };
+
+  useEffect(() => {
+    if (initialCategory && categories.includes(initialCategory)) {
+      setTimeout(() => {
+        scrollToCategory(initialCategory);
+      }, 300);
+    }
+  }, []);
 
   const filteredDishes = dishes.filter(d => 
     d.name.toLowerCase().includes(searchQuery.toLowerCase()) || 

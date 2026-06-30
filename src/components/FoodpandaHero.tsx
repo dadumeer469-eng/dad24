@@ -87,10 +87,13 @@ export default function FoodpandaHero({
               Welcome to Dadu Food
             </div>
 
-            <h1 className="text-3xl sm:text-5xl font-black tracking-tighter text-white leading-[1.1]">
-              Premium Taste, <br className="hidden sm:inline" />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-red-500 font-black">
-                Delivered Fast.
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white leading-tight">
+              Restaurants bahut saare, <br className="hidden sm:inline" />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-red-500 font-black drop-shadow-md">
+                par app sirf ek.
+              </span>
+              <span className="block mt-3 text-base sm:text-lg md:text-xl font-medium text-zinc-300 tracking-normal leading-snug max-w-md">
+                Order karo abhi, aur delivery paao sabse tez.
               </span>
             </h1>
 

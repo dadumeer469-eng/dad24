@@ -173,6 +173,7 @@ export default function App() {
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [selectedRestaurant, setSelectedRestaurant] =
     useState<string>("All Restaurants");
+  const [initialRestaurantCategory, setInitialRestaurantCategory] = useState<string | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState("");
   const [cartItems, setCartItems] = useState<OrderItem[]>([]);
   const [activeTrackingOrder, setActiveTrackingOrder] = useState<Order | null>(
@@ -1871,8 +1872,12 @@ export default function App() {
           restaurantName={selectedRestaurant}
           dishes={restaurantDishes}
           deliverySettings={deliverySettings}
+          initialCategory={initialRestaurantCategory}
           isRestaurantClosed={checkIsRestaurantClosed(selectedRestaurant)}
-          onBack={() => setSelectedRestaurant("All Restaurants")}
+          onBack={() => {
+            setSelectedRestaurant("All Restaurants");
+            setInitialRestaurantCategory(undefined);
+          }}
           onAddToCart={handleAddToCart}
           cartItems={cartItems}
           cartCountTotal={cartCountTotal}
@@ -2643,7 +2648,14 @@ export default function App() {
                                   {vendorDishes.map((d) => (
                                     <div
                                       key={d.id}
-                                      className="flex flex-col gap-1 w-20 shrink-0"
+                                      className="flex flex-col gap-1 w-20 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (!isClosed && d.isAvailable !== false) {
+                                          setInitialRestaurantCategory(d.category);
+                                          setSelectedRestaurant(vendor);
+                                        }
+                                      }}
                                     >
                                       <div className="w-full h-20 rounded-xl overflow-hidden bg-zinc-100 border border-zinc-100">
                                         <LazyImage
