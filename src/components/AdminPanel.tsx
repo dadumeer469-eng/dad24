@@ -235,17 +235,17 @@ function ProductImageSelector({
   return (
     <div className="space-y-2 mt-1">
       <div className="flex items-center justify-between">
-        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 block">
+        <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block">
           {label}
         </label>
-        <div className="flex rounded-lg bg-zinc-950 p-0.5 border border-zinc-800/80">
+        <div className="flex rounded-lg bg-white border border-slate-200 p-0.5 border border-slate-200">
           <button
             type="button"
             onClick={() => setMode("file")}
             className={`px-2 py-0.5 text-[8px] uppercase font-black tracking-wide rounded transition cursor-pointer ${
               mode === "file"
-                ? "bg-zinc-800 text-white"
-                : "text-zinc-500 hover:text-zinc-300"
+                ? "bg-slate-900 text-white"
+                : "text-slate-500 hover:text-slate-700"
             }`}
           >
             Local File
@@ -255,8 +255,8 @@ function ProductImageSelector({
             onClick={() => setMode("url")}
             className={`px-2 py-0.5 text-[8px] uppercase font-black tracking-wide rounded transition cursor-pointer ${
               mode === "url"
-                ? "bg-zinc-800 text-white"
-                : "text-zinc-500 hover:text-zinc-300"
+                ? "bg-slate-900 text-white"
+                : "text-slate-500 hover:text-slate-700"
             }`}
           >
             Image Link/URL
@@ -272,9 +272,9 @@ function ProductImageSelector({
           className={`border-2 border-dashed rounded-xl p-3 text-center transition relative flex flex-col items-center justify-center min-h-[95px] ${
             isDragOver
               ? accentColorClass === "amber"
-                ? "border-amber-500 bg-amber-500/5"
+                ? "border-[#D70F64] bg-[#D70F64]/5"
                 : "border-orange-500 bg-orange-500/5"
-              : "border-zinc-800 hover:border-zinc-700 bg-zinc-950/50"
+              : "border-slate-200 hover:border-slate-300 bg-white border border-slate-200/50"
           }`}
         >
           <input
@@ -286,10 +286,10 @@ function ProductImageSelector({
           {isProcessing ? (
             <div className="flex flex-col items-center space-y-2 w-full px-4 relative z-10 pointer-events-none">
               <Loader2 className="w-5 h-5 text-[#D70F64] animate-spin" />
-              <span className="text-[9px] text-zinc-400 font-extrabold uppercase tracking-wider">
+              <span className="text-[9px] text-slate-600 font-extrabold uppercase tracking-wider">
                 Uploading Image... {Math.round(uploadProgress)}%
               </span>
-              <div className="w-full bg-zinc-800 rounded-full h-1.5 overflow-hidden">
+              <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
                 <div 
                   className={`h-full bg-${accentColorClass}-500 transition-all duration-300`} 
                   style={{ width: `${uploadProgress}%` }}
@@ -320,7 +320,7 @@ function ProductImageSelector({
               <img
                 src={imageUrl}
                 alt="Upload Preview"
-                className="h-16 w-auto max-w-full object-contain rounded-lg border border-zinc-800/80 shadow-md bg-black/50"
+                className="h-16 w-auto max-w-full object-contain rounded-lg border border-slate-200 shadow-md bg-black/50"
                 referrerPolicy="no-referrer"
               />
               <div className="flex gap-2 pointer-events-auto mt-1">
@@ -331,7 +331,7 @@ function ProductImageSelector({
                     const input = e.currentTarget.parentElement?.parentElement?.parentElement?.querySelector('input[type="file"]') as HTMLInputElement;
                     if (input) input.click();
                   }}
-                  className="bg-zinc-800 hover:bg-zinc-700 text-[10px] font-bold px-3 py-1.5 rounded-md text-white transition-colors border border-zinc-700"
+                  className="bg-slate-900 hover:bg-slate-800 text-[10px] font-bold px-3 py-1.5 rounded-md text-white transition-colors border border-slate-300"
                 >
                   Change Image
                 </button>
@@ -349,19 +349,19 @@ function ProductImageSelector({
             </div>
           ) : (
             <div className="space-y-1 relative z-10 pointer-events-none">
-              <p className="text-[10px] text-zinc-400 font-bold">
+              <p className="text-[10px] text-slate-600 font-bold">
                 Drag & drop image here or{" "}
                 <span
                   className={
                     accentColorClass === "amber"
-                      ? "text-amber-500 font-black"
+                      ? "text-[#D70F64] font-black"
                       : "text-orange-500 font-black"
                   }
                 >
                   Browse
                 </span>
               </p>
-              <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-wider">
+              <p className="text-[8px] text-slate-500 font-bold uppercase tracking-wider">
                 Max 5MB (PNG, JPG, JPEG, WEBP)
               </p>
             </div>
@@ -374,24 +374,24 @@ function ProductImageSelector({
             value={urlInput || ""}
             onChange={(e) => handleUrlChange(e.target.value)}
             placeholder={placeholder || "Paste image web address (https://...)"}
-            className="w-full p-2.5 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500/85 transition text-xs font-mono font-medium"
+            className="w-full p-2.5 bg-white border border-slate-200 border border-slate-200 rounded-xl text-slate-900 outline-none text-slate-900 focus:border-[#D70F64]/85 transition text-xs font-mono font-medium"
           />
           {imageUrl && (
-            <div className="flex items-center gap-3 p-2 bg-zinc-950 border border-zinc-900 rounded-xl">
+            <div className="flex items-center gap-3 p-2 bg-white border border-slate-200 border border-slate-200 rounded-xl">
               <img
                 src={imageUrl}
                 alt="URL Preview"
-                className="h-10 w-10 object-cover rounded-lg border border-zinc-800 shrink-0"
+                className="h-10 w-10 object-cover rounded-lg border border-slate-200 shrink-0"
                 referrerPolicy="no-referrer"
                 onError={(e) => {
                   (e.target as HTMLElement).style.display = "none";
                 }}
               />
               <div className="truncate flex-1">
-                <p className="text-[9px] font-bold text-zinc-400">
+                <p className="text-[9px] font-bold text-slate-600">
                   Live Web Preview connected
                 </p>
-                <p className="text-[8.5px] text-zinc-500 truncate font-mono">
+                <p className="text-[8.5px] text-slate-500 truncate font-mono">
                   {imageUrl}
                 </p>
               </div>
@@ -683,7 +683,7 @@ export default function AdminPanel({
     subtitle: "",
     imageUrl: "",
     emoji: "",
-    color: "from-pink-500 to-rose-600",
+    color: "from-[#D70F64] to-rose-600",
     position: 0,
     isAvailable: true,
   });
@@ -704,7 +704,7 @@ export default function AdminPanel({
         subtitle: "",
         imageUrl: "",
         emoji: "",
-        color: "from-pink-500 to-rose-600",
+        color: "from-[#D70F64] to-rose-600",
         position: 0,
         isAvailable: true,
       });
@@ -2083,21 +2083,21 @@ export default function AdminPanel({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-gradient-to-b from-[#050505] via-[#09090b] to-[#030303] text-zinc-100 overflow-y-auto font-sans flex flex-col antialiased">
+    <div className="fixed inset-0 z-50 bg-slate-50 text-slate-900 overflow-y-auto font-sans flex flex-col antialiased">
       {/* Header Admin Strip */}
-      <div className="bg-[#09090b]/90 backdrop-blur-md border-b border-zinc-800/60 p-5 sticky top-0 z-20 flex items-center justify-between shadow-xl">
+      <div className="bg-white border-b border-slate-200 p-5 sticky top-0 z-20 flex items-center justify-between shadow-xl">
         <div className="flex items-center gap-4">
-          <div className="bg-gradient-to-r from-amber-500 to-amber-600 text-black px-3.5 py-1.5 text-[10.5px] font-black uppercase tracking-widest rounded-lg shadow-lg shadow-amber-500/10">
+          <div className="bg-gradient-to-r from-[#D70F64] to-[#b00c50] text-white px-3.5 py-1.5 text-[10.5px] font-black uppercase tracking-widest rounded-lg shadow-lg shadow-[#D70F64]/10">
             Console Active
           </div>
           <div>
-            <h2 className="text-base font-black tracking-tight text-white flex items-center gap-2">
+            <h2 className="text-base font-black tracking-tight text-slate-900 flex items-center gap-2">
               Dadu24#7 System Hub
-              <span className="text-amber-500 font-mono text-xs select-all bg-amber-500/5 px-2 py-0.5 rounded border border-amber-500/20">
+              <span className="text-[#D70F64] font-mono text-xs select-all bg-[#D70F64]/5 px-2 py-0.5 rounded border border-[#D70F64]/20">
                 @{adminUsername}
               </span>
             </h2>
-            <span className="text-[11px] text-zinc-400 font-medium font-sans">
+            <span className="text-[11px] text-slate-600 font-medium font-sans">
               Enterprise Business Management Control & Live Logistics Telemetry
             </span>
           </div>
@@ -2105,7 +2105,7 @@ export default function AdminPanel({
 
         <button
           onClick={onClose}
-          className="bg-zinc-900/90 hover:bg-zinc-850 border border-zinc-800 text-xs font-bold text-zinc-200 px-5 py-2.5 rounded-2xl transition-all hover:scale-[1.02] cursor-pointer flex items-center gap-1.5 shadow-md active:scale-95"
+          className="bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 px-5 py-2.5 rounded-2xl transition-all hover:scale-[1.02] cursor-pointer flex items-center gap-1.5 shadow-md active:scale-95"
         >
           Exit Console 🚪
         </button>
@@ -2116,9 +2116,9 @@ export default function AdminPanel({
         {/* Navigation Admin Side Rail */}
         <div className="col-span-1 lg:col-span-3 space-y-4">
           <div className="space-y-4">
-            <div className="bg-[#0b0b0d]/90 border border-zinc-800/80 p-4.5 rounded-[24px] space-y-2.5 shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
-              <span className="text-[9.5px] font-black text-zinc-500 block uppercase tracking-widest pl-1 mb-1">
+            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-3 shadow-xl relative overflow-hidden">
+              <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[#D70F64]/30 to-transparent" />
+              <span className="text-[9.5px] font-black text-slate-500 block uppercase tracking-widest pl-1 mb-1">
                 Core Terminals
               </span>
 
@@ -2126,8 +2126,8 @@ export default function AdminPanel({
                 onClick={() => setActiveSubTab("analytics")}
                 className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
                   activeSubTab === "analytics"
-                    ? "bg-amber-500/5 border-amber-500/30 text-amber-500 font-extrabold shadow-[0_0_20px_rgba(245,158,11,0.04)]"
-                    : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-zinc-200"
+                    ? "bg-[#D70F64] border-[#D70F64] text-white font-extrabold shadow-[0_0_20px_rgba(245,158,11,0.04)]"
+                    : "bg-transparent border-transparent hover:bg-slate-800 text-slate-400 hover:text-white"
                 }`}
               >
                 <LayoutDashboard className="w-4 h-4 shrink-0" />
@@ -2138,8 +2138,8 @@ export default function AdminPanel({
                 onClick={() => setActiveSubTab("orders")}
                 className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
                   activeSubTab === "orders"
-                    ? "bg-amber-500/5 border-amber-500/30 text-amber-500 font-extrabold shadow-[0_0_20px_rgba(245,158,11,0.04)]"
-                    : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-zinc-200"
+                    ? "bg-[#D70F64] border-[#D70F64] text-white font-extrabold shadow-[0_0_20px_rgba(245,158,11,0.04)]"
+                    : "bg-transparent border-transparent hover:bg-slate-800 text-slate-400 hover:text-white"
                 }`}
               >
                 <ShoppingCart className="w-4 h-4 shrink-0" />
@@ -2152,8 +2152,8 @@ export default function AdminPanel({
               </button>
             </div>
 
-            <div className="bg-[#0b0b0d]/90 border border-zinc-800/80 p-4.5 rounded-[24px] space-y-2.5 shadow-2xl relative overflow-hidden">
-              <span className="text-[9.5px] font-black text-zinc-500 block uppercase tracking-widest pl-1 mb-1">
+            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-3 shadow-xl relative overflow-hidden">
+              <span className="text-[9.5px] font-black text-slate-500 block uppercase tracking-widest pl-1 mb-1">
                 Vendors & Catalog
               </span>
 
@@ -2161,8 +2161,8 @@ export default function AdminPanel({
                 onClick={() => setActiveSubTab("restaurants")}
                 className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
                   activeSubTab === "restaurants"
-                    ? "bg-purple-500/5 border-purple-500/30 text-purple-500 font-extrabold shadow-[0_0_20px_rgba(168,85,247,0.04)]"
-                    : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-zinc-200"
+                    ? "bg-[#D70F64] border-[#D70F64] text-white font-extrabold shadow-[0_0_20px_rgba(168,85,247,0.04)]"
+                    : "bg-transparent border-transparent hover:bg-slate-800 text-slate-400 hover:text-white"
                 }`}
               >
                 <Clock className="w-4 h-4 shrink-0" />
@@ -2173,11 +2173,11 @@ export default function AdminPanel({
                 onClick={() => setActiveSubTab("food_categories")}
                 className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
                   activeSubTab === "food_categories"
-                    ? "bg-pink-500/5 border-pink-500/35 text-pink-500 font-extrabold shadow-[0_0_20px_rgba(236,72,153,0.05)] scale-[1.01]"
-                    : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-pink-400/90"
+                    ? "bg-[#D70F64] border-[#D70F64] text-white font-extrabold shadow-[0_0_20px_rgba(236,72,153,0.05)] scale-[1.01]"
+                    : "bg-transparent border-transparent hover:bg-slate-800 text-slate-600 hover:text-pink-400/90"
                 }`}
               >
-                <Grid className="w-4 h-4 text-pink-500 shrink-0" />
+                <Grid className="w-4 h-4 shrink-0" />
                 Manage Food Categories
               </button>
 
@@ -2185,8 +2185,8 @@ export default function AdminPanel({
                 onClick={() => setActiveSubTab("grocery")}
                 className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
                   activeSubTab === "grocery"
-                    ? "bg-orange-500/5 border-orange-500/35 text-orange-500 font-extrabold shadow-[0_0_20px_rgba(249,115,22,0.05)] scale-[1.01]"
-                    : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-orange-400/90"
+                    ? "bg-[#D70F64] border-[#D70F64] text-white font-extrabold shadow-[0_0_20px_rgba(249,115,22,0.05)] scale-[1.01]"
+                    : "bg-transparent border-transparent hover:bg-slate-800 text-slate-600 hover:text-orange-400/90"
                 }`}
               >
                 <ShoppingBasket className="w-4 h-4 text-orange-500 shrink-0" />
@@ -2200,8 +2200,8 @@ export default function AdminPanel({
                 }}
                 className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
                   activeSubTab === "services"
-                    ? "bg-blue-500/5 border-blue-500/30 text-blue-500 font-extrabold shadow-[0_0_20px_rgba(59,130,246,0.04)]"
-                    : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-blue-400"
+                    ? "bg-[#D70F64] border-[#D70F64] text-white font-extrabold shadow-[0_0_20px_rgba(59,130,246,0.04)]"
+                    : "bg-transparent border-transparent hover:bg-slate-800 text-slate-600 hover:text-blue-400"
                 }`}
               >
                 <Settings className="w-4 h-4 text-blue-500 shrink-0" />
@@ -2209,8 +2209,8 @@ export default function AdminPanel({
               </button>
             </div>
 
-            <div className="bg-[#0b0b0d]/90 border border-zinc-800/80 p-4.5 rounded-[24px] space-y-2.5 shadow-2xl relative overflow-hidden">
-              <span className="text-[9.5px] font-black text-zinc-500 block uppercase tracking-widest pl-1 mb-1">
+            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-3 shadow-xl relative overflow-hidden">
+              <span className="text-[9.5px] font-black text-slate-500 block uppercase tracking-widest pl-1 mb-1">
                 Fleet & Users
               </span>
 
@@ -2218,8 +2218,8 @@ export default function AdminPanel({
                 onClick={() => setActiveSubTab("riders")}
                 className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
                   activeSubTab === "riders"
-                    ? "bg-amber-500/5 border-amber-500/30 text-amber-500 font-extrabold shadow-[0_0_20px_rgba(245,158,11,0.04)]"
-                    : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-zinc-200"
+                    ? "bg-[#D70F64] border-[#D70F64] text-white font-extrabold shadow-[0_0_20px_rgba(245,158,11,0.04)]"
+                    : "bg-transparent border-transparent hover:bg-slate-800 text-slate-400 hover:text-white"
                 }`}
               >
                 <User className="w-4 h-4 shrink-0" />
@@ -2230,11 +2230,11 @@ export default function AdminPanel({
                 onClick={() => setActiveSubTab("users")}
                 className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
                   activeSubTab === "users"
-                    ? "bg-emerald-500/5 border-emerald-500/30 text-emerald-500 font-extrabold shadow-[0_0_20px_rgba(16,185,129,0.04)]"
-                    : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-emerald-450"
+                    ? "bg-[#D70F64] border-[#D70F64] text-white font-extrabold shadow-[0_0_20px_rgba(16,185,129,0.04)]"
+                    : "bg-transparent border-transparent hover:bg-slate-800 text-slate-600 hover:text-emerald-450"
                 }`}
               >
-                <Users className="w-4 h-4 text-emerald-500 shrink-0" />
+                <Users className="w-4 h-4 shrink-0" />
                 Manage Users Directory
                 <span className="ml-auto bg-emerald-600 text-white font-extrabold px-2 py-0.5 text-[9px] rounded-full">
                   {allUsersList.length}
@@ -2242,8 +2242,8 @@ export default function AdminPanel({
               </button>
             </div>
 
-            <div className="bg-[#0b0b0d]/90 border border-zinc-800/80 p-4.5 rounded-[24px] space-y-2.5 shadow-2xl relative overflow-hidden">
-              <span className="text-[9.5px] font-black text-zinc-500 block uppercase tracking-widest pl-1 mb-1">
+            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-3 shadow-xl relative overflow-hidden">
+              <span className="text-[9.5px] font-black text-slate-500 block uppercase tracking-widest pl-1 mb-1">
                 System
               </span>
 
@@ -2251,8 +2251,8 @@ export default function AdminPanel({
                 onClick={() => setActiveSubTab("seo")}
                 className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
                   activeSubTab === "seo"
-                    ? "bg-blue-500/5 border-blue-500/30 text-blue-500 font-extrabold shadow-[0_0_20px_rgba(59,130,246,0.04)]"
-                    : "bg-transparent border-transparent hover:bg-zinc-900/40 text-zinc-400 hover:text-blue-450"
+                    ? "bg-[#D70F64] border-[#D70F64] text-white font-extrabold shadow-[0_0_20px_rgba(59,130,246,0.04)]"
+                    : "bg-transparent border-transparent hover:bg-slate-800 text-slate-600 hover:text-blue-450"
                 }`}
               >
                 <Globe className="w-4 h-4 text-blue-500 shrink-0" />
@@ -2262,37 +2262,37 @@ export default function AdminPanel({
           </div>
 
           {/* Quick Stats overview panel */}
-          <div className="bg-[#0b0b0d]/90 border border-zinc-800/80 p-5 rounded-[24px] space-y-4 shadow-2xl relative overflow-hidden text-xs">
-            <span className="text-[9.5px] font-black text-zinc-500 block uppercase tracking-widest">
+          <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-4 shadow-xl relative overflow-hidden text-xs">
+            <span className="text-[9.5px] font-black text-slate-500 block uppercase tracking-widest">
               Financial Coordinates
             </span>
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-zinc-950/80 border border-zinc-900/80 p-3 rounded-2xl hover:border-amber-500/20 transition-all group">
-                <span className="text-zinc-500 block text-[9.5px] font-bold uppercase tracking-wider">
+              <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl hover:border-[#D70F64]/20 transition-all group">
+                <span className="text-slate-500 block text-[9.5px] font-bold uppercase tracking-wider">
                   Gross Rev
                 </span>
-                <span className="text-[15px] font-black text-amber-500 mt-1 block">
+                <span className="text-[15px] font-black text-[#D70F64] mt-1 block">
                   Rs. {totalRevenue}
                 </span>
               </div>
-              <div className="bg-zinc-950/80 border border-zinc-900/80 p-3 rounded-2xl hover:border-emerald-500/20 transition-all">
-                <span className="text-zinc-500 block text-[9.5px] font-bold uppercase tracking-wider">
+              <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl hover:border-emerald-500/20 transition-all">
+                <span className="text-slate-500 block text-[9.5px] font-bold uppercase tracking-wider">
                   Your Comm
                 </span>
                 <span className="text-[15px] font-black text-emerald-400 mt-1 block">
                   Rs. {totalCommissionSum}
                 </span>
               </div>
-              <div className="bg-zinc-950/80 border border-zinc-900/80 p-3 rounded-2xl hover:border-emerald-500/20 transition-all">
-                <span className="text-zinc-500 block text-[9.5px] font-bold uppercase tracking-wider">
+              <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl hover:border-emerald-500/20 transition-all">
+                <span className="text-slate-500 block text-[9.5px] font-bold uppercase tracking-wider">
                   Completed
                 </span>
-                <span className="text-[15px] font-black text-zinc-200 mt-1 block">
+                <span className="text-[15px] font-black text-slate-800 mt-1 block">
                   {totalCompletedCount}
                 </span>
               </div>
-              <div className="bg-zinc-950/80 border border-zinc-900/80 p-3 rounded-2xl hover:border-pink-500/20 transition-all">
-                <span className="text-zinc-500 block text-[9.5px] font-bold uppercase tracking-wider">
+              <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl hover:border-[#D70F64]/20 transition-all">
+                <span className="text-slate-500 block text-[9.5px] font-bold uppercase tracking-wider">
                   Active
                 </span>
                 <span className="text-[15px] font-black text-[#D70F64] mt-1 block">
@@ -2311,15 +2311,15 @@ export default function AdminPanel({
               {/* Graphical Recharts Visual Analytics blocks */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Gross revenue timeline Recharts Area scale */}
-                <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl relative">
-                  <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-500/10 to-transparent" />
+                <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm relative">
+                  <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#D70F64]/10 to-transparent" />
                   <div className="flex items-center justify-between mb-6">
                     <div>
-                      <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 tracking-wide uppercase">
-                        <TrendingUp className="w-4 h-4 text-amber-500" />
+                      <h4 className="font-black text-sm text-slate-900 flex items-center gap-2 tracking-wide uppercase">
+                        <TrendingUp className="w-4 h-4 text-[#D70F64]" />
                         Delivered Order Revenue Pipeline
                       </h4>
-                      <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                         Gross delivered totals mapped chronologically
                       </span>
                     </div>
@@ -2349,23 +2349,23 @@ export default function AdminPanel({
                         </defs>
                         <CartesianGrid
                           strokeDasharray="3 3"
-                          stroke="#222"
+                          stroke="#e2e8f0"
                           opacity={0.3}
                         />
                         <XAxis
                           dataKey="date"
-                          stroke="#666"
+                          stroke="#64748b"
                           fontSize={9}
                           fontStyle="bold"
                         />
-                        <YAxis stroke="#666" fontSize={9} fontStyle="bold" />
+                        <YAxis stroke="#64748b" fontSize={9} fontStyle="bold" />
                         <Tooltip
                           contentStyle={{
-                            backgroundColor: "#0b0b0d",
-                            border: "1px solid #333",
+                            backgroundColor: "#ffffff",
+                            border: "1px solid #e2e8f0",
                             borderRadius: "14px",
                             fontSize: "11px",
-                            color: "#fff",
+                            color: "#0f172a",
                           }}
                         />
                         <Area
@@ -2382,15 +2382,15 @@ export default function AdminPanel({
                 </div>
 
                 {/* Categories demand distribution Recharts bar plot */}
-                <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl relative">
+                <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm relative">
                   <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-pink-500/10 to-transparent" />
                   <div className="flex items-center justify-between mb-6">
                     <div>
-                      <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 tracking-wide uppercase">
+                      <h4 className="font-black text-sm text-slate-900 flex items-center gap-2 tracking-wide uppercase">
                         <Package className="w-4 h-4 text-[#D70F64]" />
                         Category Quantity Demand Analytics
                       </h4>
-                      <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                         Volume of products purchased from database
                       </span>
                     </div>
@@ -2400,23 +2400,23 @@ export default function AdminPanel({
                       <BarChart data={getCategoryChartData()}>
                         <CartesianGrid
                           strokeDasharray="3 3"
-                          stroke="#222"
+                          stroke="#e2e8f0"
                           opacity={0.3}
                         />
                         <XAxis
                           dataKey="name"
-                          stroke="#666"
+                          stroke="#64748b"
                           fontSize={9}
                           fontStyle="bold"
                         />
-                        <YAxis stroke="#666" fontSize={9} fontStyle="bold" />
+                        <YAxis stroke="#64748b" fontSize={9} fontStyle="bold" />
                         <Tooltip
                           contentStyle={{
-                            backgroundColor: "#0b0b0d",
-                            border: "1px solid #333",
+                            backgroundColor: "#ffffff",
+                            border: "1px solid #e2e8f0",
                             borderRadius: "14px",
                             fontSize: "11px",
-                            color: "#fff",
+                            color: "#0f172a",
                           }}
                         />
                         <Bar
@@ -2433,14 +2433,14 @@ export default function AdminPanel({
               {/* Delivery Charge Setup Card & Broadcast Manager */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {/* Delivery Fee Adjustment form */}
-                <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl space-y-5 relative">
-                  <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-500/10 to-transparent" />
+                <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm space-y-5 relative">
+                  <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#D70F64]/10 to-transparent" />
                   <div>
-                    <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 uppercase tracking-wide">
-                      <Settings className="w-4 h-4 text-amber-500" />
+                    <h4 className="font-black text-sm text-slate-900 flex items-center gap-2 uppercase tracking-wide">
+                      <Settings className="w-4 h-4 text-[#D70F64]" />
                       Delivery Charges Controller
                     </h4>
-                    <p className="text-[11px] text-zinc-400 mt-2.5 leading-relaxed font-medium">
+                    <p className="text-[11px] text-slate-600 mt-2.5 leading-relaxed font-medium">
                       Overwrite the default delivery charges for food deliveries
                       instantly on user screens. (Services are automatically
                       forced to Rs. 0).
@@ -2456,17 +2456,17 @@ export default function AdminPanel({
                           setDeliveryChargeInput(Number(e.target.value))
                         }
                         placeholder="e.g. 100"
-                        className="flex-1 p-3 bg-zinc-950 border border-zinc-800/80 rounded-2xl text-xs sm:text-sm outline-none text-white focus:border-amber-500/60 transition focus:ring-1 focus:ring-amber-500/10"
+                        className="flex-1 p-3 bg-white border border-slate-200 border border-slate-200 rounded-2xl text-xs sm:text-sm outline-none text-slate-900 focus:border-[#D70F64]/60 transition focus:ring-1 focus:ring-[#D70F64]/10"
                       />
                       <button
                         onClick={handleSaveDeliveryConfig}
-                        className="bg-amber-500 hover:bg-amber-600 transition-all text-black font-black px-5 py-3 rounded-2xl text-[11px] uppercase tracking-wider cursor-pointer shadow-lg shadow-amber-500/10 flex items-center gap-2 shrink-0 hover:scale-[1.02] active:scale-95"
+                        className="bg-[#D70F64] hover:bg-[#b00c50] transition-all text-black font-black px-5 py-3 rounded-2xl text-[11px] uppercase tracking-wider cursor-pointer shadow-lg shadow-[#D70F64]/10 flex items-center gap-2 shrink-0 hover:scale-[1.02] active:scale-95"
                       >
                         <Save className="w-4 h-4" />
                         Save Rate
                       </button>
                     </div>
-                    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block leading-relaxed">
+                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block leading-relaxed">
                       💡 Stored coordinates: settings/delivery_config with
                       Firestore.
                     </span>
@@ -2474,14 +2474,14 @@ export default function AdminPanel({
                 </div>
 
                 {/* Chime trigger in-app broadcaster */}
-                <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl space-y-5 relative">
+                <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm space-y-5 relative">
                   <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-emerald-500/10 to-transparent" />
                   <div>
-                    <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 uppercase tracking-wide">
+                    <h4 className="font-black text-sm text-slate-900 flex items-center gap-2 uppercase tracking-wide">
                       <Smartphone className="w-4 h-4 text-emerald-400 animate-pulse" />
                       In-App Broadcast Dispatcher
                     </h4>
-                    <p className="text-[11px] text-zinc-400 mt-2.5 leading-relaxed font-medium">
+                    <p className="text-[11px] text-slate-600 mt-2.5 leading-relaxed font-medium">
                       Broadcasting triggers a text alert banner accompanied by a
                       musical sound on customer screens!
                     </p>
@@ -2493,14 +2493,14 @@ export default function AdminPanel({
                       placeholder="Notification Title"
                       value={alertTitle}
                       onChange={(e) => setAlertTitle(e.target.value)}
-                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl outline-none text-white focus:border-emerald-500/40 focus:ring-1 focus:ring-emerald-500/10 transition"
+                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl outline-none text-slate-900 focus:border-emerald-500/40 focus:ring-1 focus:ring-emerald-500/10 transition"
                     />
                     <textarea
                       rows={2}
                       placeholder="Notification Message body text..."
                       value={alertMessage}
                       onChange={(e) => setAlertMessage(e.target.value)}
-                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl outline-none text-white focus:border-emerald-500/40 focus:ring-1 focus:ring-emerald-500/10 transition resize-none"
+                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl outline-none text-slate-900 focus:border-emerald-500/40 focus:ring-1 focus:ring-emerald-500/10 transition resize-none"
                     />
                     <div className="flex justify-end pt-1">
                       <button
@@ -2516,16 +2516,16 @@ export default function AdminPanel({
               </div>
 
               {/* Deal of the Hour Full Control Manager */}
-              <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl relative space-y-6">
+              <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm relative space-y-6">
                 <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#D70F64]/10 to-transparent" />
 
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-800/50">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/50">
                   <div>
-                    <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 uppercase tracking-wide">
+                    <h4 className="font-black text-sm text-slate-900 flex items-center gap-2 uppercase tracking-wide">
                       <Percent className="w-4 h-4 text-[#D70F64]" />
                       Deal of the Hour Controller
                     </h4>
-                    <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed font-medium">
+                    <p className="text-[11px] text-slate-600 mt-1 leading-relaxed font-medium">
                       Configure the high-intensity countdown timer, set the
                       custom discount rate, and dynamically pick featured
                       dishes/services on sale.
@@ -2541,13 +2541,13 @@ export default function AdminPanel({
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 text-xs text-zinc-100">
-                  <div className="md:col-span-12 flex items-center justify-between bg-zinc-950 p-4 rounded-2xl border border-zinc-800">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 text-xs text-slate-900">
+                  <div className="md:col-span-12 flex items-center justify-between bg-white border border-slate-200 p-4 rounded-2xl border border-slate-200">
                     <div>
-                      <h5 className="font-bold text-sm text-zinc-100">
+                      <h5 className="font-bold text-sm text-slate-900">
                         Enable Deal of the Hour
                       </h5>
-                      <p className="text-[10px] text-zinc-500 mt-1">
+                      <p className="text-[10px] text-slate-500 mt-1">
                         Toggle this on or off to control visibility instantly.
                       </p>
                     </div>
@@ -2558,12 +2558,12 @@ export default function AdminPanel({
                         checked={dealActive}
                         onChange={(e) => setDealActive(e.target.checked)}
                       />
-                      <div className="w-11 h-6 bg-zinc-800 rounded-full peer peer-focus:ring-2 peer-focus:ring-[#D70F64]/40 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-zinc-300 after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#D70F64] group-hover:after:bg-white"></div>
+                      <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-focus:ring-2 peer-focus:ring-[#D70F64]/40 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-slate-700 after:border-slate-700 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#D70F64] group-hover:after:bg-white"></div>
                     </label>
                   </div>
 
                   <div className="md:col-span-4 space-y-2">
-                    <label className="block text-xs font-black uppercase tracking-wider text-zinc-400 font-bold uppercase tracking-widest text-[9px]">
+                    <label className="block text-xs font-black uppercase tracking-wider text-slate-600 font-bold uppercase tracking-widest text-[9px]">
                       Timer Duration (Minutes)
                     </label>
                     <input
@@ -2575,12 +2575,12 @@ export default function AdminPanel({
                         setDealTimer(Math.max(1, Number(e.target.value)))
                       }
                       placeholder="e.g. 30"
-                      className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-2xl text-xs sm:text-sm outline-none text-white focus:border-[#D70F64]/60 transition"
+                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-2xl text-xs sm:text-sm outline-none text-slate-900 focus:border-[#D70F64]/60 transition"
                     />
                   </div>
 
                   <div className="md:col-span-4 space-y-2">
-                    <label className="block text-xs font-black uppercase tracking-wider text-zinc-400 font-bold uppercase tracking-widest text-[9px]">
+                    <label className="block text-xs font-black uppercase tracking-wider text-slate-600 font-bold uppercase tracking-widest text-[9px]">
                       Discount Rate (%)
                     </label>
                     <input
@@ -2594,7 +2594,7 @@ export default function AdminPanel({
                         )
                       }
                       placeholder="e.g. 25"
-                      className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-2xl text-xs sm:text-sm outline-none text-white focus:border-[#D70F64]/60 transition"
+                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-2xl text-xs sm:text-sm outline-none text-slate-900 focus:border-[#D70F64]/60 transition"
                     />
                   </div>
 
@@ -2607,17 +2607,17 @@ export default function AdminPanel({
                       value={dealText}
                       onChange={(e) => setDealText(e.target.value)}
                       placeholder={`e.g. Save ${dealDiscount}% on Tea & Fresh Platters!`}
-                      className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-2xl text-xs sm:text-sm outline-none text-white focus:border-[#D70F64]/60 transition"
+                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-2xl text-xs sm:text-sm outline-none text-slate-900 focus:border-[#D70F64]/60 transition"
                     />
                   </div>
                 </div>
 
                 {/* Dynamic Items Select list */}
                 <div className="space-y-2">
-                  <label className="block text-xs font-black uppercase tracking-wider text-zinc-400 font-bold uppercase tracking-widest text-[9px]">
+                  <label className="block text-xs font-black uppercase tracking-wider text-slate-600 font-bold uppercase tracking-widest text-[9px]">
                     Select Included Products & Services
                   </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto p-3 bg-zinc-950 border border-zinc-850 rounded-2xl scrollbar-none">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto p-3 bg-white border border-slate-200 rounded-2xl scrollbar-none">
                     {dishes.map((dish) => {
                       const isSelected = dealItems.includes(dish.id);
                       return (
@@ -2635,8 +2635,8 @@ export default function AdminPanel({
                           }}
                           className={`p-3 rounded-xl border text-left flex items-center gap-3 transition text-xs cursor-pointer ${
                             isSelected
-                              ? "bg-[#D70F64]/10 border-[#D70F64] text-white"
-                              : "bg-zinc-900/40 border-zinc-800/80 text-zinc-400 hover:bg-zinc-800/40 hover:text-zinc-200"
+                              ? "bg-[#D70F64]/10 border-[#D70F64] text-slate-700"
+                              : "bg-slate-100/40 border-slate-200 text-slate-600 hover:bg-slate-200/40 hover:text-slate-800"
                           }`}
                         >
                           <input
@@ -2646,10 +2646,10 @@ export default function AdminPanel({
                             className="accent-[#D70F64] scale-105 pointer-events-none"
                           />
                           <div className="truncate flex-1">
-                            <p className="font-bold truncate text-zinc-200 leading-snug">
+                            <p className="font-bold truncate text-slate-800 leading-snug">
                               {dish.name}
                             </p>
-                            <p className="text-[9.5px] text-zinc-500 font-extrabold uppercase mt-0.5 tracking-wide">
+                            <p className="text-[9.5px] text-slate-500 font-extrabold uppercase mt-0.5 tracking-wide">
                               {dish.category} • Rs. {dish.price}
                             </p>
                           </div>
@@ -2657,7 +2657,7 @@ export default function AdminPanel({
                       );
                     })}
                   </div>
-                  <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block leading-relaxed">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block leading-relaxed">
                     💡 Active Deal of the Hour items will dynamically show the
                     discounted price calculated from your discount rate.
                   </span>
@@ -2669,17 +2669,17 @@ export default function AdminPanel({
           {/* TAB: Manage Restaurants */}
           {activeSubTab === "restaurants" && (
             <div className="space-y-8 animate-fade-in">
-              <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl relative">
+              <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm relative">
                 <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-purple-500/30 to-transparent" />
-                <div className="flex items-center gap-3 mb-6 border-b border-zinc-800/50 pb-4">
+                <div className="flex items-center gap-3 mb-6 border-b border-slate-200/50 pb-4">
                   <div className="w-10 h-10 rounded-2xl bg-purple-500/10 flex items-center justify-center">
                     <Clock className="w-5 h-5 text-purple-500" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-black text-white tracking-wide uppercase">
+                    <h3 className="text-lg font-black text-slate-900 tracking-wide uppercase">
                       Restaurants & Vendors Manager
                     </h3>
-                    <p className="text-[11px] text-zinc-400 font-medium">
+                    <p className="text-[11px] text-slate-600 font-medium">
                       Control opening/closing hours and register new partners
                     </p>
                   </div>
@@ -2687,13 +2687,13 @@ export default function AdminPanel({
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   {/* Register New Restaurant */}
-                  <div className="bg-zinc-950 border border-zinc-800/80 p-5 rounded-2xl space-y-4">
-                    <h4 className="font-bold text-xs text-white uppercase tracking-wider flex items-center gap-2">
+                  <div className="bg-white border border-slate-200 border border-slate-200 p-5 rounded-2xl space-y-4">
+                    <h4 className="font-bold text-xs text-slate-900 uppercase tracking-wider flex items-center gap-2">
                       <Plus className="w-3.5 h-3.5 text-emerald-400" /> Add New
                       Restaurant
                     </h4>
                     <div className="space-y-3">
-                      <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                         Restaurant Name
                       </label>
                       <input
@@ -2701,14 +2701,14 @@ export default function AdminPanel({
                         value={newRestaurantInput}
                         onChange={(e) => setNewRestaurantInput(e.target.value)}
                         placeholder="e.g. Dadu Pizza Shop"
-                        className="w-full p-3 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-white outline-none focus:border-purple-500/60 transition"
+                        className="w-full p-3 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-900 outline-none text-slate-900 focus:border-purple-500/60 transition"
                       />
                       <button
                         onClick={handleAddNewRestaurant}
                         disabled={!newRestaurantInput.trim()}
                         className={`w-full py-3 rounded-xl font-black text-[11px] uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
                           !newRestaurantInput.trim()
-                            ? "bg-zinc-800 text-zinc-500 cursor-not-allowed"
+                            ? "bg-slate-200 text-slate-500 cursor-not-allowed"
                             : "bg-emerald-500 hover:bg-emerald-600 text-black shadow-lg shadow-emerald-500/10 cursor-pointer hover:scale-[1.02] active:scale-95"
                         }`}
                       >
@@ -2719,14 +2719,14 @@ export default function AdminPanel({
                   </div>
 
                   {/* Schedule Manager */}
-                  <div className="bg-zinc-950 border border-zinc-800/80 p-5 rounded-2xl space-y-4">
-                    <h4 className="font-bold text-xs text-white uppercase tracking-wider flex items-center gap-2">
+                  <div className="bg-white border border-slate-200 border border-slate-200 p-5 rounded-2xl space-y-4">
+                    <h4 className="font-bold text-xs text-slate-900 uppercase tracking-wider flex items-center gap-2">
                       <Settings className="w-3.5 h-3.5 text-purple-400" />{" "}
                       Manage Timings
                     </h4>
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
                           Select Vendor
                         </label>
                         <div className="relative">
@@ -2735,7 +2735,7 @@ export default function AdminPanel({
                             onChange={(e) =>
                               setSelectedScheduleRestaurant(e.target.value)
                             }
-                            className="w-full p-3 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-white outline-none appearance-none focus:border-purple-500/60 transition"
+                            className="w-full p-3 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-900 outline-none appearance-none focus:border-purple-500/60 transition"
                           >
                             {uniqueRestaurants.map((rest) => (
                               <option key={rest} value={rest}>
@@ -2743,7 +2743,7 @@ export default function AdminPanel({
                               </option>
                             ))}
                           </select>
-                          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
                             <svg
                               width="14"
                               height="14"
@@ -2762,12 +2762,12 @@ export default function AdminPanel({
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between bg-zinc-900 p-3 rounded-xl border border-zinc-800">
+                      <div className="flex items-center justify-between bg-slate-100 p-3 rounded-xl border border-slate-200">
                         <div>
-                          <h5 className="font-bold text-xs text-zinc-100">
+                          <h5 className="font-bold text-xs text-slate-900">
                             Temporarily Unavailable
                           </h5>
-                          <p className="text-[9px] text-zinc-500 mt-0.5">
+                          <p className="text-[9px] text-slate-500 mt-0.5">
                             Pause orders immediately
                           </p>
                         </div>
@@ -2780,37 +2780,37 @@ export default function AdminPanel({
                               setRestStatusUnavailable(e.target.checked)
                             }
                           />
-                          <div className="w-10 h-5 bg-zinc-800 rounded-full peer peer-focus:ring-2 peer-focus:ring-purple-500/40 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-300 after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500"></div>
+                          <div className="w-10 h-5 bg-slate-200 rounded-full peer peer-focus:ring-2 peer-focus:ring-purple-500/40 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-700 after:border-slate-700 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500"></div>
                         </label>
                       </div>
 
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
                             Open Time
                           </label>
                           <input
                             type="time"
                             value={restOpeningTime}
                             onChange={(e) => setRestOpeningTime(e.target.value)}
-                            className="w-full p-3 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-white outline-none focus:border-purple-500/60 transition"
+                            className="w-full p-3 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-900 outline-none text-slate-900 focus:border-purple-500/60 transition"
                           />
                         </div>
                         <div>
-                          <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
                             Close Time
                           </label>
                           <input
                             type="time"
                             value={restClosingTime}
                             onChange={(e) => setRestClosingTime(e.target.value)}
-                            className="w-full p-3 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-white outline-none focus:border-purple-500/60 transition"
+                            className="w-full p-3 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-900 outline-none text-slate-900 focus:border-purple-500/60 transition"
                           />
                         </div>
                       </div>
 
                       <div className="pt-2">
-                        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
                           Restaurant Contact Phone
                         </label>
                         <input
@@ -2818,13 +2818,13 @@ export default function AdminPanel({
                           value={restPhone}
                           onChange={(e) => setRestPhone(e.target.value)}
                           placeholder="e.g. 03277004471"
-                          className="w-full p-3 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-white outline-none focus:border-purple-500/60 transition"
+                          className="w-full p-3 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-900 outline-none text-slate-900 focus:border-purple-500/60 transition"
                         />
                       </div>
 
                       <div className="grid grid-cols-2 gap-3 pt-2">
                         <div>
-                          <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
                             Min Order
                           </label>
                           <input
@@ -2832,11 +2832,11 @@ export default function AdminPanel({
                             value={restMinOrder}
                             onChange={(e) => setRestMinOrder(e.target.value)}
                             placeholder="e.g. 300"
-                            className="w-full p-3 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-white outline-none focus:border-purple-500/60 transition"
+                            className="w-full p-3 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-900 outline-none text-slate-900 focus:border-purple-500/60 transition"
                           />
                         </div>
                         <div>
-                          <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
                             Delivery Charge Text
                           </label>
                           <input
@@ -2844,7 +2844,7 @@ export default function AdminPanel({
                             value={restDeliveryCharge}
                             onChange={(e) => setRestDeliveryCharge(e.target.value)}
                             placeholder="e.g. Rs. 50-100"
-                            className="w-full p-3 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-white outline-none focus:border-purple-500/60 transition"
+                            className="w-full p-3 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-900 outline-none text-slate-900 focus:border-purple-500/60 transition"
                           />
                         </div>
                       </div>
@@ -2878,7 +2878,7 @@ export default function AdminPanel({
                             setNewItemType("food");
                             window.scrollTo({ top: 0, behavior: "smooth" });
                           }}
-                          className="w-full bg-zinc-800 hover:bg-zinc-700 transition-all text-white font-black py-3 rounded-xl text-[11px] uppercase tracking-wider cursor-pointer flex items-center justify-center gap-2"
+                          className="w-full bg-slate-100 hover:bg-slate-200 border border-slate-300 transition-all text-slate-800 font-black py-3 rounded-xl text-[11px] uppercase tracking-wider cursor-pointer flex items-center justify-center gap-2"
                         >
                           <ListCollapse className="w-4 h-4 shrink-0" />
                           Manage Menu / Items
@@ -2909,22 +2909,22 @@ export default function AdminPanel({
                 </div>
 
                 {/* Existing Restaurants Directory */}
-                <div className="mt-8 bg-zinc-950 border border-zinc-800/80 p-5 rounded-2xl space-y-4">
-                  <h4 className="font-bold text-xs text-white uppercase tracking-wider flex items-center gap-2">
+                <div className="mt-8 bg-white border border-slate-200 border border-slate-200 p-5 rounded-2xl space-y-4">
+                  <h4 className="font-bold text-xs text-slate-900 uppercase tracking-wider flex items-center gap-2">
                     <ListCollapse className="w-3.5 h-3.5 text-purple-400" /> Existing Vendors Directory
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {uniqueRestaurants.map((restName) => (
                       <div
                         key={restName}
-                        className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 flex items-center justify-between group hover:border-purple-500/30 transition-colors"
+                        className="bg-slate-100 border border-slate-200 rounded-xl p-3 flex items-center justify-between group hover:border-purple-500/30 transition-colors"
                       >
-                        <span className="text-xs font-bold text-zinc-200 line-clamp-1 pr-2">
+                        <span className="text-xs font-bold text-slate-800 line-clamp-1 pr-2">
                           {restName}
                         </span>
                         <button
                           onClick={() => handleDeleteRestaurant(restName)}
-                          className="w-7 h-7 flex items-center justify-center rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-colors shrink-0 cursor-pointer"
+                          className="w-7 h-7 flex items-center justify-center rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-slate-900 transition-colors shrink-0 cursor-pointer"
                           title={`Delete ${restName}`}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -2932,7 +2932,7 @@ export default function AdminPanel({
                       </div>
                     ))}
                     {uniqueRestaurants.length === 0 && (
-                      <p className="text-[10px] text-zinc-500 italic col-span-full">No vendors found.</p>
+                      <p className="text-[10px] text-slate-500 italic col-span-full">No vendors found.</p>
                     )}
                   </div>
                 </div>
@@ -2943,18 +2943,18 @@ export default function AdminPanel({
           {/* TAB 2: Manage Items Directory */}
           {activeSubTab === "items" && (
             <div className="space-y-8 animate-fade-in">
-              <div className="flex items-center justify-between bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-4 rounded-2xl shadow-xl">
+              <div className="flex items-center justify-between bg-[#0b0b0d]/80  border border-slate-200 p-4 rounded-2xl shadow-xl">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                    <ListCollapse className="w-5 h-5 text-amber-500" />
+                  <div className="w-10 h-10 rounded-xl bg-[#D70F64]/10 flex items-center justify-center">
+                    <ListCollapse className="w-5 h-5 text-[#D70F64]" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-black text-white tracking-wide uppercase">
+                    <h3 className="text-sm font-black text-slate-900 tracking-wide uppercase">
                       Managing Menu
                     </h3>
-                    <p className="text-[11px] text-zinc-400 font-medium">
+                    <p className="text-[11px] text-slate-600 font-medium">
                       For:{" "}
-                      <span className="text-amber-500 font-bold">
+                      <span className="text-[#D70F64] font-bold">
                         {newItemRestaurantName || "All Vendors"}
                       </span>
                     </p>
@@ -3014,7 +3014,7 @@ export default function AdminPanel({
                   <button
                     onClick={handleImportTastyBites}
                     disabled={isImportingTasty}
-                    className="bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-neutral-950 px-4 py-2 rounded-xl text-[10px] uppercase font-black tracking-wider transition-colors border border-amber-400 flex items-center gap-2"
+                    className="bg-[#D70F64] hover:bg-[#b00c50] disabled:opacity-50 text-neutral-950 px-4 py-2 rounded-xl text-[10px] uppercase font-black tracking-wider transition-colors border border-[#f22a7f] flex items-center gap-2"
                   >
                     {isImportingTasty ? `⏳ IMPORTING (${importProgressTasty}%)` : `📥 IMPORT TASTY BITES`}
                   </button>
@@ -3023,7 +3023,7 @@ export default function AdminPanel({
                       setActiveSubTab("restaurants");
                       window.scrollTo({ top: 0, behavior: "smooth" });
                     }}
-                    className="bg-zinc-900 hover:bg-zinc-800 text-white px-4 py-2 rounded-xl text-[10px] uppercase font-black tracking-wider transition-colors border border-zinc-800 hover:border-zinc-700 flex items-center gap-2"
+                    className="bg-slate-100 hover:bg-slate-900 text-white px-4 py-2 rounded-xl text-[10px] uppercase font-black tracking-wider transition-colors border border-slate-200 hover:border-slate-300 flex items-center gap-2"
                   >
                   <svg
                     width="12"
@@ -3047,17 +3047,17 @@ export default function AdminPanel({
               {/* Add New Dish / Home Service Product Form */}
               <form
                 onSubmit={handleAddNewItem}
-                className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl space-y-5 relative"
+                className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm space-y-5 relative"
               >
-                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-500/10 to-transparent" />
-                <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 pb-3 border-b border-zinc-800/50 uppercase tracking-wide">
-                  <Plus className="w-4 h-4 text-amber-500" />
+                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#D70F64]/10 to-transparent" />
+                <h4 className="font-black text-sm text-slate-900 flex items-center gap-2 pb-3 border-b border-slate-200/50 uppercase tracking-wide">
+                  <Plus className="w-4 h-4 text-[#D70F64]" />
                   Register New Dish / Home Service Product
                 </h4>
 
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-5 text-xs">
                   <div className="md:col-span-3 space-y-1.5">
-                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">
+                    <label className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">
                       Title Name
                     </label>
                     <input
@@ -3066,12 +3066,12 @@ export default function AdminPanel({
                       value={newItemName}
                       onChange={(e) => setNewItemName(e.target.value)}
                       placeholder="e.g. Premium Beef Cheese Burger"
-                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 transition focus:ring-1 focus:ring-amber-500/10 animate-pulse-subtle"
+                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl text-slate-900 outline-none text-slate-900 focus:border-[#D70F64] transition focus:ring-1 focus:ring-[#D70F64]/10 animate-pulse-subtle"
                     />
                   </div>
 
                   <div className="md:col-span-2 space-y-1.5">
-                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">
+                    <label className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">
                       Catalog Category
                     </label>
                     <select
@@ -3079,7 +3079,7 @@ export default function AdminPanel({
                       onChange={(e) =>
                         setNewItemCategory(e.target.value as Dish["category"])
                       }
-                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 cursor-pointer transition focus:ring-1 focus:ring-amber-500/10"
+                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl text-slate-900 outline-none text-slate-900 focus:border-[#D70F64] cursor-pointer transition focus:ring-1 focus:ring-[#D70F64]/10"
                     >
                       {foodCategories.map((cat) => (
                         <option key={cat.id} value={cat.name}>
@@ -3090,7 +3090,7 @@ export default function AdminPanel({
                   </div>
 
                   <div className="md:col-span-2 space-y-1.5">
-                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">
+                    <label className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">
                       Base Price (Rs.)
                     </label>
                     <input
@@ -3099,12 +3099,12 @@ export default function AdminPanel({
                       value={newItemPrice}
                       onChange={(e) => setNewItemPrice(Number(e.target.value))}
                       placeholder="e.g. 500"
-                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 transition focus:ring-1 focus:ring-amber-500/10"
+                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl text-slate-900 outline-none text-slate-900 focus:border-[#D70F64] transition focus:ring-1 focus:ring-[#D70F64]/10"
                     />
                   </div>
 
                   <div className="md:col-span-2 space-y-1.5">
-                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">
+                    <label className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">
                       Discount Price (Rs.)
                     </label>
                     <input
@@ -3114,7 +3114,7 @@ export default function AdminPanel({
                         setNewItemDiscountPrice(Number(e.target.value))
                       }
                       placeholder="Optional"
-                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 transition focus:ring-1 focus:ring-amber-500/10"
+                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl text-slate-900 outline-none text-slate-900 focus:border-[#D70F64] transition focus:ring-1 focus:ring-[#D70F64]/10"
                     />
                   </div>
 
@@ -3130,12 +3130,12 @@ export default function AdminPanel({
                         setNewItemCommission(Number(e.target.value))
                       }
                       placeholder="Commission"
-                      className="w-full p-3 bg-zinc-950 border border-emerald-900 rounded-xl text-white outline-none focus:border-emerald-500 transition focus:ring-1 focus:ring-emerald-500/10 font-bold"
+                      className="w-full p-3 bg-white border border-slate-200 border border-emerald-900 rounded-xl text-slate-900 outline-none text-slate-900 focus:border-emerald-500 transition focus:ring-1 focus:ring-emerald-500/10 font-bold"
                     />
                   </div>
 
                   <div className="md:col-span-3 space-y-1.5">
-                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">
+                    <label className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">
                       Description Information
                     </label>
                     <input
@@ -3143,7 +3143,7 @@ export default function AdminPanel({
                       value={newItemDescription}
                       onChange={(e) => setNewItemDescription(e.target.value)}
                       placeholder="Brief descriptive labels shown to customers"
-                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 transition focus:ring-1 focus:ring-amber-500/10"
+                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl text-slate-900 outline-none text-slate-900 focus:border-[#D70F64] transition focus:ring-1 focus:ring-[#D70F64]/10"
                     />
                   </div>
 
@@ -3158,7 +3158,7 @@ export default function AdminPanel({
                   </div>
 
                   <div className="md:col-span-4 space-y-1.5">
-                    <label className="text-amber-500 font-bold uppercase tracking-widest text-[9px]">
+                    <label className="text-[#D70F64] font-bold uppercase tracking-widest text-[9px]">
                       Restaurant / Partner Shop Name
                     </label>
                     <div className="relative">
@@ -3167,7 +3167,7 @@ export default function AdminPanel({
                         onChange={(e) =>
                           setNewItemRestaurantName(e.target.value)
                         }
-                        className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none appearance-none focus:border-amber-500 transition focus:ring-1 focus:ring-amber-500/10"
+                        className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl text-slate-900 outline-none appearance-none focus:border-[#D70F64] transition focus:ring-1 focus:ring-[#D70F64]/10"
                       >
                         <option value="">
                           Default (Auto-selects based on category)
@@ -3178,7 +3178,7 @@ export default function AdminPanel({
                           </option>
                         ))}
                       </select>
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
                         <svg
                           width="14"
                           height="14"
@@ -3200,8 +3200,8 @@ export default function AdminPanel({
                   {newItemType === "food" && (
                     <>
                       <div className="md:col-span-4 space-y-3">
-                        <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
-                          <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">
+                        <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                          <label className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">
                             Sizes & Prices (Optional)
                           </label>
                           <button
@@ -3212,7 +3212,7 @@ export default function AdminPanel({
                                 { name: "", price: 0, imageUrl: "" },
                               ])
                             }
-                            className="bg-amber-500/10 text-amber-500 px-2 py-1 rounded text-[10px] font-bold hover:bg-amber-500/20"
+                            className="bg-[#D70F64]/10 text-[#D70F64] px-2 py-1 rounded text-[10px] font-bold hover:bg-[#D70F64]/20"
                           >
                             + Add Size
                           </button>
@@ -3220,7 +3220,7 @@ export default function AdminPanel({
                         {newItemSizes.map((size, idx) => (
                           <div
                             key={idx}
-                            className="flex flex-col gap-2 bg-zinc-950 p-3 rounded-xl border border-zinc-800 relative"
+                            className="flex flex-col gap-2 bg-white border border-slate-200 p-3 rounded-xl border border-slate-200 relative"
                           >
                             <button
                               type="button"
@@ -3243,7 +3243,7 @@ export default function AdminPanel({
                                   setNewItemSizes(newSizes);
                                 }}
                                 placeholder="Size (e.g. Small)"
-                                className="w-full p-2 bg-transparent text-white text-xs outline-none border border-zinc-800 rounded-lg focus:border-amber-500"
+                                className="w-full p-2 bg-transparent text-slate-900 text-xs outline-none border border-slate-200 rounded-lg focus:border-[#D70F64]"
                               />
                               <input
                                 type="number"
@@ -3254,7 +3254,7 @@ export default function AdminPanel({
                                   setNewItemSizes(newSizes);
                                 }}
                                 placeholder="Price"
-                                className="w-full p-2 bg-transparent text-white text-xs outline-none border border-zinc-800 rounded-lg focus:border-amber-500"
+                                className="w-full p-2 bg-transparent text-slate-900 text-xs outline-none border border-slate-200 rounded-lg focus:border-[#D70F64]"
                               />
                             </div>
                             <ProductImageSelector
@@ -3271,8 +3271,8 @@ export default function AdminPanel({
                       </div>
 
                       <div className="md:col-span-4 space-y-3">
-                        <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
-                          <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">
+                        <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                          <label className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">
                             Flavors / Variants (Optional)
                           </label>
                           <button
@@ -3283,7 +3283,7 @@ export default function AdminPanel({
                                 { name: "", price: 0, imageUrl: "" },
                               ])
                             }
-                            className="bg-amber-500/10 text-amber-500 px-2 py-1 rounded text-[10px] font-bold hover:bg-amber-500/20"
+                            className="bg-[#D70F64]/10 text-[#D70F64] px-2 py-1 rounded text-[10px] font-bold hover:bg-[#D70F64]/20"
                           >
                             + Add Flavor
                           </button>
@@ -3291,7 +3291,7 @@ export default function AdminPanel({
                         {newItemFlavors.map((flavor, idx) => (
                           <div
                             key={idx}
-                            className="flex flex-col gap-2 bg-zinc-950 p-3 rounded-xl border border-zinc-800 relative"
+                            className="flex flex-col gap-2 bg-white border border-slate-200 p-3 rounded-xl border border-slate-200 relative"
                           >
                             <button
                               type="button"
@@ -3314,7 +3314,7 @@ export default function AdminPanel({
                                   setNewItemFlavors(newFlavors);
                                 }}
                                 placeholder="Flavor Name"
-                                className="w-full p-2 bg-transparent text-white text-xs outline-none border border-zinc-800 rounded-lg focus:border-amber-500"
+                                className="w-full p-2 bg-transparent text-slate-900 text-xs outline-none border border-slate-200 rounded-lg focus:border-[#D70F64]"
                               />
                               <input
                                 type="number"
@@ -3327,7 +3327,7 @@ export default function AdminPanel({
                                   setNewItemFlavors(newFlavors);
                                 }}
                                 placeholder="Extra Price (0 = Free)"
-                                className="w-full p-2 bg-transparent text-white text-xs outline-none border border-zinc-800 rounded-lg focus:border-amber-500"
+                                className="w-full p-2 bg-transparent text-slate-900 text-xs outline-none border border-slate-200 rounded-lg focus:border-[#D70F64]"
                               />
                               <input
                                 type="number"
@@ -3340,11 +3340,11 @@ export default function AdminPanel({
                                   setNewItemFlavors(newFlavors);
                                 }}
                                 placeholder="Original Price"
-                                className="w-full p-2 bg-transparent text-white text-xs outline-none border border-zinc-800 rounded-lg focus:border-amber-500"
+                                className="w-full p-2 bg-transparent text-slate-900 text-xs outline-none border border-slate-200 rounded-lg focus:border-[#D70F64]"
                               />
                             </div>
                             <div className="flex items-center gap-2 mt-1">
-                              <label className="text-xs text-white flex items-center gap-2 cursor-pointer">
+                              <label className="text-xs text-slate-900 flex items-center gap-2 cursor-pointer">
                                 <input
                                   type="checkbox"
                                   checked={flavor.isPopular || false}
@@ -3354,7 +3354,7 @@ export default function AdminPanel({
                                       e.target.checked;
                                     setNewItemFlavors(newFlavors);
                                   }}
-                                  className="w-4 h-4 rounded text-amber-500 bg-zinc-900 border-zinc-700"
+                                  className="w-4 h-4 rounded text-[#D70F64] bg-slate-100 border-slate-300"
                                 />
                                 Mark as Popular
                               </label>
@@ -3372,8 +3372,8 @@ export default function AdminPanel({
                         ))}
                       </div>
                       <div className="md:col-span-4 space-y-3">
-                        <div className="flex justify-between items-center border-b border-zinc-800 pb-2">
-                          <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">
+                        <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                          <label className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">
                             Add-ons (Optional)
                           </label>
                           <button
@@ -3389,7 +3389,7 @@ export default function AdminPanel({
                                 },
                               ])
                             }
-                            className="bg-amber-500/10 text-amber-500 px-2 py-1 rounded text-[10px] font-bold hover:bg-amber-500/20"
+                            className="bg-[#D70F64]/10 text-[#D70F64] px-2 py-1 rounded text-[10px] font-bold hover:bg-[#D70F64]/20"
                           >
                             + Add Add-on
                           </button>
@@ -3397,7 +3397,7 @@ export default function AdminPanel({
                         {newItemAddOns.map((ad, idx) => (
                           <div
                             key={idx}
-                            className="flex flex-col gap-2 bg-zinc-950 p-3 rounded-xl border border-zinc-800 relative"
+                            className="flex flex-col gap-2 bg-white border border-slate-200 p-3 rounded-xl border border-slate-200 relative"
                           >
                             <button
                               type="button"
@@ -3420,7 +3420,7 @@ export default function AdminPanel({
                                   setNewItemAddOns(newAds);
                                 }}
                                 placeholder="Add-on Name"
-                                className="w-full p-2 bg-transparent text-white text-xs outline-none border border-zinc-800 rounded-lg focus:border-amber-500"
+                                className="w-full p-2 bg-transparent text-slate-900 text-xs outline-none border border-slate-200 rounded-lg focus:border-[#D70F64]"
                               />
                               <input
                                 type="number"
@@ -3431,7 +3431,7 @@ export default function AdminPanel({
                                   setNewItemAddOns(newAds);
                                 }}
                                 placeholder="Extra Price"
-                                className="w-full p-2 bg-transparent text-white text-xs outline-none border border-zinc-800 rounded-lg focus:border-amber-500"
+                                className="w-full p-2 bg-transparent text-slate-900 text-xs outline-none border border-slate-200 rounded-lg focus:border-[#D70F64]"
                               />
                               <input
                                 type="number"
@@ -3444,7 +3444,7 @@ export default function AdminPanel({
                                   setNewItemAddOns(newAds);
                                 }}
                                 placeholder="Orig. Price"
-                                className="w-full p-2 bg-transparent text-white text-xs outline-none border border-zinc-800 rounded-lg focus:border-amber-500"
+                                className="w-full p-2 bg-transparent text-slate-900 text-xs outline-none border border-slate-200 rounded-lg focus:border-[#D70F64]"
                               />
                             </div>
                             <ProductImageSelector
@@ -3466,7 +3466,7 @@ export default function AdminPanel({
                 <div className="flex justify-end pt-2">
                   <button
                     type="submit"
-                    className="bg-amber-500 hover:bg-amber-600 transition-all font-black text-xs tracking-widest text-black uppercase py-3.5 px-6 rounded-2xl flex items-center gap-1.5 cursor-pointer shadow-lg shadow-amber-500/10 hover:scale-[1.02] active:scale-95"
+                    className="bg-[#D70F64] hover:bg-[#b00c50] transition-all font-black text-xs tracking-widest text-black uppercase py-3.5 px-6 rounded-2xl flex items-center gap-1.5 cursor-pointer shadow-lg shadow-[#D70F64]/10 hover:scale-[1.02] active:scale-95"
                   >
                     <Plus className="w-4 h-4" />
                     Dispatch Item to Database
@@ -3475,20 +3475,20 @@ export default function AdminPanel({
               </form>
 
               {/* Items Table List */}
-              <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 rounded-[24px] overflow-hidden shadow-2xl relative">
-                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-500/10 to-transparent" />
-                <div className="p-5 border-b border-zinc-800/50 bg-zinc-900/15">
-                  <h4 className="font-black text-sm text-zinc-100 uppercase tracking-wide">
+              <div className="bg-[#0b0b0d]/80  border border-slate-200 rounded-[24px] overflow-hidden shadow-sm relative">
+                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#D70F64]/10 to-transparent" />
+                <div className="p-5 border-b border-slate-200/50 bg-slate-100/15">
+                  <h4 className="font-black text-sm text-slate-900 uppercase tracking-wide">
                     Operational Catalog Directory
                   </h4>
-                  <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                     Enable availability controls and edit prices instantly
                   </span>
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full text-xs text-left text-zinc-455 font-medium">
-                    <thead className="bg-zinc-950/70 text-zinc-500 uppercase font-black tracking-widest text-[9px] border-b border-zinc-850/40">
+                  <table className="w-full text-xs text-left text-slate-600 font-medium">
+                    <thead className="bg-white border border-slate-200/70 text-slate-500 uppercase font-black tracking-widest text-[9px] border-b border-slate-200/40">
                       <tr>
                         <th className="p-4.5">Item Name</th>
                         <th className="p-4.5">Category</th>
@@ -3499,7 +3499,7 @@ export default function AdminPanel({
                         <th className="p-4.5 text-center">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-900/40">
+                    <tbody className="divide-y divide-slate-200/40">
                       {dishes
                         .filter((dish) => {
                           if (dish.type === "service") return false;
@@ -3511,7 +3511,7 @@ export default function AdminPanel({
                         .map((dish) => (
                           <tr
                             key={dish.id}
-                            className="hover:bg-zinc-900/20 transition-colors"
+                            className="hover:bg-slate-100/20 transition-colors"
                           >
                             <td className="p-4 font-bold text-gray-200">
                               <div className="flex items-center gap-3">
@@ -3519,19 +3519,19 @@ export default function AdminPanel({
                                   <img
                                     src={dish.imageUrl}
                                     alt={dish.name}
-                                    className="w-8 h-8 rounded-lg object-cover bg-zinc-950 shrink-0"
+                                    className="w-8 h-8 rounded-lg object-cover bg-white border border-slate-200 shrink-0"
                                     referrerPolicy="no-referrer"
                                   />
                                 ) : (
-                                  <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0">
-                                    <span className="text-[7px] text-zinc-500 font-black uppercase text-center leading-tight">No<br/>Img</span>
+                                  <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
+                                    <span className="text-[7px] text-slate-500 font-black uppercase text-center leading-tight">No<br/>Img</span>
                                   </div>
                                 )}
                                 <div className="truncate max-w-xs">
                                   <div>{dish.name}</div>
-                                  <div className="text-[10px] text-zinc-500 font-medium font-sans mt-0.5">
+                                  <div className="text-[10px] text-slate-500 font-medium font-sans mt-0.5">
                                     🏪 Shop:{" "}
-                                    <span className="text-amber-500 font-bold">
+                                    <span className="text-[#D70F64] font-bold">
                                       {dish.restaurantName ||
                                         (dish.type === "service"
                                           ? "Dadu Home Services"
@@ -3540,9 +3540,9 @@ export default function AdminPanel({
                                   </div>
                                   {dish.type === "service" &&
                                     dish.serviceDuration && (
-                                      <div className="text-[10px] text-zinc-500 font-medium font-sans mt-0.5">
+                                      <div className="text-[10px] text-slate-500 font-medium font-sans mt-0.5">
                                         ⏱️ Duration:{" "}
-                                        <span className="text-amber-500 font-bold">
+                                        <span className="text-[#D70F64] font-bold">
                                           {dish.serviceDuration}
                                         </span>
                                       </div>
@@ -3555,8 +3555,8 @@ export default function AdminPanel({
                               <span
                                 className={`px-2 py-0.5 rounded-md font-bold text-[9px] uppercase ${
                                   dish.type === "service"
-                                    ? "bg-amber-950 border border-amber-900 text-amber-500"
-                                    : "bg-zinc-900 border border-zinc-800 text-zinc-300"
+                                    ? "bg-amber-950 border border-amber-900 text-[#D70F64]"
+                                    : "bg-slate-100 border border-slate-200 text-slate-700"
                                 }`}
                               >
                                 {dish.type}
@@ -3574,7 +3574,7 @@ export default function AdminPanel({
                                     />
                                   </div>
                                   <div className="flex items-center gap-1">
-                                    <span className="text-[8px] text-zinc-500 uppercase font-bold w-12">
+                                    <span className="text-[8px] text-slate-500 uppercase font-bold w-12">
                                       Name:
                                     </span>
                                     <input
@@ -3583,11 +3583,11 @@ export default function AdminPanel({
                                       onChange={(e) =>
                                         setEditingNameInput(e.target.value)
                                       }
-                                      className="flex-1 p-1 bg-[#1a1a1a] border border-amber-500 text-white rounded text-xs leading-none"
+                                      className="flex-1 p-1 bg-[#1a1a1a] border border-[#D70F64] text-slate-900 rounded text-xs leading-none"
                                     />
                                   </div>
                                   <div className="flex items-center gap-1">
-                                    <span className="text-[8px] text-zinc-500 uppercase font-bold w-12">
+                                    <span className="text-[8px] text-slate-500 uppercase font-bold w-12">
                                       Price:
                                     </span>
                                     <input
@@ -3598,11 +3598,11 @@ export default function AdminPanel({
                                           Number(e.target.value),
                                         )
                                       }
-                                      className="w-20 p-1 bg-[#1a1a1a] border border-amber-500 text-white rounded text-xs leading-none"
+                                      className="w-20 p-1 bg-[#1a1a1a] border border-[#D70F64] text-slate-900 rounded text-xs leading-none"
                                     />
                                   </div>
                                   <div className="flex items-center gap-1">
-                                    <span className="text-[8px] text-zinc-500 uppercase font-bold w-12">
+                                    <span className="text-[8px] text-slate-500 uppercase font-bold w-12">
                                       Discount:
                                     </span>
                                     <input
@@ -3613,7 +3613,7 @@ export default function AdminPanel({
                                           Number(e.target.value),
                                         )
                                       }
-                                      className="w-20 p-1 bg-[#1a1a1a] border border-amber-500 text-white rounded text-xs leading-none"
+                                      className="w-20 p-1 bg-[#1a1a1a] border border-[#D70F64] text-slate-900 rounded text-xs leading-none"
                                       placeholder="0 for none"
                                     />
                                   </div>
@@ -3629,15 +3629,15 @@ export default function AdminPanel({
                                           Number(e.target.value),
                                         )
                                       }
-                                      className="w-20 p-1 bg-[#1a1a1a] border border-emerald-500 text-white rounded text-xs leading-none"
+                                      className="w-20 p-1 bg-[#1a1a1a] border border-emerald-500 text-slate-900 rounded text-xs leading-none"
                                       placeholder="Commission"
                                     />
                                   </div>
                                   {dish.type === "food" && (
-                                    <div className="mt-2 space-y-3 border-t border-zinc-800 pt-2">
+                                    <div className="mt-2 space-y-3 border-t border-slate-200 pt-2">
                                       <div className="flex flex-col gap-1">
                                         <div className="flex justify-between items-center">
-                                          <span className="text-[9px] text-zinc-500 uppercase font-bold">
+                                          <span className="text-[9px] text-slate-500 uppercase font-bold">
                                             Sizes
                                           </span>
                                           <button
@@ -3651,13 +3651,13 @@ export default function AdminPanel({
                                                 },
                                               ])
                                             }
-                                            className="text-[9px] text-amber-500 hover:underline"
+                                            className="text-[9px] text-[#D70F64] hover:underline"
                                           >
                                             + Add
                                           </button>
                                         </div>
                                         {editingSizes.map((sz, idx) => (
-                                          <div key={idx} className="flex flex-col gap-2 p-2 bg-zinc-900/50 rounded border border-zinc-800">
+                                          <div key={idx} className="flex flex-col gap-2 p-2 bg-slate-100/50 rounded border border-slate-200">
                                             <div className="flex gap-1">
                                               <input
                                                 type="text"
@@ -3668,7 +3668,7 @@ export default function AdminPanel({
                                                   setEditingSizes(n);
                                                 }}
                                                 placeholder="Name"
-                                                className="flex-1 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
+                                                className="flex-1 p-1 bg-[#1a1a1a] border border-slate-300 text-slate-900 rounded text-[10px]"
                                               />
                                               <input
                                                 type="number"
@@ -3681,7 +3681,7 @@ export default function AdminPanel({
                                                   setEditingSizes(n);
                                                 }}
                                                 placeholder="Price"
-                                                className="w-16 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
+                                                className="w-16 p-1 bg-[#1a1a1a] border border-slate-300 text-slate-900 rounded text-[10px]"
                                               />
                                               <button
                                                 onClick={() => {
@@ -3708,7 +3708,7 @@ export default function AdminPanel({
                                       </div>
                                       <div className="flex flex-col gap-1">
                                         <div className="flex justify-between items-center">
-                                          <span className="text-[9px] text-zinc-500 uppercase font-bold">
+                                          <span className="text-[9px] text-slate-500 uppercase font-bold">
                                             Flavors
                                           </span>
                                           <button
@@ -3722,7 +3722,7 @@ export default function AdminPanel({
                                                 },
                                               ])
                                             }
-                                            className="text-[9px] text-amber-500 hover:underline"
+                                            className="text-[9px] text-[#D70F64] hover:underline"
                                           >
                                             + Add
                                           </button>
@@ -3730,7 +3730,7 @@ export default function AdminPanel({
                                         {editingFlavors.map((fl, idx) => (
                                           <div
                                             key={idx}
-                                            className="flex flex-col gap-2 p-2 bg-zinc-900/50 rounded border border-zinc-800"
+                                            className="flex flex-col gap-2 p-2 bg-slate-100/50 rounded border border-slate-200"
                                           >
                                             <div className="flex gap-1 items-center flex-wrap">
                                               <input
@@ -3742,7 +3742,7 @@ export default function AdminPanel({
                                                   setEditingFlavors(n);
                                                 }}
                                                 placeholder="Name"
-                                                className="w-16 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
+                                                className="w-16 p-1 bg-[#1a1a1a] border border-slate-300 text-slate-900 rounded text-[10px]"
                                               />
                                               <input
                                                 type="number"
@@ -3755,7 +3755,7 @@ export default function AdminPanel({
                                                   setEditingFlavors(n);
                                                 }}
                                                 placeholder="Ex Price"
-                                                className="w-14 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
+                                                className="w-14 p-1 bg-[#1a1a1a] border border-slate-300 text-slate-900 rounded text-[10px]"
                                               />
                                               <input
                                                 type="number"
@@ -3768,9 +3768,9 @@ export default function AdminPanel({
                                                   setEditingFlavors(n);
                                                 }}
                                                 placeholder="Orig"
-                                                className="w-12 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
+                                                className="w-12 p-1 bg-[#1a1a1a] border border-slate-300 text-slate-900 rounded text-[10px]"
                                               />
-                                              <label className="text-[9px] text-zinc-400 flex items-center gap-0.5 ml-auto">
+                                              <label className="text-[9px] text-slate-600 flex items-center gap-0.5 ml-auto">
                                                 <input
                                                   type="checkbox"
                                                   checked={fl.isPopular}
@@ -3808,7 +3808,7 @@ export default function AdminPanel({
                                       </div>
                                       <div className="flex flex-col gap-0.5 mt-1 mb-1">
                                         <div className="flex justify-between items-center">
-                                          <span className="text-[8px] text-zinc-500 uppercase font-bold">
+                                          <span className="text-[8px] text-slate-500 uppercase font-bold">
                                             Add-ons (Optional)
                                           </span>
                                           <button
@@ -3818,7 +3818,7 @@ export default function AdminPanel({
                                                 { name: "", price: 0 },
                                               ])
                                             }
-                                            className="text-[9px] text-amber-500 font-bold"
+                                            className="text-[9px] text-[#D70F64] font-bold"
                                           >
                                             + Add
                                           </button>
@@ -3826,7 +3826,7 @@ export default function AdminPanel({
                                         {editingAddOns.map((ad, idx) => (
                                           <div
                                             key={idx}
-                                            className="flex flex-col gap-2 p-2 bg-zinc-900/50 rounded border border-zinc-800 mb-1"
+                                            className="flex flex-col gap-2 p-2 bg-slate-100/50 rounded border border-slate-200 mb-1"
                                           >
                                             <div className="flex gap-1 items-center">
                                               <input
@@ -3838,7 +3838,7 @@ export default function AdminPanel({
                                                   setEditingAddOns(n);
                                                 }}
                                                 placeholder="Addon Name"
-                                                className="flex-1 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
+                                                className="flex-1 p-1 bg-[#1a1a1a] border border-slate-300 text-slate-900 rounded text-[10px]"
                                               />
                                               <input
                                                 type="number"
@@ -3851,7 +3851,7 @@ export default function AdminPanel({
                                                   setEditingAddOns(n);
                                                 }}
                                                 placeholder="Extra Price"
-                                                className="w-16 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
+                                                className="w-16 p-1 bg-[#1a1a1a] border border-slate-300 text-slate-900 rounded text-[10px]"
                                               />
                                               <input
                                                 type="number"
@@ -3864,7 +3864,7 @@ export default function AdminPanel({
                                                   setEditingAddOns(n);
                                                 }}
                                                 placeholder="Orig Price"
-                                                className="w-16 p-1 bg-[#1a1a1a] border border-zinc-700 text-white rounded text-[10px]"
+                                                className="w-16 p-1 bg-[#1a1a1a] border border-slate-300 text-slate-900 rounded text-[10px]"
                                               />
                                               <button
                                                 onClick={() => {
@@ -3896,7 +3896,7 @@ export default function AdminPanel({
                                       onClick={() =>
                                         setEditingPriceDishId(null)
                                       }
-                                      className="px-2 py-0.5 bg-zinc-800 text-zinc-300 rounded text-[9px] font-bold cursor-pointer"
+                                      className="px-2 py-0.5 bg-slate-200 text-slate-700 rounded text-[9px] font-bold cursor-pointer"
                                     >
                                       Cancel
                                     </button>
@@ -3904,7 +3904,7 @@ export default function AdminPanel({
                                       onClick={() =>
                                         handleSavePriceChange(dish)
                                       }
-                                      className="px-2 py-0.5 bg-amber-500 text-black rounded text-[9px] font-black cursor-pointer shadow-xs animate-pulse-subtle"
+                                      className="px-2 py-0.5 bg-[#D70F64] text-black rounded text-[9px] font-black cursor-pointer shadow-xs animate-pulse-subtle"
                                     >
                                       Save
                                     </button>
@@ -3918,12 +3918,12 @@ export default function AdminPanel({
                                       <span className="font-extrabold text-emerald-400 text-xs">
                                         Rs. {dish.discountPrice}
                                       </span>
-                                      <span className="font-bold text-zinc-500 text-[10px] line-through">
+                                      <span className="font-bold text-slate-500 text-[10px] line-through">
                                         Rs. {dish.price}
                                       </span>
                                     </>
                                   ) : (
-                                    <span className="font-extrabold text-white">
+                                    <span className="font-extrabold text-slate-900">
                                       Rs. {dish.price}
                                     </span>
                                   )}
@@ -3964,7 +3964,7 @@ export default function AdminPanel({
                                           : [],
                                       );
                                     }}
-                                    className="text-[10px] text-amber-500 hover:underline cursor-pointer text-left mt-1 font-bold"
+                                    className="text-[10px] text-[#D70F64] hover:underline cursor-pointer text-left mt-1 font-bold"
                                   >
                                     Edit Details
                                   </button>
@@ -3974,13 +3974,13 @@ export default function AdminPanel({
                             <td className="p-4 text-center">
                               <button
                                 onClick={() => handleToggleFeatured(dish)}
-                                className="inline-flex justify-center transition cursor-pointer text-amber-500 hover:scale-110"
+                                className="inline-flex justify-center transition cursor-pointer text-[#D70F64] hover:scale-110"
                                 title="Toggle Featured / Favorite Status"
                               >
                                 {dish.isFeatured ? (
                                   <Star className="w-5 h-5 fill-current" />
                                 ) : (
-                                  <Star className="w-5 h-5 text-zinc-650" />
+                                  <Star className="w-5 h-5 text-slate-500" />
                                 )}
                               </button>
                             </td>
@@ -3997,9 +3997,9 @@ export default function AdminPanel({
                                     </span>
                                   </div>
                                 ) : (
-                                  <div className="flex items-center gap-1.5 text-zinc-650">
+                                  <div className="flex items-center gap-1.5 text-slate-500">
                                     <ToggleLeft className="w-7 h-7 stroke-[1.5]" />
-                                    <span className="text-[10px] uppercase font-bold tracking-wide text-zinc-500">
+                                    <span className="text-[10px] uppercase font-bold tracking-wide text-slate-500">
                                       Sold Out
                                     </span>
                                   </div>
@@ -4009,7 +4009,7 @@ export default function AdminPanel({
                             <td className="p-4 text-center">
                               <button
                                 onClick={() => handleDeleteItem(dish.id)}
-                                className="p-2 text-zinc-650 hover:text-red-500 hover:bg-red-950/20 rounded-xl transition cursor-pointer"
+                                className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-950/20 rounded-xl transition cursor-pointer"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
@@ -4026,16 +4026,16 @@ export default function AdminPanel({
           {/* TAB 2.5: Manage Services Directory */}
           {activeSubTab === "services" && (
             <div className="space-y-8 animate-fade-in">
-              <div className="flex items-center justify-between bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-4 rounded-2xl shadow-xl">
+              <div className="flex items-center justify-between bg-[#0b0b0d]/80  border border-slate-200 p-4 rounded-2xl shadow-xl">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
                     <Settings className="w-5 h-5 text-blue-500" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-black text-white tracking-wide uppercase">
+                    <h3 className="text-sm font-black text-slate-900 tracking-wide uppercase">
                       Managing Services
                     </h3>
-                    <p className="text-[11px] text-zinc-400 font-medium">
+                    <p className="text-[11px] text-slate-600 font-medium">
                       Home Services & Repair directory
                     </p>
                   </div>
@@ -4044,17 +4044,17 @@ export default function AdminPanel({
 
               <form
                 onSubmit={handleAddNewItem}
-                className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl space-y-5 relative"
+                className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm space-y-5 relative"
               >
                 <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-blue-500/10 to-transparent" />
-                <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 pb-3 border-b border-zinc-800/50 uppercase tracking-wide">
+                <h4 className="font-black text-sm text-slate-900 flex items-center gap-2 pb-3 border-b border-slate-200/50 uppercase tracking-wide">
                   <Plus className="w-4 h-4 text-blue-500" />
                   Register New Home Service Product
                 </h4>
 
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-5 text-xs">
                   <div className="md:col-span-3 space-y-1.5">
-                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">
+                    <label className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">
                       Title Name
                     </label>
                     <input
@@ -4063,12 +4063,12 @@ export default function AdminPanel({
                       value={newItemName}
                       onChange={(e) => setNewItemName(e.target.value)}
                       placeholder="e.g. AC Repair"
-                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-blue-500 transition focus:ring-1 focus:ring-blue-500/10"
+                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl text-slate-900 outline-none text-slate-900 focus:border-blue-500 transition focus:ring-1 focus:ring-blue-500/10"
                     />
                   </div>
 
                   <div className="md:col-span-2 space-y-1.5">
-                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">
+                    <label className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">
                       Base Price (Rs.)
                     </label>
                     <input
@@ -4077,12 +4077,12 @@ export default function AdminPanel({
                       value={newItemPrice}
                       onChange={(e) => setNewItemPrice(Number(e.target.value))}
                       placeholder="e.g. 500"
-                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-blue-500 transition focus:ring-1 focus:ring-blue-500/10"
+                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl text-slate-900 outline-none text-slate-900 focus:border-blue-500 transition focus:ring-1 focus:ring-blue-500/10"
                     />
                   </div>
 
                   <div className="md:col-span-2 space-y-1.5">
-                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">
+                    <label className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">
                       Discount Price (Rs.)
                     </label>
                     <input
@@ -4092,7 +4092,7 @@ export default function AdminPanel({
                         setNewItemDiscountPrice(Number(e.target.value))
                       }
                       placeholder="Optional"
-                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-blue-500 transition focus:ring-1 focus:ring-blue-500/10"
+                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl text-slate-900 outline-none text-slate-900 focus:border-blue-500 transition focus:ring-1 focus:ring-blue-500/10"
                     />
                   </div>
 
@@ -4108,12 +4108,12 @@ export default function AdminPanel({
                         setNewItemCommission(Number(e.target.value))
                       }
                       placeholder="Commission"
-                      className="w-full p-3 bg-zinc-950 border border-emerald-900 rounded-xl text-white outline-none focus:border-emerald-500 transition focus:ring-1 focus:ring-emerald-500/10 font-bold"
+                      className="w-full p-3 bg-white border border-slate-200 border border-emerald-900 rounded-xl text-slate-900 outline-none text-slate-900 focus:border-emerald-500 transition focus:ring-1 focus:ring-emerald-500/10 font-bold"
                     />
                   </div>
 
                   <div className="md:col-span-3 space-y-1.5">
-                    <label className="text-zinc-500 font-bold uppercase tracking-widest text-[9px]">
+                    <label className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">
                       Description Information
                     </label>
                     <input
@@ -4121,7 +4121,7 @@ export default function AdminPanel({
                       value={newItemDescription}
                       onChange={(e) => setNewItemDescription(e.target.value)}
                       placeholder="Brief descriptive labels shown to customers"
-                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-blue-500 transition focus:ring-1 focus:ring-blue-500/10"
+                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl text-slate-900 outline-none text-slate-900 focus:border-blue-500 transition focus:ring-1 focus:ring-blue-500/10"
                     />
                   </div>
 
@@ -4145,7 +4145,7 @@ export default function AdminPanel({
                         onChange={(e) =>
                           setNewItemRestaurantName(e.target.value)
                         }
-                        className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none appearance-none focus:border-blue-500 transition focus:ring-1 focus:ring-blue-500/10"
+                        className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl text-slate-900 outline-none appearance-none focus:border-blue-500 transition focus:ring-1 focus:ring-blue-500/10"
                       >
                         <option value="">
                           Default (Auto-selects based on category)
@@ -4156,7 +4156,7 @@ export default function AdminPanel({
                           </option>
                         ))}
                       </select>
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
                         <svg
                           width="14"
                           height="14"
@@ -4186,7 +4186,7 @@ export default function AdminPanel({
                         setNewItemServiceDuration(e.target.value)
                       }
                       placeholder="e.g. Expected arrival within 1 hour"
-                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-blue-500 transition focus:ring-1 focus:ring-blue-500/10"
+                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl text-slate-900 outline-none text-slate-900 focus:border-blue-500 transition focus:ring-1 focus:ring-blue-500/10"
                     />
                   </div>
                 </div>
@@ -4203,20 +4203,20 @@ export default function AdminPanel({
               </form>
 
               {/* Items Table List */}
-              <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 rounded-[24px] overflow-hidden shadow-2xl relative">
+              <div className="bg-[#0b0b0d]/80  border border-slate-200 rounded-[24px] overflow-hidden shadow-sm relative">
                 <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-blue-500/10 to-transparent" />
-                <div className="p-5 border-b border-zinc-800/50 bg-zinc-900/15">
-                  <h4 className="font-black text-sm text-zinc-100 uppercase tracking-wide">
+                <div className="p-5 border-b border-slate-200/50 bg-slate-100/15">
+                  <h4 className="font-black text-sm text-slate-900 uppercase tracking-wide">
                     Operational Services Directory
                   </h4>
-                  <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                     Enable availability controls and edit prices instantly
                   </span>
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full text-xs text-left text-zinc-455 font-medium">
-                    <thead className="bg-zinc-950/70 text-zinc-500 uppercase font-black tracking-widest text-[9px] border-b border-zinc-850/40">
+                  <table className="w-full text-xs text-left text-slate-600 font-medium">
+                    <thead className="bg-white border border-slate-200/70 text-slate-500 uppercase font-black tracking-widest text-[9px] border-b border-slate-200/40">
                       <tr>
                         <th className="p-4.5">Service Name</th>
                         <th className="p-4.5">Price (Rs.)</th>
@@ -4224,13 +4224,13 @@ export default function AdminPanel({
                         <th className="p-4.5 text-center">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-900/40">
+                    <tbody className="divide-y divide-slate-200/40">
                       {dishes
                         .filter((dish) => dish.type === "service")
                         .map((dish) => (
                           <tr
                             key={dish.id}
-                            className="hover:bg-zinc-900/20 transition-colors"
+                            className="hover:bg-slate-100/20 transition-colors"
                           >
                             <td className="p-4 font-bold text-gray-200">
                               <div className="flex items-center gap-3">
@@ -4238,17 +4238,17 @@ export default function AdminPanel({
                                   <img
                                     src={dish.imageUrl}
                                     alt={dish.name}
-                                    className="w-8 h-8 rounded-lg object-cover bg-zinc-950 shrink-0"
+                                    className="w-8 h-8 rounded-lg object-cover bg-white border border-slate-200 shrink-0"
                                     referrerPolicy="no-referrer"
                                   />
                                 ) : (
-                                  <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0">
-                                    <span className="text-[7px] text-zinc-500 font-black uppercase text-center leading-tight">No<br/>Img</span>
+                                  <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
+                                    <span className="text-[7px] text-slate-500 font-black uppercase text-center leading-tight">No<br/>Img</span>
                                   </div>
                                 )}
                                 <div className="truncate max-w-xs">
                                   <div>{dish.name}</div>
-                                  <div className="text-[10px] text-zinc-500 font-medium font-sans mt-0.5">
+                                  <div className="text-[10px] text-slate-500 font-medium font-sans mt-0.5">
                                     🏪 Provider:{" "}
                                     <span className="text-blue-500 font-bold">
                                       {dish.restaurantName ||
@@ -4256,7 +4256,7 @@ export default function AdminPanel({
                                     </span>
                                   </div>
                                   {dish.serviceDuration && (
-                                    <div className="text-[10px] text-zinc-500 font-medium font-sans mt-0.5">
+                                    <div className="text-[10px] text-slate-500 font-medium font-sans mt-0.5">
                                       ⏱️ Duration:{" "}
                                       <span className="text-blue-500 font-bold">
                                         {dish.serviceDuration}
@@ -4283,7 +4283,7 @@ export default function AdminPanel({
                                     onChange={(e) =>
                                       setEditingNameInput(e.target.value)
                                     }
-                                    className="w-full p-2 bg-zinc-950 text-white text-xs border border-zinc-700 focus:border-blue-500 outline-none rounded"
+                                    className="w-full p-2 bg-white border border-slate-200 text-slate-900 text-xs border border-slate-300 focus:border-blue-500 outline-none rounded"
                                     placeholder="Service Name"
                                   />
                                   <input
@@ -4294,7 +4294,7 @@ export default function AdminPanel({
                                         Number(e.target.value),
                                       )
                                     }
-                                    className="w-full p-2 bg-zinc-950 text-white text-xs border border-zinc-700 focus:border-blue-500 outline-none rounded"
+                                    className="w-full p-2 bg-white border border-slate-200 text-slate-900 text-xs border border-slate-300 focus:border-blue-500 outline-none rounded"
                                     placeholder="New Price"
                                   />
                                   <input
@@ -4305,7 +4305,7 @@ export default function AdminPanel({
                                         Number(e.target.value),
                                       )
                                     }
-                                    className="w-full p-2 bg-zinc-950 text-white text-xs border border-zinc-700 focus:border-blue-500 outline-none rounded"
+                                    className="w-full p-2 bg-white border border-slate-200 text-slate-900 text-xs border border-slate-300 focus:border-blue-500 outline-none rounded"
                                     placeholder="Discount"
                                   />
                                   <input
@@ -4316,7 +4316,7 @@ export default function AdminPanel({
                                         Number(e.target.value),
                                       )
                                     }
-                                    className="w-full p-2 bg-zinc-950 text-white text-[10px] border border-emerald-900 focus:border-emerald-500 outline-none rounded"
+                                    className="w-full p-2 bg-white border border-slate-200 text-slate-900 text-[10px] border border-emerald-900 focus:border-emerald-500 outline-none rounded"
                                     placeholder="Comm."
                                   />
                                   <div className="flex gap-2">
@@ -4324,7 +4324,7 @@ export default function AdminPanel({
                                       onClick={() =>
                                         setEditingPriceDishId(null)
                                       }
-                                      className="px-2 py-0.5 bg-zinc-800 text-zinc-300 rounded text-[9px] font-bold cursor-pointer"
+                                      className="px-2 py-0.5 bg-slate-200 text-slate-700 rounded text-[9px] font-bold cursor-pointer"
                                     >
                                       Cancel
                                     </button>
@@ -4346,12 +4346,12 @@ export default function AdminPanel({
                                       <span className="font-extrabold text-emerald-400 text-xs">
                                         Rs. {dish.discountPrice}
                                       </span>
-                                      <span className="font-bold text-zinc-500 text-[10px] line-through">
+                                      <span className="font-bold text-slate-500 text-[10px] line-through">
                                         Rs. {dish.price}
                                       </span>
                                     </>
                                   ) : (
-                                    <span className="font-extrabold text-white">
+                                    <span className="font-extrabold text-slate-900">
                                       Rs. {dish.price}
                                     </span>
                                   )}
@@ -4391,9 +4391,9 @@ export default function AdminPanel({
                                     </span>
                                   </div>
                                 ) : (
-                                  <div className="flex items-center gap-1.5 text-zinc-650">
+                                  <div className="flex items-center gap-1.5 text-slate-500">
                                     <ToggleLeft className="w-7 h-7 stroke-[1.5]" />
-                                    <span className="text-[10px] uppercase font-bold tracking-wide text-zinc-500">
+                                    <span className="text-[10px] uppercase font-bold tracking-wide text-slate-500">
                                       Sold Out
                                     </span>
                                   </div>
@@ -4403,7 +4403,7 @@ export default function AdminPanel({
                             <td className="p-4 text-center">
                               <button
                                 onClick={() => handleDeleteItem(dish.id)}
-                                className="p-2 text-zinc-650 hover:text-red-500 hover:bg-red-950/20 rounded-xl transition cursor-pointer"
+                                className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-950/20 rounded-xl transition cursor-pointer"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
@@ -4420,14 +4420,14 @@ export default function AdminPanel({
           {/* TAB 3: Live Orders Manager */}
           {activeSubTab === "orders" && (
             <div className="space-y-8 animate-fade-in">
-              <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 rounded-[24px] overflow-hidden shadow-2xl relative">
-                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-500/10 to-transparent" />
-                <div className="p-6 border-b border-zinc-800/50 bg-zinc-900/15 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="bg-[#0b0b0d]/80  border border-slate-200 rounded-[24px] overflow-hidden shadow-sm relative">
+                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#D70F64]/10 to-transparent" />
+                <div className="p-6 border-b border-slate-200/50 bg-slate-100/15 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <h4 className="font-black text-sm text-zinc-100 uppercase tracking-wide">
+                    <h4 className="font-black text-sm text-slate-900 uppercase tracking-wide">
                       Live Operational Orders Pipeline
                     </h4>
-                    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
                       Monitor order transactions and assign dispatchers in
                       real-time
                     </span>
@@ -4443,9 +4443,9 @@ export default function AdminPanel({
                   )}
                 </div>
 
-                <div className="divide-y divide-zinc-900/30">
+                <div className="divide-y divide-slate-200/30">
                   {orders.length === 0 ? (
-                    <div className="p-16 text-center text-xs text-zinc-500 font-bold uppercase tracking-wider">
+                    <div className="p-16 text-center text-xs text-slate-500 font-bold uppercase tracking-wider">
                       Logs directory is blank. Waiting for live user
                       transactions...
                     </div>
@@ -4460,33 +4460,33 @@ export default function AdminPanel({
                       return (
                         <div
                           key={order.id}
-                          className="p-6 hover:bg-zinc-900/10 transition-all space-y-5"
+                          className="p-6 hover:bg-slate-50 transition-all space-y-5"
                         >
                           {/* Top metadata strip */}
-                          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-zinc-950 p-4 rounded-2xl border border-zinc-900">
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white border border-slate-200 p-4 rounded-2xl border border-slate-200">
                             <div>
                               <div className="flex items-center gap-2.5">
-                                <span className="font-mono text-xs font-black text-white uppercase bg-zinc-900 border border-zinc-800 py-1.5 px-3 rounded-lg shadow-inner">
+                                <span className="font-mono text-xs font-black text-slate-900 uppercase bg-slate-100 border border-slate-200 py-1.5 px-3 rounded-lg shadow-inner">
                                   dadu-{order.id.substring(0, 8)}
                                 </span>
                                 <span
                                   className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${
                                     isSvc
-                                      ? "bg-amber-950/80 border border-amber-900/40 text-amber-500"
+                                      ? "bg-amber-950/80 border border-amber-900/40 text-[#D70F64]"
                                       : "bg-pink-950/80 border border-pink-900/40 text-[#D70F64]"
                                   }`}
                                 >
                                   {order.orderType}
                                 </span>
                               </div>
-                              <div className="flex flex-wrap gap-3 items-center mt-3 text-xs text-zinc-400">
-                                <span className="font-extrabold text-zinc-200">
+                              <div className="flex flex-wrap gap-3 items-center mt-3 text-xs text-slate-600">
+                                <span className="font-extrabold text-slate-800">
                                   {order.userName}
                                 </span>
-                                <span className="text-zinc-700">|</span>
-                                <span className="font-medium text-zinc-300 flex items-center gap-2">
+                                <span className="text-slate-300">|</span>
+                                <span className="font-medium text-slate-700 flex items-center gap-2">
                                   Phone:{" "}
-                                  <span className="font-bold text-white">
+                                  <span className="font-bold text-slate-900">
                                     {order.userPhone}
                                   </span>
                                   <a
@@ -4497,10 +4497,10 @@ export default function AdminPanel({
                                     📞 Call
                                   </a>
                                 </span>
-                                <span className="text-zinc-700">|</span>
-                                <span className="font-medium text-zinc-300">
+                                <span className="text-slate-300">|</span>
+                                <span className="font-medium text-slate-700">
                                   Total:{" "}
-                                  <span className="font-black text-amber-500">
+                                  <span className="font-black text-[#D70F64]">
                                     Rs. {order.grandTotal}
                                   </span>
                                 </span>
@@ -4509,17 +4509,17 @@ export default function AdminPanel({
 
                             {/* Status label banner */}
                             <div className="text-left sm:text-right">
-                              <span className="text-[10px] uppercase tracking-widest font-black text-zinc-500 block">
+                              <span className="text-[10px] uppercase tracking-widest font-black text-slate-500 block">
                                 Current Status
                               </span>
                               <span
-                                className={`text-xs font-black uppercase mt-1.5 inline-flex items-center gap-1.5 py-1 px-2.5 rounded-lg bg-zinc-900/60 ${
+                                className={`text-xs font-black uppercase mt-1.5 inline-flex items-center gap-1.5 py-1 px-2.5 rounded-lg bg-slate-100/60 ${
                                   order.status === "delivered" ||
                                   order.status === "completed"
                                     ? "text-emerald-400 border border-emerald-950/65"
                                     : order.status === "cancelled"
                                       ? "text-red-500 border border-red-950/65"
-                                      : "text-amber-500 border border-amber-950/65"
+                                      : "text-[#D70F64] border border-amber-950/65"
                                 }`}
                               >
                                 <span
@@ -4529,7 +4529,7 @@ export default function AdminPanel({
                                       ? "bg-emerald-400"
                                       : order.status === "cancelled"
                                         ? "bg-red-500"
-                                        : "bg-amber-500"
+                                        : "bg-[#D70F64]"
                                   }`}
                                 />
                                 {order.status}
@@ -4539,11 +4539,11 @@ export default function AdminPanel({
 
                           {/* Items descriptions and customer address */}
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs font-medium">
-                            <div className="bg-zinc-950 p-4 rounded-2xl border border-zinc-900 space-y-3">
-                              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block">
+                            <div className="bg-white border border-slate-200 p-4 rounded-2xl border border-slate-200 space-y-3">
+                              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">
                                 Cart Summary
                               </span>
-                              <div className="divide-y divide-zinc-900/60">
+                              <div className="divide-y divide-slate-200/60">
                                 {order.items.map((item, id) => (
                                   <div
                                     key={id}
@@ -4559,19 +4559,19 @@ export default function AdminPanel({
                                             : "Dadu Fast Food")}
                                         )
                                       </span>{" "}
-                                      <span className="text-zinc-500 font-bold">
+                                      <span className="text-slate-500 font-bold">
                                         x{item.quantity}
                                       </span>
                                     </span>
-                                    <span className="font-extrabold text-zinc-400">
+                                    <span className="font-extrabold text-slate-600">
                                       Rs. {item.price * item.quantity}
                                     </span>
                                   </div>
                                 ))}
                               </div>
-                              <div className="text-[10px] text-zinc-500 pt-2 border-t border-zinc-900/60 leading-normal font-bold uppercase tracking-wider">
+                              <div className="text-[10px] text-slate-500 pt-2 border-t border-slate-200/60 leading-normal font-bold uppercase tracking-wider">
                                 {isSvc ? (
-                                  <span className="text-amber-500/80">
+                                  <span className="text-[#D70F64]/80">
                                     🛠️ Service inspection visit - PAY ON VISIT
                                   </span>
                                 ) : (
@@ -4583,19 +4583,19 @@ export default function AdminPanel({
                               </div>
                             </div>
 
-                            <div className="bg-zinc-950 p-4 rounded-2xl border border-zinc-900 space-y-3">
-                              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block">
+                            <div className="bg-white border border-slate-200 p-4 rounded-2xl border border-slate-200 space-y-3">
+                              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">
                                 Destination address Coordinates
                               </span>
-                              <p className="text-gray-300 leading-relaxed bg-zinc-900/20 p-3 rounded-xl border border-zinc-900 truncate">
+                              <p className="text-gray-300 leading-relaxed bg-slate-100/20 p-3 rounded-xl border border-slate-200 truncate">
                                 📍 {order.userAddress}
                               </p>
 
                               {/* Logistics parameters inputs (Save Rider / saved ETA) */}
                               {isActive && (
-                                <div className="pt-2.5 border-t border-zinc-900/60 flex gap-3">
+                                <div className="pt-2.5 border-t border-slate-200/60 flex gap-3">
                                   <div className="flex-1 space-y-1">
-                                    <span className="text-[8.5px] font-black text-zinc-500 tracking-widest block uppercase">
+                                    <span className="text-[8.5px] font-black text-slate-500 tracking-widest block uppercase">
                                       {isSvc
                                         ? "Technician Name"
                                         : "Delivery Rider"}
@@ -4612,7 +4612,7 @@ export default function AdminPanel({
                                           [order.id]: e.target.value,
                                         })
                                       }
-                                      className="w-full text-xs p-2 bg-zinc-900 border border-zinc-800 rounded-lg text-white font-medium outline-none focus:border-amber-500 appearance-none"
+                                      className="w-full text-xs p-2 bg-slate-100 border border-slate-200 rounded-lg text-slate-900 font-medium outline-none text-slate-900 focus:border-[#D70F64] appearance-none"
                                     >
                                       <option value="">-- Select --</option>
                                       {ridersSubset.map((r) => (
@@ -4624,7 +4624,7 @@ export default function AdminPanel({
                                   </div>
 
                                   <div className="flex-1 space-y-1">
-                                    <span className="text-[8.5px] font-black text-zinc-500 tracking-widest block uppercase">
+                                    <span className="text-[8.5px] font-black text-slate-500 tracking-widest block uppercase">
                                       {isSvc ? "Arrival ETA" : "Duration ETA"}
                                     </span>
                                     <input
@@ -4639,7 +4639,7 @@ export default function AdminPanel({
                                           [order.id]: e.target.value,
                                         })
                                       }
-                                      className="w-full text-xs p-2 bg-zinc-900 border border-zinc-800 rounded-lg text-white font-medium outline-none focus:border-amber-500"
+                                      className="w-full text-xs p-2 bg-slate-100 border border-slate-200 rounded-lg text-slate-900 font-medium outline-none text-slate-900 focus:border-[#D70F64]"
                                     />
                                   </div>
 
@@ -4647,7 +4647,7 @@ export default function AdminPanel({
                                     onClick={() =>
                                       handleSaveRiderAndEta(order.id)
                                     }
-                                    className="bg-amber-500 hover:bg-amber-600 text-black font-black p-2 px-3 rounded-lg self-end text-[10px] uppercase tracking-wider cursor-pointer h-9 shadow-md transition-all flex items-center justify-center shrink-0 hover:scale-[1.02] active:scale-95"
+                                    className="bg-[#D70F64] hover:bg-[#b00c50] text-black font-black p-2 px-3 rounded-lg self-end text-[10px] uppercase tracking-wider cursor-pointer h-9 shadow-md transition-all flex items-center justify-center shrink-0 hover:scale-[1.02] active:scale-95"
                                   >
                                     Apply
                                   </button>
@@ -4659,7 +4659,7 @@ export default function AdminPanel({
                           {/* Interactive order dispatch pipelines selectors */}
                           {isActive && (
                             <div className="pt-2 flex flex-wrap gap-2.5 items-center">
-                              <span className="text-[9.5px] font-black uppercase text-amber-500/90 tracking-widest mr-1">
+                              <span className="text-[9.5px] font-black uppercase text-[#D70F64]/90 tracking-widest mr-1">
                                 Configure Next State:
                               </span>
 
@@ -4673,7 +4673,7 @@ export default function AdminPanel({
                                         "confirmed",
                                       )
                                     }
-                                    className="bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-gray-300 px-3.5 py-2 rounded-xl transition cursor-pointer text-[10px] font-black uppercase tracking-wider hover:scale-[1.02] active:scale-95"
+                                    className="bg-slate-100 border border-slate-200 hover:border-slate-300 text-gray-300 px-3.5 py-2 rounded-xl transition cursor-pointer text-[10px] font-black uppercase tracking-wider hover:scale-[1.02] active:scale-95"
                                   >
                                     🤝 Confirmed
                                   </button>
@@ -4723,7 +4723,7 @@ export default function AdminPanel({
                                         "confirmed",
                                       )
                                     }
-                                    className="bg-zinc-900 border border-zinc-800 hover:border-zinc-750 text-gray-300 px-3.5 py-2 rounded-xl transition cursor-pointer text-[10px] font-black uppercase tracking-wider hover:scale-[1.02] active:scale-95"
+                                    className="bg-slate-100 border border-slate-200 hover:border-slate-200 text-gray-300 px-3.5 py-2 rounded-xl transition cursor-pointer text-[10px] font-black uppercase tracking-wider hover:scale-[1.02] active:scale-95"
                                   >
                                     🤝 Confirm Booking
                                   </button>
@@ -4785,17 +4785,17 @@ export default function AdminPanel({
 
           {/* TAB 4: Manage Riders Directory */}
           {activeSubTab === "riders" && (
-            <div className="space-y-8 animate-fade-in text-zinc-100 col-span-1 lg:col-span-9">
+            <div className="space-y-8 animate-fade-in text-slate-900 col-span-1 lg:col-span-9">
               {/* Top Row: General Settings & Status Metrics */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Global Delivery Charge Config */}
-                <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl relative space-y-4">
-                  <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-500/10 to-transparent" />
-                  <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 pb-2.5 border-b border-zinc-805/50 uppercase tracking-wide">
+                <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm relative space-y-4">
+                  <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#D70F64]/10 to-transparent" />
+                  <h4 className="font-black text-sm text-slate-900 flex items-center gap-2 pb-2.5 border-b border-slate-200 uppercase tracking-wide">
                     <Truck className="w-4 h-4 text-[#D70F64]" />
                     Set Global Delivery Charges
                   </h4>
-                  <p className="text-[10.5px] text-zinc-400 font-medium leading-relaxed">
+                  <p className="text-[10.5px] text-slate-600 font-medium leading-relaxed">
                     This setting governs the base delivery rate added to
                     checkout carts across Dadu24#7 dynamically.
                   </p>
@@ -4803,7 +4803,7 @@ export default function AdminPanel({
                   <div className="flex flex-col gap-3 text-xs pt-1">
                     <div className="flex items-center gap-3">
                       <div className="relative flex-grow">
-                        <span className="absolute left-3.5 top-3.5 text-zinc-500 font-bold">
+                        <span className="absolute left-3.5 top-3.5 text-slate-500 font-bold">
                           Rs.
                         </span>
                         <input
@@ -4814,7 +4814,7 @@ export default function AdminPanel({
                             setDeliveryChargeInput(Number(e.target.value))
                           }
                           placeholder="Delivery Fee"
-                          className="w-full pl-10 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-white font-extrabold focus:border-amber-500 transition"
+                          className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 border border-slate-200 rounded-xl outline-none text-slate-900 font-extrabold focus:border-[#D70F64] transition"
                         />
                       </div>
                       <button
@@ -4826,11 +4826,11 @@ export default function AdminPanel({
                       </button>
                     </div>
                     <div className="relative flex-grow mt-2">
-                      <span className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">
+                      <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
                         Minimum Order Amount
                       </span>
                       <div className="relative">
-                        <span className="absolute left-3.5 top-3.5 text-zinc-500 font-bold">
+                        <span className="absolute left-3.5 top-3.5 text-slate-500 font-bold">
                           Rs.
                         </span>
                         <input
@@ -4841,7 +4841,7 @@ export default function AdminPanel({
                             setMinOrderAmountInput(Number(e.target.value))
                           }
                           placeholder="0 for no minimum"
-                          className="w-full pl-10 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-white font-extrabold focus:border-amber-500 transition"
+                          className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 border border-slate-200 rounded-xl outline-none text-slate-900 font-extrabold focus:border-[#D70F64] transition"
                         />
                       </div>
                     </div>
@@ -4849,16 +4849,16 @@ export default function AdminPanel({
                 </div>
 
                 {/* Mobile Restaurant Schedule Manager */}
-                <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl relative space-y-4">
+                <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm relative space-y-4">
                   <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-purple-500/10 to-transparent" />
-                  <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 pb-2.5 border-b border-zinc-805/50 uppercase tracking-wide">
+                  <h4 className="font-black text-sm text-slate-900 flex items-center gap-2 pb-2.5 border-b border-slate-200 uppercase tracking-wide">
                     <Clock className="w-4 h-4 text-purple-500" />
                     Restaurant Schedule
                   </h4>
 
                   <div className="space-y-4 pt-1">
                     <div>
-                      <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
                         Select Restaurant / Vendor
                       </label>
                       <div className="relative">
@@ -4867,7 +4867,7 @@ export default function AdminPanel({
                           onChange={(e) =>
                             setSelectedScheduleRestaurant(e.target.value)
                           }
-                          className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-xs text-white focus:border-purple-500/60 outline-none appearance-none"
+                          className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl text-xs text-slate-900 focus:border-purple-500/60 outline-none appearance-none"
                         >
                           {uniqueRestaurants.map((rest) => (
                             <option key={rest} value={rest}>
@@ -4875,7 +4875,7 @@ export default function AdminPanel({
                             </option>
                           ))}
                         </select>
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
                           <svg
                             width="14"
                             height="14"
@@ -4894,12 +4894,12 @@ export default function AdminPanel({
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between bg-zinc-950 p-4 rounded-xl border border-zinc-800">
+                    <div className="flex items-center justify-between bg-white border border-slate-200 p-4 rounded-xl border border-slate-200">
                       <div>
-                        <h5 className="font-bold text-xs text-zinc-100">
+                        <h5 className="font-bold text-xs text-slate-900">
                           Temporarily Unavailable
                         </h5>
-                        <p className="text-[10px] text-zinc-500">
+                        <p className="text-[10px] text-slate-500">
                           Pause orders immediately
                         </p>
                       </div>
@@ -4912,37 +4912,37 @@ export default function AdminPanel({
                             setRestStatusUnavailable(e.target.checked)
                           }
                         />
-                        <div className="w-10 h-5 bg-zinc-800 rounded-full peer peer-focus:ring-2 peer-focus:ring-purple-500/40 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-zinc-300 after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500"></div>
+                        <div className="w-10 h-5 bg-slate-200 rounded-full peer peer-focus:ring-2 peer-focus:ring-purple-500/40 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-700 after:border-slate-700 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500"></div>
                       </label>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
                           Open Time
                         </label>
                         <input
                           type="time"
                           value={restOpeningTime}
                           onChange={(e) => setRestOpeningTime(e.target.value)}
-                          className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-xs text-white focus:border-purple-500/60 outline-none"
+                          className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl text-xs text-slate-900 focus:border-purple-500/60 outline-none"
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
                           Close Time
                         </label>
                         <input
                           type="time"
                           value={restClosingTime}
                           onChange={(e) => setRestClosingTime(e.target.value)}
-                          className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-xs text-white focus:border-purple-500/60 outline-none"
+                          className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl text-xs text-slate-900 focus:border-purple-500/60 outline-none"
                         />
                       </div>
                     </div>
 
                     <div className="pt-2">
-                      <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
                         Restaurant Contact Phone
                       </label>
                       <input
@@ -4950,13 +4950,13 @@ export default function AdminPanel({
                         value={restPhone}
                         onChange={(e) => setRestPhone(e.target.value)}
                         placeholder="e.g. 03277004471"
-                        className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-xs text-white focus:border-purple-500/60 outline-none"
+                        className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl text-xs text-slate-900 focus:border-purple-500/60 outline-none"
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 pt-2">
                       <div>
-                        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
                           Min Order
                         </label>
                         <input
@@ -4964,11 +4964,11 @@ export default function AdminPanel({
                           value={restMinOrder}
                           onChange={(e) => setRestMinOrder(e.target.value)}
                           placeholder="e.g. 300"
-                          className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-xs text-white focus:border-purple-500/60 outline-none"
+                          className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl text-xs text-slate-900 focus:border-purple-500/60 outline-none"
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1.5">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
                           Delivery Charge Text
                         </label>
                         <input
@@ -4976,7 +4976,7 @@ export default function AdminPanel({
                           value={restDeliveryCharge}
                           onChange={(e) => setRestDeliveryCharge(e.target.value)}
                           placeholder="e.g. Rs. 50-100"
-                          className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-xs text-white focus:border-purple-500/60 outline-none"
+                          className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl text-xs text-slate-900 focus:border-purple-500/60 outline-none"
                         />
                       </div>
                     </div>
@@ -5003,18 +5003,18 @@ export default function AdminPanel({
                 </div>
 
                 {/* Live assigned deliveries summary stats */}
-                <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl relative space-y-4">
+                <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm relative space-y-4">
                   <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-green-500/10 to-transparent" />
-                  <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 pb-2.5 border-b border-zinc-805/50 uppercase tracking-wide">
+                  <h4 className="font-black text-sm text-slate-900 flex items-center gap-2 pb-2.5 border-b border-slate-200 uppercase tracking-wide">
                     <TrendingUp className="w-4 h-4 text-emerald-450" />
                     Delivery Fleet Statistics
                   </h4>
                   <div className="grid grid-cols-2 gap-4 text-xs pt-2">
-                    <div className="bg-zinc-950/40 border border-zinc-850 p-3.5 rounded-xl text-center">
+                    <div className="bg-white border border-slate-200/40 border border-slate-200 p-3.5 rounded-xl text-center">
                       <span className="text-[9px] text-[#D70F64] uppercase tracking-widest font-black block">
                         active shipments
                       </span>
-                      <span className="text-xl font-black text-white block mt-1">
+                      <span className="text-xl font-black text-slate-900 block mt-1">
                         {
                           orders.filter(
                             (o) =>
@@ -5025,11 +5025,11 @@ export default function AdminPanel({
                         }
                       </span>
                     </div>
-                    <div className="bg-zinc-950/40 border border-zinc-850 p-3.5 rounded-xl text-center">
-                      <span className="text-[9px] text-zinc-400 uppercase tracking-widest font-black block">
+                    <div className="bg-white border border-slate-200/40 border border-slate-200 p-3.5 rounded-xl text-center">
+                      <span className="text-[9px] text-slate-600 uppercase tracking-widest font-black block">
                         rider registry
                       </span>
-                      <span className="text-xl font-black text-white block mt-1">
+                      <span className="text-xl font-black text-slate-900 block mt-1">
                         {ridersSubset.length} Riders
                       </span>
                     </div>
@@ -5040,17 +5040,17 @@ export default function AdminPanel({
               {/* Secure Registration form */}
               <form
                 onSubmit={handleRegisterRiderSubmit}
-                className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl space-y-5 relative"
+                className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm space-y-5 relative"
               >
                 <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#D70F64]/20 to-transparent" />
-                <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 pb-3 border-b border-zinc-800/50 uppercase tracking-wide">
+                <h4 className="font-black text-sm text-slate-900 flex items-center gap-2 pb-3 border-b border-slate-200/50 uppercase tracking-wide">
                   <UserPlus className="w-4 h-4 text-[#D70F64]" />
                   Rider Registry Form (Manual Credentials Creation)
                 </h4>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-xs">
                   <div className="space-y-1.5">
-                    <label className="text-zinc-400 font-black uppercase tracking-widest text-[9px] flex items-center gap-1">
+                    <label className="text-slate-600 font-black uppercase tracking-widest text-[9px] flex items-center gap-1">
                       <User className="w-3 h-3 text-[#D70F64]" /> Rider Name
                     </label>
                     <input
@@ -5059,12 +5059,12 @@ export default function AdminPanel({
                       value={riderNameInput}
                       onChange={(e) => setRiderNameInput(e.target.value)}
                       placeholder="e.g. Muhammad Ali"
-                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 transition"
+                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl text-slate-900 outline-none text-slate-900 focus:border-[#D70F64] transition"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-zinc-400 font-black uppercase tracking-widest text-[9px] flex items-center gap-1">
+                    <label className="text-slate-600 font-black uppercase tracking-widest text-[9px] flex items-center gap-1">
                       <Phone className="w-3 h-3 text-[#D70F64]" /> Phone /
                       Username
                     </label>
@@ -5074,12 +5074,12 @@ export default function AdminPanel({
                       value={riderPhoneInput}
                       onChange={(e) => setRiderPhoneInput(e.target.value)}
                       placeholder="e.g. 03277004471 or ali_rider"
-                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 transition"
+                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl text-slate-900 outline-none text-slate-900 focus:border-[#D70F64] transition"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-zinc-400 font-black uppercase tracking-widest text-[9px] flex items-center gap-1">
+                    <label className="text-slate-600 font-black uppercase tracking-widest text-[9px] flex items-center gap-1">
                       <Key className="w-3 h-3 text-[#D70F64]" /> Access Password
                     </label>
                     <input
@@ -5088,7 +5088,7 @@ export default function AdminPanel({
                       value={riderPasswordInput}
                       onChange={(e) => setRiderPasswordInput(e.target.value)}
                       placeholder="• • • • • • (Min 6 tokens)"
-                      className="w-full p-3 bg-zinc-950 border border-zinc-800/80 rounded-xl text-white outline-none focus:border-amber-500 transition"
+                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl text-slate-900 outline-none text-slate-900 focus:border-[#D70F64] transition"
                     />
                   </div>
                 </div>
@@ -5115,16 +5115,16 @@ export default function AdminPanel({
               </form>
 
               {/* Live shipments assignment status dashboard */}
-              <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl relative space-y-5">
+              <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm relative space-y-5">
                 <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#D70F64]/20 to-transparent" />
-                <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 pb-3 border-b border-zinc-800/50 uppercase tracking-wide">
+                <h4 className="font-black text-sm text-slate-900 flex items-center gap-2 pb-3 border-b border-slate-200/50 uppercase tracking-wide">
                   <Compass className="w-4 h-4 text-[#D70F64] animate-spin-slow" />
                   Fleet Live Assignments Tracker
                 </h4>
 
                 <div className="space-y-4 max-h-[350px] overflow-y-auto scrollbar-none">
                   {orders.filter((o) => o.riderId).length === 0 ? (
-                    <div className="text-center p-8 text-zinc-500 text-xs font-semibold">
+                    <div className="text-center p-8 text-slate-500 text-xs font-semibold">
                       📦 No accepted shipments currently on active duty route.
                     </div>
                   ) : (
@@ -5133,7 +5133,7 @@ export default function AdminPanel({
                       .map((order) => (
                         <div
                           key={order.id}
-                          className="bg-zinc-950 border border-zinc-850 p-4.5 rounded-2xl flex items-center justify-between gap-4 flex-wrap text-xs"
+                          className="bg-white border border-slate-200 p-4.5 rounded-2xl flex items-center justify-between gap-4 flex-wrap text-xs"
                         >
                           <div>
                             <div className="flex items-center gap-2">
@@ -5144,22 +5144,22 @@ export default function AdminPanel({
                                 className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest ${
                                   order.status === "delivered"
                                     ? "bg-emerald-500/10 text-emerald-400"
-                                    : "bg-amber-500/10 text-amber-500 animate-pulse"
+                                    : "bg-[#D70F64]/10 text-[#D70F64] animate-pulse"
                                 }`}
                               >
                                 {order.status}
                               </span>
                             </div>
-                            <p className="text-zinc-400 text-[11px] font-semibold mt-1">
+                            <p className="text-slate-600 text-[11px] font-semibold mt-1">
                               Customer: {order.userName} ({order.userAddress})
                             </p>
                           </div>
 
-                          <div className="bg-zinc-900 border border-zinc-850 p-3 rounded-xl min-w-[200px] text-right text-xs">
-                            <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-black block">
+                          <div className="bg-slate-100 border border-slate-200 p-3 rounded-xl min-w-[200px] text-right text-xs">
+                            <span className="text-[9px] text-slate-500 uppercase tracking-widest font-black block">
                               assigned driver
                             </span>
-                            <span className="text-zinc-100 font-extrabold block text-xs mt-0.5">
+                            <span className="text-slate-900 font-extrabold block text-xs mt-0.5">
                               {order.riderName}
                             </span>
                             <span className="text-emerald-450 block font-mono text-[10px]">
@@ -5173,16 +5173,16 @@ export default function AdminPanel({
               </div>
 
               {/* Master directory list */}
-              <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl relative space-y-4">
-                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-zinc-500/20 to-transparent" />
-                <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 pb-3 border-b border-zinc-800/50 uppercase tracking-wide">
-                  <User className="w-4 h-4 text-zinc-450" />
+              <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm relative space-y-4">
+                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-slate-500/20 to-transparent" />
+                <h4 className="font-black text-sm text-slate-900 flex items-center gap-2 pb-3 border-b border-slate-200/50 uppercase tracking-wide">
+                  <User className="w-4 h-4 text-slate-500" />
                   Riders Directory Registry ({ridersSubset.length} Profiles)
                 </h4>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {ridersSubset.length === 0 ? (
-                    <div className="text-center p-8 col-span-2 text-zinc-500 text-xs font-semibold">
+                    <div className="text-center p-8 col-span-2 text-slate-500 text-xs font-semibold">
                       📋 No active riders provisioned.
                     </div>
                   ) : (
@@ -5275,11 +5275,11 @@ export default function AdminPanel({
                       return (
                         <div
                           key={rider.uid}
-                          className="bg-zinc-950 border border-zinc-850 p-4.5 rounded-2xl space-y-3 shadow-xs"
+                          className="bg-white border border-slate-200 p-4.5 rounded-2xl space-y-3 shadow-xs"
                         >
                           <div className="flex justify-between items-start">
                             <div>
-                              <span className="text-[10.5px] font-black tracking-wider text-white block">
+                              <span className="text-[10.5px] font-black tracking-wider text-slate-900 block">
                                 Rider Name: {rider.name}
                               </span>
                               <span className="text-[9px] text-[#D70F64] font-bold block bg-[#D70F64]/5 border border-[#D70F64]/20 px-2.5 py-0.5 rounded-full w-max mt-1 uppercase">
@@ -5287,7 +5287,7 @@ export default function AdminPanel({
                               </span>
                             </div>
                             <div className="flex items-center gap-1.5">
-                              <span className="font-mono text-[9px] text-zinc-550">
+                              <span className="font-mono text-[9px] text-slate-500">
                                 {rider.uid.substring(0, 8)}
                               </span>
                               <button
@@ -5301,10 +5301,10 @@ export default function AdminPanel({
                               </button>
                             </div>
                           </div>
-                          <div className="border-t border-zinc-900 pt-2 text-[11px] font-semibold text-zinc-400 font-sans space-y-1">
+                          <div className="border-t border-slate-200 pt-2 text-[11px] font-semibold text-slate-600 font-sans space-y-1">
                             <div>
                               📞 Contact Phone:{" "}
-                              <span className="font-mono text-zinc-200">
+                              <span className="font-mono text-slate-800">
                                 {rider.phone}
                               </span>
                             </div>
@@ -5321,7 +5321,7 @@ export default function AdminPanel({
                                 <span className="text-[9px] text-emerald-400 uppercase tracking-widest font-black block">
                                   delivered runs
                                 </span>
-                                <span className="text-xs font-extrabold text-white block mt-0.5">
+                                <span className="text-xs font-extrabold text-slate-900 block mt-0.5">
                                   {stats.totalCompleted} Orders
                                 </span>
                               </div>
@@ -5336,47 +5336,47 @@ export default function AdminPanel({
                             </div>
 
                             {/* Rider Sales Performance Statistics Dashboard */}
-                            <div className="bg-[#0b0b0d] border border-zinc-900 rounded-xl p-3 mt-2 space-y-2">
-                              <span className="text-[9.5px] font-black uppercase text-pink-500 tracking-wider flex items-center gap-1">
+                            <div className="bg-[#0b0b0d] border border-slate-200 rounded-xl p-3 mt-2 space-y-2">
+                              <span className="text-[9.5px] font-black uppercase text-[#D70F64] tracking-wider flex items-center gap-1">
                                 📊 Rider Earnings & Sales Stats
                               </span>
 
                               <div className="grid grid-cols-3 gap-2 text-center">
                                 {/* Today */}
-                                <div className="bg-zinc-900/60 border border-zinc-854 p-2 rounded-lg">
-                                  <span className="text-[8px] text-zinc-500 uppercase font-black block">
+                                <div className="bg-slate-100/60 border border-slate-200 p-2 rounded-lg">
+                                  <span className="text-[8px] text-slate-500 uppercase font-black block">
                                     Aaj (Today)
                                   </span>
                                   <span className="text-[10.5px] font-black text-rose-500 block mt-0.5">
                                     {stats.today.count} Orders
                                   </span>
-                                  <span className="text-[9.5px] font-bold text-zinc-200 block font-mono mt-0.5">
+                                  <span className="text-[9.5px] font-bold text-slate-800 block font-mono mt-0.5">
                                     Rs. {stats.today.sales}
                                   </span>
                                 </div>
 
                                 {/* Week */}
-                                <div className="bg-zinc-900/60 border border-zinc-854 p-2 rounded-lg">
-                                  <span className="text-[8px] text-zinc-500 uppercase font-black block">
+                                <div className="bg-slate-100/60 border border-slate-200 p-2 rounded-lg">
+                                  <span className="text-[8px] text-slate-500 uppercase font-black block">
                                     Hafta (Week)
                                   </span>
-                                  <span className="text-[10.5px] font-black text-amber-500 block mt-0.5">
+                                  <span className="text-[10.5px] font-black text-[#D70F64] block mt-0.5">
                                     {stats.week.count} Orders
                                   </span>
-                                  <span className="text-[9.5px] font-bold text-zinc-200 block font-mono mt-0.5">
+                                  <span className="text-[9.5px] font-bold text-slate-800 block font-mono mt-0.5">
                                     Rs. {stats.week.sales}
                                   </span>
                                 </div>
 
                                 {/* Month */}
-                                <div className="bg-zinc-900/60 border border-zinc-854 p-2 rounded-lg">
-                                  <span className="text-[8px] text-zinc-500 uppercase font-black block">
+                                <div className="bg-slate-100/60 border border-slate-200 p-2 rounded-lg">
+                                  <span className="text-[8px] text-slate-500 uppercase font-black block">
                                     Mahina (Month)
                                   </span>
                                   <span className="text-[10.5px] font-black text-emerald-500 block mt-0.5">
                                     {stats.month.count} Orders
                                   </span>
-                                  <span className="text-[9.5px] font-bold text-zinc-200 block font-mono mt-0.5">
+                                  <span className="text-[9.5px] font-bold text-slate-800 block font-mono mt-0.5">
                                     Rs. {stats.month.sales}
                                   </span>
                                 </div>
@@ -5384,20 +5384,20 @@ export default function AdminPanel({
                             </div>
 
                             {rider.riderCoords ? (
-                              <div className="bg-emerald-950/10 border border-emerald-950 p-2.5 rounded-xl mt-1.5 space-y-1.5 text-zinc-300">
+                              <div className="bg-emerald-950/10 border border-emerald-950 p-2.5 rounded-xl mt-1.5 space-y-1.5 text-slate-700">
                                 <div className="flex items-center justify-between text-[10px]">
                                   <span className="text-emerald-400 font-black flex items-center gap-1">
                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                                     LIVE GPS SIGNAL
                                   </span>
-                                  <span className="text-[9px] text-zinc-500">
+                                  <span className="text-[9px] text-slate-500">
                                     {rider.riderCoords.lastUpdated
                                       ? `${Math.round((Date.now() - rider.riderCoords.lastUpdated) / 1000)}s ago`
                                       : "Active"}
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between gap-1">
-                                  <span className="font-mono text-[9.5px] text-zinc-400">
+                                  <span className="font-mono text-[9.5px] text-slate-600">
                                     {rider.riderCoords.latitude.toFixed(5)},{" "}
                                     {rider.riderCoords.longitude.toFixed(5)}
                                   </span>
@@ -5405,14 +5405,14 @@ export default function AdminPanel({
                                     href={`https://www.google.com/maps/search/?api=1&query=${rider.riderCoords.latitude},${rider.riderCoords.longitude}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="bg-emerald-500 text-zinc-950 font-black text-[9px] px-2.5 py-1 rounded-lg hover:bg-emerald-400 transition uppercase tracking-widest leading-none block shrink-0"
+                                    className="bg-emerald-500 text-slate-50 font-black text-[9px] px-2.5 py-1 rounded-lg hover:bg-emerald-400 transition uppercase tracking-widest leading-none block shrink-0"
                                   >
                                     Open Map 🗺️
                                   </a>
                                 </div>
                               </div>
                             ) : (
-                              <div className="text-zinc-500 text-[10px] italic mt-2 bg-zinc-900/30 p-2 rounded-xl border border-zinc-900 text-center">
+                              <div className="text-slate-500 text-[10px] italic mt-2 bg-slate-100/30 p-2 rounded-xl border border-slate-200 text-center">
                                 📡 Awaiting active GPS tracking signal...
                               </div>
                             )}
@@ -5427,17 +5427,17 @@ export default function AdminPanel({
           )}
 
           {activeSubTab === "food_categories" && (
-            <div className="space-y-8 animate-fade-in text-zinc-100 col-span-1 lg:col-span-12 lg:col-start-4 font-sans">
-              <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl relative space-y-6">
+            <div className="space-y-8 animate-fade-in text-slate-900 col-span-1 lg:col-span-12 lg:col-start-4 font-sans">
+              <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm relative space-y-6">
                 <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-pink-500/10 to-transparent" />
-                <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 pb-2.5 border-b border-zinc-805/50 uppercase tracking-widest text-pink-500">
-                  <Grid className="w-4 h-4 text-pink-500" />
+                <h4 className="font-black text-sm text-slate-900 flex items-center gap-2 pb-2.5 border-b border-slate-200 uppercase tracking-widest text-[#D70F64]">
+                  <Grid className="w-4 h-4 text-[#D70F64]" />
                   Add New Food Category
                 </h4>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-600">
                       Category Name <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -5450,11 +5450,11 @@ export default function AdminPanel({
                         })
                       }
                       placeholder="e.g. Pizza"
-                      className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:border-pink-500 outline-none"
+                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl text-slate-900 focus:border-[#D70F64] outline-none"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-600">
                       Subtitle
                     </label>
                     <input
@@ -5467,11 +5467,11 @@ export default function AdminPanel({
                         })
                       }
                       placeholder="e.g. Hot Pizzas"
-                      className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:border-pink-500 outline-none"
+                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl text-slate-900 focus:border-[#D70F64] outline-none"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-600">
                       Emoji (Fallback if no image)
                     </label>
                     <input
@@ -5484,11 +5484,11 @@ export default function AdminPanel({
                         })
                       }
                       placeholder="e.g. 🍕"
-                      className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:border-pink-500 outline-none"
+                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl text-slate-900 focus:border-[#D70F64] outline-none"
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-600">
                       Position (Sorting)
                     </label>
                     <input
@@ -5501,7 +5501,7 @@ export default function AdminPanel({
                         })
                       }
                       placeholder="0"
-                      className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-white focus:border-pink-500 outline-none"
+                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl text-slate-900 focus:border-[#D70F64] outline-none"
                     />
                   </div>
 
@@ -5522,15 +5522,15 @@ export default function AdminPanel({
 
                 <button
                   onClick={handleAddFoodCategory}
-                  className="w-full bg-pink-600 hover:bg-pink-500 text-white font-black py-4 rounded-xl text-[11px] uppercase tracking-wider shadow-lg transition-all"
+                  className="w-full bg-pink-600 hover:bg-[#D70F64] text-white font-black py-4 rounded-xl text-[11px] uppercase tracking-wider shadow-lg transition-all"
                 >
                   Add Category
                 </button>
               </div>
 
-              <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl relative space-y-4">
-                <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 pb-2.5 border-b border-zinc-805/50 uppercase tracking-widest text-pink-500">
-                  <Grid className="w-4 h-4 text-pink-500" />
+              <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm relative space-y-4">
+                <h4 className="font-black text-sm text-slate-900 flex items-center gap-2 pb-2.5 border-b border-slate-200 uppercase tracking-widest text-[#D70F64]">
+                  <Grid className="w-4 h-4 text-[#D70F64]" />
                   Existing Food Categories
                 </h4>
 
@@ -5538,7 +5538,7 @@ export default function AdminPanel({
                   {foodCategories.map((cat) => (
                     <div
                       key={cat.id}
-                      className="bg-zinc-950 border border-zinc-800 rounded-xl p-3 flex flex-col relative overflow-hidden"
+                      className="bg-white border border-slate-200 border border-slate-200 rounded-xl p-3 flex flex-col relative overflow-hidden"
                     >
                       <div className="flex justify-between items-start mb-2">
                         {cat.imageUrl ? (
@@ -5553,13 +5553,13 @@ export default function AdminPanel({
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => setEditingFoodCategory(editingFoodCategory?.id === cat.id ? null : cat)}
-                            className="text-zinc-500 hover:text-blue-500 transition-colors"
+                            className="text-slate-500 hover:text-blue-500 transition-colors"
                           >
                             <span className="text-xs uppercase font-bold tracking-wider">Edit</span>
                           </button>
                           <button
                             onClick={() => handleDeleteFoodCategory(cat.id)}
-                            className="text-zinc-500 hover:text-red-500 transition-colors"
+                            className="text-slate-500 hover:text-red-500 transition-colors"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -5567,19 +5567,19 @@ export default function AdminPanel({
                       </div>
                       
                       {editingFoodCategory?.id === cat.id ? (
-                        <div className="mt-4 space-y-3 border-t border-zinc-800 pt-3">
+                        <div className="mt-4 space-y-3 border-t border-slate-200 pt-3">
                           <input 
                             type="text"
                             value={editingFoodCategory.name}
                             onChange={(e) => setEditingFoodCategory({...editingFoodCategory, name: e.target.value})}
-                            className="w-full p-2 bg-zinc-900 border border-zinc-700 rounded-lg text-xs outline-none"
+                            className="w-full p-2 bg-slate-100 border border-slate-300 rounded-lg text-xs outline-none"
                             placeholder="Name"
                           />
                           <input 
                             type="text"
                             value={editingFoodCategory.subtitle || ""}
                             onChange={(e) => setEditingFoodCategory({...editingFoodCategory, subtitle: e.target.value})}
-                            className="w-full p-2 bg-zinc-900 border border-zinc-700 rounded-lg text-xs outline-none"
+                            className="w-full p-2 bg-slate-100 border border-slate-300 rounded-lg text-xs outline-none"
                             placeholder="Subtitle"
                           />
                           <ProductImageSelector 
@@ -5597,7 +5597,7 @@ export default function AdminPanel({
                       ) : (
                         <>
                           <span className="font-bold text-sm mt-1">{cat.name}</span>
-                          <span className="text-[10px] text-zinc-500">
+                          <span className="text-[10px] text-slate-500">
                             {cat.subtitle}
                           </span>
                         </>
@@ -5610,26 +5610,26 @@ export default function AdminPanel({
           )}
 
           {activeSubTab === "grocery" && (
-            <div className="space-y-8 animate-fade-in text-zinc-100 col-span-1 lg:col-span-12 lg:col-start-4 font-sans">
+            <div className="space-y-8 animate-fade-in text-slate-900 col-span-1 lg:col-span-12 lg:col-start-4 font-sans">
               {/* Top Row: Grocery-specific store settings */}
-              <div className="bg-[#0b0b0d]/80 backdrop-blur-md border border-zinc-800/80 p-6 rounded-[24px] shadow-2xl relative space-y-4">
+              <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm relative space-y-4">
                 <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-orange-500/10 to-transparent" />
-                <h4 className="font-black text-sm text-zinc-100 flex items-center gap-2 pb-2.5 border-b border-zinc-805/50 uppercase tracking-widest text-orange-500">
+                <h4 className="font-black text-sm text-slate-900 flex items-center gap-2 pb-2.5 border-b border-slate-200 uppercase tracking-widest text-orange-500">
                   <ShoppingBasket className="w-4 h-4 text-orange-500" />
                   Grocery Delivery Configuration Settings
                 </h4>
-                <p className="text-[10.5px] text-zinc-400 font-medium leading-relaxed">
+                <p className="text-[10.5px] text-slate-600 font-medium leading-relaxed">
                   These metrics govern shipping charges, thresholds, and
                   checkout policies for standalone retail groceries.
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4.5 pt-1 text-xs">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-600">
                       Base Shipping Fee
                     </label>
                     <div className="relative">
-                      <span className="absolute left-3.5 top-3.5 text-zinc-400 font-bold">
+                      <span className="absolute left-3.5 top-3.5 text-slate-600 font-bold">
                         Rs.
                       </span>
                       <input
@@ -5639,17 +5639,17 @@ export default function AdminPanel({
                         onChange={(e) =>
                           setGBaseDeliveryFee(Number(e.target.value))
                         }
-                        className="w-full pl-10 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-white font-extrabold focus:border-orange-500 transition"
+                        className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 border border-slate-200 rounded-xl outline-none text-slate-900 font-extrabold focus:border-orange-500 transition"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase tracking-wider text-zinc-405 font-sans">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 font-sans">
                       Free Delivery Above
                     </label>
                     <div className="relative">
-                      <span className="absolute left-3.5 top-3.5 text-zinc-450 font-bold">
+                      <span className="absolute left-3.5 top-3.5 text-slate-500 font-bold">
                         Rs.
                       </span>
                       <input
@@ -5659,27 +5659,27 @@ export default function AdminPanel({
                         onChange={(e) =>
                           setGFreeDeliveryAbove(Number(e.target.value))
                         }
-                        className="w-full pl-10 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-white font-extrabold focus:border-orange-500 transition"
+                        className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 border border-slate-200 rounded-xl outline-none text-slate-900 font-extrabold focus:border-orange-500 transition"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block font-sans">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-600 block font-sans">
                       Mixed Basket Checkout Policy
                     </span>
                     <button
                       type="button"
                       onClick={() => setGAllowMixed(!gAllowMixed)}
-                      className="w-full py-3 px-4 bg-zinc-950 rounded-xl border border-zinc-800 hover:border-orange-500/20 transition flex items-center justify-between cursor-pointer"
+                      className="w-full py-3 px-4 bg-white border border-slate-200 rounded-xl border border-slate-200 hover:border-orange-500/20 transition flex items-center justify-between cursor-pointer"
                     >
-                      <span className="font-semibold text-zinc-300">
+                      <span className="font-semibold text-slate-700">
                         Allow Food + Grocery
                       </span>
                       {gAllowMixed ? (
                         <ToggleRight className="w-6 h-6 text-orange-500 shrink-0" />
                       ) : (
-                        <ToggleLeft className="w-6 h-6 text-zinc-650 shrink-0" />
+                        <ToggleLeft className="w-6 h-6 text-slate-500 shrink-0" />
                       )}
                     </button>
                   </div>
@@ -5689,7 +5689,7 @@ export default function AdminPanel({
                   <button
                     type="button"
                     onClick={handleSaveGroceryConfig}
-                    className="bg-orange-600 hover:bg-orange-700 text-white font-black px-6 py-3 rounded-xl hover:scale-[1.01] active:scale-95 transition cursor-pointer text-xs uppercase tracking-wide"
+                    className="bg-orange-600 hover:bg-orange-700 text-slate-900 font-black px-6 py-3 rounded-xl hover:scale-[1.01] active:scale-95 transition cursor-pointer text-xs uppercase tracking-wide"
                   >
                     Save Grocery Settings 💾
                   </button>
@@ -5699,8 +5699,8 @@ export default function AdminPanel({
               {/* Middle Row: Create Category, and list of current ones */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* 1. Category Form */}
-                <div className="bg-[#0b0b0d]/80 border border-zinc-800/80 p-6 rounded-[24px] space-y-4">
-                  <h4 className="font-black text-xs text-zinc-200 uppercase tracking-widest text-orange-500 flex items-center gap-2">
+                <div className="bg-[#0b0b0d]/80 border border-slate-200 p-6 rounded-[24px] space-y-4">
+                  <h4 className="font-black text-xs text-slate-800 uppercase tracking-widest text-orange-500 flex items-center gap-2">
                     <Plus className="w-4 h-4 text-orange-500" />
                     Create Grocery Division
                   </h4>
@@ -5709,7 +5709,7 @@ export default function AdminPanel({
                     className="space-y-3.5 text-xs"
                   >
                     <div className="space-y-1">
-                      <label className="text-[9.5px] font-bold text-zinc-400 block uppercase">
+                      <label className="text-[9.5px] font-bold text-slate-600 block uppercase">
                         Division Category Name
                       </label>
                       <input
@@ -5718,7 +5718,7 @@ export default function AdminPanel({
                         value={newCatName}
                         onChange={(e) => setNewCatName(e.target.value)}
                         placeholder="E.g., Fruits & Vegetables, Dairy, Household..."
-                        className="w-full p-3 bg-zinc-955 border border-zinc-800 rounded-xl outline-none focus:border-orange-500 transition text-white font-semibold"
+                        className="w-full p-3 bg-slate-100 border border-slate-200 rounded-xl outline-none text-slate-900 focus:border-orange-500 transition text-slate-900 font-semibold"
                       />
                     </div>
                     <div className="space-y-1">
@@ -5731,7 +5731,7 @@ export default function AdminPanel({
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[9.5px] font-bold text-zinc-400 block uppercase">
+                      <label className="text-[9.5px] font-bold text-slate-600 block uppercase">
                         Display Order Position
                       </label>
                       <input
@@ -5741,12 +5741,12 @@ export default function AdminPanel({
                         onChange={(e) =>
                           setNewCatPosition(Number(e.target.value))
                         }
-                        className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl outline-none focus:border-orange-500 transition text-white font-mono font-bold"
+                        className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl outline-none text-slate-900 focus:border-orange-500 transition text-slate-900 font-mono font-bold"
                       />
                     </div>
                     <button
                       type="submit"
-                      className="w-full py-3 bg-orange-600 hover:bg-orange-750 text-white font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer"
+                      className="w-full py-3 bg-orange-600 hover:bg-orange-750 text-slate-900 font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer"
                     >
                       Save New Category +
                     </button>
@@ -5754,15 +5754,15 @@ export default function AdminPanel({
                 </div>
 
                 {/* 2. Categories List */}
-                <div className="bg-[#0b0b0d]/80 border border-zinc-800/80 p-6 rounded-[24px] space-y-4">
-                  <h4 className="font-black text-xs text-zinc-200 uppercase tracking-widest text-orange-500">
+                <div className="bg-[#0b0b0d]/80 border border-slate-200 p-6 rounded-[24px] space-y-4">
+                  <h4 className="font-black text-xs text-slate-800 uppercase tracking-widest text-orange-500">
                     Active Categories Directory ({groceryCategories.length})
                   </h4>
                   <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                     {groceryCategories.map((cat) => (
                       <div
                         key={cat.id}
-                        className="bg-zinc-950 p-2.5 rounded-xl border border-zinc-900 w-full flex flex-col gap-2"
+                        className="bg-white border border-slate-200 p-2.5 rounded-xl border border-slate-200 w-full flex flex-col gap-2"
                       >
                         <div className="flex items-center justify-between text-xs font-semibold gap-3">
                           <div className="flex items-center gap-2 min-w-0">
@@ -5770,14 +5770,14 @@ export default function AdminPanel({
                               <img
                                 src={cat.imageUrl}
                                 alt=""
-                                className="w-8 h-8 rounded-lg object-cover bg-zinc-900 shrink-0 border border-zinc-800"
+                                className="w-8 h-8 rounded-lg object-cover bg-slate-100 shrink-0 border border-slate-200"
                               />
                             )}
                             <div className="truncate">
-                              <span className="text-zinc-500 pr-1.5 font-bold font-mono">
+                              <span className="text-slate-500 pr-1.5 font-bold font-mono">
                                 #{cat.position || 0}
                               </span>
-                              <span className="text-zinc-250 font-bold">
+                              <span className="text-slate-500 font-bold">
                                 {cat.name}
                               </span>
                             </div>
@@ -5806,7 +5806,7 @@ export default function AdminPanel({
                               className={`p-1 px-2 rounded text-[10px] font-black uppercase cursor-pointer ${
                                 cat.isAvailable
                                   ? "bg-orange-500/10 text-orange-400"
-                                  : "bg-zinc-850 text-zinc-500"
+                                  : "bg-slate-200 text-slate-500"
                               }`}
                             >
                               {cat.isAvailable ? "Available" : "Disabled"}
@@ -5821,7 +5821,7 @@ export default function AdminPanel({
                           </div>
                         </div>
                         {editingCategoryId === cat.id && (
-                          <div className="mt-1 space-y-2 bg-zinc-955 p-3 rounded-xl border border-zinc-900">
+                          <div className="mt-1 space-y-2 bg-slate-100 p-3 rounded-xl border border-slate-200">
                             <ProductImageSelector
                               imageUrl={editingCategoryImageUrl}
                               onChange={setEditingCategoryImageUrl}
@@ -5835,7 +5835,7 @@ export default function AdminPanel({
                                 onClick={() =>
                                   handleUpdateCategoryImageUrl(cat.id)
                                 }
-                                className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-xs font-bold cursor-pointer transition w-full"
+                                className="bg-orange-600 hover:bg-orange-700 text-slate-900 px-4 py-2 rounded-lg text-xs font-bold cursor-pointer transition w-full"
                               >
                                 Save Changes
                               </button>
@@ -5845,7 +5845,7 @@ export default function AdminPanel({
                       </div>
                     ))}
                     {groceryCategories.length === 0 && (
-                      <p className="text-[10px] italic text-zinc-500 text-center py-6">
+                      <p className="text-[10px] italic text-slate-500 text-center py-6">
                         No custom grocery categories yet.
                       </p>
                     )}
@@ -5856,8 +5856,8 @@ export default function AdminPanel({
               {/* Bottom Row: Create product, and product grid directory */}
               <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
                 {/* 1. Product creator column */}
-                <div className="bg-[#0b0b0d]/80 border border-zinc-800/85 p-6 rounded-[24px] col-span-1 md:col-span-5 space-y-4">
-                  <h4 className="font-black text-xs text-zinc-200 uppercase tracking-widest text-orange-500 flex items-center gap-2">
+                <div className="bg-[#0b0b0d]/80 border border-slate-200/85 p-6 rounded-[24px] col-span-1 md:col-span-5 space-y-4">
+                  <h4 className="font-black text-xs text-slate-800 uppercase tracking-widest text-orange-500 flex items-center gap-2">
                     <Plus className="w-4 h-4 text-orange-500" />
                     Add Grocery Product
                   </h4>
@@ -5866,7 +5866,7 @@ export default function AdminPanel({
                     className="space-y-3 text-xs"
                   >
                     <div className="space-y-1">
-                      <label className="text-[9px] font-bold text-zinc-400 block uppercase">
+                      <label className="text-[9px] font-bold text-slate-600 block uppercase">
                         Product Title / Name
                       </label>
                       <input
@@ -5875,13 +5875,13 @@ export default function AdminPanel({
                         value={newGProdName}
                         onChange={(e) => setNewGProdName(e.target.value)}
                         placeholder="E.g., Farm Fresh Eggs, Cheddar Cheese..."
-                        className="w-full p-2.5 bg-zinc-950 border border-zinc-800 outline-none focus:border-orange-500 rounded-xl text-zinc-150 text-xs font-semibold"
+                        className="w-full p-2.5 bg-white border border-slate-200 border border-slate-200 outline-none text-slate-900 focus:border-orange-500 rounded-xl text-slate-500 text-xs font-semibold"
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-zinc-400 block uppercase font-sans">
+                        <label className="text-[9px] font-bold text-slate-600 block uppercase font-sans">
                           Price (Rs.)
                         </label>
                         <input
@@ -5892,11 +5892,11 @@ export default function AdminPanel({
                           onChange={(e) =>
                             setNewGProdPrice(Number(e.target.value))
                           }
-                          className="w-full p-2.5 bg-zinc-950 border border-zinc-800 rounded-xl outline-none focus:border-orange-500 text-white text-xs font-mono font-bold"
+                          className="w-full p-2.5 bg-white border border-slate-200 border border-slate-200 rounded-xl outline-none text-slate-900 focus:border-orange-500 text-slate-900 text-xs font-mono font-bold"
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-zinc-400 block uppercase font-sans">
+                        <label className="text-[9px] font-bold text-slate-600 block uppercase font-sans">
                           Offered Price (Rs.)
                         </label>
                         <input
@@ -5906,20 +5906,20 @@ export default function AdminPanel({
                           onChange={(e) =>
                             setNewGProdDiscountPrice(Number(e.target.value))
                           }
-                          className="w-full p-2.5 bg-zinc-955 border border-zinc-800 rounded-xl outline-none focus:border-orange-500 text-white text-xs font-mono font-semibold"
+                          className="w-full p-2.5 bg-slate-100 border border-slate-200 rounded-xl outline-none text-slate-900 focus:border-orange-500 text-slate-900 text-xs font-mono font-semibold"
                         />
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-zinc-400 block uppercase font-sans">
+                        <label className="text-[9px] font-bold text-slate-600 block uppercase font-sans">
                           Unit Metric
                         </label>
                         <select
                           value={newGProdUnit}
                           onChange={(e: any) => setNewGProdUnit(e.target.value)}
-                          className="w-full p-2.5 bg-zinc-955 border border-zinc-800 rounded-xl text-white outline-none focus:border-orange-500 transition"
+                          className="w-full p-2.5 bg-slate-100 border border-slate-200 rounded-xl text-slate-900 outline-none text-slate-900 focus:border-orange-500 transition"
                         >
                           <option value="kg">kg (Kilo)</option>
                           <option value="litre">litre (Liter)</option>
@@ -5928,7 +5928,7 @@ export default function AdminPanel({
                         </select>
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-zinc-455 block uppercase">
+                        <label className="text-[9px] font-bold text-slate-600 block uppercase">
                           Stock Count
                         </label>
                         <input
@@ -5939,7 +5939,7 @@ export default function AdminPanel({
                           onChange={(e) =>
                             setNewGProdStock(Number(e.target.value))
                           }
-                          className="w-full p-2.5 bg-zinc-955 border border-zinc-800 rounded-xl outline-none focus:border-orange-500 text-white text-xs font-mono font-bold"
+                          className="w-full p-2.5 bg-slate-100 border border-slate-200 rounded-xl outline-none text-slate-900 focus:border-orange-500 text-slate-900 text-xs font-mono font-bold"
                         />
                       </div>
                     </div>
@@ -5955,20 +5955,20 @@ export default function AdminPanel({
                         onChange={(e) =>
                           setNewGProdCommission(Number(e.target.value))
                         }
-                        className="w-full p-2.5 bg-zinc-955 border border-zinc-800 rounded-xl outline-none focus:border-emerald-500 text-white text-xs font-mono font-bold"
+                        className="w-full p-2.5 bg-slate-100 border border-slate-200 rounded-xl outline-none text-slate-900 focus:border-emerald-500 text-slate-900 text-xs font-mono font-bold"
                         placeholder="Commission in Rs."
                       />
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[9px] font-bold text-zinc-450 block uppercase">
+                      <label className="text-[9px] font-bold text-slate-500 block uppercase">
                         Choose Category Division
                       </label>
                       <select
                         required
                         value={newGProdCategoryId}
                         onChange={(e) => setNewGProdCategoryId(e.target.value)}
-                        className="w-full p-2.5 bg-zinc-955 border border-zinc-800 text-white outline-none focus:border-orange-500 rounded-xl text-xs font-semibold"
+                        className="w-full p-2.5 bg-slate-100 border border-slate-200 text-slate-900 outline-none text-slate-900 focus:border-orange-500 rounded-xl text-xs font-semibold"
                       >
                         <option value="">-- Choose Segment --</option>
                         {groceryCategories.map((c) => (
@@ -5991,7 +5991,7 @@ export default function AdminPanel({
 
                     <button
                       type="submit"
-                      className="w-full py-3 bg-orange-600 hover:bg-orange-755 text-white font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer"
+                      className="w-full py-3 bg-orange-600 hover:bg-orange-755 text-slate-900 font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer"
                     >
                       Save Grocery Product 📦
                     </button>
@@ -5999,14 +5999,14 @@ export default function AdminPanel({
                 </div>
 
                 {/* 2. Product directory table column */}
-                <div className="bg-[#0b0b0d]/80 border border-zinc-800/80 p-6 rounded-[24px] col-span-1 md:col-span-12 lg:col-span-7 space-y-4">
-                  <h4 className="font-black text-xs text-zinc-200 uppercase tracking-widest text-orange-500 font-sans">
+                <div className="bg-[#0b0b0d]/80 border border-slate-200 p-6 rounded-[24px] col-span-1 md:col-span-12 lg:col-span-7 space-y-4">
+                  <h4 className="font-black text-xs text-slate-800 uppercase tracking-widest text-orange-500 font-sans">
                     Product Stock & Catalog Directory ({groceryProducts.length})
                   </h4>
                   <div className="overflow-x-auto select-none">
-                    <table className="w-full text-xs text-left text-zinc-400 font-medium border-collapse">
+                    <table className="w-full text-xs text-left text-slate-600 font-medium border-collapse">
                       <thead>
-                        <tr className="border-b border-zinc-850 uppercase text-[9px] tracking-wider text-zinc-500">
+                        <tr className="border-b border-slate-200 uppercase text-[9px] tracking-wider text-slate-500">
                           <th className="py-2.5 px-2">Image & Product</th>
                           <th className="py-2.5 px-2">Group</th>
                           <th className="py-2.5 px-2">Pricing / Stock</th>
@@ -6023,26 +6023,26 @@ export default function AdminPanel({
                           return (
                             <tr
                               key={p.id}
-                              className="border-b border-zinc-900 hover:bg-zinc-950/40 text-[11px] font-semibold"
+                              className="border-b border-slate-200 hover:bg-white border border-slate-200/40 text-[11px] font-semibold"
                             >
                               <td className="py-3 px-2 flex items-center gap-2 min-w-[150px]">
                                 <img
                                   src={p.imageUrl}
                                   alt={p.name}
-                                  className="w-8 h-8 rounded-lg object-cover shrink-0 bg-zinc-900 border border-zinc-800"
+                                  className="w-8 h-8 rounded-lg object-cover shrink-0 bg-slate-100 border border-slate-200"
                                   referrerPolicy="no-referrer"
                                 />
                                 <div className="truncate">
-                                  <span className="text-zinc-200 font-bold block truncate leading-tight">
+                                  <span className="text-slate-800 font-bold block truncate leading-tight">
                                     {p.name}
                                   </span>
-                                  <span className="text-[9px] text-zinc-500 block font-mono font-semibold">
+                                  <span className="text-[9px] text-slate-500 block font-mono font-semibold">
                                     ID: {p.id.substring(0, 6)}...
                                   </span>
                                 </div>
                               </td>
-                              <td className="py-3 px-2 text-zinc-400">
-                                <span className="bg-zinc-950/80 px-2 py-0.5 rounded border border-zinc-900 text-[10px] uppercase font-bold">
+                              <td className="py-3 px-2 text-slate-600">
+                                <span className="bg-white border border-slate-200/80 px-2 py-0.5 rounded border border-slate-200 text-[10px] uppercase font-bold">
                                   {catName}
                                 </span>
                               </td>
@@ -6093,7 +6093,7 @@ export default function AdminPanel({
                                         Out of Stock
                                       </span>
                                     ) : (
-                                      <span className="text-zinc-500 text-[9px] font-semibold">
+                                      <span className="text-slate-500 text-[9px] font-semibold">
                                         Stock: {p.stock} units
                                       </span>
                                     )}
@@ -6121,7 +6121,7 @@ export default function AdminPanel({
                                         onClick={() =>
                                           setEditingGProductId(null)
                                         }
-                                        className="bg-zinc-800 text-zinc-450 px-1.5 py-0.5 rounded text-[9.5px] cursor-pointer"
+                                        className="bg-slate-200 text-slate-500 px-1.5 py-0.5 rounded text-[9.5px] cursor-pointer"
                                       >
                                         ✕
                                       </button>
@@ -6153,7 +6153,7 @@ export default function AdminPanel({
                                         className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase cursor-pointer ${
                                           p.isAvailable
                                             ? "bg-orange-600/10 text-orange-400"
-                                            : "bg-zinc-800 text-zinc-500"
+                                            : "bg-slate-200 text-slate-500"
                                         }`}
                                       >
                                         {p.isAvailable ? "Live" : "Hold"}
@@ -6185,7 +6185,7 @@ export default function AdminPanel({
           {activeSubTab === "users" && (
             <div className="space-y-6 animate-fade-in text-left">
               {/* Header Box */}
-              <div className="bg-[#0b0b0d]/90 border border-zinc-800 rounded-3xl p-6 relative overflow-hidden">
+              <div className="bg-[#0b0b0d]/90 border border-slate-200 rounded-3xl p-6 relative overflow-hidden">
                 <div className="absolute right-0 top-0 w-80 h-80 bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none" />
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
@@ -6195,18 +6195,18 @@ export default function AdminPanel({
                         Registered Directory
                       </span>
                     </div>
-                    <h2 className="text-xl font-black text-white mt-1">
+                    <h2 className="text-xl font-black text-slate-900 mt-1">
                       Dadu Food User Database
                     </h2>
-                    <p className="text-[11px] text-zinc-400 font-semibold mt-0.5">
+                    <p className="text-[11px] text-slate-600 font-semibold mt-0.5">
                       View, search and manage all registered customers, riders
                       and administrators.
                     </p>
                   </div>
 
                   {/* Totals Badge */}
-                  <div className="bg-[#121215] border border-zinc-805/80 rounded-2xl px-5 py-3 text-center sm:text-right">
-                    <span className="text-[9.5px] font-black text-zinc-500 uppercase tracking-wider block">
+                  <div className="bg-[#121215] border border-slate-200 rounded-2xl px-5 py-3 text-center sm:text-right">
+                    <span className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider block">
                       Total Registered Users
                     </span>
                     <span className="text-2xl font-black text-emerald-400">
@@ -6223,12 +6223,12 @@ export default function AdminPanel({
                       value={userSearchTerm}
                       onChange={(e) => setUserSearchTerm(e.target.value)}
                       placeholder="Search users by name, phone or address..."
-                      className="w-full bg-[#141416]/90 border border-zinc-800 text-zinc-100 placeholder-zinc-500 pl-4 pr-10 py-3 rounded-2xl text-xs font-semibold focus:outline-hidden focus:border-emerald-500/50 transition-all"
+                      className="w-full bg-[#141416]/90 border border-slate-200 text-slate-900 placeholder-slate-500 pl-4 pr-10 py-3 rounded-2xl text-xs font-semibold focus:outline-hidden focus:border-emerald-500/50 transition-all"
                     />
                     {userSearchTerm && (
                       <button
                         onClick={() => setUserSearchTerm("")}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-350 text-xs font-bold"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-500 text-xs font-bold"
                       >
                         ✕
                       </button>
@@ -6238,12 +6238,12 @@ export default function AdminPanel({
               </div>
 
               {/* Users Table Box */}
-              <div className="bg-[#0b0b0d]/90 border border-zinc-800/80 rounded-3xl overflow-hidden shadow-xl">
-                <div className="p-5 border-b border-zinc-850/60 flex items-center justify-between">
-                  <h3 className="font-black text-xs uppercase tracking-widest text-zinc-300">
+              <div className="bg-[#0b0b0d]/90 border border-slate-200 rounded-3xl overflow-hidden shadow-xl">
+                <div className="p-5 border-b border-slate-200/60 flex items-center justify-between">
+                  <h3 className="font-black text-xs uppercase tracking-widest text-slate-700">
                     User Ledger
                   </h3>
-                  <span className="text-[10.5px] font-bold text-zinc-500">
+                  <span className="text-[10.5px] font-bold text-slate-500">
                     Showing{" "}
                     {
                       allUsersList.filter(
@@ -6264,9 +6264,9 @@ export default function AdminPanel({
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full text-xs text-left text-zinc-400 font-semibold border-collapse">
+                  <table className="w-full text-xs text-left text-slate-600 font-semibold border-collapse">
                     <thead>
-                      <tr className="bg-zinc-950/70 border-b border-zinc-855/60 text-zinc-500 text-[9.5px] uppercase tracking-wider font-black">
+                      <tr className="bg-white border border-slate-200/70 border-b border-slate-200 text-slate-500 text-[9.5px] uppercase tracking-wider font-black">
                         <th className="py-4 px-5">User Info</th>
                         <th className="py-4 px-5">Role</th>
                         <th className="py-4 px-5">Phone Number</th>
@@ -6275,7 +6275,7 @@ export default function AdminPanel({
                         <th className="py-4 px-5 text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-900">
+                    <tbody className="divide-y divide-slate-200">
                       {allUsersList
                         .filter((u) => {
                           const queryStr = userSearchTerm.toLowerCase();
@@ -6295,19 +6295,19 @@ export default function AdminPanel({
                           return (
                             <tr
                               key={u.uid}
-                              className="hover:bg-zinc-900/35 transition-all"
+                              className="hover:bg-slate-50 transition-all"
                             >
                               {/* User Info */}
                               <td className="py-4 px-5">
                                 <div className="flex items-center gap-3">
-                                  <div className="w-9 h-9 rounded-xl bg-zinc-900/95 border border-zinc-800 flex items-center justify-center font-black text-xs text-zinc-300 uppercase shrink-0">
+                                  <div className="w-9 h-9 rounded-xl bg-slate-100/95 border border-slate-200 flex items-center justify-center font-black text-xs text-slate-700 uppercase shrink-0">
                                     {u.name ? u.name.slice(0, 2) : "DU"}
                                   </div>
                                   <div>
-                                    <span className="text-zinc-100 font-black text-xs block">
+                                    <span className="text-slate-900 font-black text-xs block">
                                       {u.name || "Dadu User"}
                                     </span>
-                                    <span className="text-[10px] text-zinc-500 font-mono block select-all">
+                                    <span className="text-[10px] text-slate-500 font-mono block select-all">
                                       {u.uid}
                                     </span>
                                   </div>
@@ -6331,21 +6331,21 @@ export default function AdminPanel({
 
                               {/* Phone Number */}
                               <td className="py-4 px-5">
-                                <span className="font-mono text-xs text-zinc-300 font-bold select-all">
+                                <span className="font-mono text-xs text-slate-700 font-bold select-all">
                                   {u.phone || "Not set/Guest"}
                                 </span>
                               </td>
 
                               {/* Delivery Address */}
                               <td className="py-2 px-5 max-w-xs">
-                                <p className="text-[11px] text-zinc-305 font-medium whitespace-pre-wrap break-words max-h-16 overflow-y-auto">
+                                <p className="text-[11px] text-slate-500 font-medium whitespace-pre-wrap break-words max-h-16 overflow-y-auto">
                                   {u.address || "No address saved"}
                                 </p>
                               </td>
 
                               {/* Total Orders */}
                               <td className="py-4 px-5 text-center">
-                                <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-md bg-zinc-950 font-mono text-[10.5px] font-bold text-zinc-300 border border-zinc-900">
+                                <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-md bg-white border border-slate-200 font-mono text-[10.5px] font-bold text-slate-700 border border-slate-200">
                                   {u.ordersCount || 0}
                                 </span>
                               </td>
@@ -6378,7 +6378,7 @@ export default function AdminPanel({
                                   }}
                                   className={`p-1 px-2.5 rounded text-[10px] font-black uppercase transition-all ${
                                     isSpecialAdmin
-                                      ? "bg-zinc-900 text-zinc-700 cursor-not-allowed"
+                                      ? "bg-slate-100 text-slate-300 cursor-not-allowed"
                                       : "bg-red-950/30 text-red-400 hover:bg-red-900/30 cursor-pointer"
                                   }`}
                                 >
@@ -6393,7 +6393,7 @@ export default function AdminPanel({
                         <tr>
                           <td
                             colSpan={6}
-                            className="text-center py-10 text-zinc-500 font-black"
+                            className="text-center py-10 text-slate-500 font-black"
                           >
                             No registered users found in database.
                           </td>
@@ -6408,7 +6408,7 @@ export default function AdminPanel({
 
           {activeSubTab === "seo" && (
             <div className="space-y-6 animate-fade-in text-left">
-              <div className="bg-[#0b0b0d]/90 border border-zinc-800 rounded-3xl p-6 relative overflow-hidden">
+              <div className="bg-[#0b0b0d]/90 border border-slate-200 rounded-3xl p-6 relative overflow-hidden">
                 <div className="absolute right-0 top-0 w-80 h-80 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none" />
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
@@ -6418,17 +6418,17 @@ export default function AdminPanel({
                         Global Configuration
                       </span>
                     </div>
-                    <h2 className="text-xl font-black text-white mt-1">
+                    <h2 className="text-xl font-black text-slate-900 mt-1">
                       SEO & Metadata
                     </h2>
-                    <p className="text-xs text-zinc-400 font-medium mt-1">
+                    <p className="text-xs text-slate-600 font-medium mt-1">
                       Update global SEO tags injected into the document head.
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={handleMigrateCategories}
-                      className="bg-amber-600 hover:bg-amber-500 text-white font-black text-[10px] uppercase tracking-widest py-3 px-5 rounded-xl transition cursor-pointer shrink-0"
+                      className="bg-[#b00c50] hover:bg-[#D70F64] text-slate-900 font-black text-[10px] uppercase tracking-widest py-3 px-5 rounded-xl transition cursor-pointer shrink-0"
                     >
                       Run Category Migration
                     </button>
@@ -6442,10 +6442,10 @@ export default function AdminPanel({
                 </div>
               </div>
 
-              <div className="bg-[#0c0c0e] border border-zinc-805/80 rounded-[24px] p-5 lg:p-7 shadow-2xl relative">
+              <div className="bg-[#0c0c0e] border border-slate-200 rounded-[24px] p-5 lg:p-7 shadow-sm relative">
                 <div className="space-y-5">
                   <div>
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block mb-1.5">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">
                       Meta Title
                     </label>
                     <input
@@ -6453,22 +6453,22 @@ export default function AdminPanel({
                       value={seoTitle}
                       onChange={(e) => setSeoTitle(e.target.value)}
                       placeholder="e.g. Dadu Food - Premium Delivery"
-                      className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-2xl text-xs sm:text-sm outline-none text-white focus:border-blue-500/60 transition"
+                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-2xl text-xs sm:text-sm outline-none text-slate-900 focus:border-blue-500/60 transition"
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block mb-1.5">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">
                       Meta Description
                     </label>
                     <textarea
                       value={seoDescription}
                       onChange={(e) => setSeoDescription(e.target.value)}
                       placeholder="e.g. Order fresh food and groceries..."
-                      className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-2xl text-xs sm:text-sm outline-none text-white focus:border-blue-500/60 transition resize-none h-24"
+                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-2xl text-xs sm:text-sm outline-none text-slate-900 focus:border-blue-500/60 transition resize-none h-24"
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block mb-1.5">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">
                       Meta Keywords
                     </label>
                     <input
@@ -6476,7 +6476,7 @@ export default function AdminPanel({
                       value={seoKeywords}
                       onChange={(e) => setSeoKeywords(e.target.value)}
                       placeholder="e.g. food delivery, groceries, online ordering"
-                      className="w-full p-3 bg-zinc-950 border border-zinc-800 rounded-2xl text-xs sm:text-sm outline-none text-white focus:border-blue-500/60 transition"
+                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-2xl text-xs sm:text-sm outline-none text-slate-900 focus:border-blue-500/60 transition"
                     />
                   </div>
                 </div>
@@ -6488,21 +6488,21 @@ export default function AdminPanel({
 
       {confirmDialog && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-fade-in text-left">
-          <div className="bg-[#0c0c0e] border border-zinc-805/80 rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl text-zinc-100 p-6 space-y-4">
+          <div className="bg-[#0c0c0e] border border-slate-200 rounded-3xl max-w-sm w-full overflow-hidden shadow-sm text-slate-900 p-6 space-y-4">
             <div className="flex items-center gap-2.5 text-red-500">
               <AlertTriangle className="w-5 h-5 shrink-0 animate-pulse" />
               <h4 className="font-black text-xs uppercase tracking-widest">
                 {confirmDialog.title}
               </h4>
             </div>
-            <p className="text-[11px] text-zinc-400 font-semibold leading-relaxed">
+            <p className="text-[11px] text-slate-600 font-semibold leading-relaxed">
               {confirmDialog.message}
             </p>
             <div className="flex items-center justify-end gap-2.5 pt-1">
               <button
                 type="button"
                 onClick={() => setConfirmDialog(null)}
-                className="px-3.5 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-[10px] uppercase font-black text-zinc-400 hover:text-white hover:bg-zinc-800 transition cursor-pointer"
+                className="px-3.5 py-2 bg-slate-100 border border-slate-200 rounded-xl text-[10px] uppercase font-black text-slate-600 hover:text-slate-700 hover:bg-slate-200 transition cursor-pointer"
               >
                 Cancel
               </button>
@@ -6513,7 +6513,7 @@ export default function AdminPanel({
                   setConfirmDialog(null);
                   await callback();
                 }}
-                className="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl text-[10px] font-black hover:brightness-110 shadow-md cursor-pointer transition uppercase tracking-wide"
+                className="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-slate-900 rounded-xl text-[10px] font-black hover:brightness-110 shadow-md cursor-pointer transition uppercase tracking-wide"
               >
                 Delete Permanently
               </button>
