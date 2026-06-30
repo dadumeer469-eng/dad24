@@ -11,7 +11,7 @@ import { auth, db, cleanObject } from "../firebase";
 import { UserProfile } from "../types";
 import { X, Phone, Lock, User, MapPin, Loader2, AlertCircle, LogIn, Github } from "lucide-react";
 import { motion } from "motion/react";
-import daduLogo from "../assets/images/dadu_food_logo_new_1782333467889.jpg";
+import daduLogo from "../assets/images/new_logo.png";
 
 interface AuthModalProps {
   isOpen: boolean;
