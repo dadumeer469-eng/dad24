@@ -27,9 +27,16 @@ export default function AuthModal({
     setError("");
 
     const cleanPhone = phoneNumber.trim();
-    if (!/^03\d{9}$/.test(cleanPhone)) {
-      setError("Please enter a valid 11-digit mobile number starting with 03.");
-      return;
+    if (!isStaffMode) {
+      if (!/^03\d{9}$/.test(cleanPhone)) {
+        setError("Please enter a valid 11-digit mobile number starting with 03.");
+        return;
+      }
+    } else {
+      if (cleanPhone.length === 0) {
+        setError("Please enter your Phone Number or Username.");
+        return;
+      }
     }
 
     if (isStaffMode && password.length < 4) {
@@ -102,14 +109,18 @@ export default function AuthModal({
               <div className="relative">
                 <Phone className="absolute left-4 top-3.5 w-5 h-5 text-zinc-500" />
                 <input
-                  type="tel"
-                  inputMode="numeric"
+                  type={isStaffMode ? "text" : "tel"}
+                  inputMode={isStaffMode ? "text" : "numeric"}
                   required
-                  placeholder="03XX-XXXXXXX"
+                  placeholder={isStaffMode ? "Phone or Username" : "03XX-XXXXXXX"}
                   value={phoneNumber}
                   onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, "");
-                    setPhoneNumber(val.slice(0, 11));
+                    if (isStaffMode) {
+                      setPhoneNumber(e.target.value);
+                    } else {
+                      const val = e.target.value.replace(/\D/g, "");
+                      setPhoneNumber(val.slice(0, 11));
+                    }
                   }}
                   className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-zinc-700 outline-none focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition bg-zinc-950 text-zinc-100 font-bold text-lg"
                 />
@@ -132,7 +143,7 @@ export default function AuthModal({
 
             <button
               type="submit"
-              disabled={loading || phoneNumber.length < 11 || (isStaffMode && password.length < 4)}
+              disabled={loading || (!isStaffMode && phoneNumber.length < 11) || phoneNumber.trim().length === 0 || (isStaffMode && password.length < 4)}
               className="w-full bg-[#D70F64] hover:bg-[#b00c50] text-white font-black tracking-wide shadow-md transition-all flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm uppercase disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {loading ? (

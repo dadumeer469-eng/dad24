@@ -1,6 +1,6 @@
 import LocationPermissionModal from "./components/LocationPermissionModal";
 import React, { useState, useEffect, useRef, Suspense } from "react";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from "firebase/auth";
 import {
   collection,
   doc,
@@ -333,15 +333,30 @@ export default function App() {
         const profileRef = doc(db, "users", savedPhone);
         const profileSnap = await getDoc(profileRef);
 
+        let userData: any = null;
+        let userUid = savedPhone;
+
         if (profileSnap.exists()) {
-          const data = profileSnap.data();
-          const isAdmin = data.role === "admin" || savedPhone === "03277004471";
-          if (isAdmin && data.role !== "admin") {
-            const updated = { ...data, role: "admin" };
-            await setDoc(profileRef, updated, { merge: true });
-            setCurrentUser({ uid: savedPhone, ...updated } as UserProfile);
+          userData = profileSnap.data();
+        } else {
+          // Check if there is a user with this phone number or username (e.g., rider registered with custom UID)
+          const lowerSavedPhone = savedPhone.toLowerCase();
+          const q = query(collection(db, "users"), where("phone", "==", lowerSavedPhone));
+          const qSnap = await getDocs(q);
+          if (!qSnap.empty) {
+            userData = qSnap.docs[0].data();
+            userUid = qSnap.docs[0].id;
+          }
+        }
+
+        if (userData) {
+          const isAdmin = userData.role === "admin" || savedPhone === "03277004471";
+          if (isAdmin && userData.role !== "admin") {
+            const updated = { ...userData, role: "admin" };
+            await setDoc(doc(db, "users", userUid), updated, { merge: true });
+            setCurrentUser({ uid: userUid, ...updated } as UserProfile);
           } else {
-            setCurrentUser({ uid: savedPhone, ...data } as UserProfile);
+            setCurrentUser({ uid: userUid, ...userData } as UserProfile);
           }
         } else {
           // Fallback guest with saved phone
@@ -357,10 +372,10 @@ export default function App() {
           setCurrentUser(fallback);
         }
 
-        // Live listen to profile changes
-        unsubscribe = onSnapshot(doc(db, "users", savedPhone), (docSnap) => {
+        // Live listen to profile changes using the correct userUid
+        unsubscribe = onSnapshot(doc(db, "users", userUid), (docSnap) => {
            if (docSnap.exists()) {
-              setCurrentUser({ uid: savedPhone, ...docSnap.data() } as UserProfile);
+              setCurrentUser({ uid: userUid, ...docSnap.data() } as UserProfile);
            }
         });
       } else {
@@ -1871,6 +1886,15 @@ export default function App() {
             // Admin Logic
             if (phone === "03277004471" && password === "meerali120") {
                const profileRef = doc(db, "users", phone);
+
+;
+;
+
+
+
+
+
+
                const profileSnap = await getDoc(profileRef);
                if (!profileSnap.exists()) {
                   await setDoc(profileRef, {
@@ -1898,22 +1922,68 @@ export default function App() {
             }
 
             // Rider Logic
-            const profileRef = doc(db, "users", phone);
-            const profileSnap = await getDoc(profileRef);
-            if (profileSnap.exists()) {
-               const data = profileSnap.data();
-               if (data.role === "rider") {
-                  if (password === "1234" || password === "786786") {
-                     localStorage.setItem("dadu_user_phone", phone);
-                     window.dispatchEvent(new StorageEvent("storage", { key: "dadu_user_phone" }));
-                     setIsAuthOpen(false);
-                     return;
-                  } else {
-                     throw new Error("Invalid passcode for Rider.");
-                  }
-               }
+            const sanitizePhone = (phoneStr: string) => {
+              let cleaned = phoneStr.replace(/\D/g, "");
+              if (cleaned.startsWith("92")) {
+                cleaned = "0" + cleaned.substring(2);
+              }
+              return cleaned;
+            };
+
+            const isUsername =
+              /[a-zA-Z]/.test(phone) ||
+              (phone.length > 0 &&
+                phone.length < 10 &&
+                !/^\d+$/.test(phone));
+            const cleanPhone = isUsername
+              ? phone.toLowerCase()
+              : sanitizePhone(phone);
+
+            // Find the rider in database
+            let riderData: any = null;
+            let riderUid: string = "";
+
+            const directRef = doc(db, "users", cleanPhone);
+            const directSnap = await getDoc(directRef);
+            if (directSnap.exists() && directSnap.data().role === "rider") {
+              riderData = directSnap.data();
+              riderUid = cleanPhone;
+            } else {
+              const q = query(
+                collection(db, "users"),
+                where("phone", "==", cleanPhone),
+                where("role", "==", "rider")
+              );
+              const qSnap = await getDocs(q);
+              if (!qSnap.empty) {
+                riderData = qSnap.docs[0].data();
+                riderUid = qSnap.docs[0].id;
+              }
             }
-            throw new Error("Invalid Staff Credentials.");
+
+            if (riderData) {
+              // Try passcode validation first (general/fallback)
+              if (password === "1234" || password === "786786") {
+                localStorage.setItem("dadu_user_phone", cleanPhone);
+                window.dispatchEvent(new StorageEvent("storage", { key: "dadu_user_phone" }));
+                setIsAuthOpen(false);
+                return;
+              }
+
+              // Otherwise try Firebase Auth with email and password
+              try {
+                const computedEmail = `${cleanPhone}@dadu247.com`;
+                await signInWithEmailAndPassword(auth, computedEmail, password);
+                localStorage.setItem("dadu_user_phone", cleanPhone);
+                window.dispatchEvent(new StorageEvent("storage", { key: "dadu_user_phone" }));
+                setIsAuthOpen(false);
+                return;
+              } catch (authErr: any) {
+                console.error("Rider Auth Login Error:", authErr);
+                throw new Error("Aapka password ya passcode durust nahi hai.");
+              }
+            }
+            throw new Error("Is number ya username se koi Rider registered nahi hai.");
           }
 
           const blacklistRef = doc(db, "blacklist", phone);
