@@ -1,3 +1,4 @@
+import LocationPermissionModal from "./components/LocationPermissionModal";
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import {
@@ -70,6 +71,7 @@ import {
   Minus,
   Star,
   ChevronRight,
+  X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -192,6 +194,7 @@ export default function App() {
   const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
 
   // Visual notify states
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   const [toastNotification, setToastNotification] = useState<{
     title: string;
     message: string;
@@ -201,6 +204,45 @@ export default function App() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
   const [showInstallBubble, setShowInstallBubble] = useState(false);
+
+  // Global Location State
+  const [globalCoords, setGlobalCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [showLocationPrompt, setShowLocationPrompt] = useState(false);
+  const [locationPromptDismissed, setLocationPromptDismissed] = useState(false);
+
+
+  useEffect(() => {
+    // Wait for splash screen to finish
+    if (showSplash) return;
+    if (locationPromptDismissed) return;
+    if (globalCoords) return;
+
+    // Check if permission already granted or prompt needed
+    navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+      if (result.state === 'granted') {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => setGlobalCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+          () => {},
+          { enableHighAccuracy: true }
+        );
+      } else if (result.state === 'prompt') {
+        // Show our custom modal before requesting
+        setShowLocationPrompt(true);
+      }
+    }).catch(() => {
+      // Fallback if permissions API not supported
+      setShowLocationPrompt(true);
+    });
+  }, [showSplash, locationPromptDismissed, globalCoords]);
+
+  const requestLocation = () => {
+    setShowLocationPrompt(false);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setGlobalCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+      (err) => console.log("Location denied or error:", err),
+      { enableHighAccuracy: true }
+    );
+  };
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -282,46 +324,65 @@ export default function App() {
 
   // 1. Authenticated Profile listening
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
-      if (authUser) {
+    let unsubscribe = () => {};
+    
+    const initializeUser = async () => {
+      const savedPhone = localStorage.getItem("dadu_user_phone");
+      if (savedPhone) {
         // Read Firestore Profile details
-        const profileRef = doc(db, "users", authUser.uid);
+        const profileRef = doc(db, "users", savedPhone);
         const profileSnap = await getDoc(profileRef);
 
         if (profileSnap.exists()) {
           const data = profileSnap.data();
-          const isAdminEmail =
-            authUser.email === "dadumeer469@gmail.com" ||
-            authUser.email === "03277004471@dadu247.com";
-          if (isAdminEmail && data.role !== "admin") {
+          const isAdmin = data.role === "admin" || savedPhone === "03277004471";
+          if (isAdmin && data.role !== "admin") {
             const updated = { ...data, role: "admin" };
             await setDoc(profileRef, updated, { merge: true });
-            setCurrentUser({ uid: authUser.uid, ...updated } as UserProfile);
+            setCurrentUser({ uid: savedPhone, ...updated } as UserProfile);
           } else {
-            setCurrentUser({ uid: authUser.uid, ...data } as UserProfile);
+            setCurrentUser({ uid: savedPhone, ...data } as UserProfile);
           }
         } else {
-          // Fallback
-          const isMeerali =
-            authUser.email === "03277004471@dadu247.com" ||
-            authUser.email === "dadumeer469@gmail.com";
+          // Fallback guest with saved phone
+          const isAdmin = savedPhone === "03277004471";
           const fallback: UserProfile = {
-            uid: authUser.uid,
-            name: isMeerali ? "meerali120" : "Dadu Guest",
-            phone: authUser.email?.split("@")[0] || "",
-            address: "Not saved",
-            role: isMeerali ? "admin" : "buyer",
+            uid: savedPhone,
+            name: isAdmin ? "meerali120" : "Dadu Guest",
+            phone: savedPhone,
+            address: "",
+            role: isAdmin ? "admin" : "buyer",
             ordersCount: 0,
           };
           setCurrentUser(fallback);
         }
+
+        // Live listen to profile changes
+        unsubscribe = onSnapshot(doc(db, "users", savedPhone), (docSnap) => {
+           if (docSnap.exists()) {
+              setCurrentUser({ uid: savedPhone, ...docSnap.data() } as UserProfile);
+           }
+        });
       } else {
         setCurrentUser(null);
         setIsAdminConsoleOpen(false);
       }
-    });
+    };
+    
+    initializeUser();
 
-    return () => unsubscribe();
+    // Setup an event listener for when another component logs in
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "dadu_user_phone") {
+        initializeUser();
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => {
+       unsubscribe();
+       window.removeEventListener("storage", handleStorageChange);
+    };
   }, []);
 
   // 1.5. Premium Foodpanda Splash Screen timer (approx 2.4s)
@@ -873,7 +934,9 @@ export default function App() {
 
   // Handle Log Outs
   const handleLogout = async () => {
-    await signOut(auth);
+    localStorage.removeItem("dadu_user_phone");
+    // Trigger custom event so initializeUser updates
+    window.dispatchEvent(new StorageEvent("storage", { key: "dadu_user_phone" }));
     setCurrentUser(null);
     setCartItems([]);
     setActiveTrackingOrder(null);
@@ -1004,6 +1067,16 @@ export default function App() {
       specialInstructions?: string;
     },
   ) => {
+    if (currentUser?.status === 'locked') {
+      alert("Aapka number verify ho raha hai! Hum aapko call karenge. Call ke baad aap order kar sakenge!");
+      return;
+    }
+    if (!currentUser) {
+      setPendingAction(() => () => handleAddToCart(dish, quantityToAdd, options));
+      setIsAuthOpen(true);
+      return;
+    }
+
     // Check if mixed cart is allowed
     if (!groceryDeliveryConfig?.allowMixedCart && groceryCartItems.length > 0) {
       const clearGrocery = window.confirm(
@@ -1143,6 +1216,16 @@ export default function App() {
   };
 
   const handleAddToGroceryCart = (product: GroceryProduct, quantity = 1) => {
+    if (currentUser?.status === 'locked') {
+      alert("Aapka number verify ho raha hai! Hum aapko call karenge. Call ke baad aap order kar sakenge!");
+      return;
+    }
+    if (!currentUser) {
+      setPendingAction(() => () => handleAddToGroceryCart(product, quantity));
+      setIsAuthOpen(true);
+      return;
+    }
+
     // Check if mixed cart is allowed
     if (!groceryDeliveryConfig?.allowMixedCart && cartItems.length > 0) {
       const clearFood = window.confirm(
@@ -1309,13 +1392,17 @@ export default function App() {
   const handlePlaceGroceryOrder = async (details: {
     name: string;
     phone: string;
-    address: string;
+    location: { area: string; street: string; lat?: number; lng?: number; googleMapsLink?: string };
     items: GroceryOrderItem[];
     totalPrice: number;
     deliveryFee: number;
     grandTotal: number;
     userCoords?: { latitude: number; longitude: number };
   }) => {
+    if (currentUser?.status === 'locked' || currentUser?.status === 'blocked') {
+      alert("Verification pending or blocked. Cannot place order.");
+      return;
+    }
     try {
       const generatedOrderId = `gorder_${Date.now()}`;
 
@@ -1341,8 +1428,8 @@ export default function App() {
         userName: details.name,
         phone: details.phone,
         userPhone: details.phone,
-        address: details.address,
-        userAddress: details.address,
+        address: `${details.location.area}, ${details.location.street}`,
+        userAddress: `${details.location.area}, ${details.location.street}`,
         items: adaptedItems,
         totalPrice: details.totalPrice,
         deliveryFee: details.deliveryFee,
@@ -1389,11 +1476,15 @@ export default function App() {
   const handlePlaceOrderSubmit = async (details: {
     name: string;
     phone: string;
-    address: string;
+    location: { area: string; street: string; lat?: number; lng?: number; googleMapsLink?: string };
     paymentMethod: string;
     orderType: "food" | "service";
     userCoords?: { latitude: number; longitude: number };
   }) => {
+    if (currentUser?.status === 'locked' || currentUser?.status === 'blocked') {
+      alert("Verification pending or blocked. Cannot place order.");
+      return;
+    }
     if (!currentUser) {
       alert("Please Sign In or Register to submit your order!");
       setIsAuthOpen(true);
@@ -1465,13 +1556,14 @@ export default function App() {
       name: details.name,
       userPhone: details.phone,
       phone: details.phone,
-      userAddress: details.address,
-      address: details.address,
+      userAddress: `${details.location.area}, ${details.location.street}`,
+      address: `${details.location.area}, ${details.location.street}`,
+      location: details.location,
       items: itemsWithCommission,
       totalPrice: itemsTotal,
       deliveryFee: finalFee,
       grandTotal: finalGrandTotal,
-      status: details.orderType === "service" ? "booked" : "pending",
+      status: details.orderType === "service" ? "booked" : "placed",
       paymentMethod: details.paymentMethod as any,
       orderType: details.orderType,
       serviceTiming: computedServiceTiming,
@@ -1484,6 +1576,21 @@ export default function App() {
       // 1. Save new Order
       await setDoc(doc(db, "orders", uniqueOrderId), cleanObject(orderModel));
 
+      // 1.5 Update profile with new location & name
+      const profileRef = doc(db, "users", currentUser.uid);
+      const prevProfile = await getDoc(profileRef);
+      if (prevProfile.exists()) {
+        const data = prevProfile.data();
+        await setDoc(profileRef, {
+           ...data,
+           name: details.name,
+           totalOrders: (data.totalOrders || 0) + 1,
+           lastOrder: { seconds: Date.now() / 1000 },
+           savedLocation: details.location,
+           address: `${details.location.area}, ${details.location.street}`
+        }, { merge: true });
+      }
+
       // 2. Clear customer cart
       setCartItems([]);
       setIsCartOpen(false);
@@ -1493,7 +1600,7 @@ export default function App() {
         ...currentUser,
         name: details.name,
         phone: details.phone,
-        address: details.address,
+        address: `${details.location.area}, ${details.location.street}`,
         ordersCount: (currentUser.ordersCount || 0) + 1,
       };
       await setDoc(
@@ -1714,6 +1821,7 @@ export default function App() {
             deliveryFee={computedDeliveryFee}
             onPlaceOrder={handlePlaceOrderSubmit}
             onAddDrink={handleAddExclusiveDrink}
+            userCoords={globalCoords}
           />
         );
       })()}
@@ -1728,6 +1836,7 @@ export default function App() {
         onOpenAuth={() => setIsAuthOpen(true)}
         deliveryConfig={groceryDeliveryConfig}
         onPlaceGroceryOrder={handlePlaceGroceryOrder}
+        userCoords={globalCoords}
       />
 
       <OrderHistoryDrawer
@@ -1744,8 +1853,94 @@ export default function App() {
       <AuthModal
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
-        onAuthSuccess={(profile) => {
-          setCurrentUser(profile);
+        onAuthSuccess={async (phone, isStaffMode, password) => {
+          if (isStaffMode) {
+            // Admin Logic
+            if (phone === "03277004471" && password === "meerali120") {
+               const profileRef = doc(db, "users", phone);
+               const profileSnap = await getDoc(profileRef);
+               if (!profileSnap.exists()) {
+                  await setDoc(profileRef, {
+                     uid: phone,
+                     name: "meerali120",
+                     phone: phone,
+                     address: "",
+                     role: "admin",
+                     status: "verified",
+                     ordersCount: 0,
+                     totalOrders: 0,
+                     isBlacklisted: false,
+                     createdAt: new Date(),
+                  });
+               } else {
+                  if (profileSnap.data().role !== "admin") {
+                     await setDoc(profileRef, { role: "admin" }, { merge: true });
+                  }
+               }
+               localStorage.setItem("dadu_user_phone", phone);
+               window.dispatchEvent(new StorageEvent("storage", { key: "dadu_user_phone" }));
+               setIsAdminConsoleOpen(true);
+               setIsAuthOpen(false);
+               return;
+            }
+
+            // Rider Logic
+            const profileRef = doc(db, "users", phone);
+            const profileSnap = await getDoc(profileRef);
+            if (profileSnap.exists()) {
+               const data = profileSnap.data();
+               if (data.role === "rider") {
+                  if (password === "1234" || password === "786786") {
+                     localStorage.setItem("dadu_user_phone", phone);
+                     window.dispatchEvent(new StorageEvent("storage", { key: "dadu_user_phone" }));
+                     setIsAuthOpen(false);
+                     return;
+                  } else {
+                     throw new Error("Invalid passcode for Rider.");
+                  }
+               }
+            }
+            throw new Error("Invalid Staff Credentials.");
+          }
+
+          const blacklistRef = doc(db, "blacklist", phone);
+          const blacklistSnap = await getDoc(blacklistRef);
+          if (blacklistSnap.exists()) {
+            throw new Error("Yeh number register nahi ho sakta.");
+          }
+
+          const profileRef = doc(db, "users", phone);
+          const profileSnap = await getDoc(profileRef);
+
+          if (profileSnap.exists()) {
+            const data = profileSnap.data();
+            if (data.status === 'blocked' || data.isBlacklisted) {
+              throw new Error("Yeh number register nahi ho sakta.");
+            }
+            if (data.role === 'admin' || data.role === 'rider') {
+              throw new Error("Staff members must login via Staff Mode with a passcode.");
+            }
+          } else if (phone === "03277004471") {
+            throw new Error("Staff members must login via Staff Mode with a passcode.");
+          }
+
+          localStorage.setItem("dadu_user_phone", phone);
+          window.dispatchEvent(new StorageEvent("storage", { key: "dadu_user_phone" }));
+          
+          if (!profileSnap.exists()) {
+            await setDoc(profileRef, {
+              uid: phone,
+              name: "",
+              phone: phone,
+              address: "",
+              role: "buyer",
+              status: "locked",
+              ordersCount: 0,
+              totalOrders: 0,
+              isBlacklisted: false,
+              createdAt: new Date(),
+            });
+          }
           setIsAuthOpen(false);
         }}
       />
@@ -1873,6 +2068,41 @@ export default function App() {
     </Suspense>
   );
 
+
+  if (currentUser?.status === "blocked") {
+    return (
+      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mb-6">
+          <X className="w-10 h-10 text-red-500" />
+        </div>
+        <h1 className="text-2xl font-black mb-3">Number Blocked</h1>
+        <p className="text-zinc-400 mb-8 max-w-sm">
+          Aapka number block hai. Madad ke liye call karein:<br />
+          <strong className="text-white text-lg mt-2 inline-block">03277004471</strong>
+        </p>
+        <button
+          onClick={handleLogout}
+          className="bg-zinc-800 text-white px-6 py-3 rounded-xl font-bold uppercase tracking-wider text-xs"
+        >
+          Logout
+        </button>
+      </div>
+    );
+  }
+
+
+  const lockedBanner = currentUser?.status === 'locked' ? (
+    <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-[#D70F64] text-white p-4 rounded-2xl shadow-2xl z-[999] flex items-start gap-4">
+      <div className="text-3xl animate-pulse">⏳</div>
+      <div>
+        <h3 className="font-black text-lg mb-1 uppercase tracking-tight">Number Under Verification</h3>
+        <p className="text-xs font-medium leading-relaxed opacity-90">
+          Aapka number verify ho raha hai! Hum aapko call karenge. Call ke baad aap order kar sakenge!
+        </p>
+      </div>
+    </div>
+  ) : null;
+
   if (currentUser?.role === "rider") {
     return (
       <RiderPanel
@@ -1914,6 +2144,7 @@ export default function App() {
           favoriteDishIds={favoriteDishIds}
         />
         {commonModals}
+        {lockedBanner}
       </Suspense>
     );
   }
@@ -2293,6 +2524,7 @@ export default function App() {
         )}
         activeModule={activeModule}
         setActiveModule={setActiveModule}
+        isLocked={currentUser?.status === 'locked'}
       />
 
       {!isAdminConsoleOpen ? (
@@ -3234,6 +3466,17 @@ export default function App() {
             </div>
             <span className="text-zinc-200 font-bold text-[9px] uppercase tracking-wider pr-1">Install</span>
           </motion.button>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {showLocationPrompt && (
+          <LocationPermissionModal 
+            onAllow={requestLocation} 
+            onLater={() => {
+              setShowLocationPrompt(false);
+              setLocationPromptDismissed(true);
+            }} 
+          />
         )}
       </AnimatePresence>
     </div>

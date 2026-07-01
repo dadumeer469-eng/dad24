@@ -6351,7 +6351,74 @@ export default function AdminPanel({
                               </td>
 
                               {/* Actions */}
-                              <td className="py-4 px-5 text-right">
+                              <td className="py-4 px-5 text-right flex items-center justify-end gap-2">
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    const newAddress = window.prompt("Enter new address for this user:", u.address || "");
+                                    if (newAddress !== null) {
+                                      try {
+                                        await updateDoc(doc(db, "users", u.uid), { address: newAddress });
+                                      } catch (err) {
+                                        alert("Failed to update address.");
+                                      }
+                                    }
+                                  }}
+                                  className="p-1 px-2.5 rounded text-[10px] font-black uppercase transition-all bg-sky-500/10 text-sky-500 hover:bg-sky-500/20 cursor-pointer"
+                                >
+                                  Edit Addr
+                                </button>
+
+                                {u.status === "locked" && (
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      try {
+                                        await updateDoc(doc(db, "users", u.uid), { status: "verified" });
+                                      } catch (err) {
+                                        alert("Failed to unlock user.");
+                                      }
+                                    }}
+                                    className="p-1 px-2.5 rounded text-[10px] font-black uppercase transition-all bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 cursor-pointer"
+                                  >
+                                    Unlock
+                                  </button>
+                                )}
+
+                                {u.status === "verified" && !isSpecialAdmin && (
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      if (confirm("Are you sure you want to block this user?")) {
+                                        try {
+                                          await updateDoc(doc(db, "users", u.uid), { status: "blocked" });
+                                        } catch (err) {
+                                          alert("Failed to block user.");
+                                        }
+                                      }
+                                    }}
+                                    className="p-1 px-2.5 rounded text-[10px] font-black uppercase transition-all bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 cursor-pointer"
+                                  >
+                                    Block
+                                  </button>
+                                )}
+
+                                {u.status === "blocked" && !isSpecialAdmin && (
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      try {
+                                        await updateDoc(doc(db, "users", u.uid), { status: "verified" });
+                                      } catch (err) {
+                                        alert("Failed to unblock user.");
+                                      }
+                                    }}
+                                    className="p-1 px-2.5 rounded text-[10px] font-black uppercase transition-all bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 cursor-pointer"
+                                  >
+                                    Unblock
+                                  </button>
+                                )}
+
                                 <button
                                   type="button"
                                   disabled={isSpecialAdmin}

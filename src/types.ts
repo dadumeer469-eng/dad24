@@ -23,7 +23,21 @@ export interface UserProfile {
   phone: string;
   address: string;
   role: "admin" | "buyer" | "rider" | "customer";
+  status?: "locked" | "verified" | "blocked";
+  isBlacklisted?: boolean;
+  unlockedAt?: any;
+  unlockedBy?: string;
+  registeredAt?: any;
   ordersCount: number;
+  createdAt?: any;
+  lastOrder?: any;
+  totalOrders?: number;
+  savedLocation?: {
+    area: string;
+    street: string;
+    lat: number;
+    lng: number;
+  };
   vehicleNumber?: string;
   riderCoords?: { latitude: number; longitude: number; lastUpdated?: number };
 }
@@ -70,6 +84,13 @@ export interface Order {
   paymentMethod: "COD" | "Pay on Appointment" | "cod";
   orderType: "food" | "service" | "grocery";
   userCoords?: { latitude: number; longitude: number };
+  location?: {
+    area: string;
+    street: string;
+    lat?: number;
+    lng?: number;
+    googleMapsLink?: string;
+  };
   riderCoords?: { latitude: number; longitude: number; lastUpdated?: number };
   totalCommission?: number;
 }
@@ -163,6 +184,13 @@ export interface GroceryOrder {
   riderName?: string;
   riderPhone?: string;
   userCoords?: { latitude: number; longitude: number };
+  location?: {
+    area: string;
+    street: string;
+    lat?: number;
+    lng?: number;
+    googleMapsLink?: string;
+  };
   totalCommission?: number;
 }
 

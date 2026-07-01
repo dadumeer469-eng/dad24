@@ -24,6 +24,7 @@ interface FoodpandaHeaderProps {
   onTrackOrder?: (order: Order) => void;
   onOpenGroceryCart?: () => void;
   groceryCartCount?: number;
+  isLocked?: boolean;
   activeModule?: "food" | "grocery";
   setActiveModule?: (mode: "food" | "grocery") => void;
 }
@@ -49,6 +50,7 @@ export default function FoodpandaHeader({
   onTrackOrder,
   onOpenGroceryCart = () => {},
   groceryCartCount = 0,
+  isLocked = false,
   activeModule = "food",
   setActiveModule,
 }: FoodpandaHeaderProps) {
@@ -178,7 +180,7 @@ export default function FoodpandaHeader({
                 : "bg-[#d70f64] hover:bg-[#b00c50] text-white"
             }`}
           >
-            <ShoppingBag className="w-4 h-4" />
+            {isLocked ? <span className="text-sm">🔒</span> : <ShoppingBag className="w-4 h-4" />}
             <span className="hidden md:inline">{activeModule === "grocery" ? "Basket" : "Cart"}</span>
             <span className="bg-white/20 px-1.5 py-0.5 rounded-md text-[10px] font-bold">
               {activeModule === "grocery" ? groceryCartCount : cartCount}

@@ -15,13 +15,14 @@ interface GroceryCartDrawerProps {
   onPlaceGroceryOrder: (details: {
     name: string;
     phone: string;
-    address: string;
+    location: { area: string; street: string; lat?: number; lng?: number; googleMapsLink?: string };
     items: GroceryOrderItem[];
     totalPrice: number;
     deliveryFee: number;
     grandTotal: number;
     userCoords?: { latitude: number; longitude: number };
   }) => Promise<void>;
+  userCoords?: { latitude: number; longitude: number } | null;
 }
 
 export default function GroceryCartDrawer({
@@ -34,32 +35,16 @@ export default function GroceryCartDrawer({
   onOpenAuth,
   deliveryConfig,
   onPlaceGroceryOrder,
+  userCoords,
 }: GroceryCartDrawerProps) {
-  const [nameInput, setNameInput] = useState("");
-  const [phoneInput, setPhoneInput] = useState("");
-  const [addressInput, setAddressInput] = useState("");
-  const [editingAddress, setEditingAddress] = useState(false);
+  const [nameInput, setNameInput] = useState(currentUser?.name || "");
+  const [phoneInput, setPhoneInput] = useState(currentUser?.phone || "");
+  const [areaInput, setAreaInput] = useState(currentUser?.savedLocation?.area || currentUser?.address || "");
+  const [streetInput, setStreetInput] = useState(currentUser?.savedLocation?.street || "");
   const [submitting, setSubmitting] = useState(false);
-  const [userCoords, setUserCoords] = useState<{ latitude: number; longitude: number } | null>(null);
 
-  React.useEffect(() => {
-    if (isOpen && !userCoords) {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            setUserCoords({
-              latitude: pos.coords.latitude,
-              longitude: pos.coords.longitude,
-            });
-          },
-          (err) => {
-            console.log("Auto GPS pinpoint deferred:", err);
-          },
-          { enableHighAccuracy: true, timeout: 5000 }
-        );
-      }
-    }
-  }, [isOpen, userCoords]);
+
+
 
   if (!isOpen) return null;
 
@@ -90,16 +75,13 @@ export default function GroceryCartDrawer({
     if (cartItems.length === 0) return;
     setSubmitting(true);
 
-    const finalName = currentUser?.name || nameInput.trim();
-    const finalPhone = currentUser?.phone || phoneInput.trim();
-    let finalAddress = currentUser?.address || addressInput.trim();
+    let finalName = nameInput.trim() || currentUser?.name || "";
+    let finalPhone = currentUser?.phone || phoneInput.trim() || "";
+    let finalArea = areaInput.trim();
+    let finalStreet = streetInput.trim();
 
-    if (editingAddress && addressInput.trim()) {
-      finalAddress = addressInput.trim();
-    }
-
-    if (!finalName || !finalPhone || !finalAddress) {
-      alert("Please enter your name, contact phone, and shipment address to complete the purchase!");
+    if (!finalName || !finalPhone || !finalArea || !finalStreet) {
+      alert("Please enter your name, contact phone, and complete delivery location to complete the purchase!");
       setSubmitting(false);
       return;
     }
@@ -122,7 +104,6 @@ export default function GroceryCartDrawer({
             );
           });
           activeCoords = coords;
-          setUserCoords(coords);
           alert("📍 GPS pinpoint successfully attached! Your rider will receive turn-by-turn directions.");
         } catch (err) {
           alert("❌ Could not fetch GPS location. Location access is required to place an order!");
@@ -140,7 +121,13 @@ export default function GroceryCartDrawer({
       await onPlaceGroceryOrder({
         name: finalName,
         phone: finalPhone,
-        address: finalAddress,
+        location: {
+          area: finalArea,
+          street: finalStreet,
+          lat: activeCoords?.latitude,
+          lng: activeCoords?.longitude,
+          googleMapsLink: activeCoords ? `https://maps.google.com/?q=${activeCoords.latitude},${activeCoords.longitude}` : undefined
+        },
         items: cartItems,
         totalPrice: totalGroceryPrice,
         deliveryFee: finalDeliveryFee,
@@ -271,33 +258,12 @@ export default function GroceryCartDrawer({
                           <MapPin className="w-4 h-4 text-rose-500 shrink-0" />
                           <span className="font-bold text-zinc-250 truncate">Shipment Destination Address:</span>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingAddress(!editingAddress);
-                            if (!editingAddress) {
-                              setAddressInput(currentUser.address);
-                            }
-                          }}
-                          className="text-[10px] text-orange-500 hover:underline font-bold"
-                        >
-                          {editingAddress ? "Cancel" : "Change"}
-                        </button>
+
                       </div>
 
-                      {editingAddress ? (
-                        <textarea
-                          rows={2}
-                          value={addressInput}
-                          onChange={(e) => setAddressInput(e.target.value)}
-                          placeholder="Type accurate house number, landmarks, street..."
-                          className="w-full p-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-xs outline-none focus:border-orange-500 transition text-white"
-                        />
-                      ) : (
                         <p className="bg-zinc-950 p-2.5 rounded-xl text-[11px] text-zinc-300 font-semibold line-clamp-2 leading-normal border border-zinc-850">
-                          {currentUser.address}
+                          {currentUser?.savedLocation?.area ? currentUser.savedLocation.area + ', ' + currentUser.savedLocation.street : currentUser.address}
                         </p>
-                      )}
                     </div>
                   </div>
                 )}
@@ -328,14 +294,25 @@ export default function GroceryCartDrawer({
                       />
                     </div>
                     <div className="space-y-1">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 block">Complete Delivery Address</span>
-                      <textarea
+                      <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Area Name</label>
+                      <input
+                        type="text"
                         required
-                        rows={2}
-                        value={addressInput}
-                        onChange={(e) => setAddressInput(e.target.value)}
-                        placeholder="House / block number, street name, city layout landmarks..."
-                        className="w-full p-2.5 bg-zinc-955 border border-zinc-800 rounded-xl text-xs outline-none text-zinc-100 placeholder-zinc-600 focus:border-orange-500 transition"
+                        value={areaInput}
+                        onChange={(e) => setAreaInput(e.target.value)}
+                        placeholder="e.g. Shahani Muhalla"
+                        className="w-full p-2.5 bg-zinc-955 border border-zinc-800 rounded-xl text-xs outline-none text-zinc-100 focus:border-orange-500 transition"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Street / House No.</label>
+                      <input
+                        type="text"
+                        required
+                        value={streetInput}
+                        onChange={(e) => setStreetInput(e.target.value)}
+                        placeholder="e.g. Gali No 5"
+                        className="w-full p-2.5 bg-zinc-955 border border-zinc-800 rounded-xl text-xs outline-none text-zinc-100 focus:border-orange-500 transition"
                       />
                     </div>
                   </form>
@@ -422,7 +399,7 @@ export default function GroceryCartDrawer({
                             { enableHighAccuracy: true, timeout: 8000 }
                           );
                         });
-                        setUserCoords(coords);
+                        // setUserCoords(coords);
                         alert("📍 GPS pinpoint successfully attached! Your rider will receive turn-by-turn directions.");
                       } catch (err: any) {
                         alert("❌ Could not fetch GPS location. Location access is required to place an order!");

@@ -13,8 +13,9 @@ interface CartDrawerProps {
   currentUser: UserProfile | null;
   onOpenAuth: () => void;
   deliveryFee: number; // Stored inside Firestore settings!
-  onPlaceOrder: (details: { name: string; phone: string; address: string; paymentMethod: string; orderType: "food" | "service"; userCoords?: { latitude: number; longitude: number } }) => Promise<void>;
+  onPlaceOrder: (details: { name: string; phone: string; location: { area: string; street: string; lat?: number; lng?: number; googleMapsLink?: string }; paymentMethod: string; orderType: "food" | "service"; userCoords?: { latitude: number; longitude: number } }) => Promise<void>;
   onAddDrink: (drink: any) => void;
+  userCoords?: { latitude: number; longitude: number } | null;
 }
 
 export default function CartDrawer({
@@ -28,32 +29,26 @@ export default function CartDrawer({
   deliveryFee,
   onPlaceOrder,
   onAddDrink,
+  userCoords,
 }: CartDrawerProps) {
-  const [nameInput, setNameInput] = useState("");
-  const [phoneInput, setPhoneInput] = useState("");
-  const [addressInput, setAddressInput] = useState("");
-  const [editingAddress, setEditingAddress] = useState(false);
+  const [nameInput, setNameInput] = useState(currentUser?.name || "");
+  const [phoneInput, setPhoneInput] = useState(currentUser?.phone || "");
+  const [areaInput, setAreaInput] = useState(currentUser?.savedLocation?.area || currentUser?.address || "");
+  const [streetInput, setStreetInput] = useState(currentUser?.savedLocation?.street || "");
+  // removing editingAddress since returning users just confirm
   const [submitting, setSubmitting] = useState(false);
-  const [userCoords, setUserCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+
 
   React.useEffect(() => {
-    if (isOpen && !userCoords) {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            setUserCoords({
-              latitude: pos.coords.latitude,
-              longitude: pos.coords.longitude,
-            });
-          },
-          (err) => {
-            console.log("Auto GPS pinpoint deferred:", err);
-          },
-          { enableHighAccuracy: true, timeout: 5000 }
-        );
-      }
+    if (currentUser) {
+      setNameInput(currentUser.name || "");
+      setPhoneInput(currentUser.phone || "");
+      setAreaInput(currentUser.savedLocation?.area || currentUser.address || "");
+      setStreetInput(currentUser.savedLocation?.street || "");
     }
-  }, [isOpen, userCoords]);
+  }, [currentUser]);
+
+
 
   if (!isOpen) return null;
 
@@ -75,19 +70,18 @@ export default function CartDrawer({
     if (cartItems.length === 0) return;
     setSubmitting(true);
 
-    let finalName = currentUser?.name || nameInput.trim();
-    let finalPhone = currentUser?.phone || phoneInput.trim();
-    let finalAddress = currentUser?.address || addressInput.trim();
+    let finalName = nameInput.trim() || currentUser?.name || "";
+    let finalPhone = currentUser?.phone || "";
+    let finalArea = areaInput.trim();
+    let finalStreet = streetInput.trim();
 
-    if (editingAddress && addressInput.trim()) {
-      finalAddress = addressInput.trim();
-    }
-
-    if (!finalName || !finalPhone || !finalAddress) {
-      alert("Please provide name, phone and delivery address to complete order!");
+    if (!finalName || !finalPhone || !finalArea || !finalStreet) {
+      alert("Please provide name, phone and complete delivery location to complete order!");
       setSubmitting(false);
       return;
     }
+
+
 
     // Determine type
     const orderTypeValue = hasService && !hasFood ? "service" : "food";
@@ -95,46 +89,23 @@ export default function CartDrawer({
 
     let activeCoords = userCoords;
 
-    // Enforce GPS pinpoint map coordinates for every order if not already active
-    if (!activeCoords) {
-      const wantGPS = window.confirm(
-        "📍 PINPOINT YOUR LOCATION VIA GPS!\n\nWe require your precise GPS location to ensure our riders navigate directly to your doorstep.\n\nPlease allow auto-detect location to continue placing your order."
-      );
-      if (wantGPS) {
-        try {
-          alert("Getting high precision coordinates... Please permit browser prompts if any.");
-          const coords = await new Promise<{ latitude: number, longitude: number }>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(
-              (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-              (err) => reject(err),
-              { enableHighAccuracy: true, timeout: 8000 }
-            );
-          });
-          activeCoords = coords;
-          setUserCoords(coords);
-          alert("📍 GPS coordinates locked successfully! Your rider is routed turn-by-turn.");
-        } catch (err: any) {
-          alert("❌ Could not fetch GPS location. Location access is required to place an order!");
-          setSubmitting(false);
-          return;
-        }
-      } else {
-        alert("❌ Location access is required to place an order!");
-        setSubmitting(false);
-        return;
-      }
-    }
+
 
     try {
       await onPlaceOrder({
         name: finalName,
         phone: finalPhone,
-        address: finalAddress,
+        location: {
+          area: finalArea,
+          street: finalStreet,
+          lat: activeCoords?.latitude,
+          lng: activeCoords?.longitude,
+          googleMapsLink: activeCoords ? `https://maps.google.com/?q=${activeCoords.latitude},${activeCoords.longitude}` : undefined
+        },
         paymentMethod: paymentMethodValue,
         orderType: orderTypeValue,
         userCoords: activeCoords || undefined,
       });
-      setEditingAddress(false);
     } catch (err) {
       console.error(err);
     } finally {
@@ -316,6 +287,81 @@ export default function CartDrawer({
                 Delivery Information Details
               </h4>
 
+              <div className="space-y-2.5 pt-2">
+
+                {userCoords ? (
+                  <div className="bg-zinc-950 border border-emerald-500/30 rounded-xl overflow-hidden relative">
+                    {/* Simulated Map Background */}
+                    <div className="h-24 w-full bg-zinc-900 relative overflow-hidden">
+                      <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-emerald-500 via-zinc-900 to-zinc-900"></div>
+                      {/* Grid pattern */}
+                      <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(#3f3f46 1px, transparent 1px), linear-gradient(90deg, #3f3f46 1px, transparent 1px)', backgroundSize: '20px 20px', opacity: 0.2 }}></div>
+                      {/* Pin */}
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center animate-bounce">
+                        <div className="bg-[#D70F64] text-white p-1.5 rounded-full shadow-lg">
+                          <MapPin className="w-4 h-4" />
+                        </div>
+                        <div className="w-1.5 h-1.5 bg-black/40 rounded-full mt-1 blur-[1px]"></div>
+                      </div>
+                    </div>
+                    <div className="p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-1.5 text-emerald-400 font-bold text-[10px] uppercase tracking-wider mb-1">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                            Location mil gayi!
+                          </div>
+                          <p className="text-zinc-200 text-xs font-bold">{areaInput || "Location detected"}</p>
+                          <p className="text-zinc-400 text-[10px]">{streetInput || "Auto-filled"}</p>
+                        </div>
+                        <button type="button" onClick={() => {}} className="text-[#D70F64] text-[9px] font-bold uppercase tracking-wider hover:underline">
+                          Galat lag rahi hai?
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-zinc-950 border border-zinc-800 p-4 rounded-xl flex flex-col items-center text-center gap-2">
+                    <MapPin className="w-6 h-6 text-zinc-500 animate-pulse" />
+                    <p className="text-zinc-400 text-xs font-bold">Detecting your exact location...</p>
+                  </div>
+                )}
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">Aapka Naam</label>
+                  <input
+                    type="text"
+                    required
+                    value={nameInput}
+                    onChange={(e) => setNameInput(e.target.value)}
+                    placeholder="e.g. Ali Ahmed"
+                    className="w-full text-xs p-2.5 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-zinc-200 font-bold focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64]"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">Area Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={areaInput}
+                    onChange={(e) => setAreaInput(e.target.value)}
+                    placeholder="e.g. Shahani Muhalla"
+                    className="w-full text-xs p-2.5 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-zinc-200 font-bold focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64]"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">Street / House No.</label>
+                  <input
+                    type="text"
+                    required
+                    value={streetInput}
+                    onChange={(e) => setStreetInput(e.target.value)}
+                    placeholder="e.g. Gali No 5"
+                    className="w-full text-xs p-2.5 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-zinc-200 font-bold focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64]"
+                  />
+                </div>
+              </div>
+
               {/* Secure Loyalty Indicator */}
               {currentUser && currentUser.ordersCount > 0 && (
                 <div className="bg-[#D70F64]/10 border border-[#D70F64]/20 text-[#D70F64] text-[11px] p-2.5 rounded-2xl flex items-center gap-2 font-bold">
@@ -325,128 +371,6 @@ export default function CartDrawer({
                   </span>
                 </div>
               )}
-
-              {/* If NOT logged in, let them sign in for easy ordering */}
-              {!currentUser && (
-                <div className="space-y-3">
-                  <div className="bg-zinc-950 border border-zinc-800 p-3 rounded-2xl">
-                    <p className="text-[11px] text-zinc-400 leading-snug font-semibold">
-                      Already have an account? Login with your phone number for seamless automatic checkouts!
-                    </p>
-                    <button
-                      type="button"
-                      onClick={onOpenAuth}
-                      className="w-full mt-2.5 bg-zinc-805 hover:bg-zinc-750 border border-zinc-700 text-zinc-200 font-black py-2.5 text-xs rounded-xl transition cursor-pointer uppercase tracking-wider"
-                    >
-                      Sign In to Account
-                    </button>
-                  </div>
-
-                  <div className="space-y-2.5 pt-2">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">Recipient Name</label>
-                      <input
-                        type="text"
-                        required
-                        value={nameInput}
-                        onChange={(e) => setNameInput(e.target.value)}
-                        placeholder="e.g. Ali Ahmed"
-                        className="w-full text-xs p-2.5 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-zinc-200 font-bold focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64]"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">Phone Number</label>
-                      <input
-                        type="text"
-                        required
-                        value={phoneInput}
-                        onChange={(e) => setPhoneInput(e.target.value)}
-                        placeholder="e.g. 03277004471"
-                        className="w-full text-xs p-2.5 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-zinc-200 font-bold focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64]"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">Complete Address</label>
-                      <textarea
-                        required
-                        rows={2}
-                        value={addressInput}
-                        onChange={(e) => setAddressInput(e.target.value)}
-                        placeholder="Street, Sector, City"
-                        className="w-full text-xs p-2.5 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-zinc-200 font-bold focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] resize-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* If Logged in: Single-Information Auto Memory Rule */}
-              {currentUser && (
-                <div className="space-y-3 pt-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-extrabold text-zinc-400 uppercase text-[10px] tracking-wider">Saved Profile info</span>
-                    
-                    {/* Change Address Toggle Button specifically for address editing flexibility */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingAddress(!editingAddress);
-                        setAddressInput(currentUser.address);
-                      }}
-                      className="text-[11px] text-[#D70F64] font-bold hover:underline cursor-pointer flex items-center gap-1"
-                    >
-                      <Edit2 className="w-3 h-3" />
-                      change address
-                    </button>
-                  </div>
-
-                  <div className="bg-zinc-955 border border-zinc-800 p-3.5 rounded-2xl space-y-2 text-xs shadow-3xs">
-                    <div className="flex items-center gap-2 text-zinc-200 font-extrabold">
-                      <User className="w-3.5 h-3.5 text-zinc-500" />
-                      <span>{currentUser.name}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-zinc-300 font-bold">
-                      <Phone className="w-3.5 h-3.5 text-zinc-500" />
-                      <span>{currentUser.phone}</span>
-                    </div>
-
-                    {!editingAddress ? (
-                      <div className="flex items-start gap-2 text-zinc-300 mt-1 sm:mt-0 font-bold leading-relaxed">
-                        <MapPin className="w-3.5 h-3.5 text-[#D70F64] shrink-0 mt-0.5" />
-                        <span>{currentUser.address}</span>
-                      </div>
-                    ) : (
-                      <div className="space-y-1.5 pt-2 border-t border-zinc-800">
-                        <label className="text-[9px] font-black uppercase text-[#D70F64] tracking-wider">Modify Current Address</label>
-                        <textarea
-                          rows={2}
-                          value={addressInput}
-                          onChange={(e) => setAddressInput(e.target.value)}
-                          placeholder="Type new custom location info..."
-                          className="w-full text-xs p-2 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-150 font-bold outline-none focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] resize-none"
-                        />
-                        <div className="flex justify-end gap-1.5 pt-1">
-                          <button
-                            type="button"
-                            onClick={() => setEditingAddress(false)}
-                            className="bg-zinc-800 text-[10px] font-bold py-1 px-3 rounded-lg text-zinc-355 hover:text-zinc-100 border border-zinc-700 cursor-pointer"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setEditingAddress(false)}
-                            className="bg-[#D70F64] text-[10px] font-bold py-1 px-3 rounded-lg text-white cursor-pointer"
-                          >
-                            Save Temp
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
             </div>
           )}
 
@@ -480,13 +404,7 @@ export default function CartDrawer({
               {userCoords ? (
                 <div className="text-zinc-300 text-xs font-semibold flex items-center justify-between">
                   <span>📍 Doorstep Pin Coordinates Locked ({userCoords.latitude.toFixed(5)}, {userCoords.longitude.toFixed(5)})</span>
-                  <button
-                    type="button"
-                    onClick={() => setUserCoords(null)}
-                    className="text-pink-400 text-[10px] hover:underline font-bold cursor-pointer"
-                  >
-                    Remove
-                  </button>
+
                 </div>
               ) : (
                 <div className="space-y-1.5">
@@ -503,7 +421,7 @@ export default function CartDrawer({
                       }
                       navigator.geolocation.getCurrentPosition(
                         (pos) => {
-                          setUserCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+                          //  latitude: pos.coords.latitude, longitude: pos.coords.longitude });
                           alert("📍 Pinpoint GPS Coordinates Locked successfully!");
                         },
                         (err) => {
@@ -556,38 +474,7 @@ export default function CartDrawer({
               </div>
             </div>
 
-            {!userCoords && (
-              <div className="bg-pink-500/10 border border-red-500/20 rounded-xl p-3 text-center flex flex-col items-center justify-center gap-2">
-                <span className="text-pink-400 text-xs font-bold uppercase tracking-tight flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5" /> Location Access Required
-                </span>
-                <span className="text-pink-300/70 text-[10px] leading-tight max-w-[250px]">
-                  Please allow GPS location access to place your order. This ensures accurate and fast delivery to your exact doorstep.
-                </span>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      alert("Getting high precision coordinates... Please permit browser prompts if any.");
-                      const coords = await new Promise<{ latitude: number, longitude: number }>((resolve, reject) => {
-                        navigator.geolocation.getCurrentPosition(
-                          (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-                          (err) => reject(err),
-                          { enableHighAccuracy: true, timeout: 8000 }
-                        );
-                      });
-                      setUserCoords(coords);
-                      alert("📍 GPS coordinates locked successfully! Your rider is routed turn-by-turn.");
-                    } catch (err: any) {
-                      alert("❌ Could not fetch GPS location. Location access is required to place an order!");
-                    }
-                  }}
-                  className="mt-1 bg-pink-500 hover:bg-pink-600 text-white font-bold text-[10px] uppercase tracking-wider py-2 px-5 rounded-lg transition-colors cursor-pointer"
-                >
-                  Allow Location Access
-                </button>
-              </div>
-            )}
+
 
             <button
               onClick={handleSubmitOrder}
@@ -599,7 +486,7 @@ export default function CartDrawer({
               ) : !userCoords ? (
                 <>
                   <MapPin className="w-4 h-4" />
-                  Grant Location to Place Order
+                  Locating...
                 </>
               ) : hasService && !hasFood ? (
                 <>
@@ -609,7 +496,7 @@ export default function CartDrawer({
               ) : (
                 <>
                   <ShieldCheck className="w-4 h-4" />
-                  Place Order (Cash on Delivery)
+                  Order Lagao!
                 </>
               )}
             </button>
