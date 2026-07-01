@@ -18,6 +18,7 @@ interface FoodpandaRestaurantPageProps {
   onViewCart: () => void;
   toggleFavorite: (dishId: string) => void;
   favoriteDishIds: string[];
+  isRiderRangeExceeded?: boolean;
 }
 
 export default function FoodpandaRestaurantPage({
@@ -33,7 +34,8 @@ export default function FoodpandaRestaurantPage({
   cartPriceTotal,
   onViewCart,
   toggleFavorite,
-  favoriteDishIds
+  favoriteDishIds,
+  isRiderRangeExceeded
 }: FoodpandaRestaurantPageProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>(initialCategory || "");
@@ -142,7 +144,20 @@ export default function FoodpandaRestaurantPage({
             <span className="text-green-600 font-bold bg-green-50 px-2 py-1 rounded-md">🟢 Open Now</span>
           )}
           <span className="bg-zinc-100 text-zinc-600 px-2 py-1 rounded-md">Min order: Rs. {deliverySettings?.restaurantStatuses?.[restaurantName]?.minOrder || deliverySettings?.minOrderAmount || 0}</span>
-          <span className="bg-zinc-100 text-zinc-600 px-2 py-1 rounded-md">Delivery: {deliverySettings?.restaurantStatuses?.[restaurantName]?.deliveryCharge || `Rs. ${deliverySettings?.deliveryFee || 50}`}</span>
+          <span className="bg-zinc-100 text-zinc-600 px-2 py-1 rounded-md">Delivery: {(() => {
+            let chargeStr = deliverySettings?.restaurantStatuses?.[restaurantName]?.deliveryCharge;
+            if (!chargeStr) {
+              const fee = deliverySettings?.deliveryFee || 50;
+              chargeStr = `Rs. ${fee}`;
+            }
+            if (isRiderRangeExceeded) {
+              const match = chargeStr.match(/\d+/);
+              if (match) {
+                return chargeStr.replace(match[0], String(parseInt(match[0], 10) * 2));
+              }
+            }
+            return chargeStr;
+          })()}</span>
         </div>
 
         {/* Search */}

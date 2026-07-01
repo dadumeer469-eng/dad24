@@ -80,6 +80,7 @@ import {
   Grid,
   Pencil,
   Star,
+  MapPin,
 } from "lucide-react";
 
 interface AdminPanelProps {
@@ -459,6 +460,18 @@ export default function AdminPanel({
   const [minOrderAmountInput, setMinOrderAmountInput] = useState(
     deliverySettings?.minOrderAmount || 0,
   );
+  const [riderRangeKmInput, setRiderRangeKmInput] = useState(
+    deliverySettings?.riderRangeKm || 5,
+  );
+  const [userRangeKmInput, setUserRangeKmInput] = useState(
+    deliverySettings?.userRangeKm || 10,
+  );
+  const [baseLatInput, setBaseLatInput] = useState(
+    deliverySettings?.baseLocationCoords?.lat || 26.7323, // Dadu city center approx
+  );
+  const [baseLngInput, setBaseLngInput] = useState(
+    deliverySettings?.baseLocationCoords?.lng || 67.7744, // Dadu city center approx
+  );
 
   // Restaurant Status Management
   const [restStatusUnavailable, setRestStatusUnavailable] = useState(false);
@@ -487,6 +500,12 @@ export default function AdminPanel({
     if (deliverySettings) {
       setDeliveryChargeInput(deliverySettings.deliveryFee || 50);
       setMinOrderAmountInput(deliverySettings.minOrderAmount || 0);
+      setRiderRangeKmInput(deliverySettings.riderRangeKm || 5);
+      setUserRangeKmInput(deliverySettings.userRangeKm || 10);
+      if (deliverySettings.baseLocationCoords) {
+        setBaseLatInput(deliverySettings.baseLocationCoords.lat);
+        setBaseLngInput(deliverySettings.baseLocationCoords.lng);
+      }
 
       // Load specific restaurant status or fallback to global/default
       const specificStatus =
@@ -1396,8 +1415,15 @@ export default function AdminPanel({
       const existingStatuses = deliverySettings?.restaurantStatuses || {};
 
       const newSettings = {
+        ...deliverySettings,
         deliveryFee: Number(deliveryChargeInput),
         minOrderAmount: Number(minOrderAmountInput),
+        riderRangeKm: Number(riderRangeKmInput),
+        userRangeKm: Number(userRangeKmInput),
+        baseLocationCoords: {
+          lat: Number(baseLatInput),
+          lng: Number(baseLngInput),
+        },
         // Keep legacy for safety
         restaurantStatus: deliverySettings?.restaurantStatus || {
           isTemporarilyUnavailable: false,
@@ -5002,6 +5028,64 @@ export default function AdminPanel({
                         />
                       </div>
                     </div>
+                    
+                    <div className="pt-2 mt-2 border-t border-slate-100 grid grid-cols-2 gap-3">
+                      <div className="relative flex-grow">
+                        <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><MapPin className="w-3 h-3"/> Rider Double Charge Range (KM)</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={riderRangeKmInput}
+                          onChange={(e) =>
+                            setRiderRangeKmInput(Number(e.target.value))
+                          }
+                          placeholder="e.g. 5"
+                          className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none text-slate-900 font-extrabold focus:border-[#D70F64] transition text-xs"
+                        />
+                      </div>
+                      <div className="relative flex-grow">
+                        <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><MapPin className="w-3 h-3"/> User Service Range (KM)</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={userRangeKmInput}
+                          onChange={(e) =>
+                            setUserRangeKmInput(Number(e.target.value))
+                          }
+                          placeholder="e.g. 10"
+                          className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none text-slate-900 font-extrabold focus:border-[#D70F64] transition text-xs"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="relative flex-grow">
+                        <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Base Latitude</span>
+                        <input
+                          type="number"
+                          step="0.0001"
+                          value={baseLatInput}
+                          onChange={(e) =>
+                            setBaseLatInput(Number(e.target.value))
+                          }
+                          placeholder="e.g. 26.7323"
+                          className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none text-slate-900 font-extrabold focus:border-[#D70F64] transition text-xs"
+                        />
+                      </div>
+                      <div className="relative flex-grow">
+                        <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Base Longitude</span>
+                        <input
+                          type="number"
+                          step="0.0001"
+                          value={baseLngInput}
+                          onChange={(e) =>
+                            setBaseLngInput(Number(e.target.value))
+                          }
+                          placeholder="e.g. 67.7744"
+                          className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none text-slate-900 font-extrabold focus:border-[#D70F64] transition text-xs"
+                        />
+                      </div>
+                    </div>
+
                   </div>
                 </div>
 

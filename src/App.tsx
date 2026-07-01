@@ -77,6 +77,22 @@ import { motion, AnimatePresence } from "motion/react";
 
 const FoodpandaRestaurantPage = React.lazy(() => import("./components/FoodpandaRestaurantPage"));
 
+// Haversine formula to calculate distance in KM between two coordinates
+function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371; // Radius of the earth in km
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) *
+      Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const d = R * c; // Distance in km
+  return d;
+}
+
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [splashProgress, setSplashProgress] = useState(0);
@@ -210,6 +226,28 @@ export default function App() {
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
   const [locationPromptDismissed, setLocationPromptDismissed] = useState(false);
 
+  const userDistanceFromBase = React.useMemo(() => {
+    if (!globalCoords) return null;
+    if (!deliverySettings?.baseLocationCoords?.lat || !deliverySettings?.baseLocationCoords?.lng) return null;
+    return calculateDistanceKm(
+      globalCoords.latitude,
+      globalCoords.longitude,
+      deliverySettings.baseLocationCoords.lat,
+      deliverySettings.baseLocationCoords.lng
+    );
+  }, [globalCoords, deliverySettings]);
+
+  const isUserOutOfRange = React.useMemo(() => {
+    if (userDistanceFromBase === null) return false;
+    if (!deliverySettings?.userRangeKm) return false;
+    return userDistanceFromBase > deliverySettings.userRangeKm;
+  }, [userDistanceFromBase, deliverySettings]);
+
+  const isRiderRangeExceeded = React.useMemo(() => {
+    if (userDistanceFromBase === null) return false;
+    if (!deliverySettings?.riderRangeKm) return false;
+    return userDistanceFromBase > deliverySettings.riderRangeKm;
+  }, [userDistanceFromBase, deliverySettings]);
 
   useEffect(() => {
     // Wait for splash screen to finish
@@ -1844,6 +1882,10 @@ export default function App() {
            }
         }
         
+        if (isRiderRangeExceeded) {
+          computedDeliveryFee *= 2;
+        }
+        
         return (
           <CartDrawer
             isOpen={isCartOpen}
@@ -1861,18 +1903,27 @@ export default function App() {
         );
       })()}
 
-      <GroceryCartDrawer
-        isOpen={isGroceryCartOpen}
-        onClose={() => setIsGroceryCartOpen(false)}
-        cartItems={groceryCartItems}
-        onUpdateQuantity={handleUpdateGroceryCartQuantity}
-        onRemoveItem={handleRemoveFromGroceryCart}
-        currentUser={currentUser}
-        onOpenAuth={() => setIsAuthOpen(true)}
-        deliveryConfig={groceryDeliveryConfig}
-        onPlaceGroceryOrder={handlePlaceGroceryOrder}
-        userCoords={globalCoords}
-      />
+      {(() => {
+        let computedGroceryDeliveryConfig = { ...groceryDeliveryConfig };
+        if (isRiderRangeExceeded) {
+          computedGroceryDeliveryConfig.baseDeliveryFee *= 2;
+        }
+        
+        return (
+          <GroceryCartDrawer
+            isOpen={isGroceryCartOpen}
+            onClose={() => setIsGroceryCartOpen(false)}
+            cartItems={groceryCartItems}
+            onUpdateQuantity={handleUpdateGroceryCartQuantity}
+            onRemoveItem={handleRemoveFromGroceryCart}
+            currentUser={currentUser}
+            onOpenAuth={() => setIsAuthOpen(true)}
+            deliveryConfig={computedGroceryDeliveryConfig}
+            onPlaceGroceryOrder={handlePlaceGroceryOrder}
+            userCoords={globalCoords}
+          />
+        );
+      })()}
 
       <OrderHistoryDrawer
         isOpen={isHistoryDrawerOpen}
@@ -2199,6 +2250,28 @@ export default function App() {
     );
   }
 
+  if (isUserOutOfRange && currentUser?.role !== "admin" && currentUser?.role !== "rider") {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-24 h-24 mb-6 rounded-3xl bg-gradient-to-br from-[#d70f64] to-red-500 flex items-center justify-center shadow-2xl shadow-[#d70f64]/20 animate-pulse">
+          <MapPin className="w-12 h-12 text-white" />
+        </div>
+        <h1 className="text-3xl font-black text-white mb-4 tracking-tight">Out of Service Area</h1>
+        <p className="text-zinc-400 max-w-sm mx-auto font-medium leading-relaxed mb-8">
+          Ye app only dadu city me hai abhi. Hum jald hi aapke area me bhi service shuru karenge!
+        </p>
+        {currentUser && (
+          <button
+            onClick={handleLogout}
+            className="bg-zinc-800 text-white px-6 py-3 rounded-xl font-bold uppercase tracking-wider text-xs"
+          >
+            Logout
+          </button>
+        )}
+      </div>
+    );
+  }
+
 
   const lockedBanner = currentUser?.status === 'locked' ? (
     <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-[#D70F64] text-white p-4 rounded-2xl shadow-2xl z-[999] flex items-start gap-4">
@@ -2251,6 +2324,7 @@ export default function App() {
           onViewCart={() => setIsCartOpen(true)}
           toggleFavorite={toggleFavorite}
           favoriteDishIds={favoriteDishIds}
+          isRiderRangeExceeded={isRiderRangeExceeded}
         />
         {commonModals}
         {lockedBanner}
@@ -2975,9 +3049,20 @@ export default function App() {
                                       <span>•</span>
                                       <span className="flex items-center">
                                         <MapPin className="w-3 h-3 mr-1" />{" "}
-                                        {deliverySettings?.restaurantStatuses?.[
-                                          vendor
-                                        ]?.deliveryCharge || "Rs. 50"}
+                                        {(() => {
+                                          let chargeStr = deliverySettings?.restaurantStatuses?.[vendor]?.deliveryCharge;
+                                          if (!chargeStr) {
+                                            const fee = deliverySettings?.deliveryFee || 50;
+                                            chargeStr = `Rs. ${fee}`;
+                                          }
+                                          if (isRiderRangeExceeded) {
+                                            const match = chargeStr.match(/\d+/);
+                                            if (match) {
+                                              return chargeStr.replace(match[0], String(parseInt(match[0], 10) * 2));
+                                            }
+                                          }
+                                          return chargeStr;
+                                        })()}
                                       </span>
                                     </p>
                                   </div>

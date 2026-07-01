@@ -98,6 +98,9 @@ export interface Order {
 export interface SystemSettings {
   deliveryFee: number;
   minOrderAmount?: number;
+  riderRangeKm?: number;
+  userRangeKm?: number;
+  baseLocationCoords?: { lat: number; lng: number };
   restaurantStatus?: {
     isTemporarilyUnavailable: boolean; // manual toggle
     openingTime: string; // e.g. "09:00"
