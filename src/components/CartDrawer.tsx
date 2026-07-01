@@ -105,6 +105,25 @@ export default function CartDrawer({
     const paymentMethodValue = orderTypeValue === "service" ? "Pay on Appointment" : "COD";
 
     let activeCoords = userCoords;
+    
+    try {
+      // Force fetch fresh pinpoint location for every order
+      const coords = await new Promise<{ latitude: number; longitude: number }>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+          (err) => reject(err),
+          { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+        );
+      });
+      activeCoords = coords;
+    } catch (err) {
+      console.error("Could not fetch fresh GPS location", err);
+      if (!activeCoords) {
+        alert("❌ Could not fetch GPS location. Location access is required to place an order!");
+        setSubmitting(false);
+        return;
+      }
+    }
 
     try {
       await onPlaceOrder({

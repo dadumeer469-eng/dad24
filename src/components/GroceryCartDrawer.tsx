@@ -117,30 +117,20 @@ export default function GroceryCartDrawer({
 
     let activeCoords = userCoords;
 
-    // Enforce GPS pinpoint map coordinates for every order if not already active
-    if (!activeCoords) {
-      const wantGPS = window.confirm(
-        "📍 LOCATE VIA GPS!\n\nWe require your precise GPS location to ensure our riders navigate directly to your doorstep.\n\nPlease allow auto-detect location to continue placing your order."
-      );
-      if (wantGPS) {
-        try {
-          alert("Acquiring GPS coordinates...");
-          const coords = await new Promise<{ latitude: number; longitude: number }>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(
-              (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-              (err) => reject(err),
-              { enableHighAccuracy: true, timeout: 8000 }
-            );
-          });
-          activeCoords = coords;
-          alert("📍 GPS pinpoint successfully attached! Your rider will receive turn-by-turn directions.");
-        } catch (err) {
-          alert("❌ Could not fetch GPS location. Location access is required to place an order!");
-          setSubmitting(false);
-          return;
-        }
-      } else {
-        alert("❌ Location access is required to place an order!");
+    // Enforce fresh GPS pinpoint map coordinates for every order
+    try {
+      const coords = await new Promise<{ latitude: number; longitude: number }>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+          (err) => reject(err),
+          { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+        );
+      });
+      activeCoords = coords;
+    } catch (err) {
+      console.error("Could not fetch fresh GPS location", err);
+      if (!activeCoords) {
+        alert("❌ Could not fetch GPS location. Location access is required to place an order!");
         setSubmitting(false);
         return;
       }

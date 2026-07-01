@@ -1503,6 +1503,7 @@ export default function App() {
         userPhone: details.phone,
         address: `${details.location.area}, ${details.location.street}`,
         userAddress: `${details.location.area}, ${details.location.street}`,
+        location: details.location,
         items: adaptedItems,
         totalPrice: details.totalPrice,
         deliveryFee: details.deliveryFee,
