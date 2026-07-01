@@ -31,22 +31,8 @@ export default function CartDrawer({
   onAddDrink,
   userCoords,
 }: CartDrawerProps) {
-  const [nameInput, setNameInput] = useState(currentUser?.name || "");
-  const [phoneInput, setPhoneInput] = useState(currentUser?.phone || "");
-  const [areaInput, setAreaInput] = useState(currentUser?.savedLocation?.area || currentUser?.address || "");
-  const [streetInput, setStreetInput] = useState(currentUser?.savedLocation?.street || "");
-  // removing editingAddress since returning users just confirm
   const [submitting, setSubmitting] = useState(false);
 
-
-  React.useEffect(() => {
-    if (currentUser) {
-      setNameInput(currentUser.name || "");
-      setPhoneInput(currentUser.phone || "");
-      setAreaInput(currentUser.savedLocation?.area || currentUser.address || "");
-      setStreetInput(currentUser.savedLocation?.street || "");
-    }
-  }, [currentUser]);
 
 
 
@@ -68,28 +54,57 @@ export default function CartDrawer({
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (cartItems.length === 0) return;
-    setSubmitting(true);
 
-    let finalName = nameInput.trim() || currentUser?.name || "";
-    let finalPhone = currentUser?.phone || "";
-    let finalArea = areaInput.trim();
-    let finalStreet = streetInput.trim();
-
-    if (!finalName || !finalPhone || !finalArea || !finalStreet) {
-      alert("Please provide name, phone and complete delivery location to complete order!");
-      setSubmitting(false);
+    if (!currentUser) {
+      alert("Please Sign In or Register to place your order!");
+      onOpenAuth();
       return;
     }
 
+    const userHasNoAddress = !currentUser.address && (!currentUser.savedLocation?.area || !currentUser.savedLocation?.street);
+    if (userHasNoAddress) {
+      alert("Address not assigned! Please contact the admin to configure your delivery address.");
+      return;
+    }
 
+    setSubmitting(true);
+
+    let finalName = currentUser?.name || "";
+    const isFirstOrder = !currentUser.ordersCount || currentUser.ordersCount === 0 || !currentUser.name;
+
+    if (isFirstOrder) {
+      const promptName = window.prompt("Pehli dafa order karne par apna naam dalein (Please enter your name):");
+      if (!promptName || !promptName.trim()) {
+        alert("Naam dalna lazmi hai order karne ke liye! (Name is required to place an order!)");
+        setSubmitting(false);
+        return;
+      }
+      finalName = promptName.trim();
+    }
+
+    let finalPhone = currentUser?.phone || "";
+    let finalArea = currentUser?.savedLocation?.area || "";
+    let finalStreet = currentUser?.savedLocation?.street || "";
+
+    if (!finalArea || !finalStreet) {
+      if (currentUser?.address) {
+        const parts = currentUser.address.split(",");
+        finalArea = parts[0]?.trim() || currentUser.address;
+        finalStreet = parts.slice(1).join(",")?.trim() || "Default Street";
+      }
+    }
+
+    if (!finalName || !finalPhone || !finalArea || !finalStreet) {
+      alert("Delivery details are incomplete. Please contact admin to configure your profile!");
+      setSubmitting(false);
+      return;
+    }
 
     // Determine type
     const orderTypeValue = hasService && !hasFood ? "service" : "food";
     const paymentMethodValue = orderTypeValue === "service" ? "Pay on Appointment" : "COD";
 
     let activeCoords = userCoords;
-
-
 
     try {
       await onPlaceOrder({
@@ -288,6 +303,29 @@ export default function CartDrawer({
               </h4>
 
               <div className="space-y-2.5 pt-2">
+                {currentUser ? (
+                  <div className="space-y-3">
+                    <div className="bg-zinc-950 p-3 rounded-xl border border-zinc-800 space-y-1">
+                      <span className="text-[10px] font-black uppercase text-zinc-450 tracking-wider block">Customer Name</span>
+                      <p className="text-xs text-zinc-200 font-bold leading-normal">{currentUser.name || "No name configured"}</p>
+                    </div>
+
+                    <div className="bg-zinc-950 p-3 rounded-xl border border-zinc-800 space-y-1">
+                      <span className="text-[10px] font-black uppercase text-zinc-450 tracking-wider block">Delivery Address</span>
+                      {currentUser.address ? (
+                        <p className="text-xs text-zinc-200 font-bold leading-normal">{currentUser.address}</p>
+                      ) : (
+                        <p className="text-xs text-rose-500 font-black leading-normal">
+                          No address assigned! Please contact Admin to configure your delivery address.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-zinc-950 border border-zinc-800 p-4 rounded-xl text-center">
+                    <p className="text-xs text-zinc-400 font-semibold">Please sign in to place your order</p>
+                  </div>
+                )}
 
                 {userCoords ? (
                   <div className="bg-zinc-950 border border-emerald-500/30 rounded-xl overflow-hidden relative">
@@ -309,14 +347,11 @@ export default function CartDrawer({
                         <div>
                           <div className="flex items-center gap-1.5 text-emerald-400 font-bold text-[10px] uppercase tracking-wider mb-1">
                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                            Location mil gayi!
+                            Location coordinates attached
                           </div>
-                          <p className="text-zinc-200 text-xs font-bold">{areaInput || "Location detected"}</p>
-                          <p className="text-zinc-400 text-[10px]">{streetInput || "Auto-filled"}</p>
+                          <p className="text-zinc-200 text-xs font-bold">{currentUser?.savedLocation?.area || currentUser?.address?.split(',')[0]?.trim() || "Location detected"}</p>
+                          <p className="text-zinc-400 text-[10px]">{currentUser?.savedLocation?.street || currentUser?.address?.split(',')[1]?.trim() || "Auto-filled"}</p>
                         </div>
-                        <button type="button" onClick={() => {}} className="text-[#D70F64] text-[9px] font-bold uppercase tracking-wider hover:underline">
-                          Galat lag rahi hai?
-                        </button>
                       </div>
                     </div>
                   </div>
@@ -326,40 +361,6 @@ export default function CartDrawer({
                     <p className="text-zinc-400 text-xs font-bold">Detecting your exact location...</p>
                   </div>
                 )}
-
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">Aapka Naam</label>
-                  <input
-                    type="text"
-                    required
-                    value={nameInput}
-                    onChange={(e) => setNameInput(e.target.value)}
-                    placeholder="e.g. Ali Ahmed"
-                    className="w-full text-xs p-2.5 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-zinc-200 font-bold focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64]"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">Area Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={areaInput}
-                    onChange={(e) => setAreaInput(e.target.value)}
-                    placeholder="e.g. Shahani Muhalla"
-                    className="w-full text-xs p-2.5 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-zinc-200 font-bold focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64]"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">Street / House No.</label>
-                  <input
-                    type="text"
-                    required
-                    value={streetInput}
-                    onChange={(e) => setStreetInput(e.target.value)}
-                    placeholder="e.g. Gali No 5"
-                    className="w-full text-xs p-2.5 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-zinc-200 font-bold focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64]"
-                  />
-                </div>
               </div>
 
               {/* Secure Loyalty Indicator */}

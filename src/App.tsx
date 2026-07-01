@@ -385,6 +385,19 @@ export default function App() {
     };
   }, []);
 
+  // Real-time track user status verification notifications
+  const prevUserStatusRef = React.useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (currentUser) {
+      if (prevUserStatusRef.current === "locked" && currentUser.status === "verified") {
+        alert("Aapka number verify ho gaya! Ab aap order kar sakte hain! 🎉");
+      }
+      prevUserStatusRef.current = currentUser.status;
+    } else {
+      prevUserStatusRef.current = undefined;
+    }
+  }, [currentUser?.status]);
+
   // 1.5. Premium Foodpanda Splash Screen timer (approx 2.4s)
   useEffect(() => {
     const startTime = Date.now();

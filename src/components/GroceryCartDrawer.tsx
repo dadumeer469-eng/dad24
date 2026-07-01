@@ -37,10 +37,6 @@ export default function GroceryCartDrawer({
   onPlaceGroceryOrder,
   userCoords,
 }: GroceryCartDrawerProps) {
-  const [nameInput, setNameInput] = useState(currentUser?.name || "");
-  const [phoneInput, setPhoneInput] = useState(currentUser?.phone || "");
-  const [areaInput, setAreaInput] = useState(currentUser?.savedLocation?.area || currentUser?.address || "");
-  const [streetInput, setStreetInput] = useState(currentUser?.savedLocation?.street || "");
   const [submitting, setSubmitting] = useState(false);
 
 
@@ -73,15 +69,48 @@ export default function GroceryCartDrawer({
   const handleCheckoutSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (cartItems.length === 0) return;
+
+    if (!currentUser) {
+      alert("Please Sign In or Register to place an order!");
+      onOpenAuth();
+      return;
+    }
+
+    const userHasNoAddress = !currentUser.address && (!currentUser.savedLocation?.area || !currentUser.savedLocation?.street);
+    if (userHasNoAddress) {
+      alert("Address not assigned! Please contact the admin to configure your delivery address.");
+      return;
+    }
+
     setSubmitting(true);
 
-    let finalName = nameInput.trim() || currentUser?.name || "";
-    let finalPhone = currentUser?.phone || phoneInput.trim() || "";
-    let finalArea = areaInput.trim();
-    let finalStreet = streetInput.trim();
+    let finalName = currentUser?.name || "";
+    const isFirstOrder = !currentUser.ordersCount || currentUser.ordersCount === 0 || !currentUser.name;
+
+    if (isFirstOrder) {
+      const promptName = window.prompt("Pehli dafa order karne par apna naam dalein (Please enter your name):");
+      if (!promptName || !promptName.trim()) {
+        alert("Naam dalna lazmi hai order karne ke liye! (Name is required to place an order!)");
+        setSubmitting(false);
+        return;
+      }
+      finalName = promptName.trim();
+    }
+
+    let finalPhone = currentUser?.phone || "";
+    let finalArea = currentUser?.savedLocation?.area || "";
+    let finalStreet = currentUser?.savedLocation?.street || "";
+
+    if (!finalArea || !finalStreet) {
+      if (currentUser?.address) {
+        const parts = currentUser.address.split(",");
+        finalArea = parts[0]?.trim() || currentUser.address;
+        finalStreet = parts.slice(1).join(",")?.trim() || "Default Street";
+      }
+    }
 
     if (!finalName || !finalPhone || !finalArea || !finalStreet) {
-      alert("Please enter your name, contact phone, and complete delivery location to complete the purchase!");
+      alert("Delivery details are incomplete. Please contact admin to configure your profile!");
       setSubmitting(false);
       return;
     }
@@ -236,7 +265,7 @@ export default function GroceryCartDrawer({
                     <button
                       type="button"
                       onClick={onOpenAuth}
-                      className="text-xs bg-orange-600 text-white py-1.5 px-4 rounded-lg font-black uppercase tracking-wider hover:bg-orange-700 transition"
+                      className="text-xs bg-orange-600 text-white py-1.5 px-4 rounded-lg font-black uppercase tracking-wider hover:bg-orange-700 transition cursor-pointer"
                     >
                       Sign In Now
                     </button>
@@ -245,7 +274,7 @@ export default function GroceryCartDrawer({
                   <div className="space-y-2 text-xs">
                     <div className="flex items-center gap-1.5 text-zinc-300">
                       <User className="w-4 h-4 text-orange-500 shrink-0" />
-                      <span className="font-bold">{currentUser.name}</span>
+                      <span className="font-bold">{currentUser.name || "No name configured"}</span>
                     </div>
                     <div className="flex items-center gap-1.5 text-zinc-300">
                       <Phone className="w-4 h-4 text-orange-400 shrink-0" />
@@ -253,69 +282,21 @@ export default function GroceryCartDrawer({
                     </div>
 
                     <div className="border-t border-zinc-850 pt-2 mt-2 space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 text-zinc-300">
-                          <MapPin className="w-4 h-4 text-rose-500 shrink-0" />
-                          <span className="font-bold text-zinc-250 truncate">Shipment Destination Address:</span>
-                        </div>
-
+                      <div className="flex items-center gap-1.5 text-zinc-300">
+                        <MapPin className="w-4 h-4 text-rose-500 shrink-0" />
+                        <span className="font-bold text-zinc-250 truncate">Shipment Destination Address:</span>
                       </div>
-
-                        <p className="bg-zinc-950 p-2.5 rounded-xl text-[11px] text-zinc-300 font-semibold line-clamp-2 leading-normal border border-zinc-850">
-                          {currentUser?.savedLocation?.area ? currentUser.savedLocation.area + ', ' + currentUser.savedLocation.street : currentUser.address}
+                      {currentUser.address ? (
+                        <p className="bg-zinc-950 p-2.5 rounded-xl text-[11px] text-zinc-350 font-bold leading-normal border border-zinc-850">
+                          {currentUser.address}
                         </p>
+                      ) : (
+                        <p className="bg-zinc-955 p-2.5 rounded-xl text-[11px] text-rose-500 font-black leading-normal border border-rose-500/20">
+                          No address assigned! Please contact Admin to configure your delivery address.
+                        </p>
+                      )}
                     </div>
                   </div>
-                )}
-
-                {/* Form Inputs for guest checkouts */}
-                {!currentUser && (
-                  <form onSubmit={handleCheckoutSubmit} className="space-y-3">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Recipient Name</label>
-                      <input
-                        type="text"
-                        required
-                        value={nameInput}
-                        onChange={(e) => setNameInput(e.target.value)}
-                        placeholder="E.g., Muhammad Faisal"
-                        className="w-full p-2.5 bg-zinc-955 border border-zinc-800 rounded-xl text-xs outline-none text-zinc-100 placeholder-zinc-600 focus:border-orange-500 transition"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">WhatsApp / Contact Phone</label>
-                      <input
-                        type="tel"
-                        required
-                        value={phoneInput}
-                        onChange={(e) => setPhoneInput(e.target.value)}
-                        placeholder="E.g., 03277004471"
-                        className="w-full p-2.5 bg-zinc-955 border border-zinc-800 rounded-xl text-xs outline-none text-zinc-100 placeholder-zinc-600 focus:border-orange-500 transition font-mono"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Area Name</label>
-                      <input
-                        type="text"
-                        required
-                        value={areaInput}
-                        onChange={(e) => setAreaInput(e.target.value)}
-                        placeholder="e.g. Shahani Muhalla"
-                        className="w-full p-2.5 bg-zinc-955 border border-zinc-800 rounded-xl text-xs outline-none text-zinc-100 focus:border-orange-500 transition"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Street / House No.</label>
-                      <input
-                        type="text"
-                        required
-                        value={streetInput}
-                        onChange={(e) => setStreetInput(e.target.value)}
-                        placeholder="e.g. Gali No 5"
-                        className="w-full p-2.5 bg-zinc-955 border border-zinc-800 rounded-xl text-xs outline-none text-zinc-100 focus:border-orange-500 transition"
-                      />
-                    </div>
-                  </form>
                 )}
               </div>
             )}

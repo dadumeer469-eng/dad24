@@ -867,6 +867,140 @@ export default function AdminPanel({
     onConfirm: () => void | Promise<void>;
   } | null>(null);
 
+  // User Verification Lock System States & Helpers
+  const [unlockingUser, setUnlockingUser] = useState<UserProfile | null>(null);
+  const [unlockArea, setUnlockArea] = useState("");
+  const [unlockStreet, setUnlockStreet] = useState("");
+  const [unlockLandmark, setUnlockLandmark] = useState("");
+  const [unlockNotes, setUnlockNotes] = useState("");
+  const [unlockCoords, setUnlockCoords] = useState<{ lat?: number; lng?: number } | null>(null);
+  const [isDetectingUnlockGPS, setIsDetectingUnlockGPS] = useState(false);
+  const [newUserToast, setNewUserToast] = useState<{ phone: string; show: boolean } | null>(null);
+  const isFirstLoadRef = React.useRef(true);
+
+  const playNewUserAlert = (phone: string) => {
+    // 1. Play Sound (Dual tone alert beep)
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        const ctx = new AudioCtx();
+        const now = ctx.currentTime;
+        
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.type = "sawtooth";
+        osc1.frequency.setValueAtTime(440, now); // A4
+        osc1.frequency.exponentialRampToValueAtTime(880, now + 0.15); // A5
+        gain1.gain.setValueAtTime(0.12, now);
+        gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.3);
+
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = "sine";
+        osc2.frequency.setValueAtTime(660, now + 0.15); // E5
+        osc2.frequency.exponentialRampToValueAtTime(1200, now + 0.3);
+        gain2.gain.setValueAtTime(0.12, now + 0.15);
+        gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.start(now + 0.15);
+        osc2.stop(now + 0.45);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
+    // 2. Vibration
+    try {
+      if (navigator.vibrate) {
+        navigator.vibrate([200, 100, 200]);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
+    // 3. New User Toast notification
+    setNewUserToast({
+      phone: phone,
+      show: true,
+    });
+    setTimeout(() => {
+      setNewUserToast((prev) => (prev?.phone === phone ? { ...prev, show: false } : prev));
+    }, 6000);
+  };
+
+  const handleDetectUnlockGPS = () => {
+    setIsDetectingUnlockGPS(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUnlockCoords({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+        setIsDetectingUnlockGPS(false);
+        alert(`📍 GPS Coordinates Detected!\nLat: ${pos.coords.latitude}\nLng: ${pos.coords.longitude}`);
+      },
+      (err) => {
+        setIsDetectingUnlockGPS(false);
+        alert("Failed to acquire GPS location. Make sure location permissions are enabled.");
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
+
+  const handleUnlockSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!unlockingUser) return;
+    if (!unlockArea.trim() || !unlockStreet.trim()) {
+      alert("Area/Mohalla and Street/Gali fields are required!");
+      return;
+    }
+
+    try {
+      const area = unlockArea.trim();
+      const street = unlockStreet.trim();
+      const landmark = unlockLandmark.trim();
+      const notes = unlockNotes.trim();
+
+      const savedLoc = {
+        area,
+        street,
+        landmark,
+        notes,
+        lat: unlockCoords?.lat || null,
+        lng: unlockCoords?.lng || null,
+      };
+
+      let formattedAddress = `${area}, ${street}`;
+      if (landmark) formattedAddress += `, Near: ${landmark}`;
+      if (notes) formattedAddress += ` (${notes})`;
+
+      await updateDoc(doc(db, "users", unlockingUser.uid), {
+        status: "verified",
+        address: formattedAddress,
+        savedLocation: savedLoc,
+        unlockedAt: new Date(),
+        unlockedBy: adminUsername || "admin",
+      });
+
+      setUnlockingUser(null);
+      setUnlockArea("");
+      setUnlockStreet("");
+      setUnlockLandmark("");
+      setUnlockNotes("");
+      setUnlockCoords(null);
+
+      alert(`✅ User ${unlockingUser.phone} unlocked successfully with delivery address!`);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to unlock user. Database permissions error.");
+    }
+  };
+
   // Rider/ETA state overrides
   const [riderNames, setRiderNames] = useState<{ [orderId: string]: string }>(
     {},
@@ -915,6 +1049,21 @@ export default function AdminPanel({
         snapshot.forEach((doc) => {
           list.push({ uid: doc.id, ...doc.data() } as UserProfile);
         });
+
+        // Detect new added users with status === 'locked' after the initial load
+        if (!isFirstLoadRef.current) {
+          snapshot.docChanges().forEach((change) => {
+            if (change.type === "added") {
+              const uData = change.doc.data();
+              if (uData.status === "locked") {
+                playNewUserAlert(uData.phone || change.doc.id);
+              }
+            }
+          });
+        } else {
+          isFirstLoadRef.current = false;
+        }
+
         setAllUsersList(list);
       },
       (err) => {
@@ -6237,6 +6386,108 @@ export default function AdminPanel({
                 </div>
               </div>
 
+              {/* NEW USERS SECTION */}
+              {(() => {
+                const lockedUsers = allUsersList.filter(u => u.status === "locked");
+                if (lockedUsers.length === 0) return null;
+                return (
+                  <div className="space-y-4 mb-6">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-orange-500 animate-ping" />
+                      <h3 className="font-black text-xs uppercase tracking-widest text-slate-700">
+                        New Unverified Users ({lockedUsers.length})
+                      </h3>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {lockedUsers.map(u => {
+                        const formattedTime = u.createdAt 
+                          ? (u.createdAt.seconds 
+                              ? new Date(u.createdAt.seconds * 1000).toLocaleString() 
+                              : new Date(u.createdAt).toLocaleString())
+                          : "Unknown Time";
+                        return (
+                          <div 
+                            key={u.uid} 
+                            className="bg-white border-2 border-orange-500/30 hover:border-orange-500/50 rounded-3xl p-5 shadow-lg relative overflow-hidden transition-all flex flex-col justify-between gap-4"
+                          >
+                            <div className="absolute top-0 right-0 bg-orange-500 text-black text-[9px] font-black uppercase tracking-wider px-3.5 py-1 rounded-bl-2xl">
+                              NEW
+                            </div>
+
+                            <div className="space-y-1">
+                              <span className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider block">Registered At</span>
+                              <span className="text-[11px] text-zinc-500 font-mono block mb-2">{formattedTime}</span>
+                              <h4 className="text-xl font-black text-slate-900 select-all tracking-tight">
+                                {u.phone}
+                              </h4>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 pt-2">
+                              <a
+                                href={`tel:${u.phone}`}
+                                className="col-span-2 bg-[#D70F64] hover:bg-[#b00c50] text-white py-2.5 px-3 rounded-2xl font-bold text-xs uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-2"
+                              >
+                                📞 Call Karein
+                              </a>
+
+                              <button
+                                onClick={() => setUnlockingUser(u)}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-3 rounded-2xl font-bold text-[11px] uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-1"
+                              >
+                                ✅ Unlock
+                              </button>
+
+                              <button
+                                onClick={async () => {
+                                  const reason = window.prompt("Reason for blocking (e.g. Fake number):", "Fake number");
+                                  if (reason !== null) {
+                                    try {
+                                      await updateDoc(doc(db, "users", u.uid), { 
+                                        status: "blocked",
+                                        isBlacklisted: true
+                                      });
+                                      await setDoc(doc(db, "blacklist", u.uid), {
+                                        phone: u.phone,
+                                        blockedAt: new Date(),
+                                        blockedBy: adminUsername || "admin",
+                                        reason: reason || "Fake number"
+                                      });
+                                      alert(`❌ User ${u.phone} permanently blocked and blacklisted.`);
+                                    } catch (err) {
+                                      alert("Failed to block user: " + err);
+                                    }
+                                  }
+                                }}
+                                className="bg-red-600 hover:bg-red-700 text-white py-2.5 px-3 rounded-2xl font-bold text-[11px] uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-1"
+                              >
+                                ❌ Block
+                              </button>
+
+                              <button
+                                onClick={async () => {
+                                  if (confirm(`Are you sure you want to delete user ${u.phone}? This will NOT blacklist them, allowing them to register fresh.`)) {
+                                    try {
+                                      await deleteDoc(doc(db, "users", u.uid));
+                                      alert("🗑️ User deleted successfully.");
+                                    } catch (err) {
+                                      alert("Failed to delete user: " + err);
+                                    }
+                                  }
+                                }}
+                                className="col-span-2 bg-zinc-700 hover:bg-zinc-650 text-zinc-200 py-2 px-3 rounded-2xl font-bold text-[10px] uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-1 border border-zinc-600"
+                              >
+                                🗑️ Delete Karein
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Users Table Box */}
               <div className="bg-[#0b0b0d]/90 border border-slate-200 rounded-3xl overflow-hidden shadow-xl">
                 <div className="p-5 border-b border-slate-200/60 flex items-center justify-between">
@@ -6372,13 +6623,7 @@ export default function AdminPanel({
                                 {u.status === "locked" && (
                                   <button
                                     type="button"
-                                    onClick={async () => {
-                                      try {
-                                        await updateDoc(doc(db, "users", u.uid), { status: "verified" });
-                                      } catch (err) {
-                                        alert("Failed to unlock user.");
-                                      }
-                                    }}
+                                    onClick={() => setUnlockingUser(u)}
                                     className="p-1 px-2.5 rounded text-[10px] font-black uppercase transition-all bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 cursor-pointer"
                                   >
                                     Unlock
@@ -6389,11 +6634,22 @@ export default function AdminPanel({
                                   <button
                                     type="button"
                                     onClick={async () => {
-                                      if (confirm("Are you sure you want to block this user?")) {
+                                      const reason = window.prompt("Reason for blocking (e.g. Fake number):", "Fake number");
+                                      if (reason !== null) {
                                         try {
-                                          await updateDoc(doc(db, "users", u.uid), { status: "blocked" });
+                                          await updateDoc(doc(db, "users", u.uid), { 
+                                            status: "blocked",
+                                            isBlacklisted: true
+                                          });
+                                          await setDoc(doc(db, "blacklist", u.uid), {
+                                            phone: u.phone,
+                                            blockedAt: new Date(),
+                                            blockedBy: adminUsername || "admin",
+                                            reason: reason || "Fake number"
+                                          });
+                                          alert(`❌ User ${u.phone} permanently blocked and blacklisted.`);
                                         } catch (err) {
-                                          alert("Failed to block user.");
+                                          alert("Failed to block user: " + err);
                                         }
                                       }
                                     }}
@@ -6408,9 +6664,14 @@ export default function AdminPanel({
                                     type="button"
                                     onClick={async () => {
                                       try {
-                                        await updateDoc(doc(db, "users", u.uid), { status: "verified" });
+                                        await updateDoc(doc(db, "users", u.uid), { 
+                                          status: "verified",
+                                          isBlacklisted: false
+                                        });
+                                        await deleteDoc(doc(db, "blacklist", u.uid));
+                                        alert(`✅ User ${u.phone} unblocked and removed from blacklist.`);
                                       } catch (err) {
-                                        alert("Failed to unblock user.");
+                                        alert("Failed to unblock user: " + err);
                                       }
                                     }}
                                     className="p-1 px-2.5 rounded text-[10px] font-black uppercase transition-all bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 cursor-pointer"
@@ -6585,6 +6846,174 @@ export default function AdminPanel({
                 Delete Permanently
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADDRESS ENTRY MODAL FOR UNLOCKING USER */}
+      {unlockingUser && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-fade-in text-left">
+          <div className="bg-white border border-slate-200 rounded-[32px] max-w-md w-full overflow-hidden shadow-2xl p-6 relative">
+            <button
+              onClick={() => {
+                setUnlockingUser(null);
+                setUnlockArea("");
+                setUnlockStreet("");
+                setUnlockLandmark("");
+                setUnlockNotes("");
+                setUnlockCoords(null);
+              }}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-105 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition cursor-pointer font-black text-xs"
+            >
+              ✕
+            </button>
+            
+            <div className="space-y-4">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-[#D70F64] block">
+                  Verify & Configure Address
+                </span>
+                <h3 className="text-lg font-black text-slate-905 mt-1">
+                  Unlock User: {unlockingUser.phone}
+                </h3>
+                <p className="text-[11.5px] text-slate-500 mt-1 font-semibold leading-relaxed">
+                  Call user to verify their details, then enter their delivery/mohalla address below. After saving, the user will be unlocked and can place orders immediately!
+                </p>
+              </div>
+
+              <form onSubmit={handleUnlockSubmit} className="space-y-4">
+                <div className="space-y-3.5">
+                  <div>
+                    <label className="text-[9.5px] font-black uppercase tracking-wider text-slate-600 block mb-1">
+                      Area / Mohalla <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={unlockArea}
+                      onChange={(e) => setUnlockArea(e.target.value)}
+                      placeholder="e.g. Model Town, Gulberg, Dadu"
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none text-slate-900 focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[9.5px] font-black uppercase tracking-wider text-slate-600 block mb-1">
+                      Street / Gali <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={unlockStreet}
+                      onChange={(e) => setUnlockStreet(e.target.value)}
+                      placeholder="e.g. Gali No. 4, Street 12, Main Road"
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none text-slate-900 focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[9.5px] font-black uppercase tracking-wider text-slate-600 block mb-1">
+                      Landmark / Mashoor Jagah
+                    </label>
+                    <input
+                      type="text"
+                      value={unlockLandmark}
+                      onChange={(e) => setUnlockLandmark(e.target.value)}
+                      placeholder="e.g. Near Bilal Masjid, Opp. Govt School"
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none text-slate-905 focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[9.5px] font-black uppercase tracking-wider text-slate-600 block mb-1">
+                      Delivery Notes / Special Instructions
+                    </label>
+                    <textarea
+                      value={unlockNotes}
+                      onChange={(e) => setUnlockNotes(e.target.value)}
+                      placeholder="e.g. deliver to back gate, call on arrival, orange gate house"
+                      rows={2}
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none text-slate-900 focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition resize-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[9.5px] font-black uppercase tracking-wider text-slate-600 block mb-1">
+                      Precise GPS coordinates (Optional)
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleDetectUnlockGPS}
+                        disabled={isDetectingUnlockGPS}
+                        className="bg-slate-100 border border-slate-200 text-slate-700 py-2.5 px-4 rounded-xl font-bold text-[10.5px] uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        {isDetectingUnlockGPS ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          "📍 Auto Fill GPS"
+                        )}
+                      </button>
+                      {unlockCoords ? (
+                        <span className="text-[10px] font-mono text-emerald-600 font-bold bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-100">
+                          Lat: {unlockCoords.lat?.toFixed(5)}, Lng: {unlockCoords.lng?.toFixed(5)}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-zinc-500 font-semibold italic">
+                          No GPS coordinates attached
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 mt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUnlockingUser(null);
+                      setUnlockArea("");
+                      setUnlockStreet("");
+                      setUnlockLandmark("");
+                      setUnlockNotes("");
+                      setUnlockCoords(null);
+                    }}
+                    className="px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-[10.5px] uppercase font-black text-slate-600 hover:text-slate-700 hover:bg-slate-200 transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 bg-[#D70F64] text-white rounded-xl text-[10.5px] font-black hover:bg-[#b00c50] shadow-md cursor-pointer transition uppercase tracking-wider flex items-center gap-1.5"
+                  >
+                    Save & Unlock ✅
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* NEW USER REALTIME NOTIFICATION TOAST */}
+      {newUserToast && newUserToast.show && (
+        <div className="fixed bottom-6 right-6 z-[120] p-4 max-w-sm bg-zinc-950 border-2 border-orange-500 text-zinc-100 rounded-2xl shadow-2xl flex items-start gap-3 animate-slide-in">
+          <div className="bg-orange-500 text-black p-2.5 rounded-xl shrink-0 animate-bounce">
+            <span className="text-lg">⏳</span>
+          </div>
+          <div>
+            <h5 className="font-extrabold text-xs text-orange-400 uppercase tracking-wider flex items-center gap-2">
+              Naya user aaya!
+              <span className="bg-orange-500/20 text-orange-400 text-[8px] font-black px-1.5 py-0.5 rounded-md animate-pulse">
+                NEW USER
+              </span>
+            </h5>
+            <p className="text-sm font-black text-zinc-100 mt-1 select-all">
+              {newUserToast.phone}
+            </p>
+            <p className="text-[10px] text-zinc-400 mt-0.5 font-semibold">
+              Call verification is pending! Check Registered Directory.
+            </p>
           </div>
         </div>
       )}
