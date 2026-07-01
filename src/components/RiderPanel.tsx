@@ -125,20 +125,20 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
   // Removed live rider GPS pinpoint tracking to save data usage and database writes.
   // The system now only relies on static user delivery coordinates.
 
-  // 1. Subscribe to Available Orders (unaccepted status === "pending" or "placed" for food deliveries)
+  // 1. Subscribe to Available Orders (unaccepted status === "pending" or "placed" or "confirmed" for food deliveries)
   useEffect(() => {
-    // Only food deliveries are routed to standard riders
+    // Only food/grocery deliveries are routed to standard riders
     const q = query(
       collection(db, "orders"), 
-      where("status", "==", "pending")
+      where("status", "in", ["pending", "placed", "confirmed"])
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const list: Order[] = [];
       snapshot.forEach((doc) => {
         const data = doc.data() as Order;
-        if (data.orderType !== "service") {
-          list.push(data);
+        if (data.orderType !== "service" && !data.riderId) {
+          list.push({ ...data, id: doc.id });
         }
       });
       list.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
