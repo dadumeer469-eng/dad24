@@ -934,6 +934,14 @@ export default function AdminPanel({
   };
 
   const handleDetectUnlockGPS = () => {
+    if (unlockingUser?.savedLocation?.lat && unlockingUser?.savedLocation?.lng) {
+      const lat = unlockingUser.savedLocation.lat;
+      const lng = unlockingUser.savedLocation.lng;
+      setUnlockCoords({ lat, lng });
+      window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, "_blank");
+      return;
+    }
+    
     setIsDetectingUnlockGPS(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -942,7 +950,7 @@ export default function AdminPanel({
           lng: pos.coords.longitude,
         });
         setIsDetectingUnlockGPS(false);
-        alert(`📍 GPS Coordinates Detected!\nLat: ${pos.coords.latitude}\nLng: ${pos.coords.longitude}`);
+        window.open(`https://www.google.com/maps/search/?api=1&query=${pos.coords.latitude},${pos.coords.longitude}`, "_blank");
       },
       (err) => {
         setIsDetectingUnlockGPS(false);

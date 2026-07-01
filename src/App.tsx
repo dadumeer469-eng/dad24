@@ -245,15 +245,19 @@ export default function App() {
   };
 
   useEffect(() => {
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      // Show banner if not dismissed before
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+    
+    if (!isStandalone) {
       if (!localStorage.getItem("pwaInstallDismissed")) {
         setShowInstallBanner(true);
       } else {
         setShowInstallBubble(true);
       }
+    }
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
@@ -264,13 +268,16 @@ export default function App() {
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === "accepted") {
-      setDeferredPrompt(null);
-      setShowInstallBanner(false);
-      setShowInstallBubble(false);
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === "accepted") {
+        setDeferredPrompt(null);
+        setShowInstallBanner(false);
+        setShowInstallBubble(false);
+      }
+    } else {
+      alert("To install: Tap the Share button (iOS) or Menu button (Android) and select 'Add to Home Screen'.");
     }
   };
 
@@ -2003,6 +2010,21 @@ export default function App() {
             if (data.role === 'admin' || data.role === 'rider') {
               throw new Error("Staff members must login via Staff Mode with a passcode.");
             }
+            
+            if (globalCoords) {
+              try {
+                await setDoc(profileRef, {
+                  savedLocation: {
+                    lat: globalCoords.latitude,
+                    lng: globalCoords.longitude,
+                    area: data.savedLocation?.area || "",
+                    street: data.savedLocation?.street || ""
+                  }
+                }, { merge: true });
+              } catch (e) {
+                console.warn("Could not update GPS location", e);
+              }
+            }
           } else if (phone === "03277004471") {
             throw new Error("Staff members must login via Staff Mode with a passcode.");
           }
@@ -2011,7 +2033,7 @@ export default function App() {
           window.dispatchEvent(new StorageEvent("storage", { key: "dadu_user_phone" }));
           
           if (!profileSnap.exists()) {
-            await setDoc(profileRef, {
+            const newProfile: any = {
               uid: phone,
               name: "",
               phone: phone,
@@ -2022,7 +2044,11 @@ export default function App() {
               totalOrders: 0,
               isBlacklisted: false,
               createdAt: new Date(),
-            });
+            };
+            if (globalCoords) {
+              newProfile.savedLocation = { lat: globalCoords.latitude, lng: globalCoords.longitude, area: "", street: "" };
+            }
+            await setDoc(profileRef, newProfile);
           }
           setIsAuthOpen(false);
         }}
@@ -3500,7 +3526,7 @@ export default function App() {
 
       {/* PWA Install Banner */}
       <AnimatePresence>
-        {showInstallBanner && deferredPrompt && (
+        {showInstallBanner && (
           <motion.div
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
@@ -3536,7 +3562,7 @@ export default function App() {
 
       {/* PWA Install Bubble (Very Small) */}
       <AnimatePresence>
-        {showInstallBubble && deferredPrompt && !showInstallBanner && (
+        {showInstallBubble && !showInstallBanner && (
           <motion.button
             initial={{ opacity: 0, scale: 0.8, x: -50 }}
             animate={{ opacity: 1, scale: 1, x: 0 }}
