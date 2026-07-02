@@ -543,6 +543,7 @@ export default function App() {
           snapshot.forEach((doc) => {
             list.push({ id: doc.id, ...doc.data() } as Dish);
           });
+          list.sort((a, b) => (a.position || 0) - (b.position || 0));
           setDishes(list);
           setIsLoadingDishes(false);
         }
