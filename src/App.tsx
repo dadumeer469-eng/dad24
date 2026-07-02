@@ -293,14 +293,9 @@ export default function App() {
       }
     }
 
-    if ((window as any).deferredPrompt) {
-      setDeferredPrompt((window as any).deferredPrompt);
-    }
-
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      (window as any).deferredPrompt = e;
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
@@ -311,22 +306,16 @@ export default function App() {
   }, []);
 
   const handleInstallClick = async () => {
-    const promptEvent = deferredPrompt || (window as any).deferredPrompt;
-    if (promptEvent) {
-      try {
-        promptEvent.prompt();
-        const { outcome } = await promptEvent.userChoice;
-        if (outcome === "accepted") {
-          setDeferredPrompt(null);
-          (window as any).deferredPrompt = null;
-          setShowInstallBanner(false);
-          setShowInstallBubble(false);
-        }
-      } catch (err) {
-        console.warn("Prompt failed:", err);
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === "accepted") {
+        setDeferredPrompt(null);
+        setShowInstallBanner(false);
+        setShowInstallBubble(false);
       }
     } else {
-      alert("To install: Tap the Menu button (Android) or Share button (iOS) and select 'Add to Home Screen'.");
+      alert("To install: Tap the Share button (iOS) or Menu button (Android) and select 'Add to Home Screen'.");
     }
   };
 

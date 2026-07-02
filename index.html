@@ -28,7 +28,7 @@
 
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#D70F64" />
-    <link rel="apple-touch-icon" href="/logo.jpg" />
+    <link rel="apple-touch-icon" href="/logo-192.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   </head>
@@ -104,7 +104,7 @@
           }
         }
 
-        window.deferredPrompt = null;
+        let deferredPrompt;
         const pwaBanner = document.getElementById('pwaBanner');
         const installBtn = document.getElementById('installBtn');
         const closeBannerBtn = document.getElementById('closeBannerBtn');
@@ -114,7 +114,7 @@
 
         window.addEventListener('beforeinstallprompt', (e) => {
           e.preventDefault();
-          window.deferredPrompt = e;
+          deferredPrompt = e;
           if (pwaBanner && !isBannerDismissed) {
             pwaBanner.style.display = 'block';
           }
@@ -122,10 +122,10 @@
 
         if (installBtn) {
           installBtn.addEventListener('click', async () => {
-            if (window.deferredPrompt) {
+            if (deferredPrompt) {
               try {
-                window.deferredPrompt.prompt();
-                const { outcome } = await window.deferredPrompt.userChoice;
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
                 if (outcome === 'accepted') {
                   if (pwaBanner) {
                     pwaBanner.style.display = 'none';
@@ -134,7 +134,7 @@
               } catch (err) {
                 console.warn('Prompt failed or cancelled:', err);
               }
-              window.deferredPrompt = null;
+              deferredPrompt = null;
             }
           });
         }
