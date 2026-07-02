@@ -211,6 +211,7 @@ export default function App() {
 
   // Modal Openings
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAdminConsoleOpen, setIsAdminConsoleOpen] = useState(false);
   const [activeDetailDish, setActiveDetailDish] = useState<Dish | null>(null);
@@ -472,6 +473,9 @@ export default function App() {
       } else {
         setCurrentUser(null);
         setIsAdminConsoleOpen(false);
+        
+        // Auto-open auth modal for new/unauthenticated users
+        setIsAuthOpen(true);
       }
     };
     
@@ -1187,7 +1191,7 @@ export default function App() {
     },
   ) => {
     if (currentUser?.status === 'locked') {
-      alert("Aapka number verify ho raha hai! Hum aapko call karenge. Call ke baad aap order kar sakenge!");
+      setIsVerificationModalOpen(true);
       return;
     }
     if (!currentUser) {
@@ -1336,7 +1340,7 @@ export default function App() {
 
   const handleAddToGroceryCart = (product: GroceryProduct, quantity = 1) => {
     if (currentUser?.status === 'locked') {
-      alert("Aapka number verify ho raha hai! Hum aapko call karenge. Call ke baad aap order kar sakenge!");
+      setIsVerificationModalOpen(true);
       return;
     }
     if (!currentUser) {
@@ -1610,7 +1614,7 @@ export default function App() {
     userCoords?: { latitude: number; longitude: number };
   }) => {
     if (currentUser?.status === 'locked' || currentUser?.status === 'blocked') {
-      alert("Verification pending or blocked. Cannot place order.");
+      setIsVerificationModalOpen(true);
       return;
     }
     if (!currentUser) {
@@ -1999,6 +2003,44 @@ export default function App() {
         }}
       />
 
+      {/* Verification Pending Modal */}
+      <AnimatePresence>
+        {isVerificationModalOpen && (
+          <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 sm:p-6">
+            <div
+              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+              onClick={() => setIsVerificationModalOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-sm bg-zinc-900 rounded-3xl overflow-hidden shadow-2xl border border-zinc-800 text-center"
+            >
+              <div className="bg-[#D70F64] p-6 text-center">
+                <div className="w-16 h-16 rounded-2xl mx-auto shadow-xl border-2 border-white/20 mb-3 bg-white flex items-center justify-center text-3xl animate-pulse">
+                  📞
+                </div>
+                <h2 className="text-2xl font-black text-white tracking-tight">
+                  Verification Pending
+                </h2>
+              </div>
+              <div className="p-6 sm:p-8 space-y-6">
+                <p className="text-zinc-300 font-medium leading-relaxed">
+                  Aapka number verify ho raha hai! Hum aapko jald hi call karenge. Verification ke baad aap order kar sakenge!
+                </p>
+                <button
+                  onClick={() => setIsVerificationModalOpen(false)}
+                  className="w-full bg-[#D70F64] hover:bg-[#b00c50] text-white font-black tracking-wide shadow-md transition-all py-3.5 rounded-2xl text-sm uppercase cursor-pointer"
+                >
+                  Theek Hai
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       <AuthModal
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
@@ -2163,6 +2205,13 @@ export default function App() {
               newProfile.savedLocation = { lat: globalCoords.latitude, lng: globalCoords.longitude, area: "", street: "" };
             }
             await setDoc(profileRef, newProfile);
+            setIsAuthOpen(false);
+            
+            // Show verification popup for new users
+            setTimeout(() => {
+              setIsVerificationModalOpen(true);
+            }, 300);
+            return;
           }
           setIsAuthOpen(false);
         }}
