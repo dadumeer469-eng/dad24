@@ -83,6 +83,7 @@ export interface Order {
   createdAt: any; // Firestore Timestamp
   paymentMethod: "COD" | "Pay on Appointment" | "cod";
   orderType: "food" | "service" | "grocery";
+  deviceId?: string;
   userCoords?: { latitude: number; longitude: number };
   location?: {
     area: string;
@@ -183,6 +184,7 @@ export interface GroceryOrder {
   createdAt: any;
   paymentMethod: "COD";
   orderType: "grocery";
+  deviceId?: string;
   riderId?: string;
   riderName?: string;
   riderPhone?: string;
@@ -201,4 +203,12 @@ export interface GroceryDeliveryConfig {
   baseDeliveryFee: number;
   freeDeliveryAboveAmount: number;
   allowMixedCart: boolean;
+}
+
+export interface Device {
+  id: string;
+  banned: boolean;
+  lastActive: any;
+  lastUserName?: string;
+  lastUserPhone?: string;
 }

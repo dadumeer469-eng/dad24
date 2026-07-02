@@ -77,6 +77,17 @@ import { motion, AnimatePresence } from "motion/react";
 
 const FoodpandaRestaurantPage = React.lazy(() => import("./components/FoodpandaRestaurantPage"));
 
+export function getDeviceId(): string {
+  let id = localStorage.getItem("dadu_device_id");
+  if (!id) {
+    id = "dev-" + Math.random().toString(36).substring(2, 10) + "-" + Date.now();
+    localStorage.setItem("dadu_device_id", id);
+  }
+  return id;
+}
+
+const deviceId = getDeviceId();
+
 // Haversine formula to calculate distance in KM between two coordinates
 function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371; // Radius of the earth in km
@@ -225,6 +236,41 @@ export default function App() {
   const [globalCoords, setGlobalCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
   const [locationPromptDismissed, setLocationPromptDismissed] = useState(false);
+
+  const [isDeviceBanned, setIsDeviceBanned] = useState(false);
+
+  useEffect(() => {
+    // Check device ban status
+    const deviceRef = doc(db, "devices", deviceId);
+    
+    // First, try to sync basic presence. Don't block UI if offline/error.
+    setDoc(deviceRef, { 
+      id: deviceId, 
+      lastActive: { seconds: Math.floor(Date.now() / 1000) } 
+    }, { merge: true }).catch(() => {});
+
+    const unsubscribe = onSnapshot(deviceRef, (docSnap) => {
+      if (docSnap.exists() && docSnap.data().banned === true) {
+        setIsDeviceBanned(true);
+      } else {
+        setIsDeviceBanned(false);
+      }
+    }, (err) => {
+      console.warn("Error checking device status:", err);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (currentUser) {
+      const deviceRef = doc(db, "devices", deviceId);
+      setDoc(deviceRef, {
+        lastUserName: currentUser.name || "N/A",
+        lastUserPhone: currentUser.phone || "N/A",
+      }, { merge: true }).catch(() => {});
+    }
+  }, [currentUser]);
 
   const userDistanceFromBase = React.useMemo(() => {
     if (!globalCoords) return null;
@@ -1511,12 +1557,20 @@ export default function App() {
         paymentMethod: "cod",
         status: "pending",
         orderType: "grocery",
+        deviceId: deviceId,
         createdAt: { seconds: Math.floor(Date.now() / 1000) },
         userCoords: details.userCoords || null,
         totalCommission,
       };
 
       await setDoc(doc(db, "orders", generatedOrderId), orderDoc);
+
+      // Update Device Info
+      await setDoc(doc(db, "devices", deviceId), {
+        lastUserName: details.name,
+        lastUserPhone: details.phone,
+        lastActive: { seconds: Math.floor(Date.now() / 1000) }
+      }, { merge: true }).catch(() => {});
 
       // Clear grocery basket
       setGroceryCartItems([]);
@@ -1640,6 +1694,7 @@ export default function App() {
       status: details.orderType === "service" ? "booked" : "placed",
       paymentMethod: details.paymentMethod as any,
       orderType: details.orderType,
+      deviceId: deviceId,
       serviceTiming: computedServiceTiming,
       createdAt: { seconds: Date.now() / 1000 },
       userCoords: details.userCoords || undefined,
@@ -1649,6 +1704,13 @@ export default function App() {
     try {
       // 1. Save new Order
       await setDoc(doc(db, "orders", uniqueOrderId), cleanObject(orderModel));
+
+      // 1.2 Update Device Info
+      await setDoc(doc(db, "devices", deviceId), {
+        lastUserName: details.name,
+        lastUserPhone: details.phone,
+        lastActive: { seconds: Date.now() / 1000 }
+      }, { merge: true }).catch(() => {});
 
       // 1.5 Update profile with new location & name
       const profileRef = doc(db, "users", currentUser.uid);
@@ -2330,6 +2392,18 @@ export default function App() {
         {commonModals}
         {lockedBanner}
       </Suspense>
+    );
+  }
+
+  if (isDeviceBanned) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-black text-red-500 gap-4">
+        <ShieldAlert size={64} className="text-red-500 animate-pulse" />
+        <h1 className="text-3xl font-black uppercase tracking-widest text-center">Access Denied</h1>
+        <p className="text-zinc-400 font-medium text-center px-4 max-w-sm">
+          Your device has been banned from accessing Dadu Food. If you believe this is a mistake, please contact support.
+        </p>
+      </div>
     );
   }
 

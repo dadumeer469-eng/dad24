@@ -81,6 +81,7 @@ import {
   Pencil,
   Star,
   MapPin,
+  ShieldAlert,
 } from "lucide-react";
 
 interface AdminPanelProps {
@@ -431,10 +432,19 @@ export default function AdminPanel({
     | "grocery"
     | "services"
     | "users"
+    | "devices"
     | "seo"
   >("analytics");
   const [allUsersList, setAllUsersList] = useState<UserProfile[]>([]);
   const [userSearchTerm, setUserSearchTerm] = useState("");
+  const [allDevicesList, setAllDevicesList] = useState<any[]>([]);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "devices"), (snap) => {
+      setAllDevicesList(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+    return () => unsub();
+  }, []);
 
   // Dynamic Restaurants list based on unique values in dishes and existing config
   const uniqueRestaurants = Array.from(
@@ -2422,6 +2432,18 @@ export default function AdminPanel({
                 <span className="ml-auto bg-emerald-600 text-white font-extrabold px-2 py-0.5 text-[9px] rounded-full">
                   {allUsersList.length}
                 </span>
+              </button>
+
+              <button
+                onClick={() => setActiveSubTab("devices")}
+                className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
+                  activeSubTab === "devices"
+                    ? "bg-red-600 border-red-600 text-white font-extrabold shadow-[0_0_20px_rgba(220,38,38,0.2)]"
+                    : "bg-transparent border-transparent hover:bg-slate-800 text-slate-600 hover:text-red-400"
+                }`}
+              >
+                <ShieldAlert className="w-4 h-4 shrink-0" />
+                Manage Devices (Ban)
               </button>
             </div>
 
@@ -6816,6 +6838,95 @@ export default function AdminPanel({
                             className="text-center py-10 text-slate-500 font-black"
                           >
                             No registered users found in database.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeSubTab === "devices" && (
+            <div className="space-y-6 animate-fade-in text-left">
+              <div className="bg-[#0b0b0d]/90 border border-red-500/10 rounded-3xl p-6 relative overflow-hidden">
+                <div className="absolute right-0 top-0 w-80 h-80 bg-red-500/5 rounded-full blur-[100px] pointer-events-none" />
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 text-red-500">
+                      <ShieldAlert className="w-5 h-5" />
+                      <span className="text-[10px] font-black uppercase tracking-widest bg-red-500/10 px-2 py-0.5 rounded-full">
+                        Security Control
+                      </span>
+                    </div>
+                    <h2 className="text-xl font-black text-slate-100 mt-1">
+                      Device Ban Management
+                    </h2>
+                    <p className="text-xs text-slate-400 font-medium mt-1">
+                      View all connected devices and block malicious users at the device level.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-800/50 border-b border-slate-700">
+                        <th className="p-3 pl-5 text-[10px] font-extrabold uppercase text-slate-400">Device ID</th>
+                        <th className="p-3 text-[10px] font-extrabold uppercase text-slate-400">Last User</th>
+                        <th className="p-3 text-[10px] font-extrabold uppercase text-slate-400">Last Seen</th>
+                        <th className="p-3 text-[10px] font-extrabold uppercase text-slate-400">Status</th>
+                        <th className="p-3 pr-5 text-right text-[10px] font-extrabold uppercase text-slate-400">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allDevicesList.map((device) => (
+                        <tr key={device.id} className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors">
+                          <td className="p-3 pl-5">
+                            <span className="font-mono text-xs text-slate-200">{device.id}</span>
+                          </td>
+                          <td className="p-3 text-xs text-slate-300">
+                            <div>{device.lastUserName || "N/A"}</div>
+                            <div className="text-[10px] text-slate-500">{device.lastUserPhone || ""}</div>
+                          </td>
+                          <td className="p-3 text-xs text-slate-400">
+                            {device.lastActive ? new Date(device.lastActive.seconds * 1000).toLocaleString() : "Unknown"}
+                          </td>
+                          <td className="p-3">
+                            <span className={`px-2 py-1 rounded-md text-[9px] font-black uppercase ${
+                              device.banned ? "bg-red-950/40 text-red-400 border border-red-500/20" : "bg-emerald-950/40 text-emerald-400 border border-emerald-500/20"
+                            }`}>
+                              {device.banned ? "Banned" : "Active"}
+                            </span>
+                          </td>
+                          <td className="p-3 pr-5 text-right">
+                            <button
+                              onClick={async () => {
+                                const deviceRef = doc(db, "devices", device.id);
+                                try {
+                                  await setDoc(deviceRef, { banned: !device.banned }, { merge: true });
+                                } catch (err) {
+                                  alert("Failed to update device status");
+                                }
+                              }}
+                              className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all shadow-md ${
+                                device.banned 
+                                  ? "bg-slate-700 hover:bg-slate-600 text-slate-200"
+                                  : "bg-red-600 hover:bg-red-500 text-white shadow-red-900/20"
+                              }`}
+                            >
+                              {device.banned ? "Unban Device" : "Ban Device"}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {allDevicesList.length === 0 && (
+                        <tr>
+                          <td colSpan={4} className="text-center py-10 text-slate-500 font-black text-xs uppercase tracking-widest">
+                            No devices recorded yet.
                           </td>
                         </tr>
                       )}
