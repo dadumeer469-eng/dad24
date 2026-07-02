@@ -197,7 +197,10 @@ export default function CartDrawer({
                     </div>
                     {item.selectedAddOns && item.selectedAddOns.length > 0 && (
                       <div className="text-[10px] text-zinc-400 font-medium mt-0.5">
-                        Add-ons: {item.selectedAddOns.map(a => a.name).join(", ")}
+                        Add-ons: {Object.entries(item.selectedAddOns.reduce((acc, curr) => {
+                          acc[curr.name] = (acc[curr.name] || 0) + 1;
+                          return acc;
+                        }, {} as Record<string, number>)).map(([name, count]) => count > 1 ? `${name} x${count}` : name).join(', ')}
                       </div>
                     )}
                     {item.specialInstructions && (

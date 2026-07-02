@@ -256,7 +256,10 @@ export default function OrderHistoryDrawer({
                                     <span className="font-mono text-zinc-600">Rs. {item.price * item.quantity}</span>
                                   </div>
                                   {item.selectedAddOns && item.selectedAddOns.length > 0 && (
-                                    <span className="text-[9px] text-zinc-400">Add-ons: {item.selectedAddOns.map(a => a.name).join(", ")}</span>
+                                    <span className="text-[9px] text-zinc-400">Add-ons: {Object.entries(item.selectedAddOns.reduce((acc, curr) => {
+                                      acc[curr.name] = (acc[curr.name] || 0) + 1;
+                                      return acc;
+                                    }, {} as Record<string, number>)).map(([name, count]) => count > 1 ? `${name} x${count}` : name).join(', ')}</span>
                                   )}
                                   {item.specialInstructions && (
                                     <span className="text-[9px] text-zinc-400 italic">Note: {item.specialInstructions}</span>

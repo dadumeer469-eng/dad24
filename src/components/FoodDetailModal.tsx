@@ -272,7 +272,7 @@ export default function FoodDetailModal({
                    </div>
                 )}
 
-            {!isService && (dish.sizes || dish.flavors) && (
+            {!isService && ((dish.sizes && dish.sizes.length > 0) || (dish.flavors && dish.flavors.length > 0) || (dish.addOns && dish.addOns.length > 0)) && (
               <div className="space-y-5 mt-6 border-t border-zinc-100 pt-5">
                 {/* Size Selection */}
                 {dish.sizes && dish.sizes.length > 0 && (
@@ -367,9 +367,9 @@ export default function FoodDetailModal({
                     <p className="text-zinc-500 text-sm mb-4">Other customers also ordered these</p>
                     <div className="flex flex-col">
                       {dish.addOns.map((addOn, idx) => {
-                        const isSelected = selectedAddOns.some(a => a.name === addOn.name);
+                        const addOnCount = selectedAddOns.filter(a => a.name === addOn.name).length;
                         return (
-                          <label key={`${addOn.name}-${idx}`} className={`flex items-center justify-between py-4 cursor-pointer transition-colors ${idx !== dish.addOns!.length - 1 ? 'border-b border-zinc-100' : ''}`}>
+                          <div key={`${addOn.name}-${idx}`} className={`flex items-center justify-between py-4 transition-colors ${idx !== dish.addOns!.length - 1 ? 'border-b border-zinc-100' : ''}`}>
                             <div className="flex items-center gap-3 px-2">
                               {addOn.imageUrl ? (
                                 <LazyImage src={addOn.imageUrl} alt={addOn.name} className="w-14 h-14 rounded-xl overflow-hidden" referrerPolicy="no-referrer" />
@@ -387,20 +387,40 @@ export default function FoodDetailModal({
                                   <span className="text-zinc-400 text-xs line-through mt-0.5">Rs. {addOn.originalPrice.toFixed(2)}</span>
                                 )}
                               </div>
-                              <input 
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={(e) => {
-                                  if (e.target.checked) {
+                              <div className="flex items-center bg-zinc-100 rounded-full h-8">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    if (addOnCount > 0) {
+                                      const index = selectedAddOns.findIndex(a => a.name === addOn.name);
+                                      if (index !== -1) {
+                                        const newAddOns = [...selectedAddOns];
+                                        newAddOns.splice(index, 1);
+                                        setSelectedAddOns(newAddOns);
+                                      }
+                                    }
+                                  }}
+                                  className="w-8 h-8 flex items-center justify-center text-zinc-600 hover:text-black rounded-l-full active:bg-zinc-200"
+                                >
+                                  <Minus className="w-3.5 h-3.5" />
+                                </button>
+                                <span className="w-6 text-center text-sm font-bold">{addOnCount}</span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
                                     setSelectedAddOns([...selectedAddOns, addOn]);
-                                  } else {
-                                    setSelectedAddOns(selectedAddOns.filter(a => a.name !== addOn.name));
-                                  }
-                                }}
-                                className="w-5 h-5 rounded border-zinc-300 text-[#D70F64] focus:ring-[#D70F64]"
-                              />
+                                  }}
+                                  className="w-8 h-8 flex items-center justify-center text-[#D70F64] rounded-r-full active:bg-zinc-200"
+                                >
+                                  <Plus className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
                             </div>
-                          </label>
+                          </div>
                         );
                       })}
                     </div>
