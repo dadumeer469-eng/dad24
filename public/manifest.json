@@ -9,12 +9,12 @@
   "theme_color": "#D70F64",
   "icons": [
     {
-      "src": "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=192&h=192&fit=crop",
+      "src": "/logo.jpg",
       "sizes": "192x192",
       "type": "image/jpeg"
     },
     {
-      "src": "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=512&h=512&fit=crop",
+      "src": "/logo.jpg",
       "sizes": "512x512",
       "type": "image/jpeg"
     }

@@ -10,6 +10,7 @@ import {
 import { motion } from "motion/react";
 
 import { FoodCategory } from "../types";
+import daduLogo from "../assets/images/dadu_food_logo_new_1782333467889.jpg";
 
 interface FoodpandaHeroProps {
   activeCategory: string;
@@ -134,7 +135,7 @@ export default function FoodpandaHero({
                 referrerPolicy="no-referrer"
               />
 
-              {/* Floating Pizza Card */}
+              {/* Floating Pizza Card -> Now Logo */}
               <motion.img
                 animate={{ y: [0, 12, 0], rotate: [0, -3, 0] }}
                 transition={{
@@ -142,8 +143,8 @@ export default function FoodpandaHero({
                   duration: 5,
                   ease: "easeInOut",
                 }}
-                src="https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&q=80&w=250"
-                alt="Pizza Promo Highlight"
+                src={daduLogo}
+                alt="App Logo Highlight"
                 className="w-28 h-28 rounded-[20px] object-cover shadow-[0_15px_35px_rgba(0,0,0,0.35)] border-4 border-white/15 z-20 absolute right-4 top-4"
                 referrerPolicy="no-referrer"
               />
