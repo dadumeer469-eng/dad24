@@ -270,7 +270,7 @@ function DishCard({ dish, onAdd, isClosed }: { dish: Dish, onAdd: () => void, ke
   return (
     <div 
       className={`flex gap-4 p-4 bg-white border border-zinc-100 rounded-2xl shadow-sm transition ${!dish.isAvailable || isClosed ? "opacity-60 grayscale-[20%] cursor-not-allowed" : "hover:shadow-md cursor-pointer active:scale-[0.98]"}`}
-      onClick={() => { if (!isClosed && true) onAdd(); }}
+      onClick={() => { if (!isClosed && dish.isAvailable !== false) onAdd(); }}
     >
       <div className="flex-1 min-w-0 flex flex-col justify-between">
         <div>
@@ -301,7 +301,7 @@ function DishCard({ dish, onAdd, isClosed }: { dish: Dish, onAdd: () => void, ke
         <button 
           onClick={(e) => {
             e.stopPropagation();
-            if (!isClosed && true) onAdd();
+            if (!isClosed && dish.isAvailable !== false) onAdd();
           }}
           disabled={isClosed || dish.isAvailable === false}
           className={`absolute bottom-[-1px] right-[-1px] bg-white border shadow-sm w-8 h-8 rounded-tl-xl flex items-center justify-center font-bold text-lg transition ${isClosed || dish.isAvailable === false ? "text-zinc-300 border-zinc-100 cursor-not-allowed" : "text-[#D70F64] border-[#D70F64]/20 hover:bg-[#D70F64] hover:text-white"}`}

@@ -1802,9 +1802,97 @@ export default function App() {
     dealConfig.isActive &&
     (dealTimeLeft.minutes > 0 || dealTimeLeft.seconds > 0);
     
+  // --- RESTAURANT AVAILABILITY CHECK ---
+  const checkIsRestaurantClosed = React.useCallback((restaurantName?: string) => {
+    const fallbackName = "Dadu Fast Food & Kitchen";
+    const nameToUse = restaurantName || fallbackName;
+
+    // Check specific restaurant status first
+    if (
+      deliverySettings?.restaurantStatuses &&
+      deliverySettings.restaurantStatuses[nameToUse]
+    ) {
+      const { isTemporarilyUnavailable, openingTime, closingTime } =
+        deliverySettings.restaurantStatuses[nameToUse];
+
+      if (isTemporarilyUnavailable) return true;
+
+      if (openingTime && closingTime) {
+        const now = new Date();
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+
+        const [openH, openM] = openingTime.split(":").map(Number);
+        const [closeH, closeM] = closingTime.split(":").map(Number);
+
+        const currentAbsolute = currentHour * 60 + currentMinute;
+        const openAbsolute = openH * 60 + openM;
+        const closeAbsolute = closeH * 60 + closeM;
+
+        if (closeAbsolute < openAbsolute) {
+          // Crosses midnight
+          if (currentAbsolute < openAbsolute && currentAbsolute > closeAbsolute)
+            return true;
+        } else {
+          // Normal day hours
+          if (
+            currentAbsolute < openAbsolute ||
+            currentAbsolute >= closeAbsolute
+          )
+            return true;
+        }
+      }
+    }
+
+    // Fallback to global store status if no specific status
+    if (deliverySettings?.isStoreClosed) return true;
+
+    if (
+      deliverySettings?.storeOpeningTime &&
+      deliverySettings?.storeClosingTime
+    ) {
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+
+      const [openH, openM] = deliverySettings.storeOpeningTime
+        .split(":")
+        .map(Number);
+      const [closeH, closeM] = deliverySettings.storeClosingTime
+        .split(":")
+        .map(Number);
+
+      const currentAbsolute = currentHour * 60 + currentMinute;
+      const openAbsolute = openH * 60 + openM;
+      const closeAbsolute = closeH * 60 + closeM;
+
+      if (closeAbsolute < openAbsolute) {
+        // Crosses midnight
+        if (currentAbsolute < openAbsolute && currentAbsolute > closeAbsolute)
+          return true;
+      } else {
+        // Normal day hours
+        if (currentAbsolute < openAbsolute || currentAbsolute >= closeAbsolute)
+          return true;
+      }
+    }
+
+    return false;
+  }, [deliverySettings]);
   const finalDishes = React.useMemo(() => {
     return dishes.map((dish) => {
       let isAvailable = dish.isAvailable;
+      
+      const rName =
+        dish.restaurantName?.trim() ||
+        (dish.type === "service"
+          ? "Dadu Home Services"
+          : "Dadu Fast Food & Kitchen");
+
+      if (isAvailable !== false && checkIsRestaurantClosed(rName)) {
+        isAvailable = false;
+      }
+
       if (isAvailable !== false && dish.openingTime && dish.closingTime) {
         const now = new Date();
         const currentHour = now.getHours();
@@ -1838,83 +1926,9 @@ export default function App() {
       }
       return { ...dish, ...overrides };
     });
-  }, [dishes, isDealActive, dealConfig]);
+  }, [dishes, isDealActive, dealConfig, checkIsRestaurantClosed]);
 
   // --- RESTAURANT AVAILABILITY CHECK ---
-  const checkIsRestaurantClosed = React.useCallback((restaurantName?: string) => {
-    const fallbackName = "Dadu Fast Food & Kitchen";
-    const nameToUse = restaurantName || fallbackName;
-
-    // Check specific restaurant status first
-    if (
-      deliverySettings?.restaurantStatuses &&
-      deliverySettings.restaurantStatuses[nameToUse]
-    ) {
-      const { isTemporarilyUnavailable, openingTime, closingTime } =
-        deliverySettings.restaurantStatuses[nameToUse];
-      if (isTemporarilyUnavailable) return true;
-      if (openingTime && closingTime) {
-        const now = new Date();
-        const currentHour = now.getHours();
-        const currentMinute = now.getMinutes();
-
-        const [openH, openM] = openingTime.split(":").map(Number);
-        const [closeH, closeM] = closingTime.split(":").map(Number);
-
-        const currentAbsolute = currentHour * 60 + currentMinute;
-        const openAbsolute = openH * 60 + openM;
-        const closeAbsolute = closeH * 60 + closeM;
-
-        if (closeAbsolute < openAbsolute) {
-          // Crosses midnight
-          if (currentAbsolute < openAbsolute && currentAbsolute > closeAbsolute)
-            return true;
-        } else {
-          // Normal day hours
-          if (
-            currentAbsolute < openAbsolute ||
-            currentAbsolute >= closeAbsolute
-          )
-            return true;
-        }
-      }
-    }
-
-    // Fallback to global store status if no specific status
-    if (deliverySettings?.isStoreClosed) return true;
-    if (
-      deliverySettings?.storeOpeningTime &&
-      deliverySettings?.storeClosingTime
-    ) {
-      const now = new Date();
-      const currentHour = now.getHours();
-      const currentMinute = now.getMinutes();
-
-      const [openH, openM] = deliverySettings.storeOpeningTime
-        .split(":")
-        .map(Number);
-      const [closeH, closeM] = deliverySettings.storeClosingTime
-        .split(":")
-        .map(Number);
-
-      const currentAbsolute = currentHour * 60 + currentMinute;
-      const openAbsolute = openH * 60 + openM;
-      const closeAbsolute = closeH * 60 + closeM;
-
-      if (closeAbsolute < openAbsolute) {
-        // Crosses midnight
-        if (currentAbsolute < openAbsolute && currentAbsolute > closeAbsolute)
-          return true;
-      } else {
-        // Normal day hours
-        if (currentAbsolute < openAbsolute || currentAbsolute >= closeAbsolute)
-          return true;
-      }
-    }
-    return true;
-  }, []);
-
-  // --- CATALOG RENDER FILTERS ---
   const uniqueRestaurants = React.useMemo(() => {
     const list = Array.from(
       new Set(
@@ -2454,13 +2468,13 @@ export default function App() {
   }
 
   if (selectedRestaurant !== "All Restaurants") {
-    const restaurantDishes = dishes.filter((d) => {
+    const restaurantDishes = finalDishes.filter((d) => {
       const rName =
         d.restaurantName?.trim() ||
         (d.type === "service"
           ? "Dadu Home Services"
           : "Dadu Fast Food & Kitchen");
-      return rName === selectedRestaurant && d.isAvailable !== false;
+      return rName === selectedRestaurant;
     });
 
     const selectedFoodCategory = foodCategories.find(c => c.name === selectedRestaurant);
