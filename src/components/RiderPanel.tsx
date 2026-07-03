@@ -712,9 +712,21 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                       <div className="max-h-36 overflow-y-auto space-y-1.5 scrollbar-none pr-1">
                         {riderActiveOrder.items.map((item, idx) => (
                           <div key={idx} className="bg-zinc-950/45 border border-zinc-850 p-2 sm:p-2.5 rounded-xl flex items-center justify-between text-xs font-semibold">
-                            <span className="text-zinc-200 text-[11.5px] sm:text-xs">
-                              {item.name} <span className="text-[#D70F64] font-black">×{item.quantity}</span>
-                            </span>
+                            <div className="flex flex-col">
+                              <span className="text-zinc-200 text-[11.5px] sm:text-xs">
+                                {item.name} <span className="text-[#D70F64] font-black">×{item.quantity}</span>
+                              </span>
+                              {(item.selectedSize || item.selectedFlavor || (item.selectedAddOns && item.selectedAddOns.length > 0) || item.specialInstructions) && (
+                                <div className="text-[9px] text-zinc-500 mt-1 space-y-0.5 font-medium leading-tight">
+                                  {item.selectedSize && <div>Size: {item.selectedSize}</div>}
+                                  {item.selectedFlavor && <div>Flavor: {item.selectedFlavor}</div>}
+                                  {item.selectedAddOns && item.selectedAddOns.length > 0 && (
+                                    <div>Add-ons: {Object.entries(item.selectedAddOns.reduce((acc, curr) => { acc[curr.name] = (acc[curr.name] || 0) + 1; return acc; }, {} as Record<string, number>)).map(([name, count]) => count > 1 ? `${name} x${count}` : name).join(', ')}</div>
+                                  )}
+                                  {item.specialInstructions && <div className="italic text-zinc-400">Note: {item.specialInstructions}</div>}
+                                </div>
+                              )}
+                            </div>
                             <span className="text-zinc-400 font-mono">Rs. {item.price * item.quantity}</span>
                           </div>
                         ))}
@@ -967,6 +979,16 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                                       {item.restaurantName && (
                                         <span className="block text-[9px] text-pink-400/80 font-medium mt-0.5 leading-tight">{item.restaurantName}</span>
                                       )}
+                                      {(item.selectedSize || item.selectedFlavor || (item.selectedAddOns && item.selectedAddOns.length > 0) || item.specialInstructions) && (
+                                        <div className="text-[8px] text-zinc-500 mt-0.5 space-y-0.5 font-medium leading-tight">
+                                          {item.selectedSize && <div>Size: {item.selectedSize}</div>}
+                                          {item.selectedFlavor && <div>Flavor: {item.selectedFlavor}</div>}
+                                          {item.selectedAddOns && item.selectedAddOns.length > 0 && (
+                                            <div>Add-ons: {Object.entries(item.selectedAddOns.reduce((acc: any, curr: any) => { acc[curr.name] = (acc[curr.name] || 0) + 1; return acc; }, {})).map(([name, count]: [string, any]) => count > 1 ? `${name} x${count}` : name).join(', ')}</div>
+                                          )}
+                                          {item.specialInstructions && <div className="italic text-zinc-400">Note: {item.specialInstructions}</div>}
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
                                 ))}
@@ -1161,10 +1183,22 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                                 {/* items */}
                                 <div className="space-y-1.5">
                                   {order.items.map((item, idx) => (
-                                    <div key={idx} className="flex justify-between items-center text-[11px] font-semibold text-zinc-400">
-                                      <span>
-                                        {item.name} <span className="text-[#D70F64] font-bold">×{item.quantity}</span>
-                                      </span>
+                                    <div key={idx} className="flex justify-between items-start text-[11px] font-semibold text-zinc-400">
+                                      <div className="flex flex-col">
+                                        <span>
+                                          {item.name} <span className="text-[#D70F64] font-bold">×{item.quantity}</span>
+                                        </span>
+                                        {(item.selectedSize || item.selectedFlavor || (item.selectedAddOns && item.selectedAddOns.length > 0) || item.specialInstructions) && (
+                                          <div className="text-[9px] text-zinc-500 mt-0.5 space-y-0.5 font-medium leading-tight">
+                                            {item.selectedSize && <div>Size: {item.selectedSize}</div>}
+                                            {item.selectedFlavor && <div>Flavor: {item.selectedFlavor}</div>}
+                                            {item.selectedAddOns && item.selectedAddOns.length > 0 && (
+                                              <div>Add-ons: {Object.entries(item.selectedAddOns.reduce((acc, curr) => { acc[curr.name] = (acc[curr.name] || 0) + 1; return acc; }, {} as Record<string, number>)).map(([name, count]) => count > 1 ? `${name} x${count}` : name).join(', ')}</div>
+                                            )}
+                                            {item.specialInstructions && <div className="italic text-zinc-400">Note: {item.specialInstructions}</div>}
+                                          </div>
+                                        )}
+                                      </div>
                                       <span className="font-mono text-zinc-300">Rs. {item.price * item.quantity}</span>
                                     </div>
                                   ))}

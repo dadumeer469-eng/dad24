@@ -4913,20 +4913,37 @@ export default function AdminPanel({
                                     key={id}
                                     className="py-2 flex justify-between"
                                   >
-                                    <span className="text-gray-300 font-medium">
-                                      {item.name}{" "}
-                                      <span className="text-xs text-[#D70F64] font-black font-sans">
-                                        (
-                                        {item.restaurantName ||
-                                          (item.type === "service"
-                                            ? "Dadu Home Services"
-                                            : "Dadu Fast Food")}
-                                        )
-                                      </span>{" "}
-                                      <span className="text-slate-500 font-bold">
-                                        x{item.quantity}
+                                    <div className="flex flex-col">
+                                      <span className="text-gray-300 font-medium">
+                                        {item.name}{" "}
+                                        <span className="text-xs text-[#D70F64] font-black font-sans">
+                                          (
+                                          {item.restaurantName ||
+                                            (item.type === "service"
+                                              ? "Dadu Home Services"
+                                              : "Dadu Fast Food")}
+                                          )
+                                        </span>{" "}
+                                        <span className="text-slate-500 font-bold">
+                                          x{item.quantity}
+                                        </span>
                                       </span>
-                                    </span>
+                                      {(item.selectedSize || item.selectedFlavor || (item.selectedAddOns && item.selectedAddOns.length > 0) || item.specialInstructions) && (
+                                        <div className="text-[10px] text-gray-500 font-medium mt-0.5 space-y-0.5">
+                                          {item.selectedSize && <div>Size: {item.selectedSize}</div>}
+                                          {item.selectedFlavor && <div>Flavor: {item.selectedFlavor}</div>}
+                                          {item.selectedAddOns && item.selectedAddOns.length > 0 && (
+                                            <div>
+                                              Add-ons: {Object.entries(item.selectedAddOns.reduce((acc, curr) => {
+                                                acc[curr.name] = (acc[curr.name] || 0) + 1;
+                                                return acc;
+                                              }, {} as Record<string, number>)).map(([name, count]) => count > 1 ? `${name} x${count}` : name).join(', ')}
+                                            </div>
+                                          )}
+                                          {item.specialInstructions && <div className="italic">Note: {item.specialInstructions}</div>}
+                                        </div>
+                                      )}
+                                    </div>
                                     <span className="font-extrabold text-slate-600">
                                       Rs. {item.price * item.quantity}
                                     </span>
