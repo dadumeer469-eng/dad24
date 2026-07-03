@@ -200,7 +200,7 @@ export default function CartDrawer({
                         Add-ons: {Object.entries(item.selectedAddOns.reduce((acc, curr) => {
                           acc[curr.name] = (acc[curr.name] || 0) + 1;
                           return acc;
-                        }, {} as Record<string, number>)).map(([name, count]) => `${count * (item.quantity || 1)}x ${name}`).join(', ')}
+                        }, {} as Record<string, number>)).map(([name, count]) => `${Number(count) * (item.quantity || 1)}x ${name}`).join(', ')}
                       </div>
                     )}
                     {item.specialInstructions && (
