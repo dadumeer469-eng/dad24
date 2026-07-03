@@ -7,7 +7,9 @@ export interface Dish {
   category: "Burgers" | "Pizzas" | "Chicken & Rice" | "Only Tea" | "Home Services" | "Specials" | "Drinks" | "Pizza" | "Burger" | "Broast" | "Rolls" | "Pasta" | "Lazania" | "Fries" | "Paratha" | "Sandwich" | "Ice Cream" | "Dessert" | "Milkshake" | "Limca" | "Beverages" | string;
   imageUrl: string;
   isAvailable: boolean; // ON/OFF toggle switch from admin
-  isFeatured?: boolean; // Highlighted / favorite item shown in top spots
+  openingTime?: string;
+  closingTime?: string;
+  isFeatured?: boolean; position?: number; // Highlighted / favorite item shown in top spots
   type: "food" | "service";
   serviceDuration?: string;
   restaurantName?: string;
@@ -112,6 +114,7 @@ export interface SystemSettings {
     openingTime: string;
     closingTime: string;
     imageUrl?: string;
+    bgImageUrl?: string;
     phone?: string;
     minOrder?: string;
     deliveryCharge?: string;
@@ -132,6 +135,7 @@ export interface FoodCategory {
   name: string;
   subtitle?: string;
   imageUrl?: string;
+  bgImageUrl?: string;
   emoji?: string;
   color?: string;
   position?: number;

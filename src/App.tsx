@@ -127,6 +127,7 @@ export default function App() {
   const [isExitConfirmationOpen, setIsExitConfirmationOpen] = useState(false);
   const isExitingRef = useRef(false);
   const isProgrammaticBackRef = useRef(false);
+  const [heroBgUrl, setHeroBgUrl] = useState<string>("");
   const [dealConfig, setDealConfig] = useState<{
     isActive: boolean;
     timerMinutes: number;
@@ -844,6 +845,25 @@ export default function App() {
           handleFirestoreError(err),
         );
       },
+    );
+    return () => unsubscribe();
+  }, []);
+
+  // 3f. Load UI config
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      doc(db, "settings", "ui_config"),
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.heroBgUrl) {
+            setHeroBgUrl(data.heroBgUrl);
+          }
+        }
+      },
+      (err) => {
+        console.warn("Error loading ui_config:", err);
+      }
     );
     return () => unsubscribe();
   }, []);
@@ -1784,14 +1804,39 @@ export default function App() {
     
   const finalDishes = React.useMemo(() => {
     return dishes.map((dish) => {
+      let isAvailable = dish.isAvailable;
+      if (isAvailable !== false && dish.openingTime && dish.closingTime) {
+        const now = new Date();
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+        
+        const [openH, openM] = dish.openingTime.split(":").map(Number);
+        const [closeH, closeM] = dish.closingTime.split(":").map(Number);
+        
+        const currentAbsolute = currentHour * 60 + currentMinute;
+        const openAbsolute = openH * 60 + openM;
+        const closeAbsolute = closeH * 60 + closeM;
+        
+        if (closeAbsolute < openAbsolute) {
+          if (currentAbsolute < openAbsolute && currentAbsolute > closeAbsolute) {
+            isAvailable = false;
+          }
+        } else {
+          if (currentAbsolute < openAbsolute || currentAbsolute >= closeAbsolute) {
+            isAvailable = false;
+          }
+        }
+      }
+
+      const overrides: Partial<Dish> = { isAvailable };
+
       if (isDealActive && dealConfig?.selectedItemIds?.includes(dish.id)) {
         const pct = dealConfig.discountPercentage || 0;
         if (pct > 0) {
-          const discountPrice = Math.round(dish.price * (1 - pct / 100));
-          return { ...dish, discountPrice };
+          overrides.discountPrice = Math.round(dish.price * (1 - pct / 100));
         }
       }
-      return dish;
+      return { ...dish, ...overrides };
     });
   }, [dishes, isDealActive, dealConfig]);
 
@@ -1866,8 +1911,8 @@ export default function App() {
           return true;
       }
     }
-    return false;
-  }, [deliverySettings]);
+    return true;
+  }, []);
 
   // --- CATALOG RENDER FILTERS ---
   const uniqueRestaurants = React.useMemo(() => {
@@ -2418,6 +2463,8 @@ export default function App() {
       return rName === selectedRestaurant && d.isAvailable !== false;
     });
 
+    const selectedFoodCategory = foodCategories.find(c => c.name === selectedRestaurant);
+
     return (
       <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-zinc-50"><div className="w-10 h-10 border-4 border-[#d70f64] border-t-transparent rounded-full animate-spin" /></div>}>
         <FoodpandaRestaurantPage
@@ -2426,6 +2473,7 @@ export default function App() {
           deliverySettings={deliverySettings}
           initialCategory={initialRestaurantCategory}
           isRestaurantClosed={checkIsRestaurantClosed(selectedRestaurant)}
+          bgImageUrl={deliverySettings?.restaurantStatuses?.[selectedRestaurant]?.bgImageUrl || selectedFoodCategory?.bgImageUrl}
           onBack={() => {
             setSelectedRestaurant("All Restaurants");
             setInitialRestaurantCategory(undefined);
@@ -2889,6 +2937,7 @@ export default function App() {
                   dealConfig={dealConfig}
                   dealTimeLeft={dealTimeLeft}
                   foodCategories={foodCategories}
+                  heroBgUrl={heroBgUrl}
                 >
                 <div className="max-w-7xl mx-auto px-4 mt-6 mb-2">
                   <div className="bg-gradient-to-br from-white to-pink-50/30 border border-red-100/60 p-5 rounded-3xl space-y-4 shadow-sm relative overflow-hidden">

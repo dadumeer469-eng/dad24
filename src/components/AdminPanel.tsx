@@ -23,7 +23,7 @@ import {
   getDocs,
   getFirestore,
 } from "firebase/firestore";
-import { db, firebaseConfig, databaseId, cleanObject, storage } from "../firebase";
+import { db, firebaseConfig, databaseId, cleanObject, storage, handleFirestoreError } from "../firebase";
 import { initializeApp, deleteApp } from "firebase/app";
 import {
   getAuth,
@@ -488,6 +488,7 @@ export default function AdminPanel({
   const [restOpeningTime, setRestOpeningTime] = useState("09:00");
   const [restClosingTime, setRestClosingTime] = useState("23:00");
   const [restImageUrl, setRestImageUrl] = useState("");
+  const [restBgImageUrl, setRestBgImageUrl] = useState("");
   const [restPhone, setRestPhone] = useState("");
   const [restMinOrder, setRestMinOrder] = useState("");
   const [restDeliveryCharge, setRestDeliveryCharge] = useState("");
@@ -504,6 +505,7 @@ export default function AdminPanel({
   const [seoTitle, setSeoTitle] = useState("");
   const [seoDescription, setSeoDescription] = useState("");
   const [seoKeywords, setSeoKeywords] = useState("");
+  const [heroBgUrl, setHeroBgUrl] = useState("");
 
   // Sync state when props or selected restaurant change
   useEffect(() => {
@@ -525,6 +527,7 @@ export default function AdminPanel({
         setRestOpeningTime(specificStatus.openingTime);
         setRestClosingTime(specificStatus.closingTime);
         setRestImageUrl(specificStatus.imageUrl || "");
+        setRestBgImageUrl(specificStatus.bgImageUrl || "");
         setRestPhone(specificStatus.phone || "");
         setRestMinOrder(specificStatus.minOrder?.toString() || "");
         setRestDeliveryCharge(specificStatus.deliveryCharge || "");
@@ -533,6 +536,7 @@ export default function AdminPanel({
         setRestOpeningTime("09:00");
         setRestClosingTime("23:00");
         setRestImageUrl("");
+        setRestBgImageUrl("");
         setRestPhone("");
         setRestMinOrder("");
         setRestDeliveryCharge("");
@@ -574,9 +578,20 @@ export default function AdminPanel({
       },
     );
 
+    const unsubscribeUi = onSnapshot(
+      doc(db, "settings", "ui_config"),
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setHeroBgUrl(data.heroBgUrl || "");
+        }
+      }
+    );
+
     return () => {
       unsubscribe();
       unsubscribeSeo();
+      unsubscribeUi();
     };
   }, []);
 
@@ -711,6 +726,7 @@ export default function AdminPanel({
     name: "",
     subtitle: "",
     imageUrl: "",
+    bgImageUrl: "",
     emoji: "",
     color: "from-[#D70F64] to-rose-600",
     position: 0,
@@ -732,6 +748,7 @@ export default function AdminPanel({
         name: "",
         subtitle: "",
         imageUrl: "",
+        bgImageUrl: "",
         emoji: "",
         color: "from-[#D70F64] to-rose-600",
         position: 0,
@@ -765,6 +782,21 @@ export default function AdminPanel({
     } catch (err) {
       console.error(err);
       alert("Failed to update category.");
+    }
+  };
+
+  const handleSaveUiConfig = async () => {
+    try {
+      await setDoc(
+        doc(db, "settings", "ui_config"),
+        {
+          heroBgUrl: heroBgUrl,
+        },
+        { merge: true },
+      );
+      alert(`UI settings successfully saved!`);
+    } catch (err) {
+      alert(`Failed to save UI settings: ${handleFirestoreError(err)}`);
     }
   };
 
@@ -843,6 +875,8 @@ export default function AdminPanel({
   const [newItemDescription, setNewItemDescription] = useState("");
   const [newItemImageUrl, setNewItemImageUrl] = useState("");
   const [newItemType, setNewItemType] = useState<"food" | "service">("food");
+  const [newItemOpeningTime, setNewItemOpeningTime] = useState("");
+  const [newItemClosingTime, setNewItemClosingTime] = useState("");
   const [newItemServiceDuration, setNewItemServiceDuration] = useState("");
   const [newItemRestaurantName, setNewItemRestaurantName] = useState("");
   const [newItemCommission, setNewItemCommission] = useState<number>(0);
@@ -867,6 +901,8 @@ export default function AdminPanel({
     null,
   );
   const [editingImageUrl, setEditingImageUrl] = useState<string>("");
+  const [editingOpeningTime, setEditingOpeningTime] = useState<string>("");
+  const [editingClosingTime, setEditingClosingTime] = useState<string>("");
   const [editingNameInput, setEditingNameInput] = useState<string>("");
   const [editingPriceInput, setEditingPriceInput] = useState<number>(0);
   const [editingDiscountPriceInput, setEditingDiscountPriceInput] =
@@ -1447,6 +1483,7 @@ export default function AdminPanel({
             openingTime: restOpeningTime,
             closingTime: restClosingTime,
             imageUrl: restImageUrl,
+            bgImageUrl: restBgImageUrl,
             phone: restPhone,
             minOrder: restMinOrder ? String(restMinOrder) : null,
             deliveryCharge: restDeliveryCharge,
@@ -1664,6 +1701,8 @@ export default function AdminPanel({
       category: newItemType === "service" ? "Home Services" : newItemCategory,
       imageUrl: finalImg,
       isAvailable: true,
+      openingTime: newItemOpeningTime || undefined,
+      closingTime: newItemClosingTime || undefined,
       type: newItemType,
       restaurantName:
         newItemRestaurantName.trim() ||
@@ -1702,6 +1741,8 @@ export default function AdminPanel({
       setNewItemSizes([]);
       setNewItemFlavors([]);
       setNewItemAddOns([]);
+      setNewItemOpeningTime("");
+      setNewItemClosingTime("");
     } catch (err) {
       console.error(err);
       console.log("Check database permissions. Could not add menu item.");
@@ -2029,6 +2070,8 @@ export default function AdminPanel({
       const updates: any = {
         name: editingNameInput.trim(),
         price: editingPriceInput,
+        openingTime: editingOpeningTime || null,
+        closingTime: editingClosingTime || null,
         discountPrice:
           editingDiscountPriceInput > 0 ? editingDiscountPriceInput : null,
         commission: editingCommissionInput,
@@ -3064,6 +3107,16 @@ export default function AdminPanel({
                           uploadPath={`restaurants/${selectedScheduleRestaurant}/cover`}
                         />
                       </div>
+                      <div className="pt-2">
+                        <ProductImageSelector
+                          imageUrl={restBgImageUrl}
+                          onChange={setRestBgImageUrl}
+                          label="Restaurant Background Image"
+                          accentColorClass="purple"
+                          placeholder="Paste image web address (https://...)"
+                          uploadPath={`restaurants/${selectedScheduleRestaurant}/bg`}
+                        />
+                      </div>
 
                       <div className="flex flex-col gap-2 mt-2">
                         <button
@@ -3148,7 +3201,7 @@ export default function AdminPanel({
           {/* TAB 2: Manage Items Directory */}
           {activeSubTab === "items" && (
             <div className="space-y-8 animate-fade-in">
-              <div className="flex items-center justify-between bg-[#0b0b0d]/80  border border-slate-200 p-4 rounded-2xl shadow-xl">
+              <div className="flex items-center justify-between bg-white/80  border border-slate-200 p-4 rounded-2xl shadow-xl">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-[#D70F64]/10 flex items-center justify-center">
                     <ListCollapse className="w-5 h-5 text-[#D70F64]" />
@@ -3336,6 +3389,28 @@ export default function AdminPanel({
                       }
                       placeholder="Commission"
                       className="w-full p-3 bg-white border border-slate-200 border border-emerald-900 rounded-xl text-slate-900 outline-none text-slate-900 focus:border-emerald-500 transition focus:ring-1 focus:ring-emerald-500/10 font-bold"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">
+                      Open Time
+                    </label>
+                    <input
+                      type="time"
+                      value={newItemOpeningTime}
+                      onChange={(e) => setNewItemOpeningTime(e.target.value)}
+                      className="w-full p-3 bg-white border border-slate-200 rounded-xl text-slate-900 outline-none text-slate-900 focus:border-[#D70F64] transition"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">
+                      Close Time
+                    </label>
+                    <input
+                      type="time"
+                      value={newItemClosingTime}
+                      onChange={(e) => setNewItemClosingTime(e.target.value)}
+                      className="w-full p-3 bg-white border border-slate-200 rounded-xl text-slate-900 outline-none text-slate-900 focus:border-[#D70F64] transition"
                     />
                   </div>
 
@@ -3680,7 +3755,7 @@ export default function AdminPanel({
               </form>
 
               {/* Items Table List */}
-              <div className="bg-[#0b0b0d]/80  border border-slate-200 rounded-[24px] overflow-hidden shadow-sm relative">
+              <div className="bg-white/80  border border-slate-200 rounded-[24px] overflow-hidden shadow-sm relative">
                 <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#D70F64]/10 to-transparent" />
                 <div className="p-5 border-b border-slate-200/50 bg-slate-100/15">
                   <h4 className="font-black text-sm text-slate-900 uppercase tracking-wide">
@@ -3788,7 +3863,7 @@ export default function AdminPanel({
                                       onChange={(e) =>
                                         setEditingNameInput(e.target.value)
                                       }
-                                      className="flex-1 p-1 bg-[#1a1a1a] border border-[#D70F64] text-slate-900 rounded text-xs leading-none"
+                                      className="flex-1 p-1 bg-slate-50 border border-[#D70F64] text-slate-900 rounded text-xs leading-none"
                                     />
                                   </div>
                                   <div className="flex items-center gap-1">
@@ -3803,7 +3878,7 @@ export default function AdminPanel({
                                           Number(e.target.value),
                                         )
                                       }
-                                      className="w-20 p-1 bg-[#1a1a1a] border border-[#D70F64] text-slate-900 rounded text-xs leading-none"
+                                      className="w-20 p-1 bg-slate-50 border border-[#D70F64] text-slate-900 rounded text-xs leading-none"
                                     />
                                   </div>
                                   <div className="flex items-center gap-1">
@@ -3818,7 +3893,7 @@ export default function AdminPanel({
                                           Number(e.target.value),
                                         )
                                       }
-                                      className="w-20 p-1 bg-[#1a1a1a] border border-[#D70F64] text-slate-900 rounded text-xs leading-none"
+                                      className="w-20 p-1 bg-slate-50 border border-[#D70F64] text-slate-900 rounded text-xs leading-none"
                                       placeholder="0 for none"
                                     />
                                   </div>
@@ -3834,8 +3909,34 @@ export default function AdminPanel({
                                           Number(e.target.value),
                                         )
                                       }
-                                      className="w-20 p-1 bg-[#1a1a1a] border border-emerald-500 text-slate-900 rounded text-xs leading-none"
+                                      className="w-20 p-1 bg-slate-50 border border-emerald-500 text-slate-900 rounded text-xs leading-none"
                                       placeholder="Commission"
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[8px] text-slate-500 uppercase font-bold w-12">
+                                      Open:
+                                    </span>
+                                    <input
+                                      type="time"
+                                      value={editingOpeningTime}
+                                      onChange={(e) =>
+                                        setEditingOpeningTime(e.target.value)
+                                      }
+                                      className="w-20 p-1 bg-slate-50 border border-[#D70F64] text-slate-900 rounded text-xs leading-none"
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[8px] text-slate-500 uppercase font-bold w-12">
+                                      Close:
+                                    </span>
+                                    <input
+                                      type="time"
+                                      value={editingClosingTime}
+                                      onChange={(e) =>
+                                        setEditingClosingTime(e.target.value)
+                                      }
+                                      className="w-20 p-1 bg-slate-50 border border-[#D70F64] text-slate-900 rounded text-xs leading-none"
                                     />
                                   </div>
                                   {dish.type === "food" && (
@@ -3873,7 +3974,7 @@ export default function AdminPanel({
                                                   setEditingSizes(n);
                                                 }}
                                                 placeholder="Name"
-                                                className="flex-1 p-1 bg-[#1a1a1a] border border-slate-300 text-slate-900 rounded text-[10px]"
+                                                className="flex-1 p-1 bg-slate-50 border border-slate-300 text-slate-900 rounded text-[10px]"
                                               />
                                               <input
                                                 type="number"
@@ -3886,7 +3987,7 @@ export default function AdminPanel({
                                                   setEditingSizes(n);
                                                 }}
                                                 placeholder="Price"
-                                                className="w-16 p-1 bg-[#1a1a1a] border border-slate-300 text-slate-900 rounded text-[10px]"
+                                                className="w-16 p-1 bg-slate-50 border border-slate-300 text-slate-900 rounded text-[10px]"
                                               />
                                               <button
                                                 onClick={() => {
@@ -3947,7 +4048,7 @@ export default function AdminPanel({
                                                   setEditingFlavors(n);
                                                 }}
                                                 placeholder="Name"
-                                                className="w-16 p-1 bg-[#1a1a1a] border border-slate-300 text-slate-900 rounded text-[10px]"
+                                                className="w-16 p-1 bg-slate-50 border border-slate-300 text-slate-900 rounded text-[10px]"
                                               />
                                               <input
                                                 type="number"
@@ -3960,7 +4061,7 @@ export default function AdminPanel({
                                                   setEditingFlavors(n);
                                                 }}
                                                 placeholder="Ex Price"
-                                                className="w-14 p-1 bg-[#1a1a1a] border border-slate-300 text-slate-900 rounded text-[10px]"
+                                                className="w-14 p-1 bg-slate-50 border border-slate-300 text-slate-900 rounded text-[10px]"
                                               />
                                               <input
                                                 type="number"
@@ -3973,7 +4074,7 @@ export default function AdminPanel({
                                                   setEditingFlavors(n);
                                                 }}
                                                 placeholder="Orig"
-                                                className="w-12 p-1 bg-[#1a1a1a] border border-slate-300 text-slate-900 rounded text-[10px]"
+                                                className="w-12 p-1 bg-slate-50 border border-slate-300 text-slate-900 rounded text-[10px]"
                                               />
                                               <label className="text-[9px] text-slate-600 flex items-center gap-0.5 ml-auto">
                                                 <input
@@ -4043,7 +4144,7 @@ export default function AdminPanel({
                                                   setEditingAddOns(n);
                                                 }}
                                                 placeholder="Addon Name"
-                                                className="flex-1 p-1 bg-[#1a1a1a] border border-slate-300 text-slate-900 rounded text-[10px]"
+                                                className="flex-1 p-1 bg-slate-50 border border-slate-300 text-slate-900 rounded text-[10px]"
                                               />
                                               <input
                                                 type="number"
@@ -4056,7 +4157,7 @@ export default function AdminPanel({
                                                   setEditingAddOns(n);
                                                 }}
                                                 placeholder="Extra Price"
-                                                className="w-16 p-1 bg-[#1a1a1a] border border-slate-300 text-slate-900 rounded text-[10px]"
+                                                className="w-16 p-1 bg-slate-50 border border-slate-300 text-slate-900 rounded text-[10px]"
                                               />
                                               <input
                                                 type="number"
@@ -4069,7 +4170,7 @@ export default function AdminPanel({
                                                   setEditingAddOns(n);
                                                 }}
                                                 placeholder="Orig Price"
-                                                className="w-16 p-1 bg-[#1a1a1a] border border-slate-300 text-slate-900 rounded text-[10px]"
+                                                className="w-16 p-1 bg-slate-50 border border-slate-300 text-slate-900 rounded text-[10px]"
                                               />
                                               <button
                                                 onClick={() => {
@@ -4135,6 +4236,13 @@ export default function AdminPanel({
                                   <span className="text-[10px] text-emerald-400 font-bold block mt-0.5">
                                     Comm: Rs. {dish.commission || 0}
                                   </span>
+                                  {(dish.openingTime || dish.closingTime) && (
+                                    <span className="text-[10px] text-[#D70F64] font-bold block mt-0.5">
+                                      Time: {dish.openingTime || "Open"} - {dish.closingTime || "Close"}
+                                    </span>
+                                  )}
+                                  <span className="hidden">
+                                  </span>
                                   <button
                                     onClick={() => {
                                       setEditingPriceDishId(dish.id);
@@ -4147,6 +4255,8 @@ export default function AdminPanel({
                                       setEditingCommissionInput(
                                         dish.commission || 0,
                                       );
+                                      setEditingOpeningTime(dish.openingTime || "");
+                                      setEditingClosingTime(dish.closingTime || "");
                                       setEditingSizes(
                                         dish.sizes
                                           ? JSON.parse(
@@ -4231,7 +4341,7 @@ export default function AdminPanel({
           {/* TAB 2.5: Manage Services Directory */}
           {activeSubTab === "services" && (
             <div className="space-y-8 animate-fade-in">
-              <div className="flex items-center justify-between bg-[#0b0b0d]/80  border border-slate-200 p-4 rounded-2xl shadow-xl">
+              <div className="flex items-center justify-between bg-white/80  border border-slate-200 p-4 rounded-2xl shadow-xl">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
                     <Settings className="w-5 h-5 text-blue-500" />
@@ -4314,6 +4424,28 @@ export default function AdminPanel({
                       }
                       placeholder="Commission"
                       className="w-full p-3 bg-white border border-slate-200 border border-emerald-900 rounded-xl text-slate-900 outline-none text-slate-900 focus:border-emerald-500 transition focus:ring-1 focus:ring-emerald-500/10 font-bold"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">
+                      Open Time
+                    </label>
+                    <input
+                      type="time"
+                      value={newItemOpeningTime}
+                      onChange={(e) => setNewItemOpeningTime(e.target.value)}
+                      className="w-full p-3 bg-white border border-slate-200 rounded-xl text-slate-900 outline-none text-slate-900 focus:border-blue-500 transition"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">
+                      Close Time
+                    </label>
+                    <input
+                      type="time"
+                      value={newItemClosingTime}
+                      onChange={(e) => setNewItemClosingTime(e.target.value)}
+                      className="w-full p-3 bg-white border border-slate-200 rounded-xl text-slate-900 outline-none text-slate-900 focus:border-blue-500 transition"
                     />
                   </div>
 
@@ -4408,7 +4540,7 @@ export default function AdminPanel({
               </form>
 
               {/* Items Table List */}
-              <div className="bg-[#0b0b0d]/80  border border-slate-200 rounded-[24px] overflow-hidden shadow-sm relative">
+              <div className="bg-white/80  border border-slate-200 rounded-[24px] overflow-hidden shadow-sm relative">
                 <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-blue-500/10 to-transparent" />
                 <div className="p-5 border-b border-slate-200/50 bg-slate-100/15">
                   <h4 className="font-black text-sm text-slate-900 uppercase tracking-wide">
@@ -4525,6 +4657,24 @@ export default function AdminPanel({
                                     placeholder="Comm."
                                   />
                                   <div className="flex gap-2">
+                                    <input
+                                      type="time"
+                                      value={editingOpeningTime}
+                                      onChange={(e) =>
+                                        setEditingOpeningTime(e.target.value)
+                                      }
+                                      className="w-full p-2 bg-white border border-slate-200 text-slate-900 text-[10px] border border-slate-300 focus:border-blue-500 outline-none rounded"
+                                    />
+                                    <input
+                                      type="time"
+                                      value={editingClosingTime}
+                                      onChange={(e) =>
+                                        setEditingClosingTime(e.target.value)
+                                      }
+                                      className="w-full p-2 bg-white border border-slate-200 text-slate-900 text-[10px] border border-slate-300 focus:border-blue-500 outline-none rounded"
+                                    />
+                                  </div>
+                                  <div className="flex gap-2">
                                     <button
                                       onClick={() =>
                                         setEditingPriceDishId(null)
@@ -4563,6 +4713,13 @@ export default function AdminPanel({
                                   <span className="text-[10px] text-emerald-400 font-bold block mt-0.5">
                                     Comm: Rs. {dish.commission || 0}
                                   </span>
+                                  {(dish.openingTime || dish.closingTime) && (
+                                    <span className="text-[10px] text-[#D70F64] font-bold block mt-0.5">
+                                      Time: {dish.openingTime || "Open"} - {dish.closingTime || "Close"}
+                                    </span>
+                                  )}
+                                  <span className="hidden">
+                                  </span>
                                   <button
                                     onClick={() => {
                                       setEditingPriceDishId(dish.id);
@@ -4575,6 +4732,8 @@ export default function AdminPanel({
                                       setEditingCommissionInput(
                                         dish.commission || 0,
                                       );
+                                      setEditingOpeningTime(dish.openingTime || "");
+                                      setEditingClosingTime(dish.closingTime || "");
                                     }}
                                     className="text-[10px] text-blue-500 hover:underline cursor-pointer text-left mt-1 font-bold"
                                   >
@@ -4625,7 +4784,7 @@ export default function AdminPanel({
           {/* TAB 3: Live Orders Manager */}
           {activeSubTab === "orders" && (
             <div className="space-y-8 animate-fade-in">
-              <div className="bg-[#0b0b0d]/80  border border-slate-200 rounded-[24px] overflow-hidden shadow-sm relative">
+              <div className="bg-white/80  border border-slate-200 rounded-[24px] overflow-hidden shadow-sm relative">
                 <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#D70F64]/10 to-transparent" />
                 <div className="p-6 border-b border-slate-200/50 bg-slate-100/15 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
@@ -5254,6 +5413,16 @@ export default function AdminPanel({
                         uploadPath={`restaurants/${selectedScheduleRestaurant}/cover`}
                       />
                     </div>
+                    <div className="pt-2">
+                      <ProductImageSelector
+                        imageUrl={restBgImageUrl}
+                        onChange={setRestBgImageUrl}
+                        label="Restaurant Background Image"
+                        accentColorClass="purple"
+                        placeholder="Paste image web address (https://...)"
+                        uploadPath={`restaurants/${selectedScheduleRestaurant}/bg`}
+                      />
+                    </div>
 
                     <button
                       type="button"
@@ -5599,7 +5768,7 @@ export default function AdminPanel({
                             </div>
 
                             {/* Rider Sales Performance Statistics Dashboard */}
-                            <div className="bg-[#0b0b0d] border border-slate-200 rounded-xl p-3 mt-2 space-y-2">
+                            <div className="bg-white border border-slate-200 rounded-xl p-3 mt-2 space-y-2">
                               <span className="text-[9.5px] font-black uppercase text-[#D70F64] tracking-wider flex items-center gap-1">
                                 📊 Rider Earnings & Sales Stats
                               </span>
@@ -5781,6 +5950,19 @@ export default function AdminPanel({
                       accentColorClass="purple"
                     />
                   </div>
+                  <div className="md:col-span-2">
+                    <ProductImageSelector
+                      imageUrl={newFoodCategory.bgImageUrl || ""}
+                      onChange={(url) =>
+                        setNewFoodCategory({
+                          ...newFoodCategory,
+                          bgImageUrl: url,
+                        })
+                      }
+                      label="Restaurant Background Image"
+                      accentColorClass="purple"
+                    />
+                  </div>
                 </div>
 
                 <button
@@ -5849,6 +6031,11 @@ export default function AdminPanel({
                             imageUrl={editingFoodCategory.imageUrl || ""}
                             onChange={(url) => setEditingFoodCategory({...editingFoodCategory, imageUrl: url})}
                             label="Image URL"
+                          />
+                          <ProductImageSelector 
+                            imageUrl={editingFoodCategory.bgImageUrl || ""}
+                            onChange={(url) => setEditingFoodCategory({...editingFoodCategory, bgImageUrl: url})}
+                            label="Restaurant Background Image URL"
                           />
                           <button 
                             onClick={handleUpdateFoodCategory}
@@ -5962,7 +6149,7 @@ export default function AdminPanel({
               {/* Middle Row: Create Category, and list of current ones */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* 1. Category Form */}
-                <div className="bg-[#0b0b0d]/80 border border-slate-200 p-6 rounded-[24px] space-y-4">
+                <div className="bg-white/80 border border-slate-200 p-6 rounded-[24px] space-y-4">
                   <h4 className="font-black text-xs text-slate-800 uppercase tracking-widest text-orange-500 flex items-center gap-2">
                     <Plus className="w-4 h-4 text-orange-500" />
                     Create Grocery Division
@@ -6017,7 +6204,7 @@ export default function AdminPanel({
                 </div>
 
                 {/* 2. Categories List */}
-                <div className="bg-[#0b0b0d]/80 border border-slate-200 p-6 rounded-[24px] space-y-4">
+                <div className="bg-white/80 border border-slate-200 p-6 rounded-[24px] space-y-4">
                   <h4 className="font-black text-xs text-slate-800 uppercase tracking-widest text-orange-500">
                     Active Categories Directory ({groceryCategories.length})
                   </h4>
@@ -6119,7 +6306,7 @@ export default function AdminPanel({
               {/* Bottom Row: Create product, and product grid directory */}
               <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
                 {/* 1. Product creator column */}
-                <div className="bg-[#0b0b0d]/80 border border-slate-200/85 p-6 rounded-[24px] col-span-1 md:col-span-5 space-y-4">
+                <div className="bg-white/80 border border-slate-200/85 p-6 rounded-[24px] col-span-1 md:col-span-5 space-y-4">
                   <h4 className="font-black text-xs text-slate-800 uppercase tracking-widest text-orange-500 flex items-center gap-2">
                     <Plus className="w-4 h-4 text-orange-500" />
                     Add Grocery Product
@@ -6262,7 +6449,7 @@ export default function AdminPanel({
                 </div>
 
                 {/* 2. Product directory table column */}
-                <div className="bg-[#0b0b0d]/80 border border-slate-200 p-6 rounded-[24px] col-span-1 md:col-span-12 lg:col-span-7 space-y-4">
+                <div className="bg-white/80 border border-slate-200 p-6 rounded-[24px] col-span-1 md:col-span-12 lg:col-span-7 space-y-4">
                   <h4 className="font-black text-xs text-slate-800 uppercase tracking-widest text-orange-500 font-sans">
                     Product Stock & Catalog Directory ({groceryProducts.length})
                   </h4>
@@ -6448,7 +6635,7 @@ export default function AdminPanel({
           {activeSubTab === "users" && (
             <div className="space-y-6 animate-fade-in text-left">
               {/* Header Box */}
-              <div className="bg-[#0b0b0d]/90 border border-slate-200 rounded-3xl p-6 relative overflow-hidden">
+              <div className="bg-white/90 border border-slate-200 rounded-3xl p-6 relative overflow-hidden">
                 <div className="absolute right-0 top-0 w-80 h-80 bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none" />
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
@@ -6468,7 +6655,7 @@ export default function AdminPanel({
                   </div>
 
                   {/* Totals Badge */}
-                  <div className="bg-[#121215] border border-slate-200 rounded-2xl px-5 py-3 text-center sm:text-right">
+                  <div className="bg-slate-200 border border-slate-200 rounded-2xl px-5 py-3 text-center sm:text-right">
                     <span className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider block">
                       Total Registered Users
                     </span>
@@ -6486,7 +6673,7 @@ export default function AdminPanel({
                       value={userSearchTerm}
                       onChange={(e) => setUserSearchTerm(e.target.value)}
                       placeholder="Search users by name, phone or address..."
-                      className="w-full bg-[#141416]/90 border border-slate-200 text-slate-900 placeholder-slate-500 pl-4 pr-10 py-3 rounded-2xl text-xs font-semibold focus:outline-hidden focus:border-emerald-500/50 transition-all"
+                      className="w-full bg-slate-100/90 border border-slate-200 text-slate-900 placeholder-slate-500 pl-4 pr-10 py-3 rounded-2xl text-xs font-semibold focus:outline-hidden focus:border-emerald-500/50 transition-all"
                     />
                     {userSearchTerm && (
                       <button
@@ -6603,7 +6790,7 @@ export default function AdminPanel({
               })()}
 
               {/* Users Table Box */}
-              <div className="bg-[#0b0b0d]/90 border border-slate-200 rounded-3xl overflow-hidden shadow-xl">
+              <div className="bg-white/90 border border-slate-200 rounded-3xl overflow-hidden shadow-xl">
                 <div className="p-5 border-b border-slate-200/60 flex items-center justify-between">
                   <h3 className="font-black text-xs uppercase tracking-widest text-slate-700">
                     User Ledger
@@ -6850,7 +7037,7 @@ export default function AdminPanel({
 
           {activeSubTab === "devices" && (
             <div className="space-y-6 animate-fade-in text-left">
-              <div className="bg-[#0b0b0d]/90 border border-red-500/10 rounded-3xl p-6 relative overflow-hidden">
+              <div className="bg-white/90 border border-red-500/10 rounded-3xl p-6 relative overflow-hidden">
                 <div className="absolute right-0 top-0 w-80 h-80 bg-red-500/5 rounded-full blur-[100px] pointer-events-none" />
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
@@ -6939,7 +7126,7 @@ export default function AdminPanel({
 
           {activeSubTab === "seo" && (
             <div className="space-y-6 animate-fade-in text-left">
-              <div className="bg-[#0b0b0d]/90 border border-slate-200 rounded-3xl p-6 relative overflow-hidden">
+              <div className="bg-white/90 border border-slate-200 rounded-3xl p-6 relative overflow-hidden">
                 <div className="absolute right-0 top-0 w-80 h-80 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none" />
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
@@ -6973,7 +7160,7 @@ export default function AdminPanel({
                 </div>
               </div>
 
-              <div className="bg-[#0c0c0e] border border-slate-200 rounded-[24px] p-5 lg:p-7 shadow-sm relative">
+              <div className="bg-white border border-slate-200 rounded-[24px] p-5 lg:p-7 shadow-sm relative">
                 <div className="space-y-5">
                   <div>
                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">
@@ -7012,6 +7199,51 @@ export default function AdminPanel({
                   </div>
                 </div>
               </div>
+
+              <div className="bg-white/90 border border-slate-200 rounded-3xl p-6 relative overflow-hidden mt-6">
+                <div className="absolute right-0 top-0 w-80 h-80 bg-purple-500/5 rounded-full blur-[100px] pointer-events-none" />
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 text-purple-500">
+                      <Grid className="w-5 h-5 text-purple-500" />
+                      <span className="text-[10px] font-black uppercase tracking-widest bg-purple-500/10 px-2 py-0.5 rounded-full">
+                        UI Configuration
+                      </span>
+                    </div>
+                    <h2 className="text-xl font-black text-slate-900 mt-1">
+                      Theme Settings
+                    </h2>
+                    <p className="text-xs text-slate-500 font-medium mt-1">
+                      Configure the main hero background image.
+                    </p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      onClick={handleSaveUiConfig}
+                      className="bg-purple-600 hover:bg-purple-700 text-white font-black text-[10px] uppercase tracking-widest py-3 px-5 rounded-xl transition cursor-pointer shrink-0"
+                    >
+                      Save Changes
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white border border-slate-200 rounded-[24px] p-5 lg:p-7 shadow-sm relative">
+                <div className="space-y-5">
+                  <div>
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">
+                      Hero Background Image URL
+                    </label>
+                    <input
+                      type="text"
+                      value={heroBgUrl}
+                      onChange={(e) => setHeroBgUrl(e.target.value)}
+                      placeholder="e.g. https://images.unsplash.com/..."
+                      className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm outline-none text-slate-900 focus:border-purple-500/60 transition"
+                    />
+                  </div>
+                </div>
+              </div>
+
             </div>
           )}
         </div>
@@ -7019,7 +7251,7 @@ export default function AdminPanel({
 
       {confirmDialog && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-fade-in text-left">
-          <div className="bg-[#0c0c0e] border border-slate-200 rounded-3xl max-w-sm w-full overflow-hidden shadow-sm text-slate-900 p-6 space-y-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full overflow-hidden shadow-sm text-slate-900 p-6 space-y-4">
             <div className="flex items-center gap-2.5 text-red-500">
               <AlertTriangle className="w-5 h-5 shrink-0 animate-pulse" />
               <h4 className="font-black text-xs uppercase tracking-widest">

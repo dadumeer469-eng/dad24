@@ -24,6 +24,7 @@ interface FoodpandaHeroProps {
   };
   dealTimeLeft: { minutes: number; seconds: number };
   foodCategories?: FoodCategory[];
+  heroBgUrl?: string;
   children?: React.ReactNode;
 }
 
@@ -33,6 +34,7 @@ export default function FoodpandaHero({
   dealConfig,
   dealTimeLeft,
   foodCategories = [],
+  heroBgUrl,
   children,
 }: FoodpandaHeroProps) {
   const defaultCategories = [
@@ -63,7 +65,7 @@ export default function FoodpandaHero({
           {/* Professional Dark Culinary & Service Background Image */}
           <div className="absolute inset-0 z-0">
             <img
-              src="https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&q=80&w=1200"
+              src={heroBgUrl || "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&q=80&w=1200"}
               alt="Gourmet food background backdrop"
               className="w-full h-full object-cover opacity-30 select-none"
               referrerPolicy="no-referrer"

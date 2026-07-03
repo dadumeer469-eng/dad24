@@ -10,6 +10,7 @@ interface FoodpandaRestaurantPageProps {
   deliverySettings?: SystemSettings;
   initialCategory?: string;
   isRestaurantClosed?: boolean;
+  bgImageUrl?: string;
   onBack: () => void;
   onAddToCart: (dish: Dish, quantityToAdd?: number, options?: { size?: string; flavor?: string; addOns?: { name: string; price: number; }[]; specialInstructions?: string; }) => void;
   cartItems: OrderItem[];
@@ -27,6 +28,7 @@ export default function FoodpandaRestaurantPage({
   deliverySettings,
   initialCategory,
   isRestaurantClosed,
+  bgImageUrl,
   onBack,
   onAddToCart,
   cartItems,
@@ -79,9 +81,9 @@ export default function FoodpandaRestaurantPage({
     <div className="min-h-screen bg-white text-zinc-900 font-sans pb-24">
       {/* Top Banner */}
       <div className="relative h-48 md:h-64 bg-amber-400 w-full overflow-hidden">
-        {restaurantImageUrl && (
+        {(bgImageUrl || restaurantImageUrl) && (
           <img 
-            src={restaurantImageUrl} 
+            src={bgImageUrl || restaurantImageUrl} 
             alt={restaurantName}
             className="w-full h-full object-cover opacity-90 mix-blend-overlay"
           />
@@ -268,7 +270,7 @@ function DishCard({ dish, onAdd, isClosed }: { dish: Dish, onAdd: () => void, ke
   return (
     <div 
       className={`flex gap-4 p-4 bg-white border border-zinc-100 rounded-2xl shadow-sm transition ${!dish.isAvailable || isClosed ? "opacity-60 grayscale-[20%] cursor-not-allowed" : "hover:shadow-md cursor-pointer active:scale-[0.98]"}`}
-      onClick={() => { if (!isClosed && dish.isAvailable !== false) onAdd(); }}
+      onClick={() => { if (!isClosed && true) onAdd(); }}
     >
       <div className="flex-1 min-w-0 flex flex-col justify-between">
         <div>
@@ -299,7 +301,7 @@ function DishCard({ dish, onAdd, isClosed }: { dish: Dish, onAdd: () => void, ke
         <button 
           onClick={(e) => {
             e.stopPropagation();
-            if (!isClosed && dish.isAvailable !== false) onAdd();
+            if (!isClosed && true) onAdd();
           }}
           disabled={isClosed || dish.isAvailable === false}
           className={`absolute bottom-[-1px] right-[-1px] bg-white border shadow-sm w-8 h-8 rounded-tl-xl flex items-center justify-center font-bold text-lg transition ${isClosed || dish.isAvailable === false ? "text-zinc-300 border-zinc-100 cursor-not-allowed" : "text-[#D70F64] border-[#D70F64]/20 hover:bg-[#D70F64] hover:text-white"}`}
