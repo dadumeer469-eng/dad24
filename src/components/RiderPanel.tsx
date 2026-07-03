@@ -721,7 +721,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                                   {item.selectedSize && <div>Size: {item.selectedSize}</div>}
                                   {item.selectedFlavor && <div>Flavor: {item.selectedFlavor}</div>}
                                   {item.selectedAddOns && item.selectedAddOns.length > 0 && (
-                                    <div>Add-ons: {Object.entries(item.selectedAddOns.reduce((acc, curr) => { acc[curr.name] = (acc[curr.name] || 0) + 1; return acc; }, {} as Record<string, number>)).map(([name, count]) => count > 1 ? `${name} x${count}` : name).join(', ')}</div>
+                                    <div>Add-ons: {Object.entries(item.selectedAddOns.reduce((acc, curr) => { acc[curr.name] = (acc[curr.name] || 0) + 1; return acc; }, {} as Record<string, number>)).map(([name, count]) => `${count * (item.quantity || 1)}x ${name}`).join(', ')}</div>
                                   )}
                                   {item.specialInstructions && <div className="italic text-zinc-400">Note: {item.specialInstructions}</div>}
                                 </div>
@@ -984,7 +984,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                                           {item.selectedSize && <div>Size: {item.selectedSize}</div>}
                                           {item.selectedFlavor && <div>Flavor: {item.selectedFlavor}</div>}
                                           {item.selectedAddOns && item.selectedAddOns.length > 0 && (
-                                            <div>Add-ons: {Object.entries(item.selectedAddOns.reduce((acc: any, curr: any) => { acc[curr.name] = (acc[curr.name] || 0) + 1; return acc; }, {})).map(([name, count]: [string, any]) => count > 1 ? `${name} x${count}` : name).join(', ')}</div>
+                                            <div>Add-ons: {Object.entries(item.selectedAddOns.reduce((acc: any, curr: any) => { acc[curr.name] = (acc[curr.name] || 0) + 1; return acc; }, {})).map(([name, count]: [string, any]) => `${count * (item.quantity || 1)}x ${name}`).join(', ')}</div>
                                           )}
                                           {item.specialInstructions && <div className="italic text-zinc-400">Note: {item.specialInstructions}</div>}
                                         </div>
@@ -1193,7 +1193,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                                             {item.selectedSize && <div>Size: {item.selectedSize}</div>}
                                             {item.selectedFlavor && <div>Flavor: {item.selectedFlavor}</div>}
                                             {item.selectedAddOns && item.selectedAddOns.length > 0 && (
-                                              <div>Add-ons: {Object.entries(item.selectedAddOns.reduce((acc, curr) => { acc[curr.name] = (acc[curr.name] || 0) + 1; return acc; }, {} as Record<string, number>)).map(([name, count]) => count > 1 ? `${name} x${count}` : name).join(', ')}</div>
+                                              <div>Add-ons: {Object.entries(item.selectedAddOns.reduce((acc, curr) => { acc[curr.name] = (acc[curr.name] || 0) + 1; return acc; }, {} as Record<string, number>)).map(([name, count]) => `${count * (item.quantity || 1)}x ${name}`).join(', ')}</div>
                                             )}
                                             {item.specialInstructions && <div className="italic text-zinc-400">Note: {item.specialInstructions}</div>}
                                           </div>
