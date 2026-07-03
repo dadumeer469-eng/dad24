@@ -20,6 +20,7 @@ interface FoodpandaRestaurantPageProps {
   toggleFavorite: (dishId: string) => void;
   favoriteDishIds: string[];
   isRiderRangeExceeded?: boolean;
+  distanceDisplay?: string | null;
 }
 
 export default function FoodpandaRestaurantPage({
@@ -37,7 +38,8 @@ export default function FoodpandaRestaurantPage({
   onViewCart,
   toggleFavorite,
   favoriteDishIds,
-  isRiderRangeExceeded
+  isRiderRangeExceeded,
+  distanceDisplay
 }: FoodpandaRestaurantPageProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>(initialCategory || "");
@@ -127,11 +129,15 @@ export default function FoodpandaRestaurantPage({
             <Star className="w-4 h-4 text-[#D70F64] fill-current" />
             <span className="text-zinc-800">4.5</span>
           </div>
-          <span>•</span>
-          <div className="flex items-center gap-1">
-            <MapPin className="w-4 h-4 text-zinc-400" />
-            <span>2.5 km</span>
-          </div>
+          {distanceDisplay && (
+            <>
+              <span>•</span>
+              <div className="flex items-center gap-1">
+                <MapPin className="w-4 h-4 text-[#D70F64]" />
+                <span className="text-zinc-800 font-bold">{distanceDisplay}</span>
+              </div>
+            </>
+          )}
           <span>•</span>
           <div className="flex items-center gap-1">
             <Clock className="w-4 h-4 text-zinc-400" />

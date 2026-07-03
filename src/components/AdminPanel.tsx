@@ -492,6 +492,8 @@ export default function AdminPanel({
   const [restPhone, setRestPhone] = useState("");
   const [restMinOrder, setRestMinOrder] = useState("");
   const [restDeliveryCharge, setRestDeliveryCharge] = useState("");
+  const [restLat, setRestLat] = useState("");
+  const [restLng, setRestLng] = useState("");
   const [newRestaurantInput, setNewRestaurantInput] = useState("");
 
   // Deal of the Hour states
@@ -531,6 +533,8 @@ export default function AdminPanel({
         setRestPhone(specificStatus.phone || "");
         setRestMinOrder(specificStatus.minOrder?.toString() || "");
         setRestDeliveryCharge(specificStatus.deliveryCharge || "");
+        setRestLat(specificStatus.coords?.lat?.toString() || "");
+        setRestLng(specificStatus.coords?.lng?.toString() || "");
       } else {
         setRestStatusUnavailable(false);
         setRestOpeningTime("09:00");
@@ -540,6 +544,8 @@ export default function AdminPanel({
         setRestPhone("");
         setRestMinOrder("");
         setRestDeliveryCharge("");
+        setRestLat("");
+        setRestLng("");
       }
     }
   }, [deliverySettings, selectedScheduleRestaurant]);
@@ -1487,6 +1493,7 @@ export default function AdminPanel({
             phone: restPhone,
             minOrder: restMinOrder ? String(restMinOrder) : null,
             deliveryCharge: restDeliveryCharge,
+            coords: restLat && restLng ? { lat: parseFloat(restLat), lng: parseFloat(restLng) } : null,
           },
         },
       };
@@ -3096,7 +3103,32 @@ export default function AdminPanel({
                           />
                         </div>
                       </div>
-
+                      <div className="grid grid-cols-2 gap-3 pt-2">
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                            Latitude (Map)
+                          </label>
+                          <input
+                            type="text"
+                            value={restLat}
+                            onChange={(e) => setRestLat(e.target.value)}
+                            placeholder="e.g. 26.7323"
+                            className="w-full p-3 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-900 outline-none focus:border-purple-500/60 transition"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                            Longitude (Map)
+                          </label>
+                          <input
+                            type="text"
+                            value={restLng}
+                            onChange={(e) => setRestLng(e.target.value)}
+                            placeholder="e.g. 67.7744"
+                            className="w-full p-3 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-900 outline-none focus:border-purple-500/60 transition"
+                          />
+                        </div>
+                      </div>
                       <div className="pt-2">
                         <ProductImageSelector
                           imageUrl={restImageUrl}

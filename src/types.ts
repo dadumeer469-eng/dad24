@@ -118,6 +118,7 @@ export interface SystemSettings {
     phone?: string;
     minOrder?: string;
     deliveryCharge?: string;
+    coords?: { lat: number; lng: number };
   }>;
 }
 

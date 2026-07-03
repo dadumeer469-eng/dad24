@@ -2500,6 +2500,13 @@ export default function App() {
           toggleFavorite={toggleFavorite}
           favoriteDishIds={favoriteDishIds}
           isRiderRangeExceeded={isRiderRangeExceeded}
+          distanceDisplay={(() => {
+            const coords = deliverySettings?.restaurantStatuses?.[selectedRestaurant]?.coords;
+            if (globalCoords && coords?.lat && coords?.lng) {
+              return calculateDistanceKm(globalCoords.latitude, globalCoords.longitude, coords.lat, coords.lng).toFixed(1) + " km away";
+            }
+            return null;
+          })()}
         />
         {commonModals}
         {lockedBanner}
@@ -3165,6 +3172,15 @@ export default function App() {
                             const aClosed = checkIsRestaurantClosed(a) ? 1 : 0;
                             const bClosed = checkIsRestaurantClosed(b) ? 1 : 0;
                             if (aClosed !== bClosed) return aClosed - bClosed;
+                            
+                            if (globalCoords) {
+                              const aCoords = deliverySettings?.restaurantStatuses?.[a]?.coords;
+                              const bCoords = deliverySettings?.restaurantStatuses?.[b]?.coords;
+                              const aDist = aCoords?.lat && aCoords?.lng ? calculateDistanceKm(globalCoords.latitude, globalCoords.longitude, aCoords.lat, aCoords.lng) : Infinity;
+                              const bDist = bCoords?.lat && bCoords?.lng ? calculateDistanceKm(globalCoords.latitude, globalCoords.longitude, bCoords.lat, bCoords.lng) : Infinity;
+                              if (aDist !== bDist) return aDist - bDist;
+                            }
+
                             return a.localeCompare(b);
                           });
 
@@ -3195,6 +3211,13 @@ export default function App() {
                               .slice(0, 8);
 
                             const isClosed = checkIsRestaurantClosed(vendor);
+
+                            let distanceDisplay = null;
+                            const vendorCoords = deliverySettings?.restaurantStatuses?.[vendor]?.coords;
+                            if (globalCoords && vendorCoords?.lat && vendorCoords?.lng) {
+                              const dist = calculateDistanceKm(globalCoords.latitude, globalCoords.longitude, vendorCoords.lat, vendorCoords.lng);
+                              distanceDisplay = dist.toFixed(1) + " km away";
+                            }
 
                             return (
                               <div
@@ -3234,6 +3257,14 @@ export default function App() {
                                         <Clock className="w-3 h-3 mr-1" /> 20-30
                                         min
                                       </span>
+                                      {distanceDisplay && (
+                                        <>
+                                          <span>•</span>
+                                          <span className="flex items-center text-rose-100 drop-shadow-sm font-black">
+                                            <Compass className="w-3 h-3 mr-1" /> {distanceDisplay}
+                                          </span>
+                                        </>
+                                      )}
                                       <span>•</span>
                                       <span className="flex items-center">
                                         <MapPin className="w-3 h-3 mr-1" />{" "}
