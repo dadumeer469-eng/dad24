@@ -2,6 +2,7 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import { getAnalytics, isSupported } from "firebase/analytics";
 import appletConfig from "../firebase-applet-config.json";
 
 // Safe loading of config using Vite environment variables or local applet fallback
@@ -12,11 +13,20 @@ const firebaseConfig = {
   storageBucket: (import.meta as any).env.VITE_FIREBASE_STORAGE_BUCKET || appletConfig.storageBucket,
   messagingSenderId: (import.meta as any).env.VITE_FIREBASE_MESSAGING_SENDER_ID || appletConfig.messagingSenderId,
   appId: (import.meta as any).env.VITE_FIREBASE_APP_ID || appletConfig.appId,
+  measurementId: (import.meta as any).env.VITE_FIREBASE_MEASUREMENT_ID || (appletConfig as any).measurementId,
 };
 
 // Initialize Firebase App
 console.log("Firebase Init Config:", { ...firebaseConfig, apiKey: "***" });
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+
+// Initialize Analytics (only if supported in environment, e.g. browser)
+let analytics: any = null;
+isSupported().then((supported) => {
+  if (supported) {
+    analytics = getAnalytics(app);
+  }
+}).catch(console.error);
 
 // Initialize Firestore
 const databaseId = (import.meta as any).env.VITE_FIREBASE_DATABASE_ID || appletConfig.firestoreDatabaseId;
@@ -68,4 +78,4 @@ export function cleanObject<T = any>(obj: any): T {
   return obj;
 }
 
-export { app, db, auth, storage, firebaseConfig, databaseId };
+export { app, db, auth, storage, analytics, firebaseConfig, databaseId };

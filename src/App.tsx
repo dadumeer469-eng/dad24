@@ -14,6 +14,7 @@ import {
   where,
   orderBy,
   getDocs,
+  increment,
 } from "firebase/firestore";
 import { auth, db, handleFirestoreError, cleanObject } from "./firebase";
 import {
@@ -35,6 +36,7 @@ import { INITIAL_MENU_ITEMS } from "./data";
 // Import modules
 import FoodpandaHeader from "./components/FoodpandaHeader";
 const FoodpandaHero = React.lazy(() => import("./components/FoodpandaHero"));
+const BannerCarousel = React.lazy(() => import("./components/BannerCarousel"));
 const CartDrawer = React.lazy(() => import("./components/CartDrawer"));
 const OrderTracker = React.lazy(() => import("./components/OrderTracker"));
 const AdminPanel = React.lazy(() => import("./components/AdminPanel"));
@@ -1633,6 +1635,7 @@ export default function App() {
     paymentMethod: string;
     orderType: "food" | "service";
     userCoords?: { latitude: number; longitude: number };
+    voucher?: { code: string; discountAmount: number };
   }) => {
     if (currentUser?.status === 'locked' || currentUser?.status === 'blocked') {
       setIsVerificationModalOpen(true);
@@ -1642,6 +1645,21 @@ export default function App() {
       alert("Please Sign In or Register to submit your order!");
       setIsAuthOpen(true);
       return;
+    }
+
+    if (details.voucher) {
+      const vRef = doc(db, "vouchers", details.voucher.code);
+      const vSnap = await getDoc(vRef);
+      if (vSnap.exists()) {
+        const vData = vSnap.data();
+        if (!vData.isActive || vData.currentUses >= vData.maxUses) {
+          alert("Sorry, the applied voucher is no longer valid or has reached its usage limit.");
+          return;
+        }
+      } else {
+        alert("Invalid voucher code.");
+        return;
+      }
     }
 
     const itemsTotal = cartItems.reduce(
@@ -1681,10 +1699,14 @@ export default function App() {
       details.orderType === "food" ? parsedDeliveryFee : 0;
     
     // We only apply the 2x multiplier rule if there is no specific restaurant delivery fee set, or depending on business rules.
-    // Assuming we want to stick to exact baseFee if specificStatus.deliveryCharge exists.
+    // Assuming we want to
     const finalFee =
       details.orderType === "food" && itemsTotal < 500 && (!specificStatus || !specificStatus.deliveryCharge) ? baseFee * 2 : baseFee;
-    const finalGrandTotal = itemsTotal + finalFee;
+    
+    let finalGrandTotal = itemsTotal + finalFee;
+    if (details.voucher) {
+      finalGrandTotal = Math.max(0, finalGrandTotal - details.voucher.discountAmount);
+    }
 
     const firstService = cartItems.find((itm) => itm.type === "service");
     const computedServiceTiming =
@@ -1696,6 +1718,7 @@ export default function App() {
       ...item,
       commission: item.commission || 0,
     }));
+
     const totalCommission = itemsWithCommission.reduce(
       (acc, itm) => acc + (itm.commission || 0) * itm.quantity,
       0,
@@ -1724,11 +1747,18 @@ export default function App() {
       createdAt: { seconds: Date.now() / 1000 },
       userCoords: details.userCoords || undefined,
       totalCommission,
+      voucher: details.voucher,
     };
 
     try {
       // 1. Save new Order
       await setDoc(doc(db, "orders", uniqueOrderId), cleanObject(orderModel));
+
+      if (details.voucher) {
+        await updateDoc(doc(db, "vouchers", details.voucher.code), {
+          currentUses: increment(1)
+        }).catch((err) => console.error("Failed to update voucher uses:", err));
+      }
 
       // 1.2 Update Device Info
       await setDoc(doc(db, "devices", deviceId), {
@@ -2951,6 +2981,17 @@ export default function App() {
           <Suspense fallback={<div className="p-10 text-center animate-pulse">Loading modules...</div>}>
             {activeModule === "food" ? (
               <>
+                <BannerCarousel 
+                  bannerVersion={deliverySettings.bannerVersion} 
+                  onBannerClick={(actionLink) => {
+                    if (actionLink.startsWith("http")) {
+                      window.open(actionLink, "_blank");
+                    } else {
+                      setActiveCategory("All");
+                      setSelectedRestaurant(actionLink);
+                    }
+                  }}
+                />
                 {/* Billboard / category selectors */}
                 <FoodpandaHero
                   activeCategory={activeCategory}

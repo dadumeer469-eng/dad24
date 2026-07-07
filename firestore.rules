@@ -75,6 +75,18 @@ service cloud.firestore {
       allow update, delete: if isAdmin(); // Strictly restricted to admin
     }
 
+    // Banners Collection rules
+    match /banners/{bannerId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Vouchers Collection rules
+    match /vouchers/{voucherId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
     // Notifications Collection rules
     match /notifications/{notificationId} {
       allow create: if isAdmin() || isAuthenticated();

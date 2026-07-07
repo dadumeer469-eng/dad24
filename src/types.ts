@@ -96,6 +96,10 @@ export interface Order {
   };
   riderCoords?: { latitude: number; longitude: number; lastUpdated?: number };
   totalCommission?: number;
+  voucher?: {
+    code: string;
+    discountAmount: number;
+  };
 }
 
 export interface SystemSettings {
@@ -104,6 +108,7 @@ export interface SystemSettings {
   riderRangeKm?: number;
   userRangeKm?: number;
   baseLocationCoords?: { lat: number; lng: number };
+  bannerVersion?: number;
   restaurantStatus?: {
     isTemporarilyUnavailable: boolean; // manual toggle
     openingTime: string; // e.g. "09:00"
@@ -216,4 +221,28 @@ export interface Device {
   lastActive: any;
   lastUserName?: string;
   lastUserPhone?: string;
+}
+
+export interface Banner {
+  id: string;
+  imageUrl: string;
+  restaurantName: string;
+  detail?: string;
+  isActive: boolean;
+  position?: number;
+  createdAt?: any;
+}
+
+export interface Voucher {
+  id: string;
+  code: string;
+  discountType: "percentage" | "fixed";
+  discountValue: number;
+  minOrderAmount?: number;
+  maxDiscountAmount?: number;
+  maxUses: number;
+  currentUses: number;
+  successMessage?: string;
+  isActive: boolean;
+  createdAt?: any;
 }

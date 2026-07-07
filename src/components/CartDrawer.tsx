@@ -1,8 +1,10 @@
 import React, { useState } from "react";
-import { UserProfile, OrderItem } from "../types";
-import { X, ShoppingBag, MapPin, Phone, User, AlertTriangle, ShieldCheck, Heart, Edit2, Compass } from "lucide-react";
+import { UserProfile, OrderItem, Voucher } from "../types";
+import { X, ShoppingBag, MapPin, Phone, User, AlertTriangle, ShieldCheck, Heart, Edit2, Compass, Tag, Loader2 } from "lucide-react";
 import { CHECKOUT_DRINKS } from "../data";
 import { LazyImage } from "./LazyImage";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../firebase";
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -13,7 +15,7 @@ interface CartDrawerProps {
   currentUser: UserProfile | null;
   onOpenAuth: () => void;
   deliveryFee: number; // Stored inside Firestore settings!
-  onPlaceOrder: (details: { name: string; phone: string; location: { area: string; street: string; lat?: number; lng?: number; googleMapsLink?: string }; paymentMethod: string; orderType: "food" | "service"; userCoords?: { latitude: number; longitude: number } }) => Promise<void>;
+  onPlaceOrder: (details: { name: string; phone: string; location: { area: string; street: string; lat?: number; lng?: number; googleMapsLink?: string }; paymentMethod: string; orderType: "food" | "service"; userCoords?: { latitude: number; longitude: number }; voucher?: { code: string; discountAmount: number } }) => Promise<void>;
   onAddDrink: (drink: any) => void;
   userCoords?: { latitude: number; longitude: number } | null;
 }
@@ -32,9 +34,21 @@ export default function CartDrawer({
   userCoords,
 }: CartDrawerProps) {
   const [submitting, setSubmitting] = useState(false);
+  const [voucherCode, setVoucherCode] = useState("");
+  const [appliedVoucher, setAppliedVoucher] = useState<{code: string, discountAmount: number, successMessage?: string} | null>(null);
+  const [voucherError, setVoucherError] = useState("");
+  const [isApplyingVoucher, setIsApplyingVoucher] = useState(false);
 
 
 
+
+  React.useEffect(() => {
+    if (!isOpen || cartItems.length === 0) {
+      setVoucherCode("");
+      setAppliedVoucher(null);
+      setVoucherError("");
+    }
+  }, [isOpen, cartItems.length]);
 
   if (!isOpen) return null;
 
@@ -48,7 +62,68 @@ export default function CartDrawer({
   // If order total (items price) is below 500, double the delivery fee!
   const isDoubleFee = hasFood && totalFoodItemsPrice < 500;
   const finalDeliveryFee = hasFood ? (isDoubleFee ? deliveryFee * 2 : deliveryFee) : 0;
-  const grandTotal = totalFoodItemsPrice + finalDeliveryFee;
+  
+  let grandTotal = totalFoodItemsPrice + finalDeliveryFee;
+  if (appliedVoucher) {
+    grandTotal = Math.max(0, grandTotal - appliedVoucher.discountAmount);
+  }
+
+  const handleApplyVoucher = async () => {
+    if (!voucherCode.trim()) return;
+    setVoucherError("");
+    setIsApplyingVoucher(true);
+    
+    try {
+      const code = voucherCode.toUpperCase().trim();
+      const docRef = doc(db, "vouchers", code);
+      const snap = await getDoc(docRef);
+      
+      if (!snap.exists()) {
+        setVoucherError("Invalid voucher code.");
+        setIsApplyingVoucher(false);
+        return;
+      }
+      
+      const v = snap.data() as Voucher;
+      
+      if (!v.isActive) {
+        setVoucherError("This voucher is inactive.");
+        setIsApplyingVoucher(false);
+        return;
+      }
+      if (v.currentUses >= v.maxUses) {
+        setVoucherError("This voucher has reached its usage limit.");
+        setIsApplyingVoucher(false);
+        return;
+      }
+      if (v.minOrderAmount && totalFoodItemsPrice < v.minOrderAmount) {
+        setVoucherError(`Minimum order amount of Rs ${v.minOrderAmount} required.`);
+        setIsApplyingVoucher(false);
+        return;
+      }
+      
+      let discountAmount = 0;
+      if (v.discountType === "percentage") {
+        discountAmount = (totalFoodItemsPrice * v.discountValue) / 100;
+        if (v.maxDiscountAmount) {
+          discountAmount = Math.min(discountAmount, v.maxDiscountAmount);
+        }
+      } else {
+        discountAmount = v.discountValue;
+      }
+      
+      setAppliedVoucher({
+        code: v.code,
+        discountAmount: Math.round(discountAmount),
+        successMessage: v.successMessage
+      });
+      
+    } catch (err) {
+      setVoucherError("Failed to apply voucher.");
+    }
+    
+    setIsApplyingVoucher(false);
+  };
 
   // Handles auto checkout detail mapping
   const handleSubmitOrder = async (e: React.FormEvent) => {
@@ -139,6 +214,7 @@ export default function CartDrawer({
         paymentMethod: paymentMethodValue,
         orderType: orderTypeValue,
         userCoords: activeCoords || undefined,
+        voucher: appliedVoucher ? { code: appliedVoucher.code, discountAmount: appliedVoucher.discountAmount } : undefined,
       });
     } catch (err) {
       console.error(err);
@@ -476,11 +552,64 @@ export default function CartDrawer({
                 </div>
               </div>
             )}
-            <div className="space-y-1.5 text-xs text-zinc-400 font-semibold">
+            {/* Voucher Section */}
+            <div className="bg-zinc-900 border border-zinc-850 p-4 rounded-3xl space-y-3 mt-4">
+              <div className="flex items-center gap-2 text-pink-400 font-black uppercase tracking-widest text-[10px]">
+                <Tag className="w-4 h-4" /> Apply Promo Code
+              </div>
+              
+              {appliedVoucher ? (
+                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-3 flex justify-between items-center">
+                  <div className="text-emerald-400 font-bold text-xs flex flex-col">
+                    <span className="font-black uppercase tracking-wider">{appliedVoucher.code} APPLIED</span>
+                    <span className="text-[10px] mt-0.5">{appliedVoucher.successMessage || 'Voucher applied successfully!'}</span>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      setAppliedVoucher(null);
+                      setVoucherCode("");
+                    }}
+                    className="text-emerald-400 hover:text-emerald-300"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={voucherCode}
+                      onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                      placeholder="ENTER CODE"
+                      className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs font-bold text-white uppercase outline-none focus:border-pink-500/50 transition-colors"
+                    />
+                    <button
+                      onClick={handleApplyVoucher}
+                      disabled={isApplyingVoucher || !voucherCode.trim()}
+                      className="bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-colors"
+                    >
+                      {isApplyingVoucher ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Apply'}
+                    </button>
+                  </div>
+                  {voucherError && <div className="text-red-400 text-[10px] font-bold px-1">{voucherError}</div>}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-1.5 text-xs text-zinc-400 font-semibold mt-4">
               <div className="flex justify-between">
                 <span>Items Subtotal:</span>
                 <span className="text-zinc-100 font-extrabold font-mono">Rs. {totalFoodItemsPrice}</span>
               </div>
+              
+              {appliedVoucher && (
+                <div className="flex justify-between text-emerald-400">
+                  <span>Voucher Discount:</span>
+                  <span className="font-extrabold font-mono">- Rs. {appliedVoucher.discountAmount}</span>
+                </div>
+              )}
+
               <div className="flex justify-between">
                 <span>Delivery / Service Fee:</span>
                 <span className="text-zinc-100 font-extrabold">

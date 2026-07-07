@@ -9,6 +9,8 @@ import {
   GroceryCategory,
   GroceryProduct,
   GroceryDeliveryConfig,
+  Banner,
+  Voucher,
 } from "../types";
 import {
   doc,
@@ -22,6 +24,7 @@ import {
   onSnapshot,
   getDocs,
   getFirestore,
+  orderBy,
 } from "firebase/firestore";
 import { db, firebaseConfig, databaseId, cleanObject, storage, handleFirestoreError } from "../firebase";
 import { initializeApp, deleteApp } from "firebase/app";
@@ -82,6 +85,8 @@ import {
   Star,
   MapPin,
   ShieldAlert,
+  Image as ImageIcon,
+  Ticket,
 } from "lucide-react";
 
 interface AdminPanelProps {
@@ -434,14 +439,34 @@ export default function AdminPanel({
     | "users"
     | "devices"
     | "seo"
+    | "banners"
+    | "vouchers"
   >("analytics");
   const [allUsersList, setAllUsersList] = useState<UserProfile[]>([]);
+  const [bannersList, setBannersList] = useState<Banner[]>([]);
+  const [vouchersList, setVouchersList] = useState<Voucher[]>([]);
   const [userSearchTerm, setUserSearchTerm] = useState("");
   const [allDevicesList, setAllDevicesList] = useState<any[]>([]);
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "devices"), (snap) => {
       setAllDevicesList(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    const q = query(collection(db, "promotional_banners"), orderBy("createdAt", "desc"));
+    const unsub = onSnapshot(q, (snap) => {
+      setBannersList(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Banner)));
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    const q = query(collection(db, "vouchers"), orderBy("createdAt", "desc"));
+    const unsub = onSnapshot(q, (snap) => {
+      setVouchersList(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Voucher)));
     });
     return () => unsub();
   }, []);
@@ -2512,6 +2537,30 @@ export default function AdminPanel({
               >
                 <Globe className="w-4 h-4 text-blue-500 shrink-0" />
                 SEO & Metadata
+              </button>
+
+              <button
+                onClick={() => setActiveSubTab("banners")}
+                className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
+                  activeSubTab === "banners"
+                    ? "bg-[#D70F64] border-[#D70F64] text-white font-extrabold shadow-[0_0_20px_rgba(59,130,246,0.04)]"
+                    : "bg-transparent border-transparent hover:bg-slate-800 text-slate-600 hover:text-pink-400"
+                }`}
+              >
+                <ImageIcon className="w-4 h-4 text-pink-500 shrink-0" />
+                Banners
+              </button>
+
+              <button
+                onClick={() => setActiveSubTab("vouchers")}
+                className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
+                  activeSubTab === "vouchers"
+                    ? "bg-[#D70F64] border-[#D70F64] text-white font-extrabold shadow-[0_0_20px_rgba(59,130,246,0.04)]"
+                    : "bg-transparent border-transparent hover:bg-slate-800 text-slate-600 hover:text-pink-400"
+                }`}
+              >
+                <Ticket className="w-4 h-4 text-pink-500 shrink-0" />
+                Vouchers
               </button>
             </div>
           </div>
@@ -6838,249 +6887,383 @@ export default function AdminPanel({
                 );
               })()}
 
-              {/* Users Table Box */}
-              <div className="bg-white/90 border border-slate-200 rounded-3xl overflow-hidden shadow-xl">
-                <div className="p-5 border-b border-slate-200/60 flex items-center justify-between">
-                  <h3 className="font-black text-xs uppercase tracking-widest text-slate-700">
-                    User Ledger
-                  </h3>
-                  <span className="text-[10.5px] font-bold text-slate-500">
-                    Showing{" "}
-                    {
-                      allUsersList.filter(
-                        (u) =>
-                          (u.name || "")
-                            .toLowerCase()
-                            .includes(userSearchTerm.toLowerCase()) ||
-                          (u.phone || "")
-                            .toLowerCase()
-                            .includes(userSearchTerm.toLowerCase()) ||
-                          (u.address || "")
-                            .toLowerCase()
-                            .includes(userSearchTerm.toLowerCase()),
-                      ).length
-                    }{" "}
-                    of {allUsersList.length}
-                  </span>
-                </div>
+              {(() => {
+                const filteredUsers = allUsersList.filter((u) => {
+                  const queryStr = userSearchTerm.toLowerCase();
+                  return (
+                    (u.name || "").toLowerCase().includes(queryStr) ||
+                    (u.phone || "").toLowerCase().includes(queryStr) ||
+                    (u.address || "").toLowerCase().includes(queryStr) ||
+                    (u.role || "").toLowerCase().includes(queryStr)
+                  );
+                });
 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs text-left text-slate-600 font-semibold border-collapse">
-                    <thead>
-                      <tr className="bg-white border border-slate-200/70 border-b border-slate-200 text-slate-500 text-[9.5px] uppercase tracking-wider font-black">
-                        <th className="py-4 px-5">User Info</th>
-                        <th className="py-4 px-5">Role</th>
-                        <th className="py-4 px-5">Phone Number</th>
-                        <th className="py-2 px-5">Delivery/Living Address</th>
-                        <th className="py-4 px-5 text-center">Total Orders</th>
-                        <th className="py-4 px-5 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200">
-                      {allUsersList
-                        .filter((u) => {
-                          const queryStr = userSearchTerm.toLowerCase();
-                          return (
-                            (u.name || "").toLowerCase().includes(queryStr) ||
-                            (u.phone || "").toLowerCase().includes(queryStr) ||
-                            (u.address || "")
-                              .toLowerCase()
-                              .includes(queryStr) ||
-                            (u.role || "").toLowerCase().includes(queryStr)
-                          );
-                        })
-                        .map((u) => {
-                          const isSpecialAdmin =
-                            u.uid === "Wf1NfRofZ9dhre1t4WIsas7b6fJ3" ||
-                            u.role === "admin";
-                          return (
-                            <tr
-                              key={u.uid}
-                              className="hover:bg-slate-50 transition-all"
-                            >
-                              {/* User Info */}
-                              <td className="py-4 px-5">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-9 h-9 rounded-xl bg-slate-100/95 border border-slate-200 flex items-center justify-center font-black text-xs text-slate-700 uppercase shrink-0">
-                                    {u.name ? u.name.slice(0, 2) : "DU"}
-                                  </div>
-                                  <div>
-                                    <span className="text-slate-900 font-black text-xs block">
-                                      {u.name || "Dadu User"}
-                                    </span>
-                                    <span className="text-[10px] text-slate-500 font-mono block select-all">
-                                      {u.uid}
-                                    </span>
-                                  </div>
+                return (
+                  <div className="bg-white/90 border border-slate-200 rounded-3xl overflow-hidden shadow-xl">
+                    <div className="p-4 sm:p-5 border-b border-slate-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <h3 className="font-black text-xs uppercase tracking-widest text-slate-700">
+                        User Ledger
+                      </h3>
+                      <span className="text-[10.5px] font-bold text-slate-500">
+                        Showing {filteredUsers.length} of {allUsersList.length}
+                      </span>
+                    </div>
+
+                    {/* Mobile View */}
+                    <div className="block md:hidden divide-y divide-slate-100">
+                      {filteredUsers.map((u) => {
+                        const isSpecialAdmin = u.uid === "Wf1NfRofZ9dhre1t4WIsas7b6fJ3" || u.role === "admin";
+                        return (
+                          <div key={u.uid} className="p-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-xl bg-slate-100/95 border border-slate-200 flex items-center justify-center font-black text-xs text-slate-700 uppercase shrink-0">
+                                  {u.name ? u.name.slice(0, 2) : "DU"}
                                 </div>
-                              </td>
+                                <div>
+                                  <span className="text-slate-900 font-black text-xs block">
+                                    {u.name || "Dadu User"}
+                                  </span>
+                                  <span className="text-[10px] text-slate-500 font-mono block select-all">
+                                    {u.uid}
+                                  </span>
+                                </div>
+                              </div>
+                              <span
+                                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                                  u.role === "admin"
+                                    ? "bg-red-500/10 text-pink-400 border border-red-500/20"
+                                    : u.role === "rider"
+                                      ? "bg-sky-500/10 text-sky-400 border border-sky-500/20"
+                                      : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                }`}
+                              >
+                                {u.role || "buyer"}
+                              </span>
+                            </div>
 
-                              {/* Role */}
-                              <td className="py-4 px-5">
-                                <span
-                                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
-                                    u.role === "admin"
-                                      ? "bg-red-500/10 text-pink-400 border border-red-500/20"
-                                      : u.role === "rider"
-                                        ? "bg-sky-500/10 text-sky-400 border border-sky-500/20"
-                                        : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                                  }`}
-                                >
-                                  {u.role || "buyer"}
-                                </span>
-                              </td>
-
-                              {/* Phone Number */}
-                              <td className="py-4 px-5">
-                                <span className="font-mono text-xs text-slate-700 font-bold select-all">
-                                  {u.phone || "Not set/Guest"}
-                                </span>
-                              </td>
-
-                              {/* Delivery Address */}
-                              <td className="py-2 px-5 max-w-xs">
-                                <p className="text-[11px] text-slate-500 font-medium whitespace-pre-wrap break-words max-h-16 overflow-y-auto">
-                                  {u.address || "No address saved"}
-                                </p>
-                              </td>
-
-                              {/* Total Orders */}
-                              <td className="py-4 px-5 text-center">
-                                <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-md bg-white border border-slate-200 font-mono text-[10.5px] font-bold text-slate-700 border border-slate-200">
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div>
+                                <span className="block text-[9px] font-black uppercase text-slate-400 mb-0.5">Phone</span>
+                                <span className="font-mono text-slate-700 font-bold select-all">{u.phone || "Not set/Guest"}</span>
+                              </div>
+                              <div>
+                                <span className="block text-[9px] font-black uppercase text-slate-400 mb-0.5">Orders</span>
+                                <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md bg-white border border-slate-200 font-mono text-[10px] font-bold text-slate-700">
                                   {u.ordersCount || 0}
                                 </span>
-                              </td>
+                              </div>
+                            </div>
 
-                              {/* Actions */}
-                              <td className="py-4 px-5 text-right flex items-center justify-end gap-2">
+                            <div>
+                              <span className="block text-[9px] font-black uppercase text-slate-400 mb-0.5">Address</span>
+                              <p className="text-[11px] text-slate-500 font-medium whitespace-pre-wrap break-words max-h-16 overflow-y-auto bg-slate-50 p-2 rounded-lg border border-slate-100">
+                                {u.address || "No address saved"}
+                              </p>
+                            </div>
+
+                            <div className="pt-2 flex items-center gap-2 flex-wrap">
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  const newAddress = window.prompt("Enter new address for this user:", u.address || "");
+                                  if (newAddress !== null) {
+                                    try {
+                                      await updateDoc(doc(db, "users", u.uid), { address: newAddress });
+                                    } catch (err) {
+                                      alert("Failed to update address.");
+                                    }
+                                  }
+                                }}
+                                className="flex-1 min-w-[70px] py-1.5 rounded-lg text-[10px] font-black uppercase transition-all bg-sky-500/10 text-sky-500 hover:bg-sky-500/20 cursor-pointer text-center"
+                              >
+                                Edit Addr
+                              </button>
+                              
+                              {u.status === "locked" && (
+                                <button
+                                  type="button"
+                                  onClick={() => setUnlockingUser(u)}
+                                  className="flex-1 min-w-[70px] py-1.5 rounded-lg text-[10px] font-black uppercase transition-all bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 cursor-pointer text-center"
+                                >
+                                  Unlock
+                                </button>
+                              )}
+                              
+                              {u.status === "verified" && !isSpecialAdmin && (
                                 <button
                                   type="button"
                                   onClick={async () => {
-                                    const newAddress = window.prompt("Enter new address for this user:", u.address || "");
-                                    if (newAddress !== null) {
+                                    const reason = window.prompt("Reason for blocking (e.g. Fake number):", "Fake number");
+                                    if (reason !== null) {
                                       try {
-                                        await updateDoc(doc(db, "users", u.uid), { address: newAddress });
+                                        await updateDoc(doc(db, "users", u.uid), {
+                                          status: "blocked",
+                                          isBlacklisted: true
+                                        });
+                                        await setDoc(doc(db, "blacklist", u.uid), {
+                                          phone: u.phone,
+                                          blockedAt: new Date(),
+                                          blockedBy: adminUsername || "admin",
+                                          reason: reason || "Fake number"
+                                        });
+                                        alert(`❌ User ${u.phone} permanently blocked and blacklisted.`);
                                       } catch (err) {
-                                        alert("Failed to update address.");
+                                        alert("Failed to block user: " + err);
                                       }
                                     }
                                   }}
-                                  className="p-1 px-2.5 rounded text-[10px] font-black uppercase transition-all bg-sky-500/10 text-sky-500 hover:bg-sky-500/20 cursor-pointer"
+                                  className="flex-1 min-w-[70px] py-1.5 rounded-lg text-[10px] font-black uppercase transition-all bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 cursor-pointer text-center"
                                 >
-                                  Edit Addr
+                                  Block
                                 </button>
-
-                                {u.status === "locked" && (
-                                  <button
-                                    type="button"
-                                    onClick={() => setUnlockingUser(u)}
-                                    className="p-1 px-2.5 rounded text-[10px] font-black uppercase transition-all bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 cursor-pointer"
-                                  >
-                                    Unlock
-                                  </button>
-                                )}
-
-                                {u.status === "verified" && !isSpecialAdmin && (
-                                  <button
-                                    type="button"
-                                    onClick={async () => {
-                                      const reason = window.prompt("Reason for blocking (e.g. Fake number):", "Fake number");
-                                      if (reason !== null) {
-                                        try {
-                                          await updateDoc(doc(db, "users", u.uid), { 
-                                            status: "blocked",
-                                            isBlacklisted: true
-                                          });
-                                          await setDoc(doc(db, "blacklist", u.uid), {
-                                            phone: u.phone,
-                                            blockedAt: new Date(),
-                                            blockedBy: adminUsername || "admin",
-                                            reason: reason || "Fake number"
-                                          });
-                                          alert(`❌ User ${u.phone} permanently blocked and blacklisted.`);
-                                        } catch (err) {
-                                          alert("Failed to block user: " + err);
-                                        }
-                                      }
-                                    }}
-                                    className="p-1 px-2.5 rounded text-[10px] font-black uppercase transition-all bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 cursor-pointer"
-                                  >
-                                    Block
-                                  </button>
-                                )}
-
-                                {u.status === "blocked" && !isSpecialAdmin && (
-                                  <button
-                                    type="button"
-                                    onClick={async () => {
-                                      try {
-                                        await updateDoc(doc(db, "users", u.uid), { 
-                                          status: "verified",
-                                          isBlacklisted: false
-                                        });
-                                        await deleteDoc(doc(db, "blacklist", u.uid));
-                                        alert(`✅ User ${u.phone} unblocked and removed from blacklist.`);
-                                      } catch (err) {
-                                        alert("Failed to unblock user: " + err);
-                                      }
-                                    }}
-                                    className="p-1 px-2.5 rounded text-[10px] font-black uppercase transition-all bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 cursor-pointer"
-                                  >
-                                    Unblock
-                                  </button>
-                                )}
-
+                              )}
+                              
+                              {u.status === "blocked" && !isSpecialAdmin && (
                                 <button
                                   type="button"
-                                  disabled={isSpecialAdmin}
-                                  onClick={() => {
-                                    setConfirmDialog({
-                                      title: "Revoke Access",
-                                      message: `Are you sure you want to PERMANENTLY delete user "${u.name || "Dadu User"}"?`,
-                                      onConfirm: async () => {
-                                        try {
-                                          await deleteDoc(
-                                            doc(db, "users", u.uid),
-                                          );
-                                        } catch (err) {
-                                          console.error(
-                                            "Failed to delete user profile",
-                                            err,
-                                          );
-                                          alert(
-                                            "Error: Database permission denied.",
-                                          );
-                                        }
-                                      },
-                                    });
+                                  onClick={async () => {
+                                    try {
+                                      await updateDoc(doc(db, "users", u.uid), {
+                                        status: "verified",
+                                        isBlacklisted: false
+                                      });
+                                      await deleteDoc(doc(db, "blacklist", u.uid));
+                                      alert(`✅ User ${u.phone} unblocked and removed from blacklist.`);
+                                    } catch (err) {
+                                      alert("Failed to unblock user: " + err);
+                                    }
                                   }}
-                                  className={`p-1 px-2.5 rounded text-[10px] font-black uppercase transition-all ${
-                                    isSpecialAdmin
-                                      ? "bg-slate-100 text-slate-300 cursor-not-allowed"
-                                      : "bg-pink-950/30 text-pink-400 hover:bg-pink-900/30 cursor-pointer"
-                                  }`}
+                                  className="flex-1 min-w-[70px] py-1.5 rounded-lg text-[10px] font-black uppercase transition-all bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 cursor-pointer text-center"
                                 >
-                                  {isSpecialAdmin ? "Locked" : "Delete"}
+                                  Unblock
                                 </button>
+                              )}
+                              
+                              <button
+                                type="button"
+                                disabled={isSpecialAdmin}
+                                onClick={() => {
+                                  setConfirmDialog({
+                                    title: "Revoke Access",
+                                    message: `Are you sure you want to PERMANENTLY delete user "${u.name || "Dadu User"}"?`,
+                                    onConfirm: async () => {
+                                      try {
+                                        await deleteDoc(doc(db, "users", u.uid));
+                                      } catch (err) {
+                                        console.error("Failed to delete user profile", err);
+                                        alert("Error: Database permission denied.");
+                                      }
+                                    },
+                                  });
+                                }}
+                                className={`flex-1 min-w-[70px] py-1.5 rounded-lg text-[10px] font-black uppercase transition-all text-center ${
+                                  isSpecialAdmin
+                                    ? "bg-slate-100 text-slate-300 cursor-not-allowed"
+                                    : "bg-pink-950/30 text-pink-400 hover:bg-pink-900/30 cursor-pointer"
+                                }`}
+                              >
+                                {isSpecialAdmin ? "Locked" : "Delete"}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {filteredUsers.length === 0 && (
+                        <div className="p-8 text-center text-slate-500 font-black text-xs uppercase tracking-widest">
+                          No registered users found.
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Desktop View */}
+                    <div className="hidden md:block overflow-x-auto">
+                      <table className="w-full text-xs text-left text-slate-600 font-semibold border-collapse">
+                        <thead>
+                          <tr className="bg-white border border-slate-200/70 border-b border-slate-200 text-slate-500 text-[9.5px] uppercase tracking-wider font-black">
+                            <th className="py-4 px-5">User Info</th>
+                            <th className="py-4 px-5">Role</th>
+                            <th className="py-4 px-5">Phone Number</th>
+                            <th className="py-2 px-5">Delivery/Living Address</th>
+                            <th className="py-4 px-5 text-center">Total Orders</th>
+                            <th className="py-4 px-5 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200">
+                          {filteredUsers.map((u) => {
+                              const isSpecialAdmin = u.uid === "Wf1NfRofZ9dhre1t4WIsas7b6fJ3" || u.role === "admin";
+                              return (
+                                <tr key={u.uid} className="hover:bg-slate-50 transition-all">
+                                  {/* User Info */}
+                                  <td className="py-4 px-5">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-9 h-9 rounded-xl bg-slate-100/95 border border-slate-200 flex items-center justify-center font-black text-xs text-slate-700 uppercase shrink-0">
+                                        {u.name ? u.name.slice(0, 2) : "DU"}
+                                      </div>
+                                      <div>
+                                        <span className="text-slate-900 font-black text-xs block">
+                                          {u.name || "Dadu User"}
+                                        </span>
+                                        <span className="text-[10px] text-slate-500 font-mono block select-all">
+                                          {u.uid}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  {/* Role */}
+                                  <td className="py-4 px-5">
+                                    <span
+                                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                                        u.role === "admin"
+                                          ? "bg-red-500/10 text-pink-400 border border-red-500/20"
+                                          : u.role === "rider"
+                                            ? "bg-sky-500/10 text-sky-400 border border-sky-500/20"
+                                            : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                      }`}
+                                    >
+                                      {u.role || "buyer"}
+                                    </span>
+                                  </td>
+                                  {/* Phone Number */}
+                                  <td className="py-4 px-5">
+                                    <span className="font-mono text-xs text-slate-700 font-bold select-all">
+                                      {u.phone || "Not set/Guest"}
+                                    </span>
+                                  </td>
+                                  {/* Delivery Address */}
+                                  <td className="py-2 px-5 max-w-xs">
+                                    <p className="text-[11px] text-slate-500 font-medium whitespace-pre-wrap break-words max-h-16 overflow-y-auto">
+                                      {u.address || "No address saved"}
+                                    </p>
+                                  </td>
+                                  {/* Total Orders */}
+                                  <td className="py-4 px-5 text-center">
+                                    <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-md bg-white border border-slate-200 font-mono text-[10.5px] font-bold text-slate-700 border border-slate-200">
+                                      {u.ordersCount || 0}
+                                    </span>
+                                  </td>
+                                  {/* Actions */}
+                                  <td className="py-4 px-5 text-right flex items-center justify-end gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        const newAddress = window.prompt("Enter new address for this user:", u.address || "");
+                                        if (newAddress !== null) {
+                                          try {
+                                            await updateDoc(doc(db, "users", u.uid), { address: newAddress });
+                                          } catch (err) {
+                                            alert("Failed to update address.");
+                                          }
+                                        }
+                                      }}
+                                      className="p-1 px-2.5 rounded text-[10px] font-black uppercase transition-all bg-sky-500/10 text-sky-500 hover:bg-sky-500/20 cursor-pointer"
+                                    >
+                                      Edit Addr
+                                    </button>
+                                    {u.status === "locked" && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setUnlockingUser(u)}
+                                        className="p-1 px-2.5 rounded text-[10px] font-black uppercase transition-all bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 cursor-pointer"
+                                      >
+                                        Unlock
+                                      </button>
+                                    )}
+                                    {u.status === "verified" && !isSpecialAdmin && (
+                                      <button
+                                        type="button"
+                                        onClick={async () => {
+                                          const reason = window.prompt("Reason for blocking (e.g. Fake number):", "Fake number");
+                                          if (reason !== null) {
+                                            try {
+                                              await updateDoc(doc(db, "users", u.uid), {
+                                                status: "blocked",
+                                                isBlacklisted: true
+                                              });
+                                              await setDoc(doc(db, "blacklist", u.uid), {
+                                                phone: u.phone,
+                                                blockedAt: new Date(),
+                                                blockedBy: adminUsername || "admin",
+                                                reason: reason || "Fake number"
+                                              });
+                                              alert(`❌ User ${u.phone} permanently blocked and blacklisted.`);
+                                            } catch (err) {
+                                              alert("Failed to block user: " + err);
+                                            }
+                                          }
+                                        }}
+                                        className="p-1 px-2.5 rounded text-[10px] font-black uppercase transition-all bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 cursor-pointer"
+                                      >
+                                        Block
+                                      </button>
+                                    )}
+                                    {u.status === "blocked" && !isSpecialAdmin && (
+                                      <button
+                                        type="button"
+                                        onClick={async () => {
+                                          try {
+                                            await updateDoc(doc(db, "users", u.uid), {
+                                              status: "verified",
+                                              isBlacklisted: false
+                                            });
+                                            await deleteDoc(doc(db, "blacklist", u.uid));
+                                            alert(`✅ User ${u.phone} unblocked and removed from blacklist.`);
+                                          } catch (err) {
+                                            alert("Failed to unblock user: " + err);
+                                          }
+                                        }}
+                                        className="p-1 px-2.5 rounded text-[10px] font-black uppercase transition-all bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 cursor-pointer"
+                                      >
+                                        Unblock
+                                      </button>
+                                    )}
+                                    <button
+                                      type="button"
+                                      disabled={isSpecialAdmin}
+                                      onClick={() => {
+                                        setConfirmDialog({
+                                          title: "Revoke Access",
+                                          message: `Are you sure you want to PERMANENTLY delete user "${u.name || "Dadu User"}"?`,
+                                          onConfirm: async () => {
+                                            try {
+                                              await deleteDoc(doc(db, "users", u.uid));
+                                            } catch (err) {
+                                              console.error("Failed to delete user profile", err);
+                                              alert("Error: Database permission denied.");
+                                            }
+                                          },
+                                        });
+                                      }}
+                                      className={`p-1 px-2.5 rounded text-[10px] font-black uppercase transition-all ${
+                                        isSpecialAdmin
+                                          ? "bg-slate-100 text-slate-300 cursor-not-allowed"
+                                          : "bg-pink-950/30 text-pink-400 hover:bg-pink-900/30 cursor-pointer"
+                                      }`}
+                                    >
+                                      {isSpecialAdmin ? "Locked" : "Delete"}
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+
+                          {filteredUsers.length === 0 && (
+                            <tr>
+                              <td
+                                colSpan={6}
+                                className="text-center py-10 text-slate-500 font-black"
+                              >
+                                No registered users found in database.
                               </td>
                             </tr>
-                          );
-                        })}
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
 
-                      {allUsersList.length === 0 && (
-                        <tr>
-                          <td
-                            colSpan={6}
-                            className="text-center py-10 text-slate-500 font-black"
-                          >
-                            No registered users found in database.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
             </div>
           )}
 
@@ -7295,6 +7478,453 @@ export default function AdminPanel({
 
             </div>
           )}
+
+          {activeSubTab === "banners" && (
+            <div className="space-y-6 lg:space-y-8 animate-fade-in text-left">
+              <div className="bg-white/90 border border-slate-200 rounded-3xl p-6 relative overflow-hidden">
+                <div className="absolute right-0 top-0 w-80 h-80 bg-pink-500/5 rounded-full blur-[100px] pointer-events-none" />
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 text-pink-500">
+                      <ImageIcon className="w-5 h-5" />
+                      <span className="text-[10px] font-black uppercase tracking-widest bg-pink-500/10 px-2 py-0.5 rounded-full">
+                        Smart Carousel
+                      </span>
+                    </div>
+                    <h2 className="text-xl font-black text-slate-900 mt-1">
+                      High-Performance Banners
+                    </h2>
+                    <p className="text-xs text-slate-500 font-medium mt-1">
+                      Manage banners and break the 12-hour local cache globally.
+                    </p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      onClick={async () => {
+                        try {
+                          const existingStatuses = deliverySettings?.restaurantStatuses || {};
+                          const newSettings = {
+                            ...deliverySettings,
+                            bannerVersion: Date.now(),
+                            restaurantStatus: deliverySettings?.restaurantStatus || {
+                              isTemporarilyUnavailable: false,
+                              openingTime: "09:00",
+                              closingTime: "23:00"
+                            },
+                            restaurantStatuses: existingStatuses,
+                          };
+                          await setDoc(doc(db, "settings", "delivery_config"), cleanObject(newSettings));
+                          alert("Global Banner Cache broken successfully!");
+                        } catch (err: any) {
+                          alert(handleFirestoreError(err));
+                        }
+                      }}
+                      className="bg-red-500 hover:bg-red-600 text-white font-black text-[10px] uppercase tracking-widest py-3 px-5 rounded-xl transition cursor-pointer shrink-0"
+                    >
+                      Force Update Banners (Break Cache)
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-[24px] p-5 lg:p-7 shadow-sm relative">
+                <h3 className="text-sm font-black text-slate-900 mb-4">Add New Banner</h3>
+                <form 
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    const form = e.target as HTMLFormElement;
+                    const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+                    const originalText = submitBtn.innerText;
+                    
+                    const imageUrl = (form.elements.namedItem("imageUrl") as HTMLInputElement).value;
+                    const restaurantName = (form.elements.namedItem("restaurantName") as HTMLSelectElement).value;
+                    const detail = (form.elements.namedItem("detail") as HTMLInputElement).value;
+                    const isActive = (form.elements.namedItem("isActive") as HTMLInputElement).checked;
+                    
+                    if (!imageUrl) return;
+
+                    // Regex validation for URL
+                    const urlPattern = new RegExp('^(https?:\\/\\/)?'+ // protocol
+                      '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|'+ // domain name
+                      '((\\d{1,3}\\.){3}\\d{1,3}))'+ // OR ip (v4) address
+                      '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*'+ // port and path
+                      '(\\?[;&a-z\\d%_.~+=-]*)?'+ // query string
+                      '(\\#[-a-z\\d_]*)?$','i'); // fragment locator
+                    
+                    if (!urlPattern.test(imageUrl)) {
+                      alert("Please enter a valid Image URL.");
+                      return;
+                    }
+
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>';
+
+                    try {
+                      await addDoc(collection(db, "promotional_banners"), {
+                        imageUrl,
+                        restaurantName: restaurantName || null,
+                        detail: detail || null,
+                        isActive,
+                        createdAt: Date.now()
+                      });
+                      form.reset();
+                      alert("Banner added successfully!");
+                    } catch (err: any) {
+                      alert(handleFirestoreError(err));
+                    } finally {
+                      submitBtn.disabled = false;
+                      submitBtn.innerText = originalText;
+                    }
+                  }}
+                  className="space-y-4"
+                >
+                  <div>
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">
+                      Banner Image URL (Required)
+                    </label>
+                    <input
+                      name="imageUrl"
+                      type="url"
+                      required
+                      placeholder="https://..."
+                      className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs outline-none text-slate-900 focus:border-pink-500/60 transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">
+                      Display Text / Detail (Optional)
+                    </label>
+                    <input
+                      name="detail"
+                      type="text"
+                      placeholder="e.g. 50% OFF THIS WEEKEND"
+                      className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs outline-none text-slate-900 focus:border-pink-500/60 transition"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">
+                      Redirect Link / Target Restaurant (Optional)
+                    </label>
+                    <select
+                      name="restaurantName"
+                      className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs outline-none text-slate-900 focus:border-pink-500/60 transition"
+                    >
+                      <option value="">No link (View Only)</option>
+                      {uniqueRestaurants.map(r => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-3 py-2">
+                    <input 
+                      type="checkbox" 
+                      name="isActive" 
+                      id="isActiveNewBanner" 
+                      defaultChecked
+                      className="w-4 h-4 text-pink-500 border-slate-300 rounded focus:ring-pink-500"
+                    />
+                    <label htmlFor="isActiveNewBanner" className="text-xs font-bold text-slate-700">
+                      Set as Active immediately
+                    </label>
+                  </div>
+                  <button type="submit" className="bg-pink-500 hover:bg-pink-600 disabled:opacity-70 text-white font-black text-[10px] uppercase tracking-widest py-3 px-6 rounded-xl transition cursor-pointer min-w-[120px]">
+                    Save Banner
+                  </button>
+                </form>
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-[24px] p-5 lg:p-7 shadow-sm relative overflow-hidden">
+                <h3 className="text-sm font-black text-slate-900 mb-4">Active Banners ({bannersList.length})</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {bannersList.map(banner => (
+                    <div key={banner.id} className={`border ${banner.isActive ? 'border-pink-200/50 bg-pink-50/30' : 'border-slate-200 bg-slate-50 opacity-75'} rounded-2xl p-3 relative group transition-all`}>
+                      <button
+                        onClick={() => {
+                          setConfirmDialog({
+                            title: "Delete Banner",
+                            message: "Are you sure you want to permanently delete this banner?",
+                            onConfirm: async () => {
+                              try {
+                                await deleteDoc(doc(db, "promotional_banners", banner.id));
+                              } catch (err: any) {
+                                alert(handleFirestoreError(err));
+                              }
+                            }
+                          });
+                        }}
+                        className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 shadow-md text-white w-7 h-7 rounded-full flex items-center justify-center transition z-10 cursor-pointer"
+                        title="Delete Banner"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                      <div className="w-full aspect-[21/9] rounded-xl mb-3 overflow-hidden bg-slate-100 relative">
+                        <img 
+                          src={banner.imageUrl} 
+                          className={`w-full h-full object-cover transition-transform ${!banner.isActive && 'grayscale'}`} 
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "https://placehold.co/800x400/f8fafc/94a3b8?text=Image+Load+Error";
+                          }}
+                        />
+                      </div>
+                      <div className="text-[10px] font-black text-slate-600 truncate mb-1">
+                        {banner.restaurantName ? `🔗 ${banner.restaurantName}` : 'No Link'}
+                      </div>
+                      {banner.detail && (
+                        <div className="text-[10px] font-bold text-pink-500 truncate mb-2">
+                          {banner.detail}
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                        <span className="text-[9px] font-bold text-slate-400">
+                          {new Date(banner.createdAt).toLocaleDateString()}
+                        </span>
+                        <button
+                          onClick={async () => {
+                            try {
+                              await updateDoc(doc(db, "promotional_banners", banner.id), {
+                                isActive: !banner.isActive
+                              });
+                            } catch (err: any) {
+                              alert(handleFirestoreError(err));
+                            }
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider cursor-pointer transition-colors ${banner.isActive ? "bg-green-100 hover:bg-green-200 text-green-700" : "bg-slate-200 hover:bg-slate-300 text-slate-600"}`}
+                        >
+                          {banner.isActive ? "🟢 Active" : "⚫ Hidden"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeSubTab === "vouchers" && (
+            <div className="space-y-6 lg:space-y-8 animate-fade-in text-left">
+              <div className="bg-white/90 border border-slate-200 rounded-3xl p-6 relative overflow-hidden">
+                <div className="absolute right-0 top-0 w-80 h-80 bg-pink-500/5 rounded-full blur-[100px] pointer-events-none" />
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                      <Ticket className="w-6 h-6 text-pink-500" />
+                      Discount Vouchers
+                    </h2>
+                    <p className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-widest">
+                      Create and manage promotional codes
+                    </p>
+                  </div>
+                </div>
+
+                <form
+                  className="mt-8 space-y-5 relative z-10"
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    const form = e.target as HTMLFormElement;
+                    const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+                    const originalText = submitBtn.innerText;
+                    
+                    const code = (form.elements.namedItem("code") as HTMLInputElement).value.toUpperCase().trim();
+                    const discountType = (form.elements.namedItem("discountType") as HTMLSelectElement).value;
+                    const discountValue = Number((form.elements.namedItem("discountValue") as HTMLInputElement).value);
+                    const minOrderAmount = Number((form.elements.namedItem("minOrderAmount") as HTMLInputElement).value) || 0;
+                    const maxUses = Number((form.elements.namedItem("maxUses") as HTMLInputElement).value) || 100;
+                    const successMessage = (form.elements.namedItem("successMessage") as HTMLInputElement).value || "Voucher applied successfully!";
+                    const isActive = (form.elements.namedItem("isActive") as HTMLInputElement).checked;
+                    
+                    if (!code || discountValue <= 0) return;
+
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>';
+
+                    try {
+                      await setDoc(doc(db, "vouchers", code), {
+                        code,
+                        discountType,
+                        discountValue,
+                        minOrderAmount,
+                        maxUses,
+                        currentUses: 0,
+                        successMessage,
+                        isActive,
+                        createdAt: Date.now()
+                      });
+                      form.reset();
+                      alert("Voucher created successfully!");
+                    } catch (err: any) {
+                      alert(handleFirestoreError(err));
+                    } finally {
+                      submitBtn.disabled = false;
+                      submitBtn.innerText = originalText;
+                    }
+                  }}
+                >
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">
+                        Voucher Code (Required)
+                      </label>
+                      <input
+                        name="code"
+                        type="text"
+                        required
+                        placeholder="e.g. WELCOME50"
+                        className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs outline-none text-slate-900 focus:border-pink-500/60 transition uppercase"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">
+                        Discount Type
+                      </label>
+                      <select
+                        name="discountType"
+                        className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs outline-none text-slate-900 focus:border-pink-500/60 transition"
+                      >
+                        <option value="fixed">Fixed Amount (Rs)</option>
+                        <option value="percentage">Percentage (%)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">
+                        Discount Value
+                      </label>
+                      <input
+                        name="discountValue"
+                        type="number"
+                        min="1"
+                        required
+                        placeholder="e.g. 50"
+                        className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs outline-none text-slate-900 focus:border-pink-500/60 transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">
+                        Min Order Amount (Optional)
+                      </label>
+                      <input
+                        name="minOrderAmount"
+                        type="number"
+                        min="0"
+                        placeholder="e.g. 500"
+                        className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs outline-none text-slate-900 focus:border-pink-500/60 transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">
+                        Max Allowed Uses
+                      </label>
+                      <input
+                        name="maxUses"
+                        type="number"
+                        min="1"
+                        required
+                        defaultValue="100"
+                        className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs outline-none text-slate-900 focus:border-pink-500/60 transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">
+                        Success Message (Optional)
+                      </label>
+                      <input
+                        name="successMessage"
+                        type="text"
+                        placeholder="e.g. Yay! You saved Rs 50!"
+                        className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs outline-none text-slate-900 focus:border-pink-500/60 transition"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 py-2">
+                    <input 
+                      type="checkbox" 
+                      name="isActive" 
+                      id="isActiveNewVoucher" 
+                      defaultChecked
+                      className="w-4 h-4 text-pink-500 border-slate-300 rounded focus:ring-pink-500"
+                    />
+                    <label htmlFor="isActiveNewVoucher" className="text-xs font-bold text-slate-700">
+                      Voucher is Active Immediately
+                    </label>
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-pink-600 to-pink-700 text-white text-[11px] font-black uppercase tracking-widest rounded-2xl hover:shadow-[0_0_20px_rgba(219,39,119,0.3)] hover:-translate-y-0.5 transition-all cursor-pointer"
+                  >
+                    Add Voucher Code
+                  </button>
+                </form>
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-[24px] p-5 lg:p-7 shadow-sm relative overflow-hidden">
+                <h3 className="text-sm font-black text-slate-900 mb-4">Generated Vouchers ({vouchersList.length})</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {vouchersList.map(voucher => (
+                    <div key={voucher.id} className={`border ${voucher.isActive ? 'border-pink-200/50 bg-pink-50/30' : 'border-slate-200 bg-slate-50 opacity-75'} rounded-2xl p-4 relative group transition-all`}>
+                      <button
+                        onClick={() => {
+                          setConfirmDialog({
+                            title: "Delete Voucher",
+                            message: "Are you sure you want to permanently delete this voucher?",
+                            onConfirm: async () => {
+                              try {
+                                await deleteDoc(doc(db, "vouchers", voucher.id));
+                              } catch (err: any) {
+                                alert(handleFirestoreError(err));
+                              }
+                            }
+                          });
+                        }}
+                        className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 shadow-md text-white w-7 h-7 rounded-full flex items-center justify-center transition z-10 cursor-pointer"
+                        title="Delete Voucher"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-lg font-black text-pink-600 tracking-wider">
+                          {voucher.code}
+                        </span>
+                        <span className="text-[10px] font-black px-2 py-1 bg-white rounded-lg border border-slate-200 text-slate-600">
+                          {voucher.discountType === 'percentage' ? `${voucher.discountValue}% OFF` : `Rs ${voucher.discountValue} OFF`}
+                        </span>
+                      </div>
+                      
+                      <div className="space-y-1 mb-3">
+                        <p className="text-[10px] font-bold text-slate-500">
+                          Uses: <span className="text-slate-800">{voucher.currentUses} / {voucher.maxUses}</span>
+                        </p>
+                        {voucher.minOrderAmount ? (
+                          <p className="text-[10px] font-bold text-slate-500">
+                            Min Order: <span className="text-slate-800">Rs {voucher.minOrderAmount}</span>
+                          </p>
+                        ) : null}
+                      </div>
+
+                      <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                        <span className="text-[9px] font-bold text-slate-400">
+                          {new Date(voucher.createdAt).toLocaleDateString()}
+                        </span>
+                        <button
+                          onClick={async () => {
+                            try {
+                              await updateDoc(doc(db, "vouchers", voucher.id), {
+                                isActive: !voucher.isActive
+                              });
+                            } catch (err: any) {
+                              alert(handleFirestoreError(err));
+                            }
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider cursor-pointer transition-colors ${voucher.isActive ? "bg-green-100 hover:bg-green-200 text-green-700" : "bg-slate-200 hover:bg-slate-300 text-slate-600"}`}
+                        >
+                          {voucher.isActive ? "🟢 Active" : "⚫ Inactive"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
 
