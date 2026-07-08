@@ -3855,7 +3855,15 @@ export default function App() {
 
       {/* Footer support details */}
       <footer className="max-w-7xl mx-auto px-4 mt-12 pt-8 border-t border-zinc-800 text-center space-y-4 pb-24 md:pb-8">
-        <p className="text-xs text-zinc-500 font-semibold">
+        <div className="max-w-3xl mx-auto text-zinc-500 space-y-2 text-[10.5px] font-sans">
+          <p className="font-extrabold uppercase tracking-wider text-zinc-400">Dadu Food (Sindh, Pakistan) Online Food &amp; Grocery Delivery</p>
+          <p className="leading-relaxed font-medium">
+            Welcome to <strong>dadufood</strong>, Dadu&#39;s premier online platform offering fast and reliable <strong>dadu delivery</strong> services. 
+            Dadu ke har kone me fresh pizza, hot burgers, broast aur daily groceries aapke doorstep par delivered. 
+            Enjoy seamless food delivery in Dadu with 100% quality assurance.
+          </p>
+        </div>
+        <p className="text-xs text-zinc-500 font-semibold pt-2">
           © {new Date().getFullYear()} DADUFOOD Delivery Services. All Rights
           Reserved. Support helpline:{" "}
           <a

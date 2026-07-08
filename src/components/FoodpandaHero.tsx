@@ -87,16 +87,16 @@ export default function FoodpandaHero({
           <div className="flex-1 max-w-xl text-center md:text-left z-10 space-y-3.5">
             <div className="inline-flex items-center gap-1.5 bg-red-500/20 text-pink-200 py-1.5 px-3.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-red-500/30 shadow-lg">
               <Flame className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-              Welcome to Dadu Food
+              Dadu Food - Best Food Delivery in Dadu
             </div>
 
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white leading-tight">
-              Restaurants bahut saare, <br className="hidden sm:inline" />
+              Dadu Food Delivery | <br className="hidden sm:inline" />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-red-500 font-black drop-shadow-md">
-                par app sirf ek.
+                Sasta, Tez aur Fresh!
               </span>
-              <span className="block mt-3 text-base sm:text-lg md:text-xl font-medium text-zinc-300 tracking-normal leading-snug max-w-md">
-                Order karo abhi, aur delivery paao sabse tez.
+              <span className="block mt-3 text-base sm:text-lg md:text-xl font-medium text-zinc-300 tracking-normal leading-snug max-w-md font-sans">
+                Dadu Food se apna pasandida khana online order karein. Sindh ke behtareen restaurants aur store se direct hot meals aur daily groceries paane ke liye abhi dadu delivery ka maza lein!
               </span>
             </h1>
 
