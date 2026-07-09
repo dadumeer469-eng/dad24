@@ -33,6 +33,46 @@
     <link rel="apple-touch-icon" href="/logo.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    
+    <!-- Structured Data (JSON-LD) for LocalBusiness & Restaurant Delivery -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": ["LocalBusiness", "Restaurant", "Store"],
+      "name": "Dadu Food",
+      "image": "https://dadufood.vercel.app/logo.png",
+      "description": "Dadu Food se apna pasandida khana online order karein. Best food delivery service in Dadu, Sindh, Pakistan.",
+      "url": "https://dadufood.vercel.app",
+      "telephone": "+923000000000",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Dadu",
+        "addressRegion": "Sindh",
+        "addressCountry": "PK"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": "26.7323",
+        "longitude": "67.7735"
+      },
+      "servesCuisine": ["Fast Food", "Pakistani", "Pizza", "Burgers"],
+      "priceRange": "$",
+      "openingHoursSpecification": {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+          "Sunday"
+        ],
+        "opens": "00:00",
+        "closes": "23:59"
+      }
+    }
+    </script>
   </head>
   <body>
     <noscript>

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://dadufood.vercel.app/sitemap.xml
