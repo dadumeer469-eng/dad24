@@ -7,14 +7,12 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAuthSuccess: (phoneNumber: string, isStaffMode?: boolean, password?: string) => Promise<void> | void;
-  onRequestLocation?: () => void;
 }
 
 export default function AuthModal({
   isOpen,
   onClose,
   onAuthSuccess,
-  onRequestLocation,
 }: AuthModalProps) {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
@@ -103,20 +101,8 @@ export default function AuthModal({
         <div className="p-6 sm:p-8 space-y-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="bg-pink-950/30 border border-pink-900/50 text-pink-400 text-xs p-3.5 rounded-2xl font-semibold text-center flex flex-col items-center justify-center gap-2.5">
-                <span>{error}</span>
-                {onRequestLocation && (error.toLowerCase().includes("location") || error.toLowerCase().includes("gps")) && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onRequestLocation();
-                      setError(""); // Clear error to allow retry
-                    }}
-                    className="bg-[#D70F64] hover:bg-[#b00c50] text-white px-3 py-2 rounded-xl text-[10.5px] font-black uppercase tracking-wider transition active:scale-95 cursor-pointer flex items-center gap-1 shadow-md"
-                  >
-                    📍 Location Access Allow Karein
-                  </button>
-                )}
+              <div className="bg-pink-950/30 border border-pink-900/50 text-pink-400 text-xs p-3 rounded-xl font-semibold text-center">
+                {error}
               </div>
             )}
             <div className="space-y-3">
