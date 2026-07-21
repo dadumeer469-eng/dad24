@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { UserProfile, AppNotification, Order } from "../types";
-import { Search, ShoppingBag, User, LogOut, Phone, Bell, ShieldAlert, BadgeCheck, Download, History, Heart } from "lucide-react";
+import { Search, ShoppingBag, User, LogOut, Phone, Bell, ShieldAlert, BadgeCheck, Download, History, Heart, RotateCcw, Sun, Moon } from "lucide-react";
 import daduLogo from "../assets/images/dadu_food_logo_new_1782333467889.jpg";
 
 interface FoodpandaHeaderProps {
@@ -27,6 +27,10 @@ interface FoodpandaHeaderProps {
   isLocked?: boolean;
   activeModule?: "food" | "grocery";
   setActiveModule?: (mode: "food" | "grocery") => void;
+  allOrders?: Order[];
+  onReorder?: (order: Order) => void;
+  theme?: "light" | "dark";
+  onToggleTheme?: () => void;
 }
 
 export default function FoodpandaHeader({
@@ -53,6 +57,10 @@ export default function FoodpandaHeader({
   isLocked = false,
   activeModule = "food",
   setActiveModule,
+  allOrders = [],
+  onReorder,
+  theme = "light",
+  onToggleTheme,
 }: FoodpandaHeaderProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -74,7 +82,7 @@ export default function FoodpandaHeader({
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md text-zinc-800 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)] border-b border-pink-100/60">
+      <header className="sticky top-0 z-40 bg-white/90 dark:bg-zinc-950/95 backdrop-blur-md text-zinc-800 dark:text-zinc-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)] border-b border-pink-100/60 dark:border-zinc-800">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           
           {/* Logo and Brand */}
@@ -83,7 +91,7 @@ export default function FoodpandaHeader({
           className="flex items-center gap-2 shrink-0 cursor-pointer group select-none"
           title="Dadu Food"
         >
-          <div className="w-11 h-11 rounded-xl bg-white border border-zinc-200 overflow-hidden flex items-center justify-center group-hover:scale-105 active:scale-95 shadow-sm transition-all relative shrink-0">
+          <div className="w-11 h-11 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 overflow-hidden flex items-center justify-center group-hover:scale-105 active:scale-95 shadow-sm transition-all relative shrink-0">
             <img 
               src={daduLogo} 
               alt="DF" 
@@ -91,16 +99,16 @@ export default function FoodpandaHeader({
               referrerPolicy="no-referrer"
             />
           </div>
-          <span className="text-base sm:text-xl font-black tracking-tight text-zinc-900">
+          <span className="text-base sm:text-xl font-black tracking-tight text-zinc-900 dark:text-zinc-100">
             DADU<span className="text-[#d70f64]">FOOD</span>
           </span>
         </div>
 
         {/* Address and support info - desktop only */}
         {user && (
-          <div className="hidden md:flex flex-col text-xs text-zinc-500 max-w-xs truncate">
-            <span className="font-bold text-zinc-400 block uppercase tracking-wider text-[10px]">DELIVERING TO:</span>
-            <span className="truncate text-zinc-750 font-medium">{user.address}</span>
+          <div className="hidden md:flex flex-col text-xs text-zinc-500 dark:text-zinc-400 max-w-xs truncate">
+            <span className="font-bold text-zinc-400 dark:text-zinc-500 block uppercase tracking-wider text-[10px]">DELIVERING TO:</span>
+            <span className="truncate text-zinc-750 dark:text-zinc-250 font-medium">{user.address}</span>
           </div>
         )}
 
@@ -112,7 +120,7 @@ export default function FoodpandaHeader({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search delicious burgers, pizza or repairs..."
-            className="w-full pl-10 pr-4 py-2 bg-zinc-100 border border-zinc-250 rounded-full text-sm text-zinc-800 placeholder-zinc-400 outline-none focus:bg-white focus:border-[#d70f64] focus:ring-1 focus:ring-[#d70f64] transition"
+            className="w-full pl-10 pr-4 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-250 dark:border-zinc-700 rounded-full text-sm text-zinc-800 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 outline-none focus:bg-white dark:focus:bg-zinc-900 focus:border-[#d70f64] focus:ring-1 focus:ring-[#d70f64] transition"
           />
         </div>
 
@@ -126,9 +134,9 @@ export default function FoodpandaHeader({
                 setShowNotifications(!showNotifications);
                 setShowUserMenu(false);
               }}
-              className="p-2.5 bg-zinc-100 hover:bg-zinc-200 border border-zinc-250 rounded-xl transition cursor-pointer relative"
+              className="p-2.5 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-250 dark:border-zinc-700 rounded-xl transition cursor-pointer relative"
             >
-              <Bell className="w-4 h-4 text-zinc-700" />
+              <Bell className="w-4 h-4 text-zinc-700 dark:text-zinc-300" />
               {unreadNotifications.length > 0 && (
                 <span className="absolute -top-1 -right-1 bg-[#d70f64] text-white text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center animate-bounce">
                   {unreadNotifications.length}
@@ -137,9 +145,9 @@ export default function FoodpandaHeader({
             </button>
 
             {showNotifications && (
-              <div className="absolute right-0 mt-2 bg-white border border-zinc-200 text-zinc-800 rounded-2xl shadow-xl w-72 max-sm:fixed max-sm:top-16 max-sm:left-4 max-sm:right-4 max-sm:w-auto overflow-hidden z-50 animate-fade-in">
-                <div className="p-3.5 border-b border-zinc-200 flex items-center justify-between bg-zinc-50">
-                  <span className="font-bold text-xs tracking-wide uppercase text-zinc-500">Notification Hub</span>
+              <div className="absolute right-0 mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-100 rounded-2xl shadow-xl w-72 max-sm:fixed max-sm:top-16 max-sm:left-4 max-sm:right-4 max-sm:w-auto overflow-hidden z-50 animate-fade-in">
+                <div className="p-3.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50 dark:bg-zinc-950">
+                  <span className="font-bold text-xs tracking-wide uppercase text-zinc-500 dark:text-zinc-400">Notification Hub</span>
                   {notifications.length > 0 && (
                     <button
                       onClick={() => {
@@ -153,16 +161,16 @@ export default function FoodpandaHeader({
                   )}
                 </div>
 
-                <div className="max-h-60 overflow-y-auto divide-y divide-zinc-100 bg-white">
+                <div className="max-h-60 overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-800 bg-white dark:bg-zinc-900">
                   {notifications.length === 0 ? (
-                    <div className="p-6 text-center text-xs text-zinc-400">
+                    <div className="p-6 text-center text-xs text-zinc-400 dark:text-zinc-500">
                       No updates yet. Order progress notifications will sound and appear here!
                     </div>
                   ) : (
                     notifications.map((notif) => (
-                      <div key={notif.id} className="p-3 hover:bg-zinc-50 transition text-xs">
-                        <div className="font-bold text-zinc-800">{notif.title}</div>
-                        <p className="text-zinc-500 mt-1 font-medium">{notif.message}</p>
+                      <div key={notif.id} className="p-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition text-xs">
+                        <div className="font-bold text-zinc-800 dark:text-zinc-200">{notif.title}</div>
+                        <p className="text-zinc-500 dark:text-zinc-400 mt-1 font-medium">{notif.message}</p>
                       </div>
                     ))
                   )}
@@ -200,30 +208,74 @@ export default function FoodpandaHeader({
                   setShowUserMenu(!showUserMenu);
                   setShowNotifications(false);
                 }}
-                className="flex items-center justify-center w-9.5 h-9.5 rounded-xl bg-zinc-100 border border-zinc-200 font-extrabold text-sm text-[#d70f64] hover:border-pink-500/40 cursor-pointer shadow-xs transition"
+                className="flex items-center justify-center w-9.5 h-9.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 font-extrabold text-sm text-[#d70f64] hover:border-pink-500/40 cursor-pointer shadow-xs transition animate-fade-in"
               >
                 {user.name.charAt(0).toUpperCase()}
               </button>
             ) : (
               <button
-                onClick={onOpenAuth}
-                className="p-2.5 bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 rounded-xl transition cursor-pointer flex items-center gap-1 shrink-0"
+                onClick={() => {
+                  setShowUserMenu(!showUserMenu);
+                  setShowNotifications(false);
+                }}
+                className="p-2.5 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 rounded-xl transition cursor-pointer flex items-center gap-1.5 shrink-0"
               >
-                <User className="w-4 h-4 text-zinc-700" />
-                <span className="hidden md:inline text-xs font-bold text-zinc-800">Sign In</span>
+                <User className="w-4 h-4 text-zinc-700 dark:text-zinc-300" />
+                <span className="hidden md:inline text-xs font-bold text-zinc-800 dark:text-zinc-200">Sign In & Settings</span>
               </button>
             )}
 
+            {!user && showUserMenu && (
+              <div className="absolute right-0 mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-100 rounded-2xl shadow-xl w-56 max-sm:fixed max-sm:top-16 max-sm:left-4 max-sm:right-4 max-sm:w-auto overflow-hidden z-50 animate-fade-in">
+                <div className="p-3.5 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 flex flex-col items-start">
+                  <span className="font-bold text-xs text-zinc-900 dark:text-white uppercase tracking-wider text-[10px]">Guest Options</span>
+                  <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium mt-1">Sign in to order food, books and services</span>
+                </div>
+
+                <div className="p-1 bg-white dark:bg-zinc-900">
+                  <button
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      onOpenAuth();
+                    }}
+                    className="w-full text-left font-bold text-xs text-[#d70f64] px-3.5 py-2 hover:bg-pink-50 dark:hover:bg-zinc-800/60 rounded-xl transition flex items-center gap-2 cursor-pointer"
+                  >
+                    <User className="w-4 h-4 shrink-0 text-[#d70f64]" />
+                    Sign In / Register
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (onToggleTheme) onToggleTheme();
+                    }}
+                    className="w-full text-left font-bold text-xs text-zinc-700 dark:text-zinc-300 px-3.5 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-xl transition flex items-center justify-between cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      {theme === "light" ? (
+                        <Moon className="w-4 h-4 text-zinc-700 dark:text-zinc-300 shrink-0" />
+                      ) : (
+                        <Sun className="w-4 h-4 text-amber-500 shrink-0" />
+                      )}
+                      <span>{theme === "light" ? "Dark Mode" : "Light Mode"}</span>
+                    </span>
+                    <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium capitalize">
+                      {theme}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {user && showUserMenu && (
-              <div className="absolute right-0 mt-2 bg-white border border-zinc-200 text-zinc-800 rounded-2xl shadow-xl w-56 max-sm:fixed max-sm:top-16 max-sm:left-4 max-sm:right-4 max-sm:w-auto overflow-hidden z-50 animate-fade-in">
-                <div className="p-3.5 border-b border-zinc-200 bg-zinc-50 flex flex-col items-start">
-                  <div className="flex items-center gap-1 font-bold text-sm text-zinc-900">
+              <div className="absolute right-0 mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-100 rounded-2xl shadow-xl w-56 max-sm:fixed max-sm:top-16 max-sm:left-4 max-sm:right-4 max-sm:w-auto overflow-hidden z-50 animate-fade-in">
+                <div className="p-3.5 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 flex flex-col items-start">
+                  <div className="flex items-center gap-1 font-bold text-sm text-zinc-900 dark:text-white">
                     {user.name}
                     {user.role === "admin" && (
                       <BadgeCheck className="w-4 h-4 text-[#d70f64] shrink-0" />
                     )}
                   </div>
-                  <span className="text-[10px] text-zinc-500 font-medium">Phone: {user.phone}</span>
+                  <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">Phone: {user.phone}</span>
                   <div className="bg-[#d70f64]/10 border border-[#d70f64]/20 text-[#d70f64] px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-widest rounded-md mt-1.5">
                     Orders Placed: {user.ordersCount || 0}
                   </div>
@@ -231,7 +283,7 @@ export default function FoodpandaHeader({
 
                 {/* Active Placed Orders List inside User profile dropdown */}
                 {orders && orders.length > 0 && (
-                  <div className="p-2 border-b border-zinc-200 bg-zinc-50/50">
+                  <div className="p-2 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/50">
                     <span className="text-[8.5px] uppercase font-black tracking-widest text-[#d70f64] px-1.5 block mb-1">
                       Live Delivery Tracker
                     </span>
@@ -243,9 +295,9 @@ export default function FoodpandaHeader({
                             setShowUserMenu(false);
                             if (onTrackOrder) onTrackOrder(o);
                           }}
-                          className="w-full text-left p-1.5 rounded-lg hover:bg-zinc-100 transition text-[10.5px] font-bold flex items-center justify-between border border-zinc-100 cursor-pointer text-zinc-700"
+                          className="w-full text-left p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition text-[10.5px] font-bold flex items-center justify-between border border-zinc-100 dark:border-zinc-850 cursor-pointer text-zinc-700 dark:text-zinc-350"
                         >
-                          <span className="truncate max-w-[110px] text-zinc-800">
+                          <span className="truncate max-w-[110px] text-zinc-800 dark:text-zinc-200">
                             dadu-{o.id.substring(0, 5)}
                           </span>
                           <span className="text-[8px] font-black uppercase text-[#d70f64] bg-[#d70f64]/10 px-1.5 py-0.5 rounded leading-none shrink-0 border border-[#d70f64]/20">
@@ -257,13 +309,71 @@ export default function FoodpandaHeader({
                   </div>
                 )}
 
-                <div className="p-1 bg-white">
+                {/* Recent Orders section for quick re-ordering */}
+                {(() => {
+                  const recentUserOrders = allOrders
+                    .filter((o) => o.userId === user.uid)
+                    .slice(0, 3);
+                  if (recentUserOrders.length === 0) return null;
+                  return (
+                    <div className="p-2 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/30 dark:bg-zinc-950/30">
+                      <span className="text-[8.5px] uppercase font-black tracking-widest text-zinc-500 dark:text-zinc-400 px-1.5 block mb-1.5">
+                        Recent Orders
+                      </span>
+                      <div className="max-h-48 overflow-y-auto space-y-1.5 pr-0.5">
+                        {recentUserOrders.map((o) => (
+                          <div
+                            key={o.id}
+                            className="p-2 rounded-xl border border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-[#d70f64]/20 transition-all text-[10.5px] font-bold space-y-1 shadow-2xs"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-zinc-700 dark:text-zinc-300 font-extrabold text-[10px]">
+                                dadu-{o.id.substring(0, 5)}
+                              </span>
+                              <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded leading-none shrink-0 border ${
+                                o.status === "delivered" || o.status === "completed"
+                                  ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                                  : o.status === "cancelled"
+                                  ? "text-red-600 bg-red-50 border-red-200"
+                                  : "text-amber-700 bg-amber-50 border-amber-200"
+                              }`}>
+                                {o.status === "delivered" || o.status === "completed" ? "Delivered 🎉" : o.status === "cancelled" ? "Cancelled" : "Active"}
+                              </span>
+                            </div>
+                            <div className="text-[9px] text-zinc-500 dark:text-zinc-400 truncate leading-snug font-medium">
+                              {o.items.map((i) => `${i.quantity}x ${i.name}`).join(", ")}
+                            </div>
+                            <div className="flex items-center justify-between pt-1 border-t border-zinc-100 dark:border-zinc-800">
+                              <span className="text-[#d70f64] font-black text-[9.5px]">
+                                Rs. {o.grandTotal}
+                              </span>
+                              {onReorder && (
+                                <button
+                                  onClick={() => {
+                                    setShowUserMenu(false);
+                                    onReorder(o);
+                                  }}
+                                  className="text-[8.5px] text-white bg-[#d70f64] hover:bg-[#b00c50] px-2 py-0.5 rounded-md flex items-center gap-0.5 font-black cursor-pointer transition uppercase"
+                                >
+                                  <RotateCcw className="w-2.5 h-2.5 stroke-[3]" />
+                                  Reorder
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                <div className="p-1 bg-white dark:bg-zinc-900">
                   <button
                     onClick={() => {
                       setShowUserMenu(false);
                       if (onToggleFavorites) onToggleFavorites();
                     }}
-                    className={`w-full text-left font-bold text-xs px-3.5 py-2 rounded-xl transition flex items-center gap-2 cursor-pointer ${showFavoritesOnly ? 'text-[#d70f64] bg-[#d70f64]/10' : 'text-zinc-700 hover:bg-zinc-50'}`}
+                    className={`w-full text-left font-bold text-xs px-3.5 py-2 rounded-xl transition flex items-center gap-2 cursor-pointer ${showFavoritesOnly ? 'text-[#d70f64] bg-[#d70f64]/10' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
                   >
                     <Heart className={`w-4 h-4 shrink-0 ${showFavoritesOnly ? 'fill-[#d70f64] text-[#d70f64]' : 'text-[#d70f64]'}`} />
                     My Favorites
@@ -274,11 +384,30 @@ export default function FoodpandaHeader({
                       setShowUserMenu(false);
                       if (onOpenHistory) onOpenHistory();
                     }}
-                    className="w-full text-left font-bold text-xs text-zinc-700 px-3.5 py-2 hover:bg-zinc-50 rounded-xl transition flex items-center gap-2 cursor-pointer"
+                    className="w-full text-left font-bold text-xs text-zinc-700 dark:text-zinc-300 px-3.5 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-xl transition flex items-center gap-2 cursor-pointer"
                     id="history-menu-btn"
                   >
                     <History className="w-4 h-4 text-[#d70f64] shrink-0" />
                     Order History
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (onToggleTheme) onToggleTheme();
+                    }}
+                    className="w-full text-left font-bold text-xs text-zinc-700 dark:text-zinc-300 px-3.5 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-xl transition flex items-center justify-between cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      {theme === "light" ? (
+                        <Moon className="w-4 h-4 text-zinc-700 dark:text-zinc-300 shrink-0" />
+                      ) : (
+                        <Sun className="w-4 h-4 text-amber-500 shrink-0" />
+                      )}
+                      <span>{theme === "light" ? "Dark Mode" : "Light Mode"}</span>
+                    </span>
+                    <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium capitalize">
+                      {theme}
+                    </span>
                   </button>
 
                   {user.role === "admin" && (
@@ -287,7 +416,7 @@ export default function FoodpandaHeader({
                         setShowUserMenu(false);
                         onOpenAdmin();
                       }}
-                      className="w-full text-left font-bold text-xs text-amber-600 px-3.5 py-2 hover:bg-amber-50 rounded-xl transition flex items-center gap-2 cursor-pointer"
+                      className="w-full text-left font-bold text-xs text-amber-600 px-3.5 py-2 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-xl transition flex items-center gap-2 cursor-pointer"
                     >
                       <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
                       Admin Console
@@ -299,7 +428,7 @@ export default function FoodpandaHeader({
                       setShowUserMenu(false);
                       onLogout();
                     }}
-                    className="w-full text-left text-xs font-bold text-red-650 px-3.5 py-2 hover:bg-pink-50 rounded-xl transition flex items-center gap-2 cursor-pointer"
+                    className="w-full text-left text-xs font-bold text-red-650 px-3.5 py-2 hover:bg-pink-50 dark:hover:bg-red-950/30 rounded-xl transition flex items-center gap-2 cursor-pointer"
                   >
                     <LogOut className="w-4 h-4 shrink-0" />
                     Sign Out

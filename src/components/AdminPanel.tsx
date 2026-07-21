@@ -42,6 +42,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   ResponsiveContainer,
   AreaChart,
   Area,
@@ -974,6 +975,24 @@ export default function AdminPanel({
   const [newUserToast, setNewUserToast] = useState<{ phone: string; show: boolean } | null>(null);
   const isFirstLoadRef = React.useRef(true);
 
+  // Automatically populate address fields when configuring/editing a user
+  React.useEffect(() => {
+    if (unlockingUser) {
+      setUnlockArea(unlockingUser.savedLocation?.area || "");
+      setUnlockStreet(unlockingUser.savedLocation?.street || "");
+      setUnlockLandmark((unlockingUser.savedLocation as any)?.landmark || "");
+      setUnlockNotes((unlockingUser.savedLocation as any)?.notes || "");
+      if (unlockingUser.savedLocation?.lat && unlockingUser.savedLocation?.lng) {
+        setUnlockCoords({
+          lat: unlockingUser.savedLocation.lat,
+          lng: unlockingUser.savedLocation.lng
+        });
+      } else {
+        setUnlockCoords(null);
+      }
+    }
+  }, [unlockingUser]);
+
   const playNewUserAlert = (phone: string) => {
     // 1. Play Sound (Dual tone alert beep)
     try {
@@ -1098,7 +1117,11 @@ export default function AdminPanel({
       setUnlockNotes("");
       setUnlockCoords(null);
 
-      alert(`✅ User ${unlockingUser.phone} unlocked successfully with delivery address!`);
+      if (unlockingUser.status === "locked") {
+        alert(`✅ User ${unlockingUser.phone} unlocked successfully with delivery address!`);
+      } else {
+        alert(`✅ User ${unlockingUser.phone} address updated successfully!`);
+      }
     } catch (err) {
       console.error(err);
       alert("Failed to unlock user. Database permissions error.");
@@ -1446,6 +1469,62 @@ export default function AdminPanel({
     return Object.keys(revenueMap).map((date) => ({
       date,
       revenue: revenueMap[date],
+    }));
+  };
+
+  // Render last 7 days of order volume and total revenue
+  const getLast7DaysSalesSummary = () => {
+    const daysData: Array<{
+      date: string;
+      fullDate: Date;
+      revenue: number;
+      volume: number;
+    }> = [];
+    const today = new Date();
+    
+    // Generate dates for the last 7 days (including today)
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(today.getDate() - i);
+      const dateStr = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      daysData.push({
+        date: dateStr,
+        fullDate: d,
+        revenue: 0,
+        volume: 0,
+      });
+    }
+
+    // Populate order volume and revenue for each day
+    orders.forEach((order) => {
+      if (!order.createdAt) return;
+      
+      const orderDate = order.createdAt.seconds
+        ? new Date(order.createdAt.seconds * 1000)
+        : (order.createdAt instanceof Date ? order.createdAt : null);
+        
+      if (!orderDate) return;
+      
+      daysData.forEach((day) => {
+        const dDate = day.fullDate;
+        if (
+          orderDate.getDate() === dDate.getDate() &&
+          orderDate.getMonth() === dDate.getMonth() &&
+          orderDate.getFullYear() === dDate.getFullYear()
+        ) {
+          // Both volume and revenue from delivered / completed orders
+          if (order.status === "delivered" || order.status === "completed") {
+            day.revenue += order.grandTotal || 0;
+            day.volume += 1;
+          }
+        }
+      });
+    });
+
+    return daysData.map((day) => ({
+      date: day.date,
+      revenue: Math.round(day.revenue),
+      volume: day.volume,
     }));
   };
 
@@ -2350,6 +2429,101 @@ export default function AdminPanel({
     }
   };
 
+  const handleExportCSV = () => {
+    if (orders.length === 0) {
+      alert("No orders to export.");
+      return;
+    }
+    const headers = ["Order ID", "Date", "Customer Name", "Phone", "Address", "Total", "Status", "Items"];
+    const rows = orders.map(order => [
+      order.id,
+      new Date(order.createdAt).toLocaleString(),
+      `"${order.userName}"`,
+      order.userPhone,
+      `"${order.userAddress}"`,
+      order.grandTotal,
+      order.status,
+      `"${order.items.map(i => `${i.quantity}x ${i.name}`).join(", ")}"`
+    ]);
+    
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `dadu_food_orders_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handlePrintReceipt = (order: Order) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    
+    const itemsHtml = order.items.map(item => `
+      <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+        <span>${item.quantity}x ${item.name}</span>
+        <span>Rs. ${item.price * item.quantity}</span>
+      </div>
+    `).join('');
+    
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Order Receipt - ${order.id}</title>
+          <style>
+            body { font-family: monospace; padding: 20px; max-width: 300px; margin: 0 auto; color: #000; }
+            h2 { text-align: center; margin-bottom: 5px; }
+            .divider { border-bottom: 1px dashed #000; margin: 10px 0; }
+            .text-center { text-align: center; }
+            .bold { font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <h2>DADU FOOD</h2>
+          <div class="text-center" style="font-size: 12px; margin-bottom: 15px;">Fast Food & Grocery Delivery</div>
+          
+          <div><strong>Order ID:</strong> dadu-${order.id.substring(0, 8)}</div>
+          <div><strong>Date:</strong> ${new Date(order.createdAt).toLocaleString()}</div>
+          <div><strong>Customer:</strong> ${order.userName}</div>
+          <div><strong>Phone:</strong> ${order.userPhone}</div>
+          
+          <div class="divider"></div>
+          
+          ${itemsHtml}
+          
+          <div class="divider"></div>
+          
+          <div style="display: flex; justify-content: space-between;" class="bold">
+            <span>Total:</span>
+            <span>Rs. ${order.grandTotal}</span>
+          </div>
+          
+          <div class="divider"></div>
+          
+          <div style="margin-top: 10px; font-size: 12px;">
+            <strong>Delivery Address:</strong><br/>
+            ${order.userAddress}
+          </div>
+          
+          <div class="divider"></div>
+          <div class="text-center" style="font-size: 12px; margin-top: 20px;">
+            Thank you for ordering with Dadu Food!
+          </div>
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 250);
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-50 text-slate-900 overflow-y-auto font-sans flex flex-col antialiased">
       {/* Header Admin Strip */}
@@ -2612,6 +2786,99 @@ export default function AdminPanel({
           {/* TAB 1: Real-time Analytics Dashboard */}
           {activeSubTab === "analytics" && (
             <div className="space-y-8 animate-fade-in">
+              {/* Sales Summary last 7 days of order volume and total revenue */}
+              <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm relative">
+                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#D70F64]/20 to-transparent" />
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                  <div>
+                    <h4 className="font-black text-sm text-slate-900 flex items-center gap-2 tracking-wide uppercase">
+                      <TrendingUp className="w-4 h-4 text-[#D70F64]" />
+                      Sales Summary (Last 7 Days)
+                    </h4>
+                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mt-0.5">
+                      Completed orders volume & total gross revenue mapped daily
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-6 text-[11px] font-bold">
+                    <div className="flex items-center gap-1.5 bg-rose-50 border border-rose-100 text-[#D70F64] px-2.5 py-1 rounded-lg">
+                      <span className="w-2 h-2 rounded-full bg-[#D70F64]"></span>
+                      Revenue (Left Axis)
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 text-emerald-600 px-2.5 py-1 rounded-lg">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      Order Volume (Right Axis)
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="h-72 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={getLast7DaysSalesSummary()} margin={{ top: 10, right: 10, left: -10, bottom: 5 }}>
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="#e2e8f0"
+                        opacity={0.3}
+                      />
+                      <XAxis
+                        dataKey="date"
+                        stroke="#64748b"
+                        fontSize={10}
+                        fontWeight="bold"
+                        tickLine={false}
+                      />
+                      <YAxis
+                        yAxisId="left"
+                        orientation="left"
+                        stroke="#D70F64"
+                        fontSize={10}
+                        fontWeight="bold"
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(v) => `Rs.${v}`}
+                      />
+                      <YAxis
+                        yAxisId="right"
+                        orientation="right"
+                        stroke="#10b981"
+                        fontSize={10}
+                        fontWeight="bold"
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(v) => `${v} ord`}
+                      />
+                      <Tooltip
+                        cursor={{ fill: '#f8fafc', opacity: 0.5 }}
+                        contentStyle={{
+                          backgroundColor: "#ffffff",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: "14px",
+                          fontSize: "11px",
+                          color: "#0f172a",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+                        }}
+                      />
+                      <Legend verticalAlign="top" height={36} iconType="circle" />
+                      <Bar
+                        yAxisId="left"
+                        dataKey="revenue"
+                        fill="#D70F64"
+                        name="Total Revenue (Rs.)"
+                        radius={[6, 6, 0, 0]}
+                        maxBarSize={45}
+                      />
+                      <Bar
+                        yAxisId="right"
+                        dataKey="volume"
+                        fill="#10b981"
+                        name="Order Volume"
+                        radius={[6, 6, 0, 0]}
+                        maxBarSize={45}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
               {/* Graphical Recharts Visual Analytics blocks */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Gross revenue timeline Recharts Area scale */}
@@ -4878,13 +5145,22 @@ export default function AdminPanel({
                     </span>
                   </div>
                   {orders.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={handleClearAllOrderHistory}
-                      className="px-4 py-2 bg-pink-950/40 hover:bg-pink-900/30 text-pink-400 border border-pink-900/45 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer transition shrink-0"
-                    >
-                      Clear Sales History 🧹
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleExportCSV}
+                        className="px-4 py-2 bg-emerald-950/40 hover:bg-emerald-900/30 text-emerald-400 border border-emerald-900/45 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer transition shrink-0"
+                      >
+                        Export CSV 📊
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleClearAllOrderHistory}
+                        className="px-4 py-2 bg-pink-950/40 hover:bg-pink-900/30 text-pink-400 border border-pink-900/45 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer transition shrink-0"
+                      >
+                        Clear Sales History 🧹
+                      </button>
+                    </div>
                   )}
                 </div>
 
@@ -4941,6 +5217,15 @@ export default function AdminPanel({
                                   >
                                     📞 Call
                                   </a>
+                                  <a
+                                    href={`https://wa.me/${order.userPhone.replace(/\D/g, '')}?text=Hello ${order.userName}, we are contacting you regarding your Dadu Food order.`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center justify-center p-1.5 bg-green-500/20 text-green-600 hover:bg-green-600 hover:text-white rounded-md transition-colors border border-green-500/30"
+                                    title="WhatsApp Customer"
+                                  >
+                                    💬 WhatsApp
+                                  </a>
                                 </span>
                                 <span className="text-slate-300">|</span>
                                 <span className="font-medium text-slate-700">
@@ -4979,6 +5264,15 @@ export default function AdminPanel({
                                 />
                                 {order.status}
                               </span>
+                              <div className="mt-2 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => handlePrintReceipt(order)}
+                                  className="inline-flex items-center justify-center p-1.5 text-[10px] bg-slate-200/50 text-slate-700 hover:bg-slate-300 rounded-md transition-colors font-bold border border-slate-300 cursor-pointer"
+                                >
+                                  🖨️ Print Receipt
+                                </button>
+                              </div>
                             </div>
                           </div>
 
@@ -6814,12 +7108,38 @@ export default function AdminPanel({
                               NEW
                             </div>
 
-                            <div className="space-y-1">
-                              <span className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider block">Registered At</span>
-                              <span className="text-[11px] text-zinc-500 font-mono block mb-2">{formattedTime}</span>
-                              <h4 className="text-xl font-black text-slate-900 select-all tracking-tight">
-                                {u.phone}
-                              </h4>
+                            <div className="space-y-3">
+                              <div className="space-y-1">
+                                <span className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider block">Registered At</span>
+                                <span className="text-[11px] text-zinc-500 font-mono block mb-2">{formattedTime}</span>
+                                <h4 className="text-xl font-black text-slate-900 select-all tracking-tight">
+                                  {u.phone}
+                                </h4>
+                              </div>
+
+                              {u.savedLocation?.lat && u.savedLocation?.lng ? (
+                                <div className="bg-emerald-50 border border-emerald-205/60 rounded-2xl p-3 text-[11px] font-semibold text-emerald-800 space-y-1.5 shadow-xs">
+                                  <div className="flex items-center gap-1.5 font-black text-[10px] text-emerald-700 uppercase tracking-wider">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    📍 GPS Pinpoint Active
+                                  </div>
+                                  <p className="text-[9.5px] text-emerald-600 font-mono">
+                                    Lat: {u.savedLocation.lat.toFixed(5)}, Lng: {u.savedLocation.lng.toFixed(5)}
+                                  </p>
+                                  <a
+                                    href={`https://www.google.com/maps?q=${u.savedLocation.lat},${u.savedLocation.lng}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-[#D70F64] hover:underline font-black text-[10px] uppercase tracking-wider mt-0.5"
+                                  >
+                                    🗺️ View on Map ➔
+                                  </a>
+                                </div>
+                              ) : (
+                                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 text-[10px] text-slate-500 font-bold italic">
+                                  ⚠️ GPS pinpoint data not synced yet
+                                </div>
+                              )}
                             </div>
 
                             <div className="grid grid-cols-2 gap-2 pt-2">
@@ -6956,25 +7276,38 @@ export default function AdminPanel({
                             </div>
 
                             <div>
-                              <span className="block text-[9px] font-black uppercase text-slate-400 mb-0.5">Address</span>
-                              <p className="text-[11px] text-slate-500 font-medium whitespace-pre-wrap break-words max-h-16 overflow-y-auto bg-slate-50 p-2 rounded-lg border border-slate-100">
-                                {u.address || "No address saved"}
-                              </p>
+                              <span className="block text-[9px] font-black uppercase text-slate-400 mb-0.5">Address & GPS Pinpoint</span>
+                              <div className="bg-slate-50 p-2 rounded-lg border border-slate-100 space-y-1.5">
+                                <p className="text-[11px] text-slate-700 font-bold whitespace-pre-wrap break-words max-h-16 overflow-y-auto">
+                                  {u.address || "No address saved"}
+                                </p>
+                                {u.savedLocation?.lat && u.savedLocation?.lng ? (
+                                  <div className="pt-1.5 border-t border-slate-205/50 flex flex-col gap-0.5 text-[9.5px]">
+                                    <span className="text-emerald-600 font-black flex items-center gap-1 uppercase tracking-wider">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                      📍 Live Pinpoint Location
+                                    </span>
+                                    <a
+                                      href={`https://www.google.com/maps?q=${u.savedLocation.lat},${u.savedLocation.lng}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-[#D70F64] hover:underline font-bold text-[10px] block"
+                                    >
+                                      🗺️ Open Google Maps ➔ ({u.savedLocation.lat.toFixed(5)}, {u.savedLocation.lng.toFixed(5)})
+                                    </a>
+                                  </div>
+                                ) : (
+                                  <span className="text-[9px] text-slate-400 font-medium italic block pt-1 border-t border-slate-200/40">
+                                    No GPS coordinates synced yet.
+                                  </span>
+                                )}
+                              </div>
                             </div>
 
                             <div className="pt-2 flex items-center gap-2 flex-wrap">
                               <button
                                 type="button"
-                                onClick={async () => {
-                                  const newAddress = window.prompt("Enter new address for this user:", u.address || "");
-                                  if (newAddress !== null) {
-                                    try {
-                                      await updateDoc(doc(db, "users", u.uid), { address: newAddress });
-                                    } catch (err) {
-                                      alert("Failed to update address.");
-                                    }
-                                  }
-                                }}
+                                onClick={() => setUnlockingUser(u)}
                                 className="flex-1 min-w-[70px] py-1.5 rounded-lg text-[10px] font-black uppercase transition-all bg-sky-500/10 text-sky-500 hover:bg-sky-500/20 cursor-pointer text-center"
                               >
                                 Edit Addr
@@ -7132,9 +7465,29 @@ export default function AdminPanel({
                                   </td>
                                   {/* Delivery Address */}
                                   <td className="py-2 px-5 max-w-xs">
-                                    <p className="text-[11px] text-slate-500 font-medium whitespace-pre-wrap break-words max-h-16 overflow-y-auto">
-                                      {u.address || "No address saved"}
-                                    </p>
+                                    <div className="space-y-1.5">
+                                      <p className="text-[11px] text-slate-700 font-bold whitespace-pre-wrap break-words max-h-16 overflow-y-auto leading-relaxed">
+                                        {u.address || "No address saved"}
+                                      </p>
+                                      {u.savedLocation?.lat && u.savedLocation?.lng ? (
+                                        <div className="flex flex-col gap-0.5 text-[9.5px]">
+                                          <span className="text-emerald-600 font-black flex items-center gap-1 uppercase tracking-wider">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                            📍 Pinpoint Live Location
+                                          </span>
+                                          <a
+                                            href={`https://www.google.com/maps?q=${u.savedLocation.lat},${u.savedLocation.lng}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-[#D70F64] hover:underline font-black text-[10px] block"
+                                          >
+                                            🗺️ Open Google Maps ➔ ({u.savedLocation.lat.toFixed(5)}, {u.savedLocation.lng.toFixed(5)})
+                                          </a>
+                                        </div>
+                                      ) : (
+                                        <span className="text-[9px] text-slate-400 font-medium italic block">No GPS coordinates synced</span>
+                                      )}
+                                    </div>
                                   </td>
                                   {/* Total Orders */}
                                   <td className="py-4 px-5 text-center">
@@ -7146,16 +7499,7 @@ export default function AdminPanel({
                                   <td className="py-4 px-5 text-right flex items-center justify-end gap-2">
                                     <button
                                       type="button"
-                                      onClick={async () => {
-                                        const newAddress = window.prompt("Enter new address for this user:", u.address || "");
-                                        if (newAddress !== null) {
-                                          try {
-                                            await updateDoc(doc(db, "users", u.uid), { address: newAddress });
-                                          } catch (err) {
-                                            alert("Failed to update address.");
-                                          }
-                                        }
-                                      }}
+                                      onClick={() => setUnlockingUser(u)}
                                       className="p-1 px-2.5 rounded text-[10px] font-black uppercase transition-all bg-sky-500/10 text-sky-500 hover:bg-sky-500/20 cursor-pointer"
                                     >
                                       Edit Addr
@@ -7985,13 +8329,15 @@ export default function AdminPanel({
             <div className="space-y-4">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-widest text-[#D70F64] block">
-                  Verify & Configure Address
+                  {unlockingUser.status === "locked" ? "Verify & Configure Address" : "Update Delivery Address"}
                 </span>
-                <h3 className="text-lg font-black text-slate-905 mt-1">
-                  Unlock User: {unlockingUser.phone}
+                <h3 className="text-lg font-black text-slate-900 mt-1">
+                  {unlockingUser.status === "locked" ? "Unlock User:" : "Edit Address for:"} {unlockingUser.phone}
                 </h3>
                 <p className="text-[11.5px] text-slate-500 mt-1 font-semibold leading-relaxed">
-                  Call user to verify their details, then enter their delivery/mohalla address below. After saving, the user will be unlocked and can place orders immediately!
+                  {unlockingUser.status === "locked"
+                    ? "Call user to verify their details, then enter their delivery/mohalla address below. After saving, the user will be unlocked!"
+                    : "Update the user's structured address and coordinates below. This address will be used for all future deliveries."}
                 </p>
               </div>
 
@@ -8100,7 +8446,7 @@ export default function AdminPanel({
                     type="submit"
                     className="px-5 py-2.5 bg-[#D70F64] text-white rounded-xl text-[10.5px] font-black hover:bg-[#b00c50] shadow-md cursor-pointer transition uppercase tracking-wider flex items-center gap-1.5"
                   >
-                    Save & Unlock ✅
+                    {unlockingUser.status === "locked" ? "Save & Unlock ✅" : "Save Address 💾"}
                   </button>
                 </div>
               </form>

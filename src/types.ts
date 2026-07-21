@@ -100,6 +100,9 @@ export interface Order {
     code: string;
     discountAmount: number;
   };
+  rating?: number;
+  ratingComment?: string;
+  ratedAt?: any;
 }
 
 export interface SystemSettings {

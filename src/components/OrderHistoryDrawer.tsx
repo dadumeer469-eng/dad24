@@ -13,9 +13,12 @@ import {
   DollarSign, 
   AlertCircle,
   Clock,
-  ExternalLink
+  ExternalLink,
+  Star
 } from "lucide-react";
 import { Order } from "../types";
+import { db } from "../firebase";
+import { doc, updateDoc } from "firebase/firestore";
 
 interface OrderHistoryDrawerProps {
   isOpen: boolean;
@@ -35,6 +38,33 @@ export default function OrderHistoryDrawer({
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<"all" | "food" | "grocery" | "service">("all");
   const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>({});
+  const [ratingStars, setRatingStars] = useState<Record<string, number>>({});
+  const [ratingComments, setRatingComments] = useState<Record<string, string>>({});
+  const [submittingRating, setSubmittingRating] = useState<Record<string, boolean>>({});
+
+  const handleRateOrder = async (orderId: string) => {
+    const stars = ratingStars[orderId] || 0;
+    const comment = ratingComments[orderId] || "";
+    if (stars === 0) {
+      alert("Please select a rating of 1 to 5 stars! 🌟");
+      return;
+    }
+
+    setSubmittingRating((prev) => ({ ...prev, [orderId]: true }));
+    try {
+      const orderRef = doc(db, "orders", orderId);
+      await updateDoc(orderRef, {
+        rating: stars,
+        ratingComment: comment.trim(),
+        ratedAt: new Date(),
+      });
+    } catch (err) {
+      console.error("Failed to rate order:", err);
+      alert("Kuch masla pesh aya feedback save karne me. Dobara koshish karein.");
+    } finally {
+      setSubmittingRating((prev) => ({ ...prev, [orderId]: false }));
+    }
+  };
 
   const toggleExpand = (orderId: string) => {
     setExpandedOrders((prev) => ({
@@ -296,6 +326,111 @@ export default function OrderHistoryDrawer({
                                 )}
                               </div>
                             </div>
+
+                            {/* Rate Your Order Section */}
+                            {(order.status === "delivered" || order.status === "completed") && (
+                              <div className="bg-white border border-zinc-200 rounded-xl p-3 space-y-2.5">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[10px] font-black uppercase tracking-widest text-[#D70F64]">
+                                    {order.rating ? "Your Feedback & Rating" : "Rate Your Order"}
+                                  </span>
+                                  {order.rating && (
+                                    <span className="text-[9px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.5 rounded-md border border-emerald-100">
+                                      Saved ✅
+                                    </span>
+                                  )}
+                                </div>
+
+                                {order.rating ? (
+                                  /* Display saved rating */
+                                  <div className="space-y-1.5">
+                                    <div className="flex items-center gap-1">
+                                      {[1, 2, 3, 4, 5].map((star) => (
+                                        <Star
+                                          key={star}
+                                          className={`w-3.5 h-3.5 ${
+                                            star <= order.rating!
+                                              ? "fill-amber-400 text-amber-400"
+                                              : "text-zinc-200"
+                                          }`}
+                                        />
+                                      ))}
+                                      <span className="text-[10px] text-zinc-500 font-extrabold ml-1">
+                                        ({order.rating} / 5)
+                                      </span>
+                                    </div>
+                                    {order.ratingComment && (
+                                      <p className="text-[10.5px] text-zinc-600 bg-zinc-50 p-2 rounded-lg italic font-medium border border-zinc-100 leading-snug">
+                                        "{order.ratingComment}"
+                                      </p>
+                                    )}
+                                  </div>
+                                ) : (
+                                  /* Interactive Rating form */
+                                  <div className="space-y-2">
+                                    <div className="flex items-center gap-1.5">
+                                      {[1, 2, 3, 4, 5].map((star) => {
+                                        const isSelected = (ratingStars[order.id] || 0) >= star;
+                                        return (
+                                          <button
+                                            key={star}
+                                            type="button"
+                                            onClick={() =>
+                                              setRatingStars((prev) => ({
+                                                ...prev,
+                                                [order.id]: star,
+                                              }))
+                                            }
+                                            className="focus:outline-none transition-transform active:scale-125 cursor-pointer hover:scale-110"
+                                          >
+                                            <Star
+                                              className={`w-5 h-5 transition-colors ${
+                                                isSelected
+                                                  ? "fill-amber-400 text-amber-400"
+                                                  : "text-zinc-350 hover:text-amber-300"
+                                              }`}
+                                            />
+                                          </button>
+                                        );
+                                      })}
+                                      {ratingStars[order.id] > 0 && (
+                                        <span className="text-[10px] text-zinc-500 font-extrabold">
+                                          {ratingStars[order.id]} Star{ratingStars[order.id] > 1 ? "s" : ""}
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    <div className="space-y-1">
+                                      <textarea
+                                        value={ratingComments[order.id] || ""}
+                                        onChange={(e) =>
+                                          setRatingComments((prev) => ({
+                                            ...prev,
+                                            [order.id]: e.target.value,
+                                          }))
+                                        }
+                                        placeholder="Add a comment about food quality or delivery..."
+                                        maxLength={200}
+                                        className="w-full bg-zinc-50 border border-zinc-200 rounded-lg p-2 text-[11px] font-medium focus:outline-none focus:border-[#D70F64] transition h-14 resize-none placeholder-zinc-400 leading-snug"
+                                      />
+                                      <div className="flex justify-between items-center text-[9px] text-zinc-400 font-medium">
+                                        <span>Max 200 chars</span>
+                                        <span>{(ratingComments[order.id] || "").length}/200</span>
+                                      </div>
+                                    </div>
+
+                                    <button
+                                      type="button"
+                                      disabled={submittingRating[order.id]}
+                                      onClick={() => handleRateOrder(order.id)}
+                                      className="w-full py-1.5 rounded-lg bg-[#D70F64] text-white hover:bg-[#b00c50] transition font-black text-[10px] uppercase tracking-wider flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
+                                    >
+                                      {submittingRating[order.id] ? "Submitting..." : "Submit Rating"}
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
 
                             {/* Prompt and interactions panel */}
                             <div className="grid grid-cols-2 gap-2 mt-1">

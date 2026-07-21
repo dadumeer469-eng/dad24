@@ -110,6 +110,35 @@ export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [splashProgress, setSplashProgress] = useState(0);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+
+  // Load saved theme on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("dadu_theme");
+    if (saved === "dark") {
+      setTheme("dark");
+      document.documentElement.classList.add("dark");
+      document.body.classList.add("dark");
+    } else {
+      setTheme("light");
+      document.documentElement.classList.remove("dark");
+      document.body.classList.remove("dark");
+    }
+  }, []);
+
+  const handleToggleTheme = () => {
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    setTheme(nextTheme);
+    localStorage.setItem("dadu_theme", nextTheme);
+    if (nextTheme === "dark") {
+      document.documentElement.classList.add("dark");
+      document.body.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      document.body.classList.remove("dark");
+    }
+  };
+
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [isLoadingDishes, setIsLoadingDishes] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -332,6 +361,71 @@ export default function App() {
     );
   };
 
+  // Continuous real-time geolocation watch to keep globalCoords updated
+  useEffect(() => {
+    if (showSplash) return;
+    
+    let watchId: number | null = null;
+    
+    if (navigator.geolocation) {
+      watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          setGlobalCoords({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude
+          });
+        },
+        (err) => console.log("Real-time watch location error:", err),
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      );
+    }
+    
+    return () => {
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+      }
+    };
+  }, [showSplash]);
+
+  // Synchronize live GPS pinpoint coordinates to Firestore when they change
+  useEffect(() => {
+    if (!currentUser?.uid || currentUser.role === "rider" || currentUser.role === "admin" || !globalCoords) return;
+
+    const dbLat = currentUser.savedLocation?.lat;
+    const dbLng = currentUser.savedLocation?.lng;
+
+    const hasNoCoordinates = !dbLat || !dbLng;
+    let distanceChanged = false;
+
+    if (dbLat && dbLng) {
+      const distance = calculateDistanceKm(
+        globalCoords.latitude,
+        globalCoords.longitude,
+        dbLat,
+        dbLng
+      );
+      if (distance > 0.015) { // 15 meters
+        distanceChanged = true;
+      }
+    }
+
+    if (hasNoCoordinates || distanceChanged) {
+      const userRef = doc(db, "users", currentUser.uid);
+      updateDoc(userRef, {
+        "savedLocation.lat": globalCoords.latitude,
+        "savedLocation.lng": globalCoords.longitude,
+        // Preserve other fields
+        "savedLocation.area": currentUser.savedLocation?.area || "",
+        "savedLocation.street": currentUser.savedLocation?.street || "",
+        "savedLocation.landmark": (currentUser.savedLocation as any)?.landmark || "",
+        "savedLocation.notes": (currentUser.savedLocation as any)?.notes || "",
+        lastLocationUpdate: new Date()
+      }).catch((err) => {
+        console.warn("Error updating real-time pinpoint GPS in DB:", err);
+      });
+    }
+  }, [currentUser?.uid, globalCoords, currentUser?.savedLocation?.lat, currentUser?.savedLocation?.lng]);
+
   useEffect(() => {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
     
@@ -511,10 +605,10 @@ export default function App() {
     }
   }, [currentUser?.status]);
 
-  // 1.5. Premium Foodpanda Splash Screen timer (approx 2.4s)
+  // 1.5. Premium Foodpanda Splash Screen timer (approx 0.4s for instant fast load)
   useEffect(() => {
     const startTime = Date.now();
-    const duration = 2400; // 2.4 seconds total duration
+    const duration = 400; // 400ms total duration for ultra-fast load
     const interval = setInterval(() => {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(100, Math.floor((elapsed / duration) * 100));
@@ -524,9 +618,9 @@ export default function App() {
         setTimeout(() => {
           setShowSplash(false);
           playChimeSound(); // Trigger the melodic twin-tone synthesizer chime on entrance!
-        }, 350);
+        }, 80);
       }
-    }, 35);
+    }, 20);
     return () => clearInterval(interval);
   }, []);
 
@@ -2557,7 +2651,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#FFFDFE] via-[#FDF5F8] to-[#FFFDFE] text-zinc-800 relative pb-28 md:pb-12 flex flex-col font-sans overflow-x-clip">
+    <div className="min-h-screen bg-gradient-to-b from-[#FFFDFE] via-[#FDF5F8] to-[#FFFDFE] dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 text-zinc-800 dark:text-zinc-100 relative pb-28 md:pb-12 flex flex-col font-sans overflow-x-clip">
       {/* Decorative Premium Food Watermark/Pattern Background */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden select-none z-0">
         {/* Subtle grid pattern of culinary shapes */}
@@ -2932,6 +3026,10 @@ export default function App() {
         activeModule={activeModule}
         setActiveModule={setActiveModule}
         isLocked={currentUser?.status === 'locked'}
+        allOrders={orders}
+        onReorder={handleReorder}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
       />
 
       {!isAdminConsoleOpen ? (
@@ -3105,69 +3203,190 @@ export default function App() {
 
               {/* Active Order Banner Card */}
               {(() => {
-                const activeOrderForBanner = orders.find(
+                const activeUserOrders = orders.filter(
                   (o) =>
+                    currentUser &&
+                    o.userId === currentUser.uid &&
                     o.status !== "delivered" &&
                     o.status !== "completed" &&
                     o.status !== "cancelled",
                 );
-                if (!currentUser || !activeOrderForBanner) return null;
+                if (!currentUser || activeUserOrders.length === 0) return null;
 
                 return (
-                  <div className="max-w-7xl mx-auto px-4 mt-6">
-                    <div
-                      onClick={() => {
-                        setActiveTrackingOrder(activeOrderForBanner);
-                        setIsTrackingModalOpen(true);
-                      }}
-                      className="bg-white border-2 border-[#d70f64] p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 cursor-pointer hover:bg-zinc-50 transition-all shadow-xl shadow-red-500/5 group"
-                    >
-                      <div className="flex items-center gap-4.5 w-full sm:w-auto">
-                        <div className="w-12 h-12 rounded-full bg-[#d70f64]/10 border border-[#d70f64]/30 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition duration-300">
-                          🛵
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <span className="text-[9px] font-black uppercase tracking-widest text-[#d70f64] block">
-                            Active Placed Order Tracking Live
-                          </span>
-                          <h4 className="text-xs sm:text-sm font-black text-zinc-800 mt-1 leading-normal truncate">
-                            Your Order{" "}
-                            <span className="font-mono text-zinc-500 font-bold">
-                              dadu-{activeOrderForBanner.id.substring(0, 5)}...
-                            </span>{" "}
-                            is currently{" "}
-                            <span className="text-[#d70f64] uppercase font-bold">
-                              {activeOrderForBanner.status ===
-                              "out_for_delivery"
-                                ? "With Foodpanda Rider"
-                                : activeOrderForBanner.status === "preparing"
-                                  ? "Cooking in Kitchen"
-                                  : "Confirmed & Accepted"}
-                            </span>
-                          </h4>
-                          {activeOrderForBanner.riderName ? (
-                            <div className="flex items-center gap-1.5 mt-1">
-                              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                              <span className="text-[10px] text-zinc-500 font-extrabold truncate">
-                                Rider assigned:{" "}
-                                <span className="text-[#d70f64] font-black">
-                                  {activeOrderForBanner.riderName}
-                                </span>{" "}
-                                ({activeOrderForBanner.riderPhone})
-                              </span>
+                  <div className="max-w-7xl mx-auto px-4 mt-6 space-y-4">
+                    {activeUserOrders.map((activeOrderForBanner) => {
+                      const getStepProgress = (status: string) => {
+                        switch (status) {
+                          case "placed":
+                          case "pending":
+                            return 1;
+                          case "accepted":
+                          case "confirmed":
+                            return 2;
+                          case "preparing":
+                            return 3;
+                          case "out_for_delivery":
+                          case "diagnostic_on_way":
+                          case "diagnostic_underway":
+                            return 4;
+                          case "delivered":
+                          case "completed":
+                            return 5;
+                          default:
+                            return 1;
+                        }
+                      };
+
+                      const currentStep = getStepProgress(activeOrderForBanner.status);
+                      const isService = activeOrderForBanner.orderType === "service";
+
+                      const stepsList = isService
+                        ? [
+                            { label: "Booked", emoji: "📅" },
+                            { label: "Accepted", emoji: "✅" },
+                            { label: "Travel", emoji: "🏍️" },
+                            { label: "Repair", emoji: "🛠️" },
+                            { label: "Done", emoji: "🎉" },
+                          ]
+                        : [
+                            { label: "Placed", emoji: "📝" },
+                            { label: "Confirmed", emoji: "👍" },
+                            { label: "Preparing", emoji: "🍳" },
+                            { label: "Dispatch", emoji: "🛵" },
+                            { label: "Enjoy", emoji: "🍔" },
+                          ];
+
+                      return (
+                        <div
+                          key={activeOrderForBanner.id}
+                          className="bg-white border-2 border-[#d70f64] rounded-2xl shadow-xl shadow-red-500/5 overflow-hidden transition-all duration-300 hover:shadow-2xl"
+                        >
+                          {/* Banner Header: Tap-to-track details */}
+                          <div
+                            onClick={() => {
+                              setActiveTrackingOrder(activeOrderForBanner);
+                              setIsTrackingModalOpen(true);
+                            }}
+                            className="p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 cursor-pointer hover:bg-zinc-50 transition border-b border-zinc-100"
+                          >
+                            <div className="flex items-center gap-4 w-full sm:w-auto">
+                              <div className="w-12 h-12 rounded-full bg-[#d70f64]/10 border border-[#d70f64]/20 flex items-center justify-center text-2xl shrink-0 animate-pulse">
+                                {isService ? "🛠️" : "🛵"}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-[#d70f64] flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+                                  Live Order Tracking Active
+                                </span>
+                                <h4 className="text-xs sm:text-sm font-black text-zinc-800 mt-1 leading-normal truncate">
+                                  {isService ? "Service Appointment" : "Your Food Order"}{" "}
+                                  <span className="font-mono text-zinc-500 font-bold">
+                                    dadu-{activeOrderForBanner.id.substring(0, 5)}...
+                                  </span>{" "}
+                                  is currently{" "}
+                                  <span className="text-[#d70f64] uppercase font-bold">
+                                    {activeOrderForBanner.status === "out_for_delivery"
+                                      ? "With Foodpanda Rider"
+                                      : activeOrderForBanner.status === "preparing"
+                                        ? "Cooking in Kitchen"
+                                        : activeOrderForBanner.status === "diagnostic_on_way"
+                                          ? "Technician Travelling"
+                                          : activeOrderForBanner.status === "diagnostic_underway"
+                                            ? "Inspection in Progress"
+                                            : "Confirmed & Accepted"}
+                                  </span>
+                                </h4>
+                                {activeOrderForBanner.riderName ? (
+                                  <div className="flex items-center gap-1.5 mt-1">
+                                    <span className="text-[10px] text-zinc-500 font-extrabold truncate">
+                                      Assigned Hero:{" "}
+                                      <span className="text-[#d70f64] font-black">
+                                        {activeOrderForBanner.riderName}
+                                      </span>
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span className="text-[10px] text-zinc-400 font-bold block mt-1">
+                                    ⏳ Assigning driver to your neighborhood...
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                          ) : (
-                            <span className="text-[10px] text-zinc-400 font-bold block mt-1">
-                              ⏳ Assigning driver to your neighborhood...
-                            </span>
+
+                            <button className="w-full sm:w-auto bg-[#d70f64] text-white text-xs font-black uppercase tracking-widest px-5 py-3 rounded-xl hover:bg-[#b00c50] transition active:scale-95 shrink-0 shadow-md">
+                              Track Live Map 🧭
+                            </button>
+                          </div>
+
+                          {/* Live Visual Step Progress Bar */}
+                          <div className="px-5 py-4 bg-zinc-50/50 border-b border-zinc-100">
+                            <div className="relative flex items-center justify-between w-full max-w-xl mx-auto">
+                              {/* Horizontal Line background */}
+                              <div className="absolute left-4 right-4 top-1/2 -translate-y-1/2 h-1 bg-zinc-200 -z-10 rounded-full" />
+                              {/* Animated active filled line */}
+                              <div
+                                className="absolute left-4 top-1/2 -translate-y-1/2 h-1 bg-gradient-to-r from-pink-500 to-[#d70f64] -z-10 rounded-full transition-all duration-500"
+                                style={{ width: `${((currentStep - 1) / 4) * 100}%` }}
+                              />
+
+                              {stepsList.map((step, idx) => {
+                                const stepNum = idx + 1;
+                                const isPassed = currentStep >= stepNum;
+                                const isCurrent = currentStep === stepNum;
+
+                                return (
+                                  <div key={idx} className="flex flex-col items-center relative z-10">
+                                    <div
+                                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-black transition-all duration-300 shadow-md ${
+                                        isPassed
+                                          ? "bg-[#d70f64] text-white ring-4 ring-pink-100"
+                                          : "bg-white text-zinc-400 border-2 border-zinc-200"
+                                      } ${isCurrent ? "animate-pulse scale-110" : ""}`}
+                                    >
+                                      {step.emoji}
+                                    </div>
+                                    <span
+                                      className={`text-[9px] font-black uppercase tracking-wider mt-1.5 ${
+                                        isCurrent ? "text-[#d70f64]" : isPassed ? "text-zinc-700" : "text-zinc-400"
+                                      }`}
+                                    >
+                                      {step.label}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* Quick Actions Footer (Contact Captain / Whatsapp) */}
+                          {activeOrderForBanner.riderName && activeOrderForBanner.riderPhone && (
+                            <div className="px-5 py-2.5 bg-zinc-50 flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-zinc-100">
+                              <span className="text-[10px] text-zinc-500 font-extrabold flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 bg-emerald-500 animate-pulse rounded-full"></span>
+                                Contact Captain {activeOrderForBanner.riderName} directly:
+                              </span>
+                              <div className="flex items-center gap-2 w-full sm:w-auto">
+                                <a
+                                  href={`tel:${activeOrderForBanner.riderPhone}`}
+                                  className="flex-1 sm:flex-none bg-white hover:bg-zinc-50 text-zinc-800 border border-zinc-350 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider text-center transition cursor-pointer"
+                                >
+                                  📞 Call Captain
+                                </a>
+                                <a
+                                  href={`https://wa.me/${activeOrderForBanner.riderPhone.replace(/\D/g, "")}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex-1 sm:flex-none bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider text-center transition cursor-pointer flex items-center justify-center gap-1"
+                                >
+                                  💬 WhatsApp
+                                </a>
+                              </div>
+                            </div>
                           )}
                         </div>
-                      </div>
-
-                      <button className="w-full sm:w-auto bg-[#d70f64] text-white text-xs font-black uppercase tracking-widest px-5 py-3 rounded-xl hover:bg-[#b00c50] transition active:scale-95 shrink-0 shadow-md">
-                        Track Live Map 🧭
-                      </button>
-                    </div>
+                      );
+                    })}
                   </div>
                 );
               })()}
