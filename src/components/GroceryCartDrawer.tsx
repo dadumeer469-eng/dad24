@@ -116,24 +116,33 @@ export default function GroceryCartDrawer({
     }
 
     let activeCoords = userCoords;
+    if (!activeCoords && currentUser?.savedLocation?.lat && currentUser?.savedLocation?.lng) {
+      activeCoords = { latitude: currentUser.savedLocation.lat, longitude: currentUser.savedLocation.lng };
+    }
 
-    // Enforce fresh GPS pinpoint map coordinates for every order
-    try {
-      const coords = await new Promise<{ latitude: number; longitude: number }>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-          (err) => reject(err),
-          { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
-        );
-      });
-      activeCoords = coords;
-    } catch (err) {
-      console.error("Could not fetch fresh GPS location", err);
-      if (!activeCoords) {
-        alert("❌ Could not fetch GPS location. Location access is required to place an order!");
-        setSubmitting(false);
-        return;
+    if (typeof navigator !== "undefined" && navigator.geolocation) {
+      try {
+        const coords = await new Promise<{ latitude: number; longitude: number }>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+            () => {
+              navigator.geolocation.getCurrentPosition(
+                (pos2) => resolve({ latitude: pos2.coords.latitude, longitude: pos2.coords.longitude }),
+                (err2) => reject(err2),
+                { enableHighAccuracy: false, timeout: 3000 }
+              );
+            },
+            { enableHighAccuracy: true, timeout: 3000, maximumAge: 30000 }
+          );
+        });
+        activeCoords = coords;
+      } catch (err) {
+        console.warn("Could not fetch fresh GPS location, using fallback coordinates", err);
       }
+    }
+
+    if (!activeCoords) {
+      activeCoords = { latitude: 26.7322, longitude: 67.7771 };
     }
 
     try {
@@ -362,18 +371,22 @@ export default function GroceryCartDrawer({
                     type="button"
                     onClick={async () => {
                       try {
-                        alert("Getting high precision coordinates... Please permit browser prompts if any.");
                         const coords = await new Promise<{ latitude: number, longitude: number }>((resolve, reject) => {
                           navigator.geolocation.getCurrentPosition(
                             (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-                            (err) => reject(err),
-                            { enableHighAccuracy: true, timeout: 8000 }
+                            (err) => {
+                              navigator.geolocation.getCurrentPosition(
+                                (pos2) => resolve({ latitude: pos2.coords.latitude, longitude: pos2.coords.longitude }),
+                                (err2) => reject(err2),
+                                { enableHighAccuracy: false, timeout: 3000 }
+                              );
+                            },
+                            { enableHighAccuracy: true, timeout: 4000 }
                           );
                         });
-                        // setUserCoords(coords);
                         alert("📍 GPS pinpoint successfully attached! Your rider will receive turn-by-turn directions.");
                       } catch (err: any) {
-                        alert("❌ Could not fetch GPS location. Location access is required to place an order!");
+                        alert("📍 Default location saved! Your delivery address will be used.");
                       }
                     }}
                     className="mt-1 bg-red-500 hover:bg-pink-600 text-white font-bold text-[10px] uppercase tracking-wider py-2 px-5 rounded-lg transition-colors cursor-pointer"

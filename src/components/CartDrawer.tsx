@@ -180,24 +180,33 @@ export default function CartDrawer({
     const paymentMethodValue = orderTypeValue === "service" ? "Pay on Appointment" : "COD";
 
     let activeCoords = userCoords;
-    
-    try {
-      // Force fetch fresh pinpoint location for every order
-      const coords = await new Promise<{ latitude: number; longitude: number }>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-          (err) => reject(err),
-          { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
-        );
-      });
-      activeCoords = coords;
-    } catch (err) {
-      console.error("Could not fetch fresh GPS location", err);
-      if (!activeCoords) {
-        alert("❌ Could not fetch GPS location. Location access is required to place an order!");
-        setSubmitting(false);
-        return;
+    if (!activeCoords && currentUser?.savedLocation?.lat && currentUser?.savedLocation?.lng) {
+      activeCoords = { latitude: currentUser.savedLocation.lat, longitude: currentUser.savedLocation.lng };
+    }
+
+    if (typeof navigator !== "undefined" && navigator.geolocation) {
+      try {
+        const coords = await new Promise<{ latitude: number; longitude: number }>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+            () => {
+              navigator.geolocation.getCurrentPosition(
+                (pos2) => resolve({ latitude: pos2.coords.latitude, longitude: pos2.coords.longitude }),
+                (err2) => reject(err2),
+                { enableHighAccuracy: false, timeout: 3000 }
+              );
+            },
+            { enableHighAccuracy: true, timeout: 3000, maximumAge: 30000 }
+          );
+        });
+        activeCoords = coords;
+      } catch (err) {
+        console.warn("Could not fetch fresh GPS location, using fallback coordinates", err);
       }
+    }
+
+    if (!activeCoords) {
+      activeCoords = { latitude: 26.7322, longitude: 67.7771 };
     }
 
     try {

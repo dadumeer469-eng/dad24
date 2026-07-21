@@ -267,27 +267,29 @@ export default function FoodpandaHeader({
             )}
 
             {user && showUserMenu && (
-              <div className="absolute right-0 mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-100 rounded-2xl shadow-xl w-56 max-sm:fixed max-sm:top-16 max-sm:left-4 max-sm:right-4 max-sm:w-auto overflow-hidden z-50 animate-fade-in">
-                <div className="p-3.5 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 flex flex-col items-start">
-                  <div className="flex items-center gap-1 font-bold text-sm text-zinc-900 dark:text-white">
-                    {user.name}
-                    {user.role === "admin" && (
-                      <BadgeCheck className="w-4 h-4 text-[#d70f64] shrink-0" />
-                    )}
+              <div className="absolute right-0 mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-100 rounded-2xl shadow-xl w-72 sm:w-80 max-sm:fixed max-sm:top-16 max-sm:left-4 max-sm:right-4 max-sm:w-auto overflow-hidden z-50 animate-fade-in">
+                <div className="p-3 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 flex flex-col items-start">
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center gap-1 font-bold text-sm text-zinc-900 dark:text-white">
+                      {user.name}
+                      {user.role === "admin" && (
+                        <BadgeCheck className="w-4 h-4 text-[#d70f64] shrink-0" />
+                      )}
+                    </div>
+                    <div className="bg-[#d70f64]/10 border border-[#d70f64]/20 text-[#d70f64] px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-widest rounded-md">
+                      {user.ordersCount || 0} Orders
+                    </div>
                   </div>
-                  <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">Phone: {user.phone}</span>
-                  <div className="bg-[#d70f64]/10 border border-[#d70f64]/20 text-[#d70f64] px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-widest rounded-md mt-1.5">
-                    Orders Placed: {user.ordersCount || 0}
-                  </div>
+                  <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">Phone: {user.phone}</span>
                 </div>
 
-                {/* Active Placed Orders List inside User profile dropdown */}
+                {/* Active Placed Orders List inside User profile dropdown (Horizontal Scroll) */}
                 {orders && orders.length > 0 && (
                   <div className="p-2 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/50">
                     <span className="text-[8.5px] uppercase font-black tracking-widest text-[#d70f64] px-1.5 block mb-1">
                       Live Delivery Tracker
                     </span>
-                    <div className="max-h-36 overflow-y-auto space-y-1">
+                    <div className="flex overflow-x-auto gap-1.5 pb-1 scrollbar-none">
                       {orders.map((o) => (
                         <button
                           key={o.id}
@@ -295,10 +297,10 @@ export default function FoodpandaHeader({
                             setShowUserMenu(false);
                             if (onTrackOrder) onTrackOrder(o);
                           }}
-                          className="w-full text-left p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition text-[10.5px] font-bold flex items-center justify-between border border-zinc-100 dark:border-zinc-850 cursor-pointer text-zinc-700 dark:text-zinc-350"
+                          className="shrink-0 min-w-[130px] p-1.5 rounded-xl bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition text-[10.5px] font-bold flex items-center justify-between border border-zinc-200 dark:border-zinc-800 cursor-pointer text-zinc-700 dark:text-zinc-300"
                         >
-                          <span className="truncate max-w-[110px] text-zinc-800 dark:text-zinc-200">
-                            dadu-{o.id.substring(0, 5)}
+                          <span className="truncate max-w-[70px] text-zinc-800 dark:text-zinc-200 font-mono">
+                            #{o.id.substring(0, 5)}
                           </span>
                           <span className="text-[8px] font-black uppercase text-[#d70f64] bg-[#d70f64]/10 px-1.5 py-0.5 rounded leading-none shrink-0 border border-[#d70f64]/20">
                             {o.status === "out_for_delivery" ? "Transit 🛵" : o.status === "preparing" ? "Kitchen 🍳" : o.status === "accepted" ? "Cook 🍳" : "Placed"}
@@ -309,26 +311,26 @@ export default function FoodpandaHeader({
                   </div>
                 )}
 
-                {/* Recent Orders section for quick re-ordering */}
+                {/* Recent Orders section for quick re-ordering (Horizontal Cards) */}
                 {(() => {
                   const recentUserOrders = allOrders
                     .filter((o) => o.userId === user.uid)
-                    .slice(0, 3);
+                    .slice(0, 4);
                   if (recentUserOrders.length === 0) return null;
                   return (
                     <div className="p-2 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/30 dark:bg-zinc-950/30">
                       <span className="text-[8.5px] uppercase font-black tracking-widest text-zinc-500 dark:text-zinc-400 px-1.5 block mb-1.5">
                         Recent Orders
                       </span>
-                      <div className="max-h-48 overflow-y-auto space-y-1.5 pr-0.5">
+                      <div className="flex overflow-x-auto gap-2 pb-1 scrollbar-none">
                         {recentUserOrders.map((o) => (
                           <div
                             key={o.id}
-                            className="p-2 rounded-xl border border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-[#d70f64]/20 transition-all text-[10.5px] font-bold space-y-1 shadow-2xs"
+                            className="shrink-0 w-44 p-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-[#d70f64]/30 transition-all text-[10.5px] font-bold space-y-1 shadow-2xs"
                           >
                             <div className="flex items-center justify-between">
                               <span className="text-zinc-700 dark:text-zinc-300 font-extrabold text-[10px]">
-                                dadu-{o.id.substring(0, 5)}
+                                #{o.id.substring(0, 5)}
                               </span>
                               <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded leading-none shrink-0 border ${
                                 o.status === "delivered" || o.status === "completed"
@@ -337,7 +339,7 @@ export default function FoodpandaHeader({
                                   ? "text-red-600 bg-red-50 border-red-200"
                                   : "text-amber-700 bg-amber-50 border-amber-200"
                               }`}>
-                                {o.status === "delivered" || o.status === "completed" ? "Delivered 🎉" : o.status === "cancelled" ? "Cancelled" : "Active"}
+                                {o.status === "delivered" || o.status === "completed" ? "Done" : o.status === "cancelled" ? "Cancelled" : "Active"}
                               </span>
                             </div>
                             <div className="text-[9px] text-zinc-500 dark:text-zinc-400 truncate leading-snug font-medium">
@@ -367,16 +369,17 @@ export default function FoodpandaHeader({
                   );
                 })()}
 
-                <div className="p-1 bg-white dark:bg-zinc-900">
+                {/* Horizontal / Grid Quick Action Buttons */}
+                <div className="p-2 bg-white dark:bg-zinc-900 flex flex-wrap items-center gap-1.5">
                   <button
                     onClick={() => {
                       setShowUserMenu(false);
                       if (onToggleFavorites) onToggleFavorites();
                     }}
-                    className={`w-full text-left font-bold text-xs px-3.5 py-2 rounded-xl transition flex items-center gap-2 cursor-pointer ${showFavoritesOnly ? 'text-[#d70f64] bg-[#d70f64]/10' : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
+                    className={`flex-1 min-w-[100px] font-bold text-xs px-2.5 py-2 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer border ${showFavoritesOnly ? 'text-[#d70f64] bg-[#d70f64]/10 border-[#d70f64]/20' : 'text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-800/80 border-zinc-100 dark:border-zinc-750 hover:bg-zinc-100'}`}
                   >
-                    <Heart className={`w-4 h-4 shrink-0 ${showFavoritesOnly ? 'fill-[#d70f64] text-[#d70f64]' : 'text-[#d70f64]'}`} />
-                    My Favorites
+                    <Heart className={`w-3.5 h-3.5 shrink-0 ${showFavoritesOnly ? 'fill-[#d70f64] text-[#d70f64]' : 'text-[#d70f64]'}`} />
+                    <span>Favorites</span>
                   </button>
 
                   <button
@@ -384,30 +387,25 @@ export default function FoodpandaHeader({
                       setShowUserMenu(false);
                       if (onOpenHistory) onOpenHistory();
                     }}
-                    className="w-full text-left font-bold text-xs text-zinc-700 dark:text-zinc-300 px-3.5 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-xl transition flex items-center gap-2 cursor-pointer"
+                    className="flex-1 min-w-[100px] font-bold text-xs text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-100 dark:border-zinc-750 px-2.5 py-2 hover:bg-zinc-100 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
                     id="history-menu-btn"
                   >
-                    <History className="w-4 h-4 text-[#d70f64] shrink-0" />
-                    Order History
+                    <History className="w-3.5 h-3.5 text-[#d70f64] shrink-0" />
+                    <span>History</span>
                   </button>
 
                   <button
                     onClick={() => {
                       if (onToggleTheme) onToggleTheme();
                     }}
-                    className="w-full text-left font-bold text-xs text-zinc-700 dark:text-zinc-300 px-3.5 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-xl transition flex items-center justify-between cursor-pointer"
+                    className="flex-1 min-w-[100px] font-bold text-xs text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-100 dark:border-zinc-750 px-2.5 py-2 hover:bg-zinc-100 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
                   >
-                    <span className="flex items-center gap-2">
-                      {theme === "light" ? (
-                        <Moon className="w-4 h-4 text-zinc-700 dark:text-zinc-300 shrink-0" />
-                      ) : (
-                        <Sun className="w-4 h-4 text-amber-500 shrink-0" />
-                      )}
-                      <span>{theme === "light" ? "Dark Mode" : "Light Mode"}</span>
-                    </span>
-                    <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium capitalize">
-                      {theme}
-                    </span>
+                    {theme === "light" ? (
+                      <Moon className="w-3.5 h-3.5 text-zinc-700 dark:text-zinc-300 shrink-0" />
+                    ) : (
+                      <Sun className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    )}
+                    <span>{theme === "light" ? "Dark" : "Light"}</span>
                   </button>
 
                   {user.role === "admin" && (
@@ -416,10 +414,10 @@ export default function FoodpandaHeader({
                         setShowUserMenu(false);
                         onOpenAdmin();
                       }}
-                      className="w-full text-left font-bold text-xs text-amber-600 px-3.5 py-2 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-xl transition flex items-center gap-2 cursor-pointer"
+                      className="w-full font-bold text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 px-2.5 py-2 hover:bg-amber-100 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
                     >
-                      <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
-                      Admin Console
+                      <ShieldAlert className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      <span>Admin Console</span>
                     </button>
                   )}
 
@@ -428,10 +426,10 @@ export default function FoodpandaHeader({
                       setShowUserMenu(false);
                       onLogout();
                     }}
-                    className="w-full text-left text-xs font-bold text-red-650 px-3.5 py-2 hover:bg-pink-50 dark:hover:bg-red-950/30 rounded-xl transition flex items-center gap-2 cursor-pointer"
+                    className="w-full text-xs font-bold text-red-600 bg-red-50 dark:bg-red-950/30 border border-red-200/50 px-2.5 py-2 hover:bg-red-100 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
                   >
-                    <LogOut className="w-4 h-4 shrink-0" />
-                    Sign Out
+                    <LogOut className="w-3.5 h-3.5 shrink-0" />
+                    <span>Sign Out</span>
                   </button>
                 </div>
               </div>

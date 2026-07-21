@@ -442,6 +442,7 @@ export default function AdminPanel({
     | "seo"
     | "banners"
     | "vouchers"
+    | "food_categories"
   >("analytics");
   const [allUsersList, setAllUsersList] = useState<UserProfile[]>([]);
   const [bannersList, setBannersList] = useState<Banner[]>([]);
@@ -986,6 +987,11 @@ export default function AdminPanel({
   const [unlockCoords, setUnlockCoords] = useState<{ lat?: number; lng?: number } | null>(null);
   const [isDetectingUnlockGPS, setIsDetectingUnlockGPS] = useState(false);
   const [newUserToast, setNewUserToast] = useState<{ phone: string; show: boolean } | null>(null);
+
+  // User voucher sending states
+  const [voucherSendingUser, setVoucherSendingUser] = useState<UserProfile | null>(null);
+  const [selectedVoucherCode, setSelectedVoucherCode] = useState("");
+  const [customVoucherMessage, setCustomVoucherMessage] = useState("");
   const isFirstLoadRef = React.useRef(true);
 
   // Automatically populate address fields when configuring/editing a user
@@ -2559,19 +2565,19 @@ export default function AdminPanel({
   return (
     <div className="fixed inset-0 z-50 bg-slate-50 text-slate-900 overflow-y-auto font-sans flex flex-col antialiased">
       {/* Header Admin Strip */}
-      <div className="bg-white border-b border-slate-200 p-5 sticky top-0 z-20 flex items-center justify-between shadow-xl">
-        <div className="flex items-center gap-4">
-          <div className="bg-gradient-to-r from-[#D70F64] to-[#b00c50] text-white px-3.5 py-1.5 text-[10.5px] font-black uppercase tracking-widest rounded-lg shadow-lg shadow-[#D70F64]/10">
+      <div className="bg-white border-b border-slate-200 px-3 py-2.5 sm:px-6 sm:py-4 sticky top-0 z-20 flex items-center justify-between shadow-md">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <div className="bg-gradient-to-r from-[#D70F64] to-[#b00c50] text-white px-2.5 py-1 text-[9.5px] sm:text-[10.5px] font-black uppercase tracking-widest rounded-lg shadow-sm">
             Console Active
           </div>
           <div>
-            <h2 className="text-base font-black tracking-tight text-slate-900 flex items-center gap-2">
-              Dadu24#7 System Hub
-              <span className="text-[#D70F64] font-mono text-xs select-all bg-[#D70F64]/5 px-2 py-0.5 rounded border border-[#D70F64]/20">
+            <h2 className="text-xs sm:text-base font-black tracking-tight text-slate-900 flex items-center gap-1.5">
+              Dadu Hub
+              <span className="text-[#D70F64] font-mono text-[10px] sm:text-xs select-all bg-[#D70F64]/5 px-1.5 py-0.5 rounded border border-[#D70F64]/20">
                 @{adminUsername}
               </span>
             </h2>
-            <span className="text-[11px] text-slate-600 font-medium font-sans">
+            <span className="hidden sm:block text-[11px] text-slate-500 font-medium font-sans">
               Enterprise Business Management Control & Live Logistics Telemetry
             </span>
           </div>
@@ -2579,235 +2585,402 @@ export default function AdminPanel({
 
         <button
           onClick={onClose}
-          className="bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 px-5 py-2.5 rounded-2xl transition-all hover:scale-[1.02] cursor-pointer flex items-center gap-1.5 shadow-md active:scale-95"
+          className="bg-white hover:bg-slate-50 border border-slate-200 text-[11px] sm:text-xs font-bold text-slate-700 px-3 py-1.5 sm:px-5 sm:py-2 rounded-xl sm:rounded-2xl transition-all cursor-pointer flex items-center gap-1 shadow-xs active:scale-95"
         >
-          Exit Console 🚪
+          Exit 🚪
         </button>
       </div>
 
       {/* Main Container Dashboard */}
-      <div className="max-w-7xl mx-auto w-full px-4 py-8 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8 pb-24">
-        {/* Navigation Admin Side Rail */}
-        <div className="col-span-1 lg:col-span-3 space-y-4">
-          <div className="space-y-4">
-            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-3 shadow-xl relative overflow-hidden">
-              <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[#D70F64]/30 to-transparent" />
-              <span className="text-[9.5px] font-black text-slate-500 block uppercase tracking-widest pl-1 mb-1">
-                Core Terminals
+      <div className="max-w-7xl mx-auto w-full px-2.5 py-3 sm:px-6 sm:py-6 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-6 pb-20">
+        {/* Mobile Horizontal Navigation Tab Bar (Shown only on small/medium screens) */}
+        <div className="lg:hidden col-span-1 bg-white border border-slate-200 p-2 rounded-2xl shadow-xs">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-nowrap scrollbar-none">
+            <button
+              onClick={() => setActiveSubTab("analytics")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
+                activeSubTab === "analytics" ? "bg-[#D70F64] border-[#D70F64] text-white" : "bg-slate-50 border-slate-200 text-slate-700"
+              }`}
+            >
+              <LayoutDashboard className="w-3.5 h-3.5" /> Analytics
+            </button>
+            <button
+              onClick={() => setActiveSubTab("orders")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
+                activeSubTab === "orders" ? "bg-[#D70F64] border-[#D70F64] text-white" : "bg-slate-50 border-slate-200 text-slate-700"
+              }`}
+            >
+              <ShoppingCart className="w-3.5 h-3.5" /> Orders {totalActiveCount > 0 && `(${totalActiveCount})`}
+            </button>
+            <button
+              onClick={() => setActiveSubTab("restaurants")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
+                activeSubTab === "restaurants" ? "bg-[#D70F64] border-[#D70F64] text-white" : "bg-slate-50 border-slate-200 text-slate-700"
+              }`}
+            >
+              <Clock className="w-3.5 h-3.5" /> Vendors
+            </button>
+            <button
+              onClick={() => { setActiveSubTab("items"); setNewItemType("food"); }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
+                activeSubTab === "items" ? "bg-[#D70F64] border-[#D70F64] text-white" : "bg-slate-50 border-slate-200 text-slate-700"
+              }`}
+            >
+              <ListCollapse className="w-3.5 h-3.5" /> Food Items
+            </button>
+            <button
+              onClick={() => setActiveSubTab("food_categories")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
+                activeSubTab === "food_categories" ? "bg-[#D70F64] border-[#D70F64] text-white" : "bg-slate-50 border-slate-200 text-slate-700"
+              }`}
+            >
+              <Grid className="w-3.5 h-3.5" /> Categories
+            </button>
+            <button
+              onClick={() => setActiveSubTab("grocery")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
+                activeSubTab === "grocery" ? "bg-[#D70F64] border-[#D70F64] text-white" : "bg-slate-50 border-slate-200 text-slate-700"
+              }`}
+            >
+              <ShoppingBasket className="w-3.5 h-3.5" /> Grocery
+            </button>
+            <button
+              onClick={() => { setActiveSubTab("services"); setNewItemType("service"); }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
+                activeSubTab === "services" ? "bg-[#D70F64] border-[#D70F64] text-white" : "bg-slate-50 border-slate-200 text-slate-700"
+              }`}
+            >
+              <Wrench className="w-3.5 h-3.5" /> Services
+            </button>
+            <button
+              onClick={() => setActiveSubTab("riders")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
+                activeSubTab === "riders" ? "bg-[#D70F64] border-[#D70F64] text-white" : "bg-slate-50 border-slate-200 text-slate-700"
+              }`}
+            >
+              <Truck className="w-3.5 h-3.5" /> Riders
+            </button>
+            <button
+              onClick={() => setActiveSubTab("users")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
+                activeSubTab === "users" ? "bg-[#D70F64] border-[#D70F64] text-white" : "bg-slate-50 border-slate-200 text-slate-700"
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" /> Users ({allUsersList.length})
+            </button>
+            <button
+              onClick={() => setActiveSubTab("vouchers")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
+                activeSubTab === "vouchers" ? "bg-[#D70F64] border-[#D70F64] text-white" : "bg-slate-50 border-slate-200 text-slate-700"
+              }`}
+            >
+              <Ticket className="w-3.5 h-3.5" /> Vouchers
+            </button>
+            <button
+              onClick={() => setActiveSubTab("devices")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
+                activeSubTab === "devices" ? "bg-red-600 border-red-600 text-white" : "bg-slate-50 border-slate-200 text-slate-700"
+              }`}
+            >
+              <ShieldAlert className="w-3.5 h-3.5" /> Bans
+            </button>
+            <button
+              onClick={() => setActiveSubTab("banners")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
+                activeSubTab === "banners" ? "bg-[#D70F64] border-[#D70F64] text-white" : "bg-slate-50 border-slate-200 text-slate-700"
+              }`}
+            >
+              <ImageIcon className="w-3.5 h-3.5" /> Banners
+            </button>
+            <button
+              onClick={() => setActiveSubTab("seo")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
+                activeSubTab === "seo" ? "bg-[#D70F64] border-[#D70F64] text-white" : "bg-slate-50 border-slate-200 text-slate-700"
+              }`}
+            >
+              <Globe className="w-3.5 h-3.5" /> SEO
+            </button>
+          </div>
+        </div>
+
+        {/* Navigation Admin Side Rail (Desktop) */}
+        <div className="hidden lg:block lg:col-span-3 space-y-4">
+          <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm space-y-6 sticky top-24">
+            {/* Branding/Profile */}
+            <div className="pb-4 border-b border-slate-100">
+              <span className="text-[10px] font-black text-slate-400 block uppercase tracking-widest mb-1">
+                System Console
               </span>
+              <h3 className="text-sm font-black text-slate-900 flex items-center gap-1.5 flex-wrap">
+                Dadu Food Hub
+                <span className="text-[#D70F64] font-mono text-[11px] font-bold bg-[#D70F64]/5 px-1.5 py-0.5 rounded border border-[#D70F64]/10 select-all">
+                  @{adminUsername}
+                </span>
+              </h3>
+              <p className="text-[10px] text-slate-500 font-medium mt-1 leading-relaxed">
+                Manage active orders, menus, partners, deliveries & vouchers.
+              </p>
+            </div>
 
-              <button
-                onClick={() => setActiveSubTab("analytics")}
-                className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
-                  activeSubTab === "analytics"
-                    ? "bg-[#D70F64] border-[#D70F64] text-white font-extrabold shadow-[0_0_20px_rgba(245,158,11,0.04)]"
-                    : "bg-transparent border-transparent hover:bg-slate-800 text-slate-400 hover:text-white"
-                }`}
-              >
-                <LayoutDashboard className="w-4 h-4 shrink-0" />
-                Realtime Analytics
-              </button>
+            {/* Grouped Tabs */}
+            <div className="space-y-4">
+              {/* Group 1: Analytics & Control */}
+              <div>
+                <span className="text-[9px] font-black text-slate-400 block uppercase tracking-widest pl-1 mb-1.5">
+                  Core Operations
+                </span>
+                <div className="space-y-0.5">
+                  <button
+                    onClick={() => setActiveSubTab("analytics")}
+                    className={`w-full font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
+                      activeSubTab === "analytics"
+                        ? "bg-[#D70F64] border-[#D70F64] text-white shadow-sm"
+                        : "bg-transparent border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    }`}
+                  >
+                    <LayoutDashboard className="w-3.5 h-3.5 shrink-0" />
+                    Realtime Analytics
+                  </button>
 
-              <button
-                onClick={() => setActiveSubTab("orders")}
-                className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
-                  activeSubTab === "orders"
-                    ? "bg-[#D70F64] border-[#D70F64] text-white font-extrabold shadow-[0_0_20px_rgba(245,158,11,0.04)]"
-                    : "bg-transparent border-transparent hover:bg-slate-800 text-slate-400 hover:text-white"
-                }`}
-              >
-                <ShoppingCart className="w-4 h-4 shrink-0" />
-                Live Orders Manager
-                {totalActiveCount > 0 && (
-                  <span className="ml-auto bg-[#D70F64] text-white font-black px-2.5 py-0.5 text-[9.5px] rounded-full shadow-[0_2px_10px_rgba(215,15,100,0.2)]">
+                  <button
+                    onClick={() => setActiveSubTab("orders")}
+                    className={`w-full font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
+                      activeSubTab === "orders"
+                        ? "bg-[#D70F64] border-[#D70F64] text-white shadow-sm"
+                        : "bg-transparent border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    }`}
+                  >
+                    <ShoppingCart className="w-3.5 h-3.5 shrink-0" />
+                    Live Orders Manager
+                    {totalActiveCount > 0 && (
+                      <span className={`ml-auto font-black px-2 py-0.5 text-[9px] rounded-full leading-none ${
+                        activeSubTab === "orders" 
+                          ? "bg-white text-[#D70F64]" 
+                          : "bg-[#D70F64] text-white"
+                      }`}>
+                        {totalActiveCount}
+                      </span>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Group 2: Catalog & Partners */}
+              <div>
+                <span className="text-[9px] font-black text-slate-400 block uppercase tracking-widest pl-1 mb-1.5">
+                  Food & Restaurants
+                </span>
+                <div className="space-y-0.5">
+                  <button
+                    onClick={() => setActiveSubTab("restaurants")}
+                    className={`w-full font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
+                      activeSubTab === "restaurants"
+                        ? "bg-[#D70F64] border-[#D70F64] text-white shadow-sm"
+                        : "bg-transparent border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    }`}
+                  >
+                    <Clock className="w-3.5 h-3.5 shrink-0" />
+                    Manage Restaurants
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setActiveSubTab("items");
+                      setNewItemType("food");
+                    }}
+                    className={`w-full font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
+                      activeSubTab === "items"
+                        ? "bg-[#D70F64] border-[#D70F64] text-white shadow-sm"
+                        : "bg-transparent border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    }`}
+                  >
+                    <ListCollapse className="w-3.5 h-3.5 shrink-0" />
+                    Manage Food Items
+                  </button>
+
+                  <button
+                    onClick={() => setActiveSubTab("food_categories")}
+                    className={`w-full font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
+                      activeSubTab === "food_categories"
+                        ? "bg-[#D70F64] border-[#D70F64] text-white shadow-sm"
+                        : "bg-transparent border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    }`}
+                  >
+                    <Grid className="w-3.5 h-3.5 shrink-0" />
+                    Food Categories
+                  </button>
+                </div>
+              </div>
+
+              {/* Group 3: Verticals */}
+              <div>
+                <span className="text-[9px] font-black text-slate-400 block uppercase tracking-widest pl-1 mb-1.5">
+                  Other Verticals
+                </span>
+                <div className="space-y-0.5">
+                  <button
+                    onClick={() => setActiveSubTab("grocery")}
+                    className={`w-full font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
+                      activeSubTab === "grocery"
+                        ? "bg-[#D70F64] border-[#D70F64] text-white shadow-sm"
+                        : "bg-transparent border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    }`}
+                  >
+                    <ShoppingBasket className="w-3.5 h-3.5 shrink-0" />
+                    Grocery Store
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setActiveSubTab("services");
+                      setNewItemType("service");
+                    }}
+                    className={`w-full font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
+                      activeSubTab === "services"
+                        ? "bg-[#D70F64] border-[#D70F64] text-white shadow-sm"
+                        : "bg-transparent border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    }`}
+                  >
+                    <Wrench className="w-3.5 h-3.5 shrink-0" />
+                    Home Services
+                  </button>
+                </div>
+              </div>
+
+              {/* Group 4: Users & Logistics */}
+              <div>
+                <span className="text-[9px] font-black text-slate-400 block uppercase tracking-widest pl-1 mb-1.5">
+                  Logistics & Users
+                </span>
+                <div className="space-y-0.5">
+                  <button
+                    onClick={() => setActiveSubTab("riders")}
+                    className={`w-full font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
+                      activeSubTab === "riders"
+                        ? "bg-[#D70F64] border-[#D70F64] text-white shadow-sm"
+                        : "bg-transparent border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    }`}
+                  >
+                    <Truck className="w-3.5 h-3.5 shrink-0" />
+                    Riders Directory
+                  </button>
+
+                  <button
+                    onClick={() => setActiveSubTab("users")}
+                    className={`w-full font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
+                      activeSubTab === "users"
+                        ? "bg-[#D70F64] border-[#D70F64] text-white shadow-sm"
+                        : "bg-transparent border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    }`}
+                  >
+                    <Users className="w-3.5 h-3.5 shrink-0" />
+                    Users Directory
+                    <span className={`ml-auto font-bold px-1.5 py-0.5 text-[9px] rounded-full leading-none ${
+                      activeSubTab === "users" 
+                        ? "bg-white text-[#D70F64]" 
+                        : "bg-slate-100 text-slate-500"
+                    }`}>
+                      {allUsersList.length}
+                    </span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveSubTab("devices")}
+                    className={`w-full font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
+                      activeSubTab === "devices"
+                        ? "bg-red-600 border-red-600 text-white shadow-sm"
+                        : "bg-transparent border-transparent text-slate-600 hover:bg-red-50 hover:text-red-600"
+                    }`}
+                  >
+                    <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
+                    Devices Ban Control
+                  </button>
+                </div>
+              </div>
+
+              {/* Group 5: Campaigns & Config */}
+              <div>
+                <span className="text-[9px] font-black text-slate-400 block uppercase tracking-widest pl-1 mb-1.5">
+                  Marketing & System
+                </span>
+                <div className="space-y-0.5">
+                  <button
+                    onClick={() => setActiveSubTab("vouchers")}
+                    className={`w-full font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
+                      activeSubTab === "vouchers"
+                        ? "bg-[#D70F64] border-[#D70F64] text-white shadow-sm"
+                        : "bg-transparent border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    }`}
+                  >
+                    <Ticket className="w-3.5 h-3.5 shrink-0" />
+                    Promo Vouchers
+                  </button>
+
+                  <button
+                    onClick={() => setActiveSubTab("banners")}
+                    className={`w-full font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
+                      activeSubTab === "banners"
+                        ? "bg-[#D70F64] border-[#D70F64] text-white shadow-sm"
+                        : "bg-transparent border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    }`}
+                  >
+                    <ImageIcon className="w-3.5 h-3.5 shrink-0" />
+                    Promotional Banners
+                  </button>
+
+                  <button
+                    onClick={() => setActiveSubTab("seo")}
+                    className={`w-full font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
+                      activeSubTab === "seo"
+                        ? "bg-[#D70F64] border-[#D70F64] text-white shadow-sm"
+                        : "bg-transparent border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    }`}
+                  >
+                    <Globe className="w-3.5 h-3.5 shrink-0" />
+                    SEO & App Config
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Stats overview panel */}
+            <div className="pt-4 border-t border-slate-100 space-y-3">
+              <span className="text-[9px] font-black text-slate-400 block uppercase tracking-widest pl-1">
+                Financial Coordinates
+              </span>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="bg-slate-50/50 border border-slate-100 p-2.5 rounded-xl transition-all">
+                  <span className="text-slate-400 block text-[8.5px] font-bold uppercase tracking-wider">
+                    Gross Rev
+                  </span>
+                  <span className="text-[12.5px] font-black text-[#D70F64] mt-0.5 block leading-tight">
+                    Rs. {totalRevenue}
+                  </span>
+                </div>
+                <div className="bg-slate-50/50 border border-slate-100 p-2.5 rounded-xl transition-all">
+                  <span className="text-slate-400 block text-[8.5px] font-bold uppercase tracking-wider">
+                    Comm
+                  </span>
+                  <span className="text-[12.5px] font-black text-emerald-600 mt-0.5 block leading-tight">
+                    Rs. {totalCommissionSum}
+                  </span>
+                </div>
+                <div className="bg-slate-50/50 border border-slate-100 p-2.5 rounded-xl transition-all">
+                  <span className="text-slate-400 block text-[8.5px] font-bold uppercase tracking-wider">
+                    Completed
+                  </span>
+                  <span className="text-[12.5px] font-black text-slate-800 mt-0.5 block leading-tight">
+                    {totalCompletedCount}
+                  </span>
+                </div>
+                <div className="bg-slate-50/50 border border-slate-100 p-2.5 rounded-xl transition-all">
+                  <span className="text-slate-400 block text-[8.5px] font-bold uppercase tracking-wider">
+                    Active
+                  </span>
+                  <span className="text-[12.5px] font-black text-[#D70F64] mt-0.5 block leading-tight">
                     {totalActiveCount}
                   </span>
-                )}
-              </button>
-            </div>
-
-            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-3 shadow-xl relative overflow-hidden">
-              <span className="text-[9.5px] font-black text-slate-500 block uppercase tracking-widest pl-1 mb-1">
-                Vendors & Catalog
-              </span>
-
-              <button
-                onClick={() => setActiveSubTab("restaurants")}
-                className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
-                  activeSubTab === "restaurants"
-                    ? "bg-[#D70F64] border-[#D70F64] text-white font-extrabold shadow-[0_0_20px_rgba(168,85,247,0.04)]"
-                    : "bg-transparent border-transparent hover:bg-slate-800 text-slate-400 hover:text-white"
-                }`}
-              >
-                <Clock className="w-4 h-4 shrink-0" />
-                Manage Restaurants
-              </button>
-
-              <button
-                onClick={() => setActiveSubTab("food_categories")}
-                className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
-                  activeSubTab === "food_categories"
-                    ? "bg-[#D70F64] border-[#D70F64] text-white font-extrabold shadow-[0_0_20px_rgba(236,72,153,0.05)] scale-[1.01]"
-                    : "bg-transparent border-transparent hover:bg-slate-800 text-slate-600 hover:text-pink-400/90"
-                }`}
-              >
-                <Grid className="w-4 h-4 shrink-0" />
-                Manage Food Categories
-              </button>
-
-              <button
-                onClick={() => setActiveSubTab("grocery")}
-                className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
-                  activeSubTab === "grocery"
-                    ? "bg-[#D70F64] border-[#D70F64] text-white font-extrabold shadow-[0_0_20px_rgba(249,115,22,0.05)] scale-[1.01]"
-                    : "bg-transparent border-transparent hover:bg-slate-800 text-slate-600 hover:text-orange-400/90"
-                }`}
-              >
-                <ShoppingBasket className="w-4 h-4 text-orange-500 shrink-0" />
-                Manage Grocery Store
-              </button>
-
-              <button
-                onClick={() => {
-                  setActiveSubTab("services");
-                  setNewItemType("service");
-                }}
-                className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
-                  activeSubTab === "services"
-                    ? "bg-[#D70F64] border-[#D70F64] text-white font-extrabold shadow-[0_0_20px_rgba(59,130,246,0.04)]"
-                    : "bg-transparent border-transparent hover:bg-slate-800 text-slate-600 hover:text-blue-400"
-                }`}
-              >
-                <Settings className="w-4 h-4 text-blue-500 shrink-0" />
-                Manage Services
-              </button>
-            </div>
-
-            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-3 shadow-xl relative overflow-hidden">
-              <span className="text-[9.5px] font-black text-slate-500 block uppercase tracking-widest pl-1 mb-1">
-                Fleet & Users
-              </span>
-
-              <button
-                onClick={() => setActiveSubTab("riders")}
-                className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
-                  activeSubTab === "riders"
-                    ? "bg-[#D70F64] border-[#D70F64] text-white font-extrabold shadow-[0_0_20px_rgba(245,158,11,0.04)]"
-                    : "bg-transparent border-transparent hover:bg-slate-800 text-slate-400 hover:text-white"
-                }`}
-              >
-                <User className="w-4 h-4 shrink-0" />
-                Manage Riders Directory
-              </button>
-
-              <button
-                onClick={() => setActiveSubTab("users")}
-                className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
-                  activeSubTab === "users"
-                    ? "bg-[#D70F64] border-[#D70F64] text-white font-extrabold shadow-[0_0_20px_rgba(16,185,129,0.04)]"
-                    : "bg-transparent border-transparent hover:bg-slate-800 text-slate-600 hover:text-emerald-450"
-                }`}
-              >
-                <Users className="w-4 h-4 shrink-0" />
-                Manage Users Directory
-                <span className="ml-auto bg-emerald-600 text-white font-extrabold px-2 py-0.5 text-[9px] rounded-full">
-                  {allUsersList.length}
-                </span>
-              </button>
-
-              <button
-                onClick={() => setActiveSubTab("devices")}
-                className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
-                  activeSubTab === "devices"
-                    ? "bg-red-600 border-red-600 text-white font-extrabold shadow-[0_0_20px_rgba(220,38,38,0.2)]"
-                    : "bg-transparent border-transparent hover:bg-slate-800 text-slate-600 hover:text-red-400"
-                }`}
-              >
-                <ShieldAlert className="w-4 h-4 shrink-0" />
-                Manage Devices (Ban)
-              </button>
-            </div>
-
-            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-3 shadow-xl relative overflow-hidden">
-              <span className="text-[9.5px] font-black text-slate-500 block uppercase tracking-widest pl-1 mb-1">
-                System
-              </span>
-
-              <button
-                onClick={() => setActiveSubTab("seo")}
-                className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
-                  activeSubTab === "seo"
-                    ? "bg-[#D70F64] border-[#D70F64] text-white font-extrabold shadow-[0_0_20px_rgba(59,130,246,0.04)]"
-                    : "bg-transparent border-transparent hover:bg-slate-800 text-slate-600 hover:text-blue-450"
-                }`}
-              >
-                <Globe className="w-4 h-4 text-blue-500 shrink-0" />
-                SEO & Metadata
-              </button>
-
-              <button
-                onClick={() => setActiveSubTab("banners")}
-                className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
-                  activeSubTab === "banners"
-                    ? "bg-[#D70F64] border-[#D70F64] text-white font-extrabold shadow-[0_0_20px_rgba(59,130,246,0.04)]"
-                    : "bg-transparent border-transparent hover:bg-slate-800 text-slate-600 hover:text-pink-400"
-                }`}
-              >
-                <ImageIcon className="w-4 h-4 text-pink-500 shrink-0" />
-                Banners
-              </button>
-
-              <button
-                onClick={() => setActiveSubTab("vouchers")}
-                className={`w-full font-black text-xs px-4 py-3.5 rounded-2xl transition-all duration-300 flex items-center gap-3.5 cursor-pointer border ${
-                  activeSubTab === "vouchers"
-                    ? "bg-[#D70F64] border-[#D70F64] text-white font-extrabold shadow-[0_0_20px_rgba(59,130,246,0.04)]"
-                    : "bg-transparent border-transparent hover:bg-slate-800 text-slate-600 hover:text-pink-400"
-                }`}
-              >
-                <Ticket className="w-4 h-4 text-pink-500 shrink-0" />
-                Vouchers
-              </button>
-            </div>
-          </div>
-
-          {/* Quick Stats overview panel */}
-          <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-4 shadow-xl relative overflow-hidden text-xs">
-            <span className="text-[9.5px] font-black text-slate-500 block uppercase tracking-widest">
-              Financial Coordinates
-            </span>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl hover:border-[#D70F64]/20 transition-all group">
-                <span className="text-slate-500 block text-[9.5px] font-bold uppercase tracking-wider">
-                  Gross Rev
-                </span>
-                <span className="text-[15px] font-black text-[#D70F64] mt-1 block">
-                  Rs. {totalRevenue}
-                </span>
-              </div>
-              <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl hover:border-emerald-500/20 transition-all">
-                <span className="text-slate-500 block text-[9.5px] font-bold uppercase tracking-wider">
-                  Your Comm
-                </span>
-                <span className="text-[15px] font-black text-emerald-400 mt-1 block">
-                  Rs. {totalCommissionSum}
-                </span>
-              </div>
-              <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl hover:border-emerald-500/20 transition-all">
-                <span className="text-slate-500 block text-[9.5px] font-bold uppercase tracking-wider">
-                  Completed
-                </span>
-                <span className="text-[15px] font-black text-slate-800 mt-1 block">
-                  {totalCompletedCount}
-                </span>
-              </div>
-              <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl hover:border-[#D70F64]/20 transition-all">
-                <span className="text-slate-500 block text-[9.5px] font-bold uppercase tracking-wider">
-                  Active
-                </span>
-                <span className="text-[15px] font-black text-[#D70F64] mt-1 block">
-                  {totalActiveCount}
-                </span>
+                </div>
               </div>
             </div>
           </div>
@@ -4137,13 +4310,28 @@ export default function AdminPanel({
               {/* Items Table List */}
               <div className="bg-white/80  border border-slate-200 rounded-[24px] overflow-hidden shadow-sm relative">
                 <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#D70F64]/10 to-transparent" />
-                <div className="p-5 border-b border-slate-200/50 bg-slate-100/15">
-                  <h4 className="font-black text-sm text-slate-900 uppercase tracking-wide">
-                    Operational Catalog Directory
-                  </h4>
-                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                    Enable availability controls and edit prices instantly
-                  </span>
+                <div className="p-5 border-b border-slate-200/50 bg-slate-100/15 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h4 className="font-black text-sm text-slate-900 uppercase tracking-wide">
+                      Operational Catalog Directory
+                    </h4>
+                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                      Enable availability controls and edit prices instantly
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black uppercase text-slate-400 whitespace-nowrap">Filter by Restaurant:</span>
+                    <select
+                      value={newItemRestaurantName}
+                      onChange={(e) => setNewItemRestaurantName(e.target.value)}
+                      className="p-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-[#D70F64] min-w-[200px]"
+                    >
+                      <option value="">All Restaurants / Vendors</option>
+                      {uniqueRestaurants.map((rest) => (
+                        <option key={rest} value={rest}>{rest}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 <div className="overflow-x-auto">
@@ -7489,6 +7677,17 @@ export default function AdminPanel({
                             <div className="pt-2 flex items-center gap-2 flex-wrap">
                               <button
                                 type="button"
+                                onClick={() => {
+                                  setVoucherSendingUser(u);
+                                  setSelectedVoucherCode("");
+                                  setCustomVoucherMessage("");
+                                }}
+                                className="flex-1 min-w-[70px] py-1.5 rounded-lg text-[10px] font-black uppercase transition-all bg-[#D70F64]/10 text-[#D70F64] hover:bg-[#D70F64]/20 cursor-pointer text-center"
+                              >
+                                🎁 Voucher
+                              </button>
+                              <button
+                                type="button"
                                 onClick={() => setUnlockingUser(u)}
                                 className="flex-1 min-w-[70px] py-1.5 rounded-lg text-[10px] font-black uppercase transition-all bg-sky-500/10 text-sky-500 hover:bg-sky-500/20 cursor-pointer text-center"
                               >
@@ -7679,6 +7878,17 @@ export default function AdminPanel({
                                   </td>
                                   {/* Actions */}
                                   <td className="py-4 px-5 text-right flex items-center justify-end gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setVoucherSendingUser(u);
+                                        setSelectedVoucherCode("");
+                                        setCustomVoucherMessage("");
+                                      }}
+                                      className="p-1 px-2.5 rounded text-[10px] font-black uppercase transition-all bg-[#D70F64]/10 text-[#D70F64] hover:bg-[#D70F64]/20 cursor-pointer flex items-center gap-1"
+                                    >
+                                      🎁 Send Voucher
+                                    </button>
                                     <button
                                       type="button"
                                       onClick={() => setUnlockingUser(u)}
@@ -8632,6 +8842,152 @@ export default function AdminPanel({
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SEND VOUCHER MODAL */}
+      {voucherSendingUser && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-fade-in text-left">
+          <div className="bg-white border border-slate-200 rounded-[32px] max-w-md w-full overflow-hidden shadow-2xl p-6 relative">
+            <button
+              onClick={() => {
+                setVoucherSendingUser(null);
+                setSelectedVoucherCode("");
+                setCustomVoucherMessage("");
+              }}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition cursor-pointer font-black text-xs"
+            >
+              ✕
+            </button>
+            
+            <div className="space-y-4">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-[#D70F64] block">
+                  Campaign dispatch
+                </span>
+                <h3 className="text-lg font-black text-slate-900 mt-1">
+                  Send Voucher to {voucherSendingUser.name || "Dadu User"}
+                </h3>
+                <p className="text-[11.5px] text-slate-500 mt-1 font-semibold leading-relaxed">
+                  Select an active voucher and draft a personalized message. The user will receive this instantly as an in-app notification!
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                {/* Selected User details */}
+                <div className="bg-slate-50 border border-slate-100 p-3.5 rounded-2xl text-xs space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400 font-bold uppercase text-[9px]">Phone:</span>
+                    <span className="text-slate-800 font-mono font-black">{voucherSendingUser.phone || "Guest"}</span>
+                  </div>
+                  {voucherSendingUser.address && (
+                    <div className="flex justify-between gap-4">
+                      <span className="text-slate-400 font-bold uppercase text-[9px] shrink-0">Address:</span>
+                      <span className="text-slate-600 font-bold text-right truncate max-w-[200px]">{voucherSendingUser.address}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Dropdown for existing active vouchers */}
+                <div>
+                  <label className="text-[9.5px] font-black uppercase tracking-wider text-slate-600 block mb-1">
+                    Select active promo voucher <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={selectedVoucherCode}
+                    onChange={(e) => {
+                      const code = e.target.value;
+                      setSelectedVoucherCode(code);
+                      const matchingVoucher = vouchersList.find(v => v.code === code);
+                      if (matchingVoucher) {
+                        const discText = matchingVoucher.discountType === 'percentage' 
+                          ? `${matchingVoucher.discountValue}% OFF` 
+                          : `Rs. ${matchingVoucher.discountValue} OFF`;
+                        setCustomVoucherMessage(
+                          `🎉 Aapko mila hai ek special discount voucher! Use code "${code}" at checkout and get ${discText} on your next order. Order now and enjoy! 🍔🍕`
+                        );
+                      } else {
+                        setCustomVoucherMessage("");
+                      }
+                    }}
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none text-slate-900 focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition"
+                  >
+                    <option value="">-- Choose a Voucher --</option>
+                    {vouchersList.filter(v => v.isActive).map(v => (
+                      <option key={v.id} value={v.code}>
+                        {v.code} ({v.discountType === 'percentage' ? `${v.discountValue}%` : `Rs. ${v.discountValue}`} OFF)
+                      </option>
+                    ))}
+                  </select>
+                  {vouchersList.filter(v => v.isActive).length === 0 && (
+                    <span className="text-[10px] text-red-500 font-bold block mt-1">
+                      ⚠️ No active vouchers found. Please create one in the "Promo Vouchers" tab first!
+                    </span>
+                  )}
+                </div>
+
+                {/* Personalized Message text area */}
+                <div>
+                  <label className="text-[9.5px] font-black uppercase tracking-wider text-slate-600 block mb-1">
+                    Personalized message for user (In-app Notification) <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    required
+                    value={customVoucherMessage}
+                    onChange={(e) => setCustomVoucherMessage(e.target.value)}
+                    placeholder="Draft a message explaining the discount, e.g. Humari taraf se aapke liye discount voucher!"
+                    rows={4}
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none text-slate-900 focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition resize-none leading-relaxed"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 mt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setVoucherSendingUser(null);
+                      setSelectedVoucherCode("");
+                      setCustomVoucherMessage("");
+                    }}
+                    className="px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-[10.5px] uppercase font-black text-slate-600 hover:text-slate-700 hover:bg-slate-200 transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (!selectedVoucherCode) {
+                        alert("Please select a voucher first!");
+                        return;
+                      }
+                      if (!customVoucherMessage.trim()) {
+                        alert("Please write a custom notification message!");
+                        return;
+                      }
+                      try {
+                        await addDoc(collection(db, "notifications"), {
+                          userId: voucherSendingUser.uid,
+                          title: "🎁 Special Voucher Received!",
+                          message: customVoucherMessage,
+                          createdAt: new Date(),
+                          read: false
+                        });
+                        alert(`✅ Voucher successfully dispatched to ${voucherSendingUser.name || voucherSendingUser.phone}!`);
+                        setVoucherSendingUser(null);
+                        setSelectedVoucherCode("");
+                        setCustomVoucherMessage("");
+                      } catch (err) {
+                        alert("Failed to send voucher notification: " + err);
+                      }
+                    }}
+                    disabled={!selectedVoucherCode}
+                    className="px-5 py-2.5 bg-[#D70F64] text-white rounded-xl text-[10.5px] font-black hover:bg-[#b00c50] shadow-md cursor-pointer transition uppercase tracking-wider flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    Send Voucher 🚀
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

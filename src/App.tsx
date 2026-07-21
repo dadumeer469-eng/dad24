@@ -2491,32 +2491,6 @@ export default function App() {
                   <UtensilsCrossed className="w-4 h-4" />
                   Keep Ordering
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    isExitingRef.current = true;
-                    setIsExitConfirmationOpen(false);
-                    
-                    // Attempt to close the PWA/Window
-                    try {
-                      window.close();
-                    } catch (e) {
-                      // ignore
-                    }
-
-                    // Fallback: trigger history back to try and pop out of the app natively
-                    window.history.back();
-                    
-                    // Final Fallback: if it's still open, redirect to blank page
-                    setTimeout(() => {
-                      window.location.href = "about:blank";
-                    }, 300);
-                  }}
-                  className="w-full bg-zinc-800 hover:bg-zinc-750 text-zinc-200 py-3 rounded-2xl font-extrabold text-xs uppercase tracking-wider transition active:scale-95 border border-zinc-700/80 flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <ArrowLeft className="w-4 h-4 text-red-500" />
-                  Exit App
-                </button>
               </div>
             </div>
           </div>
