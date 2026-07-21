@@ -433,30 +433,13 @@ export default function OrderHistoryDrawer({
                             )}
 
                             {/* Prompt and interactions panel */}
-                            <div className="grid grid-cols-2 gap-2 mt-1">
-                              {/* Keep live track active if possible */}
-                              {isActive && onTrackOrder && (
-                                <button
-                                  onClick={() => {
-                                    onTrackOrder(order);
-                                    onClose();
-                                  }}
-                                  className="py-2 px-2.5 rounded-xl border border-pink-200 text-[#D70F64] hover:bg-pink-50 transition font-black text-[10.5px] uppercase tracking-wider flex items-center justify-center gap-1 cursor-pointer"
-                                  id={`track-order-${order.id}`}
-                                >
-                                  <ExternalLink className="w-3.5 h-3.5" />
-                                  Track Live Map
-                                </button>
-                              )}
-                              
+                            <div className="mt-1">
                               <button
                                 onClick={() => {
                                   onReorder(order);
                                   onClose();
                                 }}
-                                className={`py-2 px-2.5 rounded-xl bg-[#D70F64] hover:bg-[#b00c50] text-white transition font-black text-[10.5px] uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-pink-500/10 ${
-                                  isActive ? "" : "col-span-2"
-                                }`}
+                                className="w-full py-2 px-2.5 rounded-xl bg-[#D70F64] hover:bg-[#b00c50] text-white transition font-black text-[10.5px] uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-pink-500/10"
                                 id={`reorder-btn-${order.id}`}
                               >
                                 <ShoppingBag className="w-3.5 h-3.5" />

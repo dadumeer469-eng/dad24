@@ -802,6 +802,20 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                       <p className="text-[10px] text-zinc-400 font-semibold leading-relaxed">
                         Let the customer know when they can expect their food/repair arrival! Updates the live map dashboard instantly.
                       </p>
+                      {/* Quick ETA presets */}
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {["10 min", "15 min", "20 min", "25 min", "30 min", "45 min", "1 hour"].map((preset) => (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => setEtaInputs({ ...etaInputs, [riderActiveOrder.id]: preset })}
+                            className="bg-zinc-900 hover:bg-[#D70F64]/20 border border-zinc-700 hover:border-[#D70F64] text-zinc-300 hover:text-pink-300 text-[10px] font-bold px-2.5 py-1 rounded-lg transition cursor-pointer"
+                          >
+                            ⏱️ {preset}
+                          </button>
+                        ))}
+                      </div>
+
                       <div className="flex flex-col sm:flex-row gap-2">
                         <input
                           type="text"

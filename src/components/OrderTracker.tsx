@@ -301,8 +301,8 @@ export default function OrderTracker({ order, onClose, currentUser }: OrderTrack
         </div>
       </div>
 
-      {/* Status Indicators list */}
-      <div className="mt-6 space-y-4">
+      {/* Status Indicators Horizontal Timeline */}
+      <div className="mt-5 bg-zinc-950/60 border border-zinc-800/80 rounded-2xl p-3 sm:p-4 shadow-inner">
         {isCancelled ? (
           <div className="bg-pink-950/20 border border-pink-900/40 text-pink-400 rounded-2xl p-4 text-center shadow-xs">
             <span className="font-extrabold text-sm block">🚫 Order Cancelled</span>
@@ -311,46 +311,49 @@ export default function OrderTracker({ order, onClose, currentUser }: OrderTrack
             </p>
           </div>
         ) : (
-          <div className="relative pl-6 border-l-2 border-zinc-800 space-y-6">
+          <div className="relative flex items-center justify-between w-full overflow-x-auto pb-1 space-x-2 scrollbar-none">
+            {/* Background connecting bar */}
+            <div className="absolute left-4 right-4 top-4 h-1 bg-zinc-800 -z-0 rounded-full" />
+            <div
+              className="absolute left-4 top-4 h-1 bg-gradient-to-r from-pink-500 to-[#D70F64] z-0 rounded-full transition-all duration-500"
+              style={{ width: `${Math.max(0, (activeIndex / (steps.length - 1)) * 100)}%` }}
+            />
+
             {steps.map((step, idx) => {
               const isPast = idx < activeIndex;
               const isCurrent = idx === activeIndex;
-              const isFuture = idx > activeIndex;
 
               return (
-                <div key={idx} className="relative">
+                <div key={idx} className="flex flex-col items-center relative z-10 shrink-0 min-w-[65px] sm:min-w-[80px]">
                   {/* Step bullet dot */}
-                  <div className={`absolute -left-[31px] top-0.5 w-4.5 h-4.5 rounded-full flex items-center justify-center border transition-all ${
+                  <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center border transition-all text-xs font-black shadow-md ${
                     isPast 
                       ? "bg-[#D70F64] border-[#D70F64] text-white" 
                       : isCurrent 
                         ? isService 
-                          ? "bg-amber-500 text-neutral-950 border-amber-500 scale-125 shadow-md shadow-amber-500/20 font-black" 
-                          : "bg-[#D70F64] text-white border-[#D70F64] scale-125 shadow-md shadow-pink-500/20 animate-pulse font-black"
-                        : "bg-zinc-950 text-zinc-500 border-zinc-800"
+                          ? "bg-amber-500 text-neutral-950 border-amber-500 scale-110 shadow-amber-500/30" 
+                          : "bg-[#D70F64] text-white border-[#D70F64] scale-110 shadow-pink-500/30 animate-pulse"
+                        : "bg-zinc-900 text-zinc-500 border-zinc-750"
                   }`}>
                     {isPast ? (
-                      <Check className="w-2.5 h-2.5 stroke-[4.5]" />
+                      <Check className="w-3 h-3 stroke-[3.5]" />
                     ) : (
-                      <span className="text-[9px] font-black">{idx + 1}</span>
+                      <span>{idx + 1}</span>
                     )}
                   </div>
 
-                  {/* Step labels context */}
-                  <div className="pl-2">
-                    <span className={`text-xs font-black uppercase tracking-wider block ${
-                      isPast 
-                        ? "text-zinc-500" 
-                        : isCurrent 
-                          ? isService 
-                            ? "text-amber-500" 
-                            : "text-[#D70F64]" 
-                          : "text-zinc-500"
-                    }`}>
-                      {step.label}
-                    </span>
-                    <p className="text-[11px] text-zinc-400 mt-0.5 font-medium">{step.desc}</p>
-                  </div>
+                  {/* Step label */}
+                  <span className={`text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider mt-1.5 text-center leading-tight truncate max-w-[75px] ${
+                    isPast 
+                      ? "text-zinc-400" 
+                      : isCurrent 
+                        ? isService 
+                          ? "text-amber-400 font-extrabold" 
+                          : "text-[#D70F64] font-extrabold" 
+                        : "text-zinc-600"
+                  }`}>
+                    {step.label}
+                  </span>
                 </div>
               );
             })}

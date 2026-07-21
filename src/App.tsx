@@ -3234,7 +3234,7 @@ export default function App() {
                     </div>
               </FoodpandaHero>
 
-              {/* Active Order Banner Card */}
+              {/* Active Order Banner Cards (Horizontal Scroll) */}
               {(() => {
                 const activeUserOrders = orders.filter(
                   (o) =>
@@ -3247,7 +3247,7 @@ export default function App() {
                 if (!currentUser || activeUserOrders.length === 0) return null;
 
                 return (
-                  <div className="max-w-7xl mx-auto px-4 mt-6 space-y-4">
+                  <div className="max-w-7xl mx-auto px-3 sm:px-4 mt-4 sm:mt-6 flex overflow-x-auto gap-3 sm:gap-4 pb-2 scrollbar-none snap-x">
                     {activeUserOrders.map((activeOrderForBanner) => {
                       const getStepProgress = (status: string) => {
                         switch (status) {
@@ -3293,7 +3293,7 @@ export default function App() {
                       return (
                         <div
                           key={activeOrderForBanner.id}
-                          className="bg-white border-2 border-[#d70f64] rounded-2xl shadow-xl shadow-red-500/5 overflow-hidden transition-all duration-300 hover:shadow-2xl"
+                          className="shrink-0 w-[90vw] sm:w-[580px] max-w-full snap-center bg-white border-2 border-[#d70f64] rounded-2xl shadow-xl shadow-red-500/5 overflow-hidden transition-all duration-300 hover:shadow-2xl"
                         >
                           {/* Banner Header: Tap-to-track details */}
                           <div
@@ -3301,65 +3301,71 @@ export default function App() {
                               setActiveTrackingOrder(activeOrderForBanner);
                               setIsTrackingModalOpen(true);
                             }}
-                            className="p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 cursor-pointer hover:bg-zinc-50 transition border-b border-zinc-100"
+                            className="p-3.5 sm:p-4 flex items-center justify-between gap-3 cursor-pointer hover:bg-zinc-50 transition border-b border-zinc-100"
                           >
-                            <div className="flex items-center gap-4 w-full sm:w-auto">
-                              <div className="w-12 h-12 rounded-full bg-[#d70f64]/10 border border-[#d70f64]/20 flex items-center justify-center text-2xl shrink-0 animate-pulse">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#d70f64]/10 border border-[#d70f64]/20 flex items-center justify-center text-xl shrink-0 animate-pulse">
                                 {isService ? "🛠️" : "🛵"}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-[#d70f64] flex items-center gap-1">
+                                <span className="text-[9.5px] font-black uppercase tracking-widest text-[#d70f64] flex items-center gap-1">
                                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
                                   Live Order Tracking Active
                                 </span>
-                                <h4 className="text-xs sm:text-sm font-black text-zinc-800 mt-1 leading-normal truncate">
-                                  {isService ? "Service Appointment" : "Your Food Order"}{" "}
+                                <h4 className="text-xs sm:text-sm font-black text-zinc-800 mt-0.5 leading-normal truncate">
+                                  {isService ? "Service" : "Order"}{" "}
                                   <span className="font-mono text-zinc-500 font-bold">
-                                    dadu-{activeOrderForBanner.id.substring(0, 5)}...
+                                    #{activeOrderForBanner.id.substring(0, 5)}
                                   </span>{" "}
-                                  is currently{" "}
+                                  •{" "}
                                   <span className="text-[#d70f64] uppercase font-bold">
                                     {activeOrderForBanner.status === "out_for_delivery"
-                                      ? "With Foodpanda Rider"
+                                      ? "On Way"
                                       : activeOrderForBanner.status === "preparing"
-                                        ? "Cooking in Kitchen"
+                                        ? "Cooking"
                                         : activeOrderForBanner.status === "diagnostic_on_way"
-                                          ? "Technician Travelling"
+                                          ? "Travelling"
                                           : activeOrderForBanner.status === "diagnostic_underway"
-                                            ? "Inspection in Progress"
-                                            : "Confirmed & Accepted"}
+                                            ? "Inspecting"
+                                            : "Accepted"}
                                   </span>
                                 </h4>
                                 {activeOrderForBanner.riderName ? (
-                                  <div className="flex items-center gap-1.5 mt-1">
-                                    <span className="text-[10px] text-zinc-500 font-extrabold truncate">
-                                      Assigned Hero:{" "}
+                                  <div className="flex items-center gap-1 mt-0.5">
+                                    <span className="text-[9.5px] text-zinc-500 font-extrabold truncate">
+                                      Hero:{" "}
                                       <span className="text-[#d70f64] font-black">
                                         {activeOrderForBanner.riderName}
                                       </span>
                                     </span>
                                   </div>
                                 ) : (
-                                  <span className="text-[10px] text-zinc-400 font-bold block mt-1">
-                                    ⏳ Assigning driver to your neighborhood...
+                                  <span className="text-[9.5px] text-zinc-400 font-bold block mt-0.5 truncate">
+                                    ⏳ Assigning driver...
                                   </span>
                                 )}
                               </div>
                             </div>
 
-                            <button className="w-full sm:w-auto bg-[#d70f64] text-white text-xs font-black uppercase tracking-widest px-5 py-3 rounded-xl hover:bg-[#b00c50] transition active:scale-95 shrink-0 shadow-md">
-                              Track Live Map 🧭
-                            </button>
+                            {/* Rider ETA Box */}
+                            <div className="shrink-0 bg-gradient-to-r from-[#d70f64] to-pink-600 text-white px-3 py-1.5 rounded-2xl text-center shadow-md border border-pink-400/30">
+                              <span className="text-[8px] uppercase tracking-wider font-extrabold text-pink-100 block leading-none">
+                                Est. Arrival
+                              </span>
+                              <span className="text-xs sm:text-sm font-black tracking-tight block leading-tight mt-0.5">
+                                ⏱️ {activeOrderForBanner.eta || "25 - 35 min"}
+                              </span>
+                            </div>
                           </div>
 
                           {/* Live Visual Step Progress Bar */}
-                          <div className="px-5 py-4 bg-zinc-50/50 border-b border-zinc-100">
+                          <div className="px-3.5 py-3 bg-zinc-50/50 border-b border-zinc-100">
                             <div className="relative flex items-center justify-between w-full max-w-xl mx-auto">
                               {/* Horizontal Line background */}
-                              <div className="absolute left-4 right-4 top-1/2 -translate-y-1/2 h-1 bg-zinc-200 -z-10 rounded-full" />
+                              <div className="absolute left-3 right-3 top-1/2 -translate-y-1/2 h-1 bg-zinc-200 -z-10 rounded-full" />
                               {/* Animated active filled line */}
                               <div
-                                className="absolute left-4 top-1/2 -translate-y-1/2 h-1 bg-gradient-to-r from-pink-500 to-[#d70f64] -z-10 rounded-full transition-all duration-500"
+                                className="absolute left-3 top-1/2 -translate-y-1/2 h-1 bg-gradient-to-r from-pink-500 to-[#d70f64] -z-10 rounded-full transition-all duration-500"
                                 style={{ width: `${((currentStep - 1) / 4) * 100}%` }}
                               />
 
@@ -3371,16 +3377,16 @@ export default function App() {
                                 return (
                                   <div key={idx} className="flex flex-col items-center relative z-10">
                                     <div
-                                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-black transition-all duration-300 shadow-md ${
+                                      className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-black transition-all duration-300 shadow-sm ${
                                         isPassed
-                                          ? "bg-[#d70f64] text-white ring-4 ring-pink-100"
-                                          : "bg-white text-zinc-400 border-2 border-zinc-200"
+                                          ? "bg-[#d70f64] text-white ring-2 ring-pink-100"
+                                          : "bg-white text-zinc-400 border border-zinc-200"
                                       } ${isCurrent ? "animate-pulse scale-110" : ""}`}
                                     >
                                       {step.emoji}
                                     </div>
                                     <span
-                                      className={`text-[9px] font-black uppercase tracking-wider mt-1.5 ${
+                                      className={`text-[8.5px] sm:text-[9px] font-black uppercase tracking-wider mt-1 ${
                                         isCurrent ? "text-[#d70f64]" : isPassed ? "text-zinc-700" : "text-zinc-400"
                                       }`}
                                     >
@@ -3394,25 +3400,25 @@ export default function App() {
 
                           {/* Quick Actions Footer (Contact Captain / Whatsapp) */}
                           {activeOrderForBanner.riderName && activeOrderForBanner.riderPhone && (
-                            <div className="px-5 py-2.5 bg-zinc-50 flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-zinc-100">
-                              <span className="text-[10px] text-zinc-500 font-extrabold flex items-center gap-1.5">
+                            <div className="px-3.5 py-2 bg-zinc-50 flex items-center justify-between gap-2 border-t border-zinc-100 overflow-x-auto">
+                              <span className="text-[9.5px] text-zinc-500 font-extrabold flex items-center gap-1 shrink-0 truncate">
                                 <span className="w-1.5 h-1.5 bg-emerald-500 animate-pulse rounded-full"></span>
-                                Contact Captain {activeOrderForBanner.riderName} directly:
+                                {activeOrderForBanner.riderName}:
                               </span>
-                              <div className="flex items-center gap-2 w-full sm:w-auto">
+                              <div className="flex items-center gap-1.5 shrink-0">
                                 <a
                                   href={`tel:${activeOrderForBanner.riderPhone}`}
-                                  className="flex-1 sm:flex-none bg-white hover:bg-zinc-50 text-zinc-800 border border-zinc-350 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider text-center transition cursor-pointer"
+                                  className="bg-white hover:bg-zinc-50 text-zinc-800 border border-zinc-300 px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider text-center transition cursor-pointer"
                                 >
-                                  📞 Call Captain
+                                  📞 Call
                                 </a>
                                 <a
                                   href={`https://wa.me/${activeOrderForBanner.riderPhone.replace(/\D/g, "")}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="flex-1 sm:flex-none bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider text-center transition cursor-pointer flex items-center justify-center gap-1"
+                                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider text-center transition cursor-pointer shadow-2xs"
                                 >
-                                  💬 WhatsApp
+                                  💬 Chat
                                 </a>
                               </div>
                             </div>
@@ -3992,52 +3998,7 @@ export default function App() {
                     )}
                   </div>
 
-                  {/* Right Column: Tracking Panel or order widgets */}
-                  {currentUser && activeTrackingOrder && (
-                    <div className="w-full md:w-80 shrink-0 space-y-4">
-                      <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
-                        <h3 className="text-xs font-black uppercase tracking-widest text-zinc-450">
-                          Live Tracker Dock
-                        </h3>
-                        {orders.length > 1 && (
-                          <span className="text-[10px] text-zinc-500 font-bold">
-                            Total: {orders.length} orders
-                          </span>
-                        )}
-                      </div>
 
-                      <OrderTracker order={activeTrackingOrder} currentUser={currentUser} />
-
-                      {/* Select other past orders dropdown */}
-                      {orders.length > 1 && (
-                        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-3.5 space-y-2 text-xs shadow-xs text-zinc-200">
-                          <label className="text-[10px] font-black uppercase tracking-wider text-zinc-450 block">
-                            Select Past Order to View
-                          </label>
-                          <select
-                            onChange={(e) => {
-                              const id = e.target.value;
-                              const ord = orders.find((o) => o.id === id);
-                              if (ord) setActiveTrackingOrder(ord);
-                            }}
-                            value={activeTrackingOrder.id}
-                            className="w-full p-2 bg-zinc-950 border border-zinc-800 rounded-xl outline-none text-zinc-200 font-mono text-xs focus:border-[#d70f64] transition"
-                          >
-                            {orders.map((o) => (
-                              <option
-                                key={o.id}
-                                value={o.id}
-                                className="bg-zinc-900 text-zinc-200"
-                              >
-                                dadu-{o.id.substring(0, 5)}... (
-                                {o.status.toUpperCase()})
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
               </main>
             </>

@@ -302,24 +302,10 @@ export default function OrderSuccessAnimation({
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 hover:text-zinc-900 transition-colors py-3.5 px-4 rounded-xl text-xs font-black uppercase tracking-widest cursor-pointer text-center"
+                className="w-full bg-gradient-to-r from-[#D70F64] to-pink-600 text-white hover:from-[#b00c50] hover:to-pink-700 transition-colors py-3.5 px-4 rounded-xl text-xs font-black uppercase tracking-widest cursor-pointer text-center shadow-lg shadow-pink-500/20"
               >
-                Close
+                Close & View Orders
               </button>
-              {onTrackOrder && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onTrackOrder();
-                    onClose();
-                  }}
-                  className="flex-[2] bg-gradient-to-r from-[#D70F64] to-pink-600 text-white hover:from-[#b00c50] hover:to-pink-700 transition-all py-3.5 px-4 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-pink-500/25 hover:shadow-pink-500/40 text-center group"
-                >
-                  <MapPin className="w-4 h-4" />
-                  Track Live Map
-                  <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                </button>
-              )}
             </motion.div>
           </div>
         </motion.div>

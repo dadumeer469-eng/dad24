@@ -212,6 +212,7 @@ export interface GroceryOrder {
     googleMapsLink?: string;
   };
   totalCommission?: number;
+  eta?: string;
 }
 
 export interface GroceryDeliveryConfig {
