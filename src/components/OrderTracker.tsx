@@ -3,14 +3,17 @@ import { Order } from "../types";
 import { Check, ClipboardList, Clock, ShieldCheck, Heart, ArrowRight, Server, Wrench, User, CalendarDays, MapPin, Compass } from "lucide-react";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase";
+import OrderChat from "./OrderChat";
 
 interface OrderTrackerProps {
   order: Order;
   onClose?: () => void;
+  currentUser?: any;
 }
 
-export default function OrderTracker({ order, onClose }: OrderTrackerProps) {
+export default function OrderTracker({ order, onClose, currentUser }: OrderTrackerProps) {
   const isService = order.orderType === "service";
+  const [showLiveChat, setShowLiveChat] = useState(false);
 
   // Food progress configurations
   const foodSteps = [
@@ -157,24 +160,54 @@ export default function OrderTracker({ order, onClose }: OrderTrackerProps) {
             </div>
 
             {/* Contact controls with Foodpanda Theme */}
-            <div className="flex flex-col sm:flex-row items-center gap-2 w-full">
-              {order.riderPhone && (
-                <>
+            <div className="flex flex-col gap-3 w-full">
+              <div className="flex flex-col sm:flex-row items-center gap-2 w-full">
+                {order.riderPhone && (
                   <a
                     href={`tel:${order.riderPhone}`}
                     className="w-full sm:flex-1 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-100 py-2.5 px-4 rounded-xl transition text-center font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
                   >
                     📞 Call Delivery Hero
                   </a>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowLiveChat(!showLiveChat)}
+                  className={`w-full sm:flex-1 py-2.5 px-4 rounded-xl transition text-center font-black text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer ${
+                    showLiveChat 
+                      ? "bg-zinc-800 border border-[#D70F64] text-white hover:bg-zinc-750" 
+                      : "bg-[#D70F64] text-white hover:bg-[#b00c50]"
+                  }`}
+                >
+                  💬 {showLiveChat ? "Close Live Chat" : "Live Chat (Real-time)"}
+                </button>
+                {order.riderPhone && (
                   <a
                     href={`https://wa.me/${order.riderPhone.replace(/\D/g, "")}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full sm:flex-1 bg-[#D70F64] hover:bg-[#b00c50] text-white py-2.5 px-4 rounded-xl transition text-center font-black text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
+                    className="w-full sm:flex-1 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-100 py-2.5 px-4 rounded-xl transition text-center font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
                   >
                     💬 Chat on WhatsApp
                   </a>
-                </>
+                )}
+              </div>
+
+              {showLiveChat && (
+                <div className="w-full">
+                  <OrderChat
+                    orderId={order.id}
+                    currentUser={{
+                      uid: currentUser?.uid || "guest",
+                      name: currentUser?.name || order.userName || "Customer",
+                      role: currentUser?.role || "user"
+                    }}
+                    recipientName={order.riderName || "Rider"}
+                    recipientRole="rider"
+                    onClose={() => setShowLiveChat(false)}
+                    isOpen={showLiveChat}
+                  />
+                </div>
               )}
             </div>
           </div>

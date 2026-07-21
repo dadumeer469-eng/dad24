@@ -124,6 +124,20 @@
         "orderType": { "type": "string" }
       },
       "required": ["id", "userId", "userName", "userPhone", "userAddress", "items", "totalPrice", "deliveryFee", "grandTotal", "status", "paymentMethod", "orderType"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "A real-time chat message sent between a customer and a rider for an active order.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "senderRole": { "type": "string", "enum": ["user", "rider"] },
+        "text": { "type": "string" },
+        "createdAt": { "type": "object" }
+      },
+      "required": ["id", "senderId", "senderName", "senderRole", "text", "createdAt"]
     }
   },
   "firestore": {
@@ -138,6 +152,10 @@
     "orders/{orderId}": {
       "schema": "Order",
       "description": "Collection storing live active and finished client delivery bookings."
+    },
+    "orders/{orderId}/messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Chat messages between the rider and the customer for a specific order."
     },
     "settings/{settingId}": {
       "schema": "SystemSettings",

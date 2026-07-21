@@ -8,6 +8,7 @@ import {
   CheckCircle2, Compass, Coins, CalendarDays, TrendingUp, History, User, 
   MapPin, PhoneCall, LogOut, ArrowRight, ClipboardList, DollarSign, Clock, Check, Store, XCircle
 } from "lucide-react";
+import OrderChat from "./OrderChat";
 
 interface RiderPanelProps {
   currentUser: UserProfile;
@@ -69,6 +70,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
   // Get active accepted orders
   const riderActiveOrders = myOrders.filter((o) => o.status === "accepted" || o.status === "preparing" || o.status === "out_for_delivery");
   const [focusedActiveOrderId, setFocusedActiveOrderId] = useState<string | null>(null);
+  const [showLiveChat, setShowLiveChat] = useState(false);
 
   // Live rider coordinates for distance calculation
   const [liveRiderCoords, setLiveRiderCoords] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -652,19 +654,46 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                         </div>
                       </div>
 
-                      <div className="flex items-start gap-3 border-t border-zinc-900 pt-3">
-                        <PhoneCall className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                        <div>
-                          <span className="text-[10px] uppercase text-zinc-500 font-black tracking-wider block">Call Customer</span>
+                      <div className="flex flex-col gap-2.5 pt-3 border-t border-zinc-900">
+                        <span className="text-[10px] uppercase text-zinc-500 font-black tracking-wider block">Customer Communication</span>
+                        <div className="flex flex-col sm:flex-row gap-2 w-full">
                           <a 
                             href={`tel:${riderActiveOrder.userPhone}`} 
-                            className="text-xs text-emerald-400 hover:underline font-black mt-0.5 block"
+                            className="w-full sm:flex-1 bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 text-zinc-100 py-2.5 px-4 rounded-xl transition text-center font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
                           >
-                            {riderActiveOrder.userPhone} (Tap to Call Dial)
+                            📞 Call Customer
                           </a>
+                          <button
+                            type="button"
+                            onClick={() => setShowLiveChat(!showLiveChat)}
+                            className={`w-full sm:flex-1 py-2.5 px-4 rounded-xl transition text-center font-black text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer ${
+                              showLiveChat 
+                                ? "bg-zinc-800 border border-[#D70F64] text-white hover:bg-zinc-750" 
+                                : "bg-[#D70F64] text-white hover:bg-[#b00c50]"
+                            }`}
+                          >
+                            💬 {showLiveChat ? "Close Chat" : "Live Chat (Real-time)"}
+                          </button>
                         </div>
                       </div>
                     </div>
+
+                    {showLiveChat && (
+                      <div className="w-full">
+                        <OrderChat
+                          orderId={riderActiveOrder.id}
+                          currentUser={{
+                            uid: currentUser.uid,
+                            name: currentUser.name || "Rider",
+                            role: "rider"
+                          }}
+                          recipientName={riderActiveOrder.userName || "Customer"}
+                          recipientRole="user"
+                          onClose={() => setShowLiveChat(false)}
+                          isOpen={showLiveChat}
+                        />
+                      </div>
+                    )}
 
                      {/* Pin-point user Delivery Destination GPS tracking */}
                      {riderActiveOrder.userCoords && (

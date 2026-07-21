@@ -2430,6 +2430,7 @@ export default function App() {
               <OrderTracker
                 order={activeTrackingOrder}
                 onClose={() => setIsTrackingModalOpen(false)}
+                currentUser={currentUser}
               />
             </div>
           </div>
@@ -4031,7 +4032,7 @@ export default function App() {
                         )}
                       </div>
 
-                      <OrderTracker order={activeTrackingOrder} />
+                      <OrderTracker order={activeTrackingOrder} currentUser={currentUser} />
 
                       {/* Select other past orders dropdown */}
                       {orders.length > 1 && (

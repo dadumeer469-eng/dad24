@@ -66,6 +66,11 @@ service cloud.firestore {
       allow update: if (resource.data.userId == "guest" || (isAuthenticated() && resource.data.userId == request.auth.uid)) && request.resource.data.status == resource.data.status;
       
       allow delete: if isAdmin();
+
+      // Messages sub-collection rules for live rider-user chat
+      match /messages/{messageId} {
+        allow read, write: if true;
+      }
     }
 
     // Settings Collection rules
