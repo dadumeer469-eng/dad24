@@ -2449,6 +2449,7 @@ export default function App() {
           }
           setIsAuthOpen(false);
         }}
+        onRequestLocation={requestLocation}
       />
 
       <FoodDetailModal
