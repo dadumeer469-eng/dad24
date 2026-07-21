@@ -25,12 +25,6 @@ export default function LocationPermissionModal({
           >
             Allow
           </button>
-          <button 
-            onClick={onLater}
-            className="w-full bg-zinc-800 hover:bg-zinc-750 text-zinc-300 font-bold py-4 rounded-2xl uppercase tracking-wider text-sm transition-colors cursor-pointer"
-          >
-            Baad Mein
-          </button>
         </div>
       </div>
     </div>
