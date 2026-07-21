@@ -112,6 +112,8 @@ export interface SystemSettings {
   userRangeKm?: number;
   baseLocationCoords?: { lat: number; lng: number };
   bannerVersion?: number;
+  isMaintenanceMode?: boolean;
+  maintenanceMessage?: string;
   restaurantStatus?: {
     isTemporarilyUnavailable: boolean; // manual toggle
     openingTime: string; // e.g. "09:00"

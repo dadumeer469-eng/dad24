@@ -509,6 +509,14 @@ export default function AdminPanel({
     deliverySettings?.baseLocationCoords?.lng || 67.7744, // Dadu city center approx
   );
 
+  // Maintenance Mode States
+  const [isMaintenanceMode, setIsMaintenanceMode] = useState(
+    deliverySettings?.isMaintenanceMode || false,
+  );
+  const [maintenanceMessage, setMaintenanceMessage] = useState(
+    deliverySettings?.maintenanceMessage || "We are currently carrying out system maintenance. We'll be back online shortly!",
+  );
+
   // Restaurant Status Management
   const [restStatusUnavailable, setRestStatusUnavailable] = useState(false);
   const [restOpeningTime, setRestOpeningTime] = useState("09:00");
@@ -542,6 +550,11 @@ export default function AdminPanel({
       setMinOrderAmountInput(deliverySettings.minOrderAmount || 0);
       setRiderRangeKmInput(deliverySettings.riderRangeKm || 5);
       setUserRangeKmInput(deliverySettings.userRangeKm || 10);
+      setIsMaintenanceMode(deliverySettings.isMaintenanceMode || false);
+      setMaintenanceMessage(
+        deliverySettings.maintenanceMessage ||
+          "We are currently carrying out system maintenance. We'll be back online shortly!"
+      );
       if (deliverySettings.baseLocationCoords) {
         setBaseLatInput(deliverySettings.baseLocationCoords.lat);
         setBaseLngInput(deliverySettings.baseLocationCoords.lng);
@@ -1600,6 +1613,8 @@ export default function AdminPanel({
             coords: restLat && restLng ? { lat: parseFloat(restLat), lng: parseFloat(restLng) } : null,
           },
         },
+        isMaintenanceMode: isMaintenanceMode,
+        maintenanceMessage: maintenanceMessage,
       };
 
       await setDoc(doc(db, "settings", "delivery_config"), cleanObject(newSettings));
@@ -1609,6 +1624,22 @@ export default function AdminPanel({
       alert(
         "Permission denied or Firestore configuration missing while saving settings.",
       );
+    }
+  };
+
+  // Save Maintenance Mode Config
+  const handleSaveMaintenanceConfig = async () => {
+    try {
+      const newSettings = {
+        ...deliverySettings,
+        isMaintenanceMode: isMaintenanceMode,
+        maintenanceMessage: maintenanceMessage.trim(),
+      };
+      await setDoc(doc(db, "settings", "delivery_config"), cleanObject(newSettings));
+      alert("Maintenance mode configuration saved successfully!");
+    } catch (err) {
+      console.error(err);
+      alert("Permission denied or Firestore configuration missing while saving maintenance config.");
     }
   };
 
@@ -5659,6 +5690,63 @@ export default function AdminPanel({
                       </div>
                     </div>
 
+                  </div>
+                </div>
+
+                {/* System Maintenance Mode Config Card */}
+                <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm relative space-y-4">
+                  <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#D70F64]/10 to-transparent" />
+                  <h4 className="font-black text-sm text-slate-900 flex items-center gap-2 pb-2.5 border-b border-slate-200 uppercase tracking-wide">
+                    <Wrench className="w-4 h-4 text-[#D70F64]" />
+                    System Maintenance Mode
+                  </h4>
+                  <p className="text-[10.5px] text-slate-600 font-medium leading-relaxed">
+                    Toggle maintenance mode. While enabled, general users will be blocked from using the platform and will see only your custom message. Admins bypass this block.
+                  </p>
+
+                  <div className="space-y-4 pt-1">
+                    <div className="flex items-center justify-between p-3.5 bg-rose-50/40 rounded-2xl border border-rose-100">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-black text-slate-900">Maintenance Status</span>
+                        <span className="text-[10px] font-bold text-slate-500">
+                          {isMaintenanceMode ? "🔴 ACTIVE - Users Blocked" : "🟢 INACTIVE - Public Access"}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsMaintenanceMode(!isMaintenanceMode)}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                          isMaintenanceMode ? "bg-[#D70F64]" : "bg-slate-200"
+                        }`}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                            isMaintenanceMode ? "translate-x-5" : "translate-x-0"
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                        Maintenance Message for Users
+                      </label>
+                      <textarea
+                        value={maintenanceMessage}
+                        onChange={(e) => setMaintenanceMessage(e.target.value)}
+                        rows={3}
+                        placeholder="Provide a clear explanation..."
+                        className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none text-slate-900 font-extrabold focus:border-[#D70F64] transition text-xs resize-none"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleSaveMaintenanceConfig}
+                      className="w-full bg-[#D70F64] text-white font-black py-3 rounded-xl hover:scale-[1.01] active:scale-95 transition cursor-pointer text-xs uppercase"
+                    >
+                      Update Maintenance Mode
+                    </button>
                   </div>
                 </div>
 

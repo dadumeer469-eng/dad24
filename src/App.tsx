@@ -2638,6 +2638,9 @@ export default function App() {
     );
   }
 
+  const isUserAdmin = currentUser?.role === "admin";
+  const isMaintenanceActive = deliverySettings?.isMaintenanceMode === true;
+
   if (isDeviceBanned) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-black text-red-500 gap-4">
@@ -2990,50 +2993,105 @@ export default function App() {
       </a>
 
       {/* Primary Navigation System */}
-      <FoodpandaHeader
-        user={currentUser}
-        onOpenAuth={() => setIsAuthOpen(true)}
-        onLogout={handleLogout}
-        onOpenCart={() => setIsCartOpen(true)}
-        cartCount={cartCountTotal}
-        cartTotal={cartPriceTotal}
-        onOpenAdmin={() => setIsAdminConsoleOpen(true)}
-        onOpenHistory={() => setIsHistoryDrawerOpen(true)}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        notifications={notifications}
-        onClearNotifications={handleClearNotificationsAll}
-        activeCategory={activeCategory}
-        setActiveCategory={setActiveCategory}
-        onToggleFavorites={() => setShowFavoritesOnly(!showFavoritesOnly)}
-        showFavoritesOnly={showFavoritesOnly}
-        orders={orders.filter(
-          (o) =>
-            o.status !== "delivered" &&
-            o.status !== "completed" &&
-            o.status !== "cancelled",
-        )}
-        onTrackOrder={(order) => {
-          setActiveTrackingOrder(order);
-          setIsTrackingModalOpen(true);
-        }}
-        // Pass open cart triggers depending on current view mode
-        onOpenGroceryCart={() => setIsGroceryCartOpen(true)}
-        groceryCartCount={groceryCartItems.reduce(
-          (acc, i) => acc + i.quantity,
-          0,
-        )}
-        activeModule={activeModule}
-        setActiveModule={setActiveModule}
-        isLocked={currentUser?.status === 'locked'}
-        allOrders={orders}
-        onReorder={handleReorder}
-        theme={theme}
-        onToggleTheme={handleToggleTheme}
-      />
+      {!(isMaintenanceActive && !isUserAdmin) && (
+        <FoodpandaHeader
+          user={currentUser}
+          onOpenAuth={() => setIsAuthOpen(true)}
+          onLogout={handleLogout}
+          onOpenCart={() => setIsCartOpen(true)}
+          cartCount={cartCountTotal}
+          cartTotal={cartPriceTotal}
+          onOpenAdmin={() => setIsAdminConsoleOpen(true)}
+          onOpenHistory={() => setIsHistoryDrawerOpen(true)}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          notifications={notifications}
+          onClearNotifications={handleClearNotificationsAll}
+          activeCategory={activeCategory}
+          setActiveCategory={setActiveCategory}
+          onToggleFavorites={() => setShowFavoritesOnly(!showFavoritesOnly)}
+          showFavoritesOnly={showFavoritesOnly}
+          orders={orders.filter(
+            (o) =>
+              o.status !== "delivered" &&
+              o.status !== "completed" &&
+              o.status !== "cancelled",
+          )}
+          onTrackOrder={(order) => {
+            setActiveTrackingOrder(order);
+            setIsTrackingModalOpen(true);
+          }}
+          // Pass open cart triggers depending on current view mode
+          onOpenGroceryCart={() => setIsGroceryCartOpen(true)}
+          groceryCartCount={groceryCartItems.reduce(
+            (acc, i) => acc + i.quantity,
+            0,
+          )}
+          activeModule={activeModule}
+          setActiveModule={setActiveModule}
+          isLocked={currentUser?.status === 'locked'}
+          allOrders={orders}
+          onReorder={handleReorder}
+          theme={theme}
+          onToggleTheme={handleToggleTheme}
+        />
+      )}
+
+      {isUserAdmin && isMaintenanceActive && (
+        <div className="bg-amber-500 text-amber-950 px-4 py-2 text-center text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 z-50 relative border-b border-amber-600/30">
+          <span>⚠️ SYSTEM IS CURRENTLY IN MAINTENANCE MODE (General users are blocked from ordering)</span>
+        </div>
+      )}
 
       {!isAdminConsoleOpen ? (
-        <div className="flex-1">
+        isMaintenanceActive && !isUserAdmin ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center z-10 max-w-lg mx-auto my-auto min-h-[70vh] gap-6 relative animate-fade-in">
+            <div className="w-16 h-16 bg-rose-50 dark:bg-rose-950/30 rounded-2xl flex items-center justify-center border border-rose-100 dark:border-rose-900 animate-bounce shadow-md">
+              <Wrench className="w-8 h-8 text-[#d70f64]" />
+            </div>
+            
+            <div className="space-y-2">
+              <h1 className="text-3xl font-black tracking-tight text-zinc-900 dark:text-zinc-50 uppercase">
+                Under Maintenance
+              </h1>
+              <p className="text-[10px] font-bold tracking-widest text-[#d70f64] uppercase">
+                Hum jald hi wapas aayenge!
+              </p>
+            </div>
+
+            <div className="bg-white dark:bg-zinc-900/90 border border-zinc-200/60 dark:border-zinc-800 p-6 rounded-3xl shadow-xl w-full">
+              <p className="text-sm text-zinc-650 dark:text-zinc-300 font-extrabold leading-relaxed font-sans">
+                {deliverySettings?.maintenanceMessage || "Hum website par maintenance kar rahe hain. Baraye meharbani thori der baad koshish karen!"}
+              </p>
+            </div>
+
+            <div className="w-full h-[1px] bg-zinc-150 dark:bg-zinc-800 my-1" />
+
+            <p className="text-[11px] text-zinc-400 dark:text-zinc-500 font-bold leading-normal">
+              Order support ya help ke liye hamare WhatsApp helpline par rabta karen.
+            </p>
+
+            <div className="flex flex-col gap-3.5 w-full">
+              <a
+                href="https://wa.me/923277004471"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full bg-[#25D366] hover:bg-[#20ba5a] text-white font-black py-3.5 px-4 rounded-2xl shadow-lg hover:scale-[1.01] transition-all flex items-center justify-center gap-2 cursor-pointer text-xs uppercase tracking-wider"
+              >
+                💬 WhatsApp Helpline
+              </a>
+
+              <button
+                type="button"
+                onClick={() => setIsAuthOpen(true)}
+                className="w-full bg-zinc-100 dark:bg-zinc-850 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-black py-3.5 px-4 rounded-2xl transition-all flex items-center justify-center gap-2 cursor-pointer text-xs uppercase tracking-wider border border-zinc-200/60 dark:border-zinc-750"
+              >
+                🔑 Admin / Staff Login
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1">
           {/* Module Switcher Tabs - Direct & Tactile selection */}
           {!isAuthOpen && (
             <div className="max-w-7xl mx-auto px-4 mt-6">
@@ -4022,6 +4080,7 @@ export default function App() {
           )}
           </Suspense>
         </div>
+        )
       ) : (
         /* TAB 2: Secure Administrative Console Overlay */
         <Suspense
