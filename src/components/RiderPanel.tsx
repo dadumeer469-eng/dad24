@@ -71,6 +71,26 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
   const riderActiveOrders = myOrders.filter((o) => o.status === "accepted" || o.status === "preparing" || o.status === "out_for_delivery");
   const [focusedActiveOrderId, setFocusedActiveOrderId] = useState<string | null>(null);
   const [showLiveChat, setShowLiveChat] = useState(false);
+  const [riderUnreadCount, setRiderUnreadCount] = useState(0);
+
+  // Listen to unread messages for rider's active order
+  useEffect(() => {
+    const activeOrderForUnread = riderActiveOrders.find(o => o.id === focusedActiveOrderId) || riderActiveOrders[0];
+    if (!activeOrderForUnread?.id || !currentUser?.uid) return;
+    const messagesRef = collection(db, "orders", activeOrderForUnread.id, "messages");
+    const unsubscribe = onSnapshot(messagesRef, (snapshot) => {
+      let unread = 0;
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data.senderId !== currentUser.uid && !data.isRead) {
+          unread++;
+        }
+      });
+      setRiderUnreadCount(unread);
+    }, (err) => console.error("Rider unread listener error:", err));
+
+    return () => unsubscribe();
+  }, [riderActiveOrders, focusedActiveOrderId, currentUser?.uid]);
 
   // Live rider coordinates for distance calculation
   const [liveRiderCoords, setLiveRiderCoords] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -656,30 +676,58 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
 
                       <div className="flex flex-col gap-2.5 pt-3 border-t border-zinc-900">
                         <span className="text-[10px] uppercase text-zinc-500 font-black tracking-wider block">Customer Communication</span>
-                        <div className="flex flex-col sm:flex-row gap-2 w-full">
-                          <a 
-                            href={`tel:${riderActiveOrder.userPhone}`} 
-                            className="w-full sm:flex-1 bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 text-zinc-100 py-2.5 px-4 rounded-xl transition text-center font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
-                          >
-                            📞 Call Customer
-                          </a>
+                        <div className="grid grid-cols-3 gap-1.5 sm:gap-2 w-full">
+                          {riderActiveOrder.userPhone ? (
+                            <a 
+                              href={`tel:${riderActiveOrder.userPhone}`} 
+                              className="bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 text-zinc-100 py-2 sm:py-2.5 px-2 rounded-xl transition text-center font-black text-[10.5px] sm:text-xs flex items-center justify-center gap-1 shadow-xs cursor-pointer truncate active:scale-95"
+                            >
+                              📞 Call
+                            </a>
+                          ) : (
+                            <div className="bg-zinc-950/50 border border-zinc-800 text-zinc-600 py-2 sm:py-2.5 px-2 rounded-xl text-center font-black text-[10.5px] sm:text-xs flex items-center justify-center gap-1 opacity-50 cursor-not-allowed">
+                              📞 Call
+                            </div>
+                          )}
+
                           <button
                             type="button"
                             onClick={() => setShowLiveChat(!showLiveChat)}
-                            className={`w-full sm:flex-1 py-2.5 px-4 rounded-xl transition text-center font-black text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer ${
+                            className={`py-2 sm:py-2.5 px-2 rounded-xl transition text-center font-black text-[10.5px] sm:text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer active:scale-95 truncate relative ${
                               showLiveChat 
-                                ? "bg-zinc-800 border border-[#D70F64] text-white hover:bg-zinc-750" 
-                                : "bg-[#D70F64] text-white hover:bg-[#b00c50]"
+                                ? "bg-zinc-800 border border-[#D70F64] text-white hover:bg-zinc-750 ring-2 ring-[#D70F64]/30" 
+                                : "bg-gradient-to-r from-[#D70F64] to-pink-600 text-white hover:from-[#b00c50] hover:to-pink-700"
                             }`}
                           >
-                            💬 {showLiveChat ? "Close Chat" : "Live Chat (Real-time)"}
+                            <span>💬 {showLiveChat ? "Close Chat" : "Live Chat"}</span>
+                            {riderUnreadCount > 0 && !showLiveChat && (
+                              <span className="relative flex h-2.5 w-2.5 shrink-0">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-80"></span>
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 ring-2 ring-zinc-900"></span>
+                              </span>
+                            )}
                           </button>
+
+                          {riderActiveOrder.userPhone ? (
+                            <a 
+                              href={`https://wa.me/${riderActiveOrder.userPhone.replace(/\D/g, "")}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white py-2 sm:py-2.5 px-2 rounded-xl transition text-center font-black text-[10.5px] sm:text-xs flex items-center justify-center gap-1 shadow-xs cursor-pointer truncate active:scale-95"
+                            >
+                              💬 WhatsApp
+                            </a>
+                          ) : (
+                            <div className="bg-zinc-950/50 border border-zinc-800 text-zinc-600 py-2 sm:py-2.5 px-2 rounded-xl text-center font-black text-[10.5px] sm:text-xs flex items-center justify-center gap-1 opacity-50 cursor-not-allowed">
+                              💬 WhatsApp
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
 
                     {showLiveChat && (
-                      <div className="w-full">
+                      <div className="w-full mt-2 animate-fade-in">
                         <OrderChat
                           orderId={riderActiveOrder.id}
                           currentUser={{

@@ -47,6 +47,7 @@ const GroceryModule = React.lazy(() => import("./components/GroceryModule"));
 const GroceryCartDrawer = React.lazy(() => import("./components/GroceryCartDrawer"));
 const OrderSuccessAnimation = React.lazy(() => import("./components/OrderSuccessAnimation"));
 const OrderHistoryDrawer = React.lazy(() => import("./components/OrderHistoryDrawer"));
+const OrderChat = React.lazy(() => import("./components/OrderChat"));
 import { LazyImage } from "./components/LazyImage";
 import daduLogo from "./assets/images/dadu_food_logo_new_1782333467889.jpg";
 
@@ -104,6 +105,51 @@ function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: num
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   const d = R * c; // Distance in km
   return d;
+}
+
+function BannerLiveChatButton({ 
+  orderId, 
+  currentUserId, 
+  onClick 
+}: { 
+  orderId: string; 
+  currentUserId: string; 
+  onClick: () => void; 
+}) {
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!orderId || !currentUserId) return;
+    const messagesRef = collection(db, "orders", orderId, "messages");
+    const unsubscribe = onSnapshot(messagesRef, (snapshot) => {
+      let unread = 0;
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data.senderId !== currentUserId && !data.isRead) {
+          unread++;
+        }
+      });
+      setUnreadCount(unread);
+    }, (err) => console.error("Banner chat listener error:", err));
+
+    return () => unsubscribe();
+  }, [orderId, currentUserId]);
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="bg-[#D70F64] hover:bg-[#b00c50] text-white px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider text-center transition cursor-pointer shadow-2xs active:scale-95 flex items-center gap-1.5 relative"
+    >
+      <span>💬 Live Chat</span>
+      {unreadCount > 0 && (
+        <span className="relative flex h-2.5 w-2.5 shrink-0">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-80"></span>
+          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 ring-2 ring-white"></span>
+        </span>
+      )}
+    </button>
+  );
 }
 
 export default function App() {
@@ -248,6 +294,7 @@ export default function App() {
   const [isAdminConsoleOpen, setIsAdminConsoleOpen] = useState(false);
   const [activeDetailDish, setActiveDetailDish] = useState<Dish | null>(null);
   const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
+  const [isDirectChatOpen, setIsDirectChatOpen] = useState(false);
   const [successAnimationOrder, setSuccessAnimationOrder] =
     useState<Order | null>(null);
   const [isSuccessAnimationOpen, setIsSuccessAnimationOpen] = useState(false);
@@ -2437,6 +2484,24 @@ export default function App() {
         </div>
       )}
 
+      {/* Direct Live Chat Overlay Modal */}
+      {isDirectChatOpen && activeTrackingOrder && (
+        <Suspense fallback={null}>
+          <OrderChat
+            orderId={activeTrackingOrder.id}
+            currentUser={{
+              uid: currentUser.uid,
+              name: currentUser.name || "Customer",
+              role: "user"
+            }}
+            recipientName={activeTrackingOrder.riderName || "Delivery Partner"}
+            recipientRole="rider"
+            onClose={() => setIsDirectChatOpen(false)}
+            isOpen={isDirectChatOpen}
+          />
+        </Suspense>
+      )}
+
       <OrderSuccessAnimation
         isOpen={isSuccessAnimationOpen}
         onClose={() => setIsSuccessAnimationOpen(false)}
@@ -3166,27 +3231,24 @@ export default function App() {
                             onClick={() =>
                               setSelectedRestaurant("All Restaurants")
                             }
-                            className={`w-[85px] h-[100px] rounded-2xl flex flex-col items-center justify-center gap-1 p-2 font-black transition shrink-0 cursor-pointer border ${
+                            className={`w-[85px] h-[85px] rounded-2xl flex flex-col items-center justify-center p-1.5 font-black transition shrink-0 cursor-pointer border ${
                               selectedRestaurant === "All Restaurants"
                                 ? "bg-[#d70f64] text-white border-[#d70f64] shadow-md shadow-red-500/15 scale-105"
                                 : "bg-white text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50 border-zinc-200"
                             }`}
                           >
-                            <span className="text-3xl mb-1">🎪</span>
-                            <span className="text-[10px] text-center uppercase tracking-wider leading-tight">
+                            <span className="text-2xl mb-0.5">🎪</span>
+                            <span className="text-[9px] text-center uppercase tracking-wider leading-tight font-black">
                               All
-                              <br />
-                              Kitchens
                             </span>
                           </button>
                           {isLoadingDishes
                             ? Array.from({ length: 5 }).map((_, idx) => (
                                 <div
                                   key={`sk-${idx}`}
-                                  className="w-[85px] h-[100px] rounded-2xl bg-white border border-zinc-200/80 flex flex-col items-center p-1.5 shrink-0 animate-pulse"
+                                  className="w-[85px] h-[85px] rounded-2xl bg-white border border-zinc-200/80 flex items-center justify-center p-1 shrink-0 animate-pulse"
                                 >
-                                  <div className="w-full h-[52px] rounded-xl bg-zinc-200 shrink-0 mb-1.5" />
-                                  <div className="w-10 h-2 sm:h-3 rounded-full bg-zinc-200 mt-0.5" />
+                                  <div className="w-full h-full rounded-xl bg-zinc-200" />
                                 </div>
                               ))
                             : uniqueRestaurants.map((vendor) => {
@@ -3200,18 +3262,20 @@ export default function App() {
                                     onClick={() =>
                                       setSelectedRestaurant(vendor)
                                     }
-                                    className={`w-[85px] h-[100px] rounded-2xl flex flex-col items-center p-1.5 font-black transition shrink-0 cursor-pointer border overflow-hidden ${
+                                    className={`w-[85px] h-[85px] rounded-2xl flex items-center justify-center p-0.5 font-black transition shrink-0 cursor-pointer border overflow-hidden shadow-xs hover:shadow-md ${
                                       selectedRestaurant === vendor
-                                        ? "bg-[#d70f64] text-white border-[#d70f64] shadow-md shadow-red-500/15 scale-105"
+                                        ? "border-[#d70f64] ring-2 ring-[#d70f64] scale-105"
                                         : "bg-white text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 border-zinc-200"
                                     }`}
+                                    title={vendor}
                                   >
-                                    <div className="w-full h-[52px] rounded-xl overflow-hidden bg-zinc-100 flex items-center justify-center shrink-0 mb-1.5 shadow-sm">
+                                    <div className="w-full h-full rounded-xl overflow-hidden bg-zinc-100 flex items-center justify-center">
                                       {vendorImageUrl ? (
                                         <LazyImage
                                           src={vendorImageUrl}
                                           alt={vendor}
                                           className="w-full h-full object-cover"
+                                          imgClassName="object-cover w-full h-full"
                                         />
                                       ) : (
                                         <span className="opacity-90 text-2xl">
@@ -3223,9 +3287,6 @@ export default function App() {
                                         </span>
                                       )}
                                     </div>
-                                    <span className="text-[9px] text-center tracking-tight leading-[1.1] line-clamp-2 px-0.5 w-full">
-                                      {vendor}
-                                    </span>
                                   </button>
                                 );
                               })}
@@ -3406,6 +3467,14 @@ export default function App() {
                                 {activeOrderForBanner.riderName}:
                               </span>
                               <div className="flex items-center gap-1.5 shrink-0">
+                                <BannerLiveChatButton
+                                  orderId={activeOrderForBanner.id}
+                                  currentUserId={currentUser.uid}
+                                  onClick={() => {
+                                    setActiveTrackingOrder(activeOrderForBanner);
+                                    setIsDirectChatOpen(true);
+                                  }}
+                                />
                                 <a
                                   href={`tel:${activeOrderForBanner.riderPhone}`}
                                   className="bg-white hover:bg-zinc-50 text-zinc-800 border border-zinc-300 px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider text-center transition cursor-pointer"
