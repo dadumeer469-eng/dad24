@@ -2420,6 +2420,9 @@ export default function App() {
           window.dispatchEvent(new StorageEvent("storage", { key: "dadu_user_phone" }));
           
           if (!profileSnap.exists()) {
+            if (!globalCoords || !globalCoords.latitude || !globalCoords.longitude) {
+              throw new Error("Dadu Food par naya account banane ke liye high-precision GPS Location share karna lazmi hai! Meharbani farma kar location access allow karein aur page refresh kar ke koshish karein.");
+            }
             const newProfile: any = {
               uid: phone,
               name: "",
