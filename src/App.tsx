@@ -401,10 +401,17 @@ export default function App() {
 
   const requestLocation = () => {
     setShowLocationPrompt(false);
+    alert("System high-precision GPS signal dhoond raha hai... Meharbani farma kar agar browser popup aaye to use 'Allow' karein.");
     navigator.geolocation.getCurrentPosition(
-      (pos) => setGlobalCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-      (err) => console.log("Location denied or error:", err),
-      { enableHighAccuracy: true }
+      (pos) => {
+        setGlobalCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+        alert("Shabash! GPS signal kamyabi se mil gaya hai. Ab aap Register kar sakte hain.");
+      },
+      (err) => {
+        console.log("Location denied or error:", err);
+        alert("GPS Location nahi mil saki!\n\nMeharbani farma kar:\n1. Browser address bar ke lock icon/location icon par click kar ke location block ko 'Allow' karein.\n2. Device ki location settings on rakhein.\n3. Ya fir page ko reload kar ke dobara koshish karein.");
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
     );
   };
 
