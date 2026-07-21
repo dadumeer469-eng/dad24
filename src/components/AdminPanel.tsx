@@ -1146,6 +1146,7 @@ export default function AdminPanel({
     {},
   );
   const [orderEtas, setOrderEtas] = useState<{ [orderId: string]: string }>({});
+  const [adminOrderFilterTab, setAdminOrderFilterTab] = useState<"new" | "delivered" | "cancelled">("new");
 
   // Alert dispatcher state
   const [alertTitle, setAlertTitle] = useState("Dadu Specials Alert!");
@@ -5195,14 +5196,91 @@ export default function AdminPanel({
                   )}
                 </div>
 
+                {/* Modern Filter Sub-Tabs for Orders */}
+                <div className="bg-slate-50 border-b border-slate-200 p-3 flex flex-wrap gap-2 items-center justify-between">
+                  <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
+                    <button
+                      type="button"
+                      onClick={() => setAdminOrderFilterTab("new")}
+                      className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer relative ${
+                        adminOrderFilterTab === "new"
+                          ? "bg-[#D70F64] text-white shadow-md shadow-[#D70F64]/20 scale-[1.02]"
+                          : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                      }`}
+                    >
+                      <span>🆕 New Orders</span>
+                      <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black ${
+                        adminOrderFilterTab === "new" ? "bg-white text-[#D70F64]" : "bg-slate-100 text-slate-600"
+                      }`}>
+                        {orders.filter(o => o.status !== "delivered" && o.status !== "completed" && o.status !== "cancelled").length}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setAdminOrderFilterTab("delivered")}
+                      className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer relative ${
+                        adminOrderFilterTab === "delivered"
+                          ? "bg-[#D70F64] text-white shadow-md shadow-[#D70F64]/20 scale-[1.02]"
+                          : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                      }`}
+                    >
+                      <span>✅ Delivered Orders</span>
+                      <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black ${
+                        adminOrderFilterTab === "delivered" ? "bg-white text-[#D70F64]" : "bg-slate-100 text-slate-600"
+                      }`}>
+                        {orders.filter(o => o.status === "delivered" || o.status === "completed").length}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setAdminOrderFilterTab("cancelled")}
+                      className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer relative ${
+                        adminOrderFilterTab === "cancelled"
+                          ? "bg-[#D70F64] text-white shadow-md shadow-[#D70F64]/20 scale-[1.02]"
+                          : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                      }`}
+                    >
+                      <span>❌ Cancelled Orders</span>
+                      <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black ${
+                        adminOrderFilterTab === "cancelled" ? "bg-white text-[#D70F64]" : "bg-slate-100 text-slate-600"
+                      }`}>
+                        {orders.filter(o => o.status === "cancelled").length}
+                      </span>
+                    </button>
+                  </div>
+
+                  <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest hidden md:inline-block pr-2">
+                    Viewing {adminOrderFilterTab} pipeline • {orders.length} total
+                  </span>
+                </div>
+
                 <div className="divide-y divide-slate-200/30">
                   {orders.length === 0 ? (
                     <div className="p-16 text-center text-xs text-slate-500 font-bold uppercase tracking-wider">
                       Logs directory is blank. Waiting for live user
                       transactions...
                     </div>
-                  ) : (
-                    orders.map((order) => {
+                  ) : (() => {
+                    const filtered = orders.filter((order) => {
+                      const isDelivered = order.status === "delivered" || order.status === "completed";
+                      const isCancelled = order.status === "cancelled";
+                      if (adminOrderFilterTab === "new") return !isDelivered && !isCancelled;
+                      if (adminOrderFilterTab === "delivered") return isDelivered;
+                      if (adminOrderFilterTab === "cancelled") return isCancelled;
+                      return true;
+                    });
+
+                    if (filtered.length === 0) {
+                      return (
+                        <div className="p-16 text-center text-xs text-slate-400 font-bold uppercase tracking-wider">
+                          No {adminOrderFilterTab} orders found in this pipeline.
+                        </div>
+                      );
+                    }
+
+                    return filtered.map((order) => {
                       const isSvc = order.orderType === "service";
                       const isActive =
                         order.status !== "delivered" &&
@@ -5270,31 +5348,34 @@ export default function AdminPanel({
 
                             {/* Status label banner */}
                             <div className="text-left sm:text-right">
-                              <span className="text-[10px] uppercase tracking-widest font-black text-slate-500 block">
+                              <span className="text-[10px] uppercase tracking-widest font-black text-slate-400 dark:text-slate-500 block mb-1">
                                 Current Status
                               </span>
-                              <span
-                                className={`text-xs font-black uppercase mt-1.5 inline-flex items-center gap-1.5 py-1 px-2.5 rounded-lg bg-slate-100/60 ${
-                                  order.status === "delivered" ||
-                                  order.status === "completed"
-                                    ? "text-emerald-400 border border-emerald-950/65"
-                                    : order.status === "cancelled"
-                                      ? "text-red-500 border border-pink-950/65"
-                                      : "text-[#D70F64] border border-amber-950/65"
-                                }`}
-                              >
-                                <span
-                                  className={`w-1.5 h-1.5 rounded-full animate-ping ${
-                                    order.status === "delivered" ||
-                                    order.status === "completed"
-                                      ? "bg-emerald-400"
-                                      : order.status === "cancelled"
-                                        ? "bg-red-500"
-                                        : "bg-[#D70F64]"
-                                  }`}
-                                />
-                                {order.status}
-                              </span>
+                              {(() => {
+                                const isCompleted = order.status === "delivered" || order.status === "completed";
+                                const isCancelled = order.status === "cancelled";
+                                
+                                let badgeStyles = "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border border-blue-200/60 dark:border-blue-900/40";
+                                let dotStyles = "bg-blue-500";
+                                
+                                if (isCompleted) {
+                                  badgeStyles = "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-900/40";
+                                  dotStyles = "bg-emerald-500";
+                                } else if (isCancelled) {
+                                  badgeStyles = "bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 border border-rose-200/60 dark:border-rose-900/40";
+                                  dotStyles = "bg-rose-500";
+                                }
+
+                                return (
+                                  <span className={`text-[11px] font-black uppercase inline-flex items-center gap-1.5 py-1 px-3 rounded-full shadow-sm transition-all ${badgeStyles}`}>
+                                    <span className="relative flex h-2 w-2">
+                                      <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${dotStyles}`}></span>
+                                      <span className={`relative inline-flex rounded-full h-2 w-2 ${dotStyles}`}></span>
+                                    </span>
+                                    {order.status}
+                                  </span>
+                                );
+                              })()}
                               <div className="mt-2 text-right">
                                 <button
                                   type="button"
@@ -5563,8 +5644,8 @@ export default function AdminPanel({
                           )}
                         </div>
                       );
-                    })
-                  )}
+                    });
+                  })()}
                 </div>
               </div>
             </div>
@@ -6052,15 +6133,28 @@ export default function AdminPanel({
                               <span className="font-extrabold text-[#D70F64]">
                                 dadu-{order.id.substring(0, 8)}
                               </span>
-                              <span
-                                className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest ${
-                                  order.status === "delivered"
-                                    ? "bg-emerald-500/10 text-emerald-400"
-                                    : "bg-[#D70F64]/10 text-[#D70F64] animate-pulse"
-                                }`}
-                              >
-                                {order.status}
-                              </span>
+                              {(() => {
+                                const isCompleted = order.status === "delivered" || order.status === "completed";
+                                const isCancelled = order.status === "cancelled";
+                                
+                                let badgeStyles = "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border border-blue-200/60 dark:border-blue-900/40";
+                                let dotStyles = "bg-blue-500";
+                                
+                                if (isCompleted) {
+                                  badgeStyles = "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-900/40";
+                                  dotStyles = "bg-emerald-500";
+                                } else if (isCancelled) {
+                                  badgeStyles = "bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-400 border border-rose-200/60 dark:border-rose-900/40";
+                                  dotStyles = "bg-rose-500";
+                                }
+
+                                return (
+                                  <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider inline-flex items-center gap-1 border ${badgeStyles}`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full ${dotStyles} ${!isCompleted && !isCancelled ? "animate-pulse" : ""}`} />
+                                    {order.status}
+                                  </span>
+                                );
+                              })()}
                             </div>
                             <p className="text-slate-600 text-[11px] font-semibold mt-1">
                               Customer: {order.userName} ({order.userAddress})
