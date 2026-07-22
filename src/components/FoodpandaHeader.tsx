@@ -285,8 +285,8 @@ export default function FoodpandaHeader({
                   
                   {/* Loyalty Balance Badge */}
                   <div className="mt-2 w-full bg-gradient-to-r from-[#d70f64] to-pink-600 rounded-xl p-2 text-white flex items-center justify-between text-[10px] font-sans">
-                    <span className="font-extrabold flex items-center gap-1">👑 Loyalty Cashback:</span>
-                    <span className="font-black bg-white text-[#d70f64] px-1.5 py-0.5 rounded-md text-[9px]">Rs. {(user.ordersCount || 0) * 15}</span>
+                    <span className="font-extrabold flex items-center gap-1">👑 Coin Benefit Wallet:</span>
+                    <span className="font-black bg-white text-[#d70f64] px-1.5 py-0.5 rounded-md text-[9px]">Rs. {user.loyaltyCoins ?? ((user.ordersCount || 0) * 15)}</span>
                   </div>
                 </div>
 

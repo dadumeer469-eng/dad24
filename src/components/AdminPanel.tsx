@@ -10,7 +10,7 @@ import {
   GroceryProduct,
   GroceryDeliveryConfig,
   Banner,
-  Voucher,
+  getUserCoins,
 } from "../types";
 import { awardLoyaltyCoinsForOrder } from "../lib/loyalty";
 import {
@@ -26,6 +26,7 @@ import {
   getDocs,
   getFirestore,
   orderBy,
+  increment,
 } from "firebase/firestore";
 import { db, firebaseConfig, databaseId, cleanObject, storage, handleFirestoreError } from "../firebase";
 import { initializeApp, deleteApp } from "firebase/app";
@@ -443,13 +444,11 @@ export default function AdminPanel({
     | "devices"
     | "seo"
     | "banners"
-    | "vouchers"
     | "food_categories"
     | "loyalty"
   >("analytics");
   const [allUsersList, setAllUsersList] = useState<UserProfile[]>([]);
   const [bannersList, setBannersList] = useState<Banner[]>([]);
-  const [vouchersList, setVouchersList] = useState<Voucher[]>([]);
   const [userSearchTerm, setUserSearchTerm] = useState("");
   const [userFilterTab, setUserFilterTab] = useState<"new" | "active" | "blocked">("new");
   const [allDevicesList, setAllDevicesList] = useState<any[]>([]);
@@ -465,14 +464,6 @@ export default function AdminPanel({
     const q = query(collection(db, "promotional_banners"), orderBy("createdAt", "desc"));
     const unsub = onSnapshot(q, (snap) => {
       setBannersList(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Banner)));
-    });
-    return () => unsub();
-  }, []);
-
-  useEffect(() => {
-    const q = query(collection(db, "vouchers"), orderBy("createdAt", "desc"));
-    const unsub = onSnapshot(q, (snap) => {
-      setVouchersList(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Voucher)));
     });
     return () => unsub();
   }, []);
@@ -1010,10 +1001,11 @@ export default function AdminPanel({
   const [isDetectingUnlockGPS, setIsDetectingUnlockGPS] = useState(false);
   const [newUserToast, setNewUserToast] = useState<{ phone: string; show: boolean } | null>(null);
 
-  // User voucher sending states
-  const [voucherSendingUser, setVoucherSendingUser] = useState<UserProfile | null>(null);
-  const [selectedVoucherCode, setSelectedVoucherCode] = useState("");
-  const [customVoucherMessage, setCustomVoucherMessage] = useState("");
+  // User coin management states
+  const [coinManagingUser, setCoinManagingUser] = useState<UserProfile | null>(null);
+  const [coinAmountInput, setCoinAmountInput] = useState<number>(50);
+  const [coinNoteInput, setCoinNoteInput] = useState<string>("");
+  const [isCoinProcessing, setIsCoinProcessing] = useState<boolean>(false);
   const isFirstLoadRef = React.useRef(true);
 
   // Automatically populate address fields when configuring/editing a user
@@ -2716,14 +2708,6 @@ export default function AdminPanel({
               <Users className="w-3.5 h-3.5" /> Users ({allUsersList.length})
             </button>
             <button
-              onClick={() => setActiveSubTab("vouchers")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
-                activeSubTab === "vouchers" ? "bg-[#D70F64] border-[#D70F64] text-white" : "bg-slate-50 border-slate-200 text-slate-700"
-              }`}
-            >
-              <Ticket className="w-3.5 h-3.5" /> Vouchers
-            </button>
-            <button
               onClick={() => setActiveSubTab("devices")}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
                 activeSubTab === "devices" ? "bg-red-600 border-red-600 text-white" : "bg-slate-50 border-slate-200 text-slate-700"
@@ -2959,18 +2943,6 @@ export default function AdminPanel({
                   Marketing & System
                 </span>
                 <div className="space-y-0.5">
-                  <button
-                    onClick={() => setActiveSubTab("vouchers")}
-                    className={`w-full font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
-                      activeSubTab === "vouchers"
-                        ? "bg-[#D70F64] border-[#D70F64] text-white shadow-sm"
-                        : "bg-transparent border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                    }`}
-                  >
-                    <Ticket className="w-3.5 h-3.5 shrink-0" />
-                    Promo Vouchers
-                  </button>
-
                   <button
                     onClick={() => setActiveSubTab("banners")}
                     className={`w-full font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
@@ -7837,13 +7809,13 @@ export default function AdminPanel({
                               <button
                                 type="button"
                                 onClick={() => {
-                                  setVoucherSendingUser(u);
-                                  setSelectedVoucherCode("");
-                                  setCustomVoucherMessage("");
+                                  setCoinManagingUser(u);
+                                  setCoinAmountInput(50);
+                                  setCoinNoteInput("");
                                 }}
-                                className="flex-1 min-w-[70px] py-1.5 rounded-lg text-[10px] font-black uppercase transition-all bg-[#D70F64]/10 text-[#D70F64] hover:bg-[#D70F64]/20 cursor-pointer text-center"
+                                className="flex-1 min-w-[70px] py-1.5 rounded-lg text-[10px] font-black uppercase transition-all bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 cursor-pointer text-center"
                               >
-                                🎁 Voucher
+                                🪙 Coins
                               </button>
                               <button
                                 type="button"
@@ -8040,13 +8012,13 @@ export default function AdminPanel({
                                     <button
                                       type="button"
                                       onClick={() => {
-                                        setVoucherSendingUser(u);
-                                        setSelectedVoucherCode("");
-                                        setCustomVoucherMessage("");
+                                        setCoinManagingUser(u);
+                                        setCoinAmountInput(50);
+                                        setCoinNoteInput("");
                                       }}
-                                      className="p-1 px-2.5 rounded text-[10px] font-black uppercase transition-all bg-[#D70F64]/10 text-[#D70F64] hover:bg-[#D70F64]/20 cursor-pointer flex items-center gap-1"
+                                      className="p-1 px-2.5 rounded text-[10px] font-black uppercase transition-all bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 cursor-pointer flex items-center gap-1"
                                     >
-                                      🎁 Send Voucher
+                                      🪙 Manage Coins
                                     </button>
                                     <button
                                       type="button"
@@ -8891,230 +8863,6 @@ export default function AdminPanel({
             </div>
           )}
 
-          {activeSubTab === "vouchers" && (
-            <div className="space-y-6 lg:space-y-8 animate-fade-in text-left">
-              <div className="bg-white/90 border border-slate-200 rounded-3xl p-6 relative overflow-hidden">
-                <div className="absolute right-0 top-0 w-80 h-80 bg-pink-500/5 rounded-full blur-[100px] pointer-events-none" />
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-                      <Ticket className="w-6 h-6 text-pink-500" />
-                      Discount Vouchers
-                    </h2>
-                    <p className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-widest">
-                      Create and manage promotional codes
-                    </p>
-                  </div>
-                </div>
-
-                <form
-                  className="mt-8 space-y-5 relative z-10"
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    const form = e.target as HTMLFormElement;
-                    const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
-                    const originalText = submitBtn.innerText;
-                    
-                    const code = (form.elements.namedItem("code") as HTMLInputElement).value.toUpperCase().trim();
-                    const discountType = (form.elements.namedItem("discountType") as HTMLSelectElement).value;
-                    const discountValue = Number((form.elements.namedItem("discountValue") as HTMLInputElement).value);
-                    const minOrderAmount = Number((form.elements.namedItem("minOrderAmount") as HTMLInputElement).value) || 0;
-                    const maxUses = Number((form.elements.namedItem("maxUses") as HTMLInputElement).value) || 100;
-                    const successMessage = (form.elements.namedItem("successMessage") as HTMLInputElement).value || "Voucher applied successfully!";
-                    const isActive = (form.elements.namedItem("isActive") as HTMLInputElement).checked;
-                    
-                    if (!code || discountValue <= 0) return;
-
-                    submitBtn.disabled = true;
-                    submitBtn.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>';
-
-                    try {
-                      await setDoc(doc(db, "vouchers", code), {
-                        code,
-                        discountType,
-                        discountValue,
-                        minOrderAmount,
-                        maxUses,
-                        currentUses: 0,
-                        successMessage,
-                        isActive,
-                        createdAt: Date.now()
-                      });
-                      form.reset();
-                      alert("Voucher created successfully!");
-                    } catch (err: any) {
-                      alert(handleFirestoreError(err));
-                    } finally {
-                      submitBtn.disabled = false;
-                      submitBtn.innerText = originalText;
-                    }
-                  }}
-                >
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">
-                        Voucher Code (Required)
-                      </label>
-                      <input
-                        name="code"
-                        type="text"
-                        required
-                        placeholder="e.g. WELCOME50"
-                        className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs outline-none text-slate-900 focus:border-pink-500/60 transition uppercase"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">
-                        Discount Type
-                      </label>
-                      <select
-                        name="discountType"
-                        className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs outline-none text-slate-900 focus:border-pink-500/60 transition"
-                      >
-                        <option value="fixed">Fixed Amount (Rs)</option>
-                        <option value="percentage">Percentage (%)</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">
-                        Discount Value
-                      </label>
-                      <input
-                        name="discountValue"
-                        type="number"
-                        min="1"
-                        required
-                        placeholder="e.g. 50"
-                        className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs outline-none text-slate-900 focus:border-pink-500/60 transition"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">
-                        Min Order Amount (Optional)
-                      </label>
-                      <input
-                        name="minOrderAmount"
-                        type="number"
-                        min="0"
-                        placeholder="e.g. 500"
-                        className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs outline-none text-slate-900 focus:border-pink-500/60 transition"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">
-                        Max Allowed Uses
-                      </label>
-                      <input
-                        name="maxUses"
-                        type="number"
-                        min="1"
-                        required
-                        defaultValue="100"
-                        className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs outline-none text-slate-900 focus:border-pink-500/60 transition"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">
-                        Success Message (Optional)
-                      </label>
-                      <input
-                        name="successMessage"
-                        type="text"
-                        placeholder="e.g. Yay! You saved Rs 50!"
-                        className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs outline-none text-slate-900 focus:border-pink-500/60 transition"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 py-2">
-                    <input 
-                      type="checkbox" 
-                      name="isActive" 
-                      id="isActiveNewVoucher" 
-                      defaultChecked
-                      className="w-4 h-4 text-pink-500 border-slate-300 rounded focus:ring-pink-500"
-                    />
-                    <label htmlFor="isActiveNewVoucher" className="text-xs font-bold text-slate-700">
-                      Voucher is Active Immediately
-                    </label>
-                  </div>
-                  <button
-                    type="submit"
-                    className="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-pink-600 to-pink-700 text-white text-[11px] font-black uppercase tracking-widest rounded-2xl hover:shadow-[0_0_20px_rgba(219,39,119,0.3)] hover:-translate-y-0.5 transition-all cursor-pointer"
-                  >
-                    Add Voucher Code
-                  </button>
-                </form>
-              </div>
-
-              <div className="bg-white border border-slate-200 rounded-[24px] p-5 lg:p-7 shadow-sm relative overflow-hidden">
-                <h3 className="text-sm font-black text-slate-900 mb-4">Generated Vouchers ({vouchersList.length})</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {vouchersList.map(voucher => (
-                    <div key={voucher.id} className={`border ${voucher.isActive ? 'border-pink-200/50 bg-pink-50/30' : 'border-slate-200 bg-slate-50 opacity-75'} rounded-2xl p-4 relative group transition-all`}>
-                      <button
-                        onClick={() => {
-                          setConfirmDialog({
-                            title: "Delete Voucher",
-                            message: "Are you sure you want to permanently delete this voucher?",
-                            onConfirm: async () => {
-                              try {
-                                await deleteDoc(doc(db, "vouchers", voucher.id));
-                              } catch (err: any) {
-                                alert(handleFirestoreError(err));
-                              }
-                            }
-                          });
-                        }}
-                        className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 shadow-md text-white w-7 h-7 rounded-full flex items-center justify-center transition z-10 cursor-pointer"
-                        title="Delete Voucher"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="text-lg font-black text-pink-600 tracking-wider">
-                          {voucher.code}
-                        </span>
-                        <span className="text-[10px] font-black px-2 py-1 bg-white rounded-lg border border-slate-200 text-slate-600">
-                          {voucher.discountType === 'percentage' ? `${voucher.discountValue}% OFF` : `Rs ${voucher.discountValue} OFF`}
-                        </span>
-                      </div>
-                      
-                      <div className="space-y-1 mb-3">
-                        <p className="text-[10px] font-bold text-slate-500">
-                          Uses: <span className="text-slate-800">{voucher.currentUses} / {voucher.maxUses}</span>
-                        </p>
-                        {voucher.minOrderAmount ? (
-                          <p className="text-[10px] font-bold text-slate-500">
-                            Min Order: <span className="text-slate-800">Rs {voucher.minOrderAmount}</span>
-                          </p>
-                        ) : null}
-                      </div>
-
-                      <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                        <span className="text-[9px] font-bold text-slate-400">
-                          {new Date(voucher.createdAt).toLocaleDateString()}
-                        </span>
-                        <button
-                          onClick={async () => {
-                            try {
-                              await updateDoc(doc(db, "vouchers", voucher.id), {
-                                isActive: !voucher.isActive
-                              });
-                            } catch (err: any) {
-                              alert(handleFirestoreError(err));
-                            }
-                          }}
-                          className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider cursor-pointer transition-colors ${voucher.isActive ? "bg-green-100 hover:bg-green-200 text-green-700" : "bg-slate-200 hover:bg-slate-300 text-slate-600"}`}
-                        >
-                          {voucher.isActive ? "🟢 Active" : "⚫ Inactive"}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
 
         </div>
       </div>
@@ -9302,15 +9050,15 @@ export default function AdminPanel({
         </div>
       )}
 
-      {/* SEND VOUCHER MODAL */}
-      {voucherSendingUser && (
+      {/* COIN MANAGEMENT MODAL */}
+      {coinManagingUser && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-fade-in text-left">
           <div className="bg-white border border-slate-200 rounded-[32px] max-w-md w-full overflow-hidden shadow-2xl p-6 relative">
             <button
               onClick={() => {
-                setVoucherSendingUser(null);
-                setSelectedVoucherCode("");
-                setCustomVoucherMessage("");
+                setCoinManagingUser(null);
+                setCoinAmountInput(50);
+                setCoinNoteInput("");
               }}
               className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition cursor-pointer font-black text-xs"
             >
@@ -9319,127 +9067,139 @@ export default function AdminPanel({
             
             <div className="space-y-4">
               <div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-[#D70F64] block">
-                  Campaign dispatch
+                <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 block">
+                  Coin Benefit Wallet Management
                 </span>
-                <h3 className="text-lg font-black text-slate-900 mt-1">
-                  Send Voucher to {voucherSendingUser.name || "Dadu User"}
+                <h3 className="text-lg font-black text-slate-900 mt-1 flex items-center gap-2">
+                  <Coins className="w-5 h-5 text-amber-500" />
+                  Coins for {coinManagingUser.name || coinManagingUser.phone || "User"}
                 </h3>
                 <p className="text-[11.5px] text-slate-500 mt-1 font-semibold leading-relaxed">
-                  Select an active voucher and draft a personalized message. The user will receive this instantly as an in-app notification!
+                  Aap user ko manually Coin Benefit send (add) bhi kar sakte hain aur deduct (remove) bhi kar sakte hain!
                 </p>
               </div>
 
               <div className="space-y-4">
-                {/* Selected User details */}
-                <div className="bg-slate-50 border border-slate-100 p-3.5 rounded-2xl text-xs space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-slate-400 font-bold uppercase text-[9px]">Phone:</span>
-                    <span className="text-slate-800 font-mono font-black">{voucherSendingUser.phone || "Guest"}</span>
-                  </div>
-                  {voucherSendingUser.address && (
-                    <div className="flex justify-between gap-4">
-                      <span className="text-slate-400 font-bold uppercase text-[9px] shrink-0">Address:</span>
-                      <span className="text-slate-600 font-bold text-right truncate max-w-[200px]">{voucherSendingUser.address}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Dropdown for existing active vouchers */}
-                <div>
-                  <label className="text-[9.5px] font-black uppercase tracking-wider text-slate-600 block mb-1">
-                    Select active promo voucher <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={selectedVoucherCode}
-                    onChange={(e) => {
-                      const code = e.target.value;
-                      setSelectedVoucherCode(code);
-                      const matchingVoucher = vouchersList.find(v => v.code === code);
-                      if (matchingVoucher) {
-                        const discText = matchingVoucher.discountType === 'percentage' 
-                          ? `${matchingVoucher.discountValue}% OFF` 
-                          : `Rs. ${matchingVoucher.discountValue} OFF`;
-                        setCustomVoucherMessage(
-                          `🎉 Aapko mila hai ek special discount voucher! Use code "${code}" at checkout and get ${discText} on your next order. Order now and enjoy! 🍔🍕`
-                        );
-                      } else {
-                        setCustomVoucherMessage("");
-                      }
-                    }}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none text-slate-900 focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition"
-                  >
-                    <option value="">-- Choose a Voucher --</option>
-                    {vouchersList.filter(v => v.isActive).map(v => (
-                      <option key={v.id} value={v.code}>
-                        {v.code} ({v.discountType === 'percentage' ? `${v.discountValue}%` : `Rs. ${v.discountValue}`} OFF)
-                      </option>
-                    ))}
-                  </select>
-                  {vouchersList.filter(v => v.isActive).length === 0 && (
-                    <span className="text-[10px] text-red-500 font-bold block mt-1">
-                      ⚠️ No active vouchers found. Please create one in the "Promo Vouchers" tab first!
+                {/* User Current Balance */}
+                <div className="bg-amber-50 border border-amber-200 p-3.5 rounded-2xl text-xs space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-500 font-bold uppercase text-[9.5px]">Current Coin Balance:</span>
+                    <span className="text-amber-700 font-mono font-black text-sm bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-300">
+                      {getUserCoins(coinManagingUser, deliverySettings)} Coins (Rs. {getUserCoins(coinManagingUser, deliverySettings)})
                     </span>
-                  )}
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400 font-bold uppercase text-[9px]">Phone Number:</span>
+                    <span className="text-slate-800 font-mono font-bold">{coinManagingUser.phone || "Guest"}</span>
+                  </div>
                 </div>
 
-                {/* Personalized Message text area */}
+                {/* Coin Amount Input */}
                 <div>
                   <label className="text-[9.5px] font-black uppercase tracking-wider text-slate-600 block mb-1">
-                    Personalized message for user (In-app Notification) <span className="text-red-500">*</span>
+                    Number of Coins (Amount) <span className="text-red-500">*</span>
                   </label>
-                  <textarea
-                    required
-                    value={customVoucherMessage}
-                    onChange={(e) => setCustomVoucherMessage(e.target.value)}
-                    placeholder="Draft a message explaining the discount, e.g. Humari taraf se aapke liye discount voucher!"
-                    rows={4}
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none text-slate-900 focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition resize-none leading-relaxed"
+                  <input
+                    type="number"
+                    min="1"
+                    value={coinAmountInput}
+                    onChange={(e) => setCoinAmountInput(Math.max(1, Number(e.target.value)))}
+                    placeholder="Enter coin amount e.g. 50"
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
                   />
                 </div>
 
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 mt-4">
+                {/* Custom Note / Message */}
+                <div>
+                  <label className="text-[9.5px] font-black uppercase tracking-wider text-slate-600 block mb-1">
+                    Optional Note / Notification Message
+                  </label>
+                  <input
+                    type="text"
+                    value={coinNoteInput}
+                    onChange={(e) => setCoinNoteInput(e.target.value)}
+                    placeholder="e.g. Special loyalty bonus or manual correction"
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
+                  />
+                </div>
+
+                {/* Actions */}
+                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100 mt-4">
+                  {/* Remove / Deduct Button */}
                   <button
                     type="button"
-                    onClick={() => {
-                      setVoucherSendingUser(null);
-                      setSelectedVoucherCode("");
-                      setCustomVoucherMessage("");
-                    }}
-                    className="px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-[10.5px] uppercase font-black text-slate-600 hover:text-slate-700 hover:bg-slate-200 transition cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
+                    disabled={isCoinProcessing}
                     onClick={async () => {
-                      if (!selectedVoucherCode) {
-                        alert("Please select a voucher first!");
+                      if (!coinAmountInput || coinAmountInput <= 0) {
+                        alert("Please enter a valid coin amount!");
                         return;
                       }
-                      if (!customVoucherMessage.trim()) {
-                        alert("Please write a custom notification message!");
-                        return;
-                      }
+                      setIsCoinProcessing(true);
                       try {
+                        const currentBalance = getUserCoins(coinManagingUser, deliverySettings);
+                        const newBalance = Math.max(0, currentBalance - coinAmountInput);
+                        
+                        await updateDoc(doc(db, "users", coinManagingUser.uid), {
+                          loyaltyCoins: newBalance
+                        });
+
+                        const msg = coinNoteInput.trim() || `⚠️ Admin ne aapke wallet se ${coinAmountInput} Coins deduct/remove kiye hain. Naya balance: ${newBalance} coins.`;
                         await addDoc(collection(db, "notifications"), {
-                          userId: voucherSendingUser.uid,
-                          title: "🎁 Special Voucher Received!",
-                          message: customVoucherMessage,
+                          userId: coinManagingUser.uid,
+                          title: "🪙 Coins Deducted",
+                          message: msg,
                           createdAt: new Date(),
                           read: false
                         });
-                        alert(`✅ Voucher successfully dispatched to ${voucherSendingUser.name || voucherSendingUser.phone}!`);
-                        setVoucherSendingUser(null);
-                        setSelectedVoucherCode("");
-                        setCustomVoucherMessage("");
-                      } catch (err) {
-                        alert("Failed to send voucher notification: " + err);
+
+                        alert(`⚠️ ${coinAmountInput} coins deducted from ${coinManagingUser.name || coinManagingUser.phone}! New Balance: ${newBalance}`);
+                        setCoinManagingUser(null);
+                      } catch (err: any) {
+                        alert("Failed to deduct coins: " + err.message);
+                      } finally {
+                        setIsCoinProcessing(false);
                       }
                     }}
-                    disabled={!selectedVoucherCode}
-                    className="px-5 py-2.5 bg-[#D70F64] text-white rounded-xl text-[10.5px] font-black hover:bg-[#b00c50] shadow-md cursor-pointer transition uppercase tracking-wider flex items-center gap-1.5 disabled:opacity-50"
+                    className="px-4 py-3 bg-red-500 text-white rounded-xl text-[10.5px] font-black hover:bg-red-600 shadow-md cursor-pointer transition uppercase tracking-wider flex items-center justify-center gap-1 disabled:opacity-50"
                   >
-                    Send Voucher 🚀
+                    ➖ Remove Coins
+                  </button>
+
+                  {/* Add / Send Button */}
+                  <button
+                    type="button"
+                    disabled={isCoinProcessing}
+                    onClick={async () => {
+                      if (!coinAmountInput || coinAmountInput <= 0) {
+                        alert("Please enter a valid coin amount!");
+                        return;
+                      }
+                      setIsCoinProcessing(true);
+                      try {
+                        await updateDoc(doc(db, "users", coinManagingUser.uid), {
+                          loyaltyCoins: increment(coinAmountInput)
+                        });
+
+                        const msg = coinNoteInput.trim() || `🎉 Mubarak ho! Admin ne aapko ${coinAmountInput} Coins credit kar diye hain! Enjoy your rewards! 🎁`;
+                        await addDoc(collection(db, "notifications"), {
+                          userId: coinManagingUser.uid,
+                          title: "🪙 Coins Received!",
+                          message: msg,
+                          createdAt: new Date(),
+                          read: false
+                        });
+
+                        alert(`✅ ${coinAmountInput} coins successfully sent to ${coinManagingUser.name || coinManagingUser.phone}!`);
+                        setCoinManagingUser(null);
+                      } catch (err: any) {
+                        alert("Failed to send coins: " + err.message);
+                      } finally {
+                        setIsCoinProcessing(false);
+                      }
+                    }}
+                    className="px-4 py-3 bg-amber-500 text-zinc-950 rounded-xl text-[10.5px] font-black hover:bg-amber-400 shadow-md cursor-pointer transition uppercase tracking-wider flex items-center justify-center gap-1 disabled:opacity-50"
+                  >
+                    ➕ Send / Add Coins
                   </button>
                 </div>
               </div>

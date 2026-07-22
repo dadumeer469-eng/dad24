@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
+import { initializeFirestore, enableIndexedDbPersistence } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAnalytics, isSupported } from "firebase/analytics";
 import appletConfig from "../firebase-applet-config.json";
@@ -20,18 +20,28 @@ const firebaseConfig = {
 console.log("Firebase Init Config:", { ...firebaseConfig, apiKey: "***" });
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// Initialize Analytics (only if supported in environment, e.g. browser)
+// Initialize Analytics safely (only if supported and measurementId is present)
 let analytics: any = null;
-isSupported().then((supported) => {
-  if (supported) {
-    analytics = getAnalytics(app);
-  }
-}).catch(console.error);
+if (firebaseConfig.measurementId && typeof window !== "undefined") {
+  isSupported().then((supported) => {
+    if (supported) {
+      try {
+        analytics = getAnalytics(app);
+      } catch (e) {
+        console.warn("Analytics initialization skipped:", e);
+      }
+    }
+  }).catch(() => {
+    // Ignore analytics check failures in restricted iframe/sandbox environments
+  });
+}
 
-// Initialize Firestore
+// Initialize Firestore with long-polling enabled for enhanced connectivity in restricted iframe/sandbox environments
 const databaseId = (import.meta as any).env.VITE_FIREBASE_DATABASE_ID || appletConfig.firestoreDatabaseId;
 console.log("Firestore Initializing with Database ID:", databaseId);
-const db = databaseId ? getFirestore(app, databaseId) : getFirestore(app);
+const db = databaseId 
+  ? initializeFirestore(app, { experimentalForceLongPolling: true }, databaseId) 
+  : initializeFirestore(app, { experimentalForceLongPolling: true });
 
 enableIndexedDbPersistence(db).catch((err) => {
   if (err.code == 'failed-precondition') {

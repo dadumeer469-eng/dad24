@@ -1,10 +1,8 @@
 import React, { useState } from "react";
-import { UserProfile, OrderItem, Voucher, getUserCoins } from "../types";
-import { X, ShoppingBag, MapPin, Phone, User, AlertTriangle, ShieldCheck, Heart, Edit2, Compass, Tag, Loader2, Coins } from "lucide-react";
+import { UserProfile, OrderItem, getUserCoins } from "../types";
+import { X, ShoppingBag, MapPin, Phone, User, AlertTriangle, ShieldCheck, Heart, Edit2, Compass, Coins } from "lucide-react";
 import { CHECKOUT_DRINKS } from "../data";
 import { LazyImage } from "./LazyImage";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../firebase";
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -15,7 +13,7 @@ interface CartDrawerProps {
   currentUser: UserProfile | null;
   onOpenAuth: () => void;
   deliveryFee: number; // Stored inside Firestore settings!
-  onPlaceOrder: (details: { name: string; phone: string; location: { area: string; street: string; lat?: number; lng?: number; googleMapsLink?: string }; paymentMethod: string; orderType: "food" | "service"; userCoords?: { latitude: number; longitude: number }; voucher?: { code: string; discountAmount: number }; coinsUsed?: number }) => Promise<void>;
+  onPlaceOrder: (details: { name: string; phone: string; location: { area: string; street: string; lat?: number; lng?: number; googleMapsLink?: string }; paymentMethod: string; orderType: "food" | "service"; userCoords?: { latitude: number; longitude: number }; coinsUsed?: number }) => Promise<void>;
   onAddDrink: (drink: any) => void;
   userCoords?: { latitude: number; longitude: number } | null;
   systemSettings?: any;
@@ -36,21 +34,11 @@ export default function CartDrawer({
   systemSettings,
 }: CartDrawerProps) {
   const [submitting, setSubmitting] = useState(false);
-  const [voucherCode, setVoucherCode] = useState("");
-  const [appliedVoucher, setAppliedVoucher] = useState<{code: string, discountAmount: number, successMessage?: string} | null>(null);
-  const [voucherError, setVoucherError] = useState("");
-  const [isApplyingVoucher, setIsApplyingVoucher] = useState(false);
   const [useCoins, setUseCoins] = useState(false);
-  const [activeDiscountTab, setActiveDiscountTab] = useState<'none' | 'voucher' | 'coins'>('none');
-
-
-
 
   React.useEffect(() => {
     if (!isOpen || cartItems.length === 0) {
-      setVoucherCode("");
-      setAppliedVoucher(null);
-      setVoucherError("");
+      setUseCoins(false);
     }
   }, [isOpen, cartItems.length]);
 
@@ -68,16 +56,14 @@ export default function CartDrawer({
   const finalDeliveryFee = hasFood ? (isDoubleFee ? deliveryFee * 2 : deliveryFee) : 0;
   
   let grandTotal = totalFoodItemsPrice + finalDeliveryFee;
-  if (appliedVoucher) {
-    grandTotal = Math.max(0, grandTotal - appliedVoucher.discountAmount);
-  }
 
   const userCoins = getUserCoins(currentUser, systemSettings);
   const isLoyaltyEnabledForFood = (systemSettings?.loyaltyEnabled !== false) && (systemSettings?.loyaltyAllowOnFood !== false);
+  const maxAllowedCoinsByAdmin = systemSettings?.loyaltyMaxSpendCoins ?? 50;
 
   const maxCoinsUsable = isLoyaltyEnabledForFood ? Math.min(
     userCoins,
-    systemSettings?.loyaltyMaxSpendCoins ?? 50,
+    maxAllowedCoinsByAdmin,
     Math.floor(grandTotal)
   ) : 0;
 
@@ -86,63 +72,20 @@ export default function CartDrawer({
     grandTotal = Math.max(0, grandTotal - coinsDeducted);
   }
 
-  const handleApplyVoucher = async () => {
-    if (!voucherCode.trim()) return;
-    setVoucherError("");
-    setIsApplyingVoucher(true);
-    
-    try {
-      const code = voucherCode.toUpperCase().trim();
-      const docRef = doc(db, "vouchers", code);
-      const snap = await getDoc(docRef);
-      
-      if (!snap.exists()) {
-        setVoucherError("Invalid voucher code.");
-        setIsApplyingVoucher(false);
-        return;
-      }
-      
-      const v = snap.data() as Voucher;
-      
-      if (!v.isActive) {
-        setVoucherError("This voucher is inactive.");
-        setIsApplyingVoucher(false);
-        return;
-      }
-      if (v.currentUses >= v.maxUses) {
-        setVoucherError("This voucher has reached its usage limit.");
-        setIsApplyingVoucher(false);
-        return;
-      }
-      if (v.minOrderAmount && totalFoodItemsPrice < v.minOrderAmount) {
-        setVoucherError(`Minimum order amount of Rs ${v.minOrderAmount} required.`);
-        setIsApplyingVoucher(false);
-        return;
-      }
-      
-      let discountAmount = 0;
-      if (v.discountType === "percentage") {
-        discountAmount = (totalFoodItemsPrice * v.discountValue) / 100;
-        if (v.maxDiscountAmount) {
-          discountAmount = Math.min(discountAmount, v.maxDiscountAmount);
-        }
-      } else {
-        discountAmount = v.discountValue;
-      }
-      
-      setAppliedVoucher({
-        code: v.code,
-        discountAmount: Math.round(discountAmount),
-        successMessage: v.successMessage
-      });
-      setUseCoins(false); // Voucher replaces coins benefit
-      
-    } catch (err) {
-      setVoucherError("Failed to apply voucher.");
+  // Real-time Order Reward Calculation (from Admin Loyalty Settings)
+  const loyaltyEarnEnabled = systemSettings?.loyaltyEnabled !== false;
+  const loyaltyMinOrder = systemSettings?.loyaltyMinOrderForEarn ?? 100;
+  const loyaltyEarnType = systemSettings?.loyaltyEarnType ?? "fixed";
+  const loyaltyEarnVal = systemSettings?.loyaltyEarnCoins ?? 15;
+
+  let estimatedCoinsEarned = 0;
+  if (loyaltyEarnEnabled && grandTotal >= loyaltyMinOrder) {
+    if (loyaltyEarnType === "fixed") {
+      estimatedCoinsEarned = Math.floor(loyaltyEarnVal);
+    } else {
+      estimatedCoinsEarned = Math.floor(grandTotal * (loyaltyEarnVal / 100));
     }
-    
-    setIsApplyingVoucher(false);
-  };
+  }
 
   // Handles auto checkout detail mapping
   const handleSubmitOrder = async (e: React.FormEvent) => {
@@ -242,7 +185,6 @@ export default function CartDrawer({
         paymentMethod: paymentMethodValue,
         orderType: orderTypeValue,
         userCoords: activeCoords || undefined,
-        voucher: appliedVoucher ? { code: appliedVoucher.code, discountAmount: appliedVoucher.discountAmount } : undefined,
         coinsUsed: useCoins ? coinsDeducted : undefined,
       });
     } catch (err) {
@@ -581,191 +523,110 @@ export default function CartDrawer({
                 </div>
               </div>
             )}
-            {/* Horizontal Discount / Benefit Selector Bar */}
-            <div className="space-y-2 mt-3">
-              <div className="text-[10px] font-black text-zinc-400 uppercase tracking-wider flex items-center justify-between px-1">
-                <div className="flex items-center gap-1.5">
-                  <Tag className="w-3.5 h-3.5 text-pink-500" /> Apply Discounts
+            {/* Coin Benefit Section - Placed where Voucher used to be */}
+            <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/15 to-amber-600/10 border border-amber-500/30 rounded-2xl p-3.5 mt-3 space-y-2.5 animate-fadeIn text-left shadow-sm">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0 shadow-inner">
+                    <Coins className="w-5 h-5 text-amber-400 animate-pulse" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-black text-amber-300 truncate">
+                        🪙 Coin Benefit Discount
+                      </span>
+                      {isLoyaltyEnabledForFood && userCoins > 0 && (
+                        <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full ${useCoins ? 'bg-amber-400 text-zinc-950' : 'bg-zinc-800 text-zinc-400'}`}>
+                          {useCoins ? `Rs. ${maxCoinsUsable} OFF` : 'OFF'}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-amber-400/90 font-bold block truncate mt-0.5">
+                      Wallet: <span className="font-mono font-black text-amber-300">{userCoins} Coins</span> (1 Coin = Rs. 1)
+                    </span>
+                  </div>
                 </div>
-                {activeDiscountTab !== 'none' && (
+
+                {/* Toggle Switch */}
+                {isLoyaltyEnabledForFood && userCoins > 0 ? (
                   <button
                     type="button"
-                    onClick={() => {
-                      setActiveDiscountTab('none');
-                      setUseCoins(false);
-                      setAppliedVoucher(null);
-                      setVoucherCode("");
-                      setVoucherError("");
-                    }}
-                    className="text-[9.5px] text-zinc-500 hover:text-zinc-300 underline font-semibold cursor-pointer"
-                  >
-                    Hide / Close
-                  </button>
-                )}
-              </div>
-
-              <div className="bg-zinc-900/90 border border-zinc-800/90 p-1.5 rounded-2xl flex items-center gap-1.5">
-                {/* Option 1: Promo Voucher */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (activeDiscountTab === 'voucher') {
-                      setActiveDiscountTab('none');
-                    } else {
-                      setActiveDiscountTab('voucher');
-                      if (useCoins) setUseCoins(false);
-                    }
-                  }}
-                  className={`flex-1 py-2 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer outline-none ${
-                    activeDiscountTab === 'voucher'
-                      ? "bg-pink-600 text-white shadow-md shadow-pink-600/30"
-                      : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60"
-                  }`}
-                >
-                  <Tag className="w-3.5 h-3.5" />
-                  <span>Voucher Code</span>
-                  {appliedVoucher && (
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-0.5" />
-                  )}
-                </button>
-
-                {/* Option 2: Coins Benefit (if available) */}
-                {isLoyaltyEnabledForFood && userCoins > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (activeDiscountTab === 'coins') {
-                        setActiveDiscountTab('none');
-                        setUseCoins(false);
-                      } else {
-                        setActiveDiscountTab('coins');
-                        setAppliedVoucher(null);
-                        setVoucherCode("");
-                        setVoucherError("");
-                        setUseCoins(true);
-                      }
-                    }}
-                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer outline-none ${
-                      activeDiscountTab === 'coins'
-                        ? "bg-amber-500 text-zinc-950 shadow-md shadow-amber-500/30"
-                        : "text-zinc-400 hover:text-amber-400 hover:bg-zinc-800/60"
+                    onClick={() => setUseCoins(!useCoins)}
+                    className={`w-12 h-6.5 rounded-full transition-all relative cursor-pointer outline-none shrink-0 border ${
+                      useCoins ? "bg-amber-500 border-amber-400 shadow-md shadow-amber-500/20" : "bg-zinc-800 border-zinc-700"
                     }`}
                   >
-                    <Coins className="w-3.5 h-3.5 text-amber-500" />
-                    <span>Dadu Coins ({userCoins})</span>
-                    {useCoins && (
-                      <span className="w-2 h-2 rounded-full bg-zinc-950 animate-pulse ml-0.5" />
-                    )}
+                    <span
+                      className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform flex items-center justify-center text-[9px] font-black ${
+                        useCoins ? "transform translate-x-5.5 text-amber-600" : "text-zinc-500"
+                      }`}
+                    >
+                      {useCoins ? "✓" : ""}
+                    </span>
                   </button>
+                ) : (
+                  <span className="text-[9.5px] font-bold text-amber-500/70 bg-amber-500/10 px-2 py-1 rounded-lg border border-amber-500/20 shrink-0">
+                    {!isLoyaltyEnabledForFood ? "Disabled" : userCoins === 0 ? "0 Coins" : "Off"}
+                  </span>
                 )}
               </div>
 
-              {/* Tab Panel 1: Voucher */}
-              {activeDiscountTab === 'voucher' && (
-                <div className="bg-zinc-900/90 border border-zinc-800 p-3.5 rounded-2xl space-y-2.5 animate-fadeIn">
-                  <div className="flex items-center justify-between text-xs font-extrabold text-pink-400">
-                    <span>Enter Promo / Voucher Code</span>
-                  </div>
-
-                  {appliedVoucher ? (
-                    <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-2.5 flex justify-between items-center">
-                      <div className="text-emerald-400 font-bold text-xs flex flex-col">
-                        <span className="font-black uppercase tracking-wider">{appliedVoucher.code} APPLIED</span>
-                        <span className="text-[10px] mt-0.5">{appliedVoucher.successMessage || 'Voucher applied successfully!'}</span>
-                      </div>
-                      <button 
-                        type="button"
-                        onClick={() => {
-                          setAppliedVoucher(null);
-                          setVoucherCode("");
-                        }}
-                        className="text-emerald-400 hover:text-emerald-300 p-1"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={voucherCode}
-                          onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
-                          placeholder="ENTER CODE"
-                          className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs font-bold text-white uppercase outline-none focus:border-pink-500/50 transition-colors"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleApplyVoucher}
-                          disabled={isApplyingVoucher || !voucherCode.trim()}
-                          className="bg-pink-600 hover:bg-pink-500 disabled:opacity-50 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer"
-                        >
-                          {isApplyingVoucher ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Apply'}
-                        </button>
-                      </div>
-                      {voucherError && <div className="text-red-400 text-[10px] font-bold px-1">{voucherError}</div>}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Tab Panel 2: Coins Benefit */}
-              {activeDiscountTab === 'coins' && isLoyaltyEnabledForFood && userCoins > 0 && (
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3.5 space-y-2.5 animate-fadeIn text-left">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Coins className="w-5 h-5 text-amber-500 animate-pulse shrink-0" />
-                      <div>
-                        <span className="text-xs font-black text-amber-300 block">
-                          Use Coins Benefit (Rs. {maxCoinsUsable} Off)
-                        </span>
-                        <span className="text-[10px] text-amber-500/80 font-medium block">
-                          Available Coins: {userCoins} (1 coin = Rs. 1)
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const nextCoins = !useCoins;
-                        if (nextCoins) {
-                          setAppliedVoucher(null);
-                          setVoucherCode("");
-                          setVoucherError("");
-                        }
-                        setUseCoins(nextCoins);
-                      }}
-                      className={`w-11 h-5.5 rounded-full transition-colors relative cursor-pointer outline-none shrink-0 ${
-                        useCoins ? "bg-amber-500" : "bg-zinc-800"
-                      }`}
-                    >
-                      <span
-                        className={`absolute top-0.5 left-0.5 w-4.5 h-4.5 rounded-full bg-white shadow-sm transition-transform ${
-                          useCoins ? "transform translate-x-5.5" : ""
-                        }`}
-                      />
-                    </button>
-                  </div>
-                </div>
-              )}
+              {/* Admin settings info row */}
+              <div className="pt-2 border-t border-amber-500/20 flex items-center justify-between text-[10px] text-amber-300/80 font-semibold">
+                <span>
+                  ⚡ Admin Max Limit: <strong className="text-amber-300 font-mono">Rs. {maxAllowedCoinsByAdmin}</strong> per order
+                </span>
+                {userCoins > 0 && isLoyaltyEnabledForFood && (
+                  <span className="text-amber-400 font-bold">
+                    {useCoins ? `Applied: Rs. ${coinsDeducted}` : `Available: Rs. ${maxCoinsUsable}`}
+                  </span>
+                )}
+              </div>
             </div>
+
+            {/* Real-time Loyalty Cashback Earning Banner */}
+            {loyaltyEarnEnabled && (
+              <div className="mt-3 p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between text-left text-xs animate-fadeIn shadow-xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8.5 h-8.5 rounded-xl bg-emerald-500/20 border border-emerald-500/35 flex items-center justify-center shrink-0">
+                    <Coins className="w-4.5 h-4.5 text-emerald-400 animate-bounce" />
+                  </div>
+                  <div>
+                    {grandTotal >= loyaltyMinOrder ? (
+                      <>
+                        <span className="text-xs font-black text-emerald-300 block">
+                          🎉 Order Receive Par Earn Karenge: <span className="text-emerald-200 font-mono font-black">+{estimatedCoinsEarned} Coins</span>
+                        </span>
+                        <span className="text-[10px] text-emerald-400/90 font-bold block mt-0.5">
+                          {loyaltyEarnType === "fixed" 
+                            ? `Admin Reward: Flat ${loyaltyEarnVal} Coins (Rs. ${estimatedCoinsEarned} Cashback)` 
+                            : `Admin Reward: ${loyaltyEarnVal}% Cashback on Order Total (Rs. ${estimatedCoinsEarned})`}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-xs font-black text-amber-300 block">
+                          💡 Rs. {loyaltyMinOrder - Math.floor(grandTotal)} Ka Aur Order Karein
+                        </span>
+                        <span className="text-[10px] text-amber-400/90 font-bold block mt-0.5">
+                          Min order Rs. {loyaltyMinOrder} hone par milega +{loyaltyEarnType === 'fixed' ? `${loyaltyEarnVal} Coins` : `${loyaltyEarnVal}% Coins`} cashback!
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-1.5 text-xs text-zinc-400 font-semibold mt-4">
               <div className="flex justify-between">
                 <span>Items Subtotal:</span>
                 <span className="text-zinc-100 font-extrabold font-mono">Rs. {totalFoodItemsPrice}</span>
               </div>
-              
-              {appliedVoucher && (
-                <div className="flex justify-between text-emerald-400">
-                  <span>Voucher Discount:</span>
-                  <span className="font-extrabold font-mono">- Rs. {appliedVoucher.discountAmount}</span>
-                </div>
-              )}
 
               {useCoins && coinsDeducted > 0 && (
-                <div className="flex justify-between text-amber-500">
-                  <span>Coins Benefit Applied:</span>
+                <div className="flex justify-between text-amber-400">
+                  <span>Coin Benefit Discount:</span>
                   <span className="font-extrabold font-mono">- Rs. {coinsDeducted}</span>
                 </div>
               )}

@@ -95,10 +95,14 @@ export default function BannerCarousel({ onBannerClick }: BannerCarouselProps) {
 
   const handleBannerClick = (banner: Banner) => {
     if (analytics) {
-      logEvent(analytics, "banner_clicked", {
-        restaurant_name: banner.restaurantName || "general_offer",
-        banner_id: banner.id,
-      });
+      try {
+        logEvent(analytics, "banner_clicked", {
+          restaurant_name: banner.restaurantName || "general_offer",
+          banner_id: banner.id,
+        });
+      } catch (e) {
+        console.warn("Analytics event logging failed:", e);
+      }
     }
     if (banner.restaurantName && onBannerClick) {
       onBannerClick(banner.restaurantName);

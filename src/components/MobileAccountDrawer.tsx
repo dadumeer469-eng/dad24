@@ -107,11 +107,11 @@ export default function MobileAccountDrawer({
                   <span className="text-5xl">👑</span>
                 </div>
                 <span className="text-[9.5px] uppercase font-black tracking-widest text-pink-100 block">
-                  Dadu Club Loyalty Rewards
+                  Dadu Coin Benefit Wallet
                 </span>
                 <div className="mt-2.5 flex items-baseline gap-1.5">
-                  <span className="text-2xl sm:text-3xl font-black">Rs. {(user.ordersCount || 0) * 15}</span>
-                  <span className="text-[11px] font-bold text-pink-100">Dadu Coins</span>
+                  <span className="text-2xl sm:text-3xl font-black">Rs. {user.loyaltyCoins ?? ((user.ordersCount || 0) * 15)}</span>
+                  <span className="text-[11px] font-bold text-pink-100">Coin Benefit</span>
                 </div>
                 <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between text-[10.5px]">
                   <span className="font-bold text-pink-100">

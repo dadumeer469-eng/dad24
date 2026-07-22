@@ -77,16 +77,32 @@ export default function GroceryCartDrawer({
 
   const userCoins = getUserCoins(currentUser, systemSettings);
   const isLoyaltyEnabledForGrocery = (systemSettings?.loyaltyEnabled !== false) && (systemSettings?.loyaltyAllowOnGrocery || false);
+  const maxAllowedCoinsByAdmin = systemSettings?.loyaltyMaxSpendCoins ?? 50;
 
   const maxCoinsUsable = isLoyaltyEnabledForGrocery ? Math.min(
     userCoins,
-    systemSettings?.loyaltyMaxSpendCoins ?? 50,
+    maxAllowedCoinsByAdmin,
     Math.floor(grandTotal)
   ) : 0;
 
   const coinsDeducted = useCoins ? maxCoinsUsable : 0;
   if (useCoins) {
     grandTotal = Math.max(0, grandTotal - coinsDeducted);
+  }
+
+  // Real-time Order Reward Calculation (from Admin Loyalty Settings)
+  const loyaltyEarnEnabled = systemSettings?.loyaltyEnabled !== false;
+  const loyaltyMinOrder = systemSettings?.loyaltyMinOrderForEarn ?? 100;
+  const loyaltyEarnType = systemSettings?.loyaltyEarnType ?? "fixed";
+  const loyaltyEarnVal = systemSettings?.loyaltyEarnCoins ?? 15;
+
+  let estimatedCoinsEarned = 0;
+  if (loyaltyEarnEnabled && grandTotal >= loyaltyMinOrder) {
+    if (loyaltyEarnType === "fixed") {
+      estimatedCoinsEarned = Math.floor(loyaltyEarnVal);
+    } else {
+      estimatedCoinsEarned = Math.floor(grandTotal * (loyaltyEarnVal / 100));
+    }
   }
 
   const handleCheckoutSubmit = async (e: React.FormEvent) => {
@@ -329,84 +345,98 @@ export default function GroceryCartDrawer({
           {cartItems.length > 0 && (
             <div className="p-5 border-t border-zinc-900 bg-zinc-900/60 space-y-4">
               
-              {/* Horizontal Discount / Benefit Selector Bar */}
-              {isLoyaltyEnabledForGrocery && userCoins > 0 && (
-                <div className="space-y-2">
-                  <div className="text-[10px] font-black text-zinc-400 uppercase tracking-wider flex items-center justify-between px-1">
-                    <div className="flex items-center gap-1.5">
-                      <Coins className="w-3.5 h-3.5 text-amber-500" /> Apply Rewards / Benefits
+              {/* Coin Benefit Section - Placed where Voucher used to be */}
+              <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/15 to-amber-600/10 border border-amber-500/30 rounded-2xl p-3.5 space-y-2.5 animate-fadeIn text-left shadow-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0 shadow-inner">
+                      <Coins className="w-5 h-5 text-amber-400 animate-pulse" />
                     </div>
-                    {activeDiscountTab !== 'none' && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveDiscountTab('none');
-                          setUseCoins(false);
-                        }}
-                        className="text-[9.5px] text-zinc-500 hover:text-zinc-300 underline font-semibold cursor-pointer"
-                      >
-                        Hide / Close
-                      </button>
-                    )}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-black text-amber-300 truncate">
+                          🪙 Coin Benefit Discount
+                        </span>
+                        {isLoyaltyEnabledForGrocery && userCoins > 0 && (
+                          <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full ${useCoins ? 'bg-amber-400 text-zinc-950' : 'bg-zinc-800 text-zinc-400'}`}>
+                            {useCoins ? `Rs. ${maxCoinsUsable} OFF` : 'OFF'}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-amber-400/90 font-bold block truncate mt-0.5">
+                        Wallet: <span className="font-mono font-black text-amber-300">{userCoins} Coins</span> (1 Coin = Rs. 1)
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="bg-zinc-900 border border-zinc-800 p-1.5 rounded-2xl flex items-center gap-1.5">
+                  {/* Toggle Switch */}
+                  {isLoyaltyEnabledForGrocery && userCoins > 0 ? (
                     <button
                       type="button"
-                      onClick={() => {
-                        if (activeDiscountTab === 'coins') {
-                          setActiveDiscountTab('none');
-                          setUseCoins(false);
-                        } else {
-                          setActiveDiscountTab('coins');
-                          setUseCoins(true);
-                        }
-                      }}
-                      className={`flex-1 py-2 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer outline-none ${
-                        activeDiscountTab === 'coins'
-                          ? "bg-amber-500 text-zinc-950 shadow-md shadow-amber-500/30"
-                          : "text-zinc-400 hover:text-amber-400 hover:bg-zinc-800/60"
+                      onClick={() => setUseCoins(!useCoins)}
+                      className={`w-12 h-6.5 rounded-full transition-all relative cursor-pointer outline-none shrink-0 border ${
+                        useCoins ? "bg-amber-500 border-amber-400 shadow-md shadow-amber-500/20" : "bg-zinc-800 border-zinc-700"
                       }`}
                     >
-                      <Coins className="w-3.5 h-3.5 text-amber-500" />
-                      <span>Use Dadu Coins ({userCoins})</span>
-                      {useCoins && (
-                        <span className="w-2 h-2 rounded-full bg-zinc-950 animate-pulse ml-0.5" />
-                      )}
+                      <span
+                        className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform flex items-center justify-center text-[9px] font-black ${
+                          useCoins ? "transform translate-x-5.5 text-amber-600" : "text-zinc-500"
+                        }`}
+                      >
+                        {useCoins ? "✓" : ""}
+                      </span>
                     </button>
-                  </div>
-
-                  {/* Tab Panel: Coins Benefit */}
-                  {activeDiscountTab === 'coins' && (
-                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3.5 space-y-2.5 animate-fadeIn text-left">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Coins className="w-5 h-5 text-amber-500 animate-pulse shrink-0" />
-                          <div>
-                            <span className="text-xs font-black text-amber-300 block">
-                              Use Coins Benefit (Rs. {maxCoinsUsable} Off)
-                            </span>
-                            <span className="text-[10px] text-amber-500/80 font-medium block">
-                              Available Coins: {userCoins} (1 coin = Rs. 1)
-                            </span>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setUseCoins(!useCoins)}
-                          className={`w-11 h-5.5 rounded-full transition-colors relative cursor-pointer outline-none shrink-0 ${
-                            useCoins ? "bg-amber-500" : "bg-zinc-800"
-                          }`}
-                        >
-                          <span
-                            className={`absolute top-0.5 left-0.5 w-4.5 h-4.5 rounded-full bg-white shadow-sm transition-transform ${
-                              useCoins ? "transform translate-x-5.5" : ""
-                            }`}
-                          />
-                        </button>
-                      </div>
-                    </div>
+                  ) : (
+                    <span className="text-[9.5px] font-bold text-amber-500/70 bg-amber-500/10 px-2 py-1 rounded-lg border border-amber-500/20 shrink-0">
+                      {!isLoyaltyEnabledForGrocery ? "Disabled" : userCoins === 0 ? "0 Coins" : "Off"}
+                    </span>
                   )}
+                </div>
+
+                {/* Admin settings info row */}
+                <div className="pt-2 border-t border-amber-500/20 flex items-center justify-between text-[10px] text-amber-300/80 font-semibold">
+                  <span>
+                    ⚡ Admin Max Limit: <strong className="text-amber-300 font-mono">Rs. {maxAllowedCoinsByAdmin}</strong> per order
+                  </span>
+                  {userCoins > 0 && isLoyaltyEnabledForGrocery && (
+                    <span className="text-amber-400 font-bold">
+                      {useCoins ? `Applied: Rs. ${coinsDeducted}` : `Available: Rs. ${maxCoinsUsable}`}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Real-time Loyalty Cashback Earning Banner */}
+              {loyaltyEarnEnabled && (
+                <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between text-left text-xs animate-fadeIn shadow-xs">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8.5 h-8.5 rounded-xl bg-emerald-500/20 border border-emerald-500/35 flex items-center justify-center shrink-0">
+                      <Coins className="w-4.5 h-4.5 text-emerald-400 animate-bounce" />
+                    </div>
+                    <div>
+                      {grandTotal >= loyaltyMinOrder ? (
+                        <>
+                          <span className="text-xs font-black text-emerald-300 block">
+                            🎉 Order Receive Par Earn Karenge: <span className="text-emerald-200 font-mono font-black">+{estimatedCoinsEarned} Coins</span>
+                          </span>
+                          <span className="text-[10px] text-emerald-400/90 font-bold block mt-0.5">
+                            {loyaltyEarnType === "fixed" 
+                              ? `Admin Reward: Flat ${loyaltyEarnVal} Coins (Rs. ${estimatedCoinsEarned} Cashback)` 
+                              : `Admin Reward: ${loyaltyEarnVal}% Cashback on Order Total (Rs. ${estimatedCoinsEarned})`}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-xs font-black text-amber-300 block">
+                            💡 Rs. {loyaltyMinOrder - Math.floor(grandTotal)} Ka Aur Order Karein
+                          </span>
+                          <span className="text-[10px] text-amber-400/90 font-bold block mt-0.5">
+                            Min order Rs. {loyaltyMinOrder} hone par milega +{loyaltyEarnType === 'fixed' ? `${loyaltyEarnVal} Coins` : `${loyaltyEarnVal}% Coins`} cashback!
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
 
