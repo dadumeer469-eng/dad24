@@ -1018,23 +1018,6 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                       </div>
                     </div>
 
-                    {showLiveChat && (
-                      <div className="w-full mt-2 animate-fade-in">
-                        <OrderChat
-                          orderId={riderActiveOrder.id}
-                          currentUser={{
-                            uid: currentUser.uid,
-                            name: currentUser.name || "Rider",
-                            role: "rider"
-                          }}
-                          recipientName={riderActiveOrder.userName || "Customer"}
-                          recipientRole="user"
-                          onClose={() => setShowLiveChat(false)}
-                          isOpen={showLiveChat}
-                        />
-                      </div>
-                    )}
-
                      {/* Pin-point user Delivery Destination GPS tracking */}
                      {riderActiveOrder.userCoords && (
                        <div className="bg-zinc-950 border border-zinc-800 p-3 sm:p-4 rounded-2xl flex flex-col gap-3 relative overflow-hidden">
@@ -1807,6 +1790,22 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
         onClose={() => setIsRiderReceiptModalOpen(false)}
         senderRole="rider"
       />
+
+      {/* RIDER LIVE CHAT MODAL OVERLAY */}
+      {showLiveChat && riderActiveOrder && (
+        <OrderChat
+          orderId={riderActiveOrder.id}
+          currentUser={{
+            uid: currentUser.uid,
+            name: currentUser.name || "Rider",
+            role: "rider"
+          }}
+          recipientName={riderActiveOrder.userName || "Customer"}
+          recipientRole="user"
+          onClose={() => setShowLiveChat(false)}
+          isOpen={showLiveChat}
+        />
+      )}
 
     </div>
   );
