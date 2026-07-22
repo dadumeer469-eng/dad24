@@ -573,6 +573,13 @@ export default function AdminPanel({
   const [loyaltyAllowOnFood, setLoyaltyAllowOnFood] = useState(true);
   const [loyaltyAllowOnGrocery, setLoyaltyAllowOnGrocery] = useState(false);
 
+  // Global Popup Announcement / Offer States
+  const [announcementActive, setAnnouncementActive] = useState(false);
+  const [announcementImageUrl, setAnnouncementImageUrl] = useState("");
+  const [announcementTitle, setAnnouncementTitle] = useState("");
+  const [announcementDescription, setAnnouncementDescription] = useState("");
+  const [announcementId, setAnnouncementId] = useState("");
+
   // Sync state when props or selected restaurant change
   useEffect(() => {
     if (deliverySettings) {
@@ -598,6 +605,13 @@ export default function AdminPanel({
       setLoyaltyMaxSpendCoins(deliverySettings.loyaltyMaxSpendCoins ?? 50);
       setLoyaltyAllowOnFood(deliverySettings.loyaltyAllowOnFood !== false);
       setLoyaltyAllowOnGrocery(deliverySettings.loyaltyAllowOnGrocery || false);
+
+      // Sync global announcement/offer popup
+      setAnnouncementActive(deliverySettings.announcement?.active || false);
+      setAnnouncementImageUrl(deliverySettings.announcement?.imageUrl || "");
+      setAnnouncementTitle(deliverySettings.announcement?.title || "");
+      setAnnouncementDescription(deliverySettings.announcement?.description || "");
+      setAnnouncementId(deliverySettings.announcement?.id || "");
 
       // Load specific restaurant status or fallback to global/default
       const specificStatus =
@@ -1744,6 +1758,13 @@ export default function AdminPanel({
         },
         isMaintenanceMode: isMaintenanceMode,
         maintenanceMessage: maintenanceMessage,
+        announcement: {
+          active: announcementActive,
+          imageUrl: announcementImageUrl.trim(),
+          title: announcementTitle.trim(),
+          description: announcementDescription.trim(),
+          id: announcementId.trim() || String(Date.now()),
+        },
       };
 
       await setDoc(doc(db, "settings", "delivery_config"), cleanObject(newSettings));
@@ -6235,6 +6256,190 @@ export default function AdminPanel({
                   </div>
                 </div>
 
+                {/* Global Image Announcement & Offer Popup */}
+                <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm relative space-y-4">
+                  <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#D70F64]/10 to-transparent" />
+                  <h4 className="font-black text-sm text-slate-900 flex items-center gap-2 pb-2.5 border-b border-slate-200 uppercase tracking-wide">
+                    <ImageIcon className="w-4 h-4 text-[#D70F64]" />
+                    Global Promo Offer / Pop-up Announcement
+                  </h4>
+                  <p className="text-[10.5px] text-slate-600 font-medium leading-relaxed">
+                    Yahan se aap kisi bhi product ya special offer ki image lagayein. Ye image har user ko app open karte hi aik dafa popup modal me dikhayi degi.
+                  </p>
+
+                  <div className="space-y-4 pt-1">
+                    {/* Active Status Switch */}
+                    <div className="flex items-center justify-between p-3.5 bg-emerald-50/40 rounded-2xl border border-emerald-100">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-black text-slate-900">Announcement Popup Status</span>
+                        <span className="text-[10px] font-bold text-slate-500">
+                          {announcementActive ? "🔴 ACTIVE - Users Will See Popup" : "⚪ INACTIVE - Hidden"}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setAnnouncementActive(!announcementActive)}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                          announcementActive ? "bg-emerald-500" : "bg-slate-200"
+                        }`}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                            announcementActive ? "translate-x-5" : "translate-x-0"
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    {/* Announcement Image URL */}
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center justify-between">
+                        <span>Offer Image URL (Pehli Fursat Me Image Link Dalein)</span>
+                        {announcementImageUrl && (
+                          <span className="text-[9px] text-[#D70F64] lowercase select-all font-mono">
+                            {announcementImageUrl.length > 30 ? announcementImageUrl.substring(0, 30) + "..." : announcementImageUrl}
+                          </span>
+                        )}
+                      </label>
+                      <input
+                        type="text"
+                        value={announcementImageUrl}
+                        onChange={(e) => setAnnouncementImageUrl(e.target.value)}
+                        placeholder="https://example.com/offer-image.jpg"
+                        className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none text-slate-900 font-extrabold focus:border-[#D70F64] transition text-xs"
+                      />
+                    </div>
+
+                    {/* Optional Title */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                          Popup Title (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          value={announcementTitle}
+                          onChange={(e) => setAnnouncementTitle(e.target.value)}
+                          placeholder="e.g. 50% Flat Discount Offer!"
+                          className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none text-slate-900 font-extrabold focus:border-[#D70F64] transition text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                          Announcement ID (Unique string to force popup again)
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={announcementId}
+                            onChange={(e) => setAnnouncementId(e.target.value)}
+                            placeholder="Auto-generated timestamp"
+                            className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-slate-600 font-bold text-xs"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newId = "promo_" + Date.now();
+                              setAnnouncementId(newId);
+                              alert("Naya ID set ho gaya! Ab sab users ko ye popup aik bar phir dikhayi dega.");
+                            }}
+                            className="bg-zinc-100 hover:bg-zinc-200 text-slate-700 text-[10px] font-black uppercase px-3.5 rounded-xl transition shrink-0"
+                          >
+                            🔄 Reset
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Optional Description */}
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                        Popup Detail Description (Optional)
+                      </label>
+                      <textarea
+                        value={announcementDescription}
+                        onChange={(e) => setAnnouncementDescription(e.target.value)}
+                        rows={2}
+                        placeholder="Describe details of your flash sale or instruction..."
+                        className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none text-slate-900 font-extrabold focus:border-[#D70F64] transition text-xs resize-none"
+                      />
+                    </div>
+
+                    {/* Live Preview of the Image Announcement */}
+                    {announcementImageUrl && (
+                      <div className="space-y-2 border border-slate-100 bg-slate-50/50 p-4 rounded-2xl">
+                        <span className="block text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">Live Promo Image Preview:</span>
+                        <div className="max-h-48 overflow-hidden rounded-xl border border-slate-200 bg-white flex items-center justify-center relative group">
+                          <img
+                            src={announcementImageUrl}
+                            alt="Announcement Offer Preview"
+                            referrerPolicy="no-referrer"
+                            className="max-h-48 w-auto object-contain"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Save Config Button */}
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (announcementActive && !announcementImageUrl.trim()) {
+                          alert("Aapne Announcement active rakhi hai magar Image URL khali hai! Pehle image ka link dalein.");
+                          return;
+                        }
+                        // If no ID is generated, make one on the fly
+                        let targetId = announcementId.trim();
+                        if (!targetId) {
+                          targetId = "promo_" + Date.now();
+                          setAnnouncementId(targetId);
+                        }
+                        try {
+                          const existingStatuses = deliverySettings?.restaurantStatuses || {};
+                          const newSettings = {
+                            ...deliverySettings,
+                            deliveryFee: Number(deliveryChargeInput),
+                            minOrderAmount: Number(minOrderAmountInput),
+                            riderRangeKm: Number(riderRangeKmInput),
+                            userRangeKm: Number(userRangeKmInput),
+                            baseLocationCoords: {
+                              lat: Number(baseLatInput),
+                              lng: Number(baseLngInput),
+                            },
+                            restaurantStatus: deliverySettings?.restaurantStatus || {
+                              isTemporarilyUnavailable: false,
+                              openingTime: "09:00",
+                              closingTime: "23:00",
+                            },
+                            restaurantStatuses: existingStatuses,
+                            isMaintenanceMode: isMaintenanceMode,
+                            maintenanceMessage: maintenanceMessage,
+                            announcement: {
+                              active: announcementActive,
+                              imageUrl: announcementImageUrl.trim(),
+                              title: announcementTitle.trim(),
+                              description: announcementDescription.trim(),
+                              id: targetId,
+                            },
+                          };
+
+                          await setDoc(doc(db, "settings", "delivery_config"), cleanObject(newSettings));
+                          alert("🎉 Mubarak Ho! Global Offer/Announcement successfully publish ho gayi hai!");
+                        } catch (err) {
+                          console.error(err);
+                          alert("Firestore error while publishing announcement: " + err);
+                        }
+                      }}
+                      className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-3 rounded-xl hover:scale-[1.01] active:scale-95 transition cursor-pointer text-xs uppercase shadow-md shadow-emerald-500/15 flex items-center justify-center gap-2"
+                    >
+                      <span>📢 Save & Publish Offer Announcement</span>
+                    </button>
+                  </div>
+                </div>
+
                 {/* Mobile Restaurant Schedule Manager */}
                 <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm relative space-y-4">
                   <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-purple-500/10 to-transparent" />
@@ -8154,12 +8359,15 @@ export default function AdminPanel({
                                 <button
                                   type="button"
                                   onClick={async () => {
-                                    const reason = window.prompt("Reason for blocking (e.g. Fake number):", "Fake number");
+                                    const reason = window.prompt("Reason for blocking (e.g. Orders canceled repeatedly):", "Duty parameters rules violation. Unblock karwane ke liye niche diye gaye WhatsApp par rabta karein.");
                                     if (reason !== null) {
                                       try {
                                         await updateDoc(doc(db, "users", u.uid), {
                                           status: "blocked",
-                                          isBlacklisted: true
+                                          isBlacklisted: true,
+                                          blockReason: reason || "Temporarily blocked by admin. Contact admin to unblock.",
+                                          needsUnblockAlert: false,
+                                          unblockAlertMessage: ""
                                         });
                                         await setDoc(doc(db, "blacklist", u.uid), {
                                           phone: u.phone,
@@ -8186,7 +8394,9 @@ export default function AdminPanel({
                                     try {
                                       await updateDoc(doc(db, "users", u.uid), {
                                         status: "verified",
-                                        isBlacklisted: false
+                                        isBlacklisted: false,
+                                        needsUnblockAlert: true,
+                                        unblockAlertMessage: "Aapka account admin ne unblock kar diya hai! Ab aap orders place kar sakte hain. 🎉"
                                       });
                                       await deleteDoc(doc(db, "blacklist", u.uid));
                                       alert(`✅ User ${u.phone} unblocked and removed from blacklist.`);
@@ -8355,12 +8565,15 @@ export default function AdminPanel({
                                       <button
                                         type="button"
                                         onClick={async () => {
-                                          const reason = window.prompt("Reason for blocking (e.g. Fake number):", "Fake number");
+                                          const reason = window.prompt("Reason for blocking (e.g. Orders canceled repeatedly):", "Duty parameters rules violation. Unblock karwane ke liye niche diye gaye WhatsApp par rabta karein.");
                                           if (reason !== null) {
                                             try {
                                               await updateDoc(doc(db, "users", u.uid), {
                                                 status: "blocked",
-                                                isBlacklisted: true
+                                                isBlacklisted: true,
+                                                blockReason: reason || "Temporarily blocked by admin. Contact admin to unblock.",
+                                                needsUnblockAlert: false,
+                                                unblockAlertMessage: ""
                                               });
                                               await setDoc(doc(db, "blacklist", u.uid), {
                                                 phone: u.phone,
@@ -8386,7 +8599,9 @@ export default function AdminPanel({
                                           try {
                                             await updateDoc(doc(db, "users", u.uid), {
                                               status: "verified",
-                                              isBlacklisted: false
+                                              isBlacklisted: false,
+                                              needsUnblockAlert: true,
+                                              unblockAlertMessage: "Aapka account admin ne unblock kar diya hai! Ab aap orders place kar sakte hain. 🎉"
                                             });
                                             await deleteDoc(doc(db, "blacklist", u.uid));
                                             alert(`✅ User ${u.phone} unblocked and removed from blacklist.`);

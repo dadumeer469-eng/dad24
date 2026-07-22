@@ -153,6 +153,14 @@ export interface SystemSettings {
   loyaltyMaxSpendCoins?: number; // max coins spendable per order
   loyaltyAllowOnFood?: boolean;
   loyaltyAllowOnGrocery?: boolean;
+  // Global image announcement or popup offer triggered by admin
+  announcement?: {
+    id: string;
+    imageUrl: string;
+    title?: string;
+    description?: string;
+    active: boolean;
+  };
 }
 
 export interface AppNotification {

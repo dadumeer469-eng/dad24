@@ -321,6 +321,7 @@ export default function App() {
   const [locationPromptDismissed, setLocationPromptDismissed] = useState(false);
 
   const [isDeviceBanned, setIsDeviceBanned] = useState(false);
+  const [showAnnouncementPopup, setShowAnnouncementPopup] = useState(false);
 
   useEffect(() => {
     // Check device ban status
@@ -643,10 +644,10 @@ export default function App() {
   }, []);
 
 
-  // 1b. Live Unblock Alert for Riders
+  // 1b. Live Unblock Alert for Riders & Users
   useEffect(() => {
-    if (currentUser && currentUser.role === "rider" && currentUser.needsUnblockAlert === true) {
-      alert(currentUser.unblockAlertMessage || "Mubarak ho! Aapka rider account admin ne unblock kar diya hai.");
+    if (currentUser && currentUser.needsUnblockAlert === true) {
+      alert(currentUser.unblockAlertMessage || "Mubarak ho! Aapka account admin ne unblock kar diya hai.");
       updateDoc(doc(db, "users", currentUser.uid), {
         needsUnblockAlert: false,
         unblockAlertMessage: ""
@@ -752,6 +753,21 @@ export default function App() {
 
     return () => unsubscribe();
   }, []);
+
+  // 3.5 Global Offer / Announcement Pop-up Logic
+  useEffect(() => {
+    if (deliverySettings?.announcement?.active && deliverySettings?.announcement?.imageUrl) {
+      const annId = deliverySettings.announcement.id;
+      const alreadySeen = localStorage.getItem(`seen_announcement_${annId}`);
+      if (!alreadySeen) {
+        setShowAnnouncementPopup(true);
+      } else {
+        setShowAnnouncementPopup(false);
+      }
+    } else {
+      setShowAnnouncementPopup(false);
+    }
+  }, [deliverySettings]);
 
   // 3a. Real-time Food Categories Listening
   useEffect(() => {
@@ -2653,6 +2669,87 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Global Image Announcement & Offer Popup Modal */}
+      <AnimatePresence>
+        {showAnnouncementPopup && deliverySettings?.announcement?.imageUrl && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 sm:p-6 select-none">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                const annId = deliverySettings.announcement.id;
+                localStorage.setItem(`seen_announcement_${annId}`, "true");
+                setShowAnnouncementPopup(false);
+              }}
+              className="absolute inset-0 bg-black/90 backdrop-blur-md cursor-pointer"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: "spring", duration: 0.5, bounce: 0.2 }}
+              className="relative w-full max-w-lg bg-zinc-950 rounded-[28px] overflow-hidden shadow-2xl border border-zinc-800 flex flex-col z-10"
+            >
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  const annId = deliverySettings.announcement.id;
+                  localStorage.setItem(`seen_announcement_${annId}`, "true");
+                  setShowAnnouncementPopup(false);
+                }}
+                className="absolute top-4 right-4 z-50 p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white/90 hover:text-white backdrop-blur-sm shadow border border-white/5 transition active:scale-90"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* Offer Banner Image */}
+              <div className="w-full bg-black flex items-center justify-center min-h-[250px] max-h-[60vh] overflow-hidden relative group">
+                <img
+                  src={deliverySettings.announcement.imageUrl}
+                  alt={deliverySettings.announcement.title || "Special Offer Announcement"}
+                  referrerPolicy="no-referrer"
+                  className="w-full h-auto max-h-[60vh] object-contain transition-transform duration-700 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/10 pointer-events-none" />
+              </div>
+
+              {/* Text Info Section (Only if Title or Description exists) */}
+              {(deliverySettings.announcement.title || deliverySettings.announcement.description) && (
+                <div className="p-6 bg-zinc-900 border-t border-zinc-800 space-y-2">
+                  {deliverySettings.announcement.title && (
+                    <h3 className="text-xl font-black text-white leading-tight">
+                      {deliverySettings.announcement.title}
+                    </h3>
+                  )}
+                  {deliverySettings.announcement.description && (
+                    <p className="text-xs text-zinc-400 font-medium leading-relaxed">
+                      {deliverySettings.announcement.description}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Confirm / Continue Button */}
+              <div className="p-4 sm:p-5 bg-zinc-950 border-t border-zinc-900 flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const annId = deliverySettings.announcement.id;
+                    localStorage.setItem(`seen_announcement_${annId}`, "true");
+                    setShowAnnouncementPopup(false);
+                  }}
+                  className="w-full bg-[#D70F64] hover:bg-[#b00c50] text-white py-3.5 sm:py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition active:scale-95 shadow-lg shadow-[#D70F64]/10 hover:shadow-[#D70F64]/20 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <span>Maza Aa Gaya! (Explore Now)</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </Suspense>
   );
 
@@ -2713,63 +2810,68 @@ export default function App() {
     </div>
   ) : null;
 
-  if (currentUser?.role === "rider") {
-    if (currentUser?.status === "blocked") {
-      return (
-        <div className="min-h-screen bg-[#09090b] text-zinc-100 flex items-center justify-center p-6 font-sans">
-          <div className="max-w-md w-full bg-zinc-900 border-2 border-red-500/30 rounded-3xl p-6 text-center space-y-6 shadow-2xl animate-fade-in relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-500 via-orange-500 to-red-500"></div>
-            
-            <div className="mx-auto w-16 h-16 bg-red-500/10 border border-red-500/20 rounded-full flex items-center justify-center text-3xl">
-              🚫
-            </div>
-            
-            <div className="space-y-2">
-              <h3 className="text-xl font-black text-white uppercase tracking-wider">
-                Rider Account Blocked!
-              </h3>
-              <p className="text-[11px] text-zinc-400 font-bold uppercase tracking-wider">
-                Aapka Account Block Kar Diya Gaya Hai
-              </p>
-            </div>
-            
-            <div className="p-4 bg-zinc-950/80 border border-zinc-800 rounded-2xl text-left space-y-2.5">
-              <span className="text-[9px] text-zinc-500 font-extrabold uppercase tracking-widest block">
-                Reason / Wajah:
-              </span>
-              <p className="text-sm font-bold text-zinc-200 leading-relaxed whitespace-pre-wrap">
-                {currentUser.blockReason || "Aapka account temporarily block kiya gaya hai. Contact admin for details."}
-              </p>
-            </div>
+  if (currentUser && currentUser.status === "blocked" && currentUser.role !== "admin") {
+    const isRider = currentUser.role === "rider";
+    const contactText = isRider
+      ? `Salam Admin, Mera Rider Account (${currentUser.name || "Rider"} - ${currentUser.phone}) block ho gaya hai. Wajah: ${currentUser.blockReason || "No details"}. Kindly check karke unblock kardein.`
+      : `Salam Admin, Mera User Account (${currentUser.name || "User"} - ${currentUser.phone}) block ho gaya hai. Wajah: ${currentUser.blockReason || "No details"}. Kindly check karke unblock kardein.`;
 
-            <div className="space-y-3.5 pt-2">
-              <div className="text-xs font-semibold text-zinc-400 leading-normal">
-                Account ko unblock karwane ke liye niche diye gaye button pe click karke WhatsApp par rabta karein:
-              </div>
-              
-              <a
-                href={`https://wa.me/923277004471?text=Salam%20Admin,%20Mera%20Rider%20Account%20(${currentUser.name}%20-%20${currentUser.phone})%20block%20ho%20gaya%20hai.%20Wajah:%20${encodeURIComponent(currentUser.blockReason || "No details")}.%20Kindly%20check%20karke%20unblock%20kardein.`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full bg-[#25D366] hover:bg-[#20ba5a] text-white font-black py-4.5 px-4 rounded-2xl transition-all flex items-center justify-center gap-2.5 cursor-pointer text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/10"
-              >
-                <span>💬 Contact on WhatsApp</span>
-                <span className="font-mono text-[10px] bg-white/20 px-2 py-0.5 rounded-md">03277004471</span>
-              </a>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-black py-3.5 px-4 rounded-2xl transition-all cursor-pointer text-xs uppercase tracking-wider border border-zinc-700"
-            >
-              Sign Out (Logout Karein)
-            </button>
+    return (
+      <div className="min-h-screen bg-[#09090b] text-zinc-100 flex items-center justify-center p-6 font-sans">
+        <div className="max-w-md w-full bg-zinc-900 border-2 border-red-500/30 rounded-3xl p-6 text-center space-y-6 shadow-2xl animate-fade-in relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-500 via-orange-500 to-red-500"></div>
+          
+          <div className="mx-auto w-16 h-16 bg-red-500/10 border border-red-500/20 rounded-full flex items-center justify-center text-3xl">
+            🚫
           </div>
-        </div>
-      );
-    }
+          
+          <div className="space-y-2">
+            <h3 className="text-xl font-black text-white uppercase tracking-wider">
+              {isRider ? "Rider Account Blocked!" : "User Account Blocked!"}
+            </h3>
+            <p className="text-[11px] text-zinc-400 font-bold uppercase tracking-wider">
+              Aapka Account Block Kar Diya Gaya Hai
+            </p>
+          </div>
+          
+          <div className="p-4 bg-zinc-950/80 border border-zinc-800 rounded-2xl text-left space-y-2.5">
+            <span className="text-[9px] text-zinc-500 font-extrabold uppercase tracking-widest block">
+              Reason / Wajah:
+            </span>
+            <p className="text-sm font-bold text-zinc-200 leading-relaxed whitespace-pre-wrap">
+              {currentUser.blockReason || "Aapka account temporarily block kiya gaya hai. Contact admin for details."}
+            </p>
+          </div>
 
+          <div className="space-y-3.5 pt-2">
+            <div className="text-xs font-semibold text-zinc-400 leading-normal">
+              Account ko unblock karwane ke liye niche diye gaye button pe click karke WhatsApp par rabta karein:
+            </div>
+            
+            <a
+              href={`https://wa.me/923277004471?text=${encodeURIComponent(contactText)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full bg-[#25D366] hover:bg-[#20ba5a] text-white font-black py-4.5 px-4 rounded-2xl transition-all flex items-center justify-center gap-2.5 cursor-pointer text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/10"
+            >
+              <span>💬 Contact on WhatsApp</span>
+              <span className="font-mono text-[10px] bg-white/20 px-2 py-0.5 rounded-md">03277004471</span>
+            </a>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-black py-3.5 px-4 rounded-2xl transition-all cursor-pointer text-xs uppercase tracking-wider border border-zinc-700"
+          >
+            Sign Out (Logout Karein)
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (currentUser?.role === "rider") {
     return (
       <RiderPanel
         currentUser={currentUser}
