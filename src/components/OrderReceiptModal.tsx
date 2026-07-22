@@ -129,66 +129,12 @@ JazakAllah for ordering with Dadu Food! 🙏
 For help or inquiries, contact us on WhatsApp.`;
   };
 
-  const handleSendWhatsAppImage = async () => {
+  const handleOpenWhatsAppChat = () => {
     if (!waFormattedPhone) {
       alert("Customer phone number is invalid or missing.");
       return;
     }
-
-    if (!canvasRef.current) return;
-
-    try {
-      const blob = await new Promise<Blob | null>((resolve) => {
-        canvasRef.current?.toBlob(resolve, "image/png");
-      });
-
-      if (!blob) {
-        // Fallback to text link
-        const text = buildWhatsAppText();
-        window.open(`https://wa.me/${waFormattedPhone}?text=${encodeURIComponent(text)}`, "_blank");
-        return;
-      }
-
-      const fileName = `Receipt_${orderIdShort}.png`;
-      const file = new File([blob], fileName, { type: "image/png" });
-
-      // Method 1: Web Share API (Direct image file share on supported mobile & modern desktop browsers)
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: `Dadu Food Receipt - #${orderIdShort}`,
-          text: `Salam! Here is your Dadu Food order receipt picture for order #${orderIdShort}.`,
-        });
-        return;
-      }
-
-      // Method 2: Clipboard Image Copy + Open WhatsApp chat
-      if (navigator.clipboard && typeof ClipboardItem !== "undefined") {
-        try {
-          const item = new ClipboardItem({ "image/png": blob });
-          await navigator.clipboard.write([item]);
-          setCopyImageSuccess(true);
-          setTimeout(() => setCopyImageSuccess(false), 4000);
-
-          // Open WhatsApp web or app chat
-          const textMsg = `Salam ${customerName}! Main aapke order #${orderIdShort} ki receipt picture bhej raha hoon. (Picture copy ho chuki hai, niche Chatbox me PASTE / Ctrl+V karke send kardein 🙏)`;
-          window.open(`https://wa.me/${waFormattedPhone}?text=${encodeURIComponent(textMsg)}`, "_blank");
-          return;
-        } catch (clipErr) {
-          console.warn("Clipboard image write not supported:", clipErr);
-        }
-      }
-
-      // Method 3: Download image automatically and open WhatsApp
-      handleDownloadReceiptImage();
-      const text = buildWhatsAppText();
-      window.open(`https://wa.me/${waFormattedPhone}?text=${encodeURIComponent(text)}`, "_blank");
-    } catch (err) {
-      console.error("Failed to share receipt image:", err);
-      // Fallback
-      const text = buildWhatsAppText();
-      window.open(`https://wa.me/${waFormattedPhone}?text=${encodeURIComponent(text)}`, "_blank");
-    }
+    window.open(`https://wa.me/${waFormattedPhone}`, "_blank");
   };
 
   const handleSendWhatsAppText = () => {
@@ -318,24 +264,19 @@ For help or inquiries, contact us on WhatsApp.`;
           <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 p-3.5 sm:p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
             <div className="space-y-0.5 text-center sm:text-left">
               <span className="text-[10px] uppercase font-black tracking-wider text-emerald-700 dark:text-emerald-400 block">
-                Direct WhatsApp Receipt Picture Send
+                Direct WhatsApp Customer Chat
               </span>
               <p className="text-xs font-bold text-slate-800 dark:text-emerald-100">
-                Send receipt picture directly to <span className="text-emerald-600 dark:text-emerald-300 font-extrabold">{customerPhone}</span>
+                Open WhatsApp chat for <span className="text-emerald-600 dark:text-emerald-300 font-extrabold">{customerPhone}</span>
               </p>
-              {copyImageSuccess && (
-                <p className="text-[11px] font-black text-emerald-600 animate-pulse pt-1">
-                  ✓ Receipt picture copied! Open WhatsApp chat and press Paste (Ctrl+V) to send image!
-                </p>
-              )}
             </div>
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <button
-                onClick={handleSendWhatsAppImage}
+                onClick={handleOpenWhatsAppChat}
                 className="w-full sm:w-auto bg-[#25D366] hover:bg-[#20bd5a] text-white font-black text-xs py-2.5 px-4 rounded-xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer shrink-0"
               >
                 <Share2 className="w-4 h-4 fill-white" />
-                Send Receipt Picture (WhatsApp)
+                Open WhatsApp Chat
               </button>
             </div>
           </div>
@@ -363,11 +304,11 @@ For help or inquiries, contact us on WhatsApp.`;
           </button>
 
           <button
-            onClick={handleSendWhatsAppImage}
+            onClick={handleOpenWhatsAppChat}
             className="flex-1 bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-black py-3 px-4 rounded-xl transition flex items-center justify-center gap-2 shadow-md cursor-pointer active:scale-95"
           >
             <Share2 className="w-4 h-4 fill-white" />
-            Send WhatsApp Picture
+            Open WhatsApp Chat
           </button>
         </div>
       </div>
