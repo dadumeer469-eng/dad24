@@ -43,6 +43,12 @@ export interface UserProfile {
   vehicleNumber?: string;
   riderCoords?: { latitude: number; longitude: number; lastUpdated?: number };
   loyaltyCoins?: number; // User's custom loyalty coin wallet balance
+  password?: string; // Stored plaintext passcode or password for easy admin control
+  lastSettledAt?: any; // Timestamp when admin cleared/settled the rider's commission and deliveries
+  blockReason?: string;
+  blockContact?: string;
+  needsUnblockAlert?: boolean;
+  unblockAlertMessage?: string;
 }
 
 export interface OrderItem {
@@ -106,6 +112,8 @@ export interface Order {
   ratedAt?: any;
   coinsUsed?: number; // How many coins were redeemed/deducted for this order
   coinsEarned?: number; // How many coins were rewarded for this order
+  riderSettled?: boolean;
+  riderSettledAt?: any;
 }
 
 export interface SystemSettings {
@@ -132,6 +140,10 @@ export interface SystemSettings {
     minOrder?: string;
     deliveryCharge?: string;
     coords?: { lat: number; lng: number };
+    lastSettledAt?: any;
+    commissionEnabled?: boolean;
+    commissionType?: "percentage" | "fixed";
+    commissionValue?: number;
   }>;
   // Loyalty Wallet Settings controlled by admin
   loyaltyEnabled?: boolean;

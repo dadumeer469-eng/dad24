@@ -91,6 +91,7 @@ import {
   Image as ImageIcon,
   Ticket,
   Coins,
+  ClipboardList,
 } from "lucide-react";
 
 interface AdminPanelProps {
@@ -421,6 +422,16 @@ function ProductImageSelector({
   );
 }
 
+const parseDateToMillis = (val: any): number => {
+  if (!val) return 0;
+  if (typeof val.toDate === "function") return val.toDate().getTime();
+  if (val.seconds !== undefined) return val.seconds * 1000;
+  if (val instanceof Date) return val.getTime();
+  if (typeof val === "number") return val;
+  if (typeof val === "string") return Date.parse(val) || 0;
+  return 0;
+};
+
 export default function AdminPanel({
   dishes,
   orders,
@@ -447,6 +458,17 @@ export default function AdminPanel({
     | "food_categories"
     | "loyalty"
   >("analytics");
+  const [editingRiderPasswordId, setEditingRiderPasswordId] = useState<string | null>(null);
+  const [newPasswordInputValue, setNewPasswordInputValue] = useState<string>("");
+  const [showPasswordId, setShowPasswordId] = useState<string | null>(null);
+  const [selectedRiderStatsId, setSelectedRiderStatsId] = useState<string | null>(null);
+  const [statsTimeframe, setStatsTimeframe] = useState<"1day" | "7days" | "30days" | "60days" | "all">("all");
+  const [showSettledHistory, setShowSettledHistory] = useState<boolean>(false);
+
+  const [selectedRestLedgerName, setSelectedRestLedgerName] = useState<string | null>(null);
+  const [restStatsTimeframe, setRestStatsTimeframe] = useState<"1day" | "7days" | "30days" | "60days" | "all">("all");
+  const [showRestSettledHistory, setShowRestSettledHistory] = useState<boolean>(false);
+
   const [allUsersList, setAllUsersList] = useState<UserProfile[]>([]);
   const [bannersList, setBannersList] = useState<Banner[]>([]);
   const [userSearchTerm, setUserSearchTerm] = useState("");
@@ -524,6 +546,9 @@ export default function AdminPanel({
   const [restDeliveryCharge, setRestDeliveryCharge] = useState("");
   const [restLat, setRestLat] = useState("");
   const [restLng, setRestLng] = useState("");
+  const [restCommissionEnabled, setRestCommissionEnabled] = useState(false);
+  const [restCommissionType, setRestCommissionType] = useState<"percentage" | "fixed">("percentage");
+  const [restCommissionValue, setRestCommissionValue] = useState("");
   const [newRestaurantInput, setNewRestaurantInput] = useState("");
 
   // Deal of the Hour states
@@ -588,6 +613,9 @@ export default function AdminPanel({
         setRestDeliveryCharge(specificStatus.deliveryCharge || "");
         setRestLat(specificStatus.coords?.lat?.toString() || "");
         setRestLng(specificStatus.coords?.lng?.toString() || "");
+        setRestCommissionEnabled(specificStatus.commissionEnabled || false);
+        setRestCommissionType(specificStatus.commissionType || "percentage");
+        setRestCommissionValue(specificStatus.commissionValue?.toString() || "");
       } else {
         setRestStatusUnavailable(false);
         setRestOpeningTime("09:00");
@@ -599,6 +627,9 @@ export default function AdminPanel({
         setRestDeliveryCharge("");
         setRestLat("");
         setRestLng("");
+        setRestCommissionEnabled(false);
+        setRestCommissionType("percentage");
+        setRestCommissionValue("");
       }
     }
   }, [deliverySettings, selectedScheduleRestaurant]);
@@ -1430,6 +1461,79 @@ export default function AdminPanel({
     });
   };
 
+  const handleSaveRiderPassword = async (riderUid: string) => {
+    const newPass = newPasswordInputValue.trim();
+    if (!newPass || newPass.length < 6) {
+      alert("Password must be at least 6 characters long!");
+      return;
+    }
+    try {
+      await updateDoc(doc(db, "users", riderUid), {
+        password: newPass
+      });
+      setEditingRiderPasswordId(null);
+      setNewPasswordInputValue("");
+      alert("Rider password updated successfully!");
+    } catch (err) {
+      console.error("Failed to update rider password:", err);
+      alert("Error: Database permission denied or insufficient administrative credentials.");
+    }
+  };
+
+  const handleSettleRider = async (riderUid: string, name: string) => {
+    const isConfirmed = window.confirm(
+      `Kya aap Rider "${name}" ki active statistics aur earned commission ko settle aur clear karna chahte hain? Settle karne ke baad active counters reset ho jayenge.`
+    );
+    if (!isConfirmed) return;
+
+    try {
+      // 1. Update rider user profile with lastSettledAt
+      await updateDoc(doc(db, "users", riderUid), {
+        lastSettledAt: new Date()
+      });
+
+      // 2. Query all completed/delivered orders of this rider that aren't settled yet
+      const riderOrdersToSettle = orders.filter((o) => {
+        if (o.riderId !== riderUid) return false;
+        if (o.status !== "delivered" && o.status !== "completed") return false;
+        if (o.riderSettled) return false;
+        return true;
+      });
+
+      // 3. Mark them as settled in Firestore
+      await Promise.all(
+        riderOrdersToSettle.map((o) =>
+          updateDoc(doc(db, "orders", o.id), {
+            riderSettled: true,
+            riderSettledAt: new Date()
+          })
+        )
+      );
+
+      alert(`Rider "${name}" ki active stats successfully settled aur clear ho gayi hain!`);
+    } catch (err) {
+      console.error("Failed to settle rider stats:", err);
+      alert("Error: Database permission denied or insufficient administrative credentials.");
+    }
+  };
+
+  const handleSettleRestaurant = async (restaurantName: string) => {
+    const isConfirmed = window.confirm(
+      `Kya aap Restaurant "${restaurantName}" ki active statistics aur earned commission ko settle aur clear karna chahte hain? Settle karne ke baad active counters reset ho jayenge.`
+    );
+    if (!isConfirmed) return;
+
+    try {
+      await updateDoc(doc(db, "settings", "delivery_config"), {
+        [`restaurantStatuses.${restaurantName}.lastSettledAt`]: new Date()
+      });
+      alert(`Restaurant "${restaurantName}" ki active stats successfully settle aur clear ho gayi hain!`);
+    } catch (err) {
+      console.error("Failed to settle restaurant stats:", err);
+      alert("Error: Database permission denied or insufficient administrative credentials.");
+    }
+  };
+
   // --- BUSINESS LOGIC MATH FOR ANALYTICS ---
   // Calculates live numbers
   const deliveredOrders = orders.filter(
@@ -1623,6 +1727,7 @@ export default function AdminPanel({
         restaurantStatuses: {
           ...existingStatuses,
           [selectedScheduleRestaurant]: {
+            ...(existingStatuses[selectedScheduleRestaurant] || {}),
             isTemporarilyUnavailable: restStatusUnavailable,
             openingTime: restOpeningTime,
             closingTime: restClosingTime,
@@ -1632,6 +1737,9 @@ export default function AdminPanel({
             minOrder: restMinOrder ? String(restMinOrder) : null,
             deliveryCharge: restDeliveryCharge,
             coords: restLat && restLng ? { lat: parseFloat(restLat), lng: parseFloat(restLng) } : null,
+            commissionEnabled: restCommissionEnabled,
+            commissionType: restCommissionType,
+            commissionValue: restCommissionValue ? Number(restCommissionValue) : 0,
           },
         },
         isMaintenanceMode: isMaintenanceMode,
@@ -3689,6 +3797,61 @@ export default function AdminPanel({
                           />
                         </div>
                       </div>
+
+                      {/* Restaurant Commission Configuration (Admin Only) */}
+                      <div className="bg-purple-500/5 p-4 rounded-2xl border border-purple-500/15 space-y-3.5 mt-2">
+                        <div className="flex items-center justify-between">
+                          <div className="text-left">
+                            <h5 className="font-extrabold text-xs text-slate-900 uppercase tracking-wide">
+                              Restaurant Commission (Admin Share)
+                            </h5>
+                            <p className="text-[9.5px] text-slate-500 font-semibold leading-normal mt-0.5">
+                              Chaye commission rakhna hai ya nahi? Ye customer ki price nahi barhayega, balkay malik se settlement ke waqt deduct hoga.
+                            </p>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer group shrink-0">
+                            <input
+                              type="checkbox"
+                              className="sr-only peer"
+                              checked={restCommissionEnabled}
+                              onChange={(e) =>
+                                setRestCommissionEnabled(e.target.checked)
+                              }
+                            />
+                            <div className="w-10 h-5 bg-slate-200 rounded-full peer peer-focus:ring-2 peer-focus:ring-purple-500/40 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-700 after:border-slate-700 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500"></div>
+                          </label>
+                        </div>
+
+                        {restCommissionEnabled && (
+                          <div className="grid grid-cols-2 gap-3 pt-1 text-left">
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                                Commission Type
+                              </label>
+                              <select
+                                value={restCommissionType}
+                                onChange={(e) => setRestCommissionType(e.target.value as "percentage" | "fixed")}
+                                className="w-full p-2.5 bg-white border border-slate-250 rounded-xl text-xs text-slate-900 outline-none focus:border-purple-500/60 transition appearance-none cursor-pointer"
+                              >
+                                <option value="percentage">Percentage (%)</option>
+                                <option value="fixed">Fixed Amount (Rs.)</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                                {restCommissionType === "percentage" ? "Commission % Rate" : "Commission Flat (Rs.)"}
+                              </label>
+                              <input
+                                type="number"
+                                value={restCommissionValue}
+                                onChange={(e) => setRestCommissionValue(e.target.value)}
+                                placeholder={restCommissionType === "percentage" ? "e.g. 10" : "e.g. 50"}
+                                className="w-full p-2.5 bg-white border border-slate-250 rounded-xl text-xs text-slate-900 outline-none focus:border-purple-500/60 transition"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
                       <div className="pt-2">
                         <ProductImageSelector
                           imageUrl={restImageUrl}
@@ -3767,18 +3930,32 @@ export default function AdminPanel({
                     {uniqueRestaurants.map((restName) => (
                       <div
                         key={restName}
-                        className="bg-slate-100 border border-slate-200 rounded-xl p-3 flex items-center justify-between group hover:border-purple-500/30 transition-colors"
+                        className="bg-slate-100 border border-slate-200 rounded-xl p-3 flex items-center justify-between group hover:border-purple-500/30 transition-colors animate-fade-in"
                       >
                         <span className="text-xs font-bold text-slate-800 line-clamp-1 pr-2">
                           {restName}
                         </span>
-                        <button
-                          onClick={() => handleDeleteRestaurant(restName)}
-                          className="w-7 h-7 flex items-center justify-center rounded-lg bg-red-500/10 text-pink-400 hover:bg-red-500 hover:text-slate-900 transition-colors shrink-0 cursor-pointer"
-                          title={`Delete ${restName}`}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            onClick={() => {
+                              setSelectedRestLedgerName(restName);
+                              setRestStatsTimeframe("all");
+                              setShowRestSettledHistory(false);
+                            }}
+                            className="h-7 px-2.5 flex items-center justify-center gap-1 rounded-lg bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500 hover:text-white transition-all font-black text-[9.5px] uppercase tracking-wider cursor-pointer shadow-sm"
+                            title={`View Report Ledger for ${restName}`}
+                          >
+                            <ClipboardList className="w-3.5 h-3.5" />
+                            Ledger
+                          </button>
+                          <button
+                            onClick={() => handleDeleteRestaurant(restName)}
+                            className="w-7 h-7 flex items-center justify-center rounded-lg bg-red-500/10 text-pink-400 hover:bg-red-500 hover:text-slate-900 transition-colors shrink-0 cursor-pointer"
+                            title={`Delete ${restName}`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                     ))}
                     {uniqueRestaurants.length === 0 && (
@@ -6520,8 +6697,13 @@ export default function AdminPanel({
                         >
                           <div className="flex justify-between items-start">
                             <div>
-                              <span className="text-[10.5px] font-black tracking-wider text-slate-900 block">
+                              <span className="text-[10.5px] font-black tracking-wider text-slate-900 flex items-center gap-1.5 flex-wrap">
                                 Rider Name: {rider.name}
+                                {rider.status === "blocked" && (
+                                  <span className="text-[8.5px] bg-red-600 text-white font-extrabold px-1.5 py-0.5 rounded uppercase shrink-0">
+                                    Blocked 🚫
+                                  </span>
+                                )}
                               </span>
                               <div className="flex flex-wrap gap-1.5 mt-1">
                                 <span className="text-[9px] text-[#D70F64] font-bold block bg-[#D70F64]/5 border border-[#D70F64]/20 px-2.5 py-0.5 rounded-full uppercase">
@@ -6662,6 +6844,139 @@ export default function AdminPanel({
                                 📡 Awaiting active GPS tracking signal...
                               </div>
                             )}
+
+                            {/* Password Management */}
+                            <div className="flex items-center gap-2 mt-3 bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                              <Key className="w-3.5 h-3.5 text-[#D70F64] shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <span className="text-[10px] text-slate-500 uppercase tracking-widest block font-bold">Rider Password</span>
+                                {editingRiderPasswordId === rider.uid ? (
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <input
+                                      type="text"
+                                      value={newPasswordInputValue}
+                                      onChange={(e) => setNewPasswordInputValue(e.target.value)}
+                                      placeholder="Naya Password (min 6 chars)"
+                                      className="bg-white border border-slate-300 rounded-lg p-1.5 px-2.5 text-xs font-mono outline-none flex-grow text-slate-900"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSaveRiderPassword(rider.uid)}
+                                      className="bg-emerald-500 text-white text-[10px] font-black px-2.5 py-1.5 rounded-lg uppercase shrink-0 hover:bg-emerald-600 transition"
+                                    >
+                                      Save
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditingRiderPasswordId(null)}
+                                      className="bg-slate-200 text-slate-700 text-[10px] font-black px-2.5 py-1.5 rounded-lg uppercase shrink-0 hover:bg-slate-300 transition"
+                                    >
+                                      X
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center justify-between mt-0.5">
+                                    <span className="font-mono text-xs font-black text-slate-800 truncate">
+                                      {showPasswordId === rider.uid ? (rider.password || "No Custom Password (use fallback)") : "••••••"}
+                                    </span>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                      <button
+                                        type="button"
+                                        onClick={() => setShowPasswordId(showPasswordId === rider.uid ? null : rider.uid)}
+                                        className="text-[9.5px] font-black text-slate-500 hover:text-slate-700 uppercase"
+                                      >
+                                        {showPasswordId === rider.uid ? "Hide" : "Show"}
+                                      </button>
+                                      <span className="text-slate-300 text-[10px]">|</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setEditingRiderPasswordId(rider.uid);
+                                          setNewPasswordInputValue(rider.password || "");
+                                        }}
+                                        className="text-[9.5px] font-black text-[#D70F64] hover:text-[#b00c50] uppercase"
+                                      >
+                                        Edit
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Block / Unblock Controls */}
+                            <div className="mt-2.5 space-y-1.5">
+                              {rider.status === "blocked" ? (
+                                <div className="space-y-1.5">
+                                  <div className="text-[10px] text-red-600 font-semibold bg-red-50 border border-red-200/50 p-2.5 rounded-xl text-left">
+                                    <span className="block text-[8.5px] uppercase tracking-wider text-red-500 font-black">Blocked Reason / Wajah:</span>
+                                    <span className="block font-bold mt-0.5 whitespace-pre-wrap">{rider.blockReason || "No reason provided."}</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      const isConfirmed = window.confirm(`Kya aap Rider "${rider.name}" ko unblock karna chahte hain?`);
+                                      if (isConfirmed) {
+                                        try {
+                                          await updateDoc(doc(db, "users", rider.uid), {
+                                            status: "verified",
+                                            needsUnblockAlert: true,
+                                            unblockAlertMessage: "Aapka account admin ne unblock kar diya hai! Ab aap duty shuru kar sakte hain."
+                                          });
+                                          alert(`✅ Rider "${rider.name}" successfully unblock ho gaya hai!`);
+                                        } catch (err) {
+                                          console.error("Failed to unblock rider:", err);
+                                          alert("Error: Database permission denied.");
+                                        }
+                                      }
+                                    }}
+                                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-2.5 rounded-xl transition text-[11px] uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-emerald-500/10"
+                                  >
+                                    🔓 Unblock Rider (Kholain)
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    const reason = window.prompt(
+                                      `Rider "${rider.name}" ko block karne ki wajah (Reason) aur unblock hone ka tareeqa likhein (yeh msg use show hoga):`,
+                                      "Aapki duty timing par non-seriousness ki wajah se block kiya gaya hai. Unblock karwane ke liye niche diye gaye WhatsApp par rabta karein."
+                                    );
+                                    if (reason !== null) {
+                                      try {
+                                        await updateDoc(doc(db, "users", rider.uid), {
+                                          status: "blocked",
+                                          blockReason: reason || "Temporarily blocked by admin. Contact admin to unblock.",
+                                          needsUnblockAlert: false,
+                                          unblockAlertMessage: ""
+                                        });
+                                        alert(`❌ Rider "${rider.name}" block ho gaya hai.`);
+                                      } catch (err) {
+                                        console.error("Failed to block rider:", err);
+                                        alert("Error: Database permission denied.");
+                                      }
+                                    }
+                                  }}
+                                  className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-2.5 rounded-xl transition text-[11px] uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-red-500/10"
+                                >
+                                  🚫 Block Rider (Band Karein)
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Detailed Statistics Ledger */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedRiderStatsId(rider.uid);
+                                setStatsTimeframe("all");
+                                setShowSettledHistory(false);
+                              }}
+                              className="w-full bg-[#D70F64]/10 text-[#D70F64] font-black border border-[#D70F64]/20 py-2.5 rounded-xl hover:bg-[#D70F64]/20 transition text-xs uppercase flex items-center justify-center gap-1.5 mt-2.5"
+                            >
+                              <ClipboardList className="w-4 h-4" /> Reports & Ledger (All Data / Settle)
+                            </button>
                           </div>
                         </div>
                       );
@@ -9207,6 +9522,671 @@ export default function AdminPanel({
           </div>
         </div>
       )}
+
+      {/* RIDER STATS LEDGER MODAL */}
+      {selectedRiderStatsId && (() => {
+        const selectedRiderObj = ridersSubset.find((r) => r.uid === selectedRiderStatsId);
+        if (!selectedRiderObj) return null;
+
+        // 1. Gather all delivered orders for this rider
+        const riderDeliveredOrders = orders.filter((o) => {
+          if (o.riderId !== selectedRiderStatsId) return false;
+          if (o.status !== "delivered" && o.status !== "completed") return false;
+
+          // If NOT showing settled/cleared history, filter out settled orders
+          if (!showSettledHistory) {
+            if (o.riderSettled) return false;
+            if (selectedRiderObj.lastSettledAt) {
+              const orderDeliveredTime = parseDateToMillis(o.deliveryCompletedAt || o.createdAt);
+              const settledTime = parseDateToMillis(selectedRiderObj.lastSettledAt);
+
+              if (orderDeliveredTime <= settledTime) {
+                return false;
+              }
+            }
+          }
+          return true;
+        });
+
+        // 2. Filter by timeframe
+        const now = Date.now();
+        const timeframeFiltered = riderDeliveredOrders.filter((o) => {
+          const orderTime = parseDateToMillis(o.deliveryCompletedAt || o.createdAt);
+
+          if (statsTimeframe === "1day") {
+            const todayStart = new Date().setHours(0, 0, 0, 0);
+            return orderTime >= todayStart;
+          } else if (statsTimeframe === "7days") {
+            const limit = now - 7 * 24 * 60 * 60 * 1000;
+            return orderTime >= limit;
+          } else if (statsTimeframe === "30days") {
+            const limit = now - 30 * 24 * 60 * 60 * 1000;
+            return orderTime >= limit;
+          } else if (statsTimeframe === "60days") {
+            const limit = now - 60 * 24 * 60 * 60 * 1000;
+            return orderTime >= limit;
+          }
+          return true; // all
+        });
+
+        // 3. Group by day for daily list
+        const dailyGroups: Record<string, {
+          dateStr: string;
+          count: number;
+          sales: number;
+          commission: number;
+          orders: Order[];
+        }> = {};
+
+        timeframeFiltered.forEach((o) => {
+          const orderTime = parseDateToMillis(o.deliveryCompletedAt || o.createdAt);
+
+          const dateObj = new Date(orderTime);
+          const formattedDate = dateObj.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric"
+          });
+
+          const amt = o.grandTotal || o.totalPrice || 0;
+          const comm = o.deliveryFee || 0;
+
+          if (!dailyGroups[formattedDate]) {
+            dailyGroups[formattedDate] = {
+              dateStr: formattedDate,
+              count: 0,
+              sales: 0,
+              commission: 0,
+              orders: []
+            };
+          }
+
+          dailyGroups[formattedDate].count += 1;
+          dailyGroups[formattedDate].sales += amt;
+          dailyGroups[formattedDate].commission += comm;
+          dailyGroups[formattedDate].orders.push(o);
+        });
+
+        const dailyGroupsArray = Object.values(dailyGroups).sort((a, b) => {
+          return Date.parse(b.dateStr) - Date.parse(a.dateStr);
+        });
+
+        // Totals inside timeframe
+        const totalTimeframeOrders = timeframeFiltered.length;
+        const totalTimeframeSales = timeframeFiltered.reduce((sum, o) => sum + (o.grandTotal || o.totalPrice || 0), 0);
+        const totalTimeframeCommission = timeframeFiltered.reduce((sum, o) => {
+          return sum + (o.deliveryFee || 0);
+        }, 0);
+
+        return (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fade-in text-left">
+            <div className="bg-white border border-slate-200 rounded-[32px] max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl p-6 relative font-sans text-slate-900">
+              <button
+                type="button"
+                onClick={() => setSelectedRiderStatsId(null)}
+                className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-full transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+                <div className="bg-[#D70F64]/10 p-2.5 rounded-2xl">
+                  <ClipboardList className="w-6 h-6 text-[#D70F64]" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 uppercase tracking-wide">
+                    Delivery Report Ledger
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-bold">
+                    Rider: <span className="text-[#D70F64] font-black">{selectedRiderObj.name}</span> ({selectedRiderObj.phone})
+                  </p>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto py-4 space-y-5 scrollbar-none">
+                
+                {/* Filters */}
+                <div className="bg-slate-50 border border-slate-200/60 p-4 rounded-2xl space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2.5">
+                    <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                      📅 Select Duration (Mudat)
+                    </span>
+                    <div className="flex flex-wrap gap-1 bg-white border border-slate-200 p-1 rounded-xl">
+                      {[
+                        { id: "1day", label: "1 Din (Today)" },
+                        { id: "7days", label: "7 Din (Week)" },
+                        { id: "30days", label: "30 Din (Month)" },
+                        { id: "60days", label: "60 Din (2 Months)" },
+                        { id: "all", label: "All Data" },
+                      ].map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setStatsTimeframe(item.id as any)}
+                          className={`px-2.5 py-1 text-[9.5px] font-black uppercase tracking-wide rounded-lg transition-all cursor-pointer ${
+                            statsTimeframe === item.id
+                              ? "bg-[#D70F64] text-white"
+                              : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Settle Options */}
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-200/65 flex-wrap gap-3">
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={showSettledHistory}
+                        onChange={(e) => setShowSettledHistory(e.target.checked)}
+                        className="w-4 h-4 rounded border-slate-300 text-[#D70F64] focus:ring-[#D70F64]"
+                      />
+                      <span className="text-[10.5px] text-slate-600 font-extrabold uppercase tracking-wide">
+                        Settle kiya hua history bhi shamil karein
+                      </span>
+                    </label>
+
+                    {selectedRiderObj.lastSettledAt && (
+                      <span className="text-[9px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded-md font-bold uppercase">
+                        Aakhri Settle Time: {new Date(
+                          selectedRiderObj.lastSettledAt?.seconds
+                            ? selectedRiderObj.lastSettledAt.seconds * 1000
+                            : selectedRiderObj.lastSettledAt
+                        ).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Ledger Key Numbers */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl text-center">
+                    <span className="text-[8.5px] text-slate-500 uppercase tracking-widest font-black block leading-none">
+                      DELIVERED RUNS
+                    </span>
+                    <span className="text-lg font-black text-slate-900 block mt-1.5 leading-none">
+                      {totalTimeframeOrders}
+                    </span>
+                    <span className="text-[8px] text-slate-400 font-bold block mt-1">
+                      completed shipments
+                    </span>
+                  </div>
+                  
+                  <div className="bg-[#D70F64]/5 border border-[#D70F64]/10 p-3 rounded-2xl text-center">
+                    <span className="text-[8.5px] text-slate-500 uppercase tracking-widest font-black block leading-none">
+                      TOTAL ORDER AMOUNT
+                    </span>
+                    <span className="text-lg font-black text-[#D70F64] block mt-1.5 leading-none font-mono">
+                      Rs. {totalTimeframeSales}
+                    </span>
+                    <span className="text-[8px] text-slate-400 font-bold block mt-1">
+                      cumulative collection
+                    </span>
+                  </div>
+
+                  <div className="bg-emerald-500/5 border border-emerald-500/10 p-3 rounded-2xl text-center">
+                    <span className="text-[8.5px] text-slate-500 uppercase tracking-widest font-black block leading-none">
+                      EARNED RIDER FEE (KAMAEE)
+                    </span>
+                    <span className="text-lg font-black text-emerald-600 block mt-1.5 leading-none font-mono font-sans">
+                      Rs. {totalTimeframeCommission}
+                    </span>
+                    <span className="text-[8px] text-slate-400 font-bold block mt-1">
+                      due rider fee payout
+                    </span>
+                  </div>
+                </div>
+
+                {/* Daily Performance list */}
+                <div className="space-y-3 pt-2">
+                  <h4 className="text-[11px] font-black uppercase text-slate-500 tracking-wider flex items-center justify-between">
+                    <span>📅 Daily Performance Breakdown (Rozana Reports)</span>
+                    <span className="text-[10px] text-slate-400 lowercase font-medium">({dailyGroupsArray.length} active days)</span>
+                  </h4>
+
+                  {dailyGroupsArray.length === 0 ? (
+                    <div className="text-center p-8 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-slate-400 text-xs font-semibold">
+                      Is duration me koi completed deliveries nahi hain.
+                    </div>
+                  ) : (
+                    <div className="space-y-3.5 max-h-[300px] overflow-y-auto pr-1 scrollbar-none">
+                      {dailyGroupsArray.map((group) => (
+                        <div key={group.dateStr} className="bg-white border border-slate-200/80 rounded-2xl p-4 space-y-2.5 hover:border-slate-300 transition-colors">
+                          <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                            <span className="text-xs font-black text-slate-800">
+                              {group.dateStr}
+                            </span>
+                            <span className="text-[10px] bg-[#D70F64]/10 text-[#D70F64] font-black px-2.5 py-0.5 rounded-full uppercase">
+                              {group.count} Delivered {group.count === 1 ? "Order" : "Orders"}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2 text-xs font-semibold">
+                            <div className="flex items-center justify-between bg-slate-50 p-2 rounded-xl">
+                              <span className="text-slate-500 text-[10px]">Total Order Value:</span>
+                              <span className="font-mono text-slate-900 font-black">Rs. {group.sales}</span>
+                            </div>
+                            <div className="flex items-center justify-between bg-emerald-500/5 p-2 rounded-xl">
+                              <span className="text-slate-500 text-[10px]">Rider Fee Earned:</span>
+                              <span className="font-mono text-emerald-600 font-black font-sans">Rs. {group.commission}</span>
+                            </div>
+                          </div>
+
+                          {/* Order-by-order detail drawer inside daily item */}
+                          <div className="space-y-2 pt-1.5">
+                            <span className="text-[8.5px] font-black uppercase text-slate-400 tracking-widest block">Deliveries List:</span>
+                            <div className="space-y-2 max-h-[280px] overflow-y-auto text-[10px] leading-none scrollbar-none">
+                              {group.orders.map((order) => {
+                                const fee = order.deliveryFee !== undefined ? order.deliveryFee : 0;
+                                const riderTotal = fee;
+                                return (
+                                  <div key={order.id} className="p-3 bg-slate-50/70 hover:bg-slate-50 border border-slate-200/80 rounded-2xl space-y-2.5 transition text-left font-sans">
+                                    <div className="flex justify-between items-start gap-2.5">
+                                      <div className="flex items-center gap-1.5 truncate">
+                                        <span className="font-black text-[#D70F64] text-[10px]">dadu-{order.id.substring(0,6)}</span>
+                                        <span className="text-slate-350">|</span>
+                                        <span className="text-slate-700 font-sans truncate font-bold text-[10.5px]">{order.userName}</span>
+                                      </div>
+                                      <div className="flex items-center gap-2.5 shrink-0 text-[10px] font-sans">
+                                        <span className="text-slate-400 font-medium">Order: Rs. {order.grandTotal || order.totalPrice}</span>
+                                        <span className="bg-[#D70F64]/10 text-[#D70F64] font-black px-2 py-0.5 rounded-md">
+                                          Total: Rs. {riderTotal}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    {/* Breakdown details */}
+                                    <div className="flex justify-between items-center text-[10px] border-t border-slate-150 pt-2 font-sans font-semibold">
+                                      <span className="text-slate-500">Rider Delivery Fee (Pure Payout):</span>
+                                      <span className="font-mono text-[#D70F64] font-extrabold text-[11px]">Rs. {riderTotal}</span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+              </div>
+
+              {/* Action Buttons / Footer */}
+              <div className="border-t border-slate-150 pt-4 flex items-center justify-between gap-3 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setSelectedRiderStatsId(null)}
+                  className="px-5 py-3 bg-slate-100 border border-slate-200 rounded-xl text-xs uppercase font-black text-slate-500 hover:text-slate-700 hover:bg-slate-200 transition cursor-pointer"
+                >
+                  Close (Band Karein)
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleSettleRider(selectedRiderStatsId, selectedRiderObj.name);
+                  }}
+                  className="px-5 py-3 bg-[#D70F64] text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-[#b00c50] transition shadow-lg shadow-pink-500/10 cursor-pointer flex items-center gap-1.5"
+                >
+                  🧹 Clear & Settle Stats (Stats Reset Karein)
+                </button>
+              </div>
+
+            </div>
+          </div>
+        );
+      })()}
+
+      {selectedRestLedgerName && (() => {
+        const restName = selectedRestLedgerName;
+        // 1. Gather all delivered orders that contain at least one item of this restaurant
+        const restDeliveredOrders = orders.filter((o) => {
+          if (o.status !== "delivered" && o.status !== "completed") return false;
+
+          // Check if it contains at least one item from this restaurant
+          const hasItem = (o.items || []).some((item) => {
+            const itemRestName = item.restaurantName || (item.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
+            return itemRestName === restName;
+          });
+          if (!hasItem) return false;
+
+          // If NOT showing settled/cleared history, filter out settled orders based on restaurant's lastSettledAt
+          if (!showRestSettledHistory) {
+            const restConfig = deliverySettings?.restaurantStatuses?.[restName];
+            if (restConfig?.lastSettledAt) {
+              const orderDeliveredTime = parseDateToMillis(o.deliveryCompletedAt || o.createdAt);
+              const settledTime = parseDateToMillis(restConfig.lastSettledAt);
+
+              if (orderDeliveredTime <= settledTime) {
+                return false;
+              }
+            }
+          }
+          return true;
+        });
+
+        // 2. Filter by statsTimeframe
+        const filteredOrders = restDeliveredOrders.filter((o) => {
+          if (restStatsTimeframe === "all") return true;
+
+          const orderTime = parseDateToMillis(o.deliveryCompletedAt || o.createdAt);
+
+          const diffMs = Date.now() - orderTime;
+          const diffDays = diffMs / (1000 * 60 * 60 * 24);
+
+          if (restStatsTimeframe === "1day") return diffDays <= 1;
+          if (restStatsTimeframe === "7days") return diffDays <= 7;
+          if (restStatsTimeframe === "30days") return diffDays <= 30;
+          if (restStatsTimeframe === "60days") return diffDays <= 60;
+          return true;
+        });
+
+        // 3. Compute stats metrics
+        let totalOrdersCount = filteredOrders.length;
+        let totalRestaurantSales = 0;
+        let totalRestaurantCommission = 0;
+
+        const restConfig = deliverySettings?.restaurantStatuses?.[restName];
+        const isCustomCommission = restConfig?.commissionEnabled === true;
+        const commType = restConfig?.commissionType || "percentage";
+        const commVal = Number(restConfig?.commissionValue || 0);
+
+        filteredOrders.forEach((o) => {
+          let orderSales = 0;
+          let orderItemCommission = 0;
+          (o.items || []).forEach((item) => {
+            const itemRestName = item.restaurantName || (item.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
+            if (itemRestName === restName) {
+              const itemTotal = item.price * item.quantity;
+              orderSales += itemTotal;
+              orderItemCommission += (item.commission || 0) * item.quantity;
+            }
+          });
+          totalRestaurantSales += orderSales;
+          if (isCustomCommission) {
+            if (orderSales > 0) {
+              if (commType === "percentage") {
+                totalRestaurantCommission += orderSales * (commVal / 100);
+              } else {
+                totalRestaurantCommission += commVal;
+              }
+            }
+          } else {
+            totalRestaurantCommission += orderItemCommission;
+          }
+        });
+
+        // 4. Group by Day
+        const groupedByDay: Record<string, { dateStr: string; orders: typeof filteredOrders; sales: number; commission: number }> = {};
+        filteredOrders.forEach((o) => {
+          const orderTime = parseDateToMillis(o.deliveryCompletedAt || o.createdAt);
+          const dateObj = new Date(orderTime);
+
+          const dayKey = dateObj.toLocaleDateString("en-US", {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+            year: "numeric"
+          });
+
+          if (!groupedByDay[dayKey]) {
+            groupedByDay[dayKey] = { dateStr: dayKey, orders: [], sales: 0, commission: 0 };
+          }
+          groupedByDay[dayKey].orders.push(o);
+
+          // Calculate matching items contribution for this specific order inside the day
+          let orderSales = 0;
+          let orderItemCommission = 0;
+          (o.items || []).forEach((item) => {
+            const itemRestName = item.restaurantName || (item.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
+            if (itemRestName === restName) {
+              orderSales += item.price * item.quantity;
+              orderItemCommission += (item.commission || 0) * item.quantity;
+            }
+          });
+
+          groupedByDay[dayKey].sales += orderSales;
+          if (isCustomCommission) {
+            if (orderSales > 0) {
+              if (commType === "percentage") {
+                groupedByDay[dayKey].commission += orderSales * (commVal / 100);
+              } else {
+                groupedByDay[dayKey].commission += commVal;
+              }
+            }
+          } else {
+            groupedByDay[dayKey].commission += orderItemCommission;
+          }
+        });
+
+        const dailyGroups = Object.values(groupedByDay);
+
+        return (
+          <div className="fixed inset-0 z-[110] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in font-sans">
+            <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full p-6 space-y-6 max-h-[90vh] overflow-y-auto border border-slate-100 flex flex-col justify-between">
+              
+              {/* Header */}
+              <div className="flex justify-between items-start border-b border-slate-150 pb-4">
+                <div>
+                  <h3 className="text-base font-black text-slate-900 tracking-wide uppercase flex items-center gap-2">
+                    <ClipboardList className="w-5 h-5 text-emerald-500 animate-pulse" />
+                    Restaurant Ledger Report: {restName}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-medium mt-1">
+                    Manage sales, calculate commission settings, and clear/settle stats for this restaurant.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setSelectedRestLedgerName(null)}
+                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Timeframe Selector & Settle Switcher */}
+              <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex flex-wrap gap-1 bg-white p-1 rounded-xl border border-slate-150/80 shadow-sm shrink-0">
+                  {(["1day", "7days", "30days", "60days", "all"] as const).map((tf) => (
+                    <button
+                      key={tf}
+                      onClick={() => setRestStatsTimeframe(tf)}
+                      className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition cursor-pointer ${
+                        restStatsTimeframe === tf
+                          ? "bg-emerald-500 text-white shadow-sm"
+                          : "text-slate-500 hover:bg-slate-100"
+                      }`}
+                    >
+                      {tf === "1day" ? "Today" : tf === "7days" ? "1 Week" : tf === "30days" ? "1 Month" : tf === "60days" ? "2 Month" : "All Time"}
+                    </button>
+                  ))}
+                </div>
+
+                <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={showRestSettledHistory}
+                    onChange={(e) => setShowRestSettledHistory(e.target.checked)}
+                    className="w-4.5 h-4.5 rounded text-emerald-600 focus:ring-emerald-500/20 border-slate-300"
+                  />
+                  <div className="text-left leading-tight">
+                    <span className="text-[11px] font-black text-slate-800 block">Settle kiya hua data bhi shamil karein</span>
+                    <span className="text-[9.5px] text-slate-400 font-medium block">Include settled orders history</span>
+                  </div>
+                </label>
+              </div>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl space-y-1 text-left">
+                  <span className="text-[9px] font-black uppercase text-emerald-600 tracking-wider block">Delivered Orders Count</span>
+                  <div className="text-2xl font-black text-slate-900 font-mono">{totalOrdersCount}</div>
+                  <span className="text-[9.5px] text-slate-500 font-semibold block">Total completed runs</span>
+                </div>
+
+                <div className="p-4 bg-purple-500/5 border border-purple-500/10 rounded-2xl space-y-1 text-left">
+                  <span className="text-[9px] font-black uppercase text-purple-600 tracking-wider block">Total Restaurant Sales</span>
+                  <div className="text-2xl font-black text-slate-900 font-mono">Rs. {totalRestaurantSales}</div>
+                  <span className="text-[9.5px] text-slate-500 font-semibold block">Excludes other vendors' items</span>
+                </div>
+
+                <div className="p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl space-y-1 text-left">
+                  <span className="text-[9px] font-black uppercase text-indigo-600 tracking-wider block">Admin Commission</span>
+                  <div className="text-2xl font-black text-indigo-600 font-mono">Rs. {totalRestaurantCommission}</div>
+                  <span className="text-[9.5px] text-slate-500 font-semibold block">Based on per-item commission</span>
+                </div>
+
+                <div className="p-4 bg-[#D70F64]/5 border border-[#D70F64]/10 rounded-2xl space-y-1 text-left">
+                  <span className="text-[9px] font-black uppercase text-[#D70F64] tracking-wider block">Kul Kamaee (Total Earnings)</span>
+                  <div className="text-2xl font-black text-[#D70F64] font-mono">Rs. {totalRestaurantSales - totalRestaurantCommission}</div>
+                  <span className="text-[9.5px] text-slate-500 font-semibold block">Sales minus Commission net payout</span>
+                </div>
+              </div>
+
+              {/* Detailed Daily Breakdown */}
+              <div className="space-y-3 text-left">
+                <h4 className="font-extrabold text-[11px] uppercase tracking-wider text-slate-400 flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                  <span>📅</span> Daily Reports & Settle Breakdown
+                </h4>
+
+                {dailyGroups.length === 0 ? (
+                  <div className="p-10 text-center bg-slate-50 border border-slate-200/50 rounded-2xl text-xs font-semibold text-slate-500 italic">
+                    Is timeframe me koi completed order ya commission statistics nahi mili.
+                  </div>
+                ) : (
+                  <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1">
+                    {dailyGroups.map((group) => (
+                      <div key={group.dateStr} className="p-4 bg-white border border-slate-200/80 rounded-2xl space-y-3.5">
+                        
+                        {/* Day Header */}
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 border-b border-slate-100 pb-2.5">
+                          <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            {group.dateStr}
+                          </span>
+                          <div className="flex items-center gap-4 text-[10.5px]">
+                            <div className="flex items-center gap-1">
+                              <span className="text-slate-400 font-medium">Sales:</span>
+                              <span className="font-mono text-slate-900 font-black">Rs. {group.sales}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-slate-400 font-medium">Commission:</span>
+                              <span className="font-mono text-emerald-600 font-black">Rs. {group.commission}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Deliveries List */}
+                        <div className="space-y-2 pt-1">
+                          <span className="text-[8.5px] font-black uppercase text-slate-400 tracking-widest block">Orders List:</span>
+                          <div className="space-y-2 max-h-[220px] overflow-y-auto text-[10px] leading-none scrollbar-none">
+                            {group.orders.map((order) => {
+                              // Compute matching items and totals
+                              const matchingItems = (order.items || []).filter((item) => {
+                                const itemRestName = item.restaurantName || (item.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
+                                return itemRestName === restName;
+                              });
+
+                              const orderSales = matchingItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                              let orderComm = 0;
+                              if (isCustomCommission) {
+                                if (orderSales > 0) {
+                                  if (commType === "percentage") {
+                                    orderComm = orderSales * (commVal / 100);
+                                  } else {
+                                    orderComm = commVal;
+                                  }
+                                }
+                              } else {
+                                orderComm = matchingItems.reduce((sum, item) => sum + ((item.commission || 0) * item.quantity), 0);
+                              }
+
+                              return (
+                                <div key={order.id} className="p-3 bg-slate-50/70 hover:bg-slate-50 border border-slate-200/80 rounded-2xl space-y-2.5 transition text-left font-sans">
+                                  <div className="flex justify-between items-start gap-2.5">
+                                    <div className="flex items-center gap-1.5 truncate">
+                                      <span className="font-black text-[#D70F64] text-[10px]">dadu-{order.id.substring(0,6)}</span>
+                                      <span className="text-slate-350">|</span>
+                                      <span className="text-slate-700 font-sans truncate font-bold text-[10.5px]">{order.userName}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2.5 shrink-0 text-[10px] font-sans">
+                                      <span className="text-slate-400 font-medium">Order: Rs. {order.grandTotal}</span>
+                                      <span className="bg-[#D70F64]/10 text-[#D70F64] font-black px-2 py-0.5 rounded-md">
+                                        Rest Sales: Rs. {orderSales}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Breakdown details */}
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 border-t border-slate-150 pt-2 font-sans">
+                                    <div className="space-y-1">
+                                      <span className="font-bold text-slate-400 uppercase tracking-wider block">Items & Commission</span>
+                                      {matchingItems.map((item, itemIdx) => {
+                                        let itemCommStr = `Rs. ${(item.commission || 0) * item.quantity}`;
+                                        if (isCustomCommission) {
+                                          if (commType === "percentage") {
+                                            itemCommStr = `Rs. ${(item.price * item.quantity * (commVal / 100)).toFixed(1)} (${commVal}%)`;
+                                          } else {
+                                            itemCommStr = "Flat order rate";
+                                          }
+                                        }
+                                        return (
+                                          <div key={itemIdx} className="flex justify-between text-slate-600 font-semibold gap-2">
+                                            <span className="truncate">{item.quantity}x {item.name}</span>
+                                            <span className="shrink-0 text-emerald-650 font-bold font-mono">{itemCommStr}</span>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                    <div className="flex flex-col justify-end items-end text-right">
+                                      <div className="text-[10px] font-black text-slate-800">
+                                        Commission Earned: <span className="font-mono text-[#D70F64] font-extrabold">Rs. {orderComm}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons / Footer */}
+              <div className="border-t border-slate-150 pt-4 flex items-center justify-between gap-3 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setSelectedRestLedgerName(null)}
+                  className="px-5 py-3 bg-slate-100 border border-slate-200 rounded-xl text-xs uppercase font-black text-slate-500 hover:text-slate-700 hover:bg-slate-200 transition cursor-pointer"
+                >
+                  Close (Band Karein)
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleSettleRestaurant(restName);
+                  }}
+                  className="px-5 py-3 bg-[#D70F64] text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-[#b00c50] transition shadow-lg shadow-pink-500/10 cursor-pointer flex items-center gap-1.5"
+                >
+                  🧹 Clear & Settle Stats (Stats Reset Karein)
+                </button>
+              </div>
+
+            </div>
+          </div>
+        );
+      })()}
 
       {/* NEW USER REALTIME NOTIFICATION TOAST */}
       {newUserToast && newUserToast.show && (

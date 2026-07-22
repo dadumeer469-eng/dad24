@@ -642,6 +642,20 @@ export default function App() {
     };
   }, []);
 
+
+  // 1b. Live Unblock Alert for Riders
+  useEffect(() => {
+    if (currentUser && currentUser.role === "rider" && currentUser.needsUnblockAlert === true) {
+      alert(currentUser.unblockAlertMessage || "Mubarak ho! Aapka rider account admin ne unblock kar diya hai.");
+      updateDoc(doc(db, "users", currentUser.uid), {
+        needsUnblockAlert: false,
+        unblockAlertMessage: ""
+      }).catch((err) => {
+        console.error("Failed to clear needsUnblockAlert:", err);
+      });
+    }
+  }, [currentUser]);
+
   // Real-time track user status verification notifications
   const prevUserStatusRef = React.useRef<string | undefined>(undefined);
   useEffect(() => {
@@ -2434,8 +2448,8 @@ export default function App() {
             }
 
             if (riderData) {
-              // Try passcode validation first (general/fallback)
-              if (password === "1234" || password === "786786") {
+              // Try passcode validation first (general/fallback or database field password)
+              if (password === "1234" || password === "786786" || (riderData.password && password === riderData.password)) {
                 localStorage.setItem("dadu_user_phone", cleanPhone);
                 window.dispatchEvent(new StorageEvent("storage", { key: "dadu_user_phone" }));
                 setIsAuthOpen(false);
@@ -2700,6 +2714,62 @@ export default function App() {
   ) : null;
 
   if (currentUser?.role === "rider") {
+    if (currentUser?.status === "blocked") {
+      return (
+        <div className="min-h-screen bg-[#09090b] text-zinc-100 flex items-center justify-center p-6 font-sans">
+          <div className="max-w-md w-full bg-zinc-900 border-2 border-red-500/30 rounded-3xl p-6 text-center space-y-6 shadow-2xl animate-fade-in relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-500 via-orange-500 to-red-500"></div>
+            
+            <div className="mx-auto w-16 h-16 bg-red-500/10 border border-red-500/20 rounded-full flex items-center justify-center text-3xl">
+              🚫
+            </div>
+            
+            <div className="space-y-2">
+              <h3 className="text-xl font-black text-white uppercase tracking-wider">
+                Rider Account Blocked!
+              </h3>
+              <p className="text-[11px] text-zinc-400 font-bold uppercase tracking-wider">
+                Aapka Account Block Kar Diya Gaya Hai
+              </p>
+            </div>
+            
+            <div className="p-4 bg-zinc-950/80 border border-zinc-800 rounded-2xl text-left space-y-2.5">
+              <span className="text-[9px] text-zinc-500 font-extrabold uppercase tracking-widest block">
+                Reason / Wajah:
+              </span>
+              <p className="text-sm font-bold text-zinc-200 leading-relaxed whitespace-pre-wrap">
+                {currentUser.blockReason || "Aapka account temporarily block kiya gaya hai. Contact admin for details."}
+              </p>
+            </div>
+
+            <div className="space-y-3.5 pt-2">
+              <div className="text-xs font-semibold text-zinc-400 leading-normal">
+                Account ko unblock karwane ke liye niche diye gaye button pe click karke WhatsApp par rabta karein:
+              </div>
+              
+              <a
+                href={`https://wa.me/923277004471?text=Salam%20Admin,%20Mera%20Rider%20Account%20(${currentUser.name}%20-%20${currentUser.phone})%20block%20ho%20gaya%20hai.%20Wajah:%20${encodeURIComponent(currentUser.blockReason || "No details")}.%20Kindly%20check%20karke%20unblock%20kardein.`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full bg-[#25D366] hover:bg-[#20ba5a] text-white font-black py-4.5 px-4 rounded-2xl transition-all flex items-center justify-center gap-2.5 cursor-pointer text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/10"
+              >
+                <span>💬 Contact on WhatsApp</span>
+                <span className="font-mono text-[10px] bg-white/20 px-2 py-0.5 rounded-md">03277004471</span>
+              </a>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-black py-3.5 px-4 rounded-2xl transition-all cursor-pointer text-xs uppercase tracking-wider border border-zinc-700"
+            >
+              Sign Out (Logout Karein)
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <RiderPanel
         currentUser={currentUser}

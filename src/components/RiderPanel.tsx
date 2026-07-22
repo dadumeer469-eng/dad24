@@ -19,6 +19,19 @@ interface RiderPanelProps {
 
 export default function RiderPanel({ currentUser, onLogout, deliverySettings }: RiderPanelProps) {
   const [activeTab, setActiveTab] = useState<"dashboard" | "history" | "performance">("dashboard");
+  const [timeframe, setTimeframe] = useState<"1day" | "7days" | "30days" | "60days" | "all">("all");
+  const [isOnline, setIsOnline] = useState<boolean>(() => {
+    const saved = localStorage.getItem(`rider_online_${currentUser.uid}`);
+    return saved !== "false";
+  });
+
+  const handleToggleOnline = () => {
+    setIsOnline((prev) => {
+      const next = !prev;
+      localStorage.setItem(`rider_online_${currentUser.uid}`, String(next));
+      return next;
+    });
+  };
   const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
   const [myOrders, setMyOrders] = useState<Order[]>([]);
   const [selectedHistoryDate, setSelectedHistoryDate] = useState<string | null>(null);
@@ -57,7 +70,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
 
   // Continuous loop siren effect for unaccepted pending orders
   useEffect(() => {
-    if (availableOrders.length === 0) return;
+    if (availableOrders.length === 0 || !isOnline) return;
 
     playContinuousAlarm();
 
@@ -66,7 +79,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
     }, 1600);
 
     return () => clearInterval(interval);
-  }, [availableOrders.length, isMuted]);
+  }, [availableOrders.length, isMuted, isOnline]);
 
   // Get active accepted orders
   const riderActiveOrders = myOrders.filter((o) => o.status === "accepted" || o.status === "preparing" || o.status === "out_for_delivery");
@@ -213,7 +226,46 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
   };
 
   // Dynamic calculations based on delivered orders
-  const deliveredOrders = myOrders.filter((o) => o.status === "delivered");
+  const deliveredOrders = myOrders.filter((o) => {
+    if (o.status !== "delivered") return false;
+    if (o.riderSettled) return false;
+    
+    // Fallback date comparison
+    if (currentUser?.lastSettledAt) {
+      let orderTime = 0;
+      if (o.deliveryCompletedAt?.seconds) {
+        orderTime = o.deliveryCompletedAt.seconds * 1000;
+      } else if (o.deliveryCompletedAt instanceof Date) {
+        orderTime = o.deliveryCompletedAt.getTime();
+      } else if (typeof o.deliveryCompletedAt === "number") {
+        orderTime = o.deliveryCompletedAt;
+      } else if (o.createdAt?.seconds) {
+        orderTime = o.createdAt.seconds * 1000;
+      } else if (o.createdAt instanceof Date) {
+        orderTime = o.createdAt.getTime();
+      } else if (typeof o.createdAt === "number") {
+        orderTime = o.createdAt;
+      } else if (typeof o.createdAt === "string") {
+        orderTime = Date.parse(o.createdAt);
+      }
+      
+      let settledTime = 0;
+      if (currentUser.lastSettledAt.seconds) {
+        settledTime = currentUser.lastSettledAt.seconds * 1000;
+      } else if (currentUser.lastSettledAt instanceof Date) {
+        settledTime = currentUser.lastSettledAt.getTime();
+      } else if (typeof currentUser.lastSettledAt === "number") {
+        settledTime = currentUser.lastSettledAt;
+      } else if (typeof currentUser.lastSettledAt === "string") {
+        settledTime = Date.parse(currentUser.lastSettledAt);
+      }
+      
+      if (orderTime <= settledTime) {
+        return false;
+      }
+    }
+    return true;
+  });
 
   const todayStr = new Date().toDateString();
   const currentMonth = new Date().getMonth();
@@ -241,6 +293,30 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
     },
     { todayCount: 0, todayEarnings: 0, thisMonthCount: 0, thisMonthEarnings: 0 }
   );
+
+  // Filtered statistics for dashboard based on selected timeframe
+  const filteredRiderOrders = deliveredOrders.filter((o) => {
+    const compDate = parseCompletedDate(o);
+    if (!compDate) return false;
+    const orderTime = compDate.getTime();
+    
+    if (timeframe === "1day") {
+      const todayStart = new Date().setHours(0, 0, 0, 0);
+      return orderTime >= todayStart;
+    } else if (timeframe === "7days") {
+      const limit = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      return orderTime >= limit;
+    } else if (timeframe === "30days") {
+      const limit = Date.now() - 30 * 24 * 60 * 60 * 1000;
+      return orderTime >= limit;
+    } else if (timeframe === "60days") {
+      const limit = Date.now() - 60 * 24 * 60 * 60 * 1000;
+      return orderTime >= limit;
+    }
+    return true; // "all"
+  });
+
+  const filteredRiderEarnings = filteredRiderOrders.reduce((sum, o) => sum + (o.deliveryFee || 0), 0);
 
   // Group delivered history by Date format: YYYY-MM-DD
   const historyGroupedByDate = deliveredOrders.reduce((groups: Record<string, Order[]>, order) => {
@@ -411,11 +487,20 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                 <Compass className="w-5 h-5 animate-spin-slow text-white shrink-0" />
               </div>
               <div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <h1 className="text-base sm:text-lg font-black tracking-tight text-white uppercase">Dadu24 Rider Gate</h1>
-                  <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[8px] sm:text-[9px] font-black tracking-widest px-2 py-0.5 rounded-full uppercase">
-                    Active Duty
-                  </span>
+                  <button
+                    onClick={handleToggleOnline}
+                    className={`border text-[8px] sm:text-[9.5px] font-black tracking-widest px-2.5 py-1 rounded-full uppercase transition-all duration-300 flex items-center gap-1 cursor-pointer active:scale-95 ${
+                      isOnline
+                        ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30 shadow-md shadow-emerald-500/5 animate-pulse"
+                        : "bg-zinc-800 text-zinc-400 border-zinc-700 hover:text-zinc-300"
+                    }`}
+                    title="Tap to toggle your Duty Status"
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? "bg-emerald-400" : "bg-zinc-500"}`}></span>
+                    {isOnline ? "Duty: Online 🟢" : "Duty: Offline 🔴"}
+                  </button>
                 </div>
                 <p className="text-[10px] sm:text-[11px] text-[#D70F64] font-bold mt-0.5">Logged in as {currentUser.name}</p>
               </div>
@@ -482,7 +567,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
       {/* Main Panel views layout */}
       <main className="max-w-7xl mx-auto px-4 py-5 sm:py-8 flex-grow w-full space-y-6 sm:space-y-8">
         
-        {activeTab === "dashboard" && (
+        {activeTab === "dashboard" && isOnline && (
           <div className="space-y-6 sm:space-y-8 animate-fade-in">
             
             {/* Continuous Loud Alarm status indicator */}
@@ -506,6 +591,58 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                 </button>
               </div>
             )}
+
+            {/* Timeframe Filter Panel */}
+            <div className="bg-zinc-900 border border-zinc-800 p-4 sm:p-5 rounded-3xl space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-zinc-800/60 pb-3">
+                <div>
+                  <h3 className="text-xs sm:text-sm font-black uppercase tracking-widest text-[#D70F64] flex items-center gap-1.5">
+                    📊 Dynamic Earnings Calculator
+                  </h3>
+                  <p className="text-[10px] text-zinc-400 font-semibold mt-0.5">Apni pure rider fees (Rs. 50, 100, 200, etc.) filter karkay check karein.</p>
+                </div>
+                
+                {/* Timeframe selector */}
+                <div className="flex flex-wrap gap-1 bg-zinc-950 p-1 rounded-xl border border-zinc-800">
+                  {[
+                    { id: "1day", label: "1 Din" },
+                    { id: "7days", label: "1 Week" },
+                    { id: "30days", label: "1 Month" },
+                    { id: "60days", label: "2 Months" },
+                    { id: "all", label: "All Time" },
+                  ].map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => setTimeframe(item.id as any)}
+                      className={`px-3 py-1.5 rounded-lg text-[9.5px] font-black uppercase tracking-wider transition cursor-pointer ${
+                        timeframe === item.id
+                          ? "bg-[#D70F64] text-white"
+                          : "text-zinc-350 hover:text-zinc-100"
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-zinc-950/60 border border-zinc-850 p-4 rounded-2xl flex items-center justify-between">
+                  <div>
+                    <span className="text-[9px] uppercase tracking-widest text-zinc-500 font-black">Filtered Completed Orders</span>
+                    <span className="text-xl sm:text-2xl font-black text-zinc-100 block mt-1">{filteredRiderOrders.length} Runs</span>
+                  </div>
+                  <span className="text-2xl">📦</span>
+                </div>
+                <div className="bg-zinc-950/60 border border-zinc-850 p-4 rounded-2xl flex items-center justify-between">
+                  <div>
+                    <span className="text-[9px] uppercase tracking-widest text-emerald-500 font-black">Filtered Rider Earnings (Pure Fee)</span>
+                    <span className="text-xl sm:text-2xl font-mono font-black text-emerald-400 block mt-1 font-sans">Rs. {filteredRiderEarnings}</span>
+                  </div>
+                  <span className="text-2xl">💵</span>
+                </div>
+              </div>
+            </div>
 
             {/* 1. Analytics Widgets Grid */}
             <section className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
@@ -645,6 +782,110 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                         In-Progress
                       </span>
                     </div>
+                    
+                    {/* Interactive Milestones Shipment Progress Pipeline */}
+                    <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 space-y-3 animate-fadeIn">
+                      <span className="text-[9.5px] font-black text-zinc-400 uppercase tracking-widest block pb-1 border-b border-zinc-900 flex items-center gap-1">
+                        ⏱️ Delivery Milestones <span className="text-[8.5px] text-zinc-550 font-normal">(Tap icons to update status live)</span>
+                      </span>
+                      <div className="relative flex items-center justify-between pt-4 pb-2">
+                        {/* Connecting Line background */}
+                        <div className="absolute left-6 right-6 h-1 bg-zinc-800 top-1/2 -translate-y-1/2 z-0"></div>
+                        {/* Active connecting line fill */}
+                        <div 
+                          className="absolute left-6 h-1 bg-[#D70F64] top-1/2 -translate-y-1/2 z-0 transition-all duration-500"
+                          style={{
+                            width: 
+                              riderActiveOrder.status === "accepted" ? "0%" :
+                              riderActiveOrder.status === "preparing" ? "42%" :
+                              riderActiveOrder.status === "out_for_delivery" ? "82%" : "100%"
+                          }}
+                        ></div>
+
+                        {/* Step 1: Accepted */}
+                        <div className="relative z-10 flex flex-col items-center">
+                          <button
+                            type="button"
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black transition-all border ${
+                              ["accepted", "preparing", "out_for_delivery", "delivered"].includes(riderActiveOrder.status)
+                                ? "bg-[#D70F64] text-white border-[#D70F64] shadow-md shadow-pink-500/20"
+                                : "bg-zinc-900 text-zinc-500 border-zinc-800"
+                            }`}
+                            title="Order is Accepted"
+                          >
+                            📦
+                          </button>
+                          <span className="text-[9px] font-black text-zinc-300 mt-1.5 uppercase">Accepted</span>
+                        </div>
+
+                        {/* Step 2: Preparing */}
+                        <div className="relative z-10 flex flex-col items-center">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (riderActiveOrder.status === "accepted") {
+                                handleMarkAsPreparing(riderActiveOrder.id);
+                              }
+                            }}
+                            disabled={loadingActionId !== null || riderActiveOrder.status !== "accepted"}
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black transition-all border ${
+                              ["preparing", "out_for_delivery", "delivered"].includes(riderActiveOrder.status)
+                                ? "bg-[#D70F64] text-white border-[#D70F64] shadow-md shadow-pink-500/20 cursor-default"
+                                : "bg-zinc-900 text-zinc-500 border-zinc-800 hover:border-pink-500/40 cursor-pointer active:scale-90"
+                            }`}
+                            title="Tap to mark as Preparing"
+                          >
+                            🍳
+                          </button>
+                          <span className={`text-[9px] font-black mt-1.5 uppercase ${riderActiveOrder.status === 'preparing' ? 'text-amber-400 animate-pulse' : 'text-zinc-500'}`}>Preparing</span>
+                        </div>
+
+                        {/* Step 3: Out for Delivery */}
+                        <div className="relative z-10 flex flex-col items-center">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (["accepted", "preparing"].includes(riderActiveOrder.status)) {
+                                handleMarkAsOutForDelivery(riderActiveOrder.id);
+                              }
+                            }}
+                            disabled={loadingActionId !== null || !["accepted", "preparing"].includes(riderActiveOrder.status)}
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black transition-all border ${
+                              ["out_for_delivery", "delivered"].includes(riderActiveOrder.status)
+                                ? "bg-[#D70F64] text-white border-[#D70F64] shadow-md shadow-pink-500/20 cursor-default"
+                                : "bg-zinc-900 text-zinc-500 border-zinc-800 hover:border-pink-500/40 cursor-pointer active:scale-90"
+                            }`}
+                            title="Tap to mark as Out for Delivery"
+                          >
+                            🛵
+                          </button>
+                          <span className={`text-[9px] font-black mt-1.5 uppercase ${riderActiveOrder.status === 'out_for_delivery' ? 'text-sky-400 animate-pulse' : 'text-zinc-500'}`}>On the Way</span>
+                        </div>
+
+                        {/* Step 4: Arrived / Delivered */}
+                        <div className="relative z-10 flex flex-col items-center">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (riderActiveOrder.status === "out_for_delivery") {
+                                handleMarkAsDelivered(riderActiveOrder.id);
+                              }
+                            }}
+                            disabled={loadingActionId !== null || riderActiveOrder.status !== "out_for_delivery"}
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black transition-all border ${
+                              riderActiveOrder.status === "delivered"
+                                ? "bg-emerald-500 text-zinc-950 border-emerald-500 shadow-md shadow-emerald-500/20 cursor-default"
+                                : "bg-zinc-900 text-zinc-500 border-zinc-800 hover:border-emerald-500/40 cursor-pointer active:scale-90"
+                            }`}
+                            title="Tap to complete order delivery"
+                          >
+                            💵
+                          </button>
+                          <span className="text-[9px] font-black text-zinc-300 mt-1.5 uppercase">Delivered</span>
+                        </div>
+
+                      </div>
+                    </div>
 
                     {/* Customer Logistics details */}
                     <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 space-y-4 font-medium text-xs">
@@ -735,6 +976,46 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                             </div>
                           )}
                         </div>
+
+                        {/* Quick Chat Templates for busy riders on wheels */}
+                        <div className="mt-2.5 pt-2.5 border-t border-zinc-900/50 space-y-2">
+                          <span className="text-[9px] uppercase text-zinc-500 font-black tracking-wider block flex items-center gap-1">
+                            ⚡ One-Tap Quick Messages (Sends instantly on wheels)
+                          </span>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                            {[
+                              { label: "On the way 🛵", text: "Assalam-o-Alaikum, order pick karliya hai, raste me hoon! 🛵" },
+                              { label: "At Store waiting 🍳", text: "Bhai ready horaha hai order restaurant par, main counter par wait kar raha hoon. 🍳" },
+                              { label: "Outside Doorstep 🏡", text: "Main aapke doorstep par pohanch gaya hoon, please receive karlein! 🏡" },
+                              { label: "Delayed in traffic 🌧️", text: "Thora traffic/barish hai raste me, kindly 5-10 min wait kijiyega. JazakAllah! 🙏" }
+                            ].map((tpl, tIdx) => (
+                              <button
+                                key={tIdx}
+                                type="button"
+                                onClick={async () => {
+                                  try {
+                                    const messagesRef = collection(db, "orders", riderActiveOrder.id, "messages");
+                                    await addDoc(messagesRef, {
+                                      senderId: currentUser.uid,
+                                      senderName: currentUser.name || "Rider",
+                                      senderRole: "rider",
+                                      text: tpl.text,
+                                      createdAt: Timestamp.now(),
+                                      isRead: false
+                                    });
+                                    setShowLiveChat(true);
+                                  } catch (err: any) {
+                                    alert("Template sending failed: " + err.message);
+                                  }
+                                }}
+                                className="bg-zinc-900/60 hover:bg-[#D70F64]/10 hover:text-pink-300 border border-zinc-800/80 hover:border-[#D70F64]/30 py-2 px-2.5 rounded-xl text-[10px] font-bold text-left transition cursor-pointer flex items-center justify-between gap-1 group active:scale-95"
+                              >
+                                <span className="text-[#D70F64] group-hover:text-pink-400 font-extrabold">{tpl.label}</span>
+                                <span className="text-[9px] text-zinc-500 truncate max-w-[120px] sm:max-w-[160px]">{tpl.text}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     </div>
 
@@ -819,38 +1100,6 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                             <span className="text-zinc-400 font-mono">Rs. {item.price * item.quantity}</span>
                           </div>
                         ))}
-                      </div>
-                    </div>
-
-                    {/* Active Shipment Status Controller Options */}
-                    <div className="bg-zinc-950 border border-zinc-850 p-3 sm:p-4 rounded-2xl space-y-2.5">
-                      <span className="text-[9px] sm:text-[9.5px] font-black text-zinc-400 uppercase tracking-widest block border-b border-zinc-900 pb-1.5">
-                        ⚙️ Update CURRENT PHASE Status
-                      </span>
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <button
-                           onClick={() => handleMarkAsPreparing(riderActiveOrder.id)}
-                           disabled={loadingActionId !== null || riderActiveOrder.status === "preparing"}
-                           className={`py-2.5 px-3 rounded-xl font-black uppercase text-[10px] tracking-wider transition cursor-pointer active:scale-95 ${
-                             riderActiveOrder.status === "preparing" 
-                               ? "bg-amber-500/20 text-amber-400 border border-amber-500/30 font-black cursor-default" 
-                               : "bg-zinc-900 text-zinc-300 border border-zinc-800 hover:bg-zinc-850"
-                           }`}
-                        >
-                          🍳 Cook: Preparing
-                        </button>
-                        
-                        <button
-                           onClick={() => handleMarkAsOutForDelivery(riderActiveOrder.id)}
-                           disabled={loadingActionId !== null || riderActiveOrder.status === "out_for_delivery"}
-                           className={`py-2.5 px-3 rounded-xl font-black uppercase text-[10px] tracking-wider transition cursor-pointer active:scale-95 ${
-                             riderActiveOrder.status === "out_for_delivery" 
-                               ? "bg-sky-500/20 text-sky-400 border border-sky-500/30 font-black cursor-default" 
-                               : "bg-zinc-900 text-zinc-300 border border-zinc-800 hover:bg-zinc-850"
-                           }`}
-                        >
-                          🛵 Out For Delivery
-                        </button>
                       </div>
                     </div>
 
@@ -1178,6 +1427,32 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
 
             </div>
 
+
+
+          </div>
+        )}
+
+        {/* Offline Rest Mode view for offline riders */}
+        {activeTab === "dashboard" && !isOnline && (
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 sm:p-12 text-center max-w-2xl mx-auto space-y-6 shadow-2xl animate-fade-in relative overflow-hidden text-zinc-100">
+            <div className="absolute top-0 left-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl pointer-events-none"></div>
+            <div className="space-y-3">
+              <span className="text-5xl block animate-pulse">🛌</span>
+              <h2 className="text-base sm:text-lg font-black text-white uppercase tracking-wider">Rider Duty: Offline & Resting</h2>
+              <p className="text-xs text-[#D70F64] font-extrabold uppercase tracking-widest">Aap rest mode par hain, dost!</p>
+              <p className="text-xs text-zinc-400 font-semibold max-w-md mx-auto leading-relaxed">
+                Naye orders ki siren notification ko temporary band (muted) kar diya gaya hai. Jab aap tayyar hon, upar green button daba kar dobara online duty join karlein!
+              </p>
+            </div>
+
+
+
+            <button
+              onClick={handleToggleOnline}
+              className="w-full bg-[#D70F64] hover:bg-[#b00c50] text-white font-black text-xs uppercase tracking-wider py-4 px-6 rounded-2xl transition shadow-lg shadow-pink-500/10 active:scale-95 cursor-pointer"
+            >
+              🟢 Start Online Duty Now
+            </button>
           </div>
         )}
 
@@ -1208,7 +1483,9 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                     <div className="space-y-2 max-h-[300px] md:max-h-[360px] overflow-y-auto scrollbar-none">
                       {sortedDates.map((dateKey) => {
                         const dayOrders = historyGroupedByDate[dateKey] || [];
-                        const dayEarnings = dayOrders.reduce((sum, o) => sum + (o.deliveryFee || 0), 0);
+                        const dayEarnings = dayOrders.reduce((sum, o) => {
+                          return sum + (o.deliveryFee || 0);
+                        }, 0);
                         const isSelected = selectedHistoryDate === dateKey;
 
                         return (
@@ -1254,9 +1531,11 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                               <span className="text-xs sm:text-sm font-black text-zinc-200 block mt-1">{(historyGroupedByDate[selectedHistoryDate] || []).length} Orders</span>
                             </div>
                             <div className="text-right">
-                              <span className="text-[9px] text-zinc-550 uppercase tracking-widest block leading-none">Rider earnings</span>
-                              <span className="text-sm sm:text-base font-mono font-black text-emerald-400 block mt-1">
-                                Rs. {(historyGroupedByDate[selectedHistoryDate] || []).reduce((sum, o) => sum + (o.deliveryFee || 0), 0)}
+                              <span className="text-[9px] text-zinc-555 uppercase tracking-widest block leading-none">Rider earnings</span>
+                              <span className="text-sm sm:text-base font-mono font-black text-emerald-400 block mt-1 font-sans">
+                                Rs. {(historyGroupedByDate[selectedHistoryDate] || []).reduce((sum, o) => {
+                                return sum + (o.deliveryFee || 0);
+                              }, 0)}
                               </span>
                             </div>
                           </div>
@@ -1284,7 +1563,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                                 </div>
 
                                 {/* items */}
-                                <div className="space-y-1.5">
+                                <div className="space-y-2">
                                   {order.items.map((item, idx) => (
                                     <div key={idx} className="flex justify-between items-start text-[11px] font-semibold text-zinc-400">
                                       <div className="flex flex-col">
@@ -1308,9 +1587,16 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                                 </div>
 
                                 {/* address & diagnostics info */}
-                                <div className="text-[11px] text-zinc-400 font-semibold border-t border-zinc-900 pt-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                                  <span className="truncate max-w-xs text-zinc-500">📍 Destination: {order.userAddress}</span>
-                                  <span className="text-emerald-400 font-bold self-end sm:self-auto">Rider Fee: Rs. {order.deliveryFee}</span>
+                                <div className="text-[11px] text-zinc-400 font-semibold border-t border-zinc-900 pt-2.5 space-y-2">
+                                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                                    <span className="truncate max-w-xs text-zinc-500">📍 Destination: {order.userAddress}</span>
+                                    <div className="flex flex-col items-end text-right text-[10.5px] shrink-0">
+                                      <div className="text-zinc-400">Base Delivery Fee: <span className="font-mono text-zinc-200">Rs. {order.deliveryFee || 0}</span></div>
+                                      <div className="text-[#D70F64] font-black mt-1 text-xs border-t border-zinc-900 pt-1">
+                                        Total Earnings (Kamaee): Rs. {order.deliveryFee || 0}
+                                      </div>
+                                    </div>
+                                  </div>
                                 </div>
 
                               </div>

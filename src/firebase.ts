@@ -72,10 +72,15 @@ export function handleFirestoreError(err: any): string {
 // Recursively remove undefined fields to avoid Firestore "Unsupported field value: undefined" validation errors
 export function cleanObject<T = any>(obj: any): T {
   if (obj === null || obj === undefined) return obj;
+  if (obj instanceof Date) return obj as any;
   if (Array.isArray(obj)) {
     return obj.map(v => cleanObject(v)) as any;
   }
   if (typeof obj === 'object') {
+    const proto = Object.getPrototypeOf(obj);
+    if (proto !== null && proto !== Object.prototype) {
+      return obj;
+    }
     const cleaned: any = {};
     for (const key of Object.keys(obj)) {
       const val = obj[key];
