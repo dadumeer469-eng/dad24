@@ -61,7 +61,7 @@ export default function FoodpandaHero({
     <div className="bg-transparent relative">
       {/* Prime Billboard Layout */}
       <div className="max-w-7xl mx-auto px-4 pt-4 pb-1">
-        <div className="bg-gradient-to-br from-zinc-900 via-zinc-800 to-black border border-zinc-700/50 overflow-hidden rounded-[28px] sm:rounded-[36px] p-6 sm:p-10 relative flex flex-col md:flex-row items-center justify-between gap-8 shadow-[0_20px_50px_rgba(0,0,0,0.5)] min-h-[250px] transition-all">
+        <div className="bg-gradient-to-br from-zinc-900 via-zinc-800 to-black border border-zinc-700/50 overflow-hidden rounded-3xl p-5 sm:p-8 relative flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl min-h-[170px] transition-all">
           {/* Professional Dark Culinary & Service Background Image */}
           <div className="absolute inset-0 z-0">
             <img
@@ -84,35 +84,32 @@ export default function FoodpandaHero({
           </div>
 
           {/* Left Column: Promos and Call to Action */}
-          <div className="flex-1 max-w-xl text-center md:text-left z-10 space-y-3.5">
-            <div className="inline-flex items-center gap-1.5 bg-red-500/20 text-pink-200 py-1.5 px-3.5 rounded-full text-[9px] font-black uppercase tracking-widest border border-red-500/30 shadow-lg">
+          <div className="flex-1 max-w-xl text-center md:text-left z-10 space-y-2.5">
+            <div className="inline-flex items-center gap-1.5 bg-red-500/20 text-pink-200 py-1.5 px-3.5 rounded-full text-[9.5px] font-black uppercase tracking-widest border border-red-500/30 shadow-lg">
               <Flame className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-              Dadu Food - Best Food Delivery in Dadu
+              Dadu Food Express
             </div>
 
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white leading-tight">
-              Dadu Food Delivery | <br className="hidden sm:inline" />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-red-500 font-black drop-shadow-md">
-                Sasta, Tez aur Fresh!
-              </span>
-              <span className="block mt-3 text-base sm:text-lg md:text-xl font-medium text-zinc-300 tracking-normal leading-snug max-w-md font-sans">
-                Dadu Food se apna pasandida khana online order karein. Sindh ke behtareen restaurants aur store se direct hot meals aur daily groceries paane ke liye abhi dadu delivery ka maza lein!
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-white leading-tight">
+              Delicious Food <br className="hidden sm:inline" />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-orange-400 to-pink-500 font-black drop-shadow-md">
+                Fast & Hot Delivery
               </span>
             </h1>
 
-            <div className="pt-2.5 flex flex-wrap gap-3 items-center justify-center md:justify-start">
+            <div className="pt-1 flex flex-wrap gap-2.5 items-center justify-center md:justify-start">
               <button
                 onClick={() => {
                   const el = document.getElementById("catalog-section");
                   el?.scrollIntoView({ behavior: "smooth" });
                 }}
-                className="bg-white hover:bg-neutral-50 active:scale-95 transition-all duration-300 text-pink-600 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-pink-950/20 cursor-pointer flex items-center gap-1.5 hover:scale-[1.03]"
+                className="bg-[#d70f64] hover:bg-[#b00c50] active:scale-95 transition-all duration-300 text-white px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-pink-950/30 cursor-pointer flex items-center gap-1.5"
               >
-                Order Now
+                Explore Menu
               </button>
 
-              <div className="inline-flex items-center gap-1.5 bg-black/40 border border-white/10 text-[10px] text-pink-100 py-2.5 px-4 rounded-2xl font-black uppercase tracking-wider shadow-inner">
-                🛡️ 100% Quality Assured
+              <div className="inline-flex items-center gap-1.5 bg-black/40 border border-white/10 text-[9.5px] text-pink-100 py-2 px-3 rounded-xl font-bold uppercase tracking-wider">
+                ⚡ 20-30 Min Delivery
               </div>
             </div>
           </div>
