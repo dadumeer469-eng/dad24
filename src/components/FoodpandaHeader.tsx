@@ -82,7 +82,7 @@ export default function FoodpandaHeader({
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-white/90 dark:bg-zinc-950/95 backdrop-blur-md text-zinc-800 dark:text-zinc-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)] border-b border-pink-100/60 dark:border-zinc-800">
+      <header className="relative z-40 bg-white/90 dark:bg-zinc-950/95 backdrop-blur-md text-zinc-800 dark:text-zinc-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)] border-b border-pink-100/60 dark:border-zinc-800">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           
           {/* Logo and Brand */}
@@ -116,6 +116,7 @@ export default function FoodpandaHeader({
         <div className="relative flex-1 max-w-md hidden sm:block">
           <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-zinc-500" />
           <input
+            id="desktop-search-input"
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -201,7 +202,7 @@ export default function FoodpandaHeader({
           </button>
 
           {/* User Account Circle Dropdown */}
-          <div className="relative">
+          <div className="relative hidden lg:block">
             {user ? (
               <button
                 onClick={() => {
@@ -445,6 +446,7 @@ export default function FoodpandaHeader({
         <div className="relative">
           <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-zinc-400" />
           <input
+            id="mobile-search-input"
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}

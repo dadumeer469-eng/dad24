@@ -85,7 +85,7 @@ export default function GroceryModule({
         </div>
 
         {/* Sticky horizontal categories filter list */}
-        <div className="sticky top-12 z-30 bg-zinc-950/90 backdrop-blur-md py-3 border-y border-zinc-850">
+        <div className="relative z-30 bg-zinc-950/90 backdrop-blur-md py-3 border-y border-zinc-850">
           <div className="flex items-start gap-3 overflow-x-auto pb-2 scrollbar-none px-1">
             <button
               onClick={() => setSelectedCategoryId("All")}

@@ -48,6 +48,8 @@ const GroceryCartDrawer = React.lazy(() => import("./components/GroceryCartDrawe
 const OrderSuccessAnimation = React.lazy(() => import("./components/OrderSuccessAnimation"));
 const OrderHistoryDrawer = React.lazy(() => import("./components/OrderHistoryDrawer"));
 const OrderChat = React.lazy(() => import("./components/OrderChat"));
+import BottomNavBar from "./components/BottomNavBar";
+import MobileAccountDrawer from "./components/MobileAccountDrawer";
 import { LazyImage } from "./components/LazyImage";
 import daduLogo from "./assets/images/dadu_food_logo_new_1782333467889.jpg";
 
@@ -299,6 +301,7 @@ export default function App() {
     useState<Order | null>(null);
   const [isSuccessAnimationOpen, setIsSuccessAnimationOpen] = useState(false);
   const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
+  const [isMobileAccountOpen, setIsMobileAccountOpen] = useState(false);
 
   // Visual notify states
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
@@ -2232,6 +2235,38 @@ export default function App() {
           setActiveTrackingOrder(order);
           setIsTrackingModalOpen(true);
         }}
+      />
+
+      <MobileAccountDrawer
+        isOpen={isMobileAccountOpen}
+        onClose={() => setIsMobileAccountOpen(false)}
+        user={currentUser}
+        orders={orders}
+        allOrders={orders}
+        onTrackOrder={(order) => {
+          setActiveTrackingOrder(order);
+          setIsTrackingModalOpen(true);
+        }}
+        onReorder={handleReorder}
+        showFavoritesOnly={showFavoritesOnly}
+        onToggleFavorites={() => setShowFavoritesOnly(!showFavoritesOnly)}
+        onOpenHistory={() => setIsHistoryDrawerOpen(true)}
+        onOpenAdmin={() => setIsAdminConsoleOpen(true)}
+        onLogout={handleLogout}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
+      />
+
+      <BottomNavBar
+        activeModule={activeModule}
+        setActiveModule={setActiveModule}
+        cartCount={cartCountTotal}
+        groceryCartCount={groceryCartItems.reduce((acc, i) => acc + i.quantity, 0)}
+        onOpenCart={() => setIsCartOpen(true)}
+        onOpenGroceryCart={() => setIsGroceryCartOpen(true)}
+        user={currentUser}
+        onOpenAuth={() => setIsAuthOpen(true)}
+        onOpenAccount={() => setIsMobileAccountOpen(true)}
       />
 
       {/* Verification Pending Modal */}

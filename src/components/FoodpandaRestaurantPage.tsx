@@ -183,7 +183,7 @@ export default function FoodpandaRestaurantPage({
 
       {/* Sticky Category Nav */}
       {!searchQuery && (
-        <div className="sticky top-0 bg-white/95 backdrop-blur-md z-40 border-b border-zinc-200 shadow-sm">
+        <div className="relative bg-white/95 backdrop-blur-md z-40 border-b border-zinc-200 shadow-sm">
           <div className="max-w-4xl mx-auto px-2">
             <div className="flex overflow-x-auto scrollbar-none py-3 gap-2" ref={scrollRef}>
               {categories.map(cat => (
