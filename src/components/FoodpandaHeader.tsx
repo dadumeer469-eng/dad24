@@ -442,16 +442,16 @@ export default function FoodpandaHeader({
       </header>
       
       {/* Mobile-only Search Sub Bar */}
-      <div className="p-2.5 bg-zinc-50 border-b border-zinc-200 block sm:hidden px-4">
+      <div className="sticky top-0 z-30 bg-zinc-50/95 dark:bg-zinc-900/95 border-b border-zinc-200 dark:border-zinc-800 block sm:hidden px-4 py-2.5 shadow-xs backdrop-blur-md">
         <div className="relative">
-          <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-zinc-400" />
+          <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-zinc-400 dark:text-zinc-500" />
           <input
             id="mobile-search-input"
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search pizza, burger, electrician..."
-            className="w-full pl-10 pr-4 py-2 bg-white border border-zinc-200 rounded-full text-xs text-zinc-800 placeholder-zinc-400 outline-none focus:border-[#d70f64]"
+            className="w-full pl-10 pr-4 py-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-full text-xs text-zinc-800 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 outline-none focus:border-[#d70f64] focus:ring-1 focus:ring-[#d70f64] transition-all"
           />
         </div>
       </div>

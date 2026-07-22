@@ -52,12 +52,17 @@
 }
 
 /* General Layout Adjustments */
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background-color: #FFFDFE;
   color: #27272a;
   font-family: var(--font-sans);
   overflow-x: clip;
   transition: background-color 0.2s ease, color 0.2s ease;
+  scroll-behavior: smooth;
 }
 
 body.dark {

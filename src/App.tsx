@@ -4172,23 +4172,15 @@ export default function App() {
       )}
 
       {/* Footer support details */}
-      <footer className="max-w-7xl mx-auto px-4 mt-12 pt-8 border-t border-zinc-800 text-center space-y-4 pb-24 md:pb-8">
-        <div className="max-w-3xl mx-auto text-zinc-500 space-y-2 text-[10.5px] font-sans">
-          <p className="font-extrabold uppercase tracking-wider text-zinc-400">Dadu Food (Sindh, Pakistan) Online Food &amp; Grocery Delivery</p>
-          <p className="leading-relaxed font-medium">
-            Welcome to <strong>dadufood</strong>, Dadu&#39;s premier online platform offering fast and reliable <strong>dadu delivery</strong> services. 
-            Dadu ke har kone me fresh pizza, hot burgers, broast aur daily groceries aapke doorstep par delivered. 
-            Enjoy seamless food delivery in Dadu with 100% quality assurance.
-          </p>
-        </div>
-        <p className="text-xs text-zinc-500 font-semibold pt-2">
-          © {new Date().getFullYear()} DADUFOOD Delivery Services. All Rights
-          Reserved. Support helpline:{" "}
+      <footer className="max-w-7xl mx-auto px-4 mt-8 pt-4 pb-20 md:pb-6 border-t border-zinc-200 dark:border-zinc-800 text-center text-[11px] text-zinc-500 dark:text-zinc-400 space-y-1">
+        <p className="font-extrabold text-zinc-600 dark:text-zinc-300">© {new Date().getFullYear()} DADUFOOD Delivery Services. All Rights Reserved.</p>
+        <p className="font-medium">
+          Support Helpline:{" "}
           <a
             href="https://wa.me/923277004471"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-emerald-400 hover:text-emerald-300 transition hover:underline"
+            className="text-emerald-500 dark:text-emerald-400 hover:underline font-bold"
           >
             03277004471 (WhatsApp Support)
           </a>

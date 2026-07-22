@@ -448,6 +448,7 @@ export default function AdminPanel({
   const [bannersList, setBannersList] = useState<Banner[]>([]);
   const [vouchersList, setVouchersList] = useState<Voucher[]>([]);
   const [userSearchTerm, setUserSearchTerm] = useState("");
+  const [userFilterTab, setUserFilterTab] = useState<"new" | "active" | "blocked">("new");
   const [allDevicesList, setAllDevicesList] = useState<any[]>([]);
 
   useEffect(() => {
@@ -7447,12 +7448,77 @@ export default function AdminPanel({
                     )}
                   </div>
                 </div>
+
+                {/* 3 Status filter options: New Users, Active Users, Blocked Users */}
+                <div className="mt-5 flex flex-wrap gap-2 p-1.5 bg-slate-100 rounded-2xl border border-slate-200 max-w-xl">
+                  <button
+                    onClick={() => setUserFilterTab("new")}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2 px-3.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 select-none cursor-pointer ${
+                      userFilterTab === "new"
+                        ? "bg-[#D70F64] text-white shadow-md shadow-[#D70F64]/10"
+                        : "text-slate-600 hover:bg-slate-200"
+                    }`}
+                  >
+                    <span>New Users</span>
+                    {allUsersList.some(u => u.status === "locked") && (
+                      <span className="flex h-2 w-2 relative">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                      </span>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() => setUserFilterTab("active")}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 select-none cursor-pointer ${
+                      userFilterTab === "active"
+                        ? "bg-[#D70F64] text-white shadow-md shadow-[#D70F64]/10"
+                        : "text-slate-600 hover:bg-slate-200"
+                    }`}
+                  >
+                    Active Users
+                  </button>
+
+                  <button
+                    onClick={() => setUserFilterTab("blocked")}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-3.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 select-none cursor-pointer ${
+                      userFilterTab === "blocked"
+                        ? "bg-[#D70F64] text-white shadow-md shadow-[#D70F64]/10"
+                        : "text-slate-600 hover:bg-slate-200"
+                    }`}
+                  >
+                    Blocked Users
+                  </button>
+                </div>
               </div>
 
               {/* NEW USERS SECTION */}
-              {(() => {
-                const lockedUsers = allUsersList.filter(u => u.status === "locked");
-                if (lockedUsers.length === 0) return null;
+              {userFilterTab === "new" && (() => {
+                const queryStr = userSearchTerm.toLowerCase();
+                const lockedUsers = allUsersList.filter(u => 
+                  u.status === "locked" && (
+                    (u.name || "").toLowerCase().includes(queryStr) ||
+                    (u.phone || "").toLowerCase().includes(queryStr) ||
+                    (u.address || "").toLowerCase().includes(queryStr)
+                  )
+                );
+
+                if (lockedUsers.length === 0) {
+                  return (
+                    <div className="bg-white border border-slate-200 rounded-3xl p-10 text-center space-y-3 mb-6">
+                      <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto">
+                        <CheckCheck className="w-6 h-6 text-emerald-500" />
+                      </div>
+                      <h3 className="font-black text-slate-800 text-sm uppercase tracking-wider">
+                        All Caught Up!
+                      </h3>
+                      <p className="text-xs text-slate-500 font-semibold max-w-sm mx-auto leading-relaxed">
+                        No new unverified users found. Every customer is verified and ready to order.
+                      </p>
+                    </div>
+                  );
+                }
+
                 return (
                   <div className="space-y-4 mb-6">
                     <div className="flex items-center gap-2">
@@ -7541,44 +7607,52 @@ export default function AdminPanel({
                                         blockedAt: new Date(),
                                         blockedBy: adminUsername || "admin",
                                         reason: reason || "Fake number"
-                                      });
-                                      alert(`❌ User ${u.phone} permanently blocked and blacklisted.`);
-                                    } catch (err) {
-                                      alert("Failed to block user: " + err);
+                                        });
+                                        alert(`❌ User ${u.phone} permanently blocked and blacklisted.`);
+                                      } catch (err) {
+                                        alert("Failed to block user: " + err);
+                                      }
                                     }
-                                  }
-                                }}
-                                className="bg-red-600 hover:bg-red-700 text-white py-2.5 px-3 rounded-2xl font-bold text-[11px] uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-1"
-                              >
-                                ❌ Block
-                              </button>
+                                  }}
+                                  className="bg-red-600 hover:bg-red-700 text-white py-2.5 px-3 rounded-2xl font-bold text-[11px] uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-1"
+                                >
+                                  ❌ Block
+                                </button>
 
-                              <button
-                                onClick={async () => {
-                                  if (confirm(`Are you sure you want to delete user ${u.phone}? This will NOT blacklist them, allowing them to register fresh.`)) {
-                                    try {
-                                      await deleteDoc(doc(db, "users", u.uid));
-                                      alert("🗑️ User deleted successfully.");
-                                    } catch (err) {
-                                      alert("Failed to delete user: " + err);
+                                <button
+                                  onClick={async () => {
+                                    if (confirm(`Are you sure you want to delete user ${u.phone}? This will NOT blacklist them, allowing them to register fresh.`)) {
+                                      try {
+                                        await deleteDoc(doc(db, "users", u.uid));
+                                        alert("🗑️ User deleted successfully.");
+                                      } catch (err) {
+                                        alert("Failed to delete user: " + err);
+                                      }
                                     }
-                                  }
-                                }}
-                                className="col-span-2 bg-zinc-700 hover:bg-zinc-650 text-zinc-200 py-2 px-3 rounded-2xl font-bold text-[10px] uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-1 border border-zinc-600"
-                              >
-                                🗑️ Delete Karein
-                              </button>
+                                  }}
+                                  className="col-span-2 bg-zinc-700 hover:bg-zinc-650 text-zinc-200 py-2 px-3 rounded-2xl font-bold text-[10px] uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-1 border border-zinc-600"
+                                >
+                                  🗑️ Delete Karein
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                );
-              })()}
+                  );
+                })()}
 
-              {(() => {
+              {userFilterTab !== "new" && (() => {
                 const filteredUsers = allUsersList.filter((u) => {
+                  // Filter by selected tab
+                  if (userFilterTab === "blocked") {
+                    if (u.status !== "blocked") return false;
+                  } else {
+                    // "active" tab
+                    if (u.status === "locked" || u.status === "blocked") return false;
+                  }
+
                   const queryStr = userSearchTerm.toLowerCase();
                   return (
                     (u.name || "").toLowerCase().includes(queryStr) ||
@@ -7588,14 +7662,20 @@ export default function AdminPanel({
                   );
                 });
 
+                const totalInTab = allUsersList.filter(u => 
+                  userFilterTab === "blocked" 
+                    ? u.status === "blocked" 
+                    : (u.status !== "locked" && u.status !== "blocked")
+                ).length;
+
                 return (
                   <div className="bg-white/90 border border-slate-200 rounded-3xl overflow-hidden shadow-xl">
                     <div className="p-4 sm:p-5 border-b border-slate-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <h3 className="font-black text-xs uppercase tracking-widest text-slate-700">
-                        User Ledger
+                        {userFilterTab === "blocked" ? "Blocked Users Ledger" : "Active Users Ledger"}
                       </h3>
                       <span className="text-[10.5px] font-bold text-slate-500">
-                        Showing {filteredUsers.length} of {allUsersList.length}
+                        Showing {filteredUsers.length} of {totalInTab}
                       </span>
                     </div>
 
@@ -7704,7 +7784,7 @@ export default function AdminPanel({
                                 </button>
                               )}
                               
-                              {u.status === "verified" && !isSpecialAdmin && (
+                              {u.status !== "blocked" && u.status !== "locked" && !isSpecialAdmin && (
                                 <button
                                   type="button"
                                   onClick={async () => {
@@ -7905,7 +7985,7 @@ export default function AdminPanel({
                                         Unlock
                                       </button>
                                     )}
-                                    {u.status === "verified" && !isSpecialAdmin && (
+                                    {u.status !== "blocked" && u.status !== "locked" && !isSpecialAdmin && (
                                       <button
                                         type="button"
                                         onClick={async () => {
