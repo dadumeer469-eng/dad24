@@ -3797,8 +3797,11 @@ export default function App() {
                             const isRestaurantClosed =
                               checkIsRestaurantClosed(dishRestaurantName);
                             return (
-                              <div
+                              <motion.div
                                 key={dish.id}
+                                initial={{ opacity: 0, y: 15 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.35, ease: "easeOut" }}
                                 className={`bg-white border border-zinc-200/80 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs hover:border-[#d70f64]/30 hover:shadow-md hover:shadow-red-500/5 transition-all flex flex-col group relative text-zinc-800 ${isRestaurantClosed ? "opacity-70 grayscale-[20%]" : ""}`}
                               >
                                 {/* Sold Out Overlay */}
@@ -4065,7 +4068,7 @@ export default function App() {
                                     })()}
                                   </div>
                                 </div>
-                              </div>
+                              </motion.div>
                             );
                           })}
                       </div>

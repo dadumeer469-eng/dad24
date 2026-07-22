@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { motion } from "motion/react";
 import { GroceryCategory, GroceryProduct, GroceryOrderItem } from "../types";
 import { ShoppingBasket, Package, Plus, Slash, Minus, Sparkles, Star, AlertCircle, ShoppingBag } from "lucide-react";
 import { LazyImage } from "./LazyImage";
@@ -175,8 +176,11 @@ export default function GroceryModule({
               const displayPrice = hasDiscount ? p.discountPrice : p.price;
 
               return (
-                <div
+                <motion.div
                   key={p.id}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, ease: "easeOut" }}
                   className="bg-zinc-900 border border-zinc-800 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xl hover:border-orange-500/30 transition-all duration-300 flex flex-col relative group"
                 >
                   {/* Stock Out Overlay Badge */}
@@ -266,7 +270,7 @@ export default function GroceryModule({
                       )}
                     </div>
                   </div>
-                </div>
+                </motion.div>
               );
             })
           )}

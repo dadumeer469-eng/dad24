@@ -6458,28 +6458,41 @@ export default function AdminPanel({
                           0,
                         );
 
+                        const ratedOrders = completedRiderOrders.filter((o) => o.rating !== undefined);
+                        const totalRated = ratedOrders.length;
+                        const avgRating = totalRated > 0
+                          ? (ratedOrders.reduce((sum, o) => sum + (o.rating || 0), 0) / totalRated).toFixed(1)
+                          : "N/A";
+
                         return {
                           today: { count: todayC, sales: todayS },
                           week: { count: weekC, sales: weekS },
                           month: { count: monthC, sales: monthS },
                           totalCompleted: completedRiderOrders.length,
                           totalCommission,
+                          avgRating,
+                          totalRated
                         };
                       })();
 
                       return (
                         <div
                           key={rider.uid}
-                          className="bg-white border border-slate-200 p-4.5 rounded-2xl space-y-3 shadow-xs"
+                          className="bg-white border border-slate-200 p-4.5 rounded-2xl space-y-3 shadow-xs font-sans"
                         >
                           <div className="flex justify-between items-start">
                             <div>
                               <span className="text-[10.5px] font-black tracking-wider text-slate-900 block">
                                 Rider Name: {rider.name}
                               </span>
-                              <span className="text-[9px] text-[#D70F64] font-bold block bg-[#D70F64]/5 border border-[#D70F64]/20 px-2.5 py-0.5 rounded-full w-max mt-1 uppercase">
-                                Vehicle/Owner No: {rider.vehicleNumber || "N/A"}
-                              </span>
+                              <div className="flex flex-wrap gap-1.5 mt-1">
+                                <span className="text-[9px] text-[#D70F64] font-bold block bg-[#D70F64]/5 border border-[#D70F64]/20 px-2.5 py-0.5 rounded-full uppercase">
+                                  Vehicle/Owner No: {rider.vehicleNumber || "N/A"}
+                                </span>
+                                <span className="text-[9px] font-bold block bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-full uppercase text-amber-600 flex items-center gap-1 shrink-0">
+                                  ⭐ {stats.avgRating !== "N/A" ? `${stats.avgRating} / 5` : "No Ratings"} ({stats.totalRated})
+                                </span>
+                              </div>
                             </div>
                             <div className="flex items-center gap-1.5">
                               <span className="font-mono text-[9px] text-slate-500">

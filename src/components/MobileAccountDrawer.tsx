@@ -101,6 +101,28 @@ export default function MobileAccountDrawer({
             {/* Content (Scrollable) */}
             <div className="flex-1 overflow-y-auto p-5 space-y-6 scrollbar-none">
               
+              {/* Dadu Loyalty Wallet Card */}
+              <div className="bg-gradient-to-br from-[#D70F64] to-pink-600 rounded-3xl p-4 sm:p-5 text-white shadow-lg relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-3 opacity-15">
+                  <span className="text-5xl">👑</span>
+                </div>
+                <span className="text-[9.5px] uppercase font-black tracking-widest text-pink-100 block">
+                  Dadu Club Loyalty Rewards
+                </span>
+                <div className="mt-2.5 flex items-baseline gap-1.5">
+                  <span className="text-2xl sm:text-3xl font-black">Rs. {(user.ordersCount || 0) * 15}</span>
+                  <span className="text-[11px] font-bold text-pink-100">Dadu Coins</span>
+                </div>
+                <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between text-[10.5px]">
+                  <span className="font-bold text-pink-100">
+                    🔥 Earned Rs. 15 per completed delivery
+                  </span>
+                  <span className="bg-white text-[#D70F64] px-2 py-0.5 rounded-full font-black text-[9px] uppercase tracking-wide">
+                    Level {(user.ordersCount || 0) > 10 ? "Gold" : "Silver"}
+                  </span>
+                </div>
+              </div>
+
               {/* Active Placed Orders Tracker */}
               {activeOrders.length > 0 && (
                 <div className="space-y-2">

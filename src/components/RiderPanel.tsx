@@ -6,7 +6,7 @@ import { db, handleFirestoreError } from "../firebase";
 import { Order, UserProfile } from "../types";
 import { 
   CheckCircle2, Compass, Coins, CalendarDays, TrendingUp, History, User, 
-  MapPin, PhoneCall, LogOut, ArrowRight, ClipboardList, DollarSign, Clock, Check, Store, XCircle
+  MapPin, PhoneCall, LogOut, ArrowRight, ClipboardList, DollarSign, Clock, Check, Store, XCircle, Star
 } from "lucide-react";
 import OrderChat from "./OrderChat";
 
@@ -17,7 +17,7 @@ interface RiderPanelProps {
 }
 
 export default function RiderPanel({ currentUser, onLogout, deliverySettings }: RiderPanelProps) {
-  const [activeTab, setActiveTab] = useState<"dashboard" | "history">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "history" | "performance">("dashboard");
   const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
   const [myOrders, setMyOrders] = useState<Order[]>([]);
   const [selectedHistoryDate, setSelectedHistoryDate] = useState<string | null>(null);
@@ -449,7 +449,17 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                     : "bg-zinc-950 text-zinc-400 hover:text-zinc-200 border border-zinc-800"
                 }`}
               >
-                📚 history & catalog
+                📚 history
+              </button>
+              <button
+                onClick={() => setActiveTab("performance")}
+                className={`flex-1 sm:flex-initial py-2.5 px-3 sm:px-4 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition cursor-pointer active:scale-95 ${
+                  activeTab === "performance"
+                    ? "bg-[#D70F64] text-white"
+                    : "bg-zinc-950 text-zinc-400 hover:text-zinc-200 border border-zinc-800"
+                }`}
+              >
+                ⭐ Performance
               </button>
             </div>
             
@@ -1323,6 +1333,140 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
 
           </div>
         )}
+
+        {activeTab === "performance" && (() => {
+          const ratedOrders = myOrders.filter((o) => o.rating !== undefined);
+          const totalRated = ratedOrders.length;
+          const avgRating = totalRated > 0
+            ? (ratedOrders.reduce((sum, o) => sum + (o.rating || 0), 0) / totalRated).toFixed(1)
+            : "N/A";
+          
+          // Count different star buckets
+          const starCounts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+          ratedOrders.forEach(o => {
+            const r = Math.round(o.rating || 0);
+            if (r >= 1 && r <= 5) {
+              starCounts[r as 1|2|3|4|5] += 1;
+            }
+          });
+
+          return (
+            <div className="space-y-6 sm:space-y-8 animate-fade-in text-zinc-100">
+              {/* Performance Summary Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                {/* Avg Rating Card */}
+                <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl relative overflow-hidden flex flex-col justify-between shadow-xl">
+                  <div className="absolute top-0 right-0 p-4 text-amber-500 opacity-10">
+                    <Star className="w-16 h-16 fill-amber-500" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-zinc-400 font-extrabold uppercase tracking-widest block">Average Rating</span>
+                    <div className="flex items-baseline gap-2 mt-2">
+                      <p className="text-4xl sm:text-5xl font-black text-white">{avgRating}</p>
+                      <span className="text-sm font-bold text-zinc-500">/ 5.0</span>
+                    </div>
+                    <div className="flex items-center gap-1 mt-2">
+                      {Array.from({ length: 5 }).map((_, i) => {
+                        const numVal = Number(avgRating) || 0;
+                        const isFilled = i < Math.floor(numVal);
+                        return (
+                          <Star
+                            key={i}
+                            className={`w-4 h-4 ${
+                              isFilled ? "text-amber-400 fill-amber-400" : "text-zinc-700"
+                            }`}
+                          />
+                        );
+                      })}
+                      <span className="text-xs font-bold text-zinc-400 ml-1">({totalRated} ratings)</span>
+                    </div>
+                  </div>
+                  <div className="border-t border-zinc-850 pt-3 flex items-center gap-1.5 text-xs text-amber-400 mt-4 font-bold">
+                    <span>Outstanding Captain Status</span>
+                  </div>
+                </div>
+
+                {/* Rating Distribution Progress */}
+                <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-3xl shadow-xl md:col-span-2 space-y-3">
+                  <span className="text-[10px] text-zinc-400 font-extrabold uppercase tracking-widest block">Rating Distribution</span>
+                  <div className="space-y-2 pt-1">
+                    {([5, 4, 3, 2, 1] as const).map((stars) => {
+                      const count = starCounts[stars] || 0;
+                      const percentage = totalRated > 0 ? (count / totalRated) * 100 : 0;
+                      return (
+                        <div key={stars} className="flex items-center gap-3 text-xs font-bold text-zinc-300 font-sans">
+                          <span className="w-3 text-right">{stars}</span>
+                          <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 shrink-0" />
+                          <div className="flex-1 h-2 bg-zinc-950 rounded-full overflow-hidden border border-zinc-850">
+                            <div
+                              className="h-full bg-amber-400 rounded-full transition-all duration-500"
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                          <span className="w-8 text-right text-zinc-500">{count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Feedbacks Ledger */}
+              <section className="bg-zinc-900 border border-zinc-800 rounded-3xl p-4 sm:p-6 space-y-6 shadow-xl">
+                <div className="flex items-center gap-2.5 border-b border-zinc-800 pb-4">
+                  <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
+                  <div>
+                    <h3 className="text-xs sm:text-sm font-black uppercase tracking-widest text-amber-400">Customer Reviews & Remarks</h3>
+                    <p className="text-[11px] text-zinc-400 font-semibold leading-relaxed">Direct in-app ratings and detailed remarks shared by your customers upon order delivery.</p>
+                  </div>
+                </div>
+
+                {ratedOrders.length === 0 ? (
+                  <div className="text-center p-8 sm:p-12 text-zinc-500 space-y-2">
+                    <span className="text-3xl block">⭐</span>
+                    <p className="text-xs font-black uppercase text-zinc-450 tracking-wider">No reviews received yet</p>
+                    <p className="text-[10.5px] text-zinc-600 font-semibold leading-tight">Once buyers complete your deliveries and submit star feedback, they will display instantly here.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {ratedOrders.map((order) => (
+                      <div key={order.id} className="bg-zinc-950 border border-zinc-850 p-4 rounded-2xl space-y-3 shadow-xs">
+                        <div className="flex justify-between items-start gap-2">
+                          <div>
+                            <span className="text-[11px] font-black text-zinc-200 block">{order.userName || "Customer"}</span>
+                            <span className="text-[9px] text-zinc-500 font-mono">ID: dadu-{order.id.substring(0, 8)}</span>
+                          </div>
+                          <div className="flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 text-amber-400 font-black text-xs">
+                            ⭐ {order.rating}
+                          </div>
+                        </div>
+
+                        {order.ratingComment ? (
+                          <p className="text-xs text-zinc-350 italic bg-zinc-900/50 p-2.5 rounded-xl border border-zinc-850/40">
+                            "{order.ratingComment}"
+                          </p>
+                        ) : (
+                          <p className="text-xs text-zinc-650 italic">No comment shared.</p>
+                        )}
+
+                        <div className="flex justify-between items-center text-[10px] text-zinc-500 font-semibold border-t border-zinc-900 pt-2 mt-1">
+                          <span>Payment: {order.paymentMethod.toUpperCase()}</span>
+                          <span>
+                            {order.deliveryCompletedAt?.seconds
+                              ? new Date(order.deliveryCompletedAt.seconds * 1000).toLocaleDateString()
+                              : "Recently"}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </div>
+          );
+        })()}
 
       </main>
 

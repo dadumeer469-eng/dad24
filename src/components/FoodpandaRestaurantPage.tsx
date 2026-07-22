@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ChevronLeft, Heart, Search, Star, MapPin, Clock } from "lucide-react";
+import { motion } from "motion/react";
 import { Dish, OrderItem, SystemSettings } from "../types";
 import { LazyImage } from "./LazyImage";
 import FoodDetailModal from "./FoodDetailModal";
@@ -274,7 +275,10 @@ function DishCard({ dish, onAdd, isClosed }: { dish: Dish, onAdd: () => void, ke
   const hasOptions = (dish.sizes && dish.sizes.length > 0) || (dish.flavors && dish.flavors.length > 0) || (dish.addOns && dish.addOns.length > 0);
   
   return (
-    <div 
+    <motion.div 
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
       className={`flex gap-4 p-4 bg-white border border-zinc-100 rounded-2xl shadow-sm transition ${!dish.isAvailable || isClosed ? "opacity-60 grayscale-[20%] cursor-not-allowed" : "hover:shadow-md cursor-pointer active:scale-[0.98]"}`}
       onClick={() => { if (!isClosed && dish.isAvailable !== false) onAdd(); }}
     >
@@ -315,6 +319,6 @@ function DishCard({ dish, onAdd, isClosed }: { dish: Dish, onAdd: () => void, ke
           +
         </button>
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -282,6 +282,12 @@ export default function FoodpandaHeader({
                     </div>
                   </div>
                   <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">Phone: {user.phone}</span>
+                  
+                  {/* Loyalty Balance Badge */}
+                  <div className="mt-2 w-full bg-gradient-to-r from-[#d70f64] to-pink-600 rounded-xl p-2 text-white flex items-center justify-between text-[10px] font-sans">
+                    <span className="font-extrabold flex items-center gap-1">👑 Loyalty Cashback:</span>
+                    <span className="font-black bg-white text-[#d70f64] px-1.5 py-0.5 rounded-md text-[9px]">Rs. {(user.ordersCount || 0) * 15}</span>
+                  </div>
                 </div>
 
                 {/* Active Placed Orders List inside User profile dropdown (Horizontal Scroll) */}
