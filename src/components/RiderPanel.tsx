@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import OrderReceiptModal from "./OrderReceiptModal";
 import { 
   collection, query, where, onSnapshot, doc, updateDoc, Timestamp, addDoc
 } from "firebase/firestore";
@@ -20,6 +21,8 @@ interface RiderPanelProps {
 export default function RiderPanel({ currentUser, onLogout, deliverySettings }: RiderPanelProps) {
   const [activeTab, setActiveTab] = useState<"dashboard" | "history" | "performance">("dashboard");
   const [timeframe, setTimeframe] = useState<"1day" | "7days" | "30days" | "60days" | "all">("all");
+  const [riderReceiptOrder, setRiderReceiptOrder] = useState<any | null>(null);
+  const [isRiderReceiptModalOpen, setIsRiderReceiptModalOpen] = useState(false);
   const [isOnline, setIsOnline] = useState<boolean>(() => {
     const saved = localStorage.getItem(`rider_online_${currentUser.uid}`);
     return saved !== "false";
@@ -961,20 +964,16 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                             )}
                           </button>
 
-                          {riderActiveOrder.userPhone ? (
-                            <a 
-                              href={`https://wa.me/${riderActiveOrder.userPhone.replace(/\D/g, "")}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="bg-emerald-600 hover:bg-emerald-700 text-white py-2 sm:py-2.5 px-2 rounded-xl transition text-center font-black text-[10.5px] sm:text-xs flex items-center justify-center gap-1 shadow-xs cursor-pointer truncate active:scale-95"
-                            >
-                              💬 WhatsApp
-                            </a>
-                          ) : (
-                            <div className="bg-zinc-950/50 border border-zinc-800 text-zinc-600 py-2 sm:py-2.5 px-2 rounded-xl text-center font-black text-[10.5px] sm:text-xs flex items-center justify-center gap-1 opacity-50 cursor-not-allowed">
-                              💬 WhatsApp
-                            </div>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRiderReceiptOrder(riderActiveOrder);
+                              setIsRiderReceiptModalOpen(true);
+                            }}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white py-2 sm:py-2.5 px-2 rounded-xl transition text-center font-black text-[10.5px] sm:text-xs flex items-center justify-center gap-1 shadow-md cursor-pointer truncate active:scale-95 border border-emerald-500/30"
+                          >
+                            <span>🧾 Bill & WhatsApp</span>
+                          </button>
                         </div>
 
                         {/* Quick Chat Templates for busy riders on wheels */}
@@ -1396,6 +1395,18 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                             </div>
                           </div>
 
+                          {/* View Bill & Send WhatsApp Receipt */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRiderReceiptOrder(order);
+                              setIsRiderReceiptModalOpen(true);
+                            }}
+                            className="w-full py-2 px-3 mb-2 rounded-xl text-[10.5px] font-black text-emerald-300 bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-800/60 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shadow-xs"
+                          >
+                            <span>🧾 Order Bill & WhatsApp Customer</span>
+                          </button>
+
                           {/* Accept Action Button */}
                           <button
                             onClick={() => handleAcceptOrder(order.id)}
@@ -1586,7 +1597,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                                   ))}
                                 </div>
 
-                                {/* address & diagnostics info */}
+                                 {/* address & diagnostics info */}
                                 <div className="text-[11px] text-zinc-400 font-semibold border-t border-zinc-900 pt-2.5 space-y-2">
                                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                                     <span className="truncate max-w-xs text-zinc-500">📍 Destination: {order.userAddress}</span>
@@ -1596,6 +1607,19 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                                         Total Earnings (Kamaee): Rs. {order.deliveryFee || 0}
                                       </div>
                                     </div>
+                                  </div>
+
+                                  <div className="pt-1 flex justify-end">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setRiderReceiptOrder(order);
+                                        setIsRiderReceiptModalOpen(true);
+                                      }}
+                                      className="text-[10px] font-black text-emerald-300 bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-800/60 py-1.5 px-3 rounded-lg flex items-center gap-1 cursor-pointer transition active:scale-95"
+                                    >
+                                      <span>🧾 View / Send WhatsApp Receipt</span>
+                                    </button>
                                   </div>
                                 </div>
 
@@ -1775,6 +1799,14 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
           </p>
         </div>
       </footer>
+
+      {/* RIDER ORDER RECEIPT & WHATSAPP MODAL */}
+      <OrderReceiptModal
+        order={riderReceiptOrder}
+        isOpen={isRiderReceiptModalOpen}
+        onClose={() => setIsRiderReceiptModalOpen(false)}
+        senderRole="rider"
+      />
 
     </div>
   );

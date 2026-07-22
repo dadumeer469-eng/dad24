@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import OrderReceiptModal from "./OrderReceiptModal";
 import {
   UserProfile,
   Dish,
@@ -474,6 +475,8 @@ export default function AdminPanel({
   const [userSearchTerm, setUserSearchTerm] = useState("");
   const [userFilterTab, setUserFilterTab] = useState<"new" | "active" | "blocked">("new");
   const [allDevicesList, setAllDevicesList] = useState<any[]>([]);
+  const [receiptModalOrder, setReceiptModalOrder] = useState<Order | null>(null);
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "devices"), (snap) => {
@@ -2665,69 +2668,8 @@ export default function AdminPanel({
   };
 
   const handlePrintReceipt = (order: Order) => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-    
-    const itemsHtml = order.items.map(item => `
-      <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-        <span>${item.quantity}x ${item.name}</span>
-        <span>Rs. ${item.price * item.quantity}</span>
-      </div>
-    `).join('');
-    
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Order Receipt - ${order.id}</title>
-          <style>
-            body { font-family: monospace; padding: 20px; max-width: 300px; margin: 0 auto; color: #000; }
-            h2 { text-align: center; margin-bottom: 5px; }
-            .divider { border-bottom: 1px dashed #000; margin: 10px 0; }
-            .text-center { text-align: center; }
-            .bold { font-weight: bold; }
-          </style>
-        </head>
-        <body>
-          <h2>DADU FOOD</h2>
-          <div class="text-center" style="font-size: 12px; margin-bottom: 15px;">Fast Food & Grocery Delivery</div>
-          
-          <div><strong>Order ID:</strong> dadu-${order.id.substring(0, 8)}</div>
-          <div><strong>Date:</strong> ${new Date(order.createdAt).toLocaleString()}</div>
-          <div><strong>Customer:</strong> ${order.userName}</div>
-          <div><strong>Phone:</strong> ${order.userPhone}</div>
-          
-          <div class="divider"></div>
-          
-          ${itemsHtml}
-          
-          <div class="divider"></div>
-          
-          <div style="display: flex; justify-content: space-between;" class="bold">
-            <span>Total:</span>
-            <span>Rs. ${order.grandTotal}</span>
-          </div>
-          
-          <div class="divider"></div>
-          
-          <div style="margin-top: 10px; font-size: 12px;">
-            <strong>Delivery Address:</strong><br/>
-            ${order.userAddress}
-          </div>
-          
-          <div class="divider"></div>
-          <div class="text-center" style="font-size: 12px; margin-top: 20px;">
-            Thank you for ordering with Dadu Food!
-          </div>
-        </body>
-      </html>
-    `);
-    
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-      printWindow.print();
-      printWindow.close();
-    }, 250);
+    setReceiptModalOrder(order);
+    setIsReceiptModalOpen(true);
   };
 
   return (
@@ -10402,6 +10344,14 @@ export default function AdminPanel({
           </div>
         );
       })()}
+
+      {/* ORDER RECEIPT & WHATSAPP MODAL */}
+      <OrderReceiptModal
+        order={receiptModalOrder}
+        isOpen={isReceiptModalOpen}
+        onClose={() => setIsReceiptModalOpen(false)}
+        senderRole="admin"
+      />
 
       {/* NEW USER REALTIME NOTIFICATION TOAST */}
       {newUserToast && newUserToast.show && (
