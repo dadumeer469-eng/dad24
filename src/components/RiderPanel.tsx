@@ -4,6 +4,7 @@ import {
 } from "firebase/firestore";
 import { db, handleFirestoreError } from "../firebase";
 import { Order, UserProfile } from "../types";
+import { awardLoyaltyCoinsForOrder } from "../lib/loyalty";
 import { 
   CheckCircle2, Compass, Coins, CalendarDays, TrendingUp, History, User, 
   MapPin, PhoneCall, LogOut, ArrowRight, ClipboardList, DollarSign, Clock, Check, Store, XCircle, Star
@@ -329,6 +330,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
         status: "delivered",
         deliveryCompletedAt: Timestamp.now()
       });
+      await awardLoyaltyCoinsForOrder(db, orderId);
     } catch (err) {
       alert("Deliver transaction failed: " + handleFirestoreError(err));
     } finally {

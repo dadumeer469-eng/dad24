@@ -1688,6 +1688,7 @@ export default function App() {
     deliveryFee: number;
     grandTotal: number;
     userCoords?: { latitude: number; longitude: number };
+    coinsUsed?: number;
   }) => {
     if (currentUser?.status === 'locked' || currentUser?.status === 'blocked') {
       alert("Verification pending or blocked. Cannot place order.");
@@ -1732,9 +1733,38 @@ export default function App() {
         createdAt: { seconds: Math.floor(Date.now() / 1000) },
         userCoords: details.userCoords || null,
         totalCommission,
+        coinsUsed: details.coinsUsed || undefined,
       };
 
       await setDoc(doc(db, "orders", generatedOrderId), orderDoc);
+
+      // Update profile with new location & name & deduct coins if any
+      if (currentUser) {
+        let finalCoins = (currentUser.loyaltyCoins || 0);
+        if (details.coinsUsed) {
+          finalCoins = Math.max(0, finalCoins - details.coinsUsed);
+        }
+
+        const profileRef = doc(db, "users", currentUser.uid);
+        const prevProfile = await getDoc(profileRef);
+        let updatedProfile = { ...currentUser };
+        if (prevProfile.exists()) {
+          const data = prevProfile.data();
+          updatedProfile = {
+            ...currentUser,
+            ...data,
+            name: details.name,
+            totalOrders: (data.totalOrders || 0) + 1,
+            lastOrder: { seconds: Date.now() / 1000 },
+            savedLocation: details.location,
+            address: `${details.location.area}, ${details.location.street}`,
+            ordersCount: (currentUser.ordersCount || 0) + 1,
+            loyaltyCoins: finalCoins,
+          };
+          await setDoc(profileRef, cleanObject(updatedProfile));
+          setCurrentUser(updatedProfile);
+        }
+      }
 
       // Update Device Info
       await setDoc(doc(db, "devices", deviceId), {
@@ -1780,6 +1810,7 @@ export default function App() {
     orderType: "food" | "service";
     userCoords?: { latitude: number; longitude: number };
     voucher?: { code: string; discountAmount: number };
+    coinsUsed?: number;
   }) => {
     if (currentUser?.status === 'locked' || currentUser?.status === 'blocked') {
       setIsVerificationModalOpen(true);
@@ -1851,6 +1882,9 @@ export default function App() {
     if (details.voucher) {
       finalGrandTotal = Math.max(0, finalGrandTotal - details.voucher.discountAmount);
     }
+    if (details.coinsUsed) {
+      finalGrandTotal = Math.max(0, finalGrandTotal - details.coinsUsed);
+    }
 
     const firstService = cartItems.find((itm) => itm.type === "service");
     const computedServiceTiming =
@@ -1892,6 +1926,7 @@ export default function App() {
       userCoords: details.userCoords || undefined,
       totalCommission,
       voucher: details.voucher,
+      coinsUsed: details.coinsUsed || undefined,
     };
 
     try {
@@ -1930,6 +1965,11 @@ export default function App() {
       setCartItems([]);
       setIsCartOpen(false);
 
+      let finalCoins = (currentUser.loyaltyCoins || 0);
+      if (details.coinsUsed) {
+        finalCoins = Math.max(0, finalCoins - details.coinsUsed);
+      }
+
       // 3. Update ordersCount loyalty parameters
       const updatedProfile = {
         ...currentUser,
@@ -1937,6 +1977,7 @@ export default function App() {
         phone: details.phone,
         address: `${details.location.area}, ${details.location.street}`,
         ordersCount: (currentUser.ordersCount || 0) + 1,
+        loyaltyCoins: finalCoins,
       };
       await setDoc(
         doc(db, "users", currentUser.uid),
@@ -2200,6 +2241,7 @@ export default function App() {
             onPlaceOrder={handlePlaceOrderSubmit}
             onAddDrink={handleAddExclusiveDrink}
             userCoords={globalCoords}
+            systemSettings={deliverySettings}
           />
         );
       })()}
@@ -2222,6 +2264,7 @@ export default function App() {
             deliveryConfig={computedGroceryDeliveryConfig}
             onPlaceGroceryOrder={handlePlaceGroceryOrder}
             userCoords={globalCoords}
+            systemSettings={deliverySettings}
           />
         );
       })()}
@@ -4150,8 +4193,8 @@ export default function App() {
       {commonModals}
 
       {/* Floating Bottom Cart for mobile screens */}
-      {cartCountTotal > 0 && (
-        <div className="fixed bottom-4 left-4 right-4 z-40 md:hidden bg-zinc-900/95 border border-zinc-805 p-3 rounded-2xl shadow-2xl flex items-center justify-between gap-3 backdrop-blur-md">
+      {cartCountTotal > 0 && selectedRestaurant === "All Restaurants" && (
+        <div className={`fixed ${showInstallBanner ? 'bottom-[92px]' : 'bottom-[72px]'} left-4 right-4 z-40 md:hidden bg-zinc-900/95 border border-zinc-800 p-3 rounded-2xl shadow-2xl flex items-center justify-between gap-3 backdrop-blur-md transition-all duration-300`}>
           <div className="flex items-center gap-2">
             <div className="bg-[#d70f64] text-white px-2 rounded-lg font-black text-xs h-7 flex items-center justify-center min-w-[28px]">
               {cartCountTotal}
@@ -4167,7 +4210,7 @@ export default function App() {
           </div>
           <button
             onClick={() => setIsCartOpen(true)}
-            className="bg-[#d70f64] text-white font-black text-xs uppercase tracking-wider py-2 px-3.5 rounded-xl hover:bg-[#b00c50] transition active:scale-95 shadow-md flex items-center gap-1 shrink-0"
+            className="bg-[#d70f64] text-white font-black text-xs uppercase tracking-wider py-2 px-3.5 rounded-xl hover:bg-[#b00c50] transition active:scale-95 shadow-md flex items-center gap-1 shrink-0 cursor-pointer"
           >
             Review & Order 🛍
           </button>
@@ -4234,7 +4277,7 @@ export default function App() {
             animate={{ opacity: 1, scale: 1, x: 0 }}
             exit={{ opacity: 0, scale: 0.8, x: -50 }}
             onClick={handleInstallClick}
-            className="fixed bottom-24 left-4 z-40 md:hidden bg-zinc-900/90 backdrop-blur-md border border-zinc-800 shadow-xl rounded-full p-1.5 flex items-center gap-1.5 hover:bg-zinc-800 transition active:scale-95 group"
+            className={`fixed ${cartCountTotal > 0 ? 'bottom-[136px]' : 'bottom-[72px]'} left-4 z-40 md:hidden bg-zinc-900/90 backdrop-blur-md border border-zinc-800 shadow-xl rounded-full p-1.5 flex items-center gap-1.5 hover:bg-zinc-800 transition active:scale-95 group`}
           >
             <div className="w-5 h-5 rounded-md overflow-hidden shrink-0">
               <img src={daduLogo} alt="Logo" className="w-full h-full object-cover" />

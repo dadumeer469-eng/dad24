@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { UserProfile, OrderItem, Voucher } from "../types";
-import { X, ShoppingBag, MapPin, Phone, User, AlertTriangle, ShieldCheck, Heart, Edit2, Compass, Tag, Loader2 } from "lucide-react";
+import { UserProfile, OrderItem, Voucher, getUserCoins } from "../types";
+import { X, ShoppingBag, MapPin, Phone, User, AlertTriangle, ShieldCheck, Heart, Edit2, Compass, Tag, Loader2, Coins } from "lucide-react";
 import { CHECKOUT_DRINKS } from "../data";
 import { LazyImage } from "./LazyImage";
 import { doc, getDoc } from "firebase/firestore";
@@ -15,9 +15,10 @@ interface CartDrawerProps {
   currentUser: UserProfile | null;
   onOpenAuth: () => void;
   deliveryFee: number; // Stored inside Firestore settings!
-  onPlaceOrder: (details: { name: string; phone: string; location: { area: string; street: string; lat?: number; lng?: number; googleMapsLink?: string }; paymentMethod: string; orderType: "food" | "service"; userCoords?: { latitude: number; longitude: number }; voucher?: { code: string; discountAmount: number } }) => Promise<void>;
+  onPlaceOrder: (details: { name: string; phone: string; location: { area: string; street: string; lat?: number; lng?: number; googleMapsLink?: string }; paymentMethod: string; orderType: "food" | "service"; userCoords?: { latitude: number; longitude: number }; voucher?: { code: string; discountAmount: number }; coinsUsed?: number }) => Promise<void>;
   onAddDrink: (drink: any) => void;
   userCoords?: { latitude: number; longitude: number } | null;
+  systemSettings?: any;
 }
 
 export default function CartDrawer({
@@ -32,12 +33,15 @@ export default function CartDrawer({
   onPlaceOrder,
   onAddDrink,
   userCoords,
+  systemSettings,
 }: CartDrawerProps) {
   const [submitting, setSubmitting] = useState(false);
   const [voucherCode, setVoucherCode] = useState("");
   const [appliedVoucher, setAppliedVoucher] = useState<{code: string, discountAmount: number, successMessage?: string} | null>(null);
   const [voucherError, setVoucherError] = useState("");
   const [isApplyingVoucher, setIsApplyingVoucher] = useState(false);
+  const [useCoins, setUseCoins] = useState(false);
+  const [activeDiscountTab, setActiveDiscountTab] = useState<'none' | 'voucher' | 'coins'>('none');
 
 
 
@@ -66,6 +70,20 @@ export default function CartDrawer({
   let grandTotal = totalFoodItemsPrice + finalDeliveryFee;
   if (appliedVoucher) {
     grandTotal = Math.max(0, grandTotal - appliedVoucher.discountAmount);
+  }
+
+  const userCoins = getUserCoins(currentUser, systemSettings);
+  const isLoyaltyEnabledForFood = (systemSettings?.loyaltyEnabled !== false) && (systemSettings?.loyaltyAllowOnFood !== false);
+
+  const maxCoinsUsable = isLoyaltyEnabledForFood ? Math.min(
+    userCoins,
+    systemSettings?.loyaltyMaxSpendCoins ?? 50,
+    Math.floor(grandTotal)
+  ) : 0;
+
+  const coinsDeducted = useCoins ? maxCoinsUsable : 0;
+  if (useCoins) {
+    grandTotal = Math.max(0, grandTotal - coinsDeducted);
   }
 
   const handleApplyVoucher = async () => {
@@ -117,6 +135,7 @@ export default function CartDrawer({
         discountAmount: Math.round(discountAmount),
         successMessage: v.successMessage
       });
+      setUseCoins(false); // Voucher replaces coins benefit
       
     } catch (err) {
       setVoucherError("Failed to apply voucher.");
@@ -224,6 +243,7 @@ export default function CartDrawer({
         orderType: orderTypeValue,
         userCoords: activeCoords || undefined,
         voucher: appliedVoucher ? { code: appliedVoucher.code, discountAmount: appliedVoucher.discountAmount } : undefined,
+        coinsUsed: useCoins ? coinsDeducted : undefined,
       });
     } catch (err) {
       console.error(err);
@@ -561,47 +581,171 @@ export default function CartDrawer({
                 </div>
               </div>
             )}
-            {/* Voucher Section */}
-            <div className="bg-zinc-900 border border-zinc-850 p-4 rounded-3xl space-y-3 mt-4">
-              <div className="flex items-center gap-2 text-pink-400 font-black uppercase tracking-widest text-[10px]">
-                <Tag className="w-4 h-4" /> Apply Promo Code
-              </div>
-              
-              {appliedVoucher ? (
-                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-3 flex justify-between items-center">
-                  <div className="text-emerald-400 font-bold text-xs flex flex-col">
-                    <span className="font-black uppercase tracking-wider">{appliedVoucher.code} APPLIED</span>
-                    <span className="text-[10px] mt-0.5">{appliedVoucher.successMessage || 'Voucher applied successfully!'}</span>
-                  </div>
-                  <button 
+            {/* Horizontal Discount / Benefit Selector Bar */}
+            <div className="space-y-2 mt-3">
+              <div className="text-[10px] font-black text-zinc-400 uppercase tracking-wider flex items-center justify-between px-1">
+                <div className="flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5 text-pink-500" /> Apply Discounts
+                </div>
+                {activeDiscountTab !== 'none' && (
+                  <button
+                    type="button"
                     onClick={() => {
+                      setActiveDiscountTab('none');
+                      setUseCoins(false);
                       setAppliedVoucher(null);
                       setVoucherCode("");
+                      setVoucherError("");
                     }}
-                    className="text-emerald-400 hover:text-emerald-300"
+                    className="text-[9.5px] text-zinc-500 hover:text-zinc-300 underline font-semibold cursor-pointer"
                   >
-                    <X className="w-4 h-4" />
+                    Hide / Close
                   </button>
+                )}
+              </div>
+
+              <div className="bg-zinc-900/90 border border-zinc-800/90 p-1.5 rounded-2xl flex items-center gap-1.5">
+                {/* Option 1: Promo Voucher */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (activeDiscountTab === 'voucher') {
+                      setActiveDiscountTab('none');
+                    } else {
+                      setActiveDiscountTab('voucher');
+                      if (useCoins) setUseCoins(false);
+                    }
+                  }}
+                  className={`flex-1 py-2 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer outline-none ${
+                    activeDiscountTab === 'voucher'
+                      ? "bg-pink-600 text-white shadow-md shadow-pink-600/30"
+                      : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60"
+                  }`}
+                >
+                  <Tag className="w-3.5 h-3.5" />
+                  <span>Voucher Code</span>
+                  {appliedVoucher && (
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-0.5" />
+                  )}
+                </button>
+
+                {/* Option 2: Coins Benefit (if available) */}
+                {isLoyaltyEnabledForFood && userCoins > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (activeDiscountTab === 'coins') {
+                        setActiveDiscountTab('none');
+                        setUseCoins(false);
+                      } else {
+                        setActiveDiscountTab('coins');
+                        setAppliedVoucher(null);
+                        setVoucherCode("");
+                        setVoucherError("");
+                        setUseCoins(true);
+                      }
+                    }}
+                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer outline-none ${
+                      activeDiscountTab === 'coins'
+                        ? "bg-amber-500 text-zinc-950 shadow-md shadow-amber-500/30"
+                        : "text-zinc-400 hover:text-amber-400 hover:bg-zinc-800/60"
+                    }`}
+                  >
+                    <Coins className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Dadu Coins ({userCoins})</span>
+                    {useCoins && (
+                      <span className="w-2 h-2 rounded-full bg-zinc-950 animate-pulse ml-0.5" />
+                    )}
+                  </button>
+                )}
+              </div>
+
+              {/* Tab Panel 1: Voucher */}
+              {activeDiscountTab === 'voucher' && (
+                <div className="bg-zinc-900/90 border border-zinc-800 p-3.5 rounded-2xl space-y-2.5 animate-fadeIn">
+                  <div className="flex items-center justify-between text-xs font-extrabold text-pink-400">
+                    <span>Enter Promo / Voucher Code</span>
+                  </div>
+
+                  {appliedVoucher ? (
+                    <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-2.5 flex justify-between items-center">
+                      <div className="text-emerald-400 font-bold text-xs flex flex-col">
+                        <span className="font-black uppercase tracking-wider">{appliedVoucher.code} APPLIED</span>
+                        <span className="text-[10px] mt-0.5">{appliedVoucher.successMessage || 'Voucher applied successfully!'}</span>
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          setAppliedVoucher(null);
+                          setVoucherCode("");
+                        }}
+                        className="text-emerald-400 hover:text-emerald-300 p-1"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={voucherCode}
+                          onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                          placeholder="ENTER CODE"
+                          className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs font-bold text-white uppercase outline-none focus:border-pink-500/50 transition-colors"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleApplyVoucher}
+                          disabled={isApplyingVoucher || !voucherCode.trim()}
+                          className="bg-pink-600 hover:bg-pink-500 disabled:opacity-50 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-colors cursor-pointer"
+                        >
+                          {isApplyingVoucher ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Apply'}
+                        </button>
+                      </div>
+                      {voucherError && <div className="text-red-400 text-[10px] font-bold px-1">{voucherError}</div>}
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="space-y-2">
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={voucherCode}
-                      onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
-                      placeholder="ENTER CODE"
-                      className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs font-bold text-white uppercase outline-none focus:border-pink-500/50 transition-colors"
-                    />
+              )}
+
+              {/* Tab Panel 2: Coins Benefit */}
+              {activeDiscountTab === 'coins' && isLoyaltyEnabledForFood && userCoins > 0 && (
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3.5 space-y-2.5 animate-fadeIn text-left">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Coins className="w-5 h-5 text-amber-500 animate-pulse shrink-0" />
+                      <div>
+                        <span className="text-xs font-black text-amber-300 block">
+                          Use Coins Benefit (Rs. {maxCoinsUsable} Off)
+                        </span>
+                        <span className="text-[10px] text-amber-500/80 font-medium block">
+                          Available Coins: {userCoins} (1 coin = Rs. 1)
+                        </span>
+                      </div>
+                    </div>
                     <button
-                      onClick={handleApplyVoucher}
-                      disabled={isApplyingVoucher || !voucherCode.trim()}
-                      className="bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-colors"
+                      type="button"
+                      onClick={() => {
+                        const nextCoins = !useCoins;
+                        if (nextCoins) {
+                          setAppliedVoucher(null);
+                          setVoucherCode("");
+                          setVoucherError("");
+                        }
+                        setUseCoins(nextCoins);
+                      }}
+                      className={`w-11 h-5.5 rounded-full transition-colors relative cursor-pointer outline-none shrink-0 ${
+                        useCoins ? "bg-amber-500" : "bg-zinc-800"
+                      }`}
                     >
-                      {isApplyingVoucher ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Apply'}
+                      <span
+                        className={`absolute top-0.5 left-0.5 w-4.5 h-4.5 rounded-full bg-white shadow-sm transition-transform ${
+                          useCoins ? "transform translate-x-5.5" : ""
+                        }`}
+                      />
                     </button>
                   </div>
-                  {voucherError && <div className="text-red-400 text-[10px] font-bold px-1">{voucherError}</div>}
                 </div>
               )}
             </div>
@@ -616,6 +760,13 @@ export default function CartDrawer({
                 <div className="flex justify-between text-emerald-400">
                   <span>Voucher Discount:</span>
                   <span className="font-extrabold font-mono">- Rs. {appliedVoucher.discountAmount}</span>
+                </div>
+              )}
+
+              {useCoins && coinsDeducted > 0 && (
+                <div className="flex justify-between text-amber-500">
+                  <span>Coins Benefit Applied:</span>
+                  <span className="font-extrabold font-mono">- Rs. {coinsDeducted}</span>
                 </div>
               )}
 

@@ -239,19 +239,17 @@ export default function FoodpandaRestaurantPage({
 
       {/* Cart Bottom Bar */}
       {cartCountTotal > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-zinc-100 shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.1)] z-40">
-          <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
-            <button 
-              onClick={onViewCart}
-              className="flex-1 bg-[#D70F64] hover:bg-[#b00c50] text-white p-4 rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg shadow-pink-500/30 transition-all flex items-center justify-between"
-            >
-              <div className="bg-white/20 w-8 h-8 rounded-full flex items-center justify-center text-xs">
-                {cartCountTotal}
-              </div>
-              <span>View Cart</span>
-              <span>Rs. {cartPriceTotal}</span>
-            </button>
-          </div>
+        <div className="fixed bottom-[72px] lg:bottom-4 left-4 right-4 z-40 max-w-4xl mx-auto">
+          <button 
+            onClick={onViewCart}
+            className="w-full bg-[#D70F64] hover:bg-[#b00c50] text-white p-3.5 sm:p-4 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider shadow-2xl shadow-pink-500/30 transition-all flex items-center justify-between border border-pink-400/30 backdrop-blur-md cursor-pointer active:scale-98"
+          >
+            <div className="bg-white/20 px-2.5 py-1 rounded-xl flex items-center justify-center text-xs font-black">
+              {cartCountTotal} {cartCountTotal === 1 ? 'Item' : 'Items'}
+            </div>
+            <span className="font-black text-sm tracking-wide flex items-center gap-1.5">View Cart 🛍</span>
+            <span className="font-mono text-xs sm:text-sm font-black">Rs. {cartPriceTotal}</span>
+          </button>
         </div>
       )}
 

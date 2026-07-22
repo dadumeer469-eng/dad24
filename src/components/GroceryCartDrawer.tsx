@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { UserProfile, GroceryOrderItem, GroceryDeliveryConfig } from "../types";
-import { X, ShoppingBag, MapPin, Phone, User, AlertTriangle, ShieldCheck, Heart, Edit2, Compass, Trash2, CheckCircle } from "lucide-react";
+import { UserProfile, GroceryOrderItem, GroceryDeliveryConfig, getUserCoins } from "../types";
+import { X, ShoppingBag, MapPin, Phone, User, AlertTriangle, ShieldCheck, Heart, Edit2, Compass, Trash2, CheckCircle, Coins } from "lucide-react";
 import { LazyImage } from "./LazyImage";
 
 interface GroceryCartDrawerProps {
@@ -21,8 +21,10 @@ interface GroceryCartDrawerProps {
     deliveryFee: number;
     grandTotal: number;
     userCoords?: { latitude: number; longitude: number };
+    coinsUsed?: number;
   }) => Promise<void>;
   userCoords?: { latitude: number; longitude: number } | null;
+  systemSettings?: any;
 }
 
 export default function GroceryCartDrawer({
@@ -36,11 +38,18 @@ export default function GroceryCartDrawer({
   deliveryConfig,
   onPlaceGroceryOrder,
   userCoords,
+  systemSettings,
 }: GroceryCartDrawerProps) {
   const [submitting, setSubmitting] = useState(false);
+  const [useCoins, setUseCoins] = useState(false);
+  const [activeDiscountTab, setActiveDiscountTab] = useState<'none' | 'coins'>('none');
 
-
-
+  React.useEffect(() => {
+    if (!isOpen || cartItems.length === 0) {
+      setUseCoins(false);
+      setActiveDiscountTab('none');
+    }
+  }, [isOpen, cartItems.length]);
 
   if (!isOpen) return null;
 
@@ -64,7 +73,21 @@ export default function GroceryCartDrawer({
     : deliveryFeeRate;
 
   const taxesAmount = Math.round(totalGroceryPrice * 0.02); // 2% GST
-  const grandTotal = totalGroceryPrice + finalDeliveryFee + taxesAmount;
+  let grandTotal = totalGroceryPrice + finalDeliveryFee + taxesAmount;
+
+  const userCoins = getUserCoins(currentUser, systemSettings);
+  const isLoyaltyEnabledForGrocery = (systemSettings?.loyaltyEnabled !== false) && (systemSettings?.loyaltyAllowOnGrocery || false);
+
+  const maxCoinsUsable = isLoyaltyEnabledForGrocery ? Math.min(
+    userCoins,
+    systemSettings?.loyaltyMaxSpendCoins ?? 50,
+    Math.floor(grandTotal)
+  ) : 0;
+
+  const coinsDeducted = useCoins ? maxCoinsUsable : 0;
+  if (useCoins) {
+    grandTotal = Math.max(0, grandTotal - coinsDeducted);
+  }
 
   const handleCheckoutSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -161,6 +184,7 @@ export default function GroceryCartDrawer({
         deliveryFee: finalDeliveryFee,
         grandTotal: grandTotal,
         userCoords: activeCoords || undefined,
+        coinsUsed: useCoins ? coinsDeducted : undefined,
       });
       onClose();
     } catch (err) {
@@ -304,6 +328,88 @@ export default function GroceryCartDrawer({
           {/* Pricing & Checkout Panel */}
           {cartItems.length > 0 && (
             <div className="p-5 border-t border-zinc-900 bg-zinc-900/60 space-y-4">
+              
+              {/* Horizontal Discount / Benefit Selector Bar */}
+              {isLoyaltyEnabledForGrocery && userCoins > 0 && (
+                <div className="space-y-2">
+                  <div className="text-[10px] font-black text-zinc-400 uppercase tracking-wider flex items-center justify-between px-1">
+                    <div className="flex items-center gap-1.5">
+                      <Coins className="w-3.5 h-3.5 text-amber-500" /> Apply Rewards / Benefits
+                    </div>
+                    {activeDiscountTab !== 'none' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveDiscountTab('none');
+                          setUseCoins(false);
+                        }}
+                        className="text-[9.5px] text-zinc-500 hover:text-zinc-300 underline font-semibold cursor-pointer"
+                      >
+                        Hide / Close
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="bg-zinc-900 border border-zinc-800 p-1.5 rounded-2xl flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (activeDiscountTab === 'coins') {
+                          setActiveDiscountTab('none');
+                          setUseCoins(false);
+                        } else {
+                          setActiveDiscountTab('coins');
+                          setUseCoins(true);
+                        }
+                      }}
+                      className={`flex-1 py-2 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer outline-none ${
+                        activeDiscountTab === 'coins'
+                          ? "bg-amber-500 text-zinc-950 shadow-md shadow-amber-500/30"
+                          : "text-zinc-400 hover:text-amber-400 hover:bg-zinc-800/60"
+                      }`}
+                    >
+                      <Coins className="w-3.5 h-3.5 text-amber-500" />
+                      <span>Use Dadu Coins ({userCoins})</span>
+                      {useCoins && (
+                        <span className="w-2 h-2 rounded-full bg-zinc-950 animate-pulse ml-0.5" />
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Tab Panel: Coins Benefit */}
+                  {activeDiscountTab === 'coins' && (
+                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3.5 space-y-2.5 animate-fadeIn text-left">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Coins className="w-5 h-5 text-amber-500 animate-pulse shrink-0" />
+                          <div>
+                            <span className="text-xs font-black text-amber-300 block">
+                              Use Coins Benefit (Rs. {maxCoinsUsable} Off)
+                            </span>
+                            <span className="text-[10px] text-amber-500/80 font-medium block">
+                              Available Coins: {userCoins} (1 coin = Rs. 1)
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setUseCoins(!useCoins)}
+                          className={`w-11 h-5.5 rounded-full transition-colors relative cursor-pointer outline-none shrink-0 ${
+                            useCoins ? "bg-amber-500" : "bg-zinc-800"
+                          }`}
+                        >
+                          <span
+                            className={`absolute top-0.5 left-0.5 w-4.5 h-4.5 rounded-full bg-white shadow-sm transition-transform ${
+                              useCoins ? "transform translate-x-5.5" : ""
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="space-y-1.5 text-xs">
                 {totalGroceryPrice < 500 && (
                   <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-2.5 text-[10.5px] text-amber-400 flex items-start gap-2 mb-2">
@@ -336,6 +442,13 @@ export default function GroceryCartDrawer({
                     )}
                   </span>
                 </div>
+
+                {useCoins && coinsDeducted > 0 && (
+                  <div className="flex justify-between text-amber-500 font-bold">
+                    <span>Coins Benefit Applied</span>
+                    <span>- Rs. {coinsDeducted}</span>
+                  </div>
+                )}
 
                 {/* Free Delivery Promo Bar */}
                 {!isFreeDelivery && (

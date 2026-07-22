@@ -42,6 +42,7 @@ export interface UserProfile {
   };
   vehicleNumber?: string;
   riderCoords?: { latitude: number; longitude: number; lastUpdated?: number };
+  loyaltyCoins?: number; // User's custom loyalty coin wallet balance
 }
 
 export interface OrderItem {
@@ -103,6 +104,8 @@ export interface Order {
   rating?: number;
   ratingComment?: string;
   ratedAt?: any;
+  coinsUsed?: number; // How many coins were redeemed/deducted for this order
+  coinsEarned?: number; // How many coins were rewarded for this order
 }
 
 export interface SystemSettings {
@@ -130,6 +133,14 @@ export interface SystemSettings {
     deliveryCharge?: string;
     coords?: { lat: number; lng: number };
   }>;
+  // Loyalty Wallet Settings controlled by admin
+  loyaltyEnabled?: boolean;
+  loyaltyMinOrderForEarn?: number;
+  loyaltyEarnCoins?: number; // coin earn value (e.g. 15 flat or 5 percent)
+  loyaltyEarnType?: "fixed" | "percentage";
+  loyaltyMaxSpendCoins?: number; // max coins spendable per order
+  loyaltyAllowOnFood?: boolean;
+  loyaltyAllowOnGrocery?: boolean;
 }
 
 export interface AppNotification {
@@ -251,4 +262,15 @@ export interface Voucher {
   successMessage?: string;
   isActive: boolean;
   createdAt?: any;
+}
+
+/**
+ * Standardized utility to fetch a user's loyalty coin balance.
+ * Backward-compatible: falls back to ordersCount * earnCoins if loyaltyCoins is undefined.
+ */
+export function getUserCoins(user: UserProfile | null, settings?: SystemSettings): number {
+  if (!user) return 0;
+  if (user.loyaltyCoins !== undefined) return user.loyaltyCoins;
+  const earnRate = settings?.loyaltyEarnCoins ?? 15;
+  return (user.ordersCount || 0) * earnRate;
 }

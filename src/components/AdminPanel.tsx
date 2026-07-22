@@ -12,6 +12,7 @@ import {
   Banner,
   Voucher,
 } from "../types";
+import { awardLoyaltyCoinsForOrder } from "../lib/loyalty";
 import {
   doc,
   setDoc,
@@ -88,6 +89,7 @@ import {
   ShieldAlert,
   Image as ImageIcon,
   Ticket,
+  Coins,
 } from "lucide-react";
 
 interface AdminPanelProps {
@@ -443,6 +445,7 @@ export default function AdminPanel({
     | "banners"
     | "vouchers"
     | "food_categories"
+    | "loyalty"
   >("analytics");
   const [allUsersList, setAllUsersList] = useState<UserProfile[]>([]);
   const [bannersList, setBannersList] = useState<Banner[]>([]);
@@ -545,6 +548,15 @@ export default function AdminPanel({
   const [seoKeywords, setSeoKeywords] = useState("");
   const [heroBgUrl, setHeroBgUrl] = useState("");
 
+  // Loyalty Wallet States
+  const [loyaltyEnabled, setLoyaltyEnabled] = useState(true);
+  const [loyaltyMinOrderForEarn, setLoyaltyMinOrderForEarn] = useState(100);
+  const [loyaltyEarnCoins, setLoyaltyEarnCoins] = useState(15);
+  const [loyaltyEarnType, setLoyaltyEarnType] = useState<"fixed" | "percentage">("fixed");
+  const [loyaltyMaxSpendCoins, setLoyaltyMaxSpendCoins] = useState(50);
+  const [loyaltyAllowOnFood, setLoyaltyAllowOnFood] = useState(true);
+  const [loyaltyAllowOnGrocery, setLoyaltyAllowOnGrocery] = useState(false);
+
   // Sync state when props or selected restaurant change
   useEffect(() => {
     if (deliverySettings) {
@@ -561,6 +573,15 @@ export default function AdminPanel({
         setBaseLatInput(deliverySettings.baseLocationCoords.lat);
         setBaseLngInput(deliverySettings.baseLocationCoords.lng);
       }
+
+      // Initialize loyalty parameters
+      setLoyaltyEnabled(deliverySettings.loyaltyEnabled !== false);
+      setLoyaltyMinOrderForEarn(deliverySettings.loyaltyMinOrderForEarn ?? 100);
+      setLoyaltyEarnCoins(deliverySettings.loyaltyEarnCoins ?? 15);
+      setLoyaltyEarnType(deliverySettings.loyaltyEarnType ?? "fixed");
+      setLoyaltyMaxSpendCoins(deliverySettings.loyaltyMaxSpendCoins ?? 50);
+      setLoyaltyAllowOnFood(deliverySettings.loyaltyAllowOnFood !== false);
+      setLoyaltyAllowOnGrocery(deliverySettings.loyaltyAllowOnGrocery || false);
 
       // Load specific restaurant status or fallback to global/default
       const specificStatus =
@@ -1651,6 +1672,27 @@ export default function AdminPanel({
     }
   };
 
+  // Save Loyalty Wallet Config
+  const handleSaveLoyaltyConfig = async () => {
+    try {
+      const newSettings = {
+        ...deliverySettings,
+        loyaltyEnabled: Boolean(loyaltyEnabled),
+        loyaltyMinOrderForEarn: Number(loyaltyMinOrderForEarn),
+        loyaltyEarnCoins: Number(loyaltyEarnCoins),
+        loyaltyEarnType,
+        loyaltyMaxSpendCoins: Number(loyaltyMaxSpendCoins),
+        loyaltyAllowOnFood: Boolean(loyaltyAllowOnFood),
+        loyaltyAllowOnGrocery: Boolean(loyaltyAllowOnGrocery),
+      };
+      await setDoc(doc(db, "settings", "delivery_config"), cleanObject(newSettings));
+      alert("Loyalty Coin Wallet configuration saved successfully! 🪙");
+    } catch (err) {
+      console.error(err);
+      alert("Permission denied or Firestore configuration missing while saving loyalty config.");
+    }
+  };
+
   // Grocery Settings update
   const handleSaveGroceryConfig = async () => {
     try {
@@ -2377,6 +2419,10 @@ export default function AdminPanel({
         ...(cancelReason ? { cancelReason } : {}),
       });
 
+      if (nextStatus === "delivered") {
+        await awardLoyaltyCoinsForOrder(db, orderId);
+      }
+
       // Dispatch an automatic in-app notification to the customer profile!
       // This will sound a beautiful chime!
       const targetOrder = orders.find((o) => o.id === orderId);
@@ -2701,6 +2747,14 @@ export default function AdminPanel({
             >
               <Globe className="w-3.5 h-3.5" /> SEO
             </button>
+            <button
+              onClick={() => setActiveSubTab("loyalty")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
+                activeSubTab === "loyalty" ? "bg-[#D70F64] border-[#D70F64] text-white" : "bg-slate-50 border-slate-200 text-slate-700"
+              }`}
+            >
+              <Coins className="w-3.5 h-3.5" /> Coins Wallet
+            </button>
           </div>
         </div>
 
@@ -2939,6 +2993,18 @@ export default function AdminPanel({
                   >
                     <Globe className="w-3.5 h-3.5 shrink-0" />
                     SEO & App Config
+                  </button>
+
+                  <button
+                    onClick={() => setActiveSubTab("loyalty")}
+                    className={`w-full font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
+                      activeSubTab === "loyalty"
+                        ? "bg-[#D70F64] border-[#D70F64] text-white shadow-sm"
+                        : "bg-transparent border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    }`}
+                  >
+                    <Coins className="w-3.5 h-3.5 shrink-0" />
+                    Coins Loyalty Wallet
                   </button>
                 </div>
               </div>
@@ -8305,6 +8371,302 @@ export default function AdminPanel({
                 </div>
               </div>
 
+            </div>
+          )}
+
+          {activeSubTab === "loyalty" && (
+            <div className="space-y-6 animate-fade-in text-left font-sans">
+              {/* Header card */}
+              <div className="bg-white/90 border border-slate-200 rounded-3xl p-6 relative overflow-hidden">
+                <div className="absolute right-0 top-0 w-80 h-80 bg-[#D70F64]/5 rounded-full blur-[100px] pointer-events-none" />
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 text-[#D70F64]">
+                      <Coins className="w-5 h-5 text-[#D70F64]" />
+                      <span className="text-[10px] font-black uppercase tracking-widest bg-[#D70F64]/10 px-2.5 py-0.5 rounded-full">
+                        Loyalty Wallet Controller
+                      </span>
+                    </div>
+                    <h2 className="text-xl font-black text-slate-900 mt-1">
+                      Dadu Loyalty Coins Wallet
+                    </h2>
+                    <p className="text-xs text-slate-600 font-medium mt-1">
+                      Manage how many loyalty coins users earn per order, spend limits, and toggles to show or hide the system.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleSaveLoyaltyConfig}
+                    className="bg-[#D70F64] hover:bg-[#b00c50] text-white font-black text-[11px] uppercase tracking-wider py-3 px-6 rounded-2xl transition cursor-pointer shrink-0 shadow-md flex items-center gap-2 self-start sm:self-auto hover:scale-[1.02] active:scale-95"
+                  >
+                    <Save className="w-4 h-4 text-white" />
+                    Save Wallet Config
+                  </button>
+                </div>
+              </div>
+
+              {/* Settings Configuration Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Earn Rules Card */}
+                <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-6">
+                  <div>
+                    <h3 className="font-black text-sm text-slate-900 uppercase tracking-wide flex items-center gap-2">
+                      💰 Coin Earning Rules
+                    </h3>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      Set how much cashback/coins users earn when their order is completed.
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    {/* Enable/Disable System */}
+                    <div className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200 rounded-2xl">
+                      <div>
+                        <span className="text-xs font-black text-slate-800 block">
+                          Loyalty Coins System Status
+                        </span>
+                        <span className="text-[10px] text-slate-500 font-medium block">
+                          Dadu Coins system ko completely enable ya disable karein.
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => setLoyaltyEnabled(!loyaltyEnabled)}
+                        className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer outline-none shrink-0 ${
+                          loyaltyEnabled ? "bg-[#D70F64]" : "bg-slate-200"
+                        }`}
+                      >
+                        <span
+                          className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${
+                            loyaltyEnabled ? "transform translate-x-6" : ""
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    {/* Reward Calculation Type */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">
+                        Reward Calculation Type
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setLoyaltyEarnType("fixed")}
+                          className={`p-3 rounded-2xl text-xs font-bold border transition cursor-pointer text-center ${
+                            loyaltyEarnType === "fixed"
+                              ? "border-[#D70F64] bg-[#D70F64]/5 text-[#D70F64]"
+                              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                          }`}
+                        >
+                          Flat Coins Per Order
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setLoyaltyEarnType("percentage")}
+                          className={`p-3 rounded-2xl text-xs font-bold border transition cursor-pointer text-center ${
+                            loyaltyEarnType === "percentage"
+                              ? "border-[#D70F64] bg-[#D70F64]/5 text-[#D70F64]"
+                              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                          }`}
+                        >
+                          % of Order Total (Cashback)
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Reward Value */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">
+                        {loyaltyEarnType === "fixed" ? "Flat Coin Reward Value" : "Cashback Percentage (%)"}
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          value={loyaltyEarnCoins}
+                          onChange={(e) => setLoyaltyEarnCoins(Math.max(0, Number(e.target.value)))}
+                          placeholder={loyaltyEarnType === "fixed" ? "e.g. 15" : "e.g. 5"}
+                          className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm outline-none text-slate-900 focus:border-[#D70F64]/60 transition"
+                        />
+                        <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10.5px] font-black text-slate-400">
+                          {loyaltyEarnType === "fixed" ? "Coins" : "% of Subtotal"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Minimum Order Value */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">
+                        Minimum Order Amount to Earn
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          value={loyaltyMinOrderForEarn}
+                          onChange={(e) => setLoyaltyMinOrderForEarn(Math.max(0, Number(e.target.value)))}
+                          placeholder="e.g. 100"
+                          className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm outline-none text-slate-900 focus:border-[#D70F64]/60 transition"
+                        />
+                        <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10.5px] font-black text-slate-400">
+                          Rs. Minimum
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Spending Rules & Applicability Card */}
+                <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-6">
+                  <div>
+                    <h3 className="font-black text-sm text-slate-900 uppercase tracking-wide flex items-center gap-2">
+                      🛍️ Spend Limits & Applicability
+                    </h3>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      Configure maximum spend limits and allow coins usage on Food vs Grocery store.
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    {/* Max Spend Coins */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">
+                        Max Coins Usable Per Order
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          value={loyaltyMaxSpendCoins}
+                          onChange={(e) => setLoyaltyMaxSpendCoins(Math.max(1, Number(e.target.value)))}
+                          placeholder="e.g. 50"
+                          className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm outline-none text-slate-900 focus:border-[#D70F64]/60 transition"
+                        />
+                        <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10.5px] font-black text-slate-400">
+                          Coins Max
+                        </span>
+                      </div>
+                      <span className="text-[9.5px] text-slate-400 font-bold block mt-1">
+                        💡 User ek single checkout mein isse zyada coins use nahi kar payega.
+                      </span>
+                    </div>
+
+                    {/* Applicability Section */}
+                    <div className="pt-2 border-t border-slate-100 space-y-3">
+                      <span className="text-[10px] font-black text-slate-400 block uppercase tracking-widest">
+                        Category Applicability (Kahan use honge)
+                      </span>
+
+                      {/* Quick Scope Selector */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLoyaltyAllowOnFood(true);
+                            setLoyaltyAllowOnGrocery(true);
+                          }}
+                          className={`p-2.5 rounded-xl border text-xs font-black transition text-center ${
+                            loyaltyAllowOnFood && loyaltyAllowOnGrocery
+                              ? "bg-[#D70F64]/10 border-[#D70F64] text-[#D70F64]"
+                              : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                          }`}
+                        >
+                          🍕🛒 Both Categories
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLoyaltyAllowOnFood(true);
+                            setLoyaltyAllowOnGrocery(false);
+                          }}
+                          className={`p-2.5 rounded-xl border text-xs font-black transition text-center ${
+                            loyaltyAllowOnFood && !loyaltyAllowOnGrocery
+                              ? "bg-[#D70F64]/10 border-[#D70F64] text-[#D70F64]"
+                              : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                          }`}
+                        >
+                          🍕 Food Only
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLoyaltyAllowOnFood(false);
+                            setLoyaltyAllowOnGrocery(true);
+                          }}
+                          className={`p-2.5 rounded-xl border text-xs font-black transition text-center ${
+                            !loyaltyAllowOnFood && loyaltyAllowOnGrocery
+                              ? "bg-[#D70F64]/10 border-[#D70F64] text-[#D70F64]"
+                              : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                          }`}
+                        >
+                          🛒 Grocery Only
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLoyaltyAllowOnFood(false);
+                            setLoyaltyAllowOnGrocery(false);
+                          }}
+                          className={`p-2.5 rounded-xl border text-xs font-black transition text-center ${
+                            !loyaltyAllowOnFood && !loyaltyAllowOnGrocery
+                              ? "bg-[#D70F64]/10 border-[#D70F64] text-[#D70F64]"
+                              : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                          }`}
+                        >
+                          🚫 Disabled All
+                        </button>
+                      </div>
+
+                      {/* Allow on Food */}
+                      <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-2xl">
+                        <div>
+                          <span className="text-xs font-black text-slate-800 block">
+                            Allow on Food items
+                          </span>
+                          <span className="text-[9.5px] text-slate-500 font-medium block">
+                            Food delivery orders pe coins earn/redeem allow karein.
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => setLoyaltyAllowOnFood(!loyaltyAllowOnFood)}
+                          className={`w-10 h-5.5 rounded-full transition-colors relative cursor-pointer outline-none shrink-0 ${
+                            loyaltyAllowOnFood ? "bg-[#D70F64]" : "bg-slate-200"
+                          }`}
+                        >
+                          <span
+                            className={`absolute top-0.5 left-0.5 w-4.5 h-4.5 rounded-full bg-white shadow-sm transition-transform ${
+                              loyaltyAllowOnFood ? "transform translate-x-4.5" : ""
+                            }`}
+                          />
+                        </button>
+                      </div>
+
+                      {/* Allow on Grocery */}
+                      <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-2xl">
+                        <div>
+                          <span className="text-xs font-black text-slate-800 block">
+                            Allow on Grocery store
+                          </span>
+                          <span className="text-[9.5px] text-slate-500 font-medium block">
+                            Grocery checkout orders pe coins earn/redeem allow karein.
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => setLoyaltyAllowOnGrocery(!loyaltyAllowOnGrocery)}
+                          className={`w-10 h-5.5 rounded-full transition-colors relative cursor-pointer outline-none shrink-0 ${
+                            loyaltyAllowOnGrocery ? "bg-[#D70F64]" : "bg-slate-200"
+                          }`}
+                        >
+                          <span
+                            className={`absolute top-0.5 left-0.5 w-4.5 h-4.5 rounded-full bg-white shadow-sm transition-transform ${
+                              loyaltyAllowOnGrocery ? "transform translate-x-4.5" : ""
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
