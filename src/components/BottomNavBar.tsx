@@ -12,6 +12,8 @@ interface BottomNavBarProps {
   user: any;
   onOpenAuth: () => void;
   onOpenAccount: () => void;
+  onResetFoodHome?: () => void;
+  onResetGroceryHome?: () => void;
 }
 
 export default function BottomNavBar({
@@ -24,15 +26,25 @@ export default function BottomNavBar({
   user,
   onOpenAuth,
   onOpenAccount,
+  onResetFoodHome,
+  onResetGroceryHome,
 }: BottomNavBarProps) {
   const currentCartCount = activeModule === "grocery" ? groceryCartCount : cartCount;
 
   const handleTabClick = (tab: "food" | "grocery" | "search" | "cart" | "account") => {
     if (tab === "food") {
-      setActiveModule("food");
+      if (onResetFoodHome) {
+        onResetFoodHome();
+      } else {
+        setActiveModule("food");
+      }
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else if (tab === "grocery") {
-      setActiveModule("grocery");
+      if (onResetGroceryHome) {
+        onResetGroceryHome();
+      } else {
+        setActiveModule("grocery");
+      }
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else if (tab === "search") {
       window.scrollTo({ top: 0, behavior: "smooth" });

@@ -27,6 +27,8 @@ interface FoodpandaHeaderProps {
   isLocked?: boolean;
   activeModule?: "food" | "grocery";
   setActiveModule?: (mode: "food" | "grocery") => void;
+  onResetFoodHome?: () => void;
+  onResetGroceryHome?: () => void;
   allOrders?: Order[];
   onReorder?: (order: Order) => void;
   theme?: "light" | "dark";
@@ -57,6 +59,8 @@ export default function FoodpandaHeader({
   isLocked = false,
   activeModule = "food",
   setActiveModule,
+  onResetFoodHome,
+  onResetGroceryHome,
   allOrders = [],
   onReorder,
   theme = "light",
@@ -87,9 +91,17 @@ export default function FoodpandaHeader({
           
           {/* Logo and Brand */}
         <div 
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          onClick={() => {
+            if (activeModule === "grocery" && onResetGroceryHome) {
+              onResetGroceryHome();
+            } else if (onResetFoodHome) {
+              onResetFoodHome();
+            } else {
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+          }}
           className="flex items-center gap-2 shrink-0 cursor-pointer group select-none"
-          title="Dadu Food"
+          title="Dadu Food Home"
         >
           <div className="w-11 h-11 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 overflow-hidden flex items-center justify-center group-hover:scale-105 active:scale-95 shadow-sm transition-all relative shrink-0">
             <img 

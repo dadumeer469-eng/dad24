@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import OrderReceiptModal from "./OrderReceiptModal";
+import MapLocationPickerModal from "./MapLocationPickerModal";
 import {
   UserProfile,
   Dish,
@@ -67,6 +68,7 @@ import {
   DollarSign,
   Package,
   CheckCheck,
+  Calendar,
   Save,
   Send,
   EyeOff,
@@ -88,6 +90,7 @@ import {
   Grid,
   Pencil,
   Star,
+  Flame,
   MapPin,
   ShieldAlert,
   Image as ImageIcon,
@@ -455,7 +458,6 @@ export default function AdminPanel({
     | "grocery"
     | "services"
     | "users"
-    | "devices"
     | "seo"
     | "banners"
     | "food_categories"
@@ -476,16 +478,8 @@ export default function AdminPanel({
   const [bannersList, setBannersList] = useState<Banner[]>([]);
   const [userSearchTerm, setUserSearchTerm] = useState("");
   const [userFilterTab, setUserFilterTab] = useState<"new" | "active" | "blocked">("new");
-  const [allDevicesList, setAllDevicesList] = useState<any[]>([]);
   const [receiptModalOrder, setReceiptModalOrder] = useState<Order | null>(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
-
-  useEffect(() => {
-    const unsub = onSnapshot(collection(db, "devices"), (snap) => {
-      setAllDevicesList(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-    });
-    return () => unsub();
-  }, []);
 
   useEffect(() => {
     const q = query(collection(db, "promotional_banners"), orderBy("createdAt", "desc"));
@@ -590,6 +584,11 @@ export default function AdminPanel({
   const [restDeliveryCharge, setRestDeliveryCharge] = useState("");
   const [restLat, setRestLat] = useState("");
   const [restLng, setRestLng] = useState("");
+  const [isRestaurantMapPickerOpen, setIsRestaurantMapPickerOpen] = useState(false);
+  const [isBaseMapPickerOpen, setIsBaseMapPickerOpen] = useState(false);
+  const [isUserMapPickerOpen, setIsUserMapPickerOpen] = useState(false);
+  const [showUserManualCoords, setShowUserManualCoords] = useState(false);
+  const [showRestManualCoords, setShowRestManualCoords] = useState(false);
   const [restCommissionEnabled, setRestCommissionEnabled] = useState(false);
   const [restCommissionType, setRestCommissionType] = useState<"percentage" | "fixed">("percentage");
   const [restCommissionValue, setRestCommissionValue] = useState("");
@@ -1028,6 +1027,7 @@ export default function AdminPanel({
   const [newItemServiceDuration, setNewItemServiceDuration] = useState("");
   const [newItemRestaurantName, setNewItemRestaurantName] = useState("");
   const [newItemCommission, setNewItemCommission] = useState<number>(0);
+  const [newItemIsBestseller, setNewItemIsBestseller] = useState<boolean>(false);
   const [newItemSizes, setNewItemSizes] = useState<
     { name: string; price: number; imageUrl?: string }[]
   >([]);
@@ -1057,6 +1057,7 @@ export default function AdminPanel({
     useState<number>(0);
   const [editingCommissionInput, setEditingCommissionInput] =
     useState<number>(0);
+  const [editingIsBestseller, setEditingIsBestseller] = useState<boolean>(false);
   const [editingSizes, setEditingSizes] = useState<
     { name: string; price: number; imageUrl?: string }[]
   >([]);
@@ -1256,6 +1257,107 @@ export default function AdminPanel({
   );
   const [orderEtas, setOrderEtas] = useState<{ [orderId: string]: string }>({});
   const [adminOrderFilterTab, setAdminOrderFilterTab] = useState<"new" | "delivered" | "cancelled">("new");
+
+  // Date range filter state for Live Operational Orders & History
+  const [orderDateRange, setOrderDateRange] = useState<"all" | "1day" | "7days" | "30days" | "custom">("all");
+  const [orderCustomStartDate, setOrderCustomStartDate] = useState<string>("");
+  const [orderCustomEndDate, setOrderCustomEndDate] = useState<string>("");
+
+  // Clear sales history modal state
+  const [showClearSalesModal, setShowClearSalesModal] = useState<boolean>(false);
+  const [clearSalesRange, setClearSalesRange] = useState<"all" | "1day" | "7days" | "30days" | "custom">("all");
+  const [clearSalesStatus, setClearSalesStatus] = useState<"all" | "delivered" | "cancelled">("delivered");
+  const [clearSalesCustomStart, setClearSalesCustomStart] = useState<string>("");
+  const [clearSalesCustomEnd, setClearSalesCustomEnd] = useState<string>("");
+  const [isDeletingSales, setIsDeletingSales] = useState<boolean>(false);
+
+  // Helper to check if an order falls into a date range
+  const checkOrderInDateRange = (
+    order: any,
+    range: "all" | "1day" | "7days" | "30days" | "custom",
+    customStart?: string,
+    customEnd?: string
+  ): boolean => {
+    if (range === "all") return true;
+    if (!order?.createdAt) return false;
+
+    let orderTime = 0;
+    if (typeof order.createdAt.seconds === "number") {
+      orderTime = order.createdAt.seconds * 1000;
+    } else if (order.createdAt instanceof Date) {
+      orderTime = order.createdAt.getTime();
+    } else if (typeof order.createdAt === "number") {
+      orderTime = order.createdAt;
+    } else if (typeof order.createdAt === "string") {
+      const parsed = new Date(order.createdAt).getTime();
+      if (!isNaN(parsed)) orderTime = parsed;
+    }
+
+    if (!orderTime || isNaN(orderTime)) return false;
+
+    const now = new Date();
+
+    if (range === "1day") {
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      return orderTime >= startOfToday;
+    }
+
+    if (range === "7days") {
+      const sevenDaysAgo = now.getTime() - 7 * 24 * 60 * 60 * 1000;
+      return orderTime >= sevenDaysAgo;
+    }
+
+    if (range === "30days") {
+      const thirtyDaysAgo = now.getTime() - 30 * 24 * 60 * 60 * 1000;
+      return orderTime >= thirtyDaysAgo;
+    }
+
+    if (range === "custom") {
+      if (customStart) {
+        const sTime = new Date(`${customStart}T00:00:00`).getTime();
+        if (!isNaN(sTime) && orderTime < sTime) return false;
+      }
+      if (customEnd) {
+        const eTime = new Date(`${customEnd}T23:59:59`).getTime();
+        if (!isNaN(eTime) && orderTime > eTime) return false;
+      }
+      return true;
+    }
+
+    return true;
+  };
+
+  const handleExecuteClearSalesHistory = async () => {
+    setIsDeletingSales(true);
+    try {
+      const matchingOrders = orders.filter((order) => {
+        const isDelivered = order.status === "delivered" || order.status === "completed";
+        const isCancelled = order.status === "cancelled";
+
+        if (clearSalesStatus === "delivered" && !isDelivered) return false;
+        if (clearSalesStatus === "cancelled" && !isCancelled) return false;
+
+        return checkOrderInDateRange(order, clearSalesRange, clearSalesCustomStart, clearSalesCustomEnd);
+      });
+
+      if (matchingOrders.length === 0) {
+        alert("No orders match the selected filters to delete.");
+        setIsDeletingSales(false);
+        return;
+      }
+
+      const deletePromises = matchingOrders.map((ord) => deleteDoc(doc(db, "orders", ord.id)));
+      await Promise.all(deletePromises);
+
+      alert(`Successfully deleted ${matchingOrders.length} order(s) from history!`);
+      setShowClearSalesModal(false);
+    } catch (err) {
+      console.error("Error clearing sales history:", err);
+      alert("Failed to clear sales history. Please check database permissions.");
+    } finally {
+      setIsDeletingSales(false);
+    }
+  };
 
   // Alert dispatcher state
   const [alertTitle, setAlertTitle] = useState("Dadu Specials Alert!");
@@ -1724,6 +1826,119 @@ export default function AdminPanel({
     }));
   };
 
+  const getSalesSummaryForRange = () => {
+    const range = orderDateRange;
+    const now = new Date();
+
+    if (range === "1day") {
+      const hoursData = Array.from({ length: 24 }, (_, h) => {
+        const hourLabel = `${h.toString().padStart(2, "0")}:00`;
+        return { date: hourLabel, hour: h, revenue: 0, volume: 0 };
+      });
+
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
+      orders.forEach((order) => {
+        if (!order.createdAt) return;
+        const isDelivered = order.status === "delivered" || order.status === "completed";
+        if (!isDelivered) return;
+
+        let orderDate: Date | null = null;
+        if (typeof order.createdAt.seconds === "number") {
+          orderDate = new Date(order.createdAt.seconds * 1000);
+        } else if (order.createdAt instanceof Date) {
+          orderDate = order.createdAt;
+        } else if (typeof order.createdAt === "string" || typeof order.createdAt === "number") {
+          orderDate = new Date(order.createdAt);
+        }
+
+        if (orderDate && orderDate.getTime() >= todayStart) {
+          const h = orderDate.getHours();
+          if (hoursData[h]) {
+            hoursData[h].revenue += order.grandTotal || 0;
+            hoursData[h].volume += 1;
+          }
+        }
+      });
+
+      return hoursData.map(item => ({
+        date: item.date,
+        revenue: Math.round(item.revenue),
+        volume: item.volume
+      }));
+    }
+
+    let numDays = 7;
+    if (range === "30days") numDays = 30;
+    if (range === "all") numDays = 30;
+
+    if (range === "custom" && orderCustomStartDate && orderCustomEndDate) {
+      const s = new Date(`${orderCustomStartDate}T00:00:00`);
+      const e = new Date(`${orderCustomEndDate}T23:59:59`);
+      const diffTime = Math.abs(e.getTime() - s.getTime());
+      numDays = Math.min(Math.max(Math.ceil(diffTime / (1000 * 60 * 60 * 24)), 1), 60);
+    }
+
+    const daysData: Array<{
+      date: string;
+      fullDate: Date;
+      revenue: number;
+      volume: number;
+    }> = [];
+
+    for (let i = numDays - 1; i >= 0; i--) {
+      const d = new Date();
+      if (range === "custom" && orderCustomEndDate) {
+        d.setTime(new Date(`${orderCustomEndDate}T23:59:59`).getTime());
+      }
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      daysData.push({
+        date: dateStr,
+        fullDate: d,
+        revenue: 0,
+        volume: 0,
+      });
+    }
+
+    orders.forEach((order) => {
+      if (!order.createdAt) return;
+      const isDelivered = order.status === "delivered" || order.status === "completed";
+      if (!isDelivered) return;
+
+      if (!checkOrderInDateRange(order, range, orderCustomStartDate, orderCustomEndDate)) return;
+
+      let orderDate: Date | null = null;
+      if (typeof order.createdAt.seconds === "number") {
+        orderDate = new Date(order.createdAt.seconds * 1000);
+      } else if (order.createdAt instanceof Date) {
+        orderDate = order.createdAt;
+      } else if (typeof order.createdAt === "string" || typeof order.createdAt === "number") {
+        orderDate = new Date(order.createdAt);
+      }
+
+      if (!orderDate || isNaN(orderDate.getTime())) return;
+
+      daysData.forEach((day) => {
+        const dDate = day.fullDate;
+        if (
+          orderDate!.getDate() === dDate.getDate() &&
+          orderDate!.getMonth() === dDate.getMonth() &&
+          orderDate!.getFullYear() === dDate.getFullYear()
+        ) {
+          day.revenue += order.grandTotal || 0;
+          day.volume += 1;
+        }
+      });
+    });
+
+    return daysData.map((day) => ({
+      date: day.date,
+      revenue: Math.round(day.revenue),
+      volume: day.volume,
+    }));
+  };
+
   const handleAddNewRestaurant = async () => {
     if (!newRestaurantInput.trim()) return;
     try {
@@ -2067,6 +2282,7 @@ export default function AdminPanel({
           ? "Dadu Home Services"
           : "Dadu Fast Food & Kitchen"),
       commission: Number(newItemCommission),
+      isBestseller: newItemIsBestseller,
       sizes:
         newItemType === "food" && newItemSizes.length > 0
           ? newItemSizes
@@ -2095,6 +2311,7 @@ export default function AdminPanel({
       setNewItemServiceDuration("");
       setNewItemRestaurantName("");
       setNewItemCommission(0);
+      setNewItemIsBestseller(false);
       setNewItemSizes([]);
       setNewItemFlavors([]);
       setNewItemAddOns([]);
@@ -2110,6 +2327,16 @@ export default function AdminPanel({
     try {
       await updateDoc(doc(db, "menu", dish.id), {
         isFeatured: !dish.isFeatured,
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleToggleBestseller = async (dish: Dish) => {
+    try {
+      await updateDoc(doc(db, "menu", dish.id), {
+        isBestseller: !dish.isBestseller,
       });
     } catch (err) {
       console.error(err);
@@ -2432,6 +2659,7 @@ export default function AdminPanel({
         discountPrice:
           editingDiscountPriceInput > 0 ? editingDiscountPriceInput : null,
         commission: editingCommissionInput,
+        isBestseller: editingIsBestseller,
         sizes:
           dish.type === "food" && editingSizes.length > 0 ? editingSizes : null,
         flavors:
@@ -2853,14 +3081,7 @@ export default function AdminPanel({
             >
               <Users className="w-3.5 h-3.5" /> Users ({allUsersList.length})
             </button>
-            <button
-              onClick={() => setActiveSubTab("devices")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
-                activeSubTab === "devices" ? "bg-red-600 border-red-600 text-white" : "bg-slate-50 border-slate-200 text-slate-700"
-              }`}
-            >
-              <ShieldAlert className="w-3.5 h-3.5" /> Bans
-            </button>
+
             <button
               onClick={() => setActiveSubTab("banners")}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
@@ -3085,17 +3306,7 @@ export default function AdminPanel({
                     </span>
                   </button>
 
-                  <button
-                    onClick={() => setActiveSubTab("devices")}
-                    className={`w-full font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
-                      activeSubTab === "devices"
-                        ? "bg-red-600 border-red-600 text-white shadow-sm"
-                        : "bg-transparent border-transparent text-slate-600 hover:bg-red-50 hover:text-red-600"
-                    }`}
-                  >
-                    <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
-                    Devices Ban Control
-                  </button>
+
                 </div>
               </div>
 
@@ -3220,7 +3431,7 @@ export default function AdminPanel({
                 
                 <div className="h-72 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={getLast7DaysSalesSummary()} margin={{ top: 10, right: 10, left: -10, bottom: 5 }}>
+                    <BarChart data={getSalesSummaryForRange()} margin={{ top: 10, right: 10, left: -10, bottom: 5 }}>
                       <CartesianGrid
                         strokeDasharray="3 3"
                         stroke="#e2e8f0"
@@ -3826,31 +4037,84 @@ export default function AdminPanel({
                           />
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-3 pt-2">
-                        <div>
-                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
-                            Latitude (Map)
+                      <div className="pt-2">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1">
+                            <MapPin className="w-3.5 h-3.5 text-[#D70F64]" />
+                            Restaurant Location on Map
                           </label>
-                          <input
-                            type="text"
-                            value={restLat}
-                            onChange={(e) => setRestLat(e.target.value)}
-                            placeholder="e.g. 26.7323"
-                            className="w-full p-3 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-900 outline-none focus:border-purple-500/60 transition"
-                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowRestManualCoords(!showRestManualCoords)}
+                            className="text-[9.5px] font-bold text-[#D70F64] hover:underline cursor-pointer"
+                          >
+                            {showRestManualCoords ? "Hide Manual Inputs" : "✍️ Manual Fill (Lat / Lng)"}
+                          </button>
                         </div>
-                        <div>
-                          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
-                            Longitude (Map)
-                          </label>
-                          <input
-                            type="text"
-                            value={restLng}
-                            onChange={(e) => setRestLng(e.target.value)}
-                            placeholder="e.g. 67.7744"
-                            className="w-full p-3 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-900 outline-none focus:border-purple-500/60 transition"
-                          />
+                        <div className="p-3 bg-slate-100 border border-slate-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <div className={`p-2.5 rounded-xl shrink-0 ${restLat && restLng ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20" : "bg-slate-200 text-slate-500"}`}>
+                              <MapPin className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <span className="block text-xs font-black text-slate-900">
+                                {restLat && restLng ? "📍 Pinpoint Location Set" : "No Location Set"}
+                              </span>
+                              <span className="block text-[10.5px] text-slate-500 font-semibold font-mono mt-0.5">
+                                {restLat && restLng ? `${restLat}, ${restLng}` : "Click map button to choose exact restaurant location"}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {restLat && restLng && (
+                              <button
+                                type="button"
+                                onClick={() => { setRestLat(""); setRestLng(""); }}
+                                className="px-2.5 py-2 rounded-xl border border-slate-200 text-[10px] font-extrabold text-slate-500 hover:text-rose-600 hover:bg-white transition cursor-pointer"
+                              >
+                                Clear
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => setIsRestaurantMapPickerOpen(true)}
+                              className="px-4 py-2 rounded-xl bg-[#D70F64] hover:bg-[#b00c50] text-white text-xs font-black shadow-md shadow-pink-500/20 transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+                            >
+                              <MapPin className="w-3.5 h-3.5" />
+                              <span>{restLat && restLng ? "Change on Map" : "Set Location on Map"}</span>
+                            </button>
+                          </div>
                         </div>
+
+                        {showRestManualCoords && (
+                          <div className="grid grid-cols-2 gap-2.5 mt-2.5 p-3 bg-slate-100/90 border border-slate-200 rounded-2xl animate-fadeIn">
+                            <div>
+                              <label className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider block mb-1">
+                                Latitude (e.g. 26.7323)
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="26.7323"
+                                value={restLat}
+                                onChange={(e) => setRestLat(e.target.value)}
+                                className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 outline-none focus:border-[#D70F64] transition"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider block mb-1">
+                                Longitude (e.g. 67.7744)
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="67.7744"
+                                value={restLng}
+                                onChange={(e) => setRestLng(e.target.value)}
+                                className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 outline-none focus:border-[#D70F64] transition"
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Restaurant Commission Configuration (Admin Only) */}
@@ -3911,20 +4175,20 @@ export default function AdminPanel({
                         <ProductImageSelector
                           imageUrl={restImageUrl}
                           onChange={setRestImageUrl}
-                          label="Restaurant Cover Image"
+                          label="Restaurant Icon / Logo (Avatar Image)"
                           accentColorClass="purple"
-                          placeholder="Paste image web address (https://...)"
-                          uploadPath={`restaurants/${selectedScheduleRestaurant}/cover`}
+                          placeholder="Paste icon/logo image URL (https://...)"
+                          uploadPath={`restaurants/${selectedScheduleRestaurant}/icon`}
                         />
                       </div>
                       <div className="pt-2">
                         <ProductImageSelector
                           imageUrl={restBgImageUrl}
                           onChange={setRestBgImageUrl}
-                          label="Restaurant Background Image"
+                          label="Restaurant Poster / Banner (Cover Image)"
                           accentColorClass="purple"
-                          placeholder="Paste image web address (https://...)"
-                          uploadPath={`restaurants/${selectedScheduleRestaurant}/bg`}
+                          placeholder="Paste poster/banner image URL (https://...)"
+                          uploadPath={`restaurants/${selectedScheduleRestaurant}/poster`}
                         />
                       </div>
 
@@ -4301,6 +4565,19 @@ export default function AdminPanel({
                     </div>
                   </div>
 
+                  <div className="md:col-span-4 space-y-1.5 flex items-center pt-2">
+                    <label className="flex items-center gap-2 cursor-pointer bg-amber-500/10 border border-amber-500/30 px-3.5 py-3 rounded-xl text-amber-700 font-extrabold text-xs transition hover:bg-amber-500/20 w-full">
+                      <input
+                        type="checkbox"
+                        checked={newItemIsBestseller}
+                        onChange={(e) => setNewItemIsBestseller(e.target.checked)}
+                        className="w-4 h-4 accent-[#D70F64] rounded cursor-pointer"
+                      />
+                      <Flame className="w-4 h-4 fill-amber-500 text-amber-500" />
+                      <span>Mark as Bestseller Option 🔥</span>
+                    </label>
+                  </div>
+
                   {newItemType === "food" && (
                     <>
                       <div className="md:col-span-4 space-y-3">
@@ -4614,6 +4891,7 @@ export default function AdminPanel({
                         <th className="p-4.5">Type</th>
                         <th className="p-4.5">Price (Rs.)</th>
                         <th className="p-4.5 text-center">Featured</th>
+                        <th className="p-4.5 text-center">Bestseller</th>
                         <th className="p-4.5 text-center">ON/OFF Toggle</th>
                         <th className="p-4.5 text-center">Actions</th>
                       </tr>
@@ -5036,6 +5314,16 @@ export default function AdminPanel({
                                       </div>
                                     </div>
                                   )}
+                                  <label className="flex items-center gap-1.5 cursor-pointer bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-lg text-amber-700 font-extrabold text-[10px] my-1">
+                                    <input
+                                      type="checkbox"
+                                      checked={editingIsBestseller}
+                                      onChange={(e) => setEditingIsBestseller(e.target.checked)}
+                                      className="w-3.5 h-3.5 accent-[#D70F64] rounded cursor-pointer"
+                                    />
+                                    <Flame className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                                    <span>Bestseller 🔥</span>
+                                  </label>
                                   <div className="flex gap-1 justify-end">
                                     <button
                                       onClick={() =>
@@ -5096,6 +5384,7 @@ export default function AdminPanel({
                                       );
                                       setEditingOpeningTime(dish.openingTime || "");
                                       setEditingClosingTime(dish.closingTime || "");
+                                      setEditingIsBestseller(dish.isBestseller || false);
                                       setEditingSizes(
                                         dish.sizes
                                           ? JSON.parse(
@@ -5136,6 +5425,20 @@ export default function AdminPanel({
                                 ) : (
                                   <Star className="w-5 h-5 text-slate-500" />
                                 )}
+                              </button>
+                            </td>
+                            <td className="p-4 text-center">
+                              <button
+                                onClick={() => handleToggleBestseller(dish)}
+                                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl font-black text-[10px] uppercase tracking-wider transition cursor-pointer ${
+                                  dish.isBestseller
+                                    ? "bg-amber-100 text-amber-700 border border-amber-300 shadow-xs"
+                                    : "bg-slate-100 text-slate-400 hover:text-slate-600 border border-slate-200"
+                                }`}
+                                title="Toggle Bestseller Badge"
+                              >
+                                <Flame className={`w-3.5 h-3.5 ${dish.isBestseller ? "fill-amber-500 text-amber-500" : ""}`} />
+                                <span>{dish.isBestseller ? "Bestseller" : "Normal"}</span>
                               </button>
                             </td>
                             <td className="p-4 text-center">
@@ -5573,6 +5876,7 @@ export default function AdminPanel({
                                       );
                                       setEditingOpeningTime(dish.openingTime || "");
                                       setEditingClosingTime(dish.closingTime || "");
+                                      setEditingIsBestseller(dish.isBestseller || false);
                                     }}
                                     className="text-[10px] text-blue-500 hover:underline cursor-pointer text-left mt-1 font-bold"
                                   >
@@ -5715,6 +6019,115 @@ export default function AdminPanel({
                   </span>
                 </div>
 
+                {/* Date Filter Bar for Operational & History Orders */}
+                <div className="bg-slate-100/90 border-b border-slate-200 p-3 flex flex-wrap gap-3 items-center justify-between">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[10px] font-black uppercase text-slate-500 mr-1 flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5 text-[#D70F64]" /> Date Filter:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setOrderDateRange("all")}
+                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                        orderDateRange === "all"
+                          ? "bg-[#D70F64] text-white shadow-xs"
+                          : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      All Time
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setOrderDateRange("1day")}
+                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                        orderDateRange === "1day"
+                          ? "bg-[#D70F64] text-white shadow-xs"
+                          : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      1 Day (Today)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setOrderDateRange("7days")}
+                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                        orderDateRange === "7days"
+                          ? "bg-[#D70F64] text-white shadow-xs"
+                          : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      7 Days (1 Wk)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setOrderDateRange("30days")}
+                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                        orderDateRange === "30days"
+                          ? "bg-[#D70F64] text-white shadow-xs"
+                          : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      30 Days (1 Mo)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setOrderDateRange("custom")}
+                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition cursor-pointer flex items-center gap-1 ${
+                        orderDateRange === "custom"
+                          ? "bg-[#D70F64] text-white shadow-xs"
+                          : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      <span>Manual</span>
+                      <Calendar className="w-3 h-3" />
+                    </button>
+
+                    {orderDateRange === "custom" && (
+                      <div className="flex items-center gap-1.5 ml-2 bg-white p-1 rounded-xl border border-slate-200 shadow-xs">
+                        <input
+                          type="date"
+                          value={orderCustomStartDate}
+                          onChange={(e) => setOrderCustomStartDate(e.target.value)}
+                          className="px-2 py-1 text-xs font-bold border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#D70F64]"
+                        />
+                        <span className="text-[10px] text-slate-400 font-bold">to</span>
+                        <input
+                          type="date"
+                          value={orderCustomEndDate}
+                          onChange={(e) => setOrderCustomEndDate(e.target.value)}
+                          className="px-2 py-1 text-xs font-bold border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#D70F64]"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Filtered Sales Revenue Summary Badge */}
+                  {(() => {
+                    const deliveredInFilter = orders.filter((o) => {
+                      const isDelivered = o.status === "delivered" || o.status === "completed";
+                      return isDelivered && checkOrderInDateRange(o, orderDateRange, orderCustomStartDate, orderCustomEndDate);
+                    });
+                    const totalSales = deliveredInFilter.reduce((acc, o) => acc + (o.grandTotal || 0), 0);
+
+                    return (
+                      <div className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl text-emerald-800 text-xs font-black">
+                        <div className="flex items-center gap-1">
+                          <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Filtered Revenue:</span>
+                          <span className="text-emerald-700 font-extrabold">Rs. {Math.round(totalSales).toLocaleString()}</span>
+                        </div>
+                        <span className="text-emerald-300">|</span>
+                        <div className="flex items-center gap-1">
+                          <span>Delivered:</span>
+                          <span className="bg-emerald-600 text-white px-2 py-0.5 rounded-md text-[10px] font-black">
+                            {deliveredInFilter.length}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+
                 <div className="divide-y divide-slate-200/30">
                   {orders.length === 0 ? (
                     <div className="p-16 text-center text-xs text-slate-500 font-bold uppercase tracking-wider">
@@ -5725,10 +6138,11 @@ export default function AdminPanel({
                     const filtered = orders.filter((order) => {
                       const isDelivered = order.status === "delivered" || order.status === "completed";
                       const isCancelled = order.status === "cancelled";
-                      if (adminOrderFilterTab === "new") return !isDelivered && !isCancelled;
-                      if (adminOrderFilterTab === "delivered") return isDelivered;
-                      if (adminOrderFilterTab === "cancelled") return isCancelled;
-                      return true;
+                      if (adminOrderFilterTab === "new" && (isDelivered || isCancelled)) return false;
+                      if (adminOrderFilterTab === "delivered" && !isDelivered) return false;
+                      if (adminOrderFilterTab === "cancelled" && !isCancelled) return false;
+
+                      return checkOrderInDateRange(order, orderDateRange, orderCustomStartDate, orderCustomEndDate);
                     });
 
                     if (filtered.length === 0) {
@@ -6201,32 +6615,34 @@ export default function AdminPanel({
                         />
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="relative flex-grow">
-                        <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Base Latitude</span>
-                        <input
-                          type="number"
-                          step="0.0001"
-                          value={baseLatInput}
-                          onChange={(e) =>
-                            setBaseLatInput(Number(e.target.value))
-                          }
-                          placeholder="e.g. 26.7323"
-                          className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none text-slate-900 font-extrabold focus:border-[#D70F64] transition text-xs"
-                        />
-                      </div>
-                      <div className="relative flex-grow">
-                        <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Base Longitude</span>
-                        <input
-                          type="number"
-                          step="0.0001"
-                          value={baseLngInput}
-                          onChange={(e) =>
-                            setBaseLngInput(Number(e.target.value))
-                          }
-                          placeholder="e.g. 67.7744"
-                          className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none text-slate-900 font-extrabold focus:border-[#D70F64] transition text-xs"
-                        />
+                    <div className="pt-2">
+                      <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5 text-[#D70F64]" />
+                        Base Store/Delivery Pinpoint on Map
+                      </span>
+                      <div className="p-3 bg-white border border-slate-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 shrink-0">
+                            <MapPin className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <span className="block text-xs font-black text-slate-900">
+                              📍 Base Delivery Location
+                            </span>
+                            <span className="block text-[10.5px] text-slate-500 font-semibold font-mono mt-0.5">
+                              {baseLatInput}, {baseLngInput}
+                            </span>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setIsBaseMapPickerOpen(true)}
+                          className="px-4 py-2 rounded-xl bg-[#D70F64] hover:bg-[#b00c50] text-white text-xs font-black shadow-md shadow-pink-500/20 transition flex items-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
+                        >
+                          <MapPin className="w-3.5 h-3.5" />
+                          <span>Change Location on Map</span>
+                        </button>
                       </div>
                     </div>
 
@@ -6645,20 +7061,20 @@ export default function AdminPanel({
                       <ProductImageSelector
                         imageUrl={restImageUrl}
                         onChange={setRestImageUrl}
-                        label="Restaurant Cover Image"
+                        label="Restaurant Icon / Logo (Avatar Image)"
                         accentColorClass="purple"
-                        placeholder="Paste image web address (https://...)"
-                        uploadPath={`restaurants/${selectedScheduleRestaurant}/cover`}
+                        placeholder="Paste icon/logo image URL (https://...)"
+                        uploadPath={`restaurants/${selectedScheduleRestaurant}/icon`}
                       />
                     </div>
                     <div className="pt-2">
                       <ProductImageSelector
                         imageUrl={restBgImageUrl}
                         onChange={setRestBgImageUrl}
-                        label="Restaurant Background Image"
+                        label="Restaurant Poster / Banner (Cover Image)"
                         accentColorClass="purple"
-                        placeholder="Paste image web address (https://...)"
-                        uploadPath={`restaurants/${selectedScheduleRestaurant}/bg`}
+                        placeholder="Paste poster/banner image URL (https://...)"
+                        uploadPath={`restaurants/${selectedScheduleRestaurant}/poster`}
                       />
                     </div>
 
@@ -7348,7 +7764,7 @@ export default function AdminPanel({
                           imageUrl: url,
                         })
                       }
-                      label="Category Image"
+                      label="Restaurant Icon / Logo Image"
                       accentColorClass="purple"
                     />
                   </div>
@@ -7361,7 +7777,7 @@ export default function AdminPanel({
                           bgImageUrl: url,
                         })
                       }
-                      label="Restaurant Background Image"
+                      label="Restaurant Poster / Banner (Cover Image)"
                       accentColorClass="purple"
                     />
                   </div>
@@ -7432,12 +7848,12 @@ export default function AdminPanel({
                           <ProductImageSelector 
                             imageUrl={editingFoodCategory.imageUrl || ""}
                             onChange={(url) => setEditingFoodCategory({...editingFoodCategory, imageUrl: url})}
-                            label="Image URL"
+                            label="Restaurant Icon / Logo Image"
                           />
                           <ProductImageSelector 
                             imageUrl={editingFoodCategory.bgImageUrl || ""}
                             onChange={(url) => setEditingFoodCategory({...editingFoodCategory, bgImageUrl: url})}
-                            label="Restaurant Background Image URL"
+                            label="Restaurant Poster / Banner (Cover Image)"
                           />
                           <button 
                             onClick={handleUpdateFoodCategory}
@@ -8732,94 +9148,6 @@ export default function AdminPanel({
             </div>
           )}
 
-          {activeSubTab === "devices" && (
-            <div className="space-y-6 animate-fade-in text-left">
-              <div className="bg-white/90 border border-red-500/10 rounded-3xl p-6 relative overflow-hidden">
-                <div className="absolute right-0 top-0 w-80 h-80 bg-red-500/5 rounded-full blur-[100px] pointer-events-none" />
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-2 text-red-500">
-                      <ShieldAlert className="w-5 h-5" />
-                      <span className="text-[10px] font-black uppercase tracking-widest bg-red-500/10 px-2 py-0.5 rounded-full">
-                        Security Control
-                      </span>
-                    </div>
-                    <h2 className="text-xl font-black text-slate-100 mt-1">
-                      Device Ban Management
-                    </h2>
-                    <p className="text-xs text-slate-400 font-medium mt-1">
-                      View all connected devices and block malicious users at the device level.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-slate-800/50 border-b border-slate-700">
-                        <th className="p-3 pl-5 text-[10px] font-extrabold uppercase text-slate-400">Device ID</th>
-                        <th className="p-3 text-[10px] font-extrabold uppercase text-slate-400">Last User</th>
-                        <th className="p-3 text-[10px] font-extrabold uppercase text-slate-400">Last Seen</th>
-                        <th className="p-3 text-[10px] font-extrabold uppercase text-slate-400">Status</th>
-                        <th className="p-3 pr-5 text-right text-[10px] font-extrabold uppercase text-slate-400">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {allDevicesList.map((device) => (
-                        <tr key={device.id} className="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors">
-                          <td className="p-3 pl-5">
-                            <span className="font-mono text-xs text-slate-200">{device.id}</span>
-                          </td>
-                          <td className="p-3 text-xs text-slate-300">
-                            <div>{device.lastUserName || "N/A"}</div>
-                            <div className="text-[10px] text-slate-500">{device.lastUserPhone || ""}</div>
-                          </td>
-                          <td className="p-3 text-xs text-slate-400">
-                            {device.lastActive ? new Date(device.lastActive.seconds * 1000).toLocaleString() : "Unknown"}
-                          </td>
-                          <td className="p-3">
-                            <span className={`px-2 py-1 rounded-md text-[9px] font-black uppercase ${
-                              device.banned ? "bg-red-950/40 text-red-400 border border-red-500/20" : "bg-emerald-950/40 text-emerald-400 border border-emerald-500/20"
-                            }`}>
-                              {device.banned ? "Banned" : "Active"}
-                            </span>
-                          </td>
-                          <td className="p-3 pr-5 text-right">
-                            <button
-                              onClick={async () => {
-                                const deviceRef = doc(db, "devices", device.id);
-                                try {
-                                  await setDoc(deviceRef, { banned: !device.banned }, { merge: true });
-                                } catch (err) {
-                                  alert("Failed to update device status");
-                                }
-                              }}
-                              className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all shadow-md ${
-                                device.banned 
-                                  ? "bg-slate-700 hover:bg-slate-600 text-slate-200"
-                                  : "bg-red-600 hover:bg-red-500 text-white shadow-red-900/20"
-                              }`}
-                            >
-                              {device.banned ? "Unban Device" : "Ban Device"}
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                      {allDevicesList.length === 0 && (
-                        <tr>
-                          <td colSpan={4} className="text-center py-10 text-slate-500 font-black text-xs uppercase tracking-widest">
-                            No devices recorded yet.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
 
           {activeSubTab === "seo" && (
             <div className="space-y-6 animate-fade-in text-left">
@@ -9465,6 +9793,209 @@ export default function AdminPanel({
         </div>
       </div>
 
+      {showClearSalesModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-fade-in text-left">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl text-slate-900 p-6 space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-2.5 text-rose-600">
+                <Trash2 className="w-5 h-5 shrink-0" />
+                <div>
+                  <h4 className="font-black text-sm uppercase tracking-wider text-slate-900">
+                    Clear Sales & Order History 🧹
+                  </h4>
+                  <p className="text-[11px] text-slate-500 font-bold">
+                    Filter and permanently delete order records from database
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowClearSalesModal(false)}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Scope Filter 1: Status */}
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-black uppercase text-slate-700 tracking-wider">
+                1. Order Status Scope:
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setClearSalesStatus("delivered")}
+                  className={`py-2 px-3 rounded-xl text-xs font-extrabold border transition cursor-pointer ${
+                    clearSalesStatus === "delivered"
+                      ? "bg-[#D70F64] text-white border-[#D70F64]"
+                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  ✅ Delivered Only
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setClearSalesStatus("cancelled")}
+                  className={`py-2 px-3 rounded-xl text-xs font-extrabold border transition cursor-pointer ${
+                    clearSalesStatus === "cancelled"
+                      ? "bg-[#D70F64] text-white border-[#D70F64]"
+                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  ❌ Cancelled Only
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setClearSalesStatus("all")}
+                  className={`py-2 px-3 rounded-xl text-xs font-extrabold border transition cursor-pointer ${
+                    clearSalesStatus === "all"
+                      ? "bg-[#D70F64] text-white border-[#D70F64]"
+                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  🌐 All Statuses
+                </button>
+              </div>
+            </div>
+
+            {/* Scope Filter 2: Date Range */}
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-black uppercase text-slate-700 tracking-wider">
+                2. Select Time Period:
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setClearSalesRange("all")}
+                  className={`py-2 px-2 rounded-xl text-[11px] font-extrabold border transition cursor-pointer ${
+                    clearSalesRange === "all"
+                      ? "bg-slate-900 text-white border-slate-900"
+                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  All Time
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setClearSalesRange("1day")}
+                  className={`py-2 px-2 rounded-xl text-[11px] font-extrabold border transition cursor-pointer ${
+                    clearSalesRange === "1day"
+                      ? "bg-slate-900 text-white border-slate-900"
+                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  1 Day
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setClearSalesRange("7days")}
+                  className={`py-2 px-2 rounded-xl text-[11px] font-extrabold border transition cursor-pointer ${
+                    clearSalesRange === "7days"
+                      ? "bg-slate-900 text-white border-slate-900"
+                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  7 Days
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setClearSalesRange("30days")}
+                  className={`py-2 px-2 rounded-xl text-[11px] font-extrabold border transition cursor-pointer ${
+                    clearSalesRange === "30days"
+                      ? "bg-slate-900 text-white border-slate-900"
+                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  1 Month
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setClearSalesRange("custom")}
+                  className={`py-2 px-2 rounded-xl text-[11px] font-extrabold border transition cursor-pointer ${
+                    clearSalesRange === "custom"
+                      ? "bg-slate-900 text-white border-slate-900"
+                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  Manual
+                </button>
+              </div>
+
+              {clearSalesRange === "custom" && (
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">From Date:</label>
+                    <input
+                      type="date"
+                      value={clearSalesCustomStart}
+                      onChange={(e) => setClearSalesCustomStart(e.target.value)}
+                      className="w-full px-3 py-1.5 text-xs font-bold border border-slate-300 rounded-xl focus:ring-1 focus:ring-[#D70F64]"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">To Date:</label>
+                    <input
+                      type="date"
+                      value={clearSalesCustomEnd}
+                      onChange={(e) => setClearSalesCustomEnd(e.target.value)}
+                      className="w-full px-3 py-1.5 text-xs font-bold border border-slate-300 rounded-xl focus:ring-1 focus:ring-[#D70F64]"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Live Count Preview */}
+            {(() => {
+              const matchingOrders = orders.filter((order) => {
+                const isDelivered = order.status === "delivered" || order.status === "completed";
+                const isCancelled = order.status === "cancelled";
+
+                if (clearSalesStatus === "delivered" && !isDelivered) return false;
+                if (clearSalesStatus === "cancelled" && !isCancelled) return false;
+
+                return checkOrderInDateRange(order, clearSalesRange, clearSalesCustomStart, clearSalesCustomEnd);
+              });
+              const matchingRevenue = matchingOrders.reduce((acc, o) => acc + (o.grandTotal || 0), 0);
+
+              return (
+                <div className="bg-rose-50 border border-rose-200 p-4 rounded-2xl space-y-1">
+                  <div className="flex items-center justify-between text-xs font-black text-rose-900">
+                    <span>Target Orders to Delete:</span>
+                    <span className="bg-rose-600 text-white px-2.5 py-0.5 rounded-lg">
+                      {matchingOrders.length} orders
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] font-bold text-rose-700">
+                    <span>Associated Revenue Value:</span>
+                    <span>Rs. {Math.round(matchingRevenue).toLocaleString()}</span>
+                  </div>
+                </div>
+              );
+            })()}
+
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowClearSalesModal(false)}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-black text-xs hover:bg-slate-100 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingSales}
+                onClick={handleExecuteClearSalesHistory}
+                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs uppercase tracking-wider shadow-md shadow-rose-500/20 cursor-pointer disabled:opacity-50"
+              >
+                {isDeletingSales ? "Deleting Orders..." : "Permanently Delete Selected Orders 🧹"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {confirmDialog && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-fade-in text-left">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full overflow-hidden shadow-sm text-slate-900 p-6 space-y-4">
@@ -9591,15 +10122,25 @@ export default function AdminPanel({
                   </div>
 
                   <div>
-                    <label className="text-[9.5px] font-black uppercase tracking-wider text-slate-600 block mb-1">
-                      Precise GPS coordinates (Optional)
-                    </label>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-[9.5px] font-black uppercase tracking-wider text-slate-600 block">
+                        Precise GPS coordinates / Location
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setShowUserManualCoords(!showUserManualCoords)}
+                        className="text-[9.5px] font-bold text-[#D70F64] hover:underline cursor-pointer"
+                      >
+                        {showUserManualCoords ? "Hide Manual Inputs" : "✍️ Manual Fill (Lat / Lng)"}
+                      </button>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
                       <button
                         type="button"
                         onClick={handleDetectUnlockGPS}
                         disabled={isDetectingUnlockGPS}
-                        className="bg-slate-100 border border-slate-200 text-slate-700 py-2.5 px-4 rounded-xl font-bold text-[10.5px] uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        className="bg-slate-100 border border-slate-200 text-slate-700 py-2.5 px-3.5 rounded-xl font-bold text-[10.5px] uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 hover:bg-slate-200"
                       >
                         {isDetectingUnlockGPS ? (
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -9607,16 +10148,73 @@ export default function AdminPanel({
                           "📍 Auto Fill GPS"
                         )}
                       </button>
-                      {unlockCoords ? (
-                        <span className="text-[10px] font-mono text-emerald-600 font-bold bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-100">
-                          Lat: {unlockCoords.lat?.toFixed(5)}, Lng: {unlockCoords.lng?.toFixed(5)}
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-zinc-500 font-semibold italic">
-                          No GPS coordinates attached
-                        </span>
+
+                      <button
+                        type="button"
+                        onClick={() => setIsUserMapPickerOpen(true)}
+                        className="bg-[#D70F64] text-white py-2.5 px-3.5 rounded-xl font-bold text-[10.5px] uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer shadow-xs hover:bg-[#b00c50]"
+                      >
+                        <MapPin className="w-3.5 h-3.5" />
+                        <span>{unlockCoords?.lat && unlockCoords?.lng ? "Change on Map" : "🗺️ Select on Map"}</span>
+                      </button>
+
+                      {unlockCoords && !showUserManualCoords && (
+                        <div className="flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-100">
+                          <span className="text-[10px] font-mono text-emerald-700 font-bold">
+                            {unlockCoords.lat?.toFixed(5)}, {unlockCoords.lng?.toFixed(5)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setUnlockCoords(null)}
+                            className="text-rose-500 hover:text-rose-700 text-xs font-bold px-1 cursor-pointer"
+                            title="Clear coordinates"
+                          >
+                            ✕
+                          </button>
+                        </div>
                       )}
                     </div>
+
+                    {showUserManualCoords && (
+                      <div className="grid grid-cols-2 gap-2.5 mt-2.5 p-3 bg-slate-100/90 border border-slate-200/90 rounded-2xl animate-fadeIn">
+                        <div>
+                          <label className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider block mb-1">
+                            Latitude (e.g. 26.7323)
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="26.7323"
+                            value={unlockCoords?.lat !== undefined ? String(unlockCoords.lat) : ""}
+                            onChange={(e) => {
+                              const val = e.target.value !== "" ? parseFloat(e.target.value) : undefined;
+                              setUnlockCoords({
+                                lat: isNaN(val as number) ? undefined : val,
+                                lng: unlockCoords?.lng,
+                              });
+                            }}
+                            className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 outline-none focus:border-[#D70F64] transition"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider block mb-1">
+                            Longitude (e.g. 67.7744)
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="67.7744"
+                            value={unlockCoords?.lng !== undefined ? String(unlockCoords.lng) : ""}
+                            onChange={(e) => {
+                              const val = e.target.value !== "" ? parseFloat(e.target.value) : undefined;
+                              setUnlockCoords({
+                                lat: unlockCoords?.lat,
+                                lng: isNaN(val as number) ? undefined : val,
+                              });
+                            }}
+                            className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 outline-none focus:border-[#D70F64] transition"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -10477,6 +11075,42 @@ export default function AdminPanel({
         isOpen={isReceiptModalOpen}
         onClose={() => setIsReceiptModalOpen(false)}
         senderRole="admin"
+      />
+
+      {/* Map Location Picker Modals */}
+      <MapLocationPickerModal
+        isOpen={isRestaurantMapPickerOpen}
+        onClose={() => setIsRestaurantMapPickerOpen(false)}
+        initialLat={restLat ? parseFloat(restLat) : null}
+        initialLng={restLng ? parseFloat(restLng) : null}
+        title={`Select Location for ${selectedScheduleRestaurant}`}
+        onSaveLocation={(lat, lng) => {
+          setRestLat(lat.toString());
+          setRestLng(lng.toString());
+        }}
+      />
+
+      <MapLocationPickerModal
+        isOpen={isBaseMapPickerOpen}
+        onClose={() => setIsBaseMapPickerOpen(false)}
+        initialLat={baseLatInput}
+        initialLng={baseLngInput}
+        title="Select Central Base Delivery Location"
+        onSaveLocation={(lat, lng) => {
+          setBaseLatInput(lat);
+          setBaseLngInput(lng);
+        }}
+      />
+
+      <MapLocationPickerModal
+        isOpen={isUserMapPickerOpen}
+        onClose={() => setIsUserMapPickerOpen(false)}
+        initialLat={unlockCoords?.lat ?? null}
+        initialLng={unlockCoords?.lng ?? null}
+        title={`Select Location on Map for ${unlockingUser?.phone || "User"}`}
+        onSaveLocation={(lat, lng) => {
+          setUnlockCoords({ lat, lng });
+        }}
       />
 
       {/* NEW USER REALTIME NOTIFICATION TOAST */}

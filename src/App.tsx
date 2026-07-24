@@ -298,6 +298,23 @@ export default function App() {
   const [activeDetailDish, setActiveDetailDish] = useState<Dish | null>(null);
   const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
   const [isDirectChatOpen, setIsDirectChatOpen] = useState(false);
+
+  // Navigation Home Resetters
+  const handleGoToFoodHome = () => {
+    setActiveModule("food");
+    setSelectedRestaurant("All Restaurants");
+    setInitialRestaurantCategory(undefined);
+    setActiveCategory("All");
+    setSearchQuery("");
+    setShowFavoritesOnly(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleGoToGroceryHome = () => {
+    setActiveModule("grocery");
+    setSearchQuery("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
   const [successAnimationOrder, setSuccessAnimationOrder] =
     useState<Order | null>(null);
   const [isSuccessAnimationOpen, setIsSuccessAnimationOpen] = useState(false);
@@ -321,41 +338,10 @@ export default function App() {
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
   const [locationPromptDismissed, setLocationPromptDismissed] = useState(false);
 
-  const [isDeviceBanned, setIsDeviceBanned] = useState(false);
+
   const [showAnnouncementPopup, setShowAnnouncementPopup] = useState(false);
 
-  useEffect(() => {
-    // Check device ban status
-    const deviceRef = doc(db, "devices", deviceId);
-    
-    // First, try to sync basic presence. Don't block UI if offline/error.
-    setDoc(deviceRef, { 
-      id: deviceId, 
-      lastActive: { seconds: Math.floor(Date.now() / 1000) } 
-    }, { merge: true }).catch(() => {});
 
-    const unsubscribe = onSnapshot(deviceRef, (docSnap) => {
-      if (docSnap.exists() && docSnap.data().banned === true) {
-        setIsDeviceBanned(true);
-      } else {
-        setIsDeviceBanned(false);
-      }
-    }, (err) => {
-      console.warn("Error checking device status:", err);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (currentUser) {
-      const deviceRef = doc(db, "devices", deviceId);
-      setDoc(deviceRef, {
-        lastUserName: currentUser.name || "N/A",
-        lastUserPhone: currentUser.phone || "N/A",
-      }, { merge: true }).catch(() => {});
-    }
-  }, [currentUser]);
 
   const userDistanceFromBase = React.useMemo(() => {
     if (!globalCoords) return null;
@@ -2236,14 +2222,28 @@ export default function App() {
       ),
     ) as string[];
 
+    const refCoords = globalCoords || (
+      deliverySettings?.baseLocationCoords?.lat && deliverySettings?.baseLocationCoords?.lng
+        ? { latitude: deliverySettings.baseLocationCoords.lat, longitude: deliverySettings.baseLocationCoords.lng }
+        : { latitude: 26.7323, longitude: 67.7744 }
+    );
+
     list.sort((a, b) => {
       const aClosed = checkIsRestaurantClosed(a) ? 1 : 0;
       const bClosed = checkIsRestaurantClosed(b) ? 1 : 0;
       if (aClosed !== bClosed) return aClosed - bClosed;
+
+      const aCoords = deliverySettings?.restaurantStatuses?.[a]?.coords;
+      const bCoords = deliverySettings?.restaurantStatuses?.[b]?.coords;
+      const aDist = aCoords?.lat && aCoords?.lng ? calculateDistanceKm(refCoords.latitude, refCoords.longitude, aCoords.lat, aCoords.lng) : Infinity;
+      const bDist = bCoords?.lat && bCoords?.lng ? calculateDistanceKm(refCoords.latitude, refCoords.longitude, bCoords.lat, bCoords.lng) : Infinity;
+
+      if (aDist !== bDist) return aDist - bDist;
+
       return a.localeCompare(b);
     });
     return list;
-  }, [dishes, checkIsRestaurantClosed]);
+  }, [dishes, checkIsRestaurantClosed, globalCoords, deliverySettings]);
 
   const filteredDishes = React.useMemo(() => {
     return finalDishes.filter((dish) => {
@@ -2380,6 +2380,8 @@ export default function App() {
       <BottomNavBar
         activeModule={activeModule}
         setActiveModule={setActiveModule}
+        onResetFoodHome={handleGoToFoodHome}
+        onResetGroceryHome={handleGoToGroceryHome}
         cartCount={cartCountTotal}
         groceryCartCount={groceryCartItems.reduce((acc, i) => acc + i.quantity, 0)}
         onOpenCart={() => setIsCartOpen(true)}
@@ -2963,10 +2965,15 @@ export default function App() {
           isRiderRangeExceeded={isRiderRangeExceeded}
           distanceDisplay={(() => {
             const coords = deliverySettings?.restaurantStatuses?.[selectedRestaurant]?.coords;
-            if (globalCoords && coords?.lat && coords?.lng) {
-              return calculateDistanceKm(globalCoords.latitude, globalCoords.longitude, coords.lat, coords.lng).toFixed(1) + " km away";
+            const refCoords = globalCoords || (
+              deliverySettings?.baseLocationCoords?.lat && deliverySettings?.baseLocationCoords?.lng
+                ? { latitude: deliverySettings.baseLocationCoords.lat, longitude: deliverySettings.baseLocationCoords.lng }
+                : { latitude: 26.7323, longitude: 67.7744 }
+            );
+            if (coords?.lat && coords?.lng) {
+              return calculateDistanceKm(refCoords.latitude, refCoords.longitude, coords.lat, coords.lng).toFixed(1) + " km away";
             }
-            return null;
+            return "Nearby";
           })()}
         />
         {commonModals}
@@ -2978,17 +2985,7 @@ export default function App() {
   const isUserAdmin = currentUser?.role === "admin";
   const isMaintenanceActive = deliverySettings?.isMaintenanceMode === true;
 
-  if (isDeviceBanned) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-black text-red-500 gap-4">
-        <ShieldAlert size={64} className="text-red-500 animate-pulse" />
-        <h1 className="text-3xl font-black uppercase tracking-widest text-center">Access Denied</h1>
-        <p className="text-zinc-400 font-medium text-center px-4 max-w-sm">
-          Your device has been banned from accessing Dadu Food. If you believe this is a mistake, please contact support.
-        </p>
-      </div>
-    );
-  }
+
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#FFFDFE] via-[#FDF5F8] to-[#FFFDFE] dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 text-zinc-800 dark:text-zinc-100 relative pb-28 md:pb-12 flex flex-col font-sans overflow-x-clip">
@@ -3366,6 +3363,8 @@ export default function App() {
           )}
           activeModule={activeModule}
           setActiveModule={setActiveModule}
+          onResetFoodHome={handleGoToFoodHome}
+          onResetGroceryHome={handleGoToGroceryHome}
           isLocked={currentUser?.status === 'locked'}
           allOrders={orders}
           onReorder={handleReorder}
@@ -3435,10 +3434,7 @@ export default function App() {
               <div className="bg-zinc-150 p-1 rounded-2xl flex gap-1.5 border border-zinc-200/60 shadow-xs relative overflow-hidden max-w-sm sm:max-w-md mx-auto">
                 <button
                   type="button"
-                  onClick={() => {
-                    setActiveModule("food");
-                    setActiveCategory("All");
-                  }}
+                  onClick={handleGoToFoodHome}
                   className={`flex-1 py-2 sm:py-3 text-[10.5px] font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                     activeModule === "food"
                       ? "bg-[#d70f64] text-white shadow-md scale-[1.01]"
@@ -3450,9 +3446,7 @@ export default function App() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setActiveModule("grocery");
-                  }}
+                  onClick={handleGoToGroceryHome}
                   className={`flex-1 py-2 sm:py-3 text-[10.5px] font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                     activeModule === "grocery"
                       ? "bg-pink-600 text-white shadow-md scale-[1.01]"
@@ -3523,27 +3517,27 @@ export default function App() {
                           )}
                         </div>
 
-                        <div className="flex items-start gap-2.5 overflow-x-auto pb-2 scrollbar-none scroll-smooth px-1">
+                        <div className="flex items-start gap-3 overflow-x-auto pb-2 scrollbar-none scroll-smooth px-1">
                           <button
                             onClick={() =>
                               setSelectedRestaurant("All Restaurants")
                             }
-                            className={`w-[85px] h-[85px] rounded-2xl flex flex-col items-center justify-center p-1.5 font-black transition shrink-0 cursor-pointer border ${
+                            className={`w-[90px] h-[95px] rounded-2xl flex flex-col items-center justify-center p-2 font-black transition shrink-0 cursor-pointer border ${
                               selectedRestaurant === "All Restaurants"
-                                ? "bg-[#d70f64] text-white border-[#d70f64] shadow-md shadow-red-500/15 scale-105"
-                                : "bg-white text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50 border-zinc-200"
+                                ? "bg-[#d70f64] text-white border-[#d70f64] shadow-md shadow-red-500/20 scale-102"
+                                : "bg-white text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 border-zinc-200"
                             }`}
                           >
-                            <span className="text-2xl mb-0.5">🎪</span>
-                            <span className="text-[9px] text-center uppercase tracking-wider leading-tight font-black">
-                              All
+                            <span className="text-2xl mb-1">🎪</span>
+                            <span className="text-[10px] text-center uppercase tracking-wider leading-tight font-black">
+                              All Shops
                             </span>
                           </button>
                           {isLoadingDishes
                             ? Array.from({ length: 5 }).map((_, idx) => (
                                 <div
                                   key={`sk-${idx}`}
-                                  className="w-[85px] h-[85px] rounded-2xl bg-white border border-zinc-200/80 flex items-center justify-center p-1 shrink-0 animate-pulse"
+                                  className="w-[90px] h-[95px] rounded-2xl bg-white border border-zinc-200/80 flex items-center justify-center p-1 shrink-0 animate-pulse"
                                 >
                                   <div className="w-full h-full rounded-xl bg-zinc-200" />
                                 </div>
@@ -3553,20 +3547,30 @@ export default function App() {
                                   deliverySettings?.restaurantStatuses?.[
                                     vendor
                                   ]?.imageUrl;
+                                const vendorCoords = deliverySettings?.restaurantStatuses?.[vendor]?.coords;
+                                const refCoords = globalCoords || (
+                                  deliverySettings?.baseLocationCoords?.lat && deliverySettings?.baseLocationCoords?.lng
+                                    ? { latitude: deliverySettings.baseLocationCoords.lat, longitude: deliverySettings.baseLocationCoords.lng }
+                                    : { latitude: 26.7323, longitude: 67.7744 }
+                                );
+                                const distKm = vendorCoords?.lat && vendorCoords?.lng
+                                  ? calculateDistanceKm(refCoords.latitude, refCoords.longitude, vendorCoords.lat, vendorCoords.lng).toFixed(1) + " km"
+                                  : null;
+
                                 return (
                                   <button
                                     key={vendor}
                                     onClick={() =>
                                       setSelectedRestaurant(vendor)
                                     }
-                                    className={`w-[85px] h-[85px] rounded-2xl flex items-center justify-center p-0.5 font-black transition shrink-0 cursor-pointer border overflow-hidden shadow-xs hover:shadow-md ${
+                                    className={`w-[90px] h-[95px] rounded-2xl flex flex-col items-center justify-between p-1.5 font-black transition shrink-0 cursor-pointer border overflow-hidden shadow-xs hover:shadow-md ${
                                       selectedRestaurant === vendor
-                                        ? "border-[#d70f64] ring-2 ring-[#d70f64] scale-105"
-                                        : "bg-white text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 border-zinc-200"
+                                        ? "bg-pink-50/80 border-[#d70f64] ring-2 ring-[#d70f64]/40 scale-102"
+                                        : "bg-white text-zinc-700 hover:text-zinc-900 hover:bg-zinc-50 border-zinc-200"
                                     }`}
-                                    title={vendor}
+                                    title={`${vendor}${distKm ? ` (${distKm})` : ""}`}
                                   >
-                                    <div className="w-full h-full rounded-xl overflow-hidden bg-zinc-100 flex items-center justify-center">
+                                    <div className="w-full h-[62px] rounded-xl overflow-hidden bg-zinc-100 flex items-center justify-center relative">
                                       {vendorImageUrl ? (
                                         <LazyImage
                                           src={vendorImageUrl}
@@ -3583,7 +3587,15 @@ export default function App() {
                                             : "🍔"}
                                         </span>
                                       )}
+                                      {distKm && (
+                                        <span className="absolute bottom-1 right-1 bg-black/80 text-white text-[8px] font-extrabold px-1 py-0.5 rounded-md backdrop-blur-xs">
+                                          {distKm}
+                                        </span>
+                                      )}
                                     </div>
+                                    <span className="text-[9.5px] font-black text-center truncate w-full px-0.5 tracking-tight text-zinc-800 dark:text-zinc-200">
+                                      {vendor}
+                                    </span>
                                   </button>
                                 );
                               })}
@@ -3838,13 +3850,17 @@ export default function App() {
                             const bClosed = checkIsRestaurantClosed(b) ? 1 : 0;
                             if (aClosed !== bClosed) return aClosed - bClosed;
                             
-                            if (globalCoords) {
-                              const aCoords = deliverySettings?.restaurantStatuses?.[a]?.coords;
-                              const bCoords = deliverySettings?.restaurantStatuses?.[b]?.coords;
-                              const aDist = aCoords?.lat && aCoords?.lng ? calculateDistanceKm(globalCoords.latitude, globalCoords.longitude, aCoords.lat, aCoords.lng) : Infinity;
-                              const bDist = bCoords?.lat && bCoords?.lng ? calculateDistanceKm(globalCoords.latitude, globalCoords.longitude, bCoords.lat, bCoords.lng) : Infinity;
-                              if (aDist !== bDist) return aDist - bDist;
-                            }
+                            const refCoords = globalCoords || (
+                              deliverySettings?.baseLocationCoords?.lat && deliverySettings?.baseLocationCoords?.lng
+                                ? { latitude: deliverySettings.baseLocationCoords.lat, longitude: deliverySettings.baseLocationCoords.lng }
+                                : { latitude: 26.7323, longitude: 67.7744 }
+                            );
+
+                            const aCoords = deliverySettings?.restaurantStatuses?.[a]?.coords;
+                            const bCoords = deliverySettings?.restaurantStatuses?.[b]?.coords;
+                            const aDist = aCoords?.lat && aCoords?.lng ? calculateDistanceKm(refCoords.latitude, refCoords.longitude, aCoords.lat, aCoords.lng) : Infinity;
+                            const bDist = bCoords?.lat && bCoords?.lng ? calculateDistanceKm(refCoords.latitude, refCoords.longitude, bCoords.lat, bCoords.lng) : Infinity;
+                            if (aDist !== bDist) return aDist - bDist;
 
                             return a.localeCompare(b);
                           });
@@ -3877,12 +3893,15 @@ export default function App() {
 
                             const isClosed = checkIsRestaurantClosed(vendor);
 
-                            let distanceDisplay = null;
                             const vendorCoords = deliverySettings?.restaurantStatuses?.[vendor]?.coords;
-                            if (globalCoords && vendorCoords?.lat && vendorCoords?.lng) {
-                              const dist = calculateDistanceKm(globalCoords.latitude, globalCoords.longitude, vendorCoords.lat, vendorCoords.lng);
-                              distanceDisplay = dist.toFixed(1) + " km away";
-                            }
+                            const refCoords = globalCoords || (
+                              deliverySettings?.baseLocationCoords?.lat && deliverySettings?.baseLocationCoords?.lng
+                                ? { latitude: deliverySettings.baseLocationCoords.lat, longitude: deliverySettings.baseLocationCoords.lng }
+                                : { latitude: 26.7323, longitude: 67.7744 }
+                            );
+                            const distanceDisplay = vendorCoords?.lat && vendorCoords?.lng
+                              ? calculateDistanceKm(refCoords.latitude, refCoords.longitude, vendorCoords.lat, vendorCoords.lng).toFixed(1) + " km away"
+                              : "Nearby";
 
                             return (
                               <div
@@ -3906,6 +3925,13 @@ export default function App() {
                                     </div>
                                   )}
                                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                                  
+                                  {/* Distance Badge Top Left */}
+                                  <div className="absolute top-3 left-3 bg-zinc-950/80 text-white border border-white/20 px-2.5 py-1 rounded-xl text-[11px] font-black shadow-lg backdrop-blur-md flex items-center gap-1">
+                                    <Compass className="w-3.5 h-3.5 text-pink-400" />
+                                    <span>{distanceDisplay}</span>
+                                  </div>
+
                                   <div className="absolute bottom-3 left-4 text-white">
                                     <h3 className="font-black text-xl tracking-tight shadow-sm leading-none mb-1.5">
                                       {vendor}
@@ -3922,14 +3948,6 @@ export default function App() {
                                         <Clock className="w-3 h-3 mr-1" /> 20-30
                                         min
                                       </span>
-                                      {distanceDisplay && (
-                                        <>
-                                          <span>•</span>
-                                          <span className="flex items-center text-rose-100 drop-shadow-sm font-black">
-                                            <Compass className="w-3 h-3 mr-1" /> {distanceDisplay}
-                                          </span>
-                                        </>
-                                      )}
                                       <span>•</span>
                                       <span className="flex items-center">
                                         <MapPin className="w-3 h-3 mr-1" />{" "}

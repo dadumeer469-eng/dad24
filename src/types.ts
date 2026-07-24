@@ -10,6 +10,8 @@ export interface Dish {
   openingTime?: string;
   closingTime?: string;
   isFeatured?: boolean; position?: number; // Highlighted / favorite item shown in top spots
+  isBestseller?: boolean;
+  isVeg?: boolean;
   type: "food" | "service";
   serviceDuration?: string;
   restaurantName?: string;
