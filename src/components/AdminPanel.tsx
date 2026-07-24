@@ -2716,7 +2716,7 @@ export default function AdminPanel({
   return (
     <div className="fixed inset-0 z-50 bg-slate-50 text-slate-900 overflow-y-auto font-sans flex flex-col antialiased">
       {/* Header Admin Strip */}
-      <div className="bg-white border-b border-slate-200 px-3 py-2.5 sm:px-6 sm:py-4 sticky top-0 z-20 flex items-center justify-between shadow-md">
+      <div className="bg-white border-b border-slate-200 px-3 py-2.5 sm:px-6 sm:py-3.5 sticky top-0 z-20 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-2 sm:gap-4">
           <div className="bg-gradient-to-r from-[#D70F64] to-[#b00c50] text-white px-2.5 py-1 text-[9.5px] sm:text-[10.5px] font-black uppercase tracking-widest rounded-lg shadow-sm">
             Console Active
@@ -2734,19 +2734,61 @@ export default function AdminPanel({
           </div>
         </div>
 
-        <button
-          onClick={onClose}
-          className="bg-white hover:bg-slate-50 border border-slate-200 text-[11px] sm:text-xs font-bold text-slate-700 px-3 py-1.5 sm:px-5 sm:py-2 rounded-xl sm:rounded-2xl transition-all cursor-pointer flex items-center gap-1 shadow-xs active:scale-95"
-        >
-          Exit 🚪
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Prominent Live Orders Quick Action Pill */}
+          <button
+            onClick={() => setActiveSubTab("orders")}
+            className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95 ${
+              activeSubTab === "orders"
+                ? "bg-[#D70F64] text-white shadow-md ring-2 ring-[#D70F64]/30"
+                : "bg-pink-50 text-[#D70F64] hover:bg-pink-100 border border-pink-200"
+            }`}
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#D70F64]"></span>
+            </span>
+            <ShoppingCart className="w-3.5 h-3.5" />
+            <span className="hidden xs:inline">Live Orders</span>
+            {totalActiveCount > 0 && (
+              <span className="bg-[#D70F64] text-white text-[10px] font-black px-1.5 py-0.2 rounded-full shadow-xs">
+                {totalActiveCount}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={handleExportCSV}
+            className="hidden md:flex bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-xl transition cursor-pointer items-center gap-1.5 border border-slate-200"
+          >
+            <ClipboardList className="w-3.5 h-3.5 text-slate-600" /> Export CSV
+          </button>
+
+          <button
+            onClick={onClose}
+            className="bg-white hover:bg-slate-50 border border-slate-200 text-[11px] sm:text-xs font-bold text-slate-700 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1 shadow-xs active:scale-95"
+          >
+            Exit 🚪
+          </button>
+        </div>
       </div>
 
       {/* Main Container Dashboard */}
       <div className="max-w-7xl mx-auto w-full px-2.5 py-3 sm:px-6 sm:py-6 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-6 pb-20">
         {/* Mobile Horizontal Navigation Tab Bar (Shown only on small/medium screens) */}
-        <div className="lg:hidden col-span-1 bg-white border border-slate-200 p-2 rounded-2xl shadow-xs">
+        <div className="lg:hidden col-span-1 bg-white border border-slate-200 p-2 rounded-2xl shadow-xs space-y-1.5">
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-nowrap scrollbar-none">
+            {/* Prominent High-Priority Live Orders Pill First */}
+            <button
+              onClick={() => setActiveSubTab("orders")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 border transition cursor-pointer shadow-xs ${
+                activeSubTab === "orders"
+                  ? "bg-[#D70F64] border-[#D70F64] text-white shadow-md"
+                  : "bg-pink-50 border-pink-200 text-[#D70F64]"
+              }`}
+            >
+              <ShoppingCart className="w-3.5 h-3.5 animate-pulse" /> Live Orders {totalActiveCount > 0 && `(${totalActiveCount})`}
+            </button>
             <button
               onClick={() => setActiveSubTab("analytics")}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
@@ -2754,14 +2796,6 @@ export default function AdminPanel({
               }`}
             >
               <LayoutDashboard className="w-3.5 h-3.5" /> Analytics
-            </button>
-            <button
-              onClick={() => setActiveSubTab("orders")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
-                activeSubTab === "orders" ? "bg-[#D70F64] border-[#D70F64] text-white" : "bg-slate-50 border-slate-200 text-slate-700"
-              }`}
-            >
-              <ShoppingCart className="w-3.5 h-3.5" /> Orders {totalActiveCount > 0 && `(${totalActiveCount})`}
             </button>
             <button
               onClick={() => setActiveSubTab("restaurants")}
@@ -2836,75 +2870,87 @@ export default function AdminPanel({
               <ImageIcon className="w-3.5 h-3.5" /> Banners
             </button>
             <button
-              onClick={() => setActiveSubTab("seo")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
-                activeSubTab === "seo" ? "bg-[#D70F64] border-[#D70F64] text-white" : "bg-slate-50 border-slate-200 text-slate-700"
-              }`}
-            >
-              <Globe className="w-3.5 h-3.5" /> SEO
-            </button>
-            <button
               onClick={() => setActiveSubTab("loyalty")}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
                 activeSubTab === "loyalty" ? "bg-[#D70F64] border-[#D70F64] text-white" : "bg-slate-50 border-slate-200 text-slate-700"
               }`}
             >
-              <Coins className="w-3.5 h-3.5" /> Coins Wallet
+              <Coins className="w-3.5 h-3.5" /> Coins
+            </button>
+            <button
+              onClick={() => setActiveSubTab("seo")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
+                activeSubTab === "seo" ? "bg-slate-900 border-slate-900 text-white" : "bg-slate-100 border-slate-200 text-slate-800"
+              }`}
+            >
+              <Settings className="w-3.5 h-3.5" /> System Settings
             </button>
           </div>
         </div>
 
         {/* Navigation Admin Side Rail (Desktop) */}
         <div className="hidden lg:block lg:col-span-3 space-y-4">
-          <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm space-y-6 sticky top-24">
-            {/* Branding/Profile */}
-            <div className="pb-4 border-b border-slate-100">
-              <span className="text-[10px] font-black text-slate-400 block uppercase tracking-widest mb-1">
-                System Console
-              </span>
-              <h3 className="text-sm font-black text-slate-900 flex items-center gap-1.5 flex-wrap">
-                Dadu Food Hub
-                <span className="text-[#D70F64] font-mono text-[11px] font-bold bg-[#D70F64]/5 px-1.5 py-0.5 rounded border border-[#D70F64]/10 select-all">
+          <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm space-y-5 sticky top-20">
+            {/* Branding & High Priority Live Operations Callout Card */}
+            <div className="bg-gradient-to-br from-slate-900 via-zinc-900 to-slate-950 text-white p-4 rounded-2xl border border-slate-800 shadow-md space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                  </span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">
+                    Live Operations
+                  </span>
+                </div>
+                <span className="text-[9.5px] font-mono font-bold text-slate-400 uppercase">
                   @{adminUsername}
                 </span>
-              </h3>
-              <p className="text-[10px] text-slate-500 font-medium mt-1 leading-relaxed">
-                Manage active orders, menus, partners, deliveries & vouchers.
-              </p>
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <div>
+                  <div className="text-2xl font-black text-white tracking-tight flex items-baseline gap-1.5">
+                    {totalActiveCount}
+                    <span className="text-xs font-extrabold text-pink-400">Active</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 font-medium leading-tight">
+                    Fulfillment queue
+                  </p>
+                </div>
+                <button
+                  onClick={() => setActiveSubTab("orders")}
+                  className={`px-3 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shadow-md active:scale-95 ${
+                    activeSubTab === "orders"
+                      ? "bg-[#D70F64] text-white ring-2 ring-pink-400/50"
+                      : "bg-[#D70F64] hover:bg-[#b80c54] text-white"
+                  }`}
+                >
+                  <ShoppingCart className="w-3.5 h-3.5" /> Jump To
+                </button>
+              </div>
             </div>
 
             {/* Grouped Tabs */}
-            <div className="space-y-4">
-              {/* Group 1: Analytics & Control */}
+            <div className="space-y-4 pt-1">
+              {/* Group 1: High-Priority Operations */}
               <div>
-                <span className="text-[9px] font-black text-slate-400 block uppercase tracking-widest pl-1 mb-1.5">
-                  Core Operations
+                <span className="text-[9px] font-black text-[#D70F64] block uppercase tracking-widest pl-1 mb-1.5 flex items-center gap-1">
+                  ⚡ Operational Control
                 </span>
-                <div className="space-y-0.5">
-                  <button
-                    onClick={() => setActiveSubTab("analytics")}
-                    className={`w-full font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
-                      activeSubTab === "analytics"
-                        ? "bg-[#D70F64] border-[#D70F64] text-white shadow-sm"
-                        : "bg-transparent border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                    }`}
-                  >
-                    <LayoutDashboard className="w-3.5 h-3.5 shrink-0" />
-                    Realtime Analytics
-                  </button>
-
+                <div className="space-y-1">
                   <button
                     onClick={() => setActiveSubTab("orders")}
-                    className={`w-full font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
+                    className={`w-full font-extrabold text-xs px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
                       activeSubTab === "orders"
-                        ? "bg-[#D70F64] border-[#D70F64] text-white shadow-sm"
-                        : "bg-transparent border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                        ? "bg-[#D70F64] border-[#D70F64] text-white shadow-md"
+                        : "bg-pink-50/60 border-pink-100 text-[#D70F64] hover:bg-pink-100/80"
                     }`}
                   >
-                    <ShoppingCart className="w-3.5 h-3.5 shrink-0" />
-                    Live Orders Manager
+                    <ShoppingCart className="w-4 h-4 shrink-0 animate-pulse" />
+                    <span>Live Orders Manager</span>
                     {totalActiveCount > 0 && (
-                      <span className={`ml-auto font-black px-2 py-0.5 text-[9px] rounded-full leading-none ${
+                      <span className={`ml-auto font-black px-2 py-0.5 text-[9.5px] rounded-full leading-none shadow-xs ${
                         activeSubTab === "orders" 
                           ? "bg-white text-[#D70F64]" 
                           : "bg-[#D70F64] text-white"
@@ -2913,13 +2959,25 @@ export default function AdminPanel({
                       </span>
                     )}
                   </button>
+
+                  <button
+                    onClick={() => setActiveSubTab("analytics")}
+                    className={`w-full font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
+                      activeSubTab === "analytics"
+                        ? "bg-slate-900 border-slate-900 text-white shadow-sm"
+                        : "bg-transparent border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    }`}
+                  >
+                    <LayoutDashboard className="w-3.5 h-3.5 shrink-0" />
+                    Realtime Analytics
+                  </button>
                 </div>
               </div>
 
-              {/* Group 2: Catalog & Partners */}
+              {/* Group 2: Catalog & Merchants */}
               <div>
                 <span className="text-[9px] font-black text-slate-400 block uppercase tracking-widest pl-1 mb-1.5">
-                  Food & Restaurants
+                  🍽️ Food & Merchants
                 </span>
                 <div className="space-y-0.5">
                   <button
@@ -2960,15 +3018,7 @@ export default function AdminPanel({
                     <Grid className="w-3.5 h-3.5 shrink-0" />
                     Food Categories
                   </button>
-                </div>
-              </div>
 
-              {/* Group 3: Verticals */}
-              <div>
-                <span className="text-[9px] font-black text-slate-400 block uppercase tracking-widest pl-1 mb-1.5">
-                  Other Verticals
-                </span>
-                <div className="space-y-0.5">
                   <button
                     onClick={() => setActiveSubTab("grocery")}
                     className={`w-full font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
@@ -2998,10 +3048,10 @@ export default function AdminPanel({
                 </div>
               </div>
 
-              {/* Group 4: Users & Logistics */}
+              {/* Group 3: Users & Logistics */}
               <div>
                 <span className="text-[9px] font-black text-slate-400 block uppercase tracking-widest pl-1 mb-1.5">
-                  Logistics & Users
+                  🚚 People & Logistics
                 </span>
                 <div className="space-y-0.5">
                   <button
@@ -3049,10 +3099,10 @@ export default function AdminPanel({
                 </div>
               </div>
 
-              {/* Group 5: Campaigns & Config */}
+              {/* Group 4: Global Settings & Marketing */}
               <div>
                 <span className="text-[9px] font-black text-slate-400 block uppercase tracking-widest pl-1 mb-1.5">
-                  Marketing & System
+                  ⚙️ System & Marketing
                 </span>
                 <div className="space-y-0.5">
                   <button
@@ -3068,18 +3118,6 @@ export default function AdminPanel({
                   </button>
 
                   <button
-                    onClick={() => setActiveSubTab("seo")}
-                    className={`w-full font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
-                      activeSubTab === "seo"
-                        ? "bg-[#D70F64] border-[#D70F64] text-white shadow-sm"
-                        : "bg-transparent border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                    }`}
-                  >
-                    <Globe className="w-3.5 h-3.5 shrink-0" />
-                    SEO & App Config
-                  </button>
-
-                  <button
                     onClick={() => setActiveSubTab("loyalty")}
                     className={`w-full font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
                       activeSubTab === "loyalty"
@@ -3089,6 +3127,19 @@ export default function AdminPanel({
                   >
                     <Coins className="w-3.5 h-3.5 shrink-0" />
                     Coins Loyalty Wallet
+                  </button>
+
+                  {/* Distinct styling for Global System Settings */}
+                  <button
+                    onClick={() => setActiveSubTab("seo")}
+                    className={`w-full font-black text-xs px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border mt-1 ${
+                      activeSubTab === "seo"
+                        ? "bg-slate-900 border-slate-900 text-white shadow-md ring-1 ring-slate-700"
+                        : "bg-slate-100/80 border-slate-200 text-slate-800 hover:bg-slate-200"
+                    }`}
+                  >
+                    <Settings className="w-4 h-4 shrink-0 text-slate-500" />
+                    <span>Global System & Settings</span>
                   </button>
                 </div>
               </div>

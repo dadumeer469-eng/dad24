@@ -206,6 +206,7 @@ export default function App() {
   const [isExitConfirmationOpen, setIsExitConfirmationOpen] = useState(false);
   const isExitingRef = useRef(false);
   const isProgrammaticBackRef = useRef(false);
+  const lastPushedScreenRef = useRef<string>("home");
   const [heroBgUrl, setHeroBgUrl] = useState<string>("");
   const [dealConfig, setDealConfig] = useState<{
     isActive: boolean;
@@ -1263,30 +1264,49 @@ export default function App() {
     setIsAdminConsoleOpen(false);
   };
 
+  // Helper to determine current screen key for routing history stack
+  const getCurrentScreenKey = (): string => {
+    // Priority 1: Active Modals & Drawers
+    if (isExitConfirmationOpen) return "exit_confirm";
+    if (activeDetailDish) return `item_detail:${activeDetailDish.id}`;
+    if (isDirectChatOpen) return "chat_modal";
+    if (isTrackingModalOpen) return "tracking_modal";
+    if (isSuccessAnimationOpen) return "success_modal";
+    if (isCartOpen) return "cart_drawer";
+    if (isGroceryCartOpen) return "grocery_cart";
+    if (isHistoryDrawerOpen) return "history_drawer";
+    if (isMobileAccountOpen) return "account_drawer";
+    if (isAuthOpen) return "auth_modal";
+    if (isVerificationModalOpen) return "verification_modal";
+    if (isAdminConsoleOpen) return "admin_console";
+    if (showLocationPrompt) return "location_modal";
+    if (showAnnouncementPopup) return "announcement_modal";
+
+    // Priority 2: Pages & Sub-views
+    if (selectedRestaurant !== "All Restaurants") return `restaurant_page:${selectedRestaurant}`;
+    if (activeCategory !== "All") return `category_page:${activeCategory}`;
+    if (searchQuery !== "") return `search_page:${searchQuery}`;
+
+    // Priority 3: Sub-tabs / Modules
+    if (activeModule !== "food") return `tab_${activeModule}`;
+
+    // Root / Default Home
+    return "home";
+  };
+
   // Mobile Back Button Navigation Controller (PWA back button handler with custom Exit Confirmation interceptor)
   useEffect(() => {
-    const isAnyModalOpen =
-      isAuthOpen ||
-      isCartOpen ||
-      isGroceryCartOpen ||
-      !!activeDetailDish ||
-      isTrackingModalOpen ||
-      isSuccessAnimationOpen ||
-      isHistoryDrawerOpen ||
-      isAdminConsoleOpen ||
-      isExitConfirmationOpen ||
-      selectedRestaurant !== "All Restaurants" ||
-      activeCategory !== "All" ||
-      searchQuery !== "";
+    const currentScreen = getCurrentScreenKey();
 
-    if (isAnyModalOpen) {
-      if (window.history.state?.modalOpen !== true) {
-        window.history.pushState({ modalOpen: true }, "");
+    // Push state when navigating to any inner screen/modal/sub-tab
+    if (currentScreen !== "home") {
+      if (currentScreen !== lastPushedScreenRef.current) {
+        window.history.pushState({ page: currentScreen }, "");
+        lastPushedScreenRef.current = currentScreen;
       }
     } else {
-      if (window.history.state?.modalOpen === true) {
-        isProgrammaticBackRef.current = true;
-        window.history.back();
+      if (lastPushedScreenRef.current !== "home") {
+        lastPushedScreenRef.current = "home";
       }
     }
 
@@ -1295,32 +1315,17 @@ export default function App() {
         return;
       }
 
-      if (isProgrammaticBackRef.current) {
-        isProgrammaticBackRef.current = false;
-        return;
-      }
-
-      // Close exit confirmation if open
+      // Priority 1: If any active Modal or Cart Drawer is open, CLOSE the modal/drawer first
       if (isExitConfirmationOpen) {
         setIsExitConfirmationOpen(false);
         return;
       }
-
-      // Close open modals ONE by ONE, starting from topmost overlay
       if (!!activeDetailDish) {
         setActiveDetailDish(null);
         return;
       }
-      if (isAuthOpen) {
-        setIsAuthOpen(false);
-        return;
-      }
-      if (isCartOpen) {
-        setIsCartOpen(false);
-        return;
-      }
-      if (isGroceryCartOpen) {
-        setIsGroceryCartOpen(false);
+      if (isDirectChatOpen) {
+        setIsDirectChatOpen(false);
         return;
       }
       if (isTrackingModalOpen) {
@@ -1331,14 +1336,44 @@ export default function App() {
         setIsSuccessAnimationOpen(false);
         return;
       }
+      if (isCartOpen) {
+        setIsCartOpen(false);
+        return;
+      }
+      if (isGroceryCartOpen) {
+        setIsGroceryCartOpen(false);
+        return;
+      }
       if (isHistoryDrawerOpen) {
         setIsHistoryDrawerOpen(false);
+        return;
+      }
+      if (isMobileAccountOpen) {
+        setIsMobileAccountOpen(false);
+        return;
+      }
+      if (isAuthOpen) {
+        setIsAuthOpen(false);
+        return;
+      }
+      if (isVerificationModalOpen) {
+        setIsVerificationModalOpen(false);
         return;
       }
       if (isAdminConsoleOpen) {
         setIsAdminConsoleOpen(false);
         return;
       }
+      if (showLocationPrompt) {
+        setShowLocationPrompt(false);
+        return;
+      }
+      if (showAnnouncementPopup) {
+        setShowAnnouncementPopup(false);
+        return;
+      }
+
+      // Priority 2: If inside a Restaurant or Category page or Search query, navigate back to main Restaurant List / Homepage
       if (selectedRestaurant !== "All Restaurants") {
         setSelectedRestaurant("All Restaurants");
         return;
@@ -1352,9 +1387,15 @@ export default function App() {
         return;
       }
 
-      // No modal open: trigger exit confirmation dialogue and push state back to trap next back click
+      // Priority 3: If on a sub-tab (e.g. Grocery), return to default Home tab
+      if (activeModule !== "food") {
+        setActiveModule("food");
+        return;
+      }
+
+      // Priority 4: Default Home root -> Trigger exit confirmation dialogue & push state to trap next back click
       setIsExitConfirmationOpen(true);
-      window.history.pushState({ appRoot: true }, "");
+      window.history.pushState({ page: "exit_confirm" }, "");
     };
 
     window.addEventListener("popstate", handlePopState);
@@ -1363,17 +1404,23 @@ export default function App() {
     };
   }, [
     isAuthOpen,
+    isVerificationModalOpen,
     isCartOpen,
     isGroceryCartOpen,
     activeDetailDish,
     isTrackingModalOpen,
+    isDirectChatOpen,
     isSuccessAnimationOpen,
     isHistoryDrawerOpen,
     isAdminConsoleOpen,
+    isMobileAccountOpen,
+    showLocationPrompt,
+    showAnnouncementPopup,
     isExitConfirmationOpen,
     selectedRestaurant,
     activeCategory,
     searchQuery,
+    activeModule,
   ]);
 
   // --- CART CONTROLLER OPERATIONS ---
