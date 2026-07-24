@@ -86,6 +86,7 @@ export interface Order {
   riderName?: string; // or technician name
   riderId?: string;
   riderPhone?: string;
+  restaurantName?: string;
   deliveryCompletedAt?: any; // Timestamp when delivered
   eta?: string; // e.g. "1 Hour", "25 mins"
   serviceTiming?: string;
@@ -125,6 +126,7 @@ export interface SystemSettings {
   bannerVersion?: number;
   isMaintenanceMode?: boolean;
   maintenanceMessage?: string;
+  liveTrackingEnabled?: boolean;
   restaurantStatus?: {
     isTemporarilyUnavailable: boolean; // manual toggle
     openingTime: string; // e.g. "09:00"

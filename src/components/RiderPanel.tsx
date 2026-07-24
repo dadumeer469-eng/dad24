@@ -11,6 +11,7 @@ import {
   MapPin, PhoneCall, LogOut, ArrowRight, ClipboardList, DollarSign, Clock, Check, Store, XCircle, Star
 } from "lucide-react";
 import OrderChat from "./OrderChat";
+import { useRiderLocationTracker } from "../lib/riderLocationTracker";
 
 interface RiderPanelProps {
   currentUser: UserProfile;
@@ -109,8 +110,23 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
     return () => unsubscribe();
   }, [riderActiveOrders, focusedActiveOrderId, currentUser?.uid]);
 
+  // Focused active order reference
+  const focusedActiveOrder = riderActiveOrders.find((o) => o.id === focusedActiveOrderId) || riderActiveOrders[0];
+
+  // Smart Throttled Geolocation Watcher for Rider (Pushes to /live_orders/{orderId}/rider_location)
+  const trackedRiderCoords = useRiderLocationTracker(
+    focusedActiveOrder?.id,
+    focusedActiveOrder?.status
+  );
+
   // Live rider coordinates for distance calculation
   const [liveRiderCoords, setLiveRiderCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+
+  useEffect(() => {
+    if (trackedRiderCoords) {
+      setLiveRiderCoords(trackedRiderCoords);
+    }
+  }, [trackedRiderCoords]);
 
   useEffect(() => {
     if (!navigator.geolocation) return;

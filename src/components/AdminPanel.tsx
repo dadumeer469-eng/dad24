@@ -29,7 +29,8 @@ import {
   orderBy,
   increment,
 } from "firebase/firestore";
-import { db, firebaseConfig, databaseId, cleanObject, storage, handleFirestoreError } from "../firebase";
+import { db, firebaseConfig, databaseId, cleanObject, storage, handleFirestoreError, app } from "../firebase";
+import { getDatabase, ref, set as setRtdb, onValue, off } from "firebase/database";
 import { initializeApp, deleteApp } from "firebase/app";
 import {
   getAuth,
@@ -93,6 +94,7 @@ import {
   Ticket,
   Coins,
   ClipboardList,
+  Navigation,
 } from "lucide-react";
 
 interface AdminPanelProps {
@@ -537,6 +539,45 @@ export default function AdminPanel({
   const [maintenanceMessage, setMaintenanceMessage] = useState(
     deliverySettings?.maintenanceMessage || "We are currently carrying out system maintenance. We'll be back online shortly!",
   );
+
+  // Live Rider GPS Tracking Quota Control State
+  const [isLiveTrackingEnabled, setIsLiveTrackingEnabled] = useState<boolean>(true);
+
+  // Sync Live Tracking toggle state from Firebase Realtime Database
+  useEffect(() => {
+    let trackingSettingRef: any = null;
+    try {
+      const rtdb = getDatabase(app);
+      trackingSettingRef = ref(rtdb, "settings/live_tracking_enabled");
+      const unsubscribe = onValue(trackingSettingRef, (snapshot) => {
+        const val = snapshot.val();
+        setIsLiveTrackingEnabled(val === null ? true : Boolean(val));
+      });
+      return () => {
+        off(trackingSettingRef);
+      };
+    } catch (e) {
+      console.warn("RTDB live_tracking_enabled listener error:", e);
+    }
+  }, []);
+
+  const handleToggleLiveTracking = async (newVal: boolean) => {
+    try {
+      setIsLiveTrackingEnabled(newVal);
+      const rtdb = getDatabase(app);
+      await setRtdb(ref(rtdb, "settings/live_tracking_enabled"), newVal);
+      await setDoc(
+        doc(db, "settings", "delivery_config"),
+        cleanObject({
+          ...deliverySettings,
+          liveTrackingEnabled: newVal,
+        })
+      );
+    } catch (e) {
+      console.error("Error toggling live tracking in RTDB:", e);
+      alert("Failed to update live tracking setting.");
+    }
+  };
 
   // Restaurant Status Management
   const [restStatusUnavailable, setRestStatusUnavailable] = useState(false);
@@ -6138,6 +6179,40 @@ export default function AdminPanel({
                       </div>
                     </div>
 
+                  </div>
+                </div>
+
+                {/* Enable Live Rider Tracking (GPS) Quota Control Card */}
+                <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm relative space-y-4">
+                  <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#D70F64]/10 to-transparent" />
+                  <h4 className="font-black text-sm text-slate-900 flex items-center gap-2 pb-2.5 border-b border-slate-200 uppercase tracking-wide">
+                    <Navigation className="w-4 h-4 text-[#D70F64]" />
+                    Enable Live Rider Tracking
+                  </h4>
+                  <p className="text-[10.5px] text-slate-600 font-medium leading-relaxed">
+                    Toggle live rider GPS tracking on or off. Turning this OFF disables live location writes from riders to stay strictly within free plan limits.
+                  </p>
+
+                  <div className="flex items-center justify-between p-3.5 bg-pink-50/40 rounded-2xl border border-pink-100">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-black text-slate-900">Live Rider Tracking Status</span>
+                      <span className="text-[10px] font-bold text-slate-500">
+                        {isLiveTrackingEnabled ? "🟢 ENABLED - Live GPS Active" : "🔴 PAUSED - Quota Saver Active"}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleLiveTracking(!isLiveTrackingEnabled)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        isLiveTrackingEnabled ? "bg-[#D70F64]" : "bg-slate-200"
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                          isLiveTrackingEnabled ? "translate-x-5" : "translate-x-0"
+                        }`}
+                      />
+                    </button>
                   </div>
                 </div>
 
