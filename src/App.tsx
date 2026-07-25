@@ -657,23 +657,27 @@ export default function App() {
     }
   }, [currentUser?.status]);
 
-  // 1.5. Premium Foodpanda Splash Screen timer (approx 0.4s for instant fast load)
+  // 1.5. Premium Foodpanda Splash Screen timer (approx 0.35s for instant fast load)
   useEffect(() => {
-    const startTime = Date.now();
-    const duration = 400; // 400ms total duration for ultra-fast load
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - startTime;
+    let animId: number;
+    const startTime = performance.now();
+    const duration = 350; // 350ms total duration for ultra-fast, smooth load
+
+    const step = (now: number) => {
+      const elapsed = now - startTime;
       const progress = Math.min(100, Math.floor((elapsed / duration) * 100));
       setSplashProgress(progress);
-      if (elapsed >= duration) {
-        clearInterval(interval);
-        setTimeout(() => {
-          setShowSplash(false);
-          playChimeSound(); // Trigger the melodic twin-tone synthesizer chime on entrance!
-        }, 80);
+
+      if (elapsed < duration) {
+        animId = requestAnimationFrame(step);
+      } else {
+        setShowSplash(false);
+        playChimeSound();
       }
-    }, 20);
-    return () => clearInterval(interval);
+    };
+
+    animId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(animId);
   }, []);
 
   // 2. Real-time Menu Listening & Auto-Seeding

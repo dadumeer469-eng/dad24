@@ -11,6 +11,7 @@ import { motion } from "motion/react";
 
 import { FoodCategory } from "../types";
 import daduLogo from "../assets/images/dadu_food_logo_new_1782333467889.jpg";
+import { LazyImage } from "./LazyImage";
 
 interface FoodpandaHeroProps {
   activeCategory: string;
@@ -223,10 +224,11 @@ export default function FoodpandaHero({
                   } ${cat.imageUrl ? "overflow-hidden" : ""}`}
                 >
                   {cat.imageUrl ? (
-                    <img
+                    <LazyImage
                       src={cat.imageUrl}
                       alt={cat.name}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full"
+                      imgClassName="object-cover"
                     />
                   ) : (
                     cat.emoji || "🍽️"

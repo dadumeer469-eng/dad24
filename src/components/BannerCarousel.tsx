@@ -4,6 +4,7 @@ import { db, analytics } from "../firebase";
 import { logEvent } from "firebase/analytics";
 import { Banner } from "../types";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { LazyImage } from "./LazyImage";
 
 interface BannerCarouselProps {
   bannerVersion?: number;
@@ -11,30 +12,17 @@ interface BannerCarouselProps {
 }
 
 const BannerImage: React.FC<{ banner: Banner; onClick: () => void }> = ({ banner, onClick }) => {
-  const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState(false);
-
   return (
     <div
       className="relative w-full h-full flex-shrink-0 cursor-pointer bg-slate-100 flex items-center justify-center overflow-hidden"
       onClick={onClick}
     >
-      {!loaded && !error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-slate-200 animate-pulse">
-          <div className="w-8 h-8 border-4 border-pink-500 border-t-transparent rounded-full animate-spin" />
-        </div>
-      )}
-      <img
-        src={error ? "https://placehold.co/800x400/f8fafc/94a3b8?text=Dadu+Food" : banner.imageUrl}
+      <LazyImage
+        src={banner.imageUrl}
         alt={banner.restaurantName || "Dadu Food Offer"}
-        className={`w-full h-full object-cover transition-opacity duration-300 ${loaded || error ? "opacity-100" : "opacity-0"}`}
-        loading="lazy"
+        className="w-full h-full"
+        imgClassName="object-cover"
         referrerPolicy="no-referrer"
-        onLoad={() => setLoaded(true)}
-        onError={() => {
-          setLoaded(true);
-          setError(true);
-        }}
       />
       
       {/* Stylish Detail Text Overlay */}
