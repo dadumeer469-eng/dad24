@@ -208,6 +208,7 @@ export default function App() {
   const isProgrammaticBackRef = useRef(false);
   const lastPushedScreenRef = useRef<string>("home");
   const [heroBgUrl, setHeroBgUrl] = useState<string>("");
+  const [partnerShopsBgUrl, setPartnerShopsBgUrl] = useState<string>("");
   const [dealConfig, setDealConfig] = useState<{
     isActive: boolean;
     timerMinutes: number;
@@ -1025,6 +1026,9 @@ export default function App() {
           const data = docSnap.data();
           if (data.heroBgUrl) {
             setHeroBgUrl(data.heroBgUrl);
+          }
+          if (data.partnerShopsBgUrl !== undefined) {
+            setPartnerShopsBgUrl(data.partnerShopsBgUrl);
           }
         }
       },
@@ -3493,118 +3497,129 @@ export default function App() {
                   heroBgUrl={heroBgUrl}
                 >
                 <div className="max-w-7xl mx-auto px-4 mt-6 mb-2">
-                  <div className="bg-gradient-to-br from-white to-pink-50/30 border border-red-100/60 p-5 rounded-3xl space-y-4 shadow-sm relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#d70f64]/5 to-transparent rounded-full -mr-16 -mt-16 pointer-events-none" />
+                  <div className="relative p-5 rounded-3xl space-y-4 shadow-md border border-pink-200/50 dark:border-zinc-800 overflow-hidden">
+                    {/* Premium Partner Shops Background Image Overlay - HD Crystal Clear */}
+                    <div className="absolute inset-0 z-0 overflow-hidden">
+                      <img
+                        src={partnerShopsBgUrl || "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=1200"}
+                        alt="Partner Shops Background"
+                        className="w-full h-full object-cover transition-all duration-500 scale-100 contrast-[1.02] brightness-[0.95]"
+                        referrerPolicy="no-referrer"
+                      />
+                      {/* Subtle gradient vignette to ensure crisp readability while maintaining 100% HD image clarity */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/35 to-black/65" />
+                    </div>
+
                     <div className="flex items-center justify-between relative z-10">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#d70f64] to-pink-500 flex items-center justify-center shadow-lg shadow-red-500/20 text-white shrink-0">
-                              <Compass className="w-5 h-5" />
-                            </div>
-                            <div>
-                              <h4 className="text-[13px] font-black uppercase tracking-widest text-zinc-900">
-                                Partner Shops
-                              </h4>
-                              <p className="text-[10px] text-zinc-500 font-bold leading-tight mt-0.5 tracking-wide">
-                                Filter by specific vendor
-                              </p>
-                            </div>
-                          </div>
-                          {selectedRestaurant !== "All Restaurants" && (
-                            <button
-                              onClick={() =>
-                                setSelectedRestaurant("All Restaurants")
-                              }
-                              className="bg-pink-50 hover:bg-pink-100 text-[#d70f64] px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-colors shrink-0 cursor-pointer"
-                            >
-                              Reset
-                            </button>
-                          )}
+                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#d70f64] to-pink-500 flex items-center justify-center shadow-lg shadow-pink-500/30 text-white shrink-0">
+                          <Compass className="w-5 h-5 animate-pulse-subtle" />
                         </div>
-
-                        <div className="flex items-start gap-3 overflow-x-auto pb-2 scrollbar-none scroll-smooth px-1">
-                          <button
-                            onClick={() =>
-                              setSelectedRestaurant("All Restaurants")
-                            }
-                            className={`w-[90px] h-[95px] rounded-2xl flex flex-col items-center justify-center p-2 font-black transition shrink-0 cursor-pointer border ${
-                              selectedRestaurant === "All Restaurants"
-                                ? "bg-[#d70f64] text-white border-[#d70f64] shadow-md shadow-red-500/20 scale-102"
-                                : "bg-white text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 border-zinc-200"
-                            }`}
-                          >
-                            <span className="text-2xl mb-1">🎪</span>
-                            <span className="text-[10px] text-center uppercase tracking-wider leading-tight font-black">
-                              All Shops
-                            </span>
-                          </button>
-                          {isLoadingDishes
-                            ? Array.from({ length: 5 }).map((_, idx) => (
-                                <div
-                                  key={`sk-${idx}`}
-                                  className="w-[90px] h-[95px] rounded-2xl bg-white border border-zinc-200/80 flex items-center justify-center p-1 shrink-0 animate-pulse"
-                                >
-                                  <div className="w-full h-full rounded-xl bg-zinc-200" />
-                                </div>
-                              ))
-                            : uniqueRestaurants.map((vendor) => {
-                                const vendorImageUrl =
-                                  deliverySettings?.restaurantStatuses?.[
-                                    vendor
-                                  ]?.imageUrl;
-                                const vendorCoords = deliverySettings?.restaurantStatuses?.[vendor]?.coords;
-                                const refCoords = globalCoords || (
-                                  deliverySettings?.baseLocationCoords?.lat && deliverySettings?.baseLocationCoords?.lng
-                                    ? { latitude: deliverySettings.baseLocationCoords.lat, longitude: deliverySettings.baseLocationCoords.lng }
-                                    : { latitude: 26.7323, longitude: 67.7744 }
-                                );
-                                const distKm = vendorCoords?.lat && vendorCoords?.lng
-                                  ? calculateDistanceKm(refCoords.latitude, refCoords.longitude, vendorCoords.lat, vendorCoords.lng).toFixed(1) + " km"
-                                  : null;
-
-                                return (
-                                  <button
-                                    key={vendor}
-                                    onClick={() =>
-                                      setSelectedRestaurant(vendor)
-                                    }
-                                    className={`w-[90px] h-[95px] rounded-2xl flex flex-col items-center justify-between p-1.5 font-black transition shrink-0 cursor-pointer border overflow-hidden shadow-xs hover:shadow-md ${
-                                      selectedRestaurant === vendor
-                                        ? "bg-pink-50/80 border-[#d70f64] ring-2 ring-[#d70f64]/40 scale-102"
-                                        : "bg-white text-zinc-700 hover:text-zinc-900 hover:bg-zinc-50 border-zinc-200"
-                                    }`}
-                                    title={`${vendor}${distKm ? ` (${distKm})` : ""}`}
-                                  >
-                                    <div className="w-full h-[62px] rounded-xl overflow-hidden bg-zinc-100 flex items-center justify-center relative">
-                                      {vendorImageUrl ? (
-                                        <LazyImage
-                                          src={vendorImageUrl}
-                                          alt={vendor}
-                                          className="w-full h-full object-cover"
-                                          imgClassName="object-cover w-full h-full"
-                                        />
-                                      ) : (
-                                        <span className="opacity-90 text-2xl">
-                                          {vendor.includes("Services") ||
-                                          vendor.includes("Pr") ||
-                                          vendor.includes("Re")
-                                            ? "🛠️"
-                                            : "🍔"}
-                                        </span>
-                                      )}
-                                      {distKm && (
-                                        <span className="absolute bottom-1 right-1 bg-black/80 text-white text-[8px] font-extrabold px-1 py-0.5 rounded-md backdrop-blur-xs">
-                                          {distKm}
-                                        </span>
-                                      )}
-                                    </div>
-                                    <span className="text-[9.5px] font-black text-center truncate w-full px-0.5 tracking-tight text-zinc-800 dark:text-zinc-200">
-                                      {vendor}
-                                    </span>
-                                  </button>
-                                );
-                              })}
+                        <div>
+                          <h4 className="text-[13px] font-black uppercase tracking-widest text-white drop-shadow-xs">
+                            Partner Shops
+                          </h4>
+                          <p className="text-[10px] text-pink-200 font-bold leading-tight mt-0.5 tracking-wide">
+                            Filter by specific vendor
+                          </p>
                         </div>
                       </div>
+                      {selectedRestaurant !== "All Restaurants" && (
+                        <button
+                          onClick={() =>
+                            setSelectedRestaurant("All Restaurants")
+                          }
+                          className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-md px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shrink-0 cursor-pointer shadow-sm active:scale-95"
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex items-start gap-3 overflow-x-auto pb-2 scrollbar-none scroll-smooth px-1 relative z-10">
+                      <button
+                        onClick={() =>
+                          setSelectedRestaurant("All Restaurants")
+                        }
+                        className={`w-[90px] h-[95px] rounded-2xl flex flex-col items-center justify-center p-2 font-black transition shrink-0 cursor-pointer border ${
+                          selectedRestaurant === "All Restaurants"
+                            ? "bg-[#d70f64] text-white border-white/80 shadow-md shadow-pink-500/30 scale-102 ring-2 ring-pink-400/50"
+                            : "bg-white/95 backdrop-blur-md text-zinc-700 hover:text-zinc-900 hover:bg-white border-white/80 shadow-xs"
+                        }`}
+                      >
+                        <span className="text-2xl mb-1">🎪</span>
+                        <span className="text-[10px] text-center uppercase tracking-wider leading-tight font-black">
+                          All Shops
+                        </span>
+                      </button>
+                      {isLoadingDishes
+                        ? Array.from({ length: 5 }).map((_, idx) => (
+                            <div
+                              key={`sk-${idx}`}
+                              className="w-[90px] h-[95px] rounded-2xl bg-white/20 backdrop-blur-md border border-white/20 flex items-center justify-center p-1 shrink-0 animate-pulse"
+                            >
+                              <div className="w-full h-full rounded-xl bg-white/30" />
+                            </div>
+                          ))
+                        : uniqueRestaurants.map((vendor) => {
+                            const vendorImageUrl =
+                              deliverySettings?.restaurantStatuses?.[
+                                vendor
+                              ]?.imageUrl;
+                            const vendorCoords = deliverySettings?.restaurantStatuses?.[vendor]?.coords;
+                            const refCoords = globalCoords || (
+                              deliverySettings?.baseLocationCoords?.lat && deliverySettings?.baseLocationCoords?.lng
+                                ? { latitude: deliverySettings.baseLocationCoords.lat, longitude: deliverySettings.baseLocationCoords.lng }
+                                : { latitude: 26.7323, longitude: 67.7744 }
+                            );
+                            const distKm = vendorCoords?.lat && vendorCoords?.lng
+                              ? calculateDistanceKm(refCoords.latitude, refCoords.longitude, vendorCoords.lat, vendorCoords.lng).toFixed(1) + " km"
+                              : null;
+
+                            return (
+                              <button
+                                key={vendor}
+                                onClick={() =>
+                                  setSelectedRestaurant(vendor)
+                                }
+                                className={`w-[90px] h-[95px] rounded-2xl flex flex-col items-center justify-between p-1.5 font-black transition shrink-0 cursor-pointer border overflow-hidden shadow-xs hover:shadow-md ${
+                                  selectedRestaurant === vendor
+                                    ? "bg-[#d70f64] text-white border-white/80 ring-2 ring-pink-400/50 scale-102 shadow-md shadow-pink-500/30"
+                                    : "bg-white/95 backdrop-blur-md text-zinc-800 hover:text-zinc-950 hover:bg-white border-white/80"
+                                }`}
+                                title={`${vendor}${distKm ? ` (${distKm})` : ""}`}
+                              >
+                                <div className="w-full h-[62px] rounded-xl overflow-hidden bg-zinc-100 flex items-center justify-center relative">
+                                  {vendorImageUrl ? (
+                                    <LazyImage
+                                      src={vendorImageUrl}
+                                      alt={vendor}
+                                      className="w-full h-full object-cover"
+                                      imgClassName="object-cover w-full h-full"
+                                    />
+                                  ) : (
+                                    <span className="opacity-90 text-2xl">
+                                      {vendor.includes("Services") ||
+                                      vendor.includes("Pr") ||
+                                      vendor.includes("Re")
+                                        ? "🛠️"
+                                        : "🍔"}
+                                    </span>
+                                  )}
+                                  {distKm && (
+                                    <span className="absolute bottom-1 right-1 bg-black/80 text-white text-[8px] font-extrabold px-1 py-0.5 rounded-md backdrop-blur-xs">
+                                      {distKm}
+                                    </span>
+                                  )}
+                                </div>
+                                <span className={`text-[9.5px] font-black text-center truncate w-full px-0.5 tracking-tight ${selectedRestaurant === vendor ? "text-white" : "text-zinc-800"}`}>
+                                  {vendor}
+                                </span>
+                              </button>
+                            );
+                          })}
+                    </div>
+                  </div>
                     </div>
               </FoodpandaHero>
 

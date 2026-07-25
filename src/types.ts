@@ -126,6 +126,8 @@ export interface SystemSettings {
   userRangeKm?: number;
   baseLocationCoords?: { lat: number; lng: number };
   bannerVersion?: number;
+  heroBgUrl?: string;
+  partnerShopsBgUrl?: string;
   isMaintenanceMode?: boolean;
   maintenanceMessage?: string;
   liveTrackingEnabled?: boolean;

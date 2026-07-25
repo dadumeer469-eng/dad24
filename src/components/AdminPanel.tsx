@@ -606,6 +606,7 @@ export default function AdminPanel({
   const [seoDescription, setSeoDescription] = useState("");
   const [seoKeywords, setSeoKeywords] = useState("");
   const [heroBgUrl, setHeroBgUrl] = useState("");
+  const [partnerShopsBgUrl, setPartnerShopsBgUrl] = useState("");
 
   // Loyalty Wallet States
   const [loyaltyEnabled, setLoyaltyEnabled] = useState(true);
@@ -731,6 +732,7 @@ export default function AdminPanel({
         if (docSnap.exists()) {
           const data = docSnap.data();
           setHeroBgUrl(data.heroBgUrl || "");
+          setPartnerShopsBgUrl(data.partnerShopsBgUrl || "");
         }
       }
     );
@@ -938,6 +940,7 @@ export default function AdminPanel({
         doc(db, "settings", "ui_config"),
         {
           heroBgUrl: heroBgUrl,
+          partnerShopsBgUrl: partnerShopsBgUrl,
         },
         { merge: true },
       );
@@ -9253,7 +9256,7 @@ export default function AdminPanel({
                 </div>
               </div>
               <div className="bg-white border border-slate-200 rounded-[24px] p-5 lg:p-7 shadow-sm relative">
-                <div className="space-y-5">
+                <div className="space-y-6">
                   <div>
                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">
                       Hero Background Image URL
@@ -9265,6 +9268,48 @@ export default function AdminPanel({
                       placeholder="e.g. https://images.unsplash.com/..."
                       className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm outline-none text-slate-900 focus:border-purple-500/60 transition"
                     />
+                  </div>
+
+                  <div className="pt-4 border-t border-slate-100">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">
+                      Partner Shops Section Background Image URL 🏪
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={partnerShopsBgUrl}
+                        onChange={(e) => setPartnerShopsBgUrl(e.target.value)}
+                        placeholder="e.g. https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=1200"
+                        className="flex-1 p-3 bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm outline-none text-slate-900 focus:border-purple-500/60 transition"
+                      />
+                      {partnerShopsBgUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setPartnerShopsBgUrl("")}
+                          className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black rounded-2xl transition cursor-pointer"
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-400 font-medium mt-1.5">
+                      Enter any image URL to customize the backdrop of the "Partner Shops" card. Leave empty to use the default high-definition culinary theme.
+                    </p>
+
+                    {partnerShopsBgUrl && (
+                      <div className="mt-3 relative h-28 rounded-2xl overflow-hidden border border-slate-200 shadow-inner">
+                        <img
+                          src={partnerShopsBgUrl}
+                          alt="Partner Shops Preview"
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-black/60 flex items-center justify-center">
+                          <span className="text-white text-xs font-black uppercase tracking-wider bg-black/70 px-3 py-1 rounded-full border border-white/30 shadow-md backdrop-blur-xs">
+                            Live Preview: Partner Shops Header
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
