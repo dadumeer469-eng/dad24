@@ -118,7 +118,40 @@ export function showNativeNotification(title: string, options: NotificationOptio
   }
 }
 
+/**
+ * Explicitly requests notification permission upon user interaction (button click).
+ */
+export async function requestNotificationPermission(): Promise<string> {
+  if (typeof window === "undefined" || !("Notification" in window)) {
+    return "unsupported";
+  }
+
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission === "granted") {
+      // Re-initialize FCM & Service worker
+      await initPushNotifications();
+    }
+    return permission;
+  } catch (err) {
+    console.warn("Error requesting notification permission:", err);
+    return "denied";
+  }
+}
+
+/**
+ * Sends a test push notification & triggers haptic feedback for user verification.
+ */
+export function testNotificationAndHaptic() {
+  showNativeNotification("🛵 Dadu Food Express Test Notification", {
+    body: "Background push notifications & haptic feedback are fully operational! 🎉",
+    icon: "/logo-192.png",
+  });
+}
+
 export default {
   initPushNotifications,
+  requestNotificationPermission,
   showNativeNotification,
+  testNotificationAndHaptic,
 };
