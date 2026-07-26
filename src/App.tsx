@@ -54,8 +54,6 @@ import { LazyImage } from "./components/LazyImage";
 import DaduLogoLoader from "./components/DaduLogoLoader";
 import useLazyBatchLoad from "./hooks/useLazyBatchLoad";
 import daduLogo from "./assets/images/dadu_food_logo_new_1782333467889.jpg";
-import { initPushNotifications, showNativeNotification } from "./lib/notifications";
-import triggerHaptic from "./utils/haptics";
 
 // Icons & Motion
 import {
@@ -164,7 +162,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
-  // Load saved theme and initialize background push notifications on mount
+  // Load saved theme on mount
   useEffect(() => {
     const saved = localStorage.getItem("dadu_theme");
     if (saved === "dark") {
@@ -176,11 +174,6 @@ export default function App() {
       document.documentElement.classList.remove("dark");
       document.body.classList.remove("dark");
     }
-
-    // Auto prompt push notification permission on launch & setup FCM service worker
-    initPushNotifications().catch((err) => {
-      console.warn("Push notification setup notice:", err);
-    });
   }, []);
 
   const handleToggleTheme = () => {
@@ -1233,13 +1226,6 @@ export default function App() {
             message: currentUnread[0].message,
           });
           playChimeSound(); // Synthesis alarm beeper
-          triggerHaptic("success");
-
-          // Trigger native push / system notification
-          showNativeNotification(currentUnread[0].title, {
-            body: currentUnread[0].message,
-            icon: "/logo-192.png",
-          });
 
           // Hide toast window in 5 seconds
           setTimeout(() => {
@@ -2072,14 +2058,7 @@ export default function App() {
       );
       setCurrentUser(updatedProfile);
 
-      // 4. Trigger native push notification & haptic feedback
-      triggerHaptic("success");
-      showNativeNotification("🛵 Order Placed Successfully!", {
-        body: `Order #${uniqueOrderId.slice(-6)} received! Dadu Food Express is preparing your meal.`,
-        icon: "/logo-192.png",
-      });
-
-      // 5. Trigger success animation overlay
+      // 4. Trigger success animation overlay
       setSuccessAnimationOrder(orderModel);
       setIsSuccessAnimationOpen(true);
     } catch (err: any) {

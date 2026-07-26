@@ -1,7 +1,6 @@
 import React from "react";
 import { Utensils, Store, Search, ShoppingBag, User } from "lucide-react";
 import { motion } from "motion/react";
-import triggerHaptic from "../utils/haptics";
 
 interface BottomNavBarProps {
   activeModule: "food" | "grocery";
@@ -33,7 +32,6 @@ export default function BottomNavBar({
   const currentCartCount = activeModule === "grocery" ? groceryCartCount : cartCount;
 
   const handleTabClick = (tab: "food" | "grocery" | "search" | "cart" | "account") => {
-    triggerHaptic("light");
     if (tab === "food") {
       if (onResetFoodHome) {
         onResetFoodHome();
