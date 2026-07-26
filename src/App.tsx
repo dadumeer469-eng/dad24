@@ -51,6 +51,8 @@ const OrderChat = React.lazy(() => import("./components/OrderChat"));
 import BottomNavBar from "./components/BottomNavBar";
 import MobileAccountDrawer from "./components/MobileAccountDrawer";
 import { LazyImage } from "./components/LazyImage";
+import DaduLogoLoader from "./components/DaduLogoLoader";
+import useLazyBatchLoad from "./hooks/useLazyBatchLoad";
 import daduLogo from "./assets/images/dadu_food_logo_new_1782333467889.jpg";
 
 // Icons & Motion
@@ -658,11 +660,11 @@ export default function App() {
     }
   }, [currentUser?.status]);
 
-  // 1.5. Premium Foodpanda Splash Screen timer (approx 0.35s for instant fast load)
+  // 1.5. Premium Foodpanda Splash Screen timer (2.4s duration for vibrant app launch animation)
   useEffect(() => {
     let animId: number;
     const startTime = performance.now();
-    const duration = 350; // 350ms total duration for ultra-fast, smooth load
+    const duration = 2400; // 2.4s smooth launch sequence
 
     const step = (now: number) => {
       const elapsed = now - startTime;
@@ -3171,144 +3173,177 @@ export default function App() {
             initial={{ opacity: 1 }}
             exit={{
               opacity: 0,
-              y: -80,
               scale: 1.05,
-              transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] },
+              transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] },
             }}
             className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#d70f64] text-white select-none overflow-hidden"
           >
-            {/* Background floating abstract food & toolkit shapes */}
-            <div className="absolute inset-0 opacity-10 pointer-events-none">
-              <div
-                className="absolute top-10 left-10 text-6xl animate-bounce"
-                style={{ animationDuration: "5s" }}
+            {/* Ambient Background Radial Flares */}
+            <div className="absolute w-[500px] h-[500px] bg-pink-400/25 rounded-full blur-3xl animate-pulse pointer-events-none" />
+            <div className="absolute w-[300px] h-[300px] bg-amber-400/15 rounded-full blur-2xl pointer-events-none" />
+
+            {/* Subtle Food-Related Graphics Floating Around Center */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 0.85, scale: 1, y: [-8, 8, -8], rotate: [-6, 6, -6] }}
+                transition={{ duration: 4, repeat: Infinity, repeatType: "reverse", delay: 0.2 }}
+                className="absolute top-12 left-10 text-5xl sm:text-6xl drop-shadow-md"
               >
                 🍔
-              </div>
-              <div
-                className="absolute top-24 right-1/4 text-5xl animate-pulse"
-                style={{ animationDuration: "3.5s" }}
-              >
-                🔧
-              </div>
-              <div
-                className="absolute bottom-20 left-1/5 text-5xl animate-bounce"
-                style={{ animationDuration: "4s" }}
-              >
-                🛵
-              </div>
-              <div
-                className="absolute bottom-16 right-16 text-6xl animate-pulse"
-                style={{ animationDuration: "6s" }}
-              >
-                🍕
-              </div>
-              <div
-                className="absolute top-1/2 left-10 text-4xl animate-bounce"
-                style={{ animationDuration: "5.5s" }}
-              >
-                🍩
-              </div>
-              <div
-                className="absolute top-1/3 right-10 text-5xl animate-pulse"
-                style={{ animationDuration: "4.5s" }}
-              >
-                🛠️
-              </div>
-            </div>
-
-            {/* Glowing ambient pink background flash */}
-            <div className="absolute w-[450px] h-[450px] bg-pink-400/20 rounded-full blur-3xl animate-pulse"></div>
-
-            <div className="flex flex-col items-center max-w-md px-6 text-center z-10 space-y-8">
-              {/* Modern bouncing logo container */}
-              <motion.div
-                initial={{ scale: 0.5, rotate: -10, opacity: 0 }}
-                animate={{ scale: 1, rotate: 0, opacity: 1 }}
-                transition={{ type: "spring", stiffness: 120, damping: 15 }}
-                className="w-64 h-36 bg-white rounded-3xl flex items-center justify-center shadow-2xl relative p-4 overflow-hidden border border-white/20"
-              >
-                {/* Visual badge highlight */}
-                <div className="absolute -top-1 -right-1 bg-[#d70f64] text-white font-black text-[8px] uppercase tracking-widest py-0.5 px-2 rounded-full shadow-lg border border-white flex items-center gap-0.5 animate-pulse z-10">
-                  <span className="w-1 h-1 bg-white rounded-full"></span>
-                  DADU CITY
-                </div>
-
-                {/* Main branding image inside logo box */}
-                <img
-                  src={daduLogo}
-                  alt="DaduFood Logo"
-                  className="w-full h-full object-contain"
-                  referrerPolicy="no-referrer"
-                />
               </motion.div>
 
-              {/* Title & Tagline with staggered animations */}
-              <div className="space-y-4">
-                <motion.h1
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.15, duration: 0.5 }}
-                  className="font-sans font-black text-3xl sm:text-4xl tracking-tight text-white uppercase drop-shadow-md flex flex-col sm:block"
+              <motion.div
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 0.85, scale: 1, y: [8, -8, 8], rotate: [6, -6, 6] }}
+                transition={{ duration: 3.5, repeat: Infinity, repeatType: "reverse", delay: 0.3 }}
+                className="absolute top-16 right-12 text-5xl sm:text-6xl drop-shadow-md"
+              >
+                🍟
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 0.85, scale: 1, y: [-10, 10, -10], rotate: [-8, 8, -8] }}
+                transition={{ duration: 4.5, repeat: Infinity, repeatType: "reverse", delay: 0.4 }}
+                className="absolute bottom-24 left-12 text-5xl sm:text-6xl drop-shadow-md"
+              >
+                🍩
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 0.85, scale: 1, y: [10, -10, 10], rotate: [8, -8, 8] }}
+                transition={{ duration: 4.2, repeat: Infinity, repeatType: "reverse", delay: 0.5 }}
+                className="absolute bottom-20 right-14 text-5xl sm:text-6xl drop-shadow-md"
+              >
+                🥤
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 0.75, scale: 1, y: [-6, 6, -6] }}
+                transition={{ duration: 3, repeat: Infinity, repeatType: "reverse", delay: 0.35 }}
+                className="absolute top-1/2 left-6 -translate-y-1/2 text-4xl sm:text-5xl"
+              >
+                🌮
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 0.75, scale: 1, y: [6, -6, 6] }}
+                transition={{ duration: 3.2, repeat: Infinity, repeatType: "reverse", delay: 0.45 }}
+                className="absolute top-1/2 right-6 -translate-y-1/2 text-4xl sm:text-5xl"
+              >
+                🥗
+              </motion.div>
+
+              {/* Sparkles */}
+              <motion.div
+                animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="absolute top-1/4 right-1/3 text-amber-300 text-2xl"
+              >
+                ✨
+              </motion.div>
+              <motion.div
+                animate={{ scale: [1.2, 1, 1.2], opacity: [0.6, 1, 0.6] }}
+                transition={{ duration: 2.5, repeat: Infinity }}
+                className="absolute bottom-1/3 left-1/3 text-amber-300 text-2xl"
+              >
+                ✨
+              </motion.div>
+            </div>
+
+            {/* Center Content Container */}
+            <div className="flex flex-col items-center max-w-md px-6 text-center z-10 space-y-6">
+              
+              {/* Center Zooming High-Quality Pizza Image */}
+              <motion.div
+                initial={{ scale: 0, rotate: -25, opacity: 0 }}
+                animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 140, damping: 15, delay: 0.15 }}
+                className="relative w-44 h-44 sm:w-52 sm:h-52 rounded-full p-2 bg-white/20 backdrop-blur-md shadow-[0_25px_60px_rgba(0,0,0,0.4)] border-4 border-white/40 flex items-center justify-center shrink-0"
+              >
+                <div className="w-full h-full rounded-full overflow-hidden shadow-inner border-2 border-white/60 relative bg-pink-900">
+                  <img
+                    src="https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&q=80&w=600"
+                    alt="Delicious Pizza Launch Visual"
+                    className="w-full h-full object-cover transform hover:scale-110 transition duration-700"
+                    referrerPolicy="no-referrer"
+                  />
+                  {/* Subtle hot steam glow overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+                </div>
+
+                {/* Floating Fresh Hot Badge */}
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 18, delay: 0.5 }}
+                  className="absolute -bottom-2 bg-gradient-to-r from-amber-400 to-orange-500 text-neutral-950 text-[10px] font-black uppercase tracking-widest px-3.5 py-1 rounded-full shadow-lg border-2 border-white flex items-center gap-1"
                 >
-                  <span className="text-white">DADU</span>{" "}
-                  <span className="text-zinc-100 bg-white/10 px-3 py-0.5 rounded-xl border border-white/20">
+                  <span>🔥 HOT & FRESH</span>
+                </motion.div>
+              </motion.div>
+
+              {/* Pleasing Fade-In Effect for App Name 'Dadu Food' */}
+              <div className="space-y-2 pt-2">
+                <motion.h1
+                  initial={{ opacity: 0, y: 25 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.75, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                  className="font-sans font-black text-4xl sm:text-5xl tracking-tight text-white uppercase drop-shadow-lg flex items-center justify-center gap-2"
+                >
+                  <span className="text-white">DADU</span>
+                  <span className="bg-white text-[#d70f64] px-4 py-1 rounded-2xl shadow-xl font-black inline-block transform -rotate-1">
                     FOOD
                   </span>
                 </motion.h1>
 
-                <motion.div
-                  initial={{ y: 15, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.3, duration: 0.5 }}
-                  className="inline-block bg-black/20 text-xs text-white/90 font-extrabold px-4 py-2 rounded-full border border-white/10 tracking-widest uppercase shadow-sm"
-                >
-                  &amp; HOME SERVICES 🛵🛠️
-                </motion.div>
-
                 <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 0.85 }}
-                  transition={{ delay: 0.45, duration: 0.5 }}
-                  className="text-xs text-pink-100/90 font-bold max-w-xs mx-auto leading-relaxed h-8"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 0.95, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.8 }}
+                  className="text-xs sm:text-sm text-pink-100 font-extrabold tracking-wider uppercase drop-shadow-xs"
                 >
-                  {splashProgress < 30 && "Gathering hot kitchens..."}
-                  {splashProgress >= 30 &&
-                    splashProgress < 65 &&
-                    "Assigning fastest delivery riders..."}
-                  {splashProgress >= 65 &&
-                    splashProgress < 90 &&
-                    "Checking technical repair tools..."}
-                  {splashProgress >= 90 && "Starting delicious experience!"}
+                  Fast & Hot Delivery Express 🛵
                 </motion.p>
               </div>
 
-              {/* Infinite foodpanda-themed loading line status indicator */}
-              <div className="w-56 space-y-2">
-                <div className="h-1.5 w-full bg-white/20 rounded-full overflow-hidden relative border border-white/5">
+              {/* Progress Bar Line */}
+              <motion.div
+                initial={{ opacity: 0, width: "0%" }}
+                animate={{ opacity: 1, width: "100%" }}
+                transition={{ delay: 0.7, duration: 0.4 }}
+                className="w-52 space-y-2 pt-2"
+              >
+                <div className="h-2 w-full bg-white/20 rounded-full overflow-hidden relative border border-white/20 shadow-inner">
                   <div
-                    className="h-full bg-white rounded-full transition-all duration-75"
+                    className="h-full bg-white rounded-full transition-all duration-100 ease-out shadow-md"
                     style={{ width: `${splashProgress}%` }}
-                  ></div>
+                  />
                 </div>
-                <div className="flex items-center justify-between text-[11px] text-red-100 font-extrabold tracking-widest uppercase font-mono">
-                  <span>LOADING applet</span>
-                  <span className="bg-white/15 px-1.5 py-0.5 rounded-md text-white">
+                <div className="flex items-center justify-between text-[10.5px] text-pink-100 font-black tracking-widest uppercase font-mono">
+                  <span>Launching Dadu Food</span>
+                  <span className="bg-white/20 px-2 py-0.5 rounded-md text-white font-black">
                     {splashProgress}%
                   </span>
                 </div>
-              </div>
+              </motion.div>
+
             </div>
 
             {/* Bottom branding identifier credits */}
             <motion.div
               initial={{ opacity: 0 }}
-              animate={{ opacity: 0.65 }}
-              transition={{ delay: 0.8, duration: 0.6 }}
-              className="absolute bottom-8 flex flex-col items-center gap-1 text-[9px] font-black uppercase text-pink-200 tracking-widest text-center leading-tight"
+              animate={{ opacity: 0.75 }}
+              transition={{ delay: 0.9, duration: 0.6 }}
+              className="absolute bottom-6 flex items-center gap-1.5 text-[9.5px] font-black uppercase text-pink-100 tracking-widest"
             >
-              <span>SUPPORTED BY MEERALI</span>
+              <span>MADE WITH</span>
               <span className="text-xs text-white">❤️</span>
+              <span>FOR DADU CITY</span>
             </motion.div>
           </motion.div>
         )}
@@ -3513,7 +3548,12 @@ export default function App() {
                   heroBgUrl={heroBgUrl}
                 >
                 <div className="max-w-7xl mx-auto px-4 mt-6 mb-2">
-                  <div className="relative p-5 rounded-3xl space-y-4 shadow-md border border-pink-200/50 dark:border-zinc-800 overflow-hidden">
+                  <motion.div
+                    initial={{ opacity: 0, y: 28, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.65, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+                    className="relative p-5 rounded-3xl space-y-4 shadow-md border border-pink-200/50 dark:border-zinc-800 overflow-hidden"
+                  >
                     {/* Premium Partner Shops Background Image Overlay - HD Crystal Clear */}
                     <div className="absolute inset-0 z-0 overflow-hidden">
                       <img
@@ -3553,13 +3593,18 @@ export default function App() {
                     </div>
 
                     <div className="flex items-start gap-3 overflow-x-auto pb-2 scrollbar-none scroll-smooth px-1 relative z-10">
-                      <button
+                      <motion.button
+                        initial={{ opacity: 0, y: 15 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.97 }}
                         onClick={() =>
                           setSelectedRestaurant("All Restaurants")
                         }
                         className={`w-[90px] h-[95px] rounded-2xl flex flex-col items-center justify-center p-2 font-black transition shrink-0 cursor-pointer border ${
                           selectedRestaurant === "All Restaurants"
-                            ? "bg-[#d70f64] text-white border-white/80 shadow-md shadow-pink-500/30 scale-102 ring-2 ring-pink-400/50"
+                            ? "bg-[#d70f64] text-white border-white/80 shadow-md shadow-pink-500/30 ring-2 ring-pink-400/50"
                             : "bg-white/95 backdrop-blur-md text-zinc-700 hover:text-zinc-900 hover:bg-white border-white/80 shadow-xs"
                         }`}
                       >
@@ -3567,7 +3612,7 @@ export default function App() {
                         <span className="text-[10px] text-center uppercase tracking-wider leading-tight font-black">
                           All Shops
                         </span>
-                      </button>
+                      </motion.button>
                       {isLoadingDishes
                         ? Array.from({ length: 5 }).map((_, idx) => (
                             <div
@@ -3577,7 +3622,7 @@ export default function App() {
                               <div className="w-full h-full rounded-xl bg-white/30" />
                             </div>
                           ))
-                        : uniqueRestaurants.map((vendor) => {
+                        : uniqueRestaurants.map((vendor, idx) => {
                             const vendorImageUrl =
                               deliverySettings?.restaurantStatuses?.[
                                 vendor
@@ -3593,14 +3638,19 @@ export default function App() {
                               : null;
 
                             return (
-                              <button
+                              <motion.button
                                 key={vendor}
+                                initial={{ opacity: 0, y: 20, scale: 0.94 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                transition={{ duration: 0.35, delay: idx * 0.045 }}
+                                whileHover={{ scale: 1.04 }}
+                                whileTap={{ scale: 0.96 }}
                                 onClick={() =>
                                   setSelectedRestaurant(vendor)
                                 }
                                 className={`w-[90px] h-[95px] rounded-2xl flex flex-col items-center justify-between p-1.5 font-black transition shrink-0 cursor-pointer border overflow-hidden shadow-xs hover:shadow-md ${
                                   selectedRestaurant === vendor
-                                    ? "bg-[#d70f64] text-white border-white/80 ring-2 ring-pink-400/50 scale-102 shadow-md shadow-pink-500/30"
+                                    ? "bg-[#d70f64] text-white border-white/80 ring-2 ring-pink-400/50 shadow-md shadow-pink-500/30"
                                     : "bg-white/95 backdrop-blur-md text-zinc-800 hover:text-zinc-950 hover:bg-white border-white/80"
                                 }`}
                                 title={`${vendor}${distKm ? ` (${distKm})` : ""}`}
@@ -3631,12 +3681,12 @@ export default function App() {
                                 <span className={`text-[9.5px] font-black text-center truncate w-full px-0.5 tracking-tight ${selectedRestaurant === vendor ? "text-white" : "text-zinc-800"}`}>
                                   {vendor}
                                 </span>
-                              </button>
+                              </motion.button>
                             );
                           })}
                     </div>
-                  </div>
-                    </div>
+                  </motion.div>
+                </div>
               </FoodpandaHero>
 
               {/* Active Order Banner Cards (Horizontal Scroll) */}
@@ -4102,7 +4152,7 @@ export default function App() {
                               }
                               return String(b.id).localeCompare(String(a.id));
                             })
-                            .map((dish) => {
+                            .map((dish, idx) => {
                             const isSvc = dish.type === "service";
                             const dishRestaurantName =
                               dish.restaurantName ||
@@ -4114,9 +4164,9 @@ export default function App() {
                             return (
                               <motion.div
                                 key={dish.id}
-                                initial={{ opacity: 0, y: 15 }}
+                                initial={{ opacity: 0, y: 22 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.35, ease: "easeOut" }}
+                                transition={{ duration: 0.38, delay: Math.min(idx * 0.035, 0.35), ease: "easeOut" }}
                                 className={`bg-white border border-zinc-200/80 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs hover:border-[#d70f64]/30 hover:shadow-md hover:shadow-red-500/5 transition-all flex flex-col group relative text-zinc-800 ${isRestaurantClosed ? "opacity-70 grayscale-[20%]" : ""}`}
                               >
                                 {/* Sold Out Overlay */}

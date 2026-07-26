@@ -24,6 +24,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { Dish, OrderItem, SystemSettings } from "../types";
 import { LazyImage } from "./LazyImage";
 import FoodDetailModal from "./FoodDetailModal";
+import DaduLogoLoader from "./DaduLogoLoader";
+import useLazyBatchLoad from "../hooks/useLazyBatchLoad";
 
 interface FoodpandaRestaurantPageProps {
   restaurantName: string;
@@ -48,7 +50,51 @@ interface FoodpandaRestaurantPageProps {
   distanceDisplay?: string | null;
 }
 
-// Helper to pick category icons/emojis
+// Subcomponent for lazy batch rendering category dishes with infinite scroll
+function CategoryDishGridBatch({
+  dishes,
+  isClosed,
+  getDishQuantityInCart,
+  favoriteDishIds,
+  toggleFavorite,
+  onAddToCart,
+  setActiveDetailDish,
+}: {
+  dishes: Dish[];
+  isClosed?: boolean;
+  getDishQuantityInCart: (id: string) => number;
+  favoriteDishIds: string[];
+  toggleFavorite: (id: string) => void;
+  onAddToCart: (dish: Dish, qty?: number) => void;
+  setActiveDetailDish: (dish: Dish) => void;
+}) {
+  const { visibleItems, hasMore, observerTargetRef } = useLazyBatchLoad(dishes, 12);
+
+  return (
+    <div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {visibleItems.map((dish) => (
+          <DishCard
+            key={dish.id}
+            dish={dish}
+            onAdd={() => setActiveDetailDish(dish)}
+            isClosed={isClosed}
+            quantityInCart={getDishQuantityInCart(dish.id)}
+            isFavorite={favoriteDishIds.includes(dish.id)}
+            onToggleFavorite={() => toggleFavorite(dish.id)}
+            onQuickAdd={(qty) => onAddToCart(dish, qty)}
+          />
+        ))}
+      </div>
+
+      {hasMore && (
+        <div ref={observerTargetRef} className="py-6 flex justify-center">
+          <DaduLogoLoader compact size="sm" text="Loading more delicacies..." />
+        </div>
+      )}
+    </div>
+  );
+}
 const getCategoryEmoji = (category: string) => {
   const cat = category.toLowerCase();
   if (cat.includes("burger") || cat.includes("fast food")) return "🍔";
@@ -509,27 +555,23 @@ export default function FoodpandaRestaurantPage({
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filteredDishes.map(dish => (
-                <DishCard 
-                  key={dish.id} 
-                  dish={dish} 
-                  onAdd={() => setActiveDetailDish(dish)} 
-                  isClosed={isRestaurantClosed} 
-                  quantityInCart={getDishQuantityInCart(dish.id)}
-                  isFavorite={favoriteDishIds.includes(dish.id)}
-                  onToggleFavorite={() => toggleFavorite(dish.id)}
-                  onQuickAdd={(qty) => onAddToCart(dish, qty)}
-                />
-              ))}
-              {filteredDishes.length === 0 && (
-                <div className="col-span-full py-12 text-center bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-8">
-                  <div className="text-4xl mb-2">🔍</div>
-                  <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">No dishes match your criteria</p>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Try clearing search keywords or changing category filters.</p>
-                </div>
-              )}
-            </div>
+            {filteredDishes.length === 0 ? (
+              <div className="py-12 text-center bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-8">
+                <div className="text-4xl mb-2">🔍</div>
+                <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">No dishes match your criteria</p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Try clearing search keywords or changing category filters.</p>
+              </div>
+            ) : (
+              <CategoryDishGridBatch
+                dishes={filteredDishes}
+                isClosed={isRestaurantClosed}
+                getDishQuantityInCart={getDishQuantityInCart}
+                favoriteDishIds={favoriteDishIds}
+                toggleFavorite={toggleFavorite}
+                onAddToCart={onAddToCart}
+                setActiveDetailDish={setActiveDetailDish}
+              />
+            )}
           </div>
         ) : (
           <>
@@ -604,21 +646,16 @@ export default function FoodpandaRestaurantPage({
                   </div>
                 </div>
 
-                {/* Items Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {catDishes.map(dish => (
-                    <DishCard 
-                      key={dish.id} 
-                      dish={dish} 
-                      onAdd={() => setActiveDetailDish(dish)} 
-                      isClosed={isRestaurantClosed} 
-                      quantityInCart={getDishQuantityInCart(dish.id)}
-                      isFavorite={favoriteDishIds.includes(dish.id)}
-                      onToggleFavorite={() => toggleFavorite(dish.id)}
-                      onQuickAdd={(qty) => onAddToCart(dish, qty)}
-                    />
-                  ))}
-                </div>
+                {/* Items Grid with Lazy Batch Loading */}
+                <CategoryDishGridBatch
+                  dishes={catDishes}
+                  isClosed={isRestaurantClosed}
+                  getDishQuantityInCart={getDishQuantityInCart}
+                  favoriteDishIds={favoriteDishIds}
+                  toggleFavorite={toggleFavorite}
+                  onAddToCart={onAddToCart}
+                  setActiveDetailDish={setActiveDetailDish}
+                />
               </div>
             );
           })}

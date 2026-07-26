@@ -86,32 +86,55 @@ export default function FoodpandaHero({
 
           {/* Left Column: Promos and Call to Action */}
           <div className="flex-1 max-w-xl text-center md:text-left z-10 space-y-2.5">
-            <div className="inline-flex items-center gap-1.5 bg-red-500/20 text-pink-200 py-1.5 px-3.5 rounded-full text-[9.5px] font-black uppercase tracking-widest border border-red-500/30 shadow-lg">
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              className="inline-flex items-center gap-1.5 bg-red-500/20 text-pink-200 py-1.5 px-3.5 rounded-full text-[9.5px] font-black uppercase tracking-widest border border-red-500/30 shadow-lg"
+            >
               <Flame className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
               Dadu Food Express
-            </div>
+            </motion.div>
 
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-white leading-tight">
+            {/* Smooth Slide-in from Left for Main Banner Title */}
+            <motion.h1
+              initial={{ x: -70, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
+              className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-white leading-tight"
+            >
               Delicious Food <br className="hidden sm:inline" />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-orange-400 to-pink-500 font-black drop-shadow-md">
                 Fast & Hot Delivery
               </span>
-            </h1>
+            </motion.h1>
 
             <div className="pt-1 flex flex-wrap gap-2.5 items-center justify-center md:justify-start">
-              <button
+              {/* Explore Menu Button with Subtle Bounce Effect */}
+              <motion.button
+                initial={{ scale: 0.65, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 350, damping: 16, delay: 0.25 }}
+                whileHover={{ scale: 1.06 }}
+                whileTap={{ scale: 0.94 }}
                 onClick={() => {
                   const el = document.getElementById("catalog-section");
                   el?.scrollIntoView({ behavior: "smooth" });
                 }}
-                className="bg-[#d70f64] hover:bg-[#b00c50] active:scale-95 transition-all duration-300 text-white px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-pink-950/30 cursor-pointer flex items-center gap-1.5"
+                className="bg-[#d70f64] hover:bg-[#b00c50] text-white px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-pink-950/40 cursor-pointer flex items-center gap-1.5 border border-pink-400/30"
               >
                 Explore Menu
-              </button>
+              </motion.button>
 
-              <div className="inline-flex items-center gap-1.5 bg-black/40 border border-white/10 text-[9.5px] text-pink-100 py-2 px-3 rounded-xl font-bold uppercase tracking-wider">
+              {/* Delivery Time Badge with Modern Pulse Glow */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.85 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.38 }}
+                className="inline-flex items-center gap-1.5 bg-black/50 border border-pink-500/30 text-[9.5px] text-pink-100 py-2 px-3.5 rounded-xl font-bold uppercase tracking-wider shadow-[0_0_15px_rgba(215,15,100,0.25)] animate-pulse"
+              >
                 ⚡ 20-30 Min Delivery
-              </div>
+              </motion.div>
             </div>
           </div>
 
@@ -201,16 +224,19 @@ export default function FoodpandaHero({
       <div id="catalog-section" className="max-w-7xl mx-auto px-4 pt-1.5 pb-2">
         {/* Scroll wrapper */}
         <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory">
-          {displayCategories.map((cat) => {
+          {displayCategories.map((cat, idx) => {
             const isSelected = activeCategory === cat.name;
             return (
               <motion.button
                 key={cat.id || cat.name}
                 type="button"
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: idx * 0.04 }}
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setActiveCategory(cat.name)}
-                className={`flex items-center gap-3 py-2 px-4.5 rounded-2xl text-xs font-bold shrink-0 transition-all cursor-pointer border relative overflow-hidden snap-start ${
+                className={`flex items-center gap-3 py-2 px-4.5 rounded-2xl text-xs font-bold shrink-0 transition-colors cursor-pointer border relative overflow-hidden snap-start ${
                   isSelected
                     ? `bg-gradient-to-r ${cat.color || "from-[#d70f64] to-[#f22c80]"} text-white border-transparent shadow-lg shadow-red-500/15`
                     : "bg-white text-zinc-700 border-zinc-200/80 hover:bg-zinc-50 hover:border-zinc-300"

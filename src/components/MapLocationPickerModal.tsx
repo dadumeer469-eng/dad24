@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import { MapPin, Navigation, Search, Check, X, Compass, Loader2 } from "lucide-react";
+import DaduLogoLoader from "./DaduLogoLoader";
 
 interface MapLocationPickerModalProps {
   isOpen: boolean;
@@ -255,7 +256,7 @@ export default function MapLocationPickerModal({
               disabled={isSearching}
               className="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-3.5 py-2 rounded-xl text-xs font-black hover:opacity-90 transition shrink-0 flex items-center gap-1 cursor-pointer"
             >
-              {isSearching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Search"}
+              {isSearching ? <DaduLogoLoader compact size="sm" /> : "Search"}
             </button>
             <button
               type="button"

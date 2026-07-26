@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { motion } from "motion/react";
-import { X, Phone, Loader2, ArrowRight, UserCog, Key } from "lucide-react";
+import { X, Phone, ArrowRight, UserCog, Key } from "lucide-react";
 import daduLogo from "../assets/images/dadu_food_logo_new_1782333467889.jpg";
+import DaduLogoLoader from "./DaduLogoLoader";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -147,7 +148,7 @@ export default function AuthModal({
               className="w-full bg-[#D70F64] hover:bg-[#b00c50] text-white font-black tracking-wide shadow-md transition-all flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm uppercase disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {loading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <DaduLogoLoader compact size="sm" />
               ) : (
                 <>
                   {isStaffMode ? "Login" : "Aage Badhein"} <ArrowRight className="w-5 h-5" />

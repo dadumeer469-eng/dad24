@@ -3,6 +3,8 @@ import { motion } from "motion/react";
 import { GroceryCategory, GroceryProduct, GroceryOrderItem } from "../types";
 import { ShoppingBasket, Package, Plus, Slash, Minus, Sparkles, Star, AlertCircle, ShoppingBag } from "lucide-react";
 import { LazyImage } from "./LazyImage";
+import DaduLogoLoader from "./DaduLogoLoader";
+import useLazyBatchLoad from "../hooks/useLazyBatchLoad";
 
 interface GroceryModuleProps {
   categories: GroceryCategory[];
@@ -44,6 +46,9 @@ export default function GroceryModule({
 
     return matchesCategory && isCategoryEnabled && matchesSearch;
   });
+
+  // Lazy batch loading hook for grocery items
+  const { visibleItems, hasMore, observerTargetRef } = useLazyBatchLoad(filteredProducts, 12);
 
   const getProductQuantityInCart = (prodId: string) => {
     const item = cartItems.find((i) => i.productId === prodId);
@@ -152,16 +157,9 @@ export default function GroceryModule({
 
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
             {isLoading ? (
-              Array.from({ length: 8 }).map((_, idx) => (
-                <div key={idx} className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl sm:rounded-3xl overflow-hidden shadow-sm animate-pulse flex flex-col h-full">
-                  <div className="h-32 sm:h-48 bg-slate-100 dark:bg-zinc-800 shrink-0" />
-                  <div className="p-3 sm:p-4 flex-1 flex flex-col gap-3">
-                    <div className="h-2.5 w-1/3 bg-slate-200 dark:bg-zinc-800 rounded-full" />
-                    <div className="h-4 w-3/4 bg-slate-200 dark:bg-zinc-800 rounded-full" />
-                    <div className="mt-auto h-9 w-full bg-slate-200 dark:bg-zinc-800 rounded-xl" />
-                  </div>
-                </div>
-              ))
+              <div className="col-span-full py-16 flex justify-center">
+                <DaduLogoLoader text="Fetching fresh grocery items..." />
+              </div>
             ) : filteredProducts.length === 0 ? (
               <div className="col-span-full py-16 bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200/80 dark:border-zinc-800 flex flex-col items-center justify-center text-center space-y-3 p-6 shadow-2xs">
                 <Package className="w-14 h-14 text-slate-300 dark:text-zinc-700" />
@@ -171,7 +169,7 @@ export default function GroceryModule({
                 </p>
               </div>
             ) : (
-              filteredProducts.map((p) => {
+              visibleItems.map((p) => {
               const qty = getProductQuantityInCart(p.id);
               const hasDiscount = p.discountPrice && p.discountPrice < p.price;
               const displayPrice = hasDiscount ? p.discountPrice : p.price;
@@ -275,6 +273,12 @@ export default function GroceryModule({
             })
           )}
           </div>
+
+          {hasMore && (
+            <div ref={observerTargetRef} className="py-8 flex justify-center">
+              <DaduLogoLoader compact size="sm" text="Loading more grocery items..." />
+            </div>
+          )}
         </div>
       </div>
     </div>
