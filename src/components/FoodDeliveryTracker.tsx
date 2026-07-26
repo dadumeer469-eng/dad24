@@ -15,6 +15,10 @@ import {
   CheckCircle2,
   Clock,
   Sparkles,
+  ChevronDown,
+  ChevronUp,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import OrderChat from "./OrderChat";
 
@@ -100,6 +104,18 @@ export default function FoodDeliveryTracker({
   const [isLiveTrackingEnabled, setIsLiveTrackingEnabled] = useState<boolean>(true);
   const [showChat, setShowChat] = useState<boolean>(false);
   const [showHelpModal, setShowHelpModal] = useState<boolean>(false);
+  const [isSheetCollapsed, setIsSheetCollapsed] = useState<boolean>(false);
+
+  // Re-fit/invalidate Leaflet map dimensions when sheet expands/collapses
+  const toggleSheet = () => {
+    setIsSheetCollapsed((prev) => !prev);
+    setTimeout(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+        handleRecenterMap();
+      }
+    }, 200);
+  };
 
   let statusTitle = "Order Received";
   let statusSubtitle = "Waiting for restaurant confirmation";
@@ -408,10 +424,14 @@ export default function FoodDeliveryTracker({
   const maxEta = currentEta + 7;
 
   return (
-    <div className="bg-slate-50 min-h-screen text-slate-900 font-sans relative flex flex-col overflow-hidden max-w-md mx-auto shadow-2xl rounded-3xl border border-slate-200">
+    <div className="bg-slate-50 h-screen text-slate-900 font-sans relative flex flex-col overflow-hidden max-w-md mx-auto shadow-2xl rounded-3xl border border-slate-200">
       
-      {/* 1. MAP VIEW CONTAINER (Full Screen / Half Screen Top) */}
-      <div className="relative w-full h-[380px] sm:h-[420px] bg-slate-200 shrink-0 overflow-hidden">
+      {/* 1. MAP VIEW CONTAINER (Full Screen when sheet collapsed, Half Screen when expanded) */}
+      <div 
+        className={`relative w-full transition-all duration-300 ease-in-out bg-slate-200 overflow-hidden ${
+          isSheetCollapsed ? "flex-1 h-full" : "h-[320px] sm:h-[360px] shrink-0"
+        }`}
+      >
         
         {/* Map Canvas */}
         <div ref={mapContainerRef} className="w-full h-full z-0" />
@@ -427,85 +447,162 @@ export default function FoodDeliveryTracker({
             </button>
           )}
 
-          <button
-            onClick={() => setShowHelpModal(true)}
-            className="bg-white hover:bg-slate-100 text-slate-900 text-xs font-black px-4 py-2 rounded-xl shadow-lg border border-slate-200/80 pointer-events-auto transition active:scale-95 cursor-pointer"
-          >
-            Help
-          </button>
+          <div className="flex items-center gap-2 pointer-events-auto">
+            <button
+              onClick={toggleSheet}
+              className="bg-white/95 backdrop-blur-md hover:bg-slate-100 text-slate-900 text-xs font-extrabold px-3 py-2 rounded-xl shadow-lg border border-slate-200/80 transition active:scale-95 cursor-pointer flex items-center gap-1.5"
+            >
+              {isSheetCollapsed ? <Minimize2 className="w-3.5 h-3.5 text-[#D70F64]" /> : <Maximize2 className="w-3.5 h-3.5 text-[#D70F64]" />}
+              <span>{isSheetCollapsed ? "Show Details" : "Full Map"}</span>
+            </button>
+
+            <button
+              onClick={() => setShowHelpModal(true)}
+              className="bg-white hover:bg-slate-100 text-slate-900 text-xs font-black px-3.5 py-2 rounded-xl shadow-lg border border-slate-200/80 transition active:scale-95 cursor-pointer"
+            >
+              Help
+            </button>
+          </div>
         </div>
 
         {/* Floating Locate / Recenter Map Button */}
         <button
           onClick={handleRecenterMap}
-          className="absolute bottom-6 right-4 z-20 w-10 h-10 bg-white hover:bg-slate-100 text-slate-800 rounded-full flex items-center justify-center shadow-lg border border-slate-200/80 transition active:scale-95 cursor-pointer"
+          className={`absolute z-20 w-10 h-10 bg-white hover:bg-slate-100 text-slate-800 rounded-full flex items-center justify-center shadow-lg border border-slate-200/80 transition active:scale-95 cursor-pointer ${
+            isSheetCollapsed ? "bottom-20 right-4" : "bottom-6 right-4"
+          }`}
           title="Recenter map"
         >
           <Compass className="w-5 h-5 text-slate-700" />
         </button>
 
-        {/* 2. FLOATING OFFICIAL FOODPANDA ETA & STATUS CARD */}
-        <div className="absolute bottom-3 left-4 right-16 z-20">
-          <div className="bg-white/98 backdrop-blur-md shadow-2xl rounded-3xl p-4 sm:p-5 border border-slate-100 flex items-center justify-between transition-all">
-            <div className="space-y-0.5">
-              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-none">
-                {orderEta ? (orderEta.toLowerCase().includes("min") ? orderEta : `${orderEta} mins`) : `${minEta} — ${maxEta} mins`}
-              </h2>
-              <p className="text-sm font-extrabold text-slate-900 pt-1">
-                {statusTitle}
-              </p>
-              <p className="text-xs text-slate-500 font-medium">
-                {statusSubtitle}
-              </p>
-            </div>
+        {/* 2. FLOATING OFFICIAL FOODPANDA ETA & STATUS CARD (Visible on Map when expanded or collapsed) */}
+        {!isSheetCollapsed && (
+          <div className="absolute bottom-1.5 left-3.5 right-15 z-20">
+            <div className="bg-white/98 backdrop-blur-md shadow-xl rounded-2xl p-2.5 sm:p-3 border border-slate-100/90 flex items-center justify-between transition-all">
+              <div className="space-y-0.5">
+                <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-none">
+                  {orderEta ? (orderEta.toLowerCase().includes("min") ? orderEta : `${orderEta} mins`) : `${minEta} — ${maxEta} mins`}
+                </h2>
+                <p className="text-xs font-bold text-slate-900 pt-0.5">
+                  {statusTitle}
+                </p>
+                <p className="text-[10.5px] text-slate-500 font-medium leading-none">
+                  {statusSubtitle}
+                </p>
+              </div>
 
-            {/* Circular Progress Ring Gauge */}
-            <div className="relative w-16 h-16 sm:w-18 sm:h-18 flex items-center justify-center shrink-0">
-              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                {/* Gray Background Circle */}
-                <path
-                  className="text-slate-100"
-                  strokeWidth="3.5"
-                  stroke="currentColor"
-                  fill="none"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-                {/* Dark Green Arc Progress */}
-                <path
-                  className="text-[#0f6848] transition-all duration-1000 ease-out"
-                  strokeDasharray={`${gaugePercent}, 100`}
-                  strokeWidth="3.5"
-                  strokeLinecap="round"
-                  stroke="currentColor"
-                  fill="none"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-              </svg>
+              {/* Circular Progress Ring Gauge */}
+              <div className="relative w-11 h-11 sm:w-13 sm:h-13 flex items-center justify-center shrink-0 ml-2">
+                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                  {/* Gray Background Circle */}
+                  <path
+                    className="text-slate-100"
+                    strokeWidth="3.5"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                  {/* Dark Green Arc Progress */}
+                  <path
+                    className="text-[#0f6848] transition-all duration-1000 ease-out"
+                    strokeDasharray={`${gaugePercent}, 100`}
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                </svg>
 
-              {/* Dadu Food Shopping Bag Center Illustration */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-10 h-10 rounded-full bg-pink-50 flex items-center justify-center">
-                  <div className="relative">
-                    {/* Pink dadufood shopping bag */}
-                    <div className="w-6 h-7 bg-[#D70F64] rounded-md shadow-xs flex items-center justify-center relative overflow-hidden p-0.5">
-                      <div className="w-2.5 h-1.5 border-t-2 border-r-2 border-white/90 rounded-t-full -mt-4" />
-                      <img src={daduLogo} alt="DF" className="w-4 h-4 object-cover rounded-full" />
+                {/* Dadu Food Shopping Bag Center Illustration */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-7 h-7 rounded-full bg-pink-50 flex items-center justify-center">
+                    <div className="relative">
+                      {/* Pink dadufood shopping bag */}
+                      <div className="w-4 h-4.5 bg-[#D70F64] rounded-sm shadow-xs flex items-center justify-center relative overflow-hidden p-0.5">
+                        <div className="w-1.5 h-1 border-t-2 border-r-2 border-white/90 rounded-t-full -mt-2.5" />
+                        <img src={daduLogo} alt="DF" className="w-3 h-3 object-cover rounded-full" />
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* 3. WHITE BOTTOM SHEET */}
-      <div className="bg-white flex-1 rounded-t-3xl border-t border-slate-200/80 p-4 sm:p-5 shadow-inner space-y-4 -mt-2 z-10">
+      {/* 3. WHITE BOTTOM SHEET (Collapsible Foodpanda Drawer) */}
+      <div 
+        className={`bg-white rounded-t-3xl border-t border-slate-200/90 shadow-2xl transition-all duration-300 ease-in-out z-20 flex flex-col ${
+          isSheetCollapsed ? "p-3 shrink-0" : "flex-1 overflow-y-auto p-4 sm:p-5 -mt-2 space-y-4"
+        }`}
+      >
         
-        {/* Drag Handle Indicator */}
-        <div className="w-12 h-1 bg-slate-300 rounded-full mx-auto -mt-1 mb-1" />
+        {/* Interactive Drag Handle & Expand Bar */}
+        <button
+          type="button"
+          onClick={toggleSheet}
+          className="w-full flex flex-col items-center justify-center py-1 cursor-pointer group active:scale-98 transition focus:outline-none"
+          title={isSheetCollapsed ? "Tap to view full order details" : "Tap to collapse and view full map"}
+        >
+          <div className="w-12 h-1 bg-slate-300 group-hover:bg-[#D70F64] rounded-full mb-1 transition-colors" />
+          
+          <div className="flex items-center gap-1.5 text-slate-500 group-hover:text-[#D70F64] text-[11px] font-extrabold uppercase tracking-wider">
+            {isSheetCollapsed ? (
+              <>
+                <span>View Order Details</span>
+                <ChevronUp className="w-3.5 h-3.5" />
+              </>
+            ) : (
+              <>
+                <span>Collapse for Full Map</span>
+                <ChevronDown className="w-3.5 h-3.5" />
+              </>
+            )}
+          </div>
+        </button>
 
-        {/* RIDER INFO CARD or KITCHEN PREPARATION CARD */}
+        {/* Collapsed Compact Floating ETA Card */}
+        {isSheetCollapsed ? (
+          <div 
+            onClick={toggleSheet}
+            className="bg-slate-50 hover:bg-slate-100 border border-slate-200/90 rounded-2xl p-3 flex items-center justify-between cursor-pointer transition shadow-xs mt-1"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-pink-100 border border-pink-200 flex items-center justify-center text-lg shrink-0">
+                {isOutForDelivery ? "🪖" : "🍳"}
+              </div>
+              <div>
+                <h4 className="text-sm font-black text-slate-900 leading-tight">
+                  {orderEta ? (orderEta.toLowerCase().includes("min") ? orderEta : `${orderEta} mins`) : `${minEta} — ${maxEta} mins`}
+                </h4>
+                <p className="text-xs font-bold text-[#D70F64] mt-0.5">
+                  {statusTitle}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {riderPhone && (
+                <a
+                  href={`tel:${riderPhone}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-9 h-9 bg-white border border-slate-200 text-slate-800 rounded-full flex items-center justify-center shadow-xs transition active:scale-95"
+                  title="Call Rider"
+                >
+                  <Phone className="w-4 h-4 text-[#D70F64]" />
+                </a>
+              )}
+              <div className="w-8 h-8 rounded-full bg-slate-200/80 flex items-center justify-center text-slate-600">
+                <ChevronUp className="w-4 h-4" />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* RIDER INFO CARD or KITCHEN PREPARATION CARD */}
         {isOutForDelivery || isDelivered ? (
           <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm space-y-3.5 animate-fade-in">
             <div className="flex items-center justify-between">
@@ -710,6 +807,8 @@ export default function FoodDeliveryTracker({
             </p>
           </div>
         </div>
+        </>
+        )}
       </div>
 
       {/* HELP MODAL */}
