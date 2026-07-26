@@ -3429,35 +3429,50 @@ export default function App() {
           </div>
         ) : (
           <div className="flex-1">
-          {/* Module Switcher Tabs - Direct & Tactile selection */}
+          {/* Module Switcher Tabs - Smooth Framer Motion Switcher */}
           {!isAuthOpen && (
             <div className="max-w-7xl mx-auto px-4 mt-6">
-              <div className="bg-zinc-150 p-1 rounded-2xl flex gap-1.5 border border-zinc-200/60 shadow-xs relative overflow-hidden max-w-sm sm:max-w-md mx-auto">
+              <div className="bg-zinc-200/80 dark:bg-zinc-850 p-1 rounded-2xl flex gap-1.5 border border-zinc-200/80 dark:border-zinc-800 shadow-inner relative overflow-hidden max-w-sm sm:max-w-md mx-auto backdrop-blur-md select-none">
                 <button
                   type="button"
                   onClick={handleGoToFoodHome}
-                  className={`flex-1 py-2 sm:py-3 text-[10.5px] font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  className={`relative flex-1 py-2.5 sm:py-3 text-[10.5px] font-black uppercase tracking-wider rounded-xl transition-colors duration-200 flex items-center justify-center gap-1.5 cursor-pointer z-10 ${
                     activeModule === "food"
-                      ? "bg-[#d70f64] text-white shadow-md scale-[1.01]"
-                      : "text-zinc-600 hover:bg-zinc-200/50 hover:text-zinc-805"
+                      ? "text-white"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
                   }`}
                 >
-                  <span className="text-sm">🍔</span>
-                  <span>Dadu Kitchen</span>
+                  {activeModule === "food" && (
+                    <motion.div
+                      layoutId="activeModulePill"
+                      className="absolute inset-0 bg-[#d70f64] rounded-xl shadow-md"
+                      transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                    />
+                  )}
+                  <span className="relative z-10 text-sm">🍔</span>
+                  <span className="relative z-10">Dadu Kitchen</span>
                 </button>
+
                 <button
                   type="button"
                   onClick={handleGoToGroceryHome}
-                  className={`flex-1 py-2 sm:py-3 text-[10.5px] font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  className={`relative flex-1 py-2.5 sm:py-3 text-[10.5px] font-black uppercase tracking-wider rounded-xl transition-colors duration-200 flex items-center justify-center gap-1.5 cursor-pointer z-10 ${
                     activeModule === "grocery"
-                      ? "bg-pink-600 text-white shadow-md scale-[1.01]"
-                      : "text-zinc-650 hover:bg-zinc-200/50 hover:text-pink-600"
+                      ? "text-white"
+                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
                   }`}
                 >
-                  <span className="text-xs">🍏</span>
-                  <span>Groceries</span>
+                  {activeModule === "grocery" && (
+                    <motion.div
+                      layoutId="activeModulePill"
+                      className="absolute inset-0 bg-[#d70f64] rounded-xl shadow-md"
+                      transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                    />
+                  )}
+                  <span className="relative z-10 text-xs">🍏</span>
+                  <span className="relative z-10">Groceries</span>
                   {groceryCartItems.length > 0 && (
-                    <span className="bg-pink-500 text-white font-mono text-[9px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center animate-pulse leading-none shrink-0 font-black">
+                    <span className="relative z-10 bg-white text-[#d70f64] font-mono text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center shadow-xs leading-none shrink-0">
                       {groceryCartItems.reduce((acc, i) => acc + i.quantity, 0)}
                     </span>
                   )}
@@ -3467,7 +3482,15 @@ export default function App() {
           )}
 
           <Suspense fallback={<div className="p-10 text-center animate-pulse">Loading modules...</div>}>
-            {activeModule === "food" ? (
+            <AnimatePresence mode="wait">
+              {activeModule === "food" ? (
+                <motion.div
+                  key="food-module-view"
+                  initial={{ opacity: 0, y: 14, scale: 0.995 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -14, scale: 0.995 }}
+                  transition={{ duration: 0.24, ease: [0.25, 0.1, 0.25, 1.0] }}
+                >
               <>
                 <BannerCarousel 
                   bannerVersion={deliverySettings.bannerVersion} 
@@ -4401,7 +4424,15 @@ export default function App() {
                 </div>
               </main>
             </>
-          ) : (
+          </motion.div>
+        ) : (
+          <motion.div
+            key="grocery-module-view"
+            initial={{ opacity: 0, y: 14, scale: 0.995 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -14, scale: 0.995 }}
+            transition={{ duration: 0.24, ease: [0.25, 0.1, 0.25, 1.0] }}
+          >
             <GroceryModule
               categories={groceryCategories}
               products={groceryProducts}
@@ -4412,8 +4443,10 @@ export default function App() {
               onRemoveFromCart={handleRemoveFromGroceryCart}
               searchQuery={searchQuery}
             />
-          )}
-          </Suspense>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </Suspense>
         </div>
         )
       ) : (
