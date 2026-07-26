@@ -70,7 +70,7 @@ export default function GroceryModule({
           <div className="relative space-y-2.5 z-10 text-center md:text-left">
             <span className="inline-flex items-center gap-1.5 bg-emerald-500/20 border border-emerald-400/40 text-emerald-200 py-1.5 px-4 rounded-full text-[10.5px] font-black uppercase tracking-wider backdrop-blur-md">
               <Sparkles className="w-3.5 h-3.5 animate-pulse text-emerald-400" />
-              Dadu Express Pandamart
+              Dadu Express Mart
             </span>
             <h2 className="text-2xl sm:text-4xl font-black tracking-tight text-white uppercase drop-shadow-md">
               Fresh Groceries <span className="text-emerald-300 bg-emerald-500/25 border border-emerald-400/30 px-2.5 py-0.5 rounded-xl">15 Min Delivery</span>
@@ -139,7 +139,7 @@ export default function GroceryModule({
             <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-900 dark:text-zinc-100 flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
               {selectedCategoryId === "All"
-                ? "All Pandamart Essentials"
+                ? "All Grocery Essentials"
                 : activeCategories.find((c) => c.id === selectedCategoryId)?.name || "Groceries"}{" "}
               <span className="text-xs text-slate-500 font-bold">({filteredProducts.length})</span>
             </h3>

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import { getDatabase, ref, onValue, off } from "firebase/database";
 import { app, db } from "../firebase";
+import daduLogo from "../assets/images/dadu_food_logo_new_1782333467889.jpg";
 import {
   ChevronLeft,
   Compass,
@@ -26,6 +27,8 @@ interface FoodDeliveryTrackerProps {
   orderId: string;
   orderStatus: string; // e.g. "out_for_delivery", "DELIVERED", "preparing", "accepted", "pending"
   destinationCoords: Coords;
+  restaurantCoords?: Coords;
+  orderEta?: string;
   riderName?: string;
   riderPhone?: string;
   initialRiderCoords?: Coords;
@@ -40,7 +43,9 @@ export default function FoodDeliveryTracker({
   orderId,
   orderStatus,
   destinationCoords,
-  riderName = "Fateh Muhammad",
+  restaurantCoords,
+  orderEta,
+  riderName,
   riderPhone,
   initialRiderCoords,
   onClose,
@@ -55,11 +60,37 @@ export default function FoodDeliveryTracker({
   const destMarkerRef = useRef<L.Marker | null>(null);
   const routePolylineRef = useRef<L.Polyline | null>(null);
 
+  const normalizedStatus = (orderStatus || "").toLowerCase().trim();
+  const isOutForDelivery =
+    normalizedStatus === "out_for_delivery" ||
+    normalizedStatus === "out_for_delivery_active" ||
+    normalizedStatus === "dispatched";
+  const isDelivered =
+    normalizedStatus === "delivered" || normalizedStatus === "completed";
+  const isKitchen =
+    normalizedStatus === "preparing" ||
+    normalizedStatus === "kitchen" ||
+    normalizedStatus === "cooking" ||
+    normalizedStatus === "in_kitchen";
+  const isAccepted =
+    normalizedStatus === "accepted" || normalizedStatus === "confirmed";
+  const isPlaced =
+    !isOutForDelivery && !isDelivered && !isKitchen && !isAccepted;
+
+  // Restaurant location default to Dadu Central Kitchen or passed admin location
+  const restLat = restaurantCoords?.latitude || 26.7323;
+  const restLng = restaurantCoords?.longitude || 67.7744;
+
   // Position state refs for smooth animation
-  const currentRiderPosRef = useRef<[number, number]>([
-    initialRiderCoords?.latitude || destinationCoords.latitude + 0.009,
-    initialRiderCoords?.longitude || destinationCoords.longitude + 0.009,
-  ]);
+  // If rider is out for delivery, start from rider coords; otherwise start at store/restaurant location
+  const initialPos: [number, number] = (isOutForDelivery || isDelivered)
+    ? [
+        initialRiderCoords?.latitude || restLat + 0.005,
+        initialRiderCoords?.longitude || restLng + 0.005,
+      ]
+    : [restLat, restLng];
+
+  const currentRiderPosRef = useRef<[number, number]>(initialPos);
   const animFrameIdRef = useRef<number | null>(null);
 
   const [distanceKm, setDistanceKm] = useState<number | null>(1.2);
@@ -70,13 +101,31 @@ export default function FoodDeliveryTracker({
   const [showChat, setShowChat] = useState<boolean>(false);
   const [showHelpModal, setShowHelpModal] = useState<boolean>(false);
 
-  const normalizedStatus = (orderStatus || "").toLowerCase().trim();
-  const isOutForDelivery =
-    normalizedStatus === "out_for_delivery" ||
-    normalizedStatus === "out_for_delivery_active" ||
-    normalizedStatus === "dispatched";
-  const isDelivered =
-    normalizedStatus === "delivered" || normalizedStatus === "completed";
+  let statusTitle = "Order Received";
+  let statusSubtitle = "Waiting for restaurant confirmation";
+  let gaugePercent = "18";
+
+  if (isDelivered) {
+    statusTitle = "Order Delivered!";
+    statusSubtitle = "Your Dadu Food hero delivered your meal";
+    gaugePercent = "100";
+  } else if (isOutForDelivery) {
+    statusTitle = "On the way";
+    statusSubtitle = "The rider is heading to you";
+    gaugePercent = "80";
+  } else if (isKitchen) {
+    statusTitle = "Preparing in kitchen";
+    statusSubtitle = "Chef is cooking your fresh hot meal";
+    gaugePercent = "55";
+  } else if (isAccepted) {
+    statusTitle = "Order Confirmed";
+    statusSubtitle = "Restaurant accepted your order";
+    gaugePercent = "38";
+  } else {
+    statusTitle = "Order Received";
+    statusSubtitle = "Waiting for restaurant to confirm";
+    gaugePercent = "18";
+  }
 
   // Calculate straight-line distance
   const calculateHaversineDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -213,16 +262,31 @@ export default function FoodDeliveryTracker({
       subdomains: "abcd",
     }).addTo(map);
 
-    // Custom Foodpanda Rider Icon (Pink panda badge with rider icon & ping)
+    // Custom Dadu Food Rider Icon (Logo badge with rider ping)
     const riderDivIcon = L.divIcon({
-      className: "custom-foodpanda-rider-marker filter drop-shadow-md",
+      className: "custom-dadufood-rider-marker filter drop-shadow-md",
       html: `
         <div class="relative flex items-center justify-center">
           <div class="absolute w-12 h-12 bg-[#D70F64]/25 rounded-full animate-ping"></div>
-          <div class="w-10 h-10 bg-[#D70F64] text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white">
-            <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
-            </svg>
+          <div class="w-10 h-10 bg-[#D70F64] text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white overflow-hidden p-0.5">
+            <img src="${daduLogo}" class="w-full h-full object-cover rounded-full" />
+          </div>
+        </div>
+      `,
+      iconSize: [40, 40],
+      iconAnchor: [20, 20],
+    });
+
+    // Custom Restaurant Pin Icon
+    const restaurantDivIcon = L.divIcon({
+      className: "custom-restaurant-marker filter drop-shadow-md",
+      html: `
+        <div class="relative flex items-center justify-center">
+          <div class="w-10 h-10 bg-gradient-to-tr from-[#D70F64] to-amber-500 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white overflow-hidden p-0.5">
+            <img src="${daduLogo}" class="w-full h-full object-cover rounded-full" />
+          </div>
+          <div class="absolute -bottom-1 bg-slate-900 text-white text-[8px] font-black px-1.5 py-0.2 rounded-full border border-white shadow-xs">
+            STORE
           </div>
         </div>
       `,
@@ -247,7 +311,9 @@ export default function FoodDeliveryTracker({
     });
 
     const destMarker = L.marker([destLat, destLng], { icon: houseDivIcon }).addTo(map);
-    const riderMarker = L.marker([startRiderLat, startRiderLng], { icon: riderDivIcon }).addTo(map);
+    const riderMarker = L.marker([startRiderLat, startRiderLng], {
+      icon: isOutForDelivery ? riderDivIcon : restaurantDivIcon,
+    }).addTo(map);
 
     // Foodpanda Pink Road Polyline
     const polyline = L.polyline(
@@ -383,21 +449,13 @@ export default function FoodDeliveryTracker({
           <div className="bg-white/98 backdrop-blur-md shadow-2xl rounded-3xl p-4 sm:p-5 border border-slate-100 flex items-center justify-between transition-all">
             <div className="space-y-0.5">
               <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-none">
-                {minEta} — {maxEta} mins
+                {orderEta ? (orderEta.toLowerCase().includes("min") ? orderEta : `${orderEta} mins`) : `${minEta} — ${maxEta} mins`}
               </h2>
               <p className="text-sm font-extrabold text-slate-900 pt-1">
-                {isDelivered
-                  ? "Order Delivered!"
-                  : isOutForDelivery
-                  ? "On the way"
-                  : "Preparing in kitchen"}
+                {statusTitle}
               </p>
               <p className="text-xs text-slate-500 font-medium">
-                {isDelivered
-                  ? "Your food panda hero delivered your meal"
-                  : isOutForDelivery
-                  ? "The rider is heading to you"
-                  : "Chef is cooking your fresh hot meal"}
+                {statusSubtitle}
               </p>
             </div>
 
@@ -415,7 +473,7 @@ export default function FoodDeliveryTracker({
                 {/* Dark Green Arc Progress */}
                 <path
                   className="text-[#0f6848] transition-all duration-1000 ease-out"
-                  strokeDasharray={`${isDelivered ? "100" : isOutForDelivery ? "75" : "35"}, 100`}
+                  strokeDasharray={`${gaugePercent}, 100`}
                   strokeWidth="3.5"
                   strokeLinecap="round"
                   stroke="currentColor"
@@ -424,14 +482,14 @@ export default function FoodDeliveryTracker({
                 />
               </svg>
 
-              {/* Foodpanda Shopping Bag Center Illustration */}
+              {/* Dadu Food Shopping Bag Center Illustration */}
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-10 h-10 rounded-full bg-pink-50 flex items-center justify-center">
                   <div className="relative">
-                    {/* Pink foodpanda shopping bag */}
-                    <div className="w-6 h-7 bg-[#D70F64] rounded-md shadow-xs flex items-center justify-center relative">
+                    {/* Pink dadufood shopping bag */}
+                    <div className="w-6 h-7 bg-[#D70F64] rounded-md shadow-xs flex items-center justify-center relative overflow-hidden p-0.5">
                       <div className="w-2.5 h-1.5 border-t-2 border-r-2 border-white/90 rounded-t-full -mt-4" />
-                      <span className="text-[10px] text-white font-black">🐼</span>
+                      <img src={daduLogo} alt="DF" className="w-4 h-4 object-cover rounded-full" />
                     </div>
                   </div>
                 </div>
@@ -447,66 +505,157 @@ export default function FoodDeliveryTracker({
         {/* Drag Handle Indicator */}
         <div className="w-12 h-1 bg-slate-300 rounded-full mx-auto -mt-1 mb-1" />
 
-        {/* RIDER INFO CARD */}
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm space-y-3.5">
-          <div className="flex items-center justify-between">
+        {/* RIDER INFO CARD or KITCHEN PREPARATION CARD */}
+        {isOutForDelivery || isDelivered ? (
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm space-y-3.5 animate-fade-in">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3.5">
+                {/* Pink Helmet Rider Avatar */}
+                <div className="w-12 h-12 rounded-full bg-pink-100 border border-pink-200 flex items-center justify-center shrink-0 text-xl shadow-xs">
+                  🪖
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-extrabold text-slate-900 leading-tight">
+                    {riderName || "Dadu Food Captain"}
+                  </h4>
+                  <p className="text-xs font-semibold text-slate-500 mt-0.5">
+                    Motorbike • Dadu Food Captain
+                  </p>
+                </div>
+              </div>
+
+              {riderPhone && (
+                <a
+                  href={`tel:${riderPhone}`}
+                  className="w-9 h-9 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-full flex items-center justify-center transition active:scale-95"
+                  title="Call Rider"
+                >
+                  <Phone className="w-4 h-4" />
+                </a>
+              )}
+            </div>
+
+            {/* Chat Action Button */}
+            <button
+              onClick={() => setShowChat(!showChat)}
+              className="w-full bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-extrabold text-xs py-3 px-4 rounded-2xl flex items-center justify-between transition shadow-xs active:scale-98 cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-slate-700" />
+                <span>Chat with your rider</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-400" />
+            </button>
+
+            {/* Expandable OrderChat Drawer */}
+            {showChat && (
+              <div className="pt-2 animate-fade-in">
+                <OrderChat
+                  orderId={orderId}
+                  currentUser={{
+                    uid: currentUser?.uid || "guest",
+                    name: currentUser?.name || "Customer",
+                    role: currentUser?.role || "user",
+                  }}
+                  recipientName={riderName || "Rider"}
+                  recipientRole="rider"
+                  onClose={() => setShowChat(false)}
+                  isOpen={showChat}
+                />
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="bg-gradient-to-br from-pink-50/80 via-white to-amber-50/40 border border-pink-200/80 rounded-2xl p-4 shadow-sm space-y-3 animate-fade-in">
             <div className="flex items-center gap-3.5">
-              {/* Pink Helmet Rider Avatar */}
-              <div className="w-12 h-12 rounded-full bg-pink-100 border border-pink-200 flex items-center justify-center shrink-0 text-xl shadow-xs">
-                🪖
+              <div className="w-11 h-11 rounded-2xl bg-[#D70F64] text-white flex items-center justify-center shrink-0 font-extrabold text-xl shadow-xs">
+                {isKitchen ? "🍳" : isAccepted ? "👨‍🍳" : "📝"}
               </div>
 
               <div>
                 <h4 className="text-sm font-extrabold text-slate-900 leading-tight">
-                  {riderName}
+                  {restaurantName || "Dadu Central Kitchen"}
                 </h4>
-                <p className="text-xs font-semibold text-slate-500 mt-0.5">
-                  Motorbike • Foodpanda Captain
+                <p className="text-xs font-semibold text-pink-600 mt-0.5 flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-pink-500 animate-ping inline-block" />
+                  {isKitchen
+                    ? "Preparing in kitchen"
+                    : isAccepted
+                    ? "Order Confirmed"
+                    : "Order Placed - Awaiting Confirmation"}
                 </p>
               </div>
             </div>
 
-            {riderPhone && (
-              <a
-                href={`tel:${riderPhone}`}
-                className="w-9 h-9 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-full flex items-center justify-center transition active:scale-95"
-                title="Call Rider"
-              >
-                <Phone className="w-4 h-4" />
-              </a>
-            )}
+            <p className="text-xs text-slate-600 font-medium leading-relaxed bg-white/90 p-3 rounded-xl border border-pink-100/80">
+              {isKitchen
+                ? "The restaurant is cooking your order fresh and hot. A rider will pick up your meal as soon as it's ready. Rider details and direct live chat will open automatically once dispatched!"
+                : isAccepted
+                ? "The restaurant has confirmed your order and is getting ingredients ready for the kitchen!"
+                : "Your order has been placed successfully and sent to the restaurant. They will confirm and start preparing your food shortly!"}
+            </p>
+
+            {/* Foodpanda style 4-step progress bar */}
+            <div className="pt-2 border-t border-pink-100">
+              <div className="grid grid-cols-4 gap-1 text-center text-[10px] font-bold">
+                {/* Step 1: Placed */}
+                <div className={`flex flex-col items-center gap-1 ${isPlaced ? "text-[#D70F64] font-extrabold" : "text-emerald-600"}`}>
+                  {isPlaced ? (
+                    <div className="w-4.5 h-4.5 rounded-full bg-pink-100 border border-pink-500 flex items-center justify-center text-[9px] animate-bounce">
+                      📝
+                    </div>
+                  ) : (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  )}
+                  <span>Placed</span>
+                </div>
+
+                {/* Step 2: Accepted */}
+                <div className={`flex flex-col items-center gap-1 ${isAccepted ? "text-[#D70F64] font-extrabold" : (isKitchen || isOutForDelivery || isDelivered) ? "text-emerald-600" : "text-slate-400"}`}>
+                  {isAccepted ? (
+                    <div className="w-4.5 h-4.5 rounded-full bg-pink-100 border border-pink-500 flex items-center justify-center text-[9px] animate-bounce">
+                      👨‍🍳
+                    </div>
+                  ) : (isKitchen || isOutForDelivery || isDelivered) ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  ) : (
+                    <Clock className="w-4 h-4 text-slate-300" />
+                  )}
+                  <span>Confirmed</span>
+                </div>
+
+                {/* Step 3: Kitchen */}
+                <div className={`flex flex-col items-center gap-1 ${isKitchen ? "text-[#D70F64] font-extrabold" : (isOutForDelivery || isDelivered) ? "text-emerald-600" : "text-slate-400"}`}>
+                  {isKitchen ? (
+                    <div className="w-4.5 h-4.5 rounded-full bg-pink-100 border border-pink-500 flex items-center justify-center text-[9px] animate-bounce">
+                      🍳
+                    </div>
+                  ) : (isOutForDelivery || isDelivered) ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  ) : (
+                    <Clock className="w-4 h-4 text-slate-300" />
+                  )}
+                  <span>Kitchen</span>
+                </div>
+
+                {/* Step 4: On Way */}
+                <div className={`flex flex-col items-center gap-1 ${isOutForDelivery ? "text-[#D70F64] font-extrabold" : isDelivered ? "text-emerald-600" : "text-slate-400"}`}>
+                  {isOutForDelivery ? (
+                    <div className="w-4.5 h-4.5 rounded-full bg-pink-100 border border-pink-500 flex items-center justify-center text-[9px] animate-bounce">
+                      🏍️
+                    </div>
+                  ) : isDelivered ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  ) : (
+                    <Clock className="w-4 h-4 text-slate-300" />
+                  )}
+                  <span>On Way</span>
+                </div>
+              </div>
+            </div>
           </div>
-
-          {/* Chat Action Button */}
-          <button
-            onClick={() => setShowChat(!showChat)}
-            className="w-full bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-extrabold text-xs py-3 px-4 rounded-2xl flex items-center justify-between transition shadow-xs active:scale-98 cursor-pointer"
-          >
-            <div className="flex items-center gap-2">
-              <MessageSquare className="w-4 h-4 text-slate-700" />
-              <span>Chat with your rider</span>
-            </div>
-            <ChevronRight className="w-4 h-4 text-slate-400" />
-          </button>
-
-          {/* Expandable OrderChat Drawer */}
-          {showChat && (
-            <div className="pt-2 animate-fade-in">
-              <OrderChat
-                orderId={orderId}
-                currentUser={{
-                  uid: currentUser?.uid || "guest",
-                  name: currentUser?.name || "Customer",
-                  role: currentUser?.role || "user",
-                }}
-                recipientName={riderName}
-                recipientRole="rider"
-                onClose={() => setShowChat(false)}
-                isOpen={showChat}
-              />
-            </div>
-          )}
-        </div>
+        )}
 
         {/* ORDER SUMMARY BANNER */}
         <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-3.5 space-y-2">
@@ -575,11 +724,11 @@ export default function FoodDeliveryTracker({
             </button>
 
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-pink-100 text-[#D70F64] flex items-center justify-center font-bold text-xl">
-                🐼
+              <div className="w-10 h-10 rounded-2xl bg-pink-100 border border-pink-200 overflow-hidden flex items-center justify-center shrink-0">
+                <img src={daduLogo} alt="Dadu Food" className="w-full h-full object-cover" />
               </div>
               <div>
-                <h3 className="text-base font-extrabold text-slate-900">Foodpanda Support</h3>
+                <h3 className="text-base font-extrabold text-slate-900">Dadu Food Support</h3>
                 <p className="text-xs text-slate-500 font-medium">Order Help & Order Hotline</p>
               </div>
             </div>

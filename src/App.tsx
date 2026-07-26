@@ -2636,6 +2636,7 @@ export default function App() {
               order={activeTrackingOrder}
               onClose={() => setIsTrackingModalOpen(false)}
               currentUser={currentUser}
+              deliverySettings={deliverySettings}
             />
           </div>
         </div>

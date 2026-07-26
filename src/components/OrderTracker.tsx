@@ -10,9 +10,10 @@ interface OrderTrackerProps {
   order: Order;
   onClose?: () => void;
   currentUser?: any;
+  deliverySettings?: any;
 }
 
-export default function OrderTracker({ order, onClose, currentUser }: OrderTrackerProps) {
+export default function OrderTracker({ order, onClose, currentUser, deliverySettings }: OrderTrackerProps) {
   const isService = order.orderType === "service";
   const [showLiveChat, setShowLiveChat] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -45,7 +46,17 @@ export default function OrderTracker({ order, onClose, currentUser }: OrderTrack
     (!!order.riderName && statusLower !== "cancelled")
   );
 
-  if (isDispatched) {
+  const restaurantCoords =
+    (order as any).restaurantCoords ||
+    (order as any).baseLocationCoords ||
+    (deliverySettings?.baseLocationCoords
+      ? {
+          latitude: deliverySettings.baseLocationCoords.lat,
+          longitude: deliverySettings.baseLocationCoords.lng,
+        }
+      : undefined);
+
+  if (!isService) {
     return (
       <FoodDeliveryTracker
         orderId={order.id}
@@ -56,7 +67,10 @@ export default function OrderTracker({ order, onClose, currentUser }: OrderTrack
             longitude: 67.7744,
           }
         }
-        riderName={order.riderName || "Fateh Muhammad"}
+        restaurantCoords={restaurantCoords}
+        orderEta={order.eta}
+        initialRiderCoords={order.riderCoords}
+        riderName={order.riderName}
         riderPhone={order.riderPhone}
         restaurantName={order.restaurantName || "Dadu Central Kitchen"}
         items={order.items}
@@ -174,7 +188,7 @@ export default function OrderTracker({ order, onClose, currentUser }: OrderTrack
           <div className="flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-zinc-950/40 p-3.5 rounded-xl border border-zinc-900">
               <div className="flex items-center gap-3.5">
-                {/* Foodpanda styled pink-themed avatar circle */}
+                {/* Dadu Food styled pink-themed avatar circle */}
                 <div className="relative shrink-0">
                   <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#D70F64] via-pink-500 to-amber-500 p-0.5 shadow-md">
                     <div className="w-full h-full rounded-full bg-zinc-900 flex items-center justify-center text-white font-black text-lg font-mono">
@@ -188,10 +202,10 @@ export default function OrderTracker({ order, onClose, currentUser }: OrderTrack
 
                 {/* Rider Info text */}
                 <div>
-                  <span className="text-zinc-500 text-[9px] uppercase font-black tracking-wider block">Your foodpanda Hero</span>
+                  <span className="text-zinc-500 text-[9px] uppercase font-black tracking-wider block">Your Dadu Food Hero</span>
                   <span className="text-sm font-black text-white block mt-0.5">{order.riderName}</span>
                   
-                  {/* Foodpanda style rating & vehicle information */}
+                  {/* Dadu Food style rating & vehicle information */}
                   <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-1.5 text-[10px] text-zinc-400 font-extrabold">
                     <span className="text-amber-400 flex items-center gap-0.5 bg-amber-500/10 px-1.5 py-0.5 rounded">
                       ⭐ 4.9 <span className="text-[8.5px] text-zinc-400">(420+ trips)</span>
@@ -287,7 +301,7 @@ export default function OrderTracker({ order, onClose, currentUser }: OrderTrack
             <div>
               <span className="text-xs font-black text-zinc-350 block uppercase tracking-wide">Assigning Premier Rider...</span>
               <span className="text-[10px] text-zinc-400 font-semibold block mt-1 leading-relaxed">
-                Your order is currently cooking hot inside the kitchen. A foodpanda captain is standing by to accept dispatch instantly!
+                Your order is currently cooking hot inside the kitchen. A Dadu Food captain is standing by to accept dispatch instantly!
               </span>
             </div>
           </div>
