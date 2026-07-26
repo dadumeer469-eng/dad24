@@ -120,85 +120,81 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      // Safe environment check to prevent SecurityError and cross-origin "Script error" in sandboxed development preview iframes
-      let isTopLevel = false;
-      try {
-        isTopLevel = (window.parent === window);
-      } catch (e) {
-        isTopLevel = false;
+      // Service Worker Registration for PWA & Offline Support
+      if ('serviceWorker' in navigator) {
+        const registerSW = () => {
+          try {
+            navigator.serviceWorker.register('/sw.js', { scope: '/' }).then((reg) => {
+              console.log('ServiceWorker registered successfully with scope:', reg.scope);
+            }).catch((err) => {
+              console.warn('ServiceWorker registration failed:', err);
+            });
+          } catch (e) {
+            console.warn('ServiceWorker error:', e);
+          }
+        };
+
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+          registerSW();
+        } else {
+          window.addEventListener('load', registerSW);
+        }
       }
 
-      if (isTopLevel) {
-        if ('serviceWorker' in navigator) {
-          const registerSW = () => {
-            try {
-              navigator.serviceWorker.register('/sw.js').then((reg) => {
-                console.log('ServiceWorker registered successfully:', reg.scope);
-              }).catch((err) => {
-                console.warn('ServiceWorker registration failed:', err);
-              });
-            } catch (e) {
-              console.warn('ServiceWorker registration error:', e);
-            }
-          };
+      let deferredPrompt = null;
+      const pwaBanner = document.getElementById('pwaBanner');
+      const installBtn = document.getElementById('installBtn');
+      const closeBannerBtn = document.getElementById('closeBannerBtn');
 
-          if (document.readyState === 'complete' || document.readyState === 'interactive') {
-            registerSW();
-          } else {
-            window.addEventListener('load', registerSW);
-          }
+      // Check if user dismissed the banner previously in this session
+      const isBannerDismissed = sessionStorage.getItem('pwa-banner-dismissed');
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        // Prevent default mini-infobar on mobile Chrome
+        e.preventDefault();
+        deferredPrompt = e;
+        window.deferredPwaPrompt = e; // Expose globally for UI components
+        if (pwaBanner && !isBannerDismissed) {
+          pwaBanner.style.display = 'block';
         }
+      });
 
-        let deferredPrompt;
-        const pwaBanner = document.getElementById('pwaBanner');
-        const installBtn = document.getElementById('installBtn');
-        const closeBannerBtn = document.getElementById('closeBannerBtn');
-
-        // Check if user dismissed the banner previously in this session
-        const isBannerDismissed = sessionStorage.getItem('pwa-banner-dismissed');
-
-        window.addEventListener('beforeinstallprompt', (e) => {
-          e.preventDefault();
-          deferredPrompt = e;
-          if (pwaBanner && !isBannerDismissed) {
-            pwaBanner.style.display = 'block';
+      if (installBtn) {
+        installBtn.addEventListener('click', async () => {
+          const promptEvent = deferredPrompt || window.deferredPwaPrompt;
+          if (promptEvent) {
+            try {
+              promptEvent.prompt();
+              const { outcome } = await promptEvent.userChoice;
+              if (outcome === 'accepted') {
+                if (pwaBanner) pwaBanner.style.display = 'none';
+              }
+            } catch (err) {
+              console.warn('PWA install prompt failed:', err);
+            }
+            deferredPrompt = null;
+            window.deferredPwaPrompt = null;
+          } else {
+            alert("App install karne ke liye Chrome / Safari menu par 'Add to Home Screen' ya 'Install App' par click karein, ya URL ko Naye Tab (New Tab) mein kholein!");
           }
         });
+      }
 
-        if (installBtn) {
-          installBtn.addEventListener('click', async () => {
-            if (deferredPrompt) {
-              try {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                  if (pwaBanner) {
-                    pwaBanner.style.display = 'none';
-                  }
-                }
-              } catch (err) {
-                console.warn('Prompt failed or cancelled:', err);
-              }
-              deferredPrompt = null;
-            }
-          });
-        }
-
-        if (closeBannerBtn) {
-          closeBannerBtn.addEventListener('click', () => {
-            if (pwaBanner) {
-              pwaBanner.style.display = 'none';
-            }
-            sessionStorage.setItem('pwa-banner-dismissed', 'true');
-          });
-        }
-
-        window.addEventListener('appinstalled', () => {
+      if (closeBannerBtn) {
+        closeBannerBtn.addEventListener('click', () => {
           if (pwaBanner) {
             pwaBanner.style.display = 'none';
           }
+          sessionStorage.setItem('pwa-banner-dismissed', 'true');
         });
       }
+
+      window.addEventListener('appinstalled', () => {
+        if (pwaBanner) {
+          pwaBanner.style.display = 'none';
+        }
+        console.log('Dadu Food PWA was successfully installed!');
+      });
     </script>
   </body>
 </html>
