@@ -12,6 +12,7 @@ import { motion } from "motion/react";
 import { FoodCategory } from "../types";
 import daduLogo from "../assets/images/dadu_food_logo_new_1782333467889.jpg";
 import { LazyImage } from "./LazyImage";
+import triggerHaptic from "../utils/haptics";
 
 interface FoodpandaHeroProps {
   activeCategory: string;
@@ -118,6 +119,7 @@ export default function FoodpandaHero({
                 whileHover={{ scale: 1.06 }}
                 whileTap={{ scale: 0.94 }}
                 onClick={() => {
+                  triggerHaptic("medium");
                   const el = document.getElementById("catalog-section");
                   el?.scrollIntoView({ behavior: "smooth" });
                 }}
@@ -235,7 +237,10 @@ export default function FoodpandaHero({
                 transition={{ duration: 0.35, delay: idx * 0.04 }}
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => setActiveCategory(cat.name)}
+                onClick={() => {
+                  triggerHaptic("light");
+                  setActiveCategory(cat.name);
+                }}
                 className={`flex items-center gap-3 py-2 px-4.5 rounded-2xl text-xs font-bold shrink-0 transition-colors cursor-pointer border relative overflow-hidden snap-start ${
                   isSelected
                     ? `bg-gradient-to-r ${cat.color || "from-[#d70f64] to-[#f22c80]"} text-white border-transparent shadow-lg shadow-red-500/15`
