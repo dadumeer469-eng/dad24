@@ -1,21 +1,21 @@
 import React, { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import { getDatabase, ref, onValue, off } from "firebase/database";
-import { app } from "../firebase";
+import { app, db } from "../firebase";
 import {
-  CheckCircle2,
-  Navigation,
+  ChevronLeft,
+  Compass,
+  MessageSquare,
+  Phone,
+  ChevronRight,
+  HelpCircle,
+  X,
   MapPin,
-  Bike,
-  WifiOff,
-  AlertTriangle,
+  CheckCircle2,
   Clock,
-  UtensilsCrossed,
-  ShoppingBag,
-  ChefHat,
-  Receipt,
   Sparkles,
 } from "lucide-react";
+import OrderChat from "./OrderChat";
 
 interface Coords {
   latitude: number;
@@ -27,23 +27,27 @@ interface FoodDeliveryTrackerProps {
   orderStatus: string; // e.g. "out_for_delivery", "DELIVERED", "preparing", "accepted", "pending"
   destinationCoords: Coords;
   riderName?: string;
+  riderPhone?: string;
   initialRiderCoords?: Coords;
   onClose?: () => void;
   restaurantName?: string;
   items?: { name: string; quantity: number; price: number }[];
   grandTotal?: number;
+  currentUser?: any;
 }
 
 export default function FoodDeliveryTracker({
   orderId,
   orderStatus,
   destinationCoords,
-  riderName = "Foodpanda Hero",
+  riderName = "Fateh Muhammad",
+  riderPhone,
   initialRiderCoords,
   onClose,
   restaurantName,
   items,
   grandTotal,
+  currentUser,
 }: FoodDeliveryTrackerProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -53,36 +57,18 @@ export default function FoodDeliveryTracker({
 
   // Position state refs for smooth animation
   const currentRiderPosRef = useRef<[number, number]>([
-    initialRiderCoords?.latitude || destinationCoords.latitude + 0.012,
-    initialRiderCoords?.longitude || destinationCoords.longitude + 0.012,
+    initialRiderCoords?.latitude || destinationCoords.latitude + 0.009,
+    initialRiderCoords?.longitude || destinationCoords.longitude + 0.009,
   ]);
   const animFrameIdRef = useRef<number | null>(null);
 
-  const [distanceKm, setDistanceKm] = useState<number | null>(null);
-  const [etaMinutes, setEtaMinutes] = useState<number | null>(null);
-  const [lastUpdatedTime, setLastUpdatedTime] = useState<string>("Waiting for update...");
-  const [isConnectedToRTDB, setIsConnectedToRTDB] = useState<boolean>(false);
-  const [isRiderOnline, setIsRiderOnline] = useState<boolean>(false);
-  const [hasReceivedRiderData, setHasReceivedRiderData] = useState<boolean>(false);
+  const [distanceKm, setDistanceKm] = useState<number | null>(1.2);
+  const [etaMinutes, setEtaMinutes] = useState<number | null>(8);
+  const [lastUpdatedTime, setLastUpdatedTime] = useState<string>("Just now");
+  const [isRiderOnline, setIsRiderOnline] = useState<boolean>(true);
   const [isLiveTrackingEnabled, setIsLiveTrackingEnabled] = useState<boolean>(true);
-
-  // Listen to admin setting at /settings/live_tracking_enabled
-  useEffect(() => {
-    let settingsRef: any = null;
-    try {
-      const rtdb = getDatabase(app);
-      settingsRef = ref(rtdb, "settings/live_tracking_enabled");
-      const unsubscribe = onValue(settingsRef, (snapshot) => {
-        const val = snapshot.val();
-        setIsLiveTrackingEnabled(val === null ? true : Boolean(val));
-      });
-      return () => {
-        off(settingsRef);
-      };
-    } catch (e) {
-      console.warn("RTDB settings listener error:", e);
-    }
-  }, []);
+  const [showChat, setShowChat] = useState<boolean>(false);
+  const [showHelpModal, setShowHelpModal] = useState<boolean>(false);
 
   const normalizedStatus = (orderStatus || "").toLowerCase().trim();
   const isOutForDelivery =
@@ -91,16 +77,8 @@ export default function FoodDeliveryTracker({
     normalizedStatus === "dispatched";
   const isDelivered =
     normalizedStatus === "delivered" || normalizedStatus === "completed";
-  const isPreDelivery = !isOutForDelivery && !isDelivered;
 
-  // Ref to hold current destination lat/lng to avoid re-initializing map on object re-renders
-  const destCoordsRef = useRef<[number, number]>([
-    destinationCoords.latitude,
-    destinationCoords.longitude,
-  ]);
-  destCoordsRef.current = [destinationCoords.latitude, destinationCoords.longitude];
-
-  // Calculate straight-line fallback distance using Haversine formula
+  // Calculate straight-line distance
   const calculateHaversineDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const R = 6371; // km
     const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -130,21 +108,19 @@ export default function FoodDeliveryTracker({
       const data = await res.json();
       if (data.routes && data.routes.length > 0) {
         const route = data.routes[0];
-        // Convert [lng, lat] from GeoJSON to [lat, lng] for Leaflet
         const roadCoords: [number, number][] = route.geometry.coordinates.map(
           ([lng, lat]: [number, number]) => [lat, lng]
         );
 
-        const distMeters = route.distance; // distance in meters
-        const durationSec = route.duration; // duration in seconds
+        const distMeters = route.distance;
+        const durationSec = route.duration;
 
-        const km = parseFloat((distMeters / 1000).toFixed(2));
-        const mins = Math.max(1, Math.round(durationSec / 60));
+        const km = parseFloat((distMeters / 1000).toFixed(1));
+        const mins = Math.max(3, Math.round(durationSec / 60));
 
         setDistanceKm(km);
         setEtaMinutes(mins);
 
-        // Update map polyline with exact road path
         if (routePolylineRef.current && mapInstanceRef.current) {
           routePolylineRef.current.setLatLngs(roadCoords);
         }
@@ -154,7 +130,6 @@ export default function FoodDeliveryTracker({
       console.warn("OSRM routing API error, using fallback line:", err);
     }
 
-    // Fallback if OSRM unavailable
     if (routePolylineRef.current && mapInstanceRef.current) {
       routePolylineRef.current.setLatLngs([
         [riderLat, riderLng],
@@ -162,8 +137,8 @@ export default function FoodDeliveryTracker({
       ]);
     }
     const fallbackDist = calculateHaversineDistance(riderLat, riderLng, destLat, destLng);
-    setDistanceKm(parseFloat(fallbackDist.toFixed(2)));
-    setEtaMinutes(Math.max(1, Math.round(fallbackDist * 2.2)));
+    setDistanceKm(parseFloat(fallbackDist.toFixed(1)));
+    setEtaMinutes(Math.max(3, Math.round(fallbackDist * 3)));
   };
 
   // Smooth lerp animation function for rider marker gliding
@@ -184,8 +159,6 @@ export default function FoodDeliveryTracker({
 
       const elapsed = now - startTime;
       const progress = Math.min(elapsed / durationMs, 1);
-
-      // Smooth easeInOutQuad easing
       const ease = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
 
       const interpolatedLat = startLat + (targetLat - startLat) * ease;
@@ -193,7 +166,6 @@ export default function FoodDeliveryTracker({
 
       currentRiderPosRef.current = [interpolatedLat, interpolatedLng];
 
-      // Update rider marker position on map safely
       try {
         const marker = riderMarkerRef.current as any;
         if (marker && marker._icon && mapInstanceRef.current) {
@@ -206,22 +178,18 @@ export default function FoodDeliveryTracker({
       if (progress < 1 && mapInstanceRef.current) {
         animFrameIdRef.current = requestAnimationFrame(frameStep);
       } else {
-        setLastUpdatedTime(new Date().toLocaleTimeString());
+        setLastUpdatedTime("Just now");
       }
     };
 
     animFrameIdRef.current = requestAnimationFrame(frameStep);
-
-    // Fetch road route for updated position
     fetchAndDrawOSRMRoute(targetLat, targetLng, destinationCoords.latitude, destinationCoords.longitude);
   };
 
-  // 1. Initialize Leaflet Map (ONLY when out for delivery or delivered)
+  // Initialize Leaflet Map
   useEffect(() => {
-    if (isPreDelivery) return; // Do NOT initialize Leaflet map in pre-delivery state!
     if (!mapContainerRef.current || mapInstanceRef.current) return;
 
-    // Reset container if Leaflet left stale ID
     if (mapContainerRef.current && (mapContainerRef.current as any)._leaflet_id) {
       (mapContainerRef.current as any)._leaflet_id = null;
     }
@@ -231,7 +199,6 @@ export default function FoodDeliveryTracker({
     const startRiderLat = currentRiderPosRef.current[0];
     const startRiderLng = currentRiderPosRef.current[1];
 
-    // Center map midpoint
     const midLat = (destLat + startRiderLat) / 2;
     const midLng = (destLng + startRiderLng) / 2;
 
@@ -240,21 +207,22 @@ export default function FoodDeliveryTracker({
       attributionControl: false,
     }).setView([midLat, midLng], 14);
 
-    // CartoDB Voyager Tiles (Google Maps / Foodpanda modern style)
+    // CartoDB Voyager Tiles for Foodpanda style clean vector map
     L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
       maxZoom: 19,
       subdomains: "abcd",
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
     }).addTo(map);
 
-    // Custom Rider Icon (Motorcycle inside a pulsing pink pin)
+    // Custom Foodpanda Rider Icon (Pink panda badge with rider icon & ping)
     const riderDivIcon = L.divIcon({
-      className: "custom-rider-marker filter drop-shadow-xl",
+      className: "custom-foodpanda-rider-marker filter drop-shadow-md",
       html: `
         <div class="relative flex items-center justify-center">
-          <div class="absolute w-12 h-12 bg-[#FF2B85]/40 rounded-full animate-ping"></div>
-          <div class="w-10 h-10 bg-gradient-to-tr from-[#D70F64] to-[#FF2B85] text-white rounded-full flex items-center justify-center shadow-2xl border-2 border-white ring-4 ring-[#D70F64]/30 drop-shadow-lg">
-            <span class="text-lg">🏍️</span>
+          <div class="absolute w-12 h-12 bg-[#D70F64]/25 rounded-full animate-ping"></div>
+          <div class="w-10 h-10 bg-[#D70F64] text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white">
+            <svg class="w-6 h-6 fill-current" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+            </svg>
           </div>
         </div>
       `,
@@ -262,37 +230,26 @@ export default function FoodDeliveryTracker({
       iconAnchor: [20, 20],
     });
 
-    // Custom House / Destination Icon
+    // Custom House Destination Icon
     const houseDivIcon = L.divIcon({
-      className: "custom-house-marker filter drop-shadow-xl",
+      className: "custom-house-marker filter drop-shadow-md",
       html: `
         <div class="relative flex items-center justify-center">
-          <div class="w-10 h-10 bg-gradient-to-tr from-emerald-600 to-teal-500 text-white rounded-2xl flex items-center justify-center shadow-xl border-2 border-white ring-4 ring-emerald-500/30 drop-shadow-lg">
-            <span class="text-lg">🏠</span>
+          <div class="w-9 h-9 bg-slate-900 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white">
+            <svg class="w-5 h-5 fill-current text-white" viewBox="0 0 24 24">
+              <path d="M12 2L2 12h3v8h6v-6h2v6h6v-8h3L12 2z"/>
+            </svg>
           </div>
         </div>
       `,
-      iconSize: [40, 40],
-      iconAnchor: [20, 20],
+      iconSize: [36, 36],
+      iconAnchor: [18, 18],
     });
 
-    // Add Destination Marker
     const destMarker = L.marker([destLat, destLng], { icon: houseDivIcon }).addTo(map);
-    destMarker.bindTooltip("Delivery Destination (Your Address)", {
-      permanent: false,
-      direction: "top",
-      className: "bg-zinc-900 text-white font-bold text-xs rounded-lg px-2 py-1 shadow-md border border-zinc-700",
-    });
-
-    // Add Rider Marker
     const riderMarker = L.marker([startRiderLat, startRiderLng], { icon: riderDivIcon }).addTo(map);
-    riderMarker.bindTooltip(`${riderName} (Rider)`, {
-      permanent: false,
-      direction: "top",
-      className: "bg-[#D70F64] text-white font-black text-xs rounded-lg px-2 py-1 shadow-md",
-    });
 
-    // Foodpanda Style Road Polyline (#D70F64, 6px weight, 0.85 opacity)
+    // Foodpanda Pink Road Polyline
     const polyline = L.polyline(
       [
         [startRiderLat, startRiderLng],
@@ -300,61 +257,43 @@ export default function FoodDeliveryTracker({
       ],
       {
         color: "#D70F64",
-        weight: 6,
-        opacity: 0.85,
+        weight: 5,
+        opacity: 0.9,
         lineCap: "round",
         lineJoin: "round",
       }
     ).addTo(map);
 
-    // Fit bounds to show both markers comfortably
     const bounds = L.latLngBounds([
       [startRiderLat, startRiderLng],
       [destLat, destLng],
     ]);
-    map.fitBounds(bounds, { padding: [55, 55] });
+    map.fitBounds(bounds, { padding: [60, 60] });
 
     mapInstanceRef.current = map;
     riderMarkerRef.current = riderMarker;
     destMarkerRef.current = destMarker;
     routePolylineRef.current = polyline;
 
-    // Fetch initial OSRM route
     fetchAndDrawOSRMRoute(startRiderLat, startRiderLng, destLat, destLng);
 
     return () => {
-      if (animFrameIdRef.current) {
-        cancelAnimationFrame(animFrameIdRef.current);
-        animFrameIdRef.current = null;
-      }
-      riderMarkerRef.current = null;
-      destMarkerRef.current = null;
-      routePolylineRef.current = null;
+      if (animFrameIdRef.current) cancelAnimationFrame(animFrameIdRef.current);
       if (mapInstanceRef.current) {
         try {
           mapInstanceRef.current.off();
           mapInstanceRef.current.remove();
         } catch (e) {
-          console.warn("Leaflet map remove catch:", e);
+          console.warn("Leaflet cleanup:", e);
         }
         mapInstanceRef.current = null;
       }
     };
-  }, [isPreDelivery]);
+  }, []);
 
-  // Update destination marker position if destinationCoords change without destroying map
+  // RTDB Listener
   useEffect(() => {
-    if (destMarkerRef.current) {
-      destMarkerRef.current.setLatLng([
-        destinationCoords.latitude,
-        destinationCoords.longitude,
-      ]);
-    }
-  }, [destinationCoords.latitude, destinationCoords.longitude]);
-
-  // 2. Firebase Realtime Database Listener at path `/live_orders/{orderId}/rider_location`
-  useEffect(() => {
-    if (isPreDelivery || isDelivered || !isLiveTrackingEnabled) return; // Detach listener if pre-delivery, delivered or disabled by admin!
+    if (isDelivered) return;
 
     let rtdb: any = null;
     let locationRef: any = null;
@@ -362,8 +301,6 @@ export default function FoodDeliveryTracker({
     try {
       rtdb = getDatabase(app);
       locationRef = ref(rtdb, `live_orders/${orderId}/rider_location`);
-
-      setIsConnectedToRTDB(true);
 
       const unsubscribe = onValue(
         locationRef,
@@ -375,34 +312,22 @@ export default function FoodDeliveryTracker({
 
             if (!isNaN(newLat) && !isNaN(newLng)) {
               setIsRiderOnline(true);
-              setHasReceivedRiderData(true);
-              // Smooth gliding transition to new coordinates!
               animateMarkerTo(newLat, newLng, 2500);
               return;
             }
           }
-          // If data is null or invalid
-          setIsRiderOnline(false);
         },
-        (error) => {
-          console.warn("RTDB rider location listener warning:", error);
-          setIsConnectedToRTDB(false);
-          setIsRiderOnline(false);
-        }
+        (error) => console.warn("RTDB listener warning:", error)
       );
 
       return () => {
         off(locationRef);
-        if (animFrameIdRef.current) cancelAnimationFrame(animFrameIdRef.current);
       };
     } catch (err) {
-      console.warn("Firebase Realtime Database handle exception:", err);
-      setIsConnectedToRTDB(false);
-      setIsRiderOnline(false);
+      console.warn("Firebase Realtime DB exception:", err);
     }
-  }, [orderId, isPreDelivery, isDelivered, isLiveTrackingEnabled]);
+  }, [orderId, isDelivered]);
 
-  // Center Map View Helper Button
   const handleRecenterMap = () => {
     if (!mapInstanceRef.current) return;
     const bounds = L.latLngBounds([
@@ -412,347 +337,270 @@ export default function FoodDeliveryTracker({
     mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50] });
   };
 
-  // PRE-DELIVERY VIEW (Pending / Preparing / Ready)
-  if (isPreDelivery) {
-    const getPreDeliveryBadge = () => {
-      switch (normalizedStatus) {
-        case "placed":
-        case "pending":
-          return {
-            label: "Order Placed 📝",
-            sub: "Kitchen is reviewing your order",
-            icon: <Receipt className="w-5 h-5 text-amber-400 animate-pulse" />,
-            bg: "bg-amber-500/10 border-amber-500/20 text-amber-400",
-          };
-        case "accepted":
-        case "confirmed":
-          return {
-            label: "Order Accepted 👨‍🍳",
-            sub: "Kitchen accepted & preparing ingredients",
-            icon: <ChefHat className="w-5 h-5 text-sky-400 animate-bounce" />,
-            bg: "bg-sky-500/10 border-sky-500/20 text-sky-400",
-          };
-        case "ready":
-          return {
-            label: "Food Ready for Dispatch 🛍️",
-            sub: "Packed fresh! Assigning nearest rider...",
-            icon: <ShoppingBag className="w-5 h-5 text-emerald-400 animate-bounce" />,
-            bg: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
-          };
-        case "preparing":
-        default:
-          return {
-            label: "Preparing your food 🍳",
-            sub: "Chef is cooking your fresh hot meal",
-            icon: <UtensilsCrossed className="w-5 h-5 text-[#D70F64] animate-bounce" />,
-            bg: "bg-[#D70F64]/10 border-[#D70F64]/20 text-[#D70F64]",
-          };
-      }
-    };
+  const currentEta = etaMinutes || 8;
+  const minEta = Math.max(1, currentEta - 3);
+  const maxEta = currentEta + 7;
 
-    const badge = getPreDeliveryBadge();
-    const getStepIndex = () => {
-      if (normalizedStatus === "placed" || normalizedStatus === "pending") return 0;
-      if (normalizedStatus === "accepted" || normalizedStatus === "confirmed") return 1;
-      if (normalizedStatus === "preparing") return 1;
-      if (normalizedStatus === "ready") return 2;
-      return 1;
-    };
-    const stepIdx = getStepIndex();
+  return (
+    <div className="bg-slate-50 min-h-screen text-slate-900 font-sans relative flex flex-col overflow-hidden max-w-md mx-auto shadow-2xl rounded-3xl border border-slate-200">
+      
+      {/* 1. MAP VIEW CONTAINER (Full Screen / Half Screen Top) */}
+      <div className="relative w-full h-[380px] sm:h-[420px] bg-slate-200 shrink-0 overflow-hidden">
+        
+        {/* Map Canvas */}
+        <div ref={mapContainerRef} className="w-full h-full z-0" />
 
-    return (
-      <div className="bg-zinc-950 border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl relative text-zinc-100 animate-fade-in p-5 space-y-5">
-        {/* Top Header Card */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-zinc-800/80">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-[#D70F64]/10 border border-[#D70F64]/30 flex items-center justify-center shrink-0 shadow-inner">
-              {badge.icon}
-            </div>
-            <div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-[#D70F64] block">
-                {restaurantName || "Dadu Central Kitchen"}
-              </span>
-              <h3 className="text-sm font-black text-white mt-0.5">
-                {badge.label}
-              </h3>
-              <p className="text-[11px] text-zinc-400 font-medium">
-                {badge.sub}
+        {/* Top Navigation Overlay Buttons */}
+        <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="w-10 h-10 bg-white hover:bg-slate-100 text-slate-900 rounded-full flex items-center justify-center shadow-lg border border-slate-200/80 pointer-events-auto transition active:scale-95 cursor-pointer"
+            >
+              <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
+            </button>
+          )}
+
+          <button
+            onClick={() => setShowHelpModal(true)}
+            className="bg-white hover:bg-slate-100 text-slate-900 text-xs font-black px-4 py-2 rounded-xl shadow-lg border border-slate-200/80 pointer-events-auto transition active:scale-95 cursor-pointer"
+          >
+            Help
+          </button>
+        </div>
+
+        {/* Floating Locate / Recenter Map Button */}
+        <button
+          onClick={handleRecenterMap}
+          className="absolute bottom-6 right-4 z-20 w-10 h-10 bg-white hover:bg-slate-100 text-slate-800 rounded-full flex items-center justify-center shadow-lg border border-slate-200/80 transition active:scale-95 cursor-pointer"
+          title="Recenter map"
+        >
+          <Compass className="w-5 h-5 text-slate-700" />
+        </button>
+
+        {/* 2. FLOATING OFFICIAL FOODPANDA ETA & STATUS CARD */}
+        <div className="absolute bottom-3 left-4 right-16 z-20">
+          <div className="bg-white/98 backdrop-blur-md shadow-2xl rounded-3xl p-4 sm:p-5 border border-slate-100 flex items-center justify-between transition-all">
+            <div className="space-y-0.5">
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-none">
+                {minEta} — {maxEta} mins
+              </h2>
+              <p className="text-sm font-extrabold text-slate-900 pt-1">
+                {isDelivered
+                  ? "Order Delivered!"
+                  : isOutForDelivery
+                  ? "On the way"
+                  : "Preparing in kitchen"}
+              </p>
+              <p className="text-xs text-slate-500 font-medium">
+                {isDelivered
+                  ? "Your food panda hero delivered your meal"
+                  : isOutForDelivery
+                  ? "The rider is heading to you"
+                  : "Chef is cooking your fresh hot meal"}
               </p>
             </div>
-          </div>
 
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl px-3.5 py-2 text-right shrink-0">
-            <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-zinc-500 block">
-              Estimated Delivery
-            </span>
-            <span className="text-xs font-black text-pink-400 flex items-center gap-1.5 justify-end mt-0.5">
-              <Clock className="w-3.5 h-3.5 text-pink-400 animate-pulse" />
-              Expected in 25–30 mins
-            </span>
+            {/* Circular Progress Ring Gauge */}
+            <div className="relative w-16 h-16 sm:w-18 sm:h-18 flex items-center justify-center shrink-0">
+              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                {/* Gray Background Circle */}
+                <path
+                  className="text-slate-100"
+                  strokeWidth="3.5"
+                  stroke="currentColor"
+                  fill="none"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
+                {/* Dark Green Arc Progress */}
+                <path
+                  className="text-[#0f6848] transition-all duration-1000 ease-out"
+                  strokeDasharray={`${isDelivered ? "100" : isOutForDelivery ? "75" : "35"}, 100`}
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                  stroke="currentColor"
+                  fill="none"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
+              </svg>
+
+              {/* Foodpanda Shopping Bag Center Illustration */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-pink-50 flex items-center justify-center">
+                  <div className="relative">
+                    {/* Pink foodpanda shopping bag */}
+                    <div className="w-6 h-7 bg-[#D70F64] rounded-md shadow-xs flex items-center justify-center relative">
+                      <div className="w-2.5 h-1.5 border-t-2 border-r-2 border-white/90 rounded-t-full -mt-4" />
+                      <span className="text-[10px] text-white font-black">🐼</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Foodpanda Animated 4-Step Progress Bar */}
-        <div className="bg-zinc-900/90 border border-zinc-800/80 rounded-2xl p-4 space-y-3">
-          <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wider text-zinc-400">
-            <span>Kitchen Live Order Pipeline</span>
-            <span className="text-[#D70F64]">Foodpanda Dispatch</span>
+      {/* 3. WHITE BOTTOM SHEET */}
+      <div className="bg-white flex-1 rounded-t-3xl border-t border-slate-200/80 p-4 sm:p-5 shadow-inner space-y-4 -mt-2 z-10">
+        
+        {/* Drag Handle Indicator */}
+        <div className="w-12 h-1 bg-slate-300 rounded-full mx-auto -mt-1 mb-1" />
+
+        {/* RIDER INFO CARD */}
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm space-y-3.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3.5">
+              {/* Pink Helmet Rider Avatar */}
+              <div className="w-12 h-12 rounded-full bg-pink-100 border border-pink-200 flex items-center justify-center shrink-0 text-xl shadow-xs">
+                🪖
+              </div>
+
+              <div>
+                <h4 className="text-sm font-extrabold text-slate-900 leading-tight">
+                  {riderName}
+                </h4>
+                <p className="text-xs font-semibold text-slate-500 mt-0.5">
+                  Motorbike • Foodpanda Captain
+                </p>
+              </div>
+            </div>
+
+            {riderPhone && (
+              <a
+                href={`tel:${riderPhone}`}
+                className="w-9 h-9 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-full flex items-center justify-center transition active:scale-95"
+                title="Call Rider"
+              >
+                <Phone className="w-4 h-4" />
+              </a>
+            )}
           </div>
 
-          <div className="relative pt-2 pb-1">
-            {/* Progress Track Line */}
-            <div className="absolute top-1/2 left-4 right-4 -translate-y-1/2 h-1.5 bg-zinc-800 rounded-full z-0 overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-[#D70F64] to-pink-500 transition-all duration-700 rounded-full shadow-lg"
-                style={{
-                  width: `${(stepIdx / 3) * 100}%`,
+          {/* Chat Action Button */}
+          <button
+            onClick={() => setShowChat(!showChat)}
+            className="w-full bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-extrabold text-xs py-3 px-4 rounded-2xl flex items-center justify-between transition shadow-xs active:scale-98 cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-slate-700" />
+              <span>Chat with your rider</span>
+            </div>
+            <ChevronRight className="w-4 h-4 text-slate-400" />
+          </button>
+
+          {/* Expandable OrderChat Drawer */}
+          {showChat && (
+            <div className="pt-2 animate-fade-in">
+              <OrderChat
+                orderId={orderId}
+                currentUser={{
+                  uid: currentUser?.uid || "guest",
+                  name: currentUser?.name || "Customer",
+                  role: currentUser?.role || "user",
                 }}
+                recipientName={riderName}
+                recipientRole="rider"
+                onClose={() => setShowChat(false)}
+                isOpen={showChat}
               />
             </div>
-
-            {/* 4 Steps */}
-            <div className="relative z-10 flex justify-between items-center">
-              {[
-                { label: "1. Placed", icon: "📝" },
-                { label: "2. Preparing", icon: "🍳" },
-                { label: "3. Out for Delivery", icon: "🛵" },
-                { label: "4. Delivered", icon: "🎉" },
-              ].map((step, idx) => {
-                const isCompleted = idx < stepIdx;
-                const isCurrent = idx === stepIdx;
-
-                return (
-                  <div key={idx} className="flex flex-col items-center gap-1.5">
-                    <div
-                      className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-black transition-all duration-300 ${
-                        isCurrent
-                          ? "bg-[#D70F64] text-white ring-4 ring-[#D70F64]/30 scale-110 shadow-lg shadow-[#D70F64]/40"
-                          : isCompleted
-                          ? "bg-emerald-600 text-white shadow-md"
-                          : "bg-zinc-800 text-zinc-500 border border-zinc-700"
-                      }`}
-                    >
-                      {isCompleted ? "✓" : step.icon}
-                    </div>
-                    <span
-                      className={`text-[9.5px] font-black uppercase tracking-wider text-center max-w-[70px] ${
-                        isCurrent
-                          ? "text-[#D70F64]"
-                          : isCompleted
-                          ? "text-emerald-400"
-                          : "text-zinc-500"
-                      }`}
-                    >
-                      {step.label}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          )}
         </div>
 
-        {/* Restaurant Details & Order Summary List */}
-        <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-4 space-y-3">
-          <div className="flex items-center justify-between border-b border-zinc-800/80 pb-2.5">
-            <div className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-emerald-400" />
-              <span className="text-xs font-black text-white">
-                {restaurantName || "Dadu Central Kitchen"}
-              </span>
-            </div>
-            <span className="text-[10px] font-bold text-zinc-400">
-              Order #{orderId.slice(-6).toUpperCase()}
+        {/* ORDER SUMMARY BANNER */}
+        <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-3.5 space-y-2">
+          <div className="flex items-center justify-between text-xs border-b border-slate-200/80 pb-2">
+            <span className="font-extrabold text-slate-800">
+              {restaurantName || "Dadu Central Kitchen"}
+            </span>
+            <span className="text-[10px] text-slate-500 font-mono font-bold">
+              #{orderId.slice(-6).toUpperCase()}
             </span>
           </div>
 
-          {/* Items list */}
-          {items && items.length > 0 ? (
-            <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
-              {items.map((it, i) => (
-                <div key={i} className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="px-1.5 py-0.5 rounded-md bg-[#D70F64]/10 text-[#D70F64] font-black text-[10px]">
-                      {it.quantity}x
-                    </span>
-                    <span className="text-zinc-200 font-semibold truncate max-w-[180px] sm:max-w-[240px]">
-                      {it.name}
-                    </span>
-                  </div>
-                  <span className="text-zinc-300 font-extrabold">
-                    Rs. {it.price * it.quantity}
+          {items && items.length > 0 && (
+            <div className="space-y-1.5 max-h-28 overflow-y-auto pr-1 text-xs">
+              {items.map((it, idx) => (
+                <div key={idx} className="flex justify-between text-slate-600 font-medium">
+                  <span>
+                    {it.quantity}x {it.name}
                   </span>
+                  <span className="font-bold text-slate-800">Rs. {it.price * it.quantity}</span>
                 </div>
               ))}
-            </div>
-          ) : (
-            <div className="text-xs text-zinc-400 font-medium italic">
-              Order items accepted by restaurant
             </div>
           )}
 
           {grandTotal !== undefined && (
-            <div className="pt-2 border-t border-zinc-800/80 flex items-center justify-between text-xs font-black">
-              <span className="text-zinc-400 uppercase tracking-wider text-[10px]">Total Amount</span>
-              <span className="text-white text-sm">Rs. {grandTotal}</span>
+            <div className="pt-1.5 border-t border-slate-200/80 flex items-center justify-between text-xs font-black">
+              <span className="text-slate-500">Total Paid (COD)</span>
+              <span className="text-slate-900 text-sm">Rs. {grandTotal}</span>
             </div>
           )}
         </div>
 
-        {/* Callout Notice Banner */}
-        <div className="bg-pink-950/30 border border-[#D70F64]/20 rounded-2xl p-3 flex items-center gap-3 text-xs">
-          <div className="w-8 h-8 rounded-xl bg-[#D70F64]/20 flex items-center justify-center shrink-0 text-[#D70F64]">
-            <Sparkles className="w-4 h-4 animate-spin" style={{ animationDuration: '4s' }} />
-          </div>
-          <div className="text-[11px] text-pink-200/90 font-medium leading-snug">
-            <strong className="text-white font-bold block">Live GPS Map Standby</strong>
-            As soon as your order status changes to <span className="text-[#D70F64] font-bold">Out for Delivery</span>, live GPS map tracking will start automatically!
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-zinc-950 border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl relative text-zinc-100 animate-fade-in">
-      {/* Header bar */}
-      <div className="p-4 bg-zinc-900/90 border-b border-zinc-800 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-[#D70F64]/10 border border-[#D70F64]/30 flex items-center justify-center text-[#D70F64] shrink-0">
-            <Bike className="w-5 h-5 animate-bounce" />
-          </div>
-          <div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-[#D70F64] block">
-              Foodpanda Live GPS Map
+        {/* SPONSORED BANNER CARD */}
+        <div className="relative rounded-2xl overflow-hidden border border-slate-200/80 shadow-xs h-24 bg-slate-100 flex items-center justify-between p-4">
+          <img
+            src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=600"
+            alt="Sponsored Offer"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-900/60 to-transparent" />
+          
+          <div className="relative z-10 space-y-0.5">
+            <span className="text-[9px] font-black uppercase tracking-wider text-pink-300 bg-black/40 px-2 py-0.5 rounded-full border border-pink-400/30">
+              Sponsored
             </span>
-            <h4 className="text-xs font-extrabold text-white flex items-center gap-1.5">
-              <span>Rider: {riderName}</span>
-              {isRiderOnline ? (
-                <span className="inline-flex items-center gap-1 text-[9px] bg-emerald-500/10 text-emerald-400 font-bold px-2 py-0.5 rounded-full border border-emerald-500/20">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-                  Rider Online
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 text-[9px] bg-rose-500/10 text-rose-400 font-bold px-2 py-0.5 rounded-full border border-rose-500/20">
-                  <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
-                  Rider Offline
-                </span>
-              )}
-            </h4>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleRecenterMap}
-            title="Recenter Map View"
-            className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-bold transition flex items-center gap-1 cursor-pointer active:scale-95"
-          >
-            <Navigation className="w-3.5 h-3.5 text-pink-400" />
-            <span className="hidden sm:inline">Center Map</span>
-          </button>
-
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="px-2.5 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white text-xs font-bold transition cursor-pointer"
-            >
-              ✕
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Main Map Box */}
-      <div className="relative w-full h-72 sm:h-80 bg-zinc-900 overflow-hidden">
-        <div ref={mapContainerRef} className="w-full h-full z-10" />
-
-        {/* Live Distance & ETA Floating Badge Overlay */}
-        {!isDelivered && isLiveTrackingEnabled && (
-          <div className="absolute top-3 left-3 z-20 bg-zinc-950/90 border border-zinc-800 backdrop-blur-md rounded-2xl p-2.5 shadow-xl text-xs space-y-1">
-            <div className="flex items-center gap-2 text-zinc-300 font-bold">
-              <span className="w-2 h-2 rounded-full bg-[#FF2B85] animate-pulse"></span>
-              <span>Road Distance: <strong className="text-white font-extrabold">{distanceKm ?? "--"} km</strong></span>
-            </div>
-            <div className="flex items-center gap-2 text-pink-400 font-black">
-              <span>⏱️ Est. Arrival: <strong className="text-pink-300">{etaMinutes ?? "--"} mins</strong></span>
-            </div>
-          </div>
-        )}
-
-        {/* Rider Offline / Waiting for GPS Badge Overlay */}
-        {!isDelivered && isLiveTrackingEnabled && (!isRiderOnline || !hasReceivedRiderData) && (
-          <div className="absolute bottom-3 left-3 right-3 sm:left-auto sm:right-3 z-20 bg-rose-950/90 border border-rose-800/80 backdrop-blur-md text-rose-200 px-3.5 py-2 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs font-bold animate-pulse">
-            <div className="w-6 h-6 rounded-xl bg-rose-900/80 border border-rose-700/60 flex items-center justify-center shrink-0 text-rose-300">
-              <AlertTriangle className="w-3.5 h-3.5" />
-            </div>
-            <div>
-              <span className="block text-white font-black text-[11px]">Rider Offline / Waiting for GPS signal</span>
-              <span className="text-[10px] text-rose-300/80 font-normal">Tracking will resume automatically once rider connects</span>
-            </div>
-          </div>
-        )}
-
-        {/* Live Tracking Paused by Admin Overlay */}
-        {!isDelivered && !isLiveTrackingEnabled && (
-          <div className="absolute inset-0 z-30 bg-zinc-950/85 backdrop-blur-md p-6 flex flex-col items-center justify-center text-center space-y-2.5">
-            <div className="w-11 h-11 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shadow-xl">
-              <WifiOff className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="text-xs font-black text-white uppercase tracking-wider">Live Tracking Paused by Admin</h4>
-              <p className="text-[11px] text-zinc-400 mt-1 max-w-xs leading-relaxed">
-                Live GPS tracking is currently paused by admin to conserve bandwidth. Your order delivery is proceeding normally.
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Footer Info Card */}
-      <div className="p-4 bg-zinc-900/80 border-t border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 text-zinc-400 font-medium">
-            <MapPin className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>Destination: <strong className="text-zinc-200">Delivery Address</strong></span>
-          </div>
-        </div>
-
-        <div className="text-zinc-500 text-[10px] font-mono">
-          Last location update: {lastUpdatedTime}
-        </div>
-      </div>
-
-      {/* SUCCESS MODAL / CELEBRATION OVERLAY FOR 'DELIVERED' STATUS */}
-      {isDelivered && (
-        <div className="absolute inset-0 z-30 bg-zinc-950/95 backdrop-blur-md p-6 flex flex-col items-center justify-center text-center animate-fade-in space-y-4">
-          <div className="relative">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 p-1 shadow-2xl animate-bounce">
-              <div className="w-full h-full rounded-full bg-zinc-950 flex items-center justify-center text-emerald-400">
-                <CheckCircle2 className="w-10 h-10 stroke-[2.5]" />
-              </div>
-            </div>
-            <div className="absolute -top-2 -right-2 text-2xl animate-pulse">🎉</div>
-            <div className="absolute -bottom-2 -left-2 text-2xl animate-pulse">✨</div>
-          </div>
-
-          <div className="space-y-1.5 max-w-sm">
-            <span className="text-[11px] font-black uppercase tracking-widest text-emerald-400 block">
-              Order Delivered Successfully!
-            </span>
-            <h3 className="text-xl font-black text-white">Thank You for Ordering! ❤️</h3>
-            <p className="text-xs text-zinc-400 leading-relaxed font-medium">
-              Your food panda hero <strong className="text-zinc-200">{riderName}</strong> has safely delivered your order to your doorstep. Enjoy your delicious hot meal!
+            <h5 className="text-xs font-black text-white pt-1">
+              Hot Deals & Free Delivery! 🍔
+            </h5>
+            <p className="text-[10px] text-slate-200 font-medium">
+              Order again from Dadu Top Vendors
             </p>
           </div>
+        </div>
+      </div>
 
-          <div className="pt-2 flex flex-col sm:flex-row gap-2.5 w-full max-w-xs">
+      {/* HELP MODAL */}
+      {showHelpModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl relative">
             <button
-              onClick={onClose}
-              className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-xs py-3 px-4 rounded-xl shadow-lg transition active:scale-95 cursor-pointer"
+              onClick={() => setShowHelpModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 p-1"
             >
-              Done / Close Tracker
+              <X className="w-5 h-5" />
             </button>
+
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-pink-100 text-[#D70F64] flex items-center justify-center font-bold text-xl">
+                🐼
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900">Foodpanda Support</h3>
+                <p className="text-xs text-slate-500 font-medium">Order Help & Order Hotline</p>
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <a
+                href="https://wa.me/923277004471"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs py-3 px-4 rounded-2xl flex items-center justify-center gap-2 shadow-sm transition active:scale-95"
+              >
+                <span>💬 WhatsApp Support (03277004471)</span>
+              </a>
+
+              <a
+                href="tel:03277004471"
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs py-3 px-4 rounded-2xl flex items-center justify-center gap-2 shadow-sm transition active:scale-95"
+              >
+                <span>📞 Call Hotline</span>
+              </a>
+            </div>
           </div>
         </div>
       )}

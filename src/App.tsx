@@ -2630,21 +2630,13 @@ export default function App() {
       />
 
       {isTrackingModalOpen && activeTrackingOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/90 p-4 overflow-y-auto backdrop-blur-md">
-          <div className="w-full max-w-2xl bg-zinc-900 rounded-2xl border border-zinc-800 shadow-2xl relative overflow-hidden my-8">
-            <button
-              onClick={() => setIsTrackingModalOpen(false)}
-              className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-zinc-950/80 hover:bg-zinc-950 text-zinc-400 hover:text-white flex items-center justify-center border border-zinc-800 transition cursor-pointer"
-            >
-              ✕
-            </button>
-            <div className="p-2 sm:p-4 max-h-[90vh] overflow-y-auto scrollbar-none">
-              <OrderTracker
-                order={activeTrackingOrder}
-                onClose={() => setIsTrackingModalOpen(false)}
-                currentUser={currentUser}
-              />
-            </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 sm:p-4 overflow-y-auto backdrop-blur-md">
+          <div className="w-full max-w-md bg-transparent relative overflow-hidden my-auto max-h-[95vh] overflow-y-auto scrollbar-none rounded-3xl">
+            <OrderTracker
+              order={activeTrackingOrder}
+              onClose={() => setIsTrackingModalOpen(false)}
+              currentUser={currentUser}
+            />
           </div>
         </div>
       )}

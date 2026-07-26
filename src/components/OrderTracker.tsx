@@ -35,6 +35,38 @@ export default function OrderTracker({ order, onClose, currentUser }: OrderTrack
     return () => unsubscribe();
   }, [order?.id, currentUser?.uid]);
 
+  const statusLower = (order.status || "").toLowerCase().trim();
+  const isDispatched = !isService && (
+    statusLower === "out_for_delivery" || 
+    statusLower === "out_for_delivery_active" || 
+    statusLower === "dispatched" || 
+    statusLower === "delivered" ||
+    statusLower === "completed" ||
+    (!!order.riderName && statusLower !== "cancelled")
+  );
+
+  if (isDispatched) {
+    return (
+      <FoodDeliveryTracker
+        orderId={order.id}
+        orderStatus={order.status}
+        destinationCoords={
+          order.userCoords || {
+            latitude: 26.7323,
+            longitude: 67.7744,
+          }
+        }
+        riderName={order.riderName || "Fateh Muhammad"}
+        riderPhone={order.riderPhone}
+        restaurantName={order.restaurantName || "Dadu Central Kitchen"}
+        items={order.items}
+        grandTotal={order.grandTotal}
+        currentUser={currentUser}
+        onClose={onClose}
+      />
+    );
+  }
+
   // Food progress configurations
   const foodSteps = [
     { label: "Placed", desc: "Order submitted to database", key: "placed" },
@@ -454,19 +486,24 @@ export default function OrderTracker({ order, onClose, currentUser }: OrderTrack
       </div>
 
       {/* Delivery Pinpoint Leaflet Live Tracker */}
-      {order.userCoords && (
+      {!isService && (
         <div className="mt-4">
           <FoodDeliveryTracker
             orderId={order.id}
             orderStatus={order.status}
-            destinationCoords={{
-              latitude: order.userCoords.latitude,
-              longitude: order.userCoords.longitude,
-            }}
-            riderName={order.riderName || "Foodpanda Hero"}
+            destinationCoords={
+              order.userCoords || {
+                latitude: 26.7323,
+                longitude: 67.7744,
+              }
+            }
+            riderName={order.riderName || "Fateh Muhammad"}
+            riderPhone={order.riderPhone}
             restaurantName={order.restaurantName || "Dadu Central Kitchen"}
             items={order.items}
             grandTotal={order.grandTotal}
+            currentUser={currentUser}
+            onClose={onClose}
           />
         </div>
       )}
