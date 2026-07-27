@@ -157,8 +157,8 @@ function BannerLiveChatButton({
 }
 
 export default function App() {
-  const [showSplash, setShowSplash] = useState(true);
-  const [splashProgress, setSplashProgress] = useState(0);
+  const [showSplash, setShowSplash] = useState(false);
+  const [splashProgress, setSplashProgress] = useState(100);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
@@ -611,9 +611,6 @@ export default function App() {
       } else {
         setCurrentUser(null);
         setIsAdminConsoleOpen(false);
-        
-        // Auto-open auth modal for new/unauthenticated users
-        setIsAuthOpen(true);
       }
     };
     
@@ -660,27 +657,9 @@ export default function App() {
     }
   }, [currentUser?.status]);
 
-  // 1.5. Premium Foodpanda Splash Screen timer (2.4s duration for vibrant app launch animation)
+  // 1.5. Splash animation disabled per user request
   useEffect(() => {
-    let animId: number;
-    const startTime = performance.now();
-    const duration = 2400; // 2.4s smooth launch sequence
-
-    const step = (now: number) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(100, Math.floor((elapsed / duration) * 100));
-      setSplashProgress(progress);
-
-      if (elapsed < duration) {
-        animId = requestAnimationFrame(step);
-      } else {
-        setShowSplash(false);
-        playChimeSound();
-      }
-    };
-
-    animId = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(animId);
+    setShowSplash(false);
   }, []);
 
   // 2. Real-time Menu Listening & Auto-Seeding
@@ -1434,11 +1413,6 @@ export default function App() {
       setIsVerificationModalOpen(true);
       return;
     }
-    if (!currentUser) {
-      setPendingAction(() => () => handleAddToCart(dish, quantityToAdd, options));
-      setIsAuthOpen(true);
-      return;
-    }
 
     // Check if mixed cart is allowed
     if (!groceryDeliveryConfig?.allowMixedCart && groceryCartItems.length > 0) {
@@ -1581,11 +1555,6 @@ export default function App() {
   const handleAddToGroceryCart = (product: GroceryProduct, quantity = 1) => {
     if (currentUser?.status === 'locked') {
       setIsVerificationModalOpen(true);
-      return;
-    }
-    if (!currentUser) {
-      setPendingAction(() => () => handleAddToGroceryCart(product, quantity));
-      setIsAuthOpen(true);
       return;
     }
 
