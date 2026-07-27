@@ -201,6 +201,7 @@ export interface GroceryCategory {
 export interface GroceryProduct {
   id: string;
   name: string;
+  description?: string;
   imageUrl: string;
   price: number;
   discountPrice?: number;

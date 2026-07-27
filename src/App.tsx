@@ -2244,10 +2244,13 @@ export default function App() {
         selectedRestaurant === "All Restaurants" || rName === selectedRestaurant;
       const matchesFavorites =
         !showFavoritesOnly || favoriteDishIds.includes(dish.id);
+      const q = (searchQuery || "").trim().toLowerCase();
       const matchesSearch =
-        dish.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        dish.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        rName.toLowerCase().includes(searchQuery.toLowerCase());
+        !q ||
+        (dish.name || "").toLowerCase().includes(q) ||
+        (dish.description || "").toLowerCase().includes(q) ||
+        (rName || "").toLowerCase().includes(q) ||
+        (dish.category || "").toLowerCase().includes(q);
 
       return (
         matchesCategory && matchesRestaurant && matchesSearch && matchesFavorites

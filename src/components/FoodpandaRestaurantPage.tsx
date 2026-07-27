@@ -96,7 +96,7 @@ function CategoryDishGridBatch({
   );
 }
 const getCategoryEmoji = (category: string) => {
-  const cat = category.toLowerCase();
+  const cat = (category || "").toLowerCase();
   if (cat.includes("burger") || cat.includes("fast food")) return "🍔";
   if (cat.includes("pizza")) return "🍕";
   if (cat.includes("drink") || cat.includes("beverage") || cat.includes("shake")) return "🥤";
@@ -229,9 +229,11 @@ export default function FoodpandaRestaurantPage({
 
   // Filtered dishes according to search & chips
   const filteredDishes = dishes.filter(d => {
-    const matchesSearch = d.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          d.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          d.category.toLowerCase().includes(searchQuery.toLowerCase());
+    const q = (searchQuery || "").trim().toLowerCase();
+    const matchesSearch = !q ||
+                          (d.name || "").toLowerCase().includes(q) || 
+                          (d.description || "").toLowerCase().includes(q) ||
+                          (d.category || "").toLowerCase().includes(q);
     
     if (!matchesSearch) return false;
 
@@ -239,7 +241,7 @@ export default function FoodpandaRestaurantPage({
       return Boolean(d.isBestseller);
     }
     if (filterType === "veg") {
-      return d.isVeg || d.category.toLowerCase().includes("veg") || d.description?.toLowerCase().includes("veg");
+      return d.isVeg || (d.category || "").toLowerCase().includes("veg") || (d.description || "").toLowerCase().includes("veg");
     }
     return true;
   });

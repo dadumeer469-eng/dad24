@@ -40,9 +40,11 @@ export default function GroceryModule({
     // Check if category itself is available
     const isCategoryEnabled = activeCategoryIdList.includes(p.categoryId);
     // Search query matches
+    const q = (searchQuery || "").trim().toLowerCase();
     const matchesSearch =
-      !searchQuery.trim() ||
-      p.name.toLowerCase().includes(searchQuery.toLowerCase());
+      !q ||
+      (p.name || "").toLowerCase().includes(q) ||
+      (p.description || "").toLowerCase().includes(q);
 
     return matchesCategory && isCategoryEnabled && matchesSearch;
   });
