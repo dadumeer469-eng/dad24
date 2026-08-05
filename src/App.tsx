@@ -287,6 +287,30 @@ export default function App() {
   const [selectedRestaurant, setSelectedRestaurant] =
     useState<string>("All Restaurants");
   const [initialRestaurantCategory, setInitialRestaurantCategory] = useState<string | undefined>(undefined);
+  
+  const [animatingRestaurant, setAnimatingRestaurant] = useState<{name: string, imageUrl?: string} | null>(null);
+
+  const handleRestaurantClick = (vendor: string, category?: string) => {
+    if (vendor === "All Restaurants") {
+      setSelectedRestaurant("All Restaurants");
+      setInitialRestaurantCategory(undefined);
+      return;
+    }
+    
+    const vendorImageUrl = deliverySettings?.restaurantStatuses?.[vendor]?.imageUrl || deliverySettings?.restaurantStatuses?.[vendor]?.bgImageUrl;
+    
+    setAnimatingRestaurant({ name: vendor, imageUrl: vendorImageUrl });
+    
+    setTimeout(() => {
+      if (category) setInitialRestaurantCategory(category);
+      setSelectedRestaurant(vendor);
+      window.scrollTo({ top: 0, behavior: "instant" });
+      setTimeout(() => {
+        setAnimatingRestaurant(null);
+      }, 500);
+    }, 1400);
+  };
+
   const [searchQuery, setSearchQuery] = useState("");
   const [cartItems, setCartItems] = useState<OrderItem[]>([]);
   const [activeTrackingOrder, setActiveTrackingOrder] = useState<Order | null>(
@@ -3494,7 +3518,7 @@ export default function App() {
                       window.open(actionLink, "_blank");
                     } else {
                       setActiveCategory("All");
-                      setSelectedRestaurant(actionLink);
+                      handleRestaurantClick(actionLink);
                     }
                   }}
                 />
@@ -3606,7 +3630,7 @@ export default function App() {
                                 whileHover={{ scale: 1.04 }}
                                 whileTap={{ scale: 0.96 }}
                                 onClick={() =>
-                                  setSelectedRestaurant(vendor)
+                                  handleRestaurantClick(vendor)
                                 }
                                 className={`w-[90px] h-[95px] rounded-2xl flex flex-col items-center justify-between p-1.5 font-black transition shrink-0 cursor-pointer border overflow-hidden shadow-xs hover:shadow-md ${
                                   selectedRestaurant === vendor
@@ -3951,7 +3975,7 @@ export default function App() {
                             return (
                               <div
                                 key={vendor}
-                                onClick={() => setSelectedRestaurant(vendor)}
+                                onClick={() => handleRestaurantClick(vendor)}
                                 className={`bg-white border border-zinc-200/80 rounded-3xl overflow-hidden shadow-xs hover:shadow-md transition-all cursor-pointer group flex flex-col ${isClosed ? "opacity-70 grayscale-[20%]" : ""}`}
                               >
                                 <div className="h-40 bg-zinc-100 relative overflow-hidden shrink-0">
@@ -4028,8 +4052,7 @@ export default function App() {
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         if (!isClosed && d.isAvailable !== false) {
-                                          setInitialRestaurantCategory(d.category);
-                                          setSelectedRestaurant(vendor);
+                                          handleRestaurantClick(vendor, d.category);
                                         }
                                       }}
                                     >
@@ -4054,7 +4077,7 @@ export default function App() {
                                   <div
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      setSelectedRestaurant(vendor);
+                                      handleRestaurantClick(vendor);
                                     }}
                                     className="w-16 h-20 flex flex-col items-center justify-center gap-1 shrink-0 bg-red-50/50 rounded-xl text-[#d70f64] hover:bg-red-100 transition border border-red-100/50 cursor-pointer"
                                   >
@@ -4524,6 +4547,96 @@ export default function App() {
           </a>
         </p>
       </footer>
+
+      {/* Restaurant Opening Animation 3D High-Level */}
+      <AnimatePresence>
+        {animatingRestaurant && (
+          <motion.div
+            className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden"
+            style={{ perspective: 1200 }}
+          >
+            {/* Dynamic 3D Background */}
+            <motion.div
+              initial={{ scale: 0, rotateZ: -90, borderRadius: "100%" }}
+              animate={{ scale: 3, rotateZ: 0, borderRadius: "0%" }}
+              exit={{ scale: 0, opacity: 0, transition: { duration: 0.5 } }}
+              transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+              className="absolute inset-0 bg-gradient-to-tr from-[#d70f64] via-[#f72585] to-[#ff9e00] origin-center shadow-inner"
+            />
+            
+            {/* Particles or Floating elements */}
+            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+               {[...Array(8)].map((_, i) => (
+                 <motion.div
+                   key={i}
+                   initial={{ opacity: 0, scale: 0, x: 0, y: 0 }}
+                   animate={{ 
+                     opacity: [0, 0.6, 0],
+                     scale: [0.5, Math.random() * 2 + 1.5],
+                     x: (Math.random() - 0.5) * 600,
+                     y: (Math.random() - 0.5) * 600,
+                   }}
+                   transition={{ duration: 1.5, delay: Math.random() * 0.4, ease: "easeOut" }}
+                   className="absolute left-1/2 top-1/2 w-10 h-10 bg-white/20 rounded-full blur-xl"
+                 />
+               ))}
+            </div>
+
+            {/* Content Container */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.4, rotateX: 60, rotateY: 30, z: -500 }}
+              animate={{ opacity: 1, scale: 1, rotateX: 0, rotateY: 0, z: 0 }}
+              exit={{ opacity: 0, scale: 1.3, rotateX: -20, filter: "blur(15px)", transition: { duration: 0.4 } }}
+              transition={{ duration: 0.9, type: "spring", bounce: 0.5, delay: 0.2 }}
+              className="relative z-10 flex flex-col items-center justify-center text-white w-full px-4"
+            >
+              {/* Image with 3D float */}
+              <motion.div 
+                animate={{ y: [-12, 12, -12], rotateZ: [-3, 3, -3], rotateY: [-5, 5, -5] }}
+                transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
+                className="relative mb-8"
+              >
+                <div className="absolute inset-0 bg-white/50 blur-3xl rounded-full scale-110" />
+                <motion.div 
+                   whileHover={{ scale: 1.08, rotateY: 15 }}
+                   className="w-36 h-36 rounded-[2rem] overflow-hidden bg-white shadow-[0_20px_60px_rgba(0,0,0,0.4)] relative z-10 border-4 border-white/40 p-1 transform-gpu"
+                >
+                  {animatingRestaurant.imageUrl ? (
+                    <img src={animatingRestaurant.imageUrl} alt={animatingRestaurant.name} className="w-full h-full object-cover rounded-3xl" />
+                  ) : (
+                    <div className="w-full h-full bg-pink-50 flex items-center justify-center text-6xl font-black text-[#d70f64] rounded-3xl shadow-inner">
+                      {animatingRestaurant.name.charAt(0)}
+                    </div>
+                  )}
+                </motion.div>
+              </motion.div>
+              
+              <motion.h2 
+                initial={{ opacity: 0, y: 30, scale: 0.8 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ delay: 0.5, duration: 0.6, type: "spring", bounce: 0.6 }}
+                className="text-5xl font-black tracking-tight text-white mb-4 text-center drop-shadow-2xl leading-none"
+              >
+                {animatingRestaurant.name}
+              </motion.h2>
+              
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.5, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ delay: 0.65, type: "spring", bounce: 0.5 }}
+                className="flex items-center gap-3 bg-black/20 px-6 py-2 rounded-full backdrop-blur-md border border-white/20 shadow-xl"
+              >
+                 <span className="text-sm font-black uppercase tracking-[0.2em] text-white/90">Entering</span>
+                <div className="flex gap-1.5 ml-1">
+                  <motion.div className="w-2 h-2 rounded-full bg-[#ff9e00]" animate={{ y: [0, -6, 0], scale: [1, 1.2, 1] }} transition={{ duration: 0.8, repeat: Infinity, delay: 0 }} />
+                  <motion.div className="w-2 h-2 rounded-full bg-[#f72585]" animate={{ y: [0, -6, 0], scale: [1, 1.2, 1] }} transition={{ duration: 0.8, repeat: Infinity, delay: 0.2 }} />
+                  <motion.div className="w-2 h-2 rounded-full bg-white" animate={{ y: [0, -6, 0], scale: [1, 1.2, 1] }} transition={{ duration: 0.8, repeat: Infinity, delay: 0.4 }} />
+                </div>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* PWA Install Bubble (Very Small) */}
       <AnimatePresence>
