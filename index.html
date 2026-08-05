@@ -126,85 +126,84 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      // Safe environment check to prevent SecurityError and cross-origin "Script error" in sandboxed development preview iframes
-      let isTopLevel = false;
-      try {
-        isTopLevel = (window.parent === window);
-      } catch (e) {
-        isTopLevel = false;
+      // Global PWA prompt holder & Service Worker registration
+      window.deferredPwaPrompt = null;
+
+      if ('serviceWorker' in navigator) {
+        const registerSW = () => {
+          try {
+            navigator.serviceWorker.register('/sw.js').then((reg) => {
+              console.log('ServiceWorker registered:', reg.scope);
+            }).catch((err) => {
+              console.warn('ServiceWorker registration failed:', err);
+            });
+          } catch (e) {
+            console.warn('ServiceWorker error:', e);
+          }
+        };
+
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+          registerSW();
+        } else {
+          window.addEventListener('load', registerSW);
+        }
       }
 
-      if (isTopLevel) {
-        if ('serviceWorker' in navigator) {
-          const registerSW = () => {
-            try {
-              navigator.serviceWorker.register('/sw.js').then((reg) => {
-                console.log('ServiceWorker registered successfully:', reg.scope);
-              }).catch((err) => {
-                console.warn('ServiceWorker registration failed:', err);
-              });
-            } catch (e) {
-              console.warn('ServiceWorker registration error:', e);
-            }
-          };
-
-          if (document.readyState === 'complete' || document.readyState === 'interactive') {
-            registerSW();
-          } else {
-            window.addEventListener('load', registerSW);
-          }
-        }
-
-        let deferredPrompt;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        window.deferredPwaPrompt = e;
+        window.dispatchEvent(new CustomEvent('pwa-prompt-available', { detail: e }));
         const pwaBanner = document.getElementById('pwaBanner');
-        const installBtn = document.getElementById('installBtn');
-        const closeBannerBtn = document.getElementById('closeBannerBtn');
+        if (pwaBanner && !sessionStorage.getItem('pwa-banner-dismissed')) {
+          pwaBanner.style.display = 'block';
+        }
+      });
 
-        // Check if user dismissed the banner previously in this session
-        const isBannerDismissed = sessionStorage.getItem('pwa-banner-dismissed');
-
-        window.addEventListener('beforeinstallprompt', (e) => {
-          e.preventDefault();
-          deferredPrompt = e;
-          if (pwaBanner && !isBannerDismissed) {
-            pwaBanner.style.display = 'block';
+      window.triggerPwaInstall = async function() {
+        const promptEvent = window.deferredPwaPrompt;
+        if (promptEvent) {
+          try {
+            promptEvent.prompt();
+            const { outcome } = await promptEvent.userChoice;
+            if (outcome === 'accepted') {
+              window.deferredPwaPrompt = null;
+              const pwaBanner = document.getElementById('pwaBanner');
+              if (pwaBanner) pwaBanner.style.display = 'none';
+              return true;
+            }
+          } catch (err) {
+            console.warn('PWA prompt execution error:', err);
           }
-        });
+        }
+        return false;
+      };
 
-        if (installBtn) {
-          installBtn.addEventListener('click', async () => {
-            if (deferredPrompt) {
-              try {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                  if (pwaBanner) {
-                    pwaBanner.style.display = 'none';
-                  }
-                }
-              } catch (err) {
-                console.warn('Prompt failed or cancelled:', err);
-              }
-              deferredPrompt = null;
+      const installBtn = document.getElementById('installBtn');
+      const closeBannerBtn = document.getElementById('closeBannerBtn');
+      const pwaBanner = document.getElementById('pwaBanner');
+
+      if (installBtn) {
+        installBtn.addEventListener('click', () => {
+          window.triggerPwaInstall().then((installed) => {
+            if (!installed) {
+              window.dispatchEvent(new CustomEvent('open-pwa-guide-modal'));
             }
           });
-        }
-
-        if (closeBannerBtn) {
-          closeBannerBtn.addEventListener('click', () => {
-            if (pwaBanner) {
-              pwaBanner.style.display = 'none';
-            }
-            sessionStorage.setItem('pwa-banner-dismissed', 'true');
-          });
-        }
-
-        window.addEventListener('appinstalled', () => {
-          if (pwaBanner) {
-            pwaBanner.style.display = 'none';
-          }
         });
       }
+
+      if (closeBannerBtn) {
+        closeBannerBtn.addEventListener('click', () => {
+          if (pwaBanner) pwaBanner.style.display = 'none';
+          sessionStorage.setItem('pwa-banner-dismissed', 'true');
+        });
+      }
+
+      window.addEventListener('appinstalled', () => {
+        if (pwaBanner) pwaBanner.style.display = 'none';
+        window.deferredPwaPrompt = null;
+        console.log('Dadu Food PWA installed successfully!');
+      });
     </script>
   </body>
 </html>

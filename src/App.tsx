@@ -439,6 +439,7 @@ export default function App() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
   const [showInstallBubble, setShowInstallBubble] = useState(false);
+  const [showPwaGuideModal, setShowPwaGuideModal] = useState(false);
 
   // Global Location State
   const [globalCoords, setGlobalCoords] = useState<{ latitude: number; longitude: number } | null>(null);
@@ -585,26 +586,50 @@ export default function App() {
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
+      (window as any).deferredPwaPrompt = e;
+    };
+
+    const handleOpenPwaGuide = () => {
+      setShowPwaGuideModal(true);
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("open-pwa-guide-modal", handleOpenPwaGuide);
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("open-pwa-guide-modal", handleOpenPwaGuide);
     };
   }, []);
 
   const handleInstallClick = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === "accepted") {
+    const promptToUse = deferredPrompt || (window as any).deferredPwaPrompt;
+    if (promptToUse) {
+      try {
+        promptToUse.prompt();
+        const { outcome } = await promptToUse.userChoice;
+        if (outcome === "accepted") {
+          setDeferredPrompt(null);
+          (window as any).deferredPwaPrompt = null;
+          setShowInstallBanner(false);
+          setShowInstallBubble(false);
+          setShowPwaGuideModal(false);
+        }
+      } catch (err) {
+        console.warn("PWA install execution error:", err);
+      }
+    } else if ((window as any).triggerPwaInstall) {
+      const installed = await (window as any).triggerPwaInstall();
+      if (installed) {
         setDeferredPrompt(null);
         setShowInstallBanner(false);
         setShowInstallBubble(false);
+        setShowPwaGuideModal(false);
+      } else {
+        setShowPwaGuideModal(true);
       }
     } else {
-      alert("To install: Tap the Share button (iOS) or Menu button (Android) and select 'Add to Home Screen'.");
+      setShowPwaGuideModal(true);
     }
   };
 
@@ -3501,6 +3526,7 @@ export default function App() {
           onReorder={handleReorder}
           theme={theme}
           onToggleTheme={handleToggleTheme}
+          onInstallApp={handleInstallClick}
         />
       )}
 
@@ -4769,6 +4795,63 @@ export default function App() {
               setLocationPromptDismissed(true);
             }} 
           />
+        )}
+      </AnimatePresence>
+
+      {/* PWA Install Modal Guide */}
+      <AnimatePresence>
+        {showPwaGuideModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl relative overflow-hidden text-center"
+            >
+              <button
+                onClick={() => setShowPwaGuideModal(false)}
+                className="absolute top-4 right-4 p-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 rounded-full transition text-zinc-600 dark:text-zinc-300"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <div className="w-20 h-20 mx-auto mb-3 rounded-2xl overflow-hidden border-2 border-[#d70f64]/30 shadow-lg p-1 bg-white dark:bg-zinc-800 flex items-center justify-center">
+                <img src={daduLogo} alt="Dadu Food Logo" className="w-full h-full object-cover rounded-xl" />
+              </div>
+
+              <h3 className="text-xl font-black text-zinc-900 dark:text-white tracking-tight">Install Dadu Food App</h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 font-medium">
+                Install Dadu Food on your Android mobile for fast 1-click ordering and real-time order tracking!
+              </p>
+
+              <div className="mt-4 space-y-2.5 text-left bg-zinc-50 dark:bg-zinc-950/80 p-3.5 rounded-2xl border border-zinc-150 dark:border-zinc-800">
+                <div className="flex items-start gap-2.5 text-xs text-zinc-700 dark:text-zinc-300">
+                  <span className="font-black text-[#d70f64] bg-[#d70f64]/10 rounded-full w-5 h-5 flex items-center justify-center text-[10px] shrink-0 mt-0.5">1</span>
+                  <span>Tap <strong>Install Now</strong> below for instant 1-click installation.</span>
+                </div>
+                <div className="flex items-start gap-2.5 text-xs text-zinc-700 dark:text-zinc-300">
+                  <span className="font-black text-[#d70f64] bg-[#d70f64]/10 rounded-full w-5 h-5 flex items-center justify-center text-[10px] shrink-0 mt-0.5">2</span>
+                  <span>If prompt doesn't open automatically: tap Chrome menu (<strong>⋮ 3 dots</strong>) or Share icon, then select <strong>"Add to Home screen"</strong> or <strong>"Install app"</strong>.</span>
+                </div>
+              </div>
+
+              <div className="mt-5 space-y-2">
+                <button
+                  onClick={handleInstallClick}
+                  className="w-full py-3 px-4 bg-gradient-to-r from-[#d70f64] via-pink-600 to-rose-600 hover:from-[#b00c50] hover:to-pink-700 text-white font-black text-sm rounded-xl shadow-lg active:scale-95 transition flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Download className="w-4 h-4 stroke-[2.5]" />
+                  <span>Install Now 🚀</span>
+                </button>
+                <button
+                  onClick={() => setShowPwaGuideModal(false)}
+                  className="w-full py-2 text-xs font-bold text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition"
+                >
+                  Close & Continue Browsing
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>
