@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E21B6D"/>
+      <stop offset="100%" stop-color="#B0094E"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background rounded square with continuous curve -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)"/>
+  
+  <!-- Outer subtle glowing ring -->
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="none" stroke="#FFFFFF" stroke-opacity="0.25" stroke-width="6"/>
+
+  <!-- Center emblem group -->
+  <g filter="url(#shadow)" transform="translate(256, 215)">
+    <!-- Food Cloche Cover -->
+    <path d="M-90 30 C-90 -50, 90 -50, 90 30 Z" fill="#FFFFFF"/>
+    <!-- Cloche Handle Knob -->
+    <circle cx="0" cy="-55" r="14" fill="#FFFFFF"/>
+    <path d="M-105 32 L105 32 C110 32, 110 44, 105 44 L-105 44 C-110 44, -110 32, -105 32 Z" fill="#FFFFFF"/>
+    <!-- Speed Motion Lines -->
+    <path d="M-130 -10 L-100 -10" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" opacity="0.9"/>
+    <path d="M-140 10 L-110 10" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" opacity="0.9"/>
+    <path d="M-125 30 L-105 30" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" opacity="0.9"/>
+  </g>
+
+  <!-- Brand Typography DADUFOOD -->
+  <text x="256" y="415" font-family="'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif" font-weight="900" font-size="52" fill="#FFFFFF" text-anchor="middle" letter-spacing="4">
+    DADUFOOD
+  </text>
+  
+  <!-- Subtitle EXPRESS -->
+  <text x="256" y="452" font-family="'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif" font-weight="800" font-size="22" fill="#FFC2D6" text-anchor="middle" letter-spacing="8">
+    FAST DELIVERY
+  </text>
+</svg>
