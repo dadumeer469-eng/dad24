@@ -160,19 +160,19 @@ export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [splashProgress, setSplashProgress] = useState(0);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
 
-  // Load saved theme on mount
+  // Load saved theme on mount (Defaults to dark mode for all users)
   useEffect(() => {
     const saved = localStorage.getItem("dadu_theme");
-    if (saved === "dark") {
-      setTheme("dark");
-      document.documentElement.classList.add("dark");
-      document.body.classList.add("dark");
-    } else {
+    if (saved === "light") {
       setTheme("light");
       document.documentElement.classList.remove("dark");
       document.body.classList.remove("dark");
+    } else {
+      setTheme("dark");
+      document.documentElement.classList.add("dark");
+      document.body.classList.add("dark");
     }
   }, []);
 
