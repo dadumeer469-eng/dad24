@@ -336,9 +336,20 @@ export default function FoodpandaRestaurantPage({
                   </div>
                 )}
                 {isMerchantVerified && (
-                  <div className="absolute bottom-1 right-1 bg-[#D70F64] text-white rounded-full p-0.5 shadow-sm" title="Verified Merchant">
-                    <BadgeCheck className="w-4 h-4 fill-white text-[#D70F64]" />
-                  </div>
+                  <motion.div
+                    initial={{ scale: 0, opacity: 0, rotate: -180, y: 12 }}
+                    animate={{ scale: 1, opacity: 1, rotate: 0, y: 0 }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 400,
+                      damping: 14,
+                      delay: 0.2
+                    }}
+                    className="absolute bottom-1 right-1 bg-[#D70F64] text-white rounded-full p-0.5 shadow-md border-2 border-white dark:border-zinc-800 z-10"
+                    title="Verified Merchant"
+                  >
+                    <BadgeCheck className="w-4.5 h-4.5 sm:w-5 sm:h-5 fill-white text-[#D70F64]" />
+                  </motion.div>
                 )}
               </div>
 

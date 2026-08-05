@@ -4663,7 +4663,7 @@ export default function App() {
         restaurantName={animatingRestaurant?.name || ""}
         logoUrl={animatingRestaurant?.logoUrl}
         onFinish={handleFinishRestaurantAnimation}
-        durationMs={2000}
+        durationMs={1200}
       />
 
       {/* Floating Bottom Cart for mobile screens */}
