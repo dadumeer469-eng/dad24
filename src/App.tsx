@@ -157,8 +157,8 @@ function BannerLiveChatButton({
 }
 
 export default function App() {
-  const [showSplash, setShowSplash] = useState(false);
-  const [splashProgress, setSplashProgress] = useState(100);
+  const [showSplash, setShowSplash] = useState(true);
+  const [splashProgress, setSplashProgress] = useState(0);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
@@ -669,9 +669,28 @@ export default function App() {
     }
   }, [currentUser?.status]);
 
-  // 1.5. Splash animation disabled per user request
+  // 1.5. Initial 3D Site Loading Splash Screen Animation
   useEffect(() => {
-    setShowSplash(false);
+    setShowSplash(true);
+    setSplashProgress(0);
+
+    const startTime = Date.now();
+    const duration = 2400;
+
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(Math.floor((elapsed / duration) * 100), 100);
+      setSplashProgress(progress);
+
+      if (progress >= 100) {
+        clearInterval(interval);
+        setTimeout(() => {
+          setShowSplash(false);
+        }, 350);
+      }
+    }, 30);
+
+    return () => clearInterval(interval);
   }, []);
 
   // 2. Real-time Menu Listening & Auto-Seeding
@@ -3150,7 +3169,7 @@ export default function App() {
         </motion.div>
       </div>
 
-      {/* Welcome Foodpanda-style Intro Splash Animation Screen */}
+      {/* Welcome Intro Splash Animation Screen with Site Logo */}
       <AnimatePresence mode="wait">
         {showSplash && (
           <motion.div
@@ -3158,176 +3177,121 @@ export default function App() {
             exit={{
               opacity: 0,
               scale: 1.05,
-              transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] },
+              filter: "blur(12px)",
+              transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] },
             }}
-            className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#d70f64] text-white select-none overflow-hidden"
+            className="fixed inset-0 z-[99999] flex items-center justify-center overflow-hidden bg-black/90 text-white select-none"
+            style={{ perspective: 1500 }}
           >
-            {/* Ambient Background Radial Flares */}
-            <div className="absolute w-[500px] h-[500px] bg-pink-400/25 rounded-full blur-3xl animate-pulse pointer-events-none" />
-            <div className="absolute w-[300px] h-[300px] bg-amber-400/15 rounded-full blur-2xl pointer-events-none" />
+            {/* Cinematic Dark Glass Backdrop */}
+            <motion.div
+              initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+              animate={{ opacity: 1, backdropFilter: "blur(20px)" }}
+              exit={{ opacity: 0, backdropFilter: "blur(0px)", transition: { duration: 0.6 } }}
+              className="absolute inset-0 bg-black/70 z-0"
+            />
 
-            {/* Subtle Food-Related Graphics Floating Around Center */}
-            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            {/* Animated Mesh/Orb Gradients */}
+            <motion.div
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 1.5, opacity: 0, transition: { duration: 0.5 } }}
+              transition={{ duration: 1, ease: "easeOut" }}
+              className="absolute inset-0 flex items-center justify-center z-0"
+            >
               <motion.div
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 0.85, scale: 1, y: [-8, 8, -8], rotate: [-6, 6, -6] }}
-                transition={{ duration: 4, repeat: Infinity, repeatType: "reverse", delay: 0.2 }}
-                className="absolute top-12 left-10 text-5xl sm:text-6xl drop-shadow-md"
-              >
-                🍔
-              </motion.div>
+                animate={{ rotate: 360, scale: [1, 1.1, 1] }}
+                transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                className="absolute w-[80vw] h-[80vw] max-w-[600px] max-h-[600px] bg-gradient-to-tr from-[#d70f64] to-[#7209b7] rounded-full blur-[100px] opacity-60"
+              />
+              <motion.div
+                animate={{ rotate: -360, scale: [1, 1.2, 1] }}
+                transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                className="absolute w-[60vw] h-[60vw] max-w-[400px] max-h-[400px] bg-gradient-to-bl from-[#f72585] to-[#4cc9f0] rounded-full blur-[80px] opacity-50 mix-blend-screen"
+              />
+            </motion.div>
 
-              <motion.div
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 0.85, scale: 1, y: [8, -8, 8], rotate: [6, -6, 6] }}
-                transition={{ duration: 3.5, repeat: Infinity, repeatType: "reverse", delay: 0.3 }}
-                className="absolute top-16 right-12 text-5xl sm:text-6xl drop-shadow-md"
-              >
-                🍟
-              </motion.div>
+            {/* Portal Ring */}
+            <motion.div
+              initial={{ scale: 0, opacity: 0, rotateX: 60 }}
+              animate={{ scale: 1, opacity: 1, rotateX: 0 }}
+              exit={{ scale: 2, opacity: 0, transition: { duration: 0.5 } }}
+              transition={{ duration: 1.2, type: "spring", bounce: 0.4 }}
+              className="absolute w-[300px] h-[300px] md:w-[400px] md:h-[400px] rounded-full border border-white/20 shadow-[0_0_80px_rgba(215,15,100,0.5)] z-0"
+              style={{ background: "radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%)" }}
+            />
 
+            {/* Main Content Floating */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.5, rotateY: -30, z: -400 }}
+              animate={{ opacity: 1, scale: 1, rotateY: 0, z: 0 }}
+              exit={{ opacity: 0, scale: 1.2, rotateY: 15, z: 200, filter: "blur(15px)", transition: { duration: 0.5 } }}
+              transition={{ duration: 0.9, type: "spring", bounce: 0.5, delay: 0.1 }}
+              className="relative z-10 flex flex-col items-center justify-center text-white w-full px-4 text-center"
+            >
+              {/* Site Logo Presentation Frame */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 0.85, scale: 1, y: [-10, 10, -10], rotate: [-8, 8, -8] }}
-                transition={{ duration: 4.5, repeat: Infinity, repeatType: "reverse", delay: 0.4 }}
-                className="absolute bottom-24 left-12 text-5xl sm:text-6xl drop-shadow-md"
+                animate={{ y: [-8, 8, -8], rotateZ: [-2, 2, -2] }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                className="relative mb-6 group"
               >
-                🍩
-              </motion.div>
+                {/* Glow Behind Logo */}
+                <div className="absolute -inset-4 bg-white/25 blur-2xl rounded-full scale-110 opacity-70 group-hover:opacity-100 transition duration-700 pointer-events-none" />
 
-              <motion.div
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 0.85, scale: 1, y: [10, -10, 10], rotate: [8, -8, 8] }}
-                transition={{ duration: 4.2, repeat: Infinity, repeatType: "reverse", delay: 0.5 }}
-                className="absolute bottom-20 right-14 text-5xl sm:text-6xl drop-shadow-md"
-              >
-                🥤
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 0.75, scale: 1, y: [-6, 6, -6] }}
-                transition={{ duration: 3, repeat: Infinity, repeatType: "reverse", delay: 0.35 }}
-                className="absolute top-1/2 left-6 -translate-y-1/2 text-4xl sm:text-5xl"
-              >
-                🌮
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 0.75, scale: 1, y: [6, -6, 6] }}
-                transition={{ duration: 3.2, repeat: Infinity, repeatType: "reverse", delay: 0.45 }}
-                className="absolute top-1/2 right-6 -translate-y-1/2 text-4xl sm:text-5xl"
-              >
-                🥗
-              </motion.div>
-
-              {/* Sparkles */}
-              <motion.div
-                animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="absolute top-1/4 right-1/3 text-amber-300 text-2xl"
-              >
-                ✨
-              </motion.div>
-              <motion.div
-                animate={{ scale: [1.2, 1, 1.2], opacity: [0.6, 1, 0.6] }}
-                transition={{ duration: 2.5, repeat: Infinity }}
-                className="absolute bottom-1/3 left-1/3 text-amber-300 text-2xl"
-              >
-                ✨
-              </motion.div>
-            </div>
-
-            {/* Center Content Container */}
-            <div className="flex flex-col items-center max-w-md px-6 text-center z-10 space-y-6">
-              
-              {/* Center Zooming High-Quality Pizza Image */}
-              <motion.div
-                initial={{ scale: 0, rotate: -25, opacity: 0 }}
-                animate={{ scale: 1, rotate: 0, opacity: 1 }}
-                transition={{ type: "spring", stiffness: 140, damping: 15, delay: 0.15 }}
-                className="relative w-44 h-44 sm:w-52 sm:h-52 rounded-full p-2 bg-white/20 backdrop-blur-md shadow-[0_25px_60px_rgba(0,0,0,0.4)] border-4 border-white/40 flex items-center justify-center shrink-0"
-              >
-                <div className="w-full h-full rounded-full overflow-hidden shadow-inner border-2 border-white/60 relative bg-pink-900">
-                  <img
-                    src="https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&q=80&w=600"
-                    alt="Delicious Pizza Launch Visual"
-                    className="w-full h-full object-cover transform hover:scale-110 transition duration-700"
-                    referrerPolicy="no-referrer"
-                  />
-                  {/* Subtle hot steam glow overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
-                </div>
-
-                {/* Floating Fresh Hot Badge */}
+                {/* 3D Glassmorphic App Icon Frame */}
                 <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 18, delay: 0.5 }}
-                  className="absolute -bottom-2 bg-gradient-to-r from-amber-400 to-orange-500 text-neutral-950 text-[10px] font-black uppercase tracking-widest px-3.5 py-1 rounded-full shadow-lg border-2 border-white flex items-center gap-1"
+                  whileHover={{ scale: 1.05, rotateY: 10, rotateX: 5 }}
+                  transition={{ type: "spring", bounce: 0.5 }}
+                  className="w-40 h-40 md:w-48 md:h-48 rounded-[2.5rem] overflow-hidden bg-white/10 backdrop-blur-xl shadow-[0_30px_80px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.4)] relative z-10 border border-white/30 p-2 transform-gpu"
                 >
-                  <span>🔥 HOT & FRESH</span>
+                  <div className="w-full h-full rounded-[2rem] overflow-hidden bg-white relative flex items-center justify-center p-0.5">
+                    <img
+                      src={daduLogo}
+                      alt="Site Logo"
+                      className="w-full h-full object-cover rounded-[1.8rem] transform scale-105 transition-transform duration-700 group-hover:scale-100"
+                    />
+                  </div>
                 </motion.div>
               </motion.div>
 
-              {/* Pleasing Fade-In Effect for App Name 'Dadu Food' */}
-              <div className="space-y-2 pt-2">
-                <motion.h1
-                  initial={{ opacity: 0, y: 25 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.75, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                  className="font-sans font-black text-4xl sm:text-5xl tracking-tight text-white uppercase drop-shadow-lg flex items-center justify-center gap-2"
-                >
-                  <span className="text-white">DADU</span>
-                  <span className="bg-white text-[#d70f64] px-4 py-1 rounded-2xl shadow-xl font-black inline-block transform -rotate-1">
-                    FOOD
-                  </span>
-                </motion.h1>
-
-                <motion.p
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 0.95, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.8 }}
-                  className="text-xs sm:text-sm text-pink-100 font-extrabold tracking-wider uppercase drop-shadow-xs"
-                >
-                  Fast & Hot Delivery Express 🛵
-                </motion.p>
-              </div>
-
-              {/* Progress Bar Line */}
-              <motion.div
-                initial={{ opacity: 0, width: "0%" }}
-                animate={{ opacity: 1, width: "100%" }}
-                transition={{ delay: 0.7, duration: 0.4 }}
-                className="w-52 space-y-2 pt-2"
+              {/* Brand Title Text matching screenshot styling */}
+              <motion.h2
+                initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
+                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                transition={{ delay: 0.3, duration: 0.7, type: "spring", bounce: 0.4 }}
+                className="text-4xl md:text-5xl font-black tracking-tight text-white mb-6 text-center drop-shadow-[0_4px_10px_rgba(0,0,0,0.6)] leading-tight lowercase font-sans"
               >
-                <div className="h-2 w-full bg-white/20 rounded-full overflow-hidden relative border border-white/20 shadow-inner">
-                  <div
-                    className="h-full bg-white rounded-full transition-all duration-100 ease-out shadow-md"
+                foodpanda
+              </motion.h2>
+
+              {/* High-tech Loading Progress Indicator Bar */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.4, duration: 0.6 }}
+                className="flex flex-col items-center space-y-3"
+              >
+                <div className="relative h-2 w-[200px] md:w-[240px] bg-black/60 rounded-full overflow-hidden backdrop-blur-sm border border-white/15 shadow-[0_0_15px_rgba(215,15,100,0.3)]">
+                  <motion.div
+                    className="h-full bg-gradient-to-r from-[#d70f64] via-pink-400 to-[#4cc9f0] rounded-full transition-all duration-150 ease-out"
                     style={{ width: `${splashProgress}%` }}
                   />
+                  <motion.div
+                    animate={{ x: ["-100%", "100%"] }}
+                    transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none"
+                  />
                 </div>
-                <div className="flex items-center justify-between text-[10.5px] text-pink-100 font-black tracking-widest uppercase font-mono">
-                  <span>Launching Dadu Food</span>
-                  <span className="bg-white/20 px-2 py-0.5 rounded-md text-white font-black">
-                    {splashProgress}%
-                  </span>
-                </div>
+
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                  className="text-[10px] md:text-[11px] font-extrabold uppercase tracking-[0.3em] text-white/70"
+                >
+                  PREPARING EXPERIENCE
+                </motion.p>
               </motion.div>
-
-            </div>
-
-            {/* Bottom branding identifier credits */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.75 }}
-              transition={{ delay: 0.9, duration: 0.6 }}
-              className="absolute bottom-6 flex items-center gap-1.5 text-[9.5px] font-black uppercase text-pink-100 tracking-widest"
-            >
-              <span>MADE WITH</span>
-              <span className="text-xs text-white">❤️</span>
-              <span>FOR DADU CITY</span>
             </motion.div>
           </motion.div>
         )}
