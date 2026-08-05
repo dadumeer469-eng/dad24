@@ -79,6 +79,7 @@ import {
   Star,
   ChevronRight,
   X,
+  Bike,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -2859,33 +2860,43 @@ export default function App() {
             />
           </div>
 
-          {/* Road & Moving Scooter Pill */}
-          <div className="relative h-11 flex items-center w-full px-1">
+          {/* Road & Moving Delivery Bike Badge */}
+          <div className="relative h-12 flex items-center w-full px-1">
             <div className="absolute left-2 right-2 top-1/2 -translate-y-1/2 h-0.5 bg-zinc-800 border-t border-dashed border-zinc-700/80" />
             
-            {/* Smooth Moving Badge (Exact centered progress tracking) */}
+            {/* Smooth Moving Badge (Hardware accelerated GPU transform) */}
             <div
               style={{
-                left: `${Math.min(Math.max(splashProgress, 6), 94)}%`,
+                left: `${Math.min(Math.max(splashProgress, 7), 93)}%`,
+                transform: "translateX(-50%)",
                 willChange: "left",
               }}
-              className="absolute z-10 -translate-x-1/2 transition-all duration-100 ease-out"
+              className="absolute z-10 transition-all duration-100 ease-out"
             >
-              <div className="flex items-center gap-1.5 bg-zinc-950/95 px-2.5 py-1 rounded-full border border-[#D70F64]/60 shadow-[0_0_16px_rgba(215,15,100,0.5)]">
-                {/* Dadu Site Logo Icon */}
-                <img
-                  src={daduLogo}
-                  alt="Dadu Icon"
-                  className="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover border border-[#D70F64] shadow-xs shrink-0"
-                />
-                {/* Scooter Emoji facing forward to right with subtle bounce */}
-                <motion.span
-                  animate={{ y: [0, -2, 0] }}
-                  transition={{ repeat: Infinity, duration: 0.35, ease: "easeInOut" }}
-                  className="text-xl sm:text-2xl inline-block transform -scale-x-1 drop-shadow-[0_2px_8px_rgba(215,15,100,0.6)]"
-                >
-                  🛵
-                </motion.span>
+              <div className="flex items-center gap-1.5 bg-zinc-950/95 pl-1.5 pr-2.5 py-1 rounded-full border border-[#D70F64] shadow-[0_0_18px_rgba(215,15,100,0.6)]">
+                {/* Dadu Site Logo Avatar */}
+                <div className="relative shrink-0">
+                  <img
+                    src={daduLogo}
+                    alt="Dadu Icon"
+                    className="w-6 h-6 rounded-full object-cover border border-[#D70F64] shadow-xs"
+                  />
+                  <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 border border-black" />
+                </div>
+
+                {/* Stylish Delivery Bike Badge */}
+                <div className="flex items-center gap-1 text-white">
+                  <motion.div
+                    animate={{ y: [0, -1.5, 0] }}
+                    transition={{ repeat: Infinity, duration: 0.3, ease: "easeInOut" }}
+                    className="relative flex items-center justify-center bg-gradient-to-r from-[#D70F64] to-pink-600 p-1 rounded-full text-white shadow-xs"
+                  >
+                    <Bike className="w-4 h-4 transform -scale-x-1" />
+                  </motion.div>
+                  <span className="text-[11px] font-black tracking-wider text-pink-100 uppercase font-mono">
+                    FAST
+                  </span>
+                </div>
               </div>
             </div>
           </div>
