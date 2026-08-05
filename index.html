@@ -30,11 +30,9 @@
     <meta name="twitter:description" content="Your favorite meals, daily groceries, and trusted local home services in one easy-to-use platform. Experience premium convenience with Dadu Food today!" />
     <meta name="twitter:image" content="https://dadufood.vercel.app/logo.png" />
 
-    <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="shortcut icon" href="/favicon.ico" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <link rel="apple-touch-icon" href="/logo.png" />
+    <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#D70F64" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -179,23 +177,15 @@
               try {
                 deferredPrompt.prompt();
                 const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted' || outcome === 'dismissed') {
+                if (outcome === 'accepted') {
                   if (pwaBanner) {
                     pwaBanner.style.display = 'none';
                   }
                 }
               } catch (err) {
                 console.warn('Prompt failed or cancelled:', err);
-              } finally {
-                deferredPrompt = null;
               }
-            } else {
-              const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-              if (isIOS) {
-                alert("To install Dadu Food on iOS: Tap the Share button in Safari, then select 'Add to Home Screen'.");
-              } else {
-                alert("To install Dadu Food: Open your browser menu (⋮) and select 'Install app' or 'Add to Home Screen'.");
-              }
+              deferredPrompt = null;
             }
           });
         }

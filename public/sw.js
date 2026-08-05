@@ -1,18 +1,12 @@
-const CACHE_NAME = "dadu-food-static-v4";
-const RUNTIME_CACHE = "dadu-food-runtime-v4";
-const IMAGE_CACHE = "dadu-food-images-v4";
+const CACHE_NAME = "dadu-food-static-v3";
+const RUNTIME_CACHE = "dadu-food-runtime-v3";
+const IMAGE_CACHE = "dadu-food-images-v3";
 
 const PRECACHE_URLS = [
   "/",
   "/index.html",
-  "/site.webmanifest",
   "/manifest.json",
-  "/favicon.svg",
-  "/favicon-96x96.png",
-  "/favicon.ico",
-  "/apple-touch-icon.png",
-  "/web-app-manifest-192x192.png",
-  "/web-app-manifest-512x512.png",
+  "/logo.png",
   "/logo-192.png",
   "/logo-512.png",
   "/logo.jpg"
@@ -66,10 +60,8 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  const isStaticFile = url.pathname.match(/\.(png|jpg|jpeg|svg|webp|gif|ico|webmanifest|json|css|js|xml|txt)$/i);
-
-  // 1. Navigation / Document Requests (SPA routing, excluding direct static file requests)
-  if ((request.mode === "navigate" || request.headers.get("accept")?.includes("text/html")) && !isStaticFile) {
+  // 1. Navigation / Document Requests: Cache-First with background revalidation
+  if (request.mode === "navigate" || request.headers.get("accept")?.includes("text/html")) {
     event.respondWith(
       caches.match("/index.html").then((cachedResponse) => {
         const fetchPromise = fetch(request)
