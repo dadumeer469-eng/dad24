@@ -35,19 +35,19 @@ import { INITIAL_MENU_ITEMS } from "./data";
 
 // Import modules
 import FoodpandaHeader from "./components/FoodpandaHeader";
-const FoodpandaHero = React.lazy(() => import("./components/FoodpandaHero"));
-const BannerCarousel = React.lazy(() => import("./components/BannerCarousel"));
-const CartDrawer = React.lazy(() => import("./components/CartDrawer"));
-const OrderTracker = React.lazy(() => import("./components/OrderTracker"));
-const AdminPanel = React.lazy(() => import("./components/AdminPanel"));
-const AuthModal = React.lazy(() => import("./components/AuthModal"));
-const RiderPanel = React.lazy(() => import("./components/RiderPanel"));
-const FoodDetailModal = React.lazy(() => import("./components/FoodDetailModal"));
-const GroceryModule = React.lazy(() => import("./components/GroceryModule"));
-const GroceryCartDrawer = React.lazy(() => import("./components/GroceryCartDrawer"));
-const OrderSuccessAnimation = React.lazy(() => import("./components/OrderSuccessAnimation"));
-const OrderHistoryDrawer = React.lazy(() => import("./components/OrderHistoryDrawer"));
-const OrderChat = React.lazy(() => import("./components/OrderChat"));
+import FoodpandaHero from "./components/FoodpandaHero";
+import BannerCarousel from "./components/BannerCarousel";
+import CartDrawer from "./components/CartDrawer";
+import OrderTracker from "./components/OrderTracker";
+import AdminPanel from "./components/AdminPanel";
+import AuthModal from "./components/AuthModal";
+import RiderPanel from "./components/RiderPanel";
+import FoodDetailModal from "./components/FoodDetailModal";
+import GroceryModule from "./components/GroceryModule";
+import GroceryCartDrawer from "./components/GroceryCartDrawer";
+import OrderSuccessAnimation from "./components/OrderSuccessAnimation";
+import OrderHistoryDrawer from "./components/OrderHistoryDrawer";
+import OrderChat from "./components/OrderChat";
 import BottomNavBar from "./components/BottomNavBar";
 import MobileAccountDrawer from "./components/MobileAccountDrawer";
 import { LazyImage } from "./components/LazyImage";
@@ -82,7 +82,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
-const FoodpandaRestaurantPage = React.lazy(() => import("./components/FoodpandaRestaurantPage"));
+import FoodpandaRestaurantPage from "./components/FoodpandaRestaurantPage";
 
 export function getDeviceId(): string {
   let id = localStorage.getItem("dadu_device_id");

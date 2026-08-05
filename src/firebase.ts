@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, setLogLevel } from "firebase/firestore";
+import { initializeFirestore, enableIndexedDbPersistence, setLogLevel } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAnalytics, isSupported } from "firebase/analytics";
 import appletConfig from "../firebase-applet-config.json";
@@ -39,21 +39,22 @@ if (firebaseConfig.measurementId && typeof window !== "undefined") {
   });
 }
 
-// Initialize Firestore with robust multi-tab IndexedDB cache for instant offline access
+// Initialize Firestore with long-polling enabled for enhanced connectivity in restricted iframe/sandbox environments
 const databaseId = (import.meta as any).env.VITE_FIREBASE_DATABASE_ID || appletConfig.firestoreDatabaseId;
 console.log("Firestore Initializing with Database ID:", databaseId);
-
-const firestoreSettings = {
-  localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager()
-  })
-};
-
 const db = databaseId 
-  ? initializeFirestore(app, firestoreSettings, databaseId) 
-  : initializeFirestore(app, firestoreSettings);
+  ? initializeFirestore(app, { experimentalForceLongPolling: true }, databaseId) 
+  : initializeFirestore(app, { experimentalForceLongPolling: true });
 
-console.log("Firestore instance initialized successfully with IndexedDB cache.");
+enableIndexedDbPersistence(db).catch((err) => {
+  if (err.code == 'failed-precondition') {
+    console.warn("Firestore persistence failed-precondition: multiple tabs open");
+  } else if (err.code == 'unimplemented') {
+    console.warn("Firestore persistence unimplemented in this browser");
+  }
+});
+
+console.log("Firestore instance initialized successfully.");
 
 // Initialize Auth
 const auth = getAuth(app);
