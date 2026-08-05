@@ -179,15 +179,23 @@
               try {
                 deferredPrompt.prompt();
                 const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
+                if (outcome === 'accepted' || outcome === 'dismissed') {
                   if (pwaBanner) {
                     pwaBanner.style.display = 'none';
                   }
                 }
               } catch (err) {
                 console.warn('Prompt failed or cancelled:', err);
+              } finally {
+                deferredPrompt = null;
               }
-              deferredPrompt = null;
+            } else {
+              const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+              if (isIOS) {
+                alert("To install Dadu Food on iOS: Tap the Share button in Safari, then select 'Add to Home Screen'.");
+              } else {
+                alert("To install Dadu Food: Open your browser menu (⋮) and select 'Install app' or 'Add to Home Screen'.");
+              }
             }
           });
         }

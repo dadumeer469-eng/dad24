@@ -5,8 +5,13 @@ const IMAGE_CACHE = "dadu-food-images-v3";
 const PRECACHE_URLS = [
   "/",
   "/index.html",
-  "/manifest.json",
-  "/logo.png",
+  "/site.webmanifest",
+  "/favicon.svg",
+  "/favicon-96x96.png",
+  "/favicon.ico",
+  "/apple-touch-icon.png",
+  "/web-app-manifest-192x192.png",
+  "/web-app-manifest-512x512.png",
   "/logo-192.png",
   "/logo-512.png",
   "/logo.jpg"

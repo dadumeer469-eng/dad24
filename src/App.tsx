@@ -585,26 +585,48 @@ export default function App() {
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
+      if (!isStandalone && !localStorage.getItem("pwaInstallDismissed")) {
+        setShowInstallBanner(true);
+      }
+    };
+
+    const handleAppInstalled = () => {
+      setDeferredPrompt(null);
+      setShowInstallBanner(false);
+      setShowInstallBubble(false);
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleAppInstalled);
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleAppInstalled);
     };
   }, []);
 
   const handleInstallClick = async () => {
     if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === "accepted") {
+      try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === "accepted") {
+          setShowInstallBanner(false);
+          setShowInstallBubble(false);
+        }
+      } catch (err) {
+        console.warn("PWA install prompt error:", err);
+      } finally {
         setDeferredPrompt(null);
-        setShowInstallBanner(false);
-        setShowInstallBubble(false);
       }
     } else {
-      alert("To install: Tap the Share button (iOS) or Menu button (Android) and select 'Add to Home Screen'.");
+      // Clean fallback if beforeinstallprompt is not supported or already triggered
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+      if (isIOS) {
+        alert("To install Dadu Food on iOS: Tap the Share button in Safari, then tap 'Add to Home Screen'.");
+      } else {
+        alert("To install Dadu Food: Open your browser menu (⋮) and select 'Install app' or 'Add to Home Screen'.");
+      }
     }
   };
 
