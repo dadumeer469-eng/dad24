@@ -1,6 +1,6 @@
-const CACHE_NAME = "dadu-food-static-v5";
-const RUNTIME_CACHE = "dadu-food-runtime-v5";
-const IMAGE_CACHE = "dadu-food-images-v5";
+const CACHE_NAME = "dadu-food-static-v6";
+const RUNTIME_CACHE = "dadu-food-runtime-v6";
+const IMAGE_CACHE = "dadu-food-images-v6";
 
 const PRECACHE_URLS = [
   "/",
@@ -28,7 +28,7 @@ function getSvgFallbackResponse() {
 
 // Install Event: Precache static core assets
 self.addEventListener("install", (event) => {
-  console.log("⚡ [Service Worker v5] Installing and caching core static assets...");
+  console.log("⚡ [Service Worker v6] Installing and caching core static assets...");
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(PRECACHE_URLS).catch((err) => {
@@ -40,7 +40,7 @@ self.addEventListener("install", (event) => {
 
 // Activate Event: Clean old cache versions immediately
 self.addEventListener("activate", (event) => {
-  console.log("🚀 [Service Worker v5] Activated successfully!");
+  console.log("🚀 [Service Worker v6] Activated successfully!");
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
