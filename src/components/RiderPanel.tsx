@@ -44,43 +44,106 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
   const [etaInputs, setEtaInputs] = useState<{ [orderId: string]: string }>({});
   const [autoPinnedOrderId, setAutoPinnedOrderId] = useState<string>("");
 
-  // sound buzzer for notification when new available order arrives
-  const playContinuousAlarm = () => {
-    if (isMuted) return;
+  // Persistent AudioContext ref for mobile browsers
+  const audioCtxRef = React.useRef<AudioContext | null>(null);
+
+  // Helper to get or unlock AudioContext on mobile touch/click
+  const getAudioContext = () => {
     try {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioCtx) return;
-      const ctx = new AudioCtx();
-      const now = ctx.currentTime;
-      
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sawtooth"; // dramatic siren sound!
-      osc.frequency.setValueAtTime(800, now);
-      osc.frequency.exponentialRampToValueAtTime(1100, now + 0.3);
-      
-      gain.gain.setValueAtTime(0.35, now); // loud "zor se"
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.55);
-      
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      
-      osc.start(now);
-      osc.stop(now + 0.6);
+      if (!audioCtxRef.current) {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioCtx) {
+          audioCtxRef.current = new AudioCtx();
+        }
+      }
+      if (audioCtxRef.current && audioCtxRef.current.state === "suspended") {
+        audioCtxRef.current.resume().catch(() => {});
+      }
+      return audioCtxRef.current;
     } catch (e) {
-      // Ignored
+      return null;
     }
   };
 
-  // Continuous loop siren effect for unaccepted pending orders
+  // Auto-unlock audio on user interaction
+  useEffect(() => {
+    const unlockAudio = () => {
+      getAudioContext();
+    };
+    window.addEventListener("click", unlockAudio);
+    window.addEventListener("touchstart", unlockAudio);
+    return () => {
+      window.removeEventListener("click", unlockAudio);
+      window.removeEventListener("touchstart", unlockAudio);
+    };
+  }, []);
+
+  // Helper to trigger mobile device physical vibration
+  const triggerVibration = () => {
+    if (typeof window !== "undefined" && "vibrate" in navigator) {
+      try {
+        navigator.vibrate([400, 150, 400, 150, 400]);
+      } catch (e) {
+        // Ignored
+      }
+    }
+  };
+
+  // High-Volume Dual-Tone Ringtone Generator for New Orders
+  const playContinuousAlarm = () => {
+    if (isMuted) return;
+    try {
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+      
+      // Dual-oscillator high-pitch dispatcher ring tone (trin-trin!)
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc1.type = "sawtooth";
+      osc2.type = "square"; // Piercing tone for mobile phone speakers
+
+      // Rapid dual-tone pitch sweep (Ringtone effect)
+      osc1.frequency.setValueAtTime(950, now);
+      osc1.frequency.setValueAtTime(1350, now + 0.12);
+      osc1.frequency.setValueAtTime(950, now + 0.25);
+      osc1.frequency.setValueAtTime(1350, now + 0.38);
+
+      osc2.frequency.setValueAtTime(475, now);
+      osc2.frequency.setValueAtTime(675, now + 0.12);
+      osc2.frequency.setValueAtTime(475, now + 0.25);
+      osc2.frequency.setValueAtTime(675, now + 0.38);
+
+      // High volume gain (0.95 - maximum loudness)
+      gain.gain.setValueAtTime(0.95, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.65);
+
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc1.start(now);
+      osc2.start(now);
+      osc1.stop(now + 0.65);
+      osc2.stop(now + 0.65);
+    } catch (e) {
+      console.error("Audio ringtone error:", e);
+    }
+  };
+
+  // Continuous loop ringtone siren effect for available pending orders
   useEffect(() => {
     if (availableOrders.length === 0 || !isOnline) return;
 
     playContinuousAlarm();
+    triggerVibration();
 
     const interval = setInterval(() => {
       playContinuousAlarm();
-    }, 1600);
+      triggerVibration();
+    }, 1400);
 
     return () => clearInterval(interval);
   }, [availableOrders.length, isMuted, isOnline]);
@@ -496,289 +559,200 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans">
       
-      {/* Header bar */}
-      <header className="bg-zinc-900 border-b border-zinc-800 sticky top-0 z-30 shadow-md">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          
-          <div className="flex items-center justify-between w-full sm:w-auto">
-            <div className="flex items-center gap-2.5">
-              <div className="bg-[#D70F64] text-white p-2 rounded-2xl shadow-md">
-                <Compass className="w-5 h-5 animate-spin-slow text-white shrink-0" />
-              </div>
-              <div>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <h1 className="text-base sm:text-lg font-black tracking-tight text-white uppercase">Dadu24 Rider Gate</h1>
-                  <button
-                    onClick={handleToggleOnline}
-                    className={`border text-[8px] sm:text-[9.5px] font-black tracking-widest px-2.5 py-1 rounded-full uppercase transition-all duration-300 flex items-center gap-1 cursor-pointer active:scale-95 ${
-                      isOnline
-                        ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30 shadow-md shadow-emerald-500/5 animate-pulse"
-                        : "bg-zinc-800 text-zinc-400 border-zinc-700 hover:text-zinc-300"
-                    }`}
-                    title="Tap to toggle your Duty Status"
-                  >
-                    <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? "bg-emerald-400" : "bg-zinc-500"}`}></span>
-                    {isOnline ? "Duty: Online 🟢" : "Duty: Offline 🔴"}
-                  </button>
-                </div>
-                <p className="text-[10px] sm:text-[11px] text-[#D70F64] font-bold mt-0.5">Logged in as {currentUser.name}</p>
-              </div>
-            </div>
+      {/* Ultra Clean Compact Header */}
+      <header className="bg-zinc-900/95 backdrop-blur-md border-b border-zinc-800/80 sticky top-0 z-40 px-3.5 sm:px-4 py-2 flex items-center justify-between shadow-sm">
+        {/* Left: Clean Duty Switch */}
+        <button
+          onClick={handleToggleOnline}
+          className={`py-1 px-3 rounded-full text-[10.5px] font-black tracking-wider uppercase transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 border ${
+            isOnline
+              ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30 shadow-xs shadow-emerald-500/10"
+              : "bg-zinc-950 text-zinc-400 border-zinc-800"
+          }`}
+          title="Tap to toggle Duty Status"
+        >
+          <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-emerald-400 animate-pulse" : "bg-zinc-500"}`}></span>
+          <span>{isOnline ? "DUTY: ONLINE" : "DUTY: OFFLINE"}</span>
+        </button>
 
-            {/* Logout button on mobile */}
-            <button
-              onClick={onLogout}
-              className="sm:hidden bg-zinc-950 text-pink-400 hover:text-pink-300 border border-zinc-800 p-2.5 rounded-xl transition cursor-pointer active:scale-95"
-              title="Sign Out rider profile"
-            >
-              <LogOut className="w-4.5 h-4.5 shrink-0" />
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto border-t border-zinc-800/50 pt-2 sm:pt-0 sm:border-0">
-            <div className="flex gap-2 w-full sm:w-auto">
-              <button
-                onClick={() => setActiveTab("dashboard")}
-                className={`flex-1 sm:flex-initial py-2.5 px-3 sm:px-4 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition cursor-pointer active:scale-95 ${
-                  activeTab === "dashboard"
-                    ? "bg-[#D70F64] text-white"
-                    : "bg-zinc-950 text-zinc-400 hover:text-zinc-200 border border-zinc-800"
-                }`}
-              >
-                🚚 Dashboard
-              </button>
-              <button
-                onClick={() => setActiveTab("history")}
-                className={`flex-1 sm:flex-initial py-2.5 px-3 sm:px-4 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition cursor-pointer active:scale-95 ${
-                  activeTab === "history"
-                    ? "bg-[#D70F64] text-white"
-                    : "bg-zinc-950 text-zinc-400 hover:text-zinc-200 border border-zinc-800"
-                }`}
-              >
-                📚 history
-              </button>
-              <button
-                onClick={() => setActiveTab("performance")}
-                className={`flex-1 sm:flex-initial py-2.5 px-3 sm:px-4 rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition cursor-pointer active:scale-95 ${
-                  activeTab === "performance"
-                    ? "bg-[#D70F64] text-white"
-                    : "bg-zinc-950 text-zinc-400 hover:text-zinc-200 border border-zinc-800"
-                }`}
-              >
-                ⭐ Performance
-              </button>
-            </div>
-            
-            <span className="hidden sm:inline text-zinc-800 mx-1">|</span>
-
-            <button
-              onClick={onLogout}
-              className="hidden sm:inline-block bg-zinc-950 text-pink-400 hover:text-pink-300 border border-zinc-800 p-2 rounded-xl transition cursor-pointer"
-              title="Sign Out rider profile"
-            >
-              <LogOut className="w-4 h-4 shrink-0" />
-            </button>
-          </div>
-
+        {/* Center: Rider Badge */}
+        <div className="flex items-center gap-1.5 text-xs font-black text-white">
+          <span className="text-pink-400 font-bold text-[11px] truncate max-w-[120px] sm:max-w-none">
+            {currentUser.name}
+          </span>
         </div>
+
+        {/* Right: Small Logout Button */}
+        <button
+          onClick={onLogout}
+          className="bg-zinc-950 text-zinc-400 hover:text-pink-400 border border-zinc-800 px-2.5 py-1 rounded-xl transition cursor-pointer active:scale-95 flex items-center gap-1 text-[10px] font-black uppercase tracking-wider"
+          title="Sign Out"
+        >
+          <LogOut className="w-3.5 h-3.5 text-pink-500 shrink-0" />
+          <span className="hidden sm:inline">Logout</span>
+        </button>
       </header>
 
       {/* Main Panel views layout */}
-      <main className="max-w-7xl mx-auto px-4 py-5 sm:py-8 flex-grow w-full space-y-6 sm:space-y-8">
+      <main className="max-w-7xl mx-auto px-4 py-5 sm:py-8 pb-24 md:pb-8 flex-grow w-full space-y-6 sm:space-y-8">
         
-        {activeTab === "dashboard" && isOnline && (
+        {/* Deliveries & Jobs View */}
+        {activeTab === "dashboard" && (
           <div className="space-y-6 sm:space-y-8 animate-fade-in">
-            
-            {/* Continuous Loud Alarm status indicator */}
-            {availableOrders.length > 0 && (
-              <div className="bg-pink-950/40 border border-pink-900/40 p-4 sm:p-5 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-2xl pointer-events-none -mt-8 -mr-8 bg-pink-500/10"></div>
-                <div className="flex items-center gap-3 text-center md:text-left relative z-10">
-                  <span className="text-2xl animate-bounce shrink-0">🚨</span>
-                  <div>
-                    <span className="text-xs font-black uppercase tracking-widest text-[#D70F64] block">New Dispatch Alert Siren Active</span>
-                    <span className="text-xs text-zinc-300 font-semibold block mt-0.5">
-                      {availableOrders.length} unassigned order{availableOrders.length !== 1 ? "s" : ""} waiting in queue! Accept before someone else does.
-                    </span>
-                  </div>
+
+            {/* Compact Rider Header Bar */}
+            <div className="bg-zinc-900 border border-zinc-800 p-3.5 sm:p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-md">
+              <div className="flex items-center gap-3">
+                <div className="bg-emerald-500/10 text-emerald-400 p-2 rounded-xl border border-emerald-500/20">
+                  <Coins className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block">Today's Summary</span>
+                  <p className="text-xs sm:text-sm font-black text-white">
+                    Completed: <span className="text-pink-400">{stats.todayCount} Runs</span> | Earned: <span className="text-emerald-400">Rs. {stats.todayEarnings}</span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {availableOrders.length > 0 && (
+                  <button
+                    onClick={() => setIsMuted(prev => !prev)}
+                    className="py-1.5 px-3 rounded-xl text-[10px] font-black uppercase tracking-wider bg-pink-950/60 text-pink-300 border border-pink-800/60 hover:bg-pink-900/60 transition cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span>{isMuted ? "🔇 Alarm Muted" : "🚨 Alarm Active"}</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => setActiveTab("performance")}
+                  className="py-1.5 px-3 rounded-xl text-[10px] font-black uppercase tracking-wider bg-zinc-800 text-zinc-200 hover:bg-zinc-700 transition cursor-pointer"
+                >
+                  Earnings Details →
+                </button>
+              </div>
+            </div>
+
+            {/* Offline Duty Banner */}
+            {!isOnline && (
+              <div className="bg-zinc-900/90 border border-amber-500/30 p-5 sm:p-6 rounded-2xl text-center space-y-3 shadow-xl relative overflow-hidden">
+                <div className="w-12 h-12 bg-amber-500/10 text-amber-400 rounded-full flex items-center justify-center mx-auto border border-amber-500/20">
+                  <Compass className="w-6 h-6 animate-pulse" />
+                </div>
+                <div className="space-y-1 max-w-md mx-auto">
+                  <h3 className="text-sm sm:text-base font-black text-white uppercase tracking-tight">Status is currently OFF DUTY</h3>
+                  <p className="text-xs text-zinc-400 font-medium">
+                    New delivery requests are paused. Go online to start receiving orders in Dadu city.
+                  </p>
                 </div>
                 <button
-                  onClick={() => setIsMuted(prev => !prev)}
-                  className="w-full md:w-auto py-2.5 px-6 rounded-xl text-xs font-black uppercase tracking-wider transition shrink-0 cursor-pointer bg-[#D70F64] hover:bg-[#b00c50] text-white shadow-md shadow-pink-500/10 active:scale-95"
+                  onClick={handleToggleOnline}
+                  className="py-2.5 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-500/20 transition transform active:scale-95 cursor-pointer inline-flex items-center gap-2"
                 >
-                  {isMuted ? "🔊 Unmute Alarm Tone" : "🔊 Mute Alarm Tone"}
+                  <span>🟢 Go Online Now</span>
                 </button>
               </div>
             )}
 
-            {/* Timeframe Filter Panel */}
-            <div className="bg-zinc-900 border border-zinc-800 p-4 sm:p-5 rounded-3xl space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-zinc-800/60 pb-3">
-                <div>
-                  <h3 className="text-xs sm:text-sm font-black uppercase tracking-widest text-[#D70F64] flex items-center gap-1.5">
-                    📊 Dynamic Earnings Calculator
-                  </h3>
-                  <p className="text-[10px] text-zinc-400 font-semibold mt-0.5">Apni pure rider fees (Rs. 50, 100, 200, etc.) filter karkay check karein.</p>
-                </div>
-                
-                {/* Timeframe selector */}
-                <div className="flex flex-wrap gap-1 bg-zinc-950 p-1 rounded-xl border border-zinc-800">
-                  {[
-                    { id: "1day", label: "1 Din" },
-                    { id: "7days", label: "1 Week" },
-                    { id: "30days", label: "1 Month" },
-                    { id: "60days", label: "2 Months" },
-                    { id: "all", label: "All Time" },
-                  ].map((item) => (
-                    <button
-                      key={item.id}
-                      onClick={() => setTimeframe(item.id as any)}
-                      className={`px-3 py-1.5 rounded-lg text-[9.5px] font-black uppercase tracking-wider transition cursor-pointer ${
-                        timeframe === item.id
-                          ? "bg-[#D70F64] text-white"
-                          : "text-zinc-350 hover:text-zinc-100"
-                      }`}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="bg-zinc-950/60 border border-zinc-850 p-4 rounded-2xl flex items-center justify-between">
+            {/* New Order High-Volume Alarm Ringing Alert Banner */}
+            {isOnline && availableOrders.length > 0 && (
+              <div className="bg-gradient-to-r from-pink-950 via-[#D70F64]/40 to-pink-950 border-2 border-pink-500/70 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xl text-white">
+                <div className="flex items-center gap-3 text-center sm:text-left">
+                  <span className="text-3xl animate-bounce">🚨</span>
                   <div>
-                    <span className="text-[9px] uppercase tracking-widest text-zinc-500 font-black">Filtered Completed Orders</span>
-                    <span className="text-xl sm:text-2xl font-black text-zinc-100 block mt-1">{filteredRiderOrders.length} Runs</span>
+                    <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-pink-200 flex items-center gap-2 justify-center sm:justify-start">
+                      <span>NYA ORDER AAGAYA HAI! ({availableOrders.length} Waiting)</span>
+                      <span className="bg-red-500 text-white font-black text-[9px] px-2 py-0.5 rounded-full animate-pulse">
+                        RINGING
+                      </span>
+                    </h3>
+                    <p className="text-[11px] text-zinc-300 font-semibold mt-0.5">
+                      High volume dispatcher siren is active! Accept the order fast before someone else claims it.
+                    </p>
                   </div>
-                  <span className="text-2xl">📦</span>
                 </div>
-                <div className="bg-zinc-950/60 border border-zinc-850 p-4 rounded-2xl flex items-center justify-between">
-                  <div>
-                    <span className="text-[9px] uppercase tracking-widest text-emerald-500 font-black">Filtered Rider Earnings (Pure Fee)</span>
-                    <span className="text-xl sm:text-2xl font-mono font-black text-emerald-400 block mt-1 font-sans">Rs. {filteredRiderEarnings}</span>
-                  </div>
-                  <span className="text-2xl">💵</span>
-                </div>
-              </div>
-            </div>
-
-            {/* 1. Analytics Widgets Grid */}
-            <section className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-              
-              <div className="bg-zinc-900 border border-zinc-800 p-4 sm:p-5 rounded-2xl relative overflow-hidden flex flex-col justify-between shadow-sm">
-                <div className="absolute top-0 right-0 p-3 text-[#D70F64] opacity-10">
-                  <ClipboardList className="w-12 h-12" />
-                </div>
-                <div>
-                  <span className="text-[9px] sm:text-[10px] text-zinc-400 font-extrabold uppercase tracking-widest block">Today's Orders</span>
-                  <p className="text-2xl sm:text-3xl font-black text-white mt-1">{stats.todayCount}</p>
-                </div>
-                <div className="border-t border-zinc-850 pt-2 flex items-center gap-1.5 text-[10px] sm:text-[10.5px] text-emerald-400 mt-3 font-bold">
-                  <TrendingUp className="w-3.5 h-3.5" />
-                  <span>Completed Today</span>
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0">
+                  <button
+                    onClick={() => {
+                      playContinuousAlarm();
+                      triggerVibration();
+                    }}
+                    className="py-2 px-3 bg-zinc-900 border border-pink-500/50 rounded-xl text-[10px] font-black uppercase text-pink-300 hover:bg-zinc-800 transition active:scale-95 cursor-pointer"
+                    title="Test or trigger loud sound tone"
+                  >
+                    🔊 Test Ring
+                  </button>
+                  <button
+                    onClick={() => setIsMuted(prev => !prev)}
+                    className="py-2 px-4 bg-[#D70F64] hover:bg-[#b00c50] text-white rounded-xl text-xs font-black uppercase tracking-wider transition active:scale-95 cursor-pointer shadow-lg shadow-pink-500/30"
+                  >
+                    {isMuted ? "🔊 Unmute Ring" : "🔇 Stop Ringing"}
+                  </button>
                 </div>
               </div>
-
-              <div className="bg-zinc-900 border border-zinc-800 p-4 sm:p-5 rounded-2xl relative overflow-hidden flex flex-col justify-between shadow-sm">
-                <div className="absolute top-0 right-0 p-3 text-emerald-500 opacity-10">
-                  <Coins className="w-12 h-12" />
-                </div>
-                <div>
-                  <span className="text-[9px] sm:text-[10px] text-zinc-400 font-extrabold uppercase tracking-widest block">Today's Earnings</span>
-                  <p className="text-2xl sm:text-3xl font-black text-white mt-1">Rs. {stats.todayEarnings}</p>
-                </div>
-                <div className="border-t border-zinc-850 pt-2 flex items-center gap-1.5 text-[10px] sm:text-[10.5px] text-amber-500 mt-3 font-bold">
-                  <DollarSign className="w-3.5 h-3.5" />
-                  <span>Pure Rider Fees</span>
-                </div>
-              </div>
-
-              <div className="bg-zinc-900 border border-zinc-800 p-4 sm:p-5 rounded-2xl relative overflow-hidden flex flex-col justify-between shadow-sm">
-                <div className="absolute top-0 right-0 p-3 text-purple-500 opacity-10">
-                  <CalendarDays className="w-12 h-12" />
-                </div>
-                <div>
-                  <span className="text-[9px] sm:text-[10px] text-zinc-400 font-extrabold uppercase tracking-widest block">This Month's Orders</span>
-                  <p className="text-2xl sm:text-3xl font-black text-white mt-1">{stats.thisMonthCount}</p>
-                </div>
-                <div className="border-t border-zinc-850 pt-2 flex items-center gap-1.5 text-[10px] sm:text-[10.5px] text-[#D70F64] mt-3 font-bold">
-                  <Check className="w-3.5 h-3.5" />
-                  <span>Monthly Total</span>
-                </div>
-              </div>
-
-              <div className="bg-zinc-900 border border-zinc-800 p-4 sm:p-5 rounded-2xl relative overflow-hidden flex flex-col justify-between shadow-sm">
-                <div className="absolute top-0 right-0 p-3 text-amber-500 opacity-10">
-                  <TrendingUp className="w-12 h-12" />
-                </div>
-                <div>
-                  <span className="text-[9px] sm:text-[10px] text-zinc-400 font-extrabold uppercase tracking-widest block">This Month's Earnings</span>
-                  <p className="text-2xl sm:text-3xl font-black text-white mt-1">Rs. {stats.thisMonthEarnings}</p>
-                </div>
-                <div className="border-t border-zinc-850 pt-2 flex items-center gap-1.5 text-[10px] sm:text-[10.5px] text-emerald-400 mt-3 font-bold">
-                  <Coins className="w-3.5 h-3.5" />
-                  <span>Accumulated Earnings</span>
-                </div>
-              </div>
-
-            </section>
-
-            {/* 2. Active Order Pipeline & Available Orders Grid */}
+            )}
+            
+            {/* Active Order Pipeline & Available Orders Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
               
               {/* Left Column: Active Order Assignment */}
               <section className="space-y-4 sm:space-y-5">
                 <div className="flex items-center justify-between border-b border-zinc-800 pb-2 flex-wrap gap-2">
-                  <h2 className="text-xs sm:text-sm font-black uppercase tracking-widest text-[#D70F64]">
-                    🛡️ Active Order Shipment
+                  <h2 className="text-xs sm:text-sm font-black uppercase tracking-widest text-[#D70F64] flex items-center gap-2">
+                    <span>🛵 Active Runs</span>
+                    {riderActiveOrders.length > 0 && (
+                      <span className="bg-[#D70F64] text-white font-black text-[10px] px-2 py-0.5 rounded-full">
+                        {riderActiveOrders.length} Active
+                      </span>
+                    )}
                   </h2>
                   {riderActiveOrders.length > 0 && (
-                    <span className="text-[9px] sm:text-[10px] bg-red-500/10 text-pink-400 py-0.5 px-2.5 rounded-full font-black uppercase">
-                      {riderActiveOrders.length}/3 Accepted
+                    <span className="text-[9.5px] text-zinc-400 font-bold uppercase">
+                      Max 3 orders concurrently
                     </span>
                   )}
                 </div>
 
-                {/* Multi-Run Status Header Banner */}
-                {riderActiveOrders.length > 0 && (
-                  <div className="bg-[#D70F64]/5 border border-[#D70F64]/20 p-3 sm:p-4 rounded-2xl space-y-2">
-                    <div className="flex items-center justify-between text-[11px] sm:text-xs text-pink-200">
-                      <span className="font-extrabold flex items-center gap-1.5">
+                {/* Multi-Run Selector (When 2+ Orders Accepted) */}
+                {riderActiveOrders.length > 1 && (
+                  <div className="bg-zinc-900 border-2 border-pink-500/40 p-3 sm:p-4 rounded-2xl space-y-3 shadow-lg">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10.5px] font-black uppercase tracking-wider text-pink-300 flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                        🚀 Multi-Order Active Mode
+                        🚨 2 Active Orders Accepted — Tap to switch view:
                       </span>
-                      <span className="font-bold text-[9px] sm:text-[10px] text-zinc-400 uppercase tracking-widest">
-                        Max 3 active orders
+                      <span className="text-[9px] font-mono text-zinc-400 font-bold">
+                        {riderActiveOrders.length} Runs Total
                       </span>
                     </div>
-                    <p className="text-[10px] text-zinc-400 font-semibold leading-relaxed">
-                      You are delivering multiple orders concurrently. Tap any order selector below to manage or navigate that specific route.
-                    </p>
 
-                    {/* Order selector tabs */}
-                    <div className="flex gap-2 flex-wrap pt-1">
+                    <div className="grid grid-cols-2 gap-2">
                       {riderActiveOrders.map((order, idx) => {
-                        const isFocused = order.id === focusedActiveOrderId;
-                        const statusBadgeColor = 
-                          order.status === "preparing" ? "border-amber-500/20 text-amber-400 bg-amber-500/10" :
-                          order.status === "out_for_delivery" ? "border-sky-500/20 text-sky-400 bg-sky-500/10" :
-                          "border-pink-500/20 text-pink-400 bg-[#D70F64]/10";
+                        const isSelected = order.id === riderActiveOrder?.id;
                         return (
                           <button
                             key={order.id}
                             onClick={() => setFocusedActiveOrderId(order.id)}
-                            className={`flex-1 min-w-[100px] text-left p-2 sm:p-2.5 rounded-xl transition border cursor-pointer active:scale-95 ${
-                              isFocused
-                                ? "bg-[#D70F64] text-white border-[#D70F64] shadow-md shadow-pink-500/10"
-                                : "bg-zinc-950 border-zinc-850 text-zinc-400 hover:text-zinc-200"
+                            className={`p-2.5 rounded-xl text-left border transition cursor-pointer active:scale-95 flex flex-col justify-between ${
+                              isSelected
+                                ? "bg-[#D70F64] border-[#D70F64] text-white shadow-md"
+                                : "bg-zinc-950 border-zinc-800 text-zinc-300 hover:border-pink-500/40"
                             }`}
                           >
-                            <span className="text-[9.5px] sm:text-[10px] font-black block tracking-wide truncate">
-                              #{idx + 1}: {order.userName}
+                            <div className="flex items-center justify-between gap-1 mb-1">
+                              <span className="text-[10px] font-black uppercase tracking-wider">
+                                RUN #{idx + 1}
+                              </span>
+                              <span className={`text-[8.5px] font-bold px-1.5 py-0.2 rounded uppercase ${
+                                isSelected ? "bg-white/20 text-white" : "bg-zinc-800 text-zinc-400"
+                              }`}>
+                                {order.status === "out_for_delivery" ? "On the Way" : order.status}
+                              </span>
+                            </div>
+                            <span className="text-xs font-black truncate block">
+                              {order.userName}
                             </span>
-                            <span className={`text-[8px] sm:text-[8.5px] px-1 rounded block uppercase mt-1 font-black w-max border ${isFocused ? "border-white/20 text-white bg-white/10" : statusBadgeColor}`}>
-                              {order.status === "accepted" ? "accepted" : order.status}
+                            <span className="text-[9.5px] font-mono opacity-80 mt-0.5 block">
+                              Rs. {order.grandTotal}
                             </span>
                           </button>
                         );
@@ -791,23 +765,61 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                   <div className="bg-zinc-900 border-2 border-[#D70F64]/40 rounded-3xl p-4 sm:p-6 space-y-5 sm:space-y-6 shadow-xl relative overflow-hidden animate-fade-in text-zinc-100">
                     <div className="flex items-center justify-between border-b border-zinc-800 pb-3 gap-2 flex-wrap">
                       <div className="space-y-1">
-                        <span className="text-[10px] text-[#D70F64] font-black uppercase tracking-wider block">Currently Delivering</span>
-                        <h3 className="text-base font-black flex items-center gap-1.5 flex-wrap">
-                          Delivery ID: <span className="font-mono text-zinc-400">dadu-{riderActiveOrder.id.substring(0, 8)}</span>
-                        </h3>
-                        <p className="text-[11px] text-zinc-400 font-semibold">Accepted at: {riderActiveOrder.createdAt?.seconds ? new Date(riderActiveOrder.createdAt.seconds * 1000).toLocaleString() : "Just now"}</p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[10px] bg-[#D70F64] text-white font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full shadow-xs">
+                            {riderActiveOrders.length > 1 
+                              ? `RUN #${riderActiveOrders.findIndex(o => o.id === riderActiveOrder.id) + 1} OF ${riderActiveOrders.length}` 
+                              : "Active Run"}
+                          </span>
+                          <span className="text-[10px] text-zinc-400 font-mono font-bold">
+                            dadu-{riderActiveOrder.id.substring(0, 8)}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-zinc-400 font-semibold">
+                          Accepted at: {riderActiveOrder.createdAt?.seconds ? new Date(riderActiveOrder.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Just now"}
+                        </p>
                       </div>
-                      <span className="bg-[#D70F64] text-white font-black tracking-widest text-[9px] py-1 px-3 rounded-full uppercase">
-                        In-Progress
+
+                      <span className={`font-black text-[9.5px] py-1 px-3 rounded-full uppercase tracking-wider ${
+                        riderActiveOrder.status === "out_for_delivery" ? "bg-sky-500/20 text-sky-400 border border-sky-500/30" :
+                        riderActiveOrder.status === "preparing" ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" :
+                        "bg-[#D70F64]/20 text-pink-300 border border-[#D70F64]/30"
+                      }`}>
+                        {riderActiveOrder.status === "out_for_delivery" ? "🛵 On the Way" :
+                         riderActiveOrder.status === "preparing" ? "🍳 Preparing" : "📦 Accepted"}
                       </span>
+                    </div>
+
+                    {/* Prominent Cash Collection & Fee Callout Banner */}
+                    <div className="bg-emerald-950/40 border border-emerald-500/30 p-3.5 sm:p-4 rounded-2xl flex items-center justify-between gap-3 shadow-md">
+                      <div>
+                        <span className="text-[9px] uppercase tracking-widest font-black text-emerald-400 block">💵 Cash to Collect</span>
+                        <span className="text-xl sm:text-2xl font-black text-emerald-300 font-mono">
+                          Rs. {riderActiveOrder.grandTotal}
+                        </span>
+                        <span className="text-[9.5px] text-zinc-400 font-bold block mt-0.5 uppercase">
+                          Payment: {riderActiveOrder.paymentMethod === "cod" ? "Cash on Delivery" : riderActiveOrder.paymentMethod}
+                        </span>
+                      </div>
+                      <div className="text-right border-l border-emerald-800/50 pl-3">
+                        <span className="text-[9px] uppercase tracking-widest font-black text-pink-400 block">🚲 Your Fee</span>
+                        <span className="text-base sm:text-lg font-black text-pink-300 font-mono">
+                          Rs. {riderActiveOrder.deliveryFee}
+                        </span>
+                        <span className="text-[9px] text-zinc-400 font-bold block mt-0.5">Pure Earnings</span>
+                      </div>
                     </div>
                     
                     {/* Interactive Milestones Shipment Progress Pipeline */}
                     <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 space-y-3 animate-fadeIn">
-                      <span className="text-[9.5px] font-black text-zinc-400 uppercase tracking-widest block pb-1 border-b border-zinc-900 flex items-center gap-1">
-                        ⏱️ Delivery Milestones <span className="text-[8.5px] text-zinc-550 font-normal">(Tap icons to update status live)</span>
+                      <span className="text-[9.5px] font-black text-zinc-400 uppercase tracking-widest block pb-1 border-b border-zinc-900 flex items-center justify-between">
+                        <span>⏱️ Delivery Progress</span>
+                        <span className="text-[9px] text-pink-400 font-mono">Step {
+                          riderActiveOrder.status === "accepted" ? "1/3" :
+                          riderActiveOrder.status === "preparing" ? "2/3" : "3/3"
+                        }</span>
                       </span>
-                      <div className="relative flex items-center justify-between pt-4 pb-2">
+                      <div className="relative flex items-center justify-between pt-3 pb-2">
                         {/* Connecting Line background */}
                         <div className="absolute left-6 right-6 h-1 bg-zinc-800 top-1/2 -translate-y-1/2 z-0"></div>
                         {/* Active connecting line fill */}
@@ -816,24 +828,21 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                           style={{
                             width: 
                               riderActiveOrder.status === "accepted" ? "0%" :
-                              riderActiveOrder.status === "preparing" ? "42%" :
-                              riderActiveOrder.status === "out_for_delivery" ? "82%" : "100%"
+                              riderActiveOrder.status === "preparing" ? "50%" : "100%"
                           }}
                         ></div>
 
                         {/* Step 1: Accepted */}
                         <div className="relative z-10 flex flex-col items-center">
-                          <button
-                            type="button"
-                            className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black transition-all border ${
+                          <div
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black border ${
                               ["accepted", "preparing", "out_for_delivery", "delivered"].includes(riderActiveOrder.status)
                                 ? "bg-[#D70F64] text-white border-[#D70F64] shadow-md shadow-pink-500/20"
                                 : "bg-zinc-900 text-zinc-500 border-zinc-800"
                             }`}
-                            title="Order is Accepted"
                           >
                             📦
-                          </button>
+                          </div>
                           <span className="text-[9px] font-black text-zinc-300 mt-1.5 uppercase">Accepted</span>
                         </div>
 
@@ -850,7 +859,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                             className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black transition-all border ${
                               ["preparing", "out_for_delivery", "delivered"].includes(riderActiveOrder.status)
                                 ? "bg-[#D70F64] text-white border-[#D70F64] shadow-md shadow-pink-500/20 cursor-default"
-                                : "bg-zinc-900 text-zinc-500 border-zinc-800 hover:border-pink-500/40 cursor-pointer active:scale-90"
+                                : "bg-zinc-900 text-zinc-400 border-zinc-700 hover:border-pink-500/40 cursor-pointer active:scale-90"
                             }`}
                             title="Tap to mark as Preparing"
                           >
@@ -872,7 +881,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                             className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black transition-all border ${
                               ["out_for_delivery", "delivered"].includes(riderActiveOrder.status)
                                 ? "bg-[#D70F64] text-white border-[#D70F64] shadow-md shadow-pink-500/20 cursor-default"
-                                : "bg-zinc-900 text-zinc-500 border-zinc-800 hover:border-pink-500/40 cursor-pointer active:scale-90"
+                                : "bg-zinc-900 text-zinc-400 border-zinc-700 hover:border-pink-500/40 cursor-pointer active:scale-90"
                             }`}
                             title="Tap to mark as Out for Delivery"
                           >
@@ -883,24 +892,16 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
 
                         {/* Step 4: Arrived / Delivered */}
                         <div className="relative z-10 flex flex-col items-center">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (riderActiveOrder.status === "out_for_delivery") {
-                                handleMarkAsDelivered(riderActiveOrder.id);
-                              }
-                            }}
-                            disabled={loadingActionId !== null || riderActiveOrder.status !== "out_for_delivery"}
-                            className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black transition-all border ${
+                          <div
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black border ${
                               riderActiveOrder.status === "delivered"
-                                ? "bg-emerald-500 text-zinc-950 border-emerald-500 shadow-md shadow-emerald-500/20 cursor-default"
-                                : "bg-zinc-900 text-zinc-500 border-zinc-800 hover:border-emerald-500/40 cursor-pointer active:scale-90"
+                                ? "bg-emerald-500 text-zinc-950 border-emerald-500 shadow-md shadow-emerald-500/20"
+                                : "bg-zinc-900 text-zinc-500 border-zinc-800"
                             }`}
-                            title="Tap to complete order delivery"
                           >
                             💵
-                          </button>
-                          <span className="text-[9px] font-black text-zinc-300 mt-1.5 uppercase">Delivered</span>
+                          </div>
+                          <span className="text-[9px] font-black text-zinc-400 mt-1.5 uppercase">Delivered</span>
                         </div>
 
                       </div>
@@ -1170,31 +1171,73 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                       </div>
                     </div>
 
-                    {/* Completion Action Button */}
+                    {/* Smart Mobile Step Action Buttons */}
                     <div className="flex flex-col gap-2 mt-2">
-                      <button
-                        onClick={() => handleMarkAsDelivered(riderActiveOrder.id)}
-                        disabled={loadingActionId === riderActiveOrder.id}
-                        className="w-full bg-emerald-500 hover:bg-emerald-600 text-zinc-950 font-black py-4 rounded-2xl transition shadow-lg text-xs tracking-wider uppercase flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
-                      >
-                        {loadingActionId === riderActiveOrder.id ? (
-                          <>
-                            <Clock className="w-5 h-5 animate-spin text-dark" />
-                            Marking as delivered...
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle2 className="w-5 h-5" />
-                            Mark Order as Delivered & Collect Charges
-                          </>
-                        )}
-                      </button>
+                      {riderActiveOrder.status === "accepted" && (
+                        <button
+                          onClick={() => handleMarkAsPreparing(riderActiveOrder.id)}
+                          disabled={loadingActionId === riderActiveOrder.id}
+                          className="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black py-4 rounded-2xl transition shadow-lg text-xs sm:text-sm tracking-wider uppercase flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95 shadow-amber-500/20"
+                        >
+                          {loadingActionId === riderActiveOrder.id ? (
+                            <>
+                              <Clock className="w-5 h-5 animate-spin" />
+                              Updating status...
+                            </>
+                          ) : (
+                            <>
+                              <span>🍳 Mark as Preparing at Restaurant</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+
+                      {riderActiveOrder.status === "preparing" && (
+                        <button
+                          onClick={() => handleMarkAsOutForDelivery(riderActiveOrder.id)}
+                          disabled={loadingActionId === riderActiveOrder.id}
+                          className="w-full bg-[#D70F64] hover:bg-[#b00c50] text-white font-black py-4 rounded-2xl transition shadow-lg text-xs sm:text-sm tracking-wider uppercase flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95 shadow-pink-500/20"
+                        >
+                          {loadingActionId === riderActiveOrder.id ? (
+                            <>
+                              <Clock className="w-5 h-5 animate-spin text-white" />
+                              Updating status...
+                            </>
+                          ) : (
+                            <>
+                              <Compass className="w-5 h-5 animate-bounce" />
+                              Picked Up & On the Way to Customer 🛵
+                            </>
+                          )}
+                        </button>
+                      )}
+
+                      {riderActiveOrder.status === "out_for_delivery" && (
+                        <button
+                          onClick={() => handleMarkAsDelivered(riderActiveOrder.id)}
+                          disabled={loadingActionId === riderActiveOrder.id}
+                          className="w-full bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black py-4 rounded-2xl transition shadow-lg text-xs sm:text-sm tracking-wider uppercase flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95 shadow-emerald-500/20"
+                        >
+                          {loadingActionId === riderActiveOrder.id ? (
+                            <>
+                              <Clock className="w-5 h-5 animate-spin" />
+                              Marking as delivered...
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="w-5 h-5" />
+                              Delivered & Collect Rs. {riderActiveOrder.grandTotal} Cash
+                            </>
+                          )}
+                        </button>
+                      )}
+
                       <button
                         onClick={() => handleCancelOrder(riderActiveOrder.id)}
                         disabled={loadingActionId === riderActiveOrder.id}
-                        className="w-full bg-pink-950/20 border border-pink-900/30 hover:bg-pink-950/40 text-red-500 font-black py-4 rounded-2xl transition text-xs tracking-wider uppercase flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
+                        className="w-full bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-red-400 font-bold py-2.5 rounded-xl transition text-[11px] tracking-wider uppercase flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95 mt-1"
                       >
-                        <XCircle className="w-5 h-5" />
+                        <XCircle className="w-4 h-4" />
                         Cancel / Return Order
                       </button>
                     </div>
@@ -1663,6 +1706,118 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
 
           return (
             <div className="space-y-6 sm:space-y-8 animate-fade-in text-zinc-100">
+
+              {/* Timeframe Filter Panel */}
+              <div className="bg-zinc-900 border border-zinc-800 p-4 sm:p-5 rounded-3xl space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-zinc-800/60 pb-3">
+                  <div>
+                    <h3 className="text-xs sm:text-sm font-black uppercase tracking-widest text-[#D70F64] flex items-center gap-1.5">
+                      📊 Dynamic Earnings Calculator
+                    </h3>
+                    <p className="text-[10px] text-zinc-400 font-semibold mt-0.5">Apni pure rider fees (Rs. 50, 100, 200, etc.) filter karkay check karein.</p>
+                  </div>
+                  
+                  {/* Timeframe selector */}
+                  <div className="flex flex-wrap gap-1 bg-zinc-950 p-1 rounded-xl border border-zinc-800">
+                    {[
+                      { id: "1day", label: "1 Din" },
+                      { id: "7days", label: "1 Week" },
+                      { id: "30days", label: "1 Month" },
+                      { id: "60days", label: "2 Months" },
+                      { id: "all", label: "All Time" },
+                    ].map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => setTimeframe(item.id as any)}
+                        className={`px-3 py-1.5 rounded-lg text-[9.5px] font-black uppercase tracking-wider transition cursor-pointer ${
+                          timeframe === item.id
+                            ? "bg-[#D70F64] text-white"
+                            : "text-zinc-350 hover:text-zinc-100"
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="bg-zinc-950/60 border border-zinc-850 p-4 rounded-2xl flex items-center justify-between">
+                    <div>
+                      <span className="text-[9px] uppercase tracking-widest text-zinc-500 font-black">Filtered Completed Orders</span>
+                      <span className="text-xl sm:text-2xl font-black text-zinc-100 block mt-1">{filteredRiderOrders.length} Runs</span>
+                    </div>
+                    <span className="text-2xl">📦</span>
+                  </div>
+                  <div className="bg-zinc-950/60 border border-zinc-850 p-4 rounded-2xl flex items-center justify-between">
+                    <div>
+                      <span className="text-[9px] uppercase tracking-widest text-emerald-500 font-black">Filtered Rider Earnings (Pure Fee)</span>
+                      <span className="text-xl sm:text-2xl font-mono font-black text-emerald-400 block mt-1 font-sans">Rs. {filteredRiderEarnings}</span>
+                    </div>
+                    <span className="text-2xl">💵</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Analytics Widgets Grid */}
+              <section className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                <div className="bg-zinc-900 border border-zinc-800 p-4 sm:p-5 rounded-2xl relative overflow-hidden flex flex-col justify-between shadow-sm">
+                  <div className="absolute top-0 right-0 p-3 text-[#D70F64] opacity-10">
+                    <ClipboardList className="w-12 h-12" />
+                  </div>
+                  <div>
+                    <span className="text-[9px] sm:text-[10px] text-zinc-400 font-extrabold uppercase tracking-widest block">Today's Orders</span>
+                    <p className="text-2xl sm:text-3xl font-black text-white mt-1">{stats.todayCount}</p>
+                  </div>
+                  <div className="border-t border-zinc-850 pt-2 flex items-center gap-1.5 text-[10px] sm:text-[10.5px] text-emerald-400 mt-3 font-bold">
+                    <TrendingUp className="w-3.5 h-3.5" />
+                    <span>Completed Today</span>
+                  </div>
+                </div>
+
+                <div className="bg-zinc-900 border border-zinc-800 p-4 sm:p-5 rounded-2xl relative overflow-hidden flex flex-col justify-between shadow-sm">
+                  <div className="absolute top-0 right-0 p-3 text-emerald-500 opacity-10">
+                    <Coins className="w-12 h-12" />
+                  </div>
+                  <div>
+                    <span className="text-[9px] sm:text-[10px] text-zinc-400 font-extrabold uppercase tracking-widest block">Today's Earnings</span>
+                    <p className="text-2xl sm:text-3xl font-black text-white mt-1">Rs. {stats.todayEarnings}</p>
+                  </div>
+                  <div className="border-t border-zinc-850 pt-2 flex items-center gap-1.5 text-[10px] sm:text-[10.5px] text-amber-500 mt-3 font-bold">
+                    <DollarSign className="w-3.5 h-3.5" />
+                    <span>Pure Rider Fees</span>
+                  </div>
+                </div>
+
+                <div className="bg-zinc-900 border border-zinc-800 p-4 sm:p-5 rounded-2xl relative overflow-hidden flex flex-col justify-between shadow-sm">
+                  <div className="absolute top-0 right-0 p-3 text-purple-500 opacity-10">
+                    <CalendarDays className="w-12 h-12" />
+                  </div>
+                  <div>
+                    <span className="text-[9px] sm:text-[10px] text-zinc-400 font-extrabold uppercase tracking-widest block">This Month's Orders</span>
+                    <p className="text-2xl sm:text-3xl font-black text-white mt-1">{stats.thisMonthCount}</p>
+                  </div>
+                  <div className="border-t border-zinc-850 pt-2 flex items-center gap-1.5 text-[10px] sm:text-[10.5px] text-[#D70F64] mt-3 font-bold">
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Monthly Total</span>
+                  </div>
+                </div>
+
+                <div className="bg-zinc-900 border border-zinc-800 p-4 sm:p-5 rounded-2xl relative overflow-hidden flex flex-col justify-between shadow-sm">
+                  <div className="absolute top-0 right-0 p-3 text-amber-500 opacity-10">
+                    <TrendingUp className="w-12 h-12" />
+                  </div>
+                  <div>
+                    <span className="text-[9px] sm:text-[10px] text-zinc-400 font-extrabold uppercase tracking-widest block">This Month's Earnings</span>
+                    <p className="text-2xl sm:text-3xl font-black text-white mt-1">Rs. {stats.thisMonthEarnings}</p>
+                  </div>
+                  <div className="border-t border-zinc-850 pt-2 flex items-center gap-1.5 text-[10px] sm:text-[10.5px] text-emerald-400 mt-3 font-bold">
+                    <Coins className="w-3.5 h-3.5" />
+                    <span>Accumulated Earnings</span>
+                  </div>
+                </div>
+              </section>
+
               {/* Performance Summary Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 
@@ -1798,6 +1953,46 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
           </p>
         </div>
       </footer>
+
+      {/* Sticky Mobile Bottom Navigation Bar */}
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-zinc-900/95 backdrop-blur-md border-t border-zinc-800 z-50 px-4 py-2 flex items-center justify-around shadow-2xl">
+        <button
+          onClick={() => setActiveTab("dashboard")}
+          className={`flex flex-col items-center gap-1 py-1 px-4 rounded-xl transition cursor-pointer active:scale-95 ${
+            activeTab === "dashboard" ? "text-[#D70F64] font-black" : "text-zinc-400 font-semibold hover:text-zinc-200"
+          }`}
+        >
+          <div className="relative">
+            <Compass className="w-5 h-5" />
+            {riderActiveOrders.length > 0 && (
+              <span className="absolute -top-1.5 -right-2 bg-[#D70F64] text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-zinc-950">
+                {riderActiveOrders.length}
+              </span>
+            )}
+          </div>
+          <span className="text-[9.5px] uppercase tracking-wider">Deliveries</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("performance")}
+          className={`flex flex-col items-center gap-1 py-1 px-4 rounded-xl transition cursor-pointer active:scale-95 ${
+            activeTab === "performance" ? "text-[#D70F64] font-black" : "text-zinc-400 font-semibold hover:text-zinc-200"
+          }`}
+        >
+          <DollarSign className="w-5 h-5" />
+          <span className="text-[9.5px] uppercase tracking-wider">Earnings</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("history")}
+          className={`flex flex-col items-center gap-1 py-1 px-4 rounded-xl transition cursor-pointer active:scale-95 ${
+            activeTab === "history" ? "text-[#D70F64] font-black" : "text-zinc-400 font-semibold hover:text-zinc-200"
+          }`}
+        >
+          <History className="w-5 h-5" />
+          <span className="text-[9.5px] uppercase tracking-wider">History</span>
+        </button>
+      </nav>
 
       {/* RIDER ORDER RECEIPT & WHATSAPP MODAL */}
       <OrderReceiptModal

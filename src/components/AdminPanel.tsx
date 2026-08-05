@@ -1094,6 +1094,127 @@ export default function AdminPanel({
   const [isDetectingUnlockGPS, setIsDetectingUnlockGPS] = useState(false);
   const [newUserToast, setNewUserToast] = useState<{ phone: string; show: boolean } | null>(null);
 
+  // High-volume ringtone and mute control state for Admin Panel
+  const [isAdminMuted, setIsAdminMuted] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("dadu_admin_alarm_muted") === "true";
+    }
+    return false;
+  });
+
+  const toggleAdminMute = () => {
+    setIsAdminMuted((prev) => {
+      const next = !prev;
+      if (typeof window !== "undefined") {
+        localStorage.setItem("dadu_admin_alarm_muted", String(next));
+      }
+      return next;
+    });
+  };
+
+  const adminAudioCtxRef = React.useRef<AudioContext | null>(null);
+
+  const getAdminAudioContext = () => {
+    try {
+      if (!adminAudioCtxRef.current) {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioCtx) {
+          adminAudioCtxRef.current = new AudioCtx();
+        }
+      }
+      if (adminAudioCtxRef.current && adminAudioCtxRef.current.state === "suspended") {
+        adminAudioCtxRef.current.resume().catch(() => {});
+      }
+      return adminAudioCtxRef.current;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  // Auto unlock AudioContext on any admin interaction
+  React.useEffect(() => {
+    const unlockAudio = () => {
+      getAdminAudioContext();
+    };
+    window.addEventListener("click", unlockAudio);
+    window.addEventListener("touchstart", unlockAudio);
+    return () => {
+      window.removeEventListener("click", unlockAudio);
+      window.removeEventListener("touchstart", unlockAudio);
+    };
+  }, []);
+
+  const triggerAdminVibration = () => {
+    if (typeof window !== "undefined" && "vibrate" in navigator) {
+      try {
+        navigator.vibrate([400, 150, 400, 150, 400]);
+      } catch (e) {
+        // Ignored
+      }
+    }
+  };
+
+  const playAdminHighVolumeRing = () => {
+    if (isAdminMuted) return;
+    try {
+      const ctx = getAdminAudioContext();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc1.type = "sawtooth";
+      osc2.type = "square";
+
+      // Loud dual-tone dispatcher ring effect
+      osc1.frequency.setValueAtTime(880, now);
+      osc1.frequency.setValueAtTime(1250, now + 0.12);
+      osc1.frequency.setValueAtTime(880, now + 0.25);
+      osc1.frequency.setValueAtTime(1250, now + 0.38);
+
+      osc2.frequency.setValueAtTime(440, now);
+      osc2.frequency.setValueAtTime(625, now + 0.12);
+      osc2.frequency.setValueAtTime(440, now + 0.25);
+      osc2.frequency.setValueAtTime(625, now + 0.38);
+
+      gain.gain.setValueAtTime(0.95, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.65);
+
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc1.start(now);
+      osc2.start(now);
+      osc1.stop(now + 0.65);
+      osc2.stop(now + 0.65);
+    } catch (e) {
+      console.error("Admin audio ring error:", e);
+    }
+  };
+
+  // Count unapproved pending orders and locked new users
+  const unapprovedOrdersCount = orders.filter((o) => o.status === "pending").length;
+  const lockedUsersCount = allUsersList.filter((u) => u.status === "locked").length;
+
+  // Loop alarm sound when unapproved new orders or locked new users exist
+  React.useEffect(() => {
+    if (unapprovedOrdersCount === 0 && lockedUsersCount === 0) return;
+    if (isAdminMuted) return;
+
+    playAdminHighVolumeRing();
+    triggerAdminVibration();
+
+    const interval = setInterval(() => {
+      playAdminHighVolumeRing();
+      triggerAdminVibration();
+    }, 1500);
+
+    return () => clearInterval(interval);
+  }, [unapprovedOrdersCount, lockedUsersCount, isAdminMuted]);
+
   // User coin management states
   const [coinManagingUser, setCoinManagingUser] = useState<UserProfile | null>(null);
   const [coinAmountInput, setCoinAmountInput] = useState<number>(50);
@@ -1120,51 +1241,10 @@ export default function AdminPanel({
   }, [unlockingUser]);
 
   const playNewUserAlert = (phone: string) => {
-    // 1. Play Sound (Dual tone alert beep)
-    try {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (AudioCtx) {
-        const ctx = new AudioCtx();
-        const now = ctx.currentTime;
-        
-        const osc1 = ctx.createOscillator();
-        const gain1 = ctx.createGain();
-        osc1.type = "sawtooth";
-        osc1.frequency.setValueAtTime(440, now); // A4
-        osc1.frequency.exponentialRampToValueAtTime(880, now + 0.15); // A5
-        gain1.gain.setValueAtTime(0.12, now);
-        gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-        osc1.connect(gain1);
-        gain1.connect(ctx.destination);
-        osc1.start(now);
-        osc1.stop(now + 0.3);
+    playAdminHighVolumeRing();
+    triggerAdminVibration();
 
-        const osc2 = ctx.createOscillator();
-        const gain2 = ctx.createGain();
-        osc2.type = "sine";
-        osc2.frequency.setValueAtTime(660, now + 0.15); // E5
-        osc2.frequency.exponentialRampToValueAtTime(1200, now + 0.3);
-        gain2.gain.setValueAtTime(0.12, now + 0.15);
-        gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
-        osc2.connect(gain2);
-        gain2.connect(ctx.destination);
-        osc2.start(now + 0.15);
-        osc2.stop(now + 0.45);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-
-    // 2. Vibration
-    try {
-      if (navigator.vibrate) {
-        navigator.vibrate([200, 100, 200]);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-
-    // 3. New User Toast notification
+    // New User Toast notification
     setNewUserToast({
       phone: phone,
       show: true,
@@ -2989,6 +3069,20 @@ export default function AdminPanel({
           </button>
 
           <button
+            onClick={toggleAdminMute}
+            className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition cursor-pointer border active:scale-95 ${
+              isAdminMuted
+                ? "bg-slate-100 text-slate-500 border-slate-200"
+                : (unapprovedOrdersCount > 0 || lockedUsersCount > 0)
+                ? "bg-red-500 text-white border-red-600 animate-pulse shadow-md"
+                : "bg-emerald-50 text-emerald-700 border-emerald-200"
+            }`}
+            title="Toggle Admin Ringtone Sound"
+          >
+            {isAdminMuted ? "🔇 Muted" : "🔊 Ringing"}
+          </button>
+
+          <button
             onClick={handleExportCSV}
             className="hidden md:flex bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-xl transition cursor-pointer items-center gap-1.5 border border-slate-200"
           >
@@ -3006,6 +3100,62 @@ export default function AdminPanel({
 
       {/* Main Container Dashboard */}
       <div className="max-w-7xl mx-auto w-full px-2.5 py-3 sm:px-6 sm:py-6 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-6 pb-20">
+        {/* Prominent New Order / New User Ring Alert Banner */}
+        {(unapprovedOrdersCount > 0 || lockedUsersCount > 0) && (
+          <div className="col-span-1 lg:col-span-12 bg-gradient-to-r from-red-600 via-[#D70F64] to-red-600 text-white p-3.5 sm:p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xl border-2 border-red-400/50">
+            <div className="flex items-center gap-3 text-center sm:text-left">
+              <span className="text-3xl animate-bounce">🚨</span>
+              <div>
+                <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-white flex items-center gap-2 justify-center sm:justify-start">
+                  <span>HIGH ALERT: ACTION REQUIRED!</span>
+                  <span className="bg-white text-red-600 font-black text-[9.5px] px-2 py-0.5 rounded-full uppercase animate-pulse">
+                    RINGING ACTIVE
+                  </span>
+                </h3>
+                <p className="text-[11px] text-pink-100 font-medium mt-0.5">
+                  {unapprovedOrdersCount > 0 && `📦 ${unapprovedOrdersCount} New Pending Order(s) waiting for dispatch! `}
+                  {lockedUsersCount > 0 && `👤 ${lockedUsersCount} New User(s) awaiting verification & unlock!`}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end shrink-0 flex-wrap">
+              <button
+                onClick={() => {
+                  playAdminHighVolumeRing();
+                  triggerAdminVibration();
+                }}
+                className="py-1.5 px-3 bg-white/20 hover:bg-white/30 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition active:scale-95 cursor-pointer border border-white/30"
+              >
+                🔊 Test Ring
+              </button>
+              {unapprovedOrdersCount > 0 && (
+                <button
+                  onClick={() => setActiveSubTab("orders")}
+                  className="py-1.5 px-3 bg-white text-red-600 hover:bg-slate-100 rounded-xl text-xs font-black uppercase tracking-wider transition active:scale-95 cursor-pointer shadow-sm"
+                >
+                  View Orders ({unapprovedOrdersCount})
+                </button>
+              )}
+              {lockedUsersCount > 0 && (
+                <button
+                  onClick={() => {
+                    setActiveSubTab("users");
+                    setUserFilterTab("new");
+                  }}
+                  className="py-1.5 px-3 bg-slate-900 text-white hover:bg-slate-800 rounded-xl text-xs font-black uppercase tracking-wider transition active:scale-95 cursor-pointer shadow-sm"
+                >
+                  Verify Users ({lockedUsersCount})
+                </button>
+              )}
+              <button
+                onClick={toggleAdminMute}
+                className="py-1.5 px-3 bg-red-950/60 hover:bg-red-950 text-white rounded-xl text-xs font-black uppercase tracking-wider transition active:scale-95 cursor-pointer border border-red-400/30"
+              >
+                {isAdminMuted ? "🔊 Unmute Ring" : "🔇 Mute Ring"}
+              </button>
+            </div>
+          </div>
+        )}
         {/* Mobile Horizontal Navigation Tab Bar (Shown only on small/medium screens) */}
         <div className="lg:hidden col-span-1 bg-white border border-slate-200 p-2 rounded-2xl shadow-xs space-y-1.5">
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-nowrap scrollbar-none">
