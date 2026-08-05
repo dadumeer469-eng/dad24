@@ -2828,9 +2828,11 @@ export default function App() {
             initial={{ scale: 0.85, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.4, ease: "easeOut" }}
-            className="w-24 h-24 sm:w-28 sm:h-28 rounded-full p-1 bg-gradient-to-tr from-[#D70F64] to-pink-500 shadow-[0_0_35px_rgba(215,15,100,0.5)] border-2 border-white/20 flex items-center justify-center overflow-hidden mx-auto"
+            className="w-24 h-24 sm:w-28 sm:h-28 rounded-full p-1 bg-[#D70F64] shadow-[0_0_35px_rgba(215,15,100,0.6)] border-2 border-white flex items-center justify-center overflow-hidden mx-auto relative group"
           >
-            <img src={daduLogo} alt="Dadu Food Logo" className="w-full h-full object-cover rounded-full" />
+            <div className="w-full h-full rounded-full p-0.5 bg-white flex items-center justify-center overflow-hidden">
+              <img src={daduLogo} alt="Dadu Food Logo" className="w-full h-full object-cover rounded-full bg-white" />
+            </div>
           </motion.div>
         </div>
 

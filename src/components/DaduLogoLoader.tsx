@@ -38,16 +38,16 @@ export function DaduLogoLoader({
             repeat: Infinity,
             ease: "easeInOut",
           }}
-          className={`${imgSize} rounded-full overflow-hidden p-0.5 bg-gradient-to-tr from-[#d70f64] via-pink-400 to-amber-300 shadow-md flex items-center justify-center shrink-0`}
+          className={`${imgSize} rounded-full overflow-hidden p-0.5 bg-gradient-to-tr from-[#D70F64] to-pink-500 shadow-md flex items-center justify-center shrink-0 border border-white/20`}
         >
           <img
             src={daduLogo}
             alt="Dadu Food"
-            className="w-full h-full object-cover rounded-full"
+            className="w-full h-full object-cover rounded-full bg-white"
           />
         </motion.div>
         {text && (
-          <span className="text-xs font-black text-zinc-700 dark:text-zinc-300 animate-pulse uppercase tracking-wider">
+          <span className="text-xs font-black text-zinc-800 dark:text-zinc-200 animate-pulse uppercase tracking-wider">
             {text}
           </span>
         )}
@@ -63,47 +63,47 @@ export function DaduLogoLoader({
         {/* Soft glowing ambient aura ring */}
         <motion.div
           animate={{
-            scale: [0.95, 1.25, 0.95],
-            opacity: [0.3, 0.65, 0.3],
+            scale: [0.95, 1.2, 0.95],
+            opacity: [0.25, 0.5, 0.25],
           }}
           transition={{
             duration: 2,
             repeat: Infinity,
             ease: "easeInOut",
           }}
-          className="absolute inset-0 bg-[#d70f64]/25 rounded-full blur-xl pointer-events-none"
+          className="absolute inset-0 bg-[#D70F64]/30 rounded-full blur-xl pointer-events-none"
         />
 
-        {/* Pulsing Outer Gradient Ring */}
+        {/* Pulsing Outer Ring */}
         <motion.div
           animate={{
             rotate: [0, 360],
           }}
           transition={{
-            duration: 8,
+            duration: 10,
             repeat: Infinity,
             ease: "linear",
           }}
-          className="absolute -inset-1.5 rounded-full bg-gradient-to-tr from-[#d70f64] via-orange-400 to-pink-500 opacity-80 blur-[1px]"
+          className="absolute -inset-1 rounded-full bg-gradient-to-tr from-[#D70F64] via-pink-500 to-[#D70F64] opacity-90 blur-[1px]"
         />
 
         {/* Main Logo Card Container */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
+          initial={{ opacity: 0, scale: 0.85 }}
           animate={{
             opacity: 1,
-            scale: [0.98, 1.05, 0.98],
+            scale: [0.98, 1.04, 0.98],
           }}
           transition={{
             opacity: { duration: 0.3 },
-            scale: { duration: 1.8, repeat: Infinity, ease: "easeInOut" },
+            scale: { duration: 2, repeat: Infinity, ease: "easeInOut" },
           }}
-          className={`relative ${imgSize} rounded-full p-1 bg-white shadow-xl border-2 border-white flex items-center justify-center overflow-hidden z-10`}
+          className={`relative ${imgSize} rounded-full p-1 bg-white dark:bg-zinc-900 shadow-xl border-2 border-[#D70F64]/30 flex items-center justify-center overflow-hidden z-10`}
         >
           <img
             src={daduLogo}
             alt="Dadu Food Logo"
-            className="w-full h-full object-cover rounded-full"
+            className="w-full h-full object-cover rounded-full bg-white"
           />
         </motion.div>
       </div>
