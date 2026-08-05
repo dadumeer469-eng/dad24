@@ -1,6 +1,6 @@
-const CACHE_NAME = "dadu-food-static-v4";
-const RUNTIME_CACHE = "dadu-food-runtime-v4";
-const IMAGE_CACHE = "dadu-food-images-v4";
+const CACHE_NAME = "dadu-food-static-v5";
+const RUNTIME_CACHE = "dadu-food-runtime-v5";
+const IMAGE_CACHE = "dadu-food-images-v5";
 
 const PRECACHE_URLS = [
   "/",

@@ -11,7 +11,7 @@
     <script>
       window.deferredPrompt = null;
       window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
+        // e.preventDefault(); // Don't prevent default, let Android show the native install prompt automatically
         window.deferredPrompt = e;
       });
     </script>
@@ -173,7 +173,7 @@
         const isBannerDismissed = sessionStorage.getItem('pwa-banner-dismissed');
 
         window.addEventListener('beforeinstallprompt', (e) => {
-          e.preventDefault();
+          // e.preventDefault();
           window.deferredPrompt = e;
           if (pwaBanner && !isBannerDismissed) {
             pwaBanner.style.display = 'block';
@@ -195,6 +195,8 @@
                 console.warn('Prompt failed or cancelled:', err);
                 window.deferredPrompt = null;
               }
+            } else {
+              alert("App install prompt is not ready. Please ensure you are opening this app in a full browser tab (not inside an iframe or preview window). To install manually, tap the Share button (iOS) or Menu button (Android) and select 'Add to Home Screen'.");
             }
           });
         }

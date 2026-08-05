@@ -583,7 +583,7 @@ export default function App() {
     }
 
     const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
+      // e.preventDefault();
       setDeferredPrompt(e);
       (window as any).deferredPrompt = e;
     };
@@ -616,7 +616,7 @@ export default function App() {
         setDeferredPrompt(null);
       }
     } else {
-      alert("App is already installed or your browser doesn't support 1-click install. To install manually, tap the Share button (iOS) or Menu button (Android) and select 'Add to Home Screen'.");
+      alert("App install prompt is not ready. Please ensure you are opening this app in a full browser tab (not inside an iframe or preview window). To install manually, tap the Share button (iOS) or Menu button (Android) and select 'Add to Home Screen'.");
     }
   };
 
