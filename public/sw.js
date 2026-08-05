@@ -7,6 +7,10 @@ const PRECACHE_URLS = [
   "/",
   "/index.html",
   "/manifest.json",
+  "/site.webmanifest",
+  "/favicon-96x96.png",
+  "/web-app-manifest-192x192.png",
+  "/web-app-manifest-512x512.png",
   "/android-chrome-192x192.png",
   "/android-chrome-512x512.png"
 ];
