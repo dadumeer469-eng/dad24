@@ -572,6 +572,16 @@ export default function App() {
   }, [currentUser?.uid, globalCoords, currentUser?.savedLocation?.lat, currentUser?.savedLocation?.lng]);
 
   useEffect(() => {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+    
+    if (!isStandalone) {
+      if (!localStorage.getItem("pwaInstallDismissed")) {
+        setShowInstallBanner(true);
+      } else {
+        setShowInstallBubble(true);
+      }
+    }
+
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
