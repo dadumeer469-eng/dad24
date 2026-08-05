@@ -1,6 +1,6 @@
 import React from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, User, History, Heart, Sun, Moon, ShieldAlert, LogOut, BadgeCheck, RotateCcw } from "lucide-react";
+import { X, User, History, Heart, Sun, Moon, ShieldAlert, LogOut, BadgeCheck, RotateCcw, Download } from "lucide-react";
 import { UserProfile, Order } from "../types";
 
 interface MobileAccountDrawerProps {
@@ -239,6 +239,22 @@ export default function MobileAccountDrawer({
                 >
                   <History className="w-5 h-5 text-zinc-700 dark:text-zinc-300" />
                   <span className="text-xs font-extrabold">Order History</span>
+                </button>
+
+                {/* Install App Button */}
+                <button
+                  onClick={() => {
+                    onClose();
+                    if ((window as any).triggerPWAInstall) {
+                      (window as any).triggerPWAInstall();
+                    }
+                  }}
+                  className="p-3.5 rounded-2xl text-[#D70F64] bg-pink-50/70 dark:bg-pink-950/20 border border-pink-200/60 dark:border-pink-900/40 hover:bg-pink-100 transition flex flex-col items-center justify-center gap-2 cursor-pointer col-span-2 shadow-2xs"
+                >
+                  <div className="flex items-center gap-2">
+                    <Download className="w-5 h-5 text-[#D70F64] animate-bounce" />
+                    <span className="text-xs font-black uppercase tracking-wider">Install Dadu Food App 📱</span>
+                  </div>
                 </button>
 
                 {/* Light/Dark Mode toggle */}

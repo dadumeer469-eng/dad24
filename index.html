@@ -126,85 +126,96 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      // Safe environment check to prevent SecurityError and cross-origin "Script error" in sandboxed development preview iframes
-      let isTopLevel = false;
-      try {
-        isTopLevel = (window.parent === window);
-      } catch (e) {
-        isTopLevel = false;
+      // Global reference for deferred install prompt
+      window.deferredPwaPrompt = null;
+
+      // Register Service Worker for PWA capabilities safely
+      if ('serviceWorker' in navigator) {
+        const registerSW = () => {
+          try {
+            navigator.serviceWorker.register('/sw.js').then((reg) => {
+              console.log('PWA ServiceWorker registered successfully:', reg.scope);
+            }).catch((err) => {
+              console.warn('PWA ServiceWorker registration failed:', err);
+            });
+          } catch (e) {
+            console.warn('PWA ServiceWorker exception:', e);
+          }
+        };
+
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+          registerSW();
+        } else {
+          window.addEventListener('load', registerSW);
+        }
       }
 
-      if (isTopLevel) {
-        if ('serviceWorker' in navigator) {
-          const registerSW = () => {
-            try {
-              navigator.serviceWorker.register('/sw.js').then((reg) => {
-                console.log('ServiceWorker registered successfully:', reg.scope);
-              }).catch((err) => {
-                console.warn('ServiceWorker registration failed:', err);
-              });
-            } catch (e) {
-              console.warn('ServiceWorker registration error:', e);
-            }
-          };
-
-          if (document.readyState === 'complete' || document.readyState === 'interactive') {
-            registerSW();
-          } else {
-            window.addEventListener('load', registerSW);
-          }
+      // Capture PWA beforeinstallprompt event
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        window.deferredPwaPrompt = e;
+        
+        const pwaBanner = document.getElementById('pwaBanner');
+        const isBannerDismissed = sessionStorage.getItem('pwa-banner-dismissed');
+        if (pwaBanner && !isBannerDismissed) {
+          pwaBanner.style.display = 'block';
         }
 
-        let deferredPrompt;
+        // Notify React components
+        window.dispatchEvent(new CustomEvent('pwa-install-available'));
+      });
+
+      // Global function to trigger PWA installation
+      window.triggerPWAInstall = async function() {
         const pwaBanner = document.getElementById('pwaBanner');
+        if (window.deferredPwaPrompt) {
+          try {
+            const prompt = window.deferredPwaPrompt;
+            prompt.prompt();
+            const { outcome } = await prompt.userChoice;
+            if (outcome === 'accepted') {
+              if (pwaBanner) pwaBanner.style.display = 'none';
+            }
+            window.deferredPwaPrompt = null;
+          } catch (err) {
+            console.warn('PWA installation prompt failed:', err);
+          }
+        } else {
+          // Manual fallback instructions for browsers like Safari / iOS / Chrome when prompt not cached
+          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+          if (isIOS) {
+            alert('📱 To install Dadu Food App on iPhone/iPad:\n1. Tap the Share button (⎘) at bottom\n2. Scroll down & tap "Add to Home Screen" ➕');
+          } else {
+            alert('📱 To install Dadu Food App:\n• Tap menu (3 dots ⋮) at top right\n• Select "Install App" or "Add to Home screen" 🚀');
+          }
+        }
+      };
+
+      document.addEventListener('DOMContentLoaded', () => {
         const installBtn = document.getElementById('installBtn');
         const closeBannerBtn = document.getElementById('closeBannerBtn');
-
-        // Check if user dismissed the banner previously in this session
-        const isBannerDismissed = sessionStorage.getItem('pwa-banner-dismissed');
-
-        window.addEventListener('beforeinstallprompt', (e) => {
-          e.preventDefault();
-          deferredPrompt = e;
-          if (pwaBanner && !isBannerDismissed) {
-            pwaBanner.style.display = 'block';
-          }
-        });
+        const pwaBanner = document.getElementById('pwaBanner');
 
         if (installBtn) {
-          installBtn.addEventListener('click', async () => {
-            if (deferredPrompt) {
-              try {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                  if (pwaBanner) {
-                    pwaBanner.style.display = 'none';
-                  }
-                }
-              } catch (err) {
-                console.warn('Prompt failed or cancelled:', err);
-              }
-              deferredPrompt = null;
-            }
+          installBtn.addEventListener('click', () => {
+            window.triggerPWAInstall();
           });
         }
 
         if (closeBannerBtn) {
           closeBannerBtn.addEventListener('click', () => {
-            if (pwaBanner) {
-              pwaBanner.style.display = 'none';
-            }
+            if (pwaBanner) pwaBanner.style.display = 'none';
             sessionStorage.setItem('pwa-banner-dismissed', 'true');
           });
         }
+      });
 
-        window.addEventListener('appinstalled', () => {
-          if (pwaBanner) {
-            pwaBanner.style.display = 'none';
-          }
-        });
-      }
+      window.addEventListener('appinstalled', () => {
+        const pwaBanner = document.getElementById('pwaBanner');
+        if (pwaBanner) pwaBanner.style.display = 'none';
+        window.deferredPwaPrompt = null;
+        console.log('Dadu Food PWA app installed successfully!');
+      });
     </script>
   </body>
 </html>
