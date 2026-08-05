@@ -2818,104 +2818,120 @@ export default function App() {
 
   if (showSplash) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-white flex flex-col items-center justify-center p-6 text-center select-none font-sans relative overflow-hidden">
-        {/* Glow behind logo */}
-        <div className="absolute w-72 h-72 bg-[#D70F64]/20 rounded-full blur-3xl pointer-events-none animate-pulse" />
+      <div className="min-h-screen bg-zinc-950 text-white flex flex-col items-center justify-center p-5 text-center select-none font-sans relative overflow-hidden">
+        {/* Ambient Neon Background Glows */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-[#D70F64]/20 rounded-full blur-[100px] pointer-events-none animate-pulse" />
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-96 h-40 bg-emerald-500/10 rounded-full blur-[80px] pointer-events-none" />
 
-        {/* Logo Card */}
-        <div className="relative z-10 mb-6">
+        {/* Top Central Neon Emblem with Double Pink Glowing Rings */}
+        <div className="relative z-10 mb-6 flex items-center justify-center">
+          {/* Outer Pulsing Neon Ring */}
           <motion.div
             initial={{ scale: 0.85, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            className="w-24 h-24 sm:w-28 sm:h-28 rounded-full p-1 bg-[#D70F64] shadow-[0_0_35px_rgba(215,15,100,0.6)] border-2 border-white flex items-center justify-center overflow-hidden mx-auto relative group"
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="w-40 h-40 sm:w-44 sm:h-44 rounded-full border-2 border-[#D70F64] shadow-[0_0_35px_#D70F64,inset_0_0_15px_#D70F64] p-2 flex items-center justify-center relative bg-zinc-950/80 backdrop-blur-xs"
           >
-            <div className="w-full h-full rounded-full p-0.5 bg-white flex items-center justify-center overflow-hidden">
-              <img src={daduLogo} alt="Dadu Food Logo" className="w-full h-full object-cover rounded-full bg-white" />
+            {/* Inner Glowing Ring */}
+            <div className="w-full h-full rounded-full border-2 border-[#D70F64] shadow-[0_0_20px_#D70F64] bg-zinc-950 flex flex-col items-center justify-center p-3 relative overflow-hidden">
+              {/* Logo Image */}
+              <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-full p-0.5 bg-white shadow-md overflow-hidden flex items-center justify-center mb-1 border border-pink-500/40">
+                <img src={daduLogo} alt="Dadu Food Logo" className="w-full h-full object-cover rounded-full bg-white" />
+              </div>
+              
+              {/* DELIVERY Text under logo inside ring */}
+              <span className="text-[11px] font-black tracking-[0.25em] text-white uppercase drop-shadow-[0_0_8px_#D70F64]">
+                DELIVERY
+              </span>
             </div>
           </motion.div>
         </div>
 
-        {/* Title */}
-        <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight uppercase mb-1">
-          DADU <span className="text-[#D70F64]">FOOD</span>
-        </h1>
-        <p className="text-[11px] sm:text-xs font-bold text-zinc-400 uppercase tracking-widest mb-8">
-          Fastest Delivery in Dadu City
-        </p>
+        {/* Main Title & Subtitle */}
+        <motion.div
+          initial={{ y: 10, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
+          className="mb-8"
+        >
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tight uppercase mb-1">
+            DADU <span className="text-[#D70F64] [text-shadow:0_0_18px_#D70F64]">FOOD</span>
+          </h1>
+          <p className="text-[10px] sm:text-[11px] font-bold text-zinc-400 uppercase tracking-[0.25em]">
+            FASTEST DELIVERY IN DADU CITY
+          </p>
+        </motion.div>
 
-        {/* Rider Riding Animation Box */}
-        <div className="w-full max-w-xs bg-zinc-900/90 border border-zinc-800/80 rounded-2xl p-4 shadow-2xl mb-6 relative overflow-hidden backdrop-blur-md">
-          <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-2.5">
-            <span className="text-[#D70F64] flex items-center gap-1.5">
+        {/* Glassmorphic Progress & Delivery Status Card */}
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.3, duration: 0.4 }}
+          className="w-full max-w-sm bg-zinc-900/80 backdrop-blur-xl border border-white/10 rounded-2xl p-4 sm:p-5 shadow-[0_15px_35px_rgba(0,0,0,0.8)] relative overflow-hidden space-y-4"
+        >
+          {/* Progress Header */}
+          <div className="flex justify-between items-center text-xs font-black uppercase tracking-wider text-zinc-300">
+            <span className="flex items-center gap-2 text-zinc-200">
               <span className="w-2 h-2 rounded-full bg-[#D70F64] animate-ping" />
-              Preparing App...
+              PREPARING YOUR FEAST...
             </span>
-            <span className="font-mono text-emerald-400 text-xs font-black tracking-wider">{splashProgress}%</span>
+            <span className="font-mono text-emerald-400 text-sm font-extrabold tracking-wider">{splashProgress}%</span>
           </div>
 
-          {/* Progress Bar */}
-          <div className="w-full bg-zinc-800/80 h-2.5 rounded-full overflow-hidden mb-3.5 p-0.5 border border-zinc-700/50">
+          {/* Glowing Gradient Progress Bar */}
+          <div className="relative w-full h-3.5 bg-zinc-950/90 rounded-full border border-zinc-800/80 p-0.5 overflow-hidden">
             <div
-              className="bg-gradient-to-r from-emerald-400 via-[#D70F64] to-pink-500 h-full rounded-full transition-all duration-100 ease-out shadow-[0_0_12px_rgba(215,15,100,0.7)]"
+              className="bg-gradient-to-r from-emerald-400 via-pink-500 to-[#D70F64] h-full rounded-full transition-all duration-100 ease-out shadow-[0_0_14px_#D70F64]"
               style={{ width: `${splashProgress}%` }}
             />
           </div>
 
-          {/* Road & Moving Delivery Bike Badge */}
-          <div className="relative h-14 flex items-center w-full px-1">
-            <div className="absolute left-2 right-2 top-1/2 -translate-y-1/2 h-0.5 bg-zinc-800 border-t border-dashed border-zinc-700/80" />
-            
-            {/* Smooth Moving Badge (Hardware accelerated GPU transform) */}
-            <div
-              style={{
-                left: `${Math.min(Math.max(splashProgress, 8), 92)}%`,
-                transform: "translateX(-50%)",
-                willChange: "left",
-              }}
-              className="absolute z-10 transition-all duration-100 ease-out"
-            >
-              <div className="flex items-center gap-2 bg-zinc-950/95 pl-1.5 pr-3 py-1.5 rounded-full border-2 border-[#D70F64] shadow-[0_0_20px_rgba(215,15,100,0.6)]">
-                {/* Dadu Site Logo Avatar */}
-                <div className="relative shrink-0">
-                  <img
-                    src={daduLogo}
-                    alt="Dadu App Icon"
-                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-[#D70F64] shadow-md"
-                  />
-                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-black" />
-                </div>
+          {/* Sub-Card: Nearest Dadu Rider Assigned & Preparing */}
+          <div className="bg-zinc-950/80 border border-zinc-800/90 rounded-xl p-3.5 text-center space-y-3 shadow-inner">
+            <div className="text-[10px] font-black tracking-widest text-zinc-400 uppercase">
+              NEAREST DADU RIDER: ASSIGNED & PREPARING
+            </div>
 
-                {/* Delivery Motorbike & Text */}
-                <div className="flex items-center gap-1.5">
-                  <motion.div
-                    animate={{ y: [0, -2, 0], rotate: [0, 1, -1, 0] }}
-                    transition={{ repeat: Infinity, duration: 0.3, ease: "easeInOut" }}
-                    className="flex items-center justify-center bg-gradient-to-r from-[#D70F64] to-pink-600 p-1.5 rounded-full text-white shadow-md shrink-0"
-                  >
-                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white fill-current transform -scale-x-1 drop-shadow-xs" viewBox="0 0 24 24">
-                      {/* High-detail Delivery Motorbike / Scooter SVG */}
-                      <path d="M19 13c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12.8-4.2l-2.3-3.8c-.3-.5-.8-.8-1.4-.8h-3.1c-.6 0-1.1.3-1.4.8l-1.1 1.8h-3.5c-.6 0-1.1.5-1.1 1.1v2.1h1.7c.4-1.2 1.5-2 2.8-2s2.4.8 2.8 2h3.4c.4-1.2 1.5-2 2.8-2s2.4.8 2.8 2h1.4v-3.2c0-.4-.2-.8-.5-1zm-6.8-1.8h2.3l1.3 2.1h-3.6l-.0-.0z" />
-                    </svg>
-                  </motion.div>
-                  
-                  <div className="flex flex-col text-left leading-none">
-                    <span className="text-[10px] font-black tracking-wider text-white uppercase">
-                      DADU RIDER
-                    </span>
-                    <span className="text-[9px] font-bold text-pink-400 font-mono tracking-widest mt-0.5">
-                      EXPRESS ⚡
-                    </span>
-                  </div>
+            {/* Route & Rider Graphic Line */}
+            <div className="flex items-center justify-between px-2 pt-1">
+              {/* Green Location Pin */}
+              <div className="flex flex-col items-center">
+                <div className="p-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.4)]">
+                  <MapPin className="w-4 h-4 fill-emerald-500/20" />
                 </div>
+              </div>
+
+              {/* Left Route Line */}
+              <div className="flex-1 h-0.5 border-t-2 border-dashed border-zinc-700 mx-2" />
+
+              {/* Moving Rider Scooter */}
+              <motion.div
+                animate={{ y: [0, -2, 0] }}
+                transition={{ repeat: Infinity, duration: 0.35, ease: "easeInOut" }}
+                className="flex items-center gap-1.5 bg-zinc-900 px-2.5 py-1 rounded-full border border-[#D70F64] shadow-[0_0_12px_rgba(215,15,100,0.5)] shrink-0"
+              >
+                <span className="text-lg inline-block transform -scale-x-1">🛵</span>
+                <span className="text-[9px] font-black tracking-wider text-pink-300 font-mono">DADU</span>
+              </motion.div>
+
+              {/* Right Route Line */}
+              <div className="flex-1 h-0.5 border-t-2 border-dashed border-zinc-700 mx-2" />
+
+              {/* Express Zap Badge */}
+              <div className="flex items-center gap-1 text-amber-400 font-black text-xs tracking-wider">
+                <span className="text-[10px] uppercase font-mono">EXPRESS</span>
+                <span className="text-amber-400 text-sm animate-bounce">⚡</span>
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-extrabold">
-          Powered by Dadu City Express
-        </p>
+        {/* Footer */}
+        <div className="mt-8 text-[10px] font-extrabold text-zinc-500 tracking-[0.2em] uppercase flex items-center gap-2">
+          <span>🚚</span>
+          <span>POWERED BY DADU CITY EXPRESS</span>
+          <span>🚁</span>
+        </div>
       </div>
     );
   }
