@@ -585,26 +585,36 @@ export default function App() {
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
+      (window as any).deferredPrompt = e;
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+
+    if ((window as any).deferredPrompt) {
+      setDeferredPrompt((window as any).deferredPrompt);
+    }
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     };
   }, []);
 
-  const handleInstallClick = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === "accepted") {
+  const handleInstallClick = () => {
+    const promptObj = (window as any).deferredPrompt || deferredPrompt;
+    if (promptObj) {
+      try {
+        promptObj.prompt();
+        promptObj.userChoice.then(() => {
+          (window as any).deferredPrompt = null;
+          setDeferredPrompt(null);
+          setShowInstallBanner(false);
+          setShowInstallBubble(false);
+        });
+      } catch (err) {
+        console.warn("PWA install error:", err);
+        (window as any).deferredPrompt = null;
         setDeferredPrompt(null);
-        setShowInstallBanner(false);
-        setShowInstallBubble(false);
       }
-    } else {
-      alert("To install: Tap the Share button (iOS) or Menu button (Android) and select 'Add to Home Screen'.");
     }
   };
 

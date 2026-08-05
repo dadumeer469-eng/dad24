@@ -71,6 +71,21 @@ export default function FoodpandaHeader({
 
   const unreadNotifications = notifications.filter(n => !n.read);
 
+  const handleInstallApp = () => {
+    const win = window as any;
+    if (win.deferredPrompt) {
+      try {
+        win.deferredPrompt.prompt();
+        win.deferredPrompt.userChoice.then(() => {
+          win.deferredPrompt = null;
+        });
+      } catch (e) {
+        console.warn("Install prompt error:", e);
+        win.deferredPrompt = null;
+      }
+    }
+  };
+
   // Unified WhatsApp link formatter
   const whatsAppLink = "https://wa.me/923277004471";
 
@@ -150,6 +165,17 @@ export default function FoodpandaHeader({
         {/* Action Widgets Grid */}
         <div className="flex items-center gap-2.5 shrink-0">
           
+          {/* Direct Install App Button */}
+          <button
+            onClick={handleInstallApp}
+            className="hidden sm:flex items-center gap-1.5 py-2 px-3 bg-pink-50 dark:bg-pink-950/30 text-[#d70f64] dark:text-pink-400 hover:bg-pink-100 dark:hover:bg-pink-900/40 border border-pink-200 dark:border-pink-800/50 rounded-xl transition cursor-pointer shrink-0 text-xs font-black shadow-2xs"
+            title="Install Dadu Food App"
+            id="header-install-app-btn"
+          >
+            <Download className="w-3.5 h-3.5 text-[#d70f64] dark:text-pink-400 shrink-0" />
+            <span>Install App</span>
+          </button>
+
           {/* In-App Notifications Center Dropdown */}
           <div className="relative">
             <button
@@ -265,6 +291,22 @@ export default function FoodpandaHeader({
                   >
                     <User className="w-4 h-4 shrink-0 text-[#d70f64]" />
                     Sign In / Register
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      handleInstallApp();
+                    }}
+                    className="w-full text-left font-bold text-xs text-zinc-700 dark:text-zinc-300 px-3.5 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-xl transition flex items-center justify-between cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Download className="w-4 h-4 text-[#d70f64] shrink-0" />
+                      <span>Install App</span>
+                    </span>
+                    <span className="text-[9px] font-black text-[#d70f64] bg-pink-50 dark:bg-pink-950/40 px-1.5 py-0.5 rounded">
+                      PWA
+                    </span>
                   </button>
 
                   <button
@@ -421,6 +463,17 @@ export default function FoodpandaHeader({
                   >
                     <History className="w-3.5 h-3.5 text-[#d70f64] shrink-0" />
                     <span>History</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      handleInstallApp();
+                    }}
+                    className="flex-1 min-w-[100px] font-bold text-xs text-[#d70f64] bg-pink-50 dark:bg-pink-950/30 border border-pink-200 dark:border-pink-800/50 px-2.5 py-2 hover:bg-pink-100 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5 text-[#d70f64] shrink-0" />
+                    <span>Install App</span>
                   </button>
 
                   <button

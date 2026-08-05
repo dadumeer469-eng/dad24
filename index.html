@@ -8,6 +8,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     
+    <script>
+      window.deferredPrompt = null;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        window.deferredPrompt = e;
+      });
+    </script>
+    
     <!-- Primary SEO Meta Tags -->
     <title>Dadu Food | Fast Food Delivery in Dadu (Sindh, Pakistan)</title>
     <meta name="description" content="Dadu Food se apna pasandida khana online order karein. Best food delivery service in Dadu, Sindh, Pakistan. Fast delivery aur fresh food ke liye abhi Dadu Food par visit karein!" />
@@ -157,7 +165,6 @@
           }
         }
 
-        let deferredPrompt;
         const pwaBanner = document.getElementById('pwaBanner');
         const installBtn = document.getElementById('installBtn');
         const closeBannerBtn = document.getElementById('closeBannerBtn');
@@ -167,7 +174,7 @@
 
         window.addEventListener('beforeinstallprompt', (e) => {
           e.preventDefault();
-          deferredPrompt = e;
+          window.deferredPrompt = e;
           if (pwaBanner && !isBannerDismissed) {
             pwaBanner.style.display = 'block';
           }
@@ -175,19 +182,19 @@
 
         if (installBtn) {
           installBtn.addEventListener('click', async () => {
-            if (deferredPrompt) {
+            if (window.deferredPrompt) {
               try {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
+                window.deferredPrompt.prompt();
+                window.deferredPrompt.userChoice.then(() => {
+                  window.deferredPrompt = null;
                   if (pwaBanner) {
                     pwaBanner.style.display = 'none';
                   }
-                }
+                });
               } catch (err) {
                 console.warn('Prompt failed or cancelled:', err);
+                window.deferredPrompt = null;
               }
-              deferredPrompt = null;
             }
           });
         }
