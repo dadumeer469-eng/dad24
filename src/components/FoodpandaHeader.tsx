@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { motion } from "motion/react";
 import { UserProfile, AppNotification, Order } from "../types";
 import { Search, ShoppingBag, User, LogOut, Phone, Bell, ShieldAlert, BadgeCheck, Download, History, Heart, RotateCcw, Sun, Moon, X } from "lucide-react";
 import daduLogo from "../assets/images/dadu_food_logo_new_1782333467889.jpg";
@@ -111,9 +112,30 @@ export default function FoodpandaHeader({
               referrerPolicy="no-referrer"
             />
           </div>
-          <span className="text-base sm:text-xl font-black tracking-tight text-zinc-900 dark:text-zinc-100">
-            DADU<span className="text-[#d70f64]">FOOD</span>
-          </span>
+          <motion.span 
+            initial={{ opacity: 0, x: -8, scale: 0.95 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            transition={{ type: "spring", stiffness: 350, damping: 20 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="text-base sm:text-xl font-black tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center"
+          >
+            DADU
+            <motion.span 
+              animate={{ 
+                color: ["#d70f64", "#ff2a85", "#d70f64"],
+                scale: [1, 1.05, 1]
+              }}
+              transition={{ 
+                duration: 2.2, 
+                repeat: Infinity, 
+                ease: "easeInOut" 
+              }}
+              className="text-[#d70f64] inline-block font-black ml-0.5"
+            >
+              FOOD
+            </motion.span>
+          </motion.span>
         </div>
 
         {/* Address and support info - desktop only */}
