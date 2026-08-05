@@ -1,60 +1,29 @@
 {
-  "id": "/",
-  "name": "Dadu Food - Food Delivery, Groceries & Services",
-  "short_name": "Dadu Food",
+  "name": "Dadu Food",
+  "short_name": "DADUFOOD",
   "description": "Fast food and grocery delivery in Dadu",
   "start_url": "/",
-  "scope": "/",
   "display": "standalone",
-  "display_override": [
-    "standalone",
-    "minimal-ui"
-  ],
   "orientation": "portrait",
-  "background_color": "#ffffff",
-  "theme_color": "#d70f64",
+  "background_color": "#D70F64",
+  "theme_color": "#D70F64",
   "icons": [
     {
-      "src": "/android-chrome-192x192.png",
+      "src": "/logo-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
-      "src": "/android-chrome-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/android-chrome-512x512.png",
+      "src": "/logo-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/android-chrome-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
       "src": "/logo.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
+      "type": "image/png"
     }
   ]
 }

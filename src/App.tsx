@@ -574,10 +574,6 @@ export default function App() {
   useEffect(() => {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
     
-    if ((window as any).deferredPwaPrompt) {
-      setDeferredPrompt((window as any).deferredPwaPrompt);
-    }
-
     if (!isStandalone) {
       if (!localStorage.getItem("pwaInstallDismissed")) {
         setShowInstallBanner(true);
@@ -588,48 +584,27 @@ export default function App() {
 
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
-      (window as any).deferredPwaPrompt = e;
       setDeferredPrompt(e);
-      if (!isStandalone) {
-        setShowInstallBanner(true);
-      }
-    };
-
-    const handlePromptReady = () => {
-      if ((window as any).deferredPwaPrompt) {
-        setDeferredPrompt((window as any).deferredPwaPrompt);
-        if (!isStandalone) {
-          setShowInstallBanner(true);
-        }
-      }
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-    window.addEventListener("pwaInstallPromptReady", handlePromptReady);
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-      window.removeEventListener("pwaInstallPromptReady", handlePromptReady);
     };
   }, []);
 
   const handleInstallClick = async () => {
-    const promptEvent = deferredPrompt || (window as any).deferredPwaPrompt;
-    if (promptEvent) {
-      try {
-        promptEvent.prompt();
-        const { outcome } = await promptEvent.userChoice;
-        if (outcome === "accepted") {
-          setDeferredPrompt(null);
-          (window as any).deferredPwaPrompt = null;
-          setShowInstallBanner(false);
-          setShowInstallBubble(false);
-        }
-      } catch (err) {
-        console.warn("Prompt failed or cancelled:", err);
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === "accepted") {
+        setDeferredPrompt(null);
+        setShowInstallBanner(false);
+        setShowInstallBubble(false);
       }
     } else {
-      alert("To install on Android: Tap Chrome menu (⋮) -> 'Add to Home screen' or 'Install app'. On iOS: Tap Share -> 'Add to Home Screen'.");
+      alert("To install: Tap the Share button (iOS) or Menu button (Android) and select 'Add to Home Screen'.");
     }
   };
 
@@ -3526,7 +3501,6 @@ export default function App() {
           onReorder={handleReorder}
           theme={theme}
           onToggleTheme={handleToggleTheme}
-          onInstallApp={handleInstallClick}
         />
       )}
 
@@ -4769,7 +4743,7 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* PWA Floating Install App Button */}
+      {/* PWA Install Bubble (Very Small) */}
       <AnimatePresence>
         {showInstallBubble && !showInstallBanner && (
           <motion.button
@@ -4777,13 +4751,12 @@ export default function App() {
             animate={{ opacity: 1, scale: 1, x: 0 }}
             exit={{ opacity: 0, scale: 0.8, x: -50 }}
             onClick={handleInstallClick}
-            className={`fixed ${cartCountTotal > 0 ? 'bottom-[136px]' : 'bottom-[72px]'} left-4 z-40 bg-[#d70f64] hover:bg-[#b00c50] text-white shadow-2xl border border-white/20 rounded-full py-2 px-3.5 flex items-center gap-2 transition active:scale-95 group cursor-pointer`}
-            title="Install Dadu Food App"
+            className={`fixed ${cartCountTotal > 0 ? 'bottom-[136px]' : 'bottom-[72px]'} left-4 z-40 md:hidden bg-zinc-900/90 backdrop-blur-md border border-zinc-800 shadow-xl rounded-full p-1.5 flex items-center gap-1.5 hover:bg-zinc-800 transition active:scale-95 group`}
           >
-            <div className="w-5 h-5 rounded-md overflow-hidden shrink-0 border border-white/30">
-              <img src="/icon-192.png" alt="Dadu Food Logo" className="w-full h-full object-cover" />
+            <div className="w-5 h-5 rounded-md overflow-hidden shrink-0">
+              <img src={daduLogo} alt="Logo" className="w-full h-full object-cover" />
             </div>
-            <span className="font-extrabold text-xs uppercase tracking-wider">Install App</span>
+            <span className="text-zinc-200 font-bold text-[9px] uppercase tracking-wider pr-1">Install</span>
           </motion.button>
         )}
       </AnimatePresence>

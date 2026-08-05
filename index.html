@@ -30,15 +30,10 @@
     <meta name="twitter:description" content="Your favorite meals, daily groceries, and trusted local home services in one easy-to-use platform. Experience premium convenience with Dadu Food today!" />
     <meta name="twitter:image" content="https://dadufood.vercel.app/logo.png" />
 
-    <!-- Immediate Inline SVG Favicon Fallback -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23d70f64'/%3E%3Ctext x='50' y='64' font-size='55' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='bold'%3E🍲%3C/text%3E%3C/svg%3E">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23d70f64'/><text x='50' y='62' fill='white' font-size='45' font-weight='bold' font-family='sans-serif' text-anchor='middle'>D</text></svg>">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#d70f64" />
-    <meta name="mobile-web-app-capable" content="yes" />
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <link rel="apple-touch-icon" href="/logo.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#D70F64" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     
@@ -131,85 +126,85 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      // Diagnostic Console Logging & Service Worker Registration
-      if ('serviceWorker' in navigator) {
-        const registerSW = () => {
-          try {
-            navigator.serviceWorker.register('/sw.js').then((reg) => {
-              console.log('PWA: Service Worker registered successfully with scope:', reg.scope);
-            }).catch((err) => {
-              console.warn('PWA: Service Worker registration failed:', err);
-            });
-          } catch (e) {
-            console.warn('PWA: Service Worker registration error:', e);
-          }
-        };
-
-        if (document.readyState === 'complete' || document.readyState === 'interactive') {
-          registerSW();
-        } else {
-          window.addEventListener('load', registerSW);
-        }
+      // Safe environment check to prevent SecurityError and cross-origin "Script error" in sandboxed development preview iframes
+      let isTopLevel = false;
+      try {
+        isTopLevel = (window.parent === window);
+      } catch (e) {
+        isTopLevel = false;
       }
 
-      // Immediate Top-Level PWA Install Prompt Event Listener
-      window.addEventListener('beforeinstallprompt', (e) => {
-        console.log('PWA: beforeinstallprompt event fired on window', e);
-        e.preventDefault();
-        window.deferredPwaPrompt = e;
-        window.dispatchEvent(new CustomEvent('pwaInstallPromptReady'));
-
-        const pwaBanner = document.getElementById('pwaBanner');
-        const isBannerDismissed = sessionStorage.getItem('pwa-banner-dismissed');
-        if (pwaBanner && !isBannerDismissed) {
-          pwaBanner.style.display = 'block';
-        }
-      });
-
-      const installBtn = document.getElementById('installBtn');
-      const closeBannerBtn = document.getElementById('closeBannerBtn');
-
-      if (installBtn) {
-        installBtn.addEventListener('click', async () => {
-          const promptEvent = window.deferredPwaPrompt;
-          if (promptEvent) {
+      if (isTopLevel) {
+        if ('serviceWorker' in navigator) {
+          const registerSW = () => {
             try {
-              console.log('PWA: Triggering installation prompt...');
-              promptEvent.prompt();
-              const { outcome } = await promptEvent.userChoice;
-              console.log('PWA: User choice outcome:', outcome);
-              if (outcome === 'accepted') {
-                const pwaBanner = document.getElementById('pwaBanner');
-                if (pwaBanner) {
-                  pwaBanner.style.display = 'none';
-                }
-              }
-            } catch (err) {
-              console.warn('PWA: Prompt failed or cancelled:', err);
+              navigator.serviceWorker.register('/sw.js').then((reg) => {
+                console.log('ServiceWorker registered successfully:', reg.scope);
+              }).catch((err) => {
+                console.warn('ServiceWorker registration failed:', err);
+              });
+            } catch (e) {
+              console.warn('ServiceWorker registration error:', e);
             }
-            window.deferredPwaPrompt = null;
+          };
+
+          if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            registerSW();
+          } else {
+            window.addEventListener('load', registerSW);
+          }
+        }
+
+        let deferredPrompt;
+        const pwaBanner = document.getElementById('pwaBanner');
+        const installBtn = document.getElementById('installBtn');
+        const closeBannerBtn = document.getElementById('closeBannerBtn');
+
+        // Check if user dismissed the banner previously in this session
+        const isBannerDismissed = sessionStorage.getItem('pwa-banner-dismissed');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+          e.preventDefault();
+          deferredPrompt = e;
+          if (pwaBanner && !isBannerDismissed) {
+            pwaBanner.style.display = 'block';
           }
         });
-      }
 
-      if (closeBannerBtn) {
-        closeBannerBtn.addEventListener('click', () => {
-          const pwaBanner = document.getElementById('pwaBanner');
+        if (installBtn) {
+          installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+              try {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                  if (pwaBanner) {
+                    pwaBanner.style.display = 'none';
+                  }
+                }
+              } catch (err) {
+                console.warn('Prompt failed or cancelled:', err);
+              }
+              deferredPrompt = null;
+            }
+          });
+        }
+
+        if (closeBannerBtn) {
+          closeBannerBtn.addEventListener('click', () => {
+            if (pwaBanner) {
+              pwaBanner.style.display = 'none';
+            }
+            sessionStorage.setItem('pwa-banner-dismissed', 'true');
+          });
+        }
+
+        window.addEventListener('appinstalled', () => {
           if (pwaBanner) {
             pwaBanner.style.display = 'none';
           }
-          sessionStorage.setItem('pwa-banner-dismissed', 'true');
         });
       }
-
-      window.addEventListener('appinstalled', () => {
-        console.log('PWA: App successfully installed on device!');
-        const pwaBanner = document.getElementById('pwaBanner');
-        if (pwaBanner) {
-          pwaBanner.style.display = 'none';
-        }
-        window.deferredPwaPrompt = null;
-      });
     </script>
   </body>
 </html>

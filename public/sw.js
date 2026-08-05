@@ -1,34 +1,19 @@
-const CACHE_NAME = "dadu-food-static-v6";
-const RUNTIME_CACHE = "dadu-food-runtime-v6";
-const IMAGE_CACHE = "dadu-food-images-v6";
+const CACHE_NAME = "dadu-food-static-v3";
+const RUNTIME_CACHE = "dadu-food-runtime-v3";
+const IMAGE_CACHE = "dadu-food-images-v3";
 
 const PRECACHE_URLS = [
   "/",
   "/index.html",
   "/manifest.json",
-  "/android-chrome-192x192.png",
-  "/android-chrome-512x512.png",
-  "/apple-touch-icon.png",
-  "/favicon-32x32.png",
-  "/favicon-16x16.png",
-  "/icon-192.png",
-  "/icon-512.png",
-  "/logo.png"
+  "/logo.png",
+  "/logo-192.png",
+  "/logo-512.png",
+  "/logo.jpg"
 ];
-
-// Fallback SVG image response for missing icon assets
-const SVG_FALLBACK = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><rect width="512" height="512" rx="100" fill="#d70f64"/><text x="50%" y="55%" fill="#ffffff" font-size="110" font-weight="bold" font-family="sans-serif" text-anchor="middle" dominant-baseline="middle">DADU</text></svg>`;
-
-function getSvgFallbackResponse() {
-  return new Response(SVG_FALLBACK, {
-    status: 200,
-    headers: { "Content-Type": "image/svg+xml", "Cache-Control": "no-cache" }
-  });
-}
 
 // Install Event: Precache static core assets
 self.addEventListener("install", (event) => {
-  console.log("⚡ [Service Worker v6] Installing and caching core static assets...");
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(PRECACHE_URLS).catch((err) => {
@@ -40,7 +25,6 @@ self.addEventListener("install", (event) => {
 
 // Activate Event: Clean old cache versions immediately
 self.addEventListener("activate", (event) => {
-  console.log("🚀 [Service Worker v6] Activated successfully!");
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -96,7 +80,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // 2. Images & Icons: Cache-First Strategy with SVG Fallback on 404/failure
+  // 2. Images (Photos, Unsplash, Storage, Logos): Cache-First Strategy
   if (
     request.destination === "image" ||
     url.pathname.match(/\.(png|jpg|jpeg|svg|webp|gif|ico)$/i)
@@ -121,14 +105,10 @@ self.addEventListener("fetch", (event) => {
                 (networkResponse.status === 200 || networkResponse.type === "opaque")
               ) {
                 cache.put(request, networkResponse.clone());
-                return networkResponse;
               }
-              // If missing or 404, return inline SVG fallback
-              return getSvgFallbackResponse();
+              return networkResponse;
             })
-            .catch(() => {
-              return getSvgFallbackResponse();
-            });
+            .catch(() => cachedResponse);
         });
       })
     );
@@ -153,3 +133,4 @@ self.addEventListener("fetch", (event) => {
     })
   );
 });
+
