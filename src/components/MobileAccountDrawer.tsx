@@ -1,9 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, User, History, Heart, Sun, Moon, ShieldAlert, LogOut, BadgeCheck, RotateCcw, Bell, Smartphone, CheckCircle2 } from "lucide-react";
+import { X, User, History, Heart, Sun, Moon, ShieldAlert, LogOut, BadgeCheck, RotateCcw } from "lucide-react";
 import { UserProfile, Order } from "../types";
-import { requestNotificationPermission, testNotificationAndHaptic } from "../lib/notifications";
-import triggerHaptic from "../utils/haptics";
 
 interface MobileAccountDrawerProps {
   isOpen: boolean;
@@ -38,21 +36,6 @@ export default function MobileAccountDrawer({
   theme,
   onToggleTheme,
 }: MobileAccountDrawerProps) {
-  const [notifStatus, setNotifStatus] = useState<string>("default");
-
-  useEffect(() => {
-    if (typeof window !== "undefined" && "Notification" in window) {
-      setNotifStatus(Notification.permission);
-    }
-  }, [isOpen]);
-
-  const handleTestNotificationsAndHaptics = async () => {
-    triggerHaptic("heavy");
-    const status = await requestNotificationPermission();
-    setNotifStatus(status);
-    testNotificationAndHaptic();
-  };
-
   if (!user) return null;
 
   const activeOrders = orders.filter(
@@ -229,38 +212,6 @@ export default function MobileAccountDrawer({
 
               {/* Utility Menu Options */}
               <div className="grid grid-cols-2 gap-3 pt-2">
-
-                {/* Push Notification & Haptic Feedback Card */}
-                <div className="col-span-2 p-4 rounded-2xl bg-gradient-to-r from-pink-500/10 via-pink-50 to-purple-500/10 dark:from-pink-950/20 dark:to-purple-950/20 border border-pink-200/60 dark:border-pink-800/40 flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 rounded-xl bg-[#D70F64] text-white flex items-center justify-center shadow-xs">
-                        <Bell className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-black text-zinc-900 dark:text-white flex items-center gap-1.5">
-                          Push Alerts & Haptics
-                          {notifStatus === "granted" && (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                          )}
-                        </h4>
-                        <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">
-                          {notifStatus === "granted"
-                            ? "Background push & vibrations active"
-                            : "Enable for live order push updates & tactile feedback"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={handleTestNotificationsAndHaptics}
-                    className="w-full py-2.5 px-3 rounded-xl bg-[#D70F64] hover:bg-[#b00c50] active:scale-98 text-white font-black text-xs uppercase tracking-wider transition shadow-md shadow-pink-500/15 flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <Smartphone className="w-4 h-4" />
-                    <span>{notifStatus === "granted" ? "Test Push Alert & Vibration" : "Enable Push Alerts & Haptics"}</span>
-                  </button>
-                </div>
                 
                 {/* Favorites button */}
                 <button

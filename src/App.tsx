@@ -54,8 +54,6 @@ import { LazyImage } from "./components/LazyImage";
 import DaduLogoLoader from "./components/DaduLogoLoader";
 import useLazyBatchLoad from "./hooks/useLazyBatchLoad";
 import daduLogo from "./assets/images/dadu_food_logo_new_1782333467889.jpg";
-import { initPushNotifications, showNativeNotification } from "./lib/notifications";
-import triggerHaptic from "./utils/haptics";
 
 // Icons & Motion
 import {
@@ -158,13 +156,86 @@ function BannerLiveChatButton({
   );
 }
 
+// Local Cache Helpers for Instant Zero-Latency Offline & Fast Load Hydration
+function getInitialDishes(): Dish[] {
+  try {
+    const cached = localStorage.getItem("dadu_cached_dishes");
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.warn("Failed to read cached dishes:", e);
+  }
+  return INITIAL_MENU_ITEMS || [];
+}
+
+function getInitialFoodCategories(): FoodCategory[] {
+  try {
+    const cached = localStorage.getItem("dadu_cached_food_categories");
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.warn("Failed to read cached food categories:", e);
+  }
+  return [];
+}
+
+function getInitialGroceryProducts(): GroceryProduct[] {
+  try {
+    const cached = localStorage.getItem("dadu_cached_grocery_products");
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.warn("Failed to read cached grocery products:", e);
+  }
+  return [];
+}
+
+function getInitialGroceryCategories(): GroceryCategory[] {
+  try {
+    const cached = localStorage.getItem("dadu_cached_grocery_categories");
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.warn("Failed to read cached grocery categories:", e);
+  }
+  return [];
+}
+
+function getInitialDeliverySettings(): SystemSettings {
+  try {
+    const cached = localStorage.getItem("dadu_cached_delivery_settings");
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed && typeof parsed === "object") return parsed;
+    }
+  } catch (e) {
+    console.warn("Failed to read cached delivery settings:", e);
+  }
+  return {
+    deliveryFee: 50,
+    restaurantStatus: {
+      isTemporarilyUnavailable: false,
+      openingTime: "09:00",
+      closingTime: "23:00",
+    },
+  };
+}
+
 export default function App() {
-  const [showSplash, setShowSplash] = useState(true);
-  const [splashProgress, setSplashProgress] = useState(0);
+  const [showSplash, setShowSplash] = useState(false);
+  const [splashProgress, setSplashProgress] = useState(100);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
-  // Load saved theme and initialize background push notifications on mount
+  // Load saved theme on mount
   useEffect(() => {
     const saved = localStorage.getItem("dadu_theme");
     if (saved === "dark") {
@@ -176,11 +247,6 @@ export default function App() {
       document.documentElement.classList.remove("dark");
       document.body.classList.remove("dark");
     }
-
-    // Auto prompt push notification permission on launch & setup FCM service worker
-    initPushNotifications().catch((err) => {
-      console.warn("Push notification setup notice:", err);
-    });
   }, []);
 
   const handleToggleTheme = () => {
@@ -196,18 +262,11 @@ export default function App() {
     }
   };
 
-  const [dishes, setDishes] = useState<Dish[]>([]);
-  const [isLoadingDishes, setIsLoadingDishes] = useState(true);
+  const [dishes, setDishes] = useState<Dish[]>(getInitialDishes);
+  const [isLoadingDishes, setIsLoadingDishes] = useState<boolean>(() => dishes.length === 0);
   const [orders, setOrders] = useState<Order[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [deliverySettings, setDeliverySettings] = useState<SystemSettings>({
-    deliveryFee: 50,
-    restaurantStatus: {
-      isTemporarilyUnavailable: false,
-      openingTime: "09:00",
-      closingTime: "23:00",
-    },
-  });
+  const [deliverySettings, setDeliverySettings] = useState<SystemSettings>(getInitialDeliverySettings);
 
   // Favorites and Deal of the Hour configuration
   const [favoriteDishIds, setFavoriteDishIds] = useState<string[]>([]);
@@ -272,12 +331,10 @@ export default function App() {
 
   // Standalone Grocery Module states
   const [activeModule, setActiveModule] = useState<"food" | "grocery">("food");
-  const [foodCategories, setFoodCategories] = useState<FoodCategory[]>([]);
-  const [groceryCategories, setGroceryCategories] = useState<GroceryCategory[]>(
-    [],
-  );
-  const [groceryProducts, setGroceryProducts] = useState<GroceryProduct[]>([]);
-  const [isLoadingGrocery, setIsLoadingGrocery] = useState(true);
+  const [foodCategories, setFoodCategories] = useState<FoodCategory[]>(getInitialFoodCategories);
+  const [groceryCategories, setGroceryCategories] = useState<GroceryCategory[]>(getInitialGroceryCategories);
+  const [groceryProducts, setGroceryProducts] = useState<GroceryProduct[]>(getInitialGroceryProducts);
+  const [isLoadingGrocery, setIsLoadingGrocery] = useState<boolean>(() => groceryProducts.length === 0);
   const [groceryDeliveryConfig, setGroceryDeliveryConfig] =
     useState<GroceryDeliveryConfig>({
       baseDeliveryFee: 40,
@@ -618,9 +675,6 @@ export default function App() {
       } else {
         setCurrentUser(null);
         setIsAdminConsoleOpen(false);
-        
-        // Auto-open auth modal for new/unauthenticated users
-        setIsAuthOpen(true);
       }
     };
     
@@ -667,27 +721,9 @@ export default function App() {
     }
   }, [currentUser?.status]);
 
-  // 1.5. Premium Foodpanda Splash Screen timer (2.4s duration for vibrant app launch animation)
+  // 1.5. Splash animation disabled per user request
   useEffect(() => {
-    let animId: number;
-    const startTime = performance.now();
-    const duration = 2400; // 2.4s smooth launch sequence
-
-    const step = (now: number) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(100, Math.floor((elapsed / duration) * 100));
-      setSplashProgress(progress);
-
-      if (elapsed < duration) {
-        animId = requestAnimationFrame(step);
-      } else {
-        setShowSplash(false);
-        playChimeSound();
-      }
-    };
-
-    animId = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(animId);
+    setShowSplash(false);
   }, []);
 
   // 2. Real-time Menu Listening & Auto-Seeding
@@ -709,6 +745,11 @@ export default function App() {
           list.sort((a, b) => (a.position || 0) - (b.position || 0));
           setDishes(list);
           setIsLoadingDishes(false);
+          try {
+            localStorage.setItem("dadu_cached_dishes", JSON.stringify(list));
+          } catch (e) {
+            console.warn("Failed to cache dishes to localStorage:", e);
+          }
         }
       },
       (err) => {
@@ -731,7 +772,11 @@ export default function App() {
           docSnap.exists(),
         );
         if (docSnap.exists()) {
-          setDeliverySettings(docSnap.data() as SystemSettings);
+          const data = docSnap.data() as SystemSettings;
+          setDeliverySettings(data);
+          try {
+            localStorage.setItem("dadu_cached_delivery_settings", JSON.stringify(data));
+          } catch (e) {}
         } else {
           // Seed default
           setDoc(doc(db, "settings", "delivery_config"), {
@@ -904,6 +949,9 @@ export default function App() {
         } else {
           list.sort((a, b) => (a.position || 0) - (b.position || 0));
           setFoodCategories(list);
+          try {
+            localStorage.setItem("dadu_cached_food_categories", JSON.stringify(list));
+          } catch (e) {}
         }
       },
       (err) => {
@@ -930,6 +978,9 @@ export default function App() {
         list.sort((a, b) => (a.position || 0) - (b.position || 0));
         setGroceryCategories(list);
         setIsLoadingGrocery(false);
+        try {
+          localStorage.setItem("dadu_cached_grocery_categories", JSON.stringify(list));
+        } catch (e) {}
       },
       (err) => {
         console.error(handleFirestoreError(err));
@@ -954,6 +1005,10 @@ export default function App() {
           list.push({ id: doc.id, ...doc.data() } as GroceryProduct);
         });
         setGroceryProducts(list);
+        setIsLoadingGrocery(false);
+        try {
+          localStorage.setItem("dadu_cached_grocery_products", JSON.stringify(list));
+        } catch (e) {}
       },
       (err) => {
         console.error(handleFirestoreError(err));
@@ -1233,13 +1288,6 @@ export default function App() {
             message: currentUnread[0].message,
           });
           playChimeSound(); // Synthesis alarm beeper
-          triggerHaptic("success");
-
-          // Trigger native push / system notification
-          showNativeNotification(currentUnread[0].title, {
-            body: currentUnread[0].message,
-            icon: "/logo-192.png",
-          });
 
           // Hide toast window in 5 seconds
           setTimeout(() => {
@@ -1448,11 +1496,6 @@ export default function App() {
       setIsVerificationModalOpen(true);
       return;
     }
-    if (!currentUser) {
-      setPendingAction(() => () => handleAddToCart(dish, quantityToAdd, options));
-      setIsAuthOpen(true);
-      return;
-    }
 
     // Check if mixed cart is allowed
     if (!groceryDeliveryConfig?.allowMixedCart && groceryCartItems.length > 0) {
@@ -1595,11 +1638,6 @@ export default function App() {
   const handleAddToGroceryCart = (product: GroceryProduct, quantity = 1) => {
     if (currentUser?.status === 'locked') {
       setIsVerificationModalOpen(true);
-      return;
-    }
-    if (!currentUser) {
-      setPendingAction(() => () => handleAddToGroceryCart(product, quantity));
-      setIsAuthOpen(true);
       return;
     }
 
@@ -2072,14 +2110,7 @@ export default function App() {
       );
       setCurrentUser(updatedProfile);
 
-      // 4. Trigger native push notification & haptic feedback
-      triggerHaptic("success");
-      showNativeNotification("🛵 Order Placed Successfully!", {
-        body: `Order #${uniqueOrderId.slice(-6)} received! Dadu Food Express is preparing your meal.`,
-        icon: "/logo-192.png",
-      });
-
-      // 5. Trigger success animation overlay
+      // 4. Trigger success animation overlay
       setSuccessAnimationOrder(orderModel);
       setIsSuccessAnimationOpen(true);
     } catch (err: any) {
@@ -2296,10 +2327,13 @@ export default function App() {
         selectedRestaurant === "All Restaurants" || rName === selectedRestaurant;
       const matchesFavorites =
         !showFavoritesOnly || favoriteDishIds.includes(dish.id);
+      const q = (searchQuery || "").trim().toLowerCase();
       const matchesSearch =
-        dish.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        dish.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        rName.toLowerCase().includes(searchQuery.toLowerCase());
+        !q ||
+        (dish.name || "").toLowerCase().includes(q) ||
+        (dish.description || "").toLowerCase().includes(q) ||
+        (rName || "").toLowerCase().includes(q) ||
+        (dish.category || "").toLowerCase().includes(q);
 
       return (
         matchesCategory && matchesRestaurant && matchesSearch && matchesFavorites

@@ -1,7 +1,7 @@
 {
   "name": "Dadu Food",
   "short_name": "DADUFOOD",
-  "description": "Delicious food from Dadu",
+  "description": "Fast food and grocery delivery in Dadu",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
@@ -9,14 +9,21 @@
   "theme_color": "#D70F64",
   "icons": [
     {
-      "src": "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=192&h=192&fit=crop",
+      "src": "/logo-192.png",
       "sizes": "192x192",
-      "type": "image/jpeg"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=512&h=512&fit=crop",
+      "src": "/logo-512.png",
       "sizes": "512x512",
-      "type": "image/jpeg"
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
     }
   ]
 }

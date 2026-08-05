@@ -5,7 +5,6 @@ import { ShoppingBasket, Package, Plus, Slash, Minus, Sparkles, Star, AlertCircl
 import { LazyImage } from "./LazyImage";
 import DaduLogoLoader from "./DaduLogoLoader";
 import useLazyBatchLoad from "../hooks/useLazyBatchLoad";
-import triggerHaptic from "../utils/haptics";
 
 interface GroceryModuleProps {
   categories: GroceryCategory[];
@@ -41,9 +40,11 @@ export default function GroceryModule({
     // Check if category itself is available
     const isCategoryEnabled = activeCategoryIdList.includes(p.categoryId);
     // Search query matches
+    const q = (searchQuery || "").trim().toLowerCase();
     const matchesSearch =
-      !searchQuery.trim() ||
-      p.name.toLowerCase().includes(searchQuery.toLowerCase());
+      !q ||
+      (p.name || "").toLowerCase().includes(q) ||
+      (p.description || "").toLowerCase().includes(q);
 
     return matchesCategory && isCategoryEnabled && matchesSearch;
   });
@@ -95,10 +96,7 @@ export default function GroceryModule({
         <div className="relative z-30 bg-slate-50/90 dark:bg-zinc-950/90 backdrop-blur-md py-2.5 border-y border-slate-200/80 dark:border-zinc-800">
           <div className="flex items-start gap-2.5 sm:gap-3.5 overflow-x-auto pb-2 scrollbar-none px-1">
             <button
-              onClick={() => {
-                triggerHaptic("light");
-                setSelectedCategoryId("All");
-              }}
+              onClick={() => setSelectedCategoryId("All")}
               className={`p-2 sm:p-2.5 w-[78px] sm:w-[92px] rounded-2xl text-[9.5px] sm:text-[10.5px] font-black tracking-wide uppercase transition shrink-0 cursor-pointer select-none border flex flex-col items-center justify-start gap-1.5 shadow-2xs ${
                 selectedCategoryId === "All"
                   ? "bg-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/20 scale-[1.02]"
@@ -121,10 +119,7 @@ export default function GroceryModule({
               activeCategories.map((cat) => (
                 <button
                   key={cat.id}
-                  onClick={() => {
-                    triggerHaptic("light");
-                    setSelectedCategoryId(cat.id);
-                  }}
+                  onClick={() => setSelectedCategoryId(cat.id)}
                   className={`p-2 sm:p-2.5 w-[78px] sm:w-[92px] rounded-2xl text-[9.5px] sm:text-[10.5px] font-black tracking-wide uppercase transition shrink-0 cursor-pointer select-none border flex flex-col items-center justify-start gap-1.5 shadow-2xs ${
                     selectedCategoryId === cat.id
                       ? "bg-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/20 scale-[1.02]"
@@ -250,10 +245,7 @@ export default function GroceryModule({
                       {qty > 0 ? (
                         <div className="flex items-center justify-between bg-emerald-50 dark:bg-zinc-800 border border-emerald-200 dark:border-zinc-700 p-1 rounded-xl">
                           <button
-                            onClick={() => {
-                              triggerHaptic("light");
-                              onUpdateCartQuantity(p.id, qty - 1);
-                            }}
+                            onClick={() => onUpdateCartQuantity(p.id, qty - 1)}
                             className="w-8 h-8 rounded-lg bg-white dark:bg-zinc-900 hover:bg-slate-100 text-slate-900 dark:text-white transition font-black flex items-center justify-center cursor-pointer shadow-2xs active:scale-90"
                           >
                             <Minus className="w-3.5 h-3.5" />
@@ -262,10 +254,7 @@ export default function GroceryModule({
                             {qty}
                           </span>
                           <button
-                            onClick={() => {
-                              triggerHaptic("medium");
-                              onUpdateCartQuantity(p.id, qty + 1);
-                            }}
+                            onClick={() => onUpdateCartQuantity(p.id, qty + 1)}
                             className="w-8 h-8 rounded-lg bg-[#D70F64] hover:bg-[#b00c50] text-white transition font-black flex items-center justify-center cursor-pointer shadow-2xs active:scale-90"
                           >
                             <Plus className="w-3.5 h-3.5" />
@@ -273,10 +262,7 @@ export default function GroceryModule({
                         </div>
                       ) : (
                         <button
-                          onClick={() => {
-                            triggerHaptic("success");
-                            onAddToCart(p);
-                          }}
+                          onClick={() => onAddToCart(p)}
                           className="w-full py-2.5 px-3 rounded-xl bg-[#D70F64] hover:bg-[#b00c50] text-white font-black text-[10.5px] sm:text-xs uppercase tracking-wider transition active:scale-95 shadow-md shadow-[#D70F64]/10 flex items-center justify-center gap-1.5 cursor-pointer select-none"
                         >
                           <Plus className="w-3.5 h-3.5 stroke-[2.5]" /> Add To Grocery

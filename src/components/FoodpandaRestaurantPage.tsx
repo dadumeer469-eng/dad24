@@ -26,7 +26,6 @@ import { LazyImage } from "./LazyImage";
 import FoodDetailModal from "./FoodDetailModal";
 import DaduLogoLoader from "./DaduLogoLoader";
 import useLazyBatchLoad from "../hooks/useLazyBatchLoad";
-import triggerHaptic from "../utils/haptics";
 
 interface FoodpandaRestaurantPageProps {
   restaurantName: string;
@@ -97,7 +96,7 @@ function CategoryDishGridBatch({
   );
 }
 const getCategoryEmoji = (category: string) => {
-  const cat = category.toLowerCase();
+  const cat = (category || "").toLowerCase();
   if (cat.includes("burger") || cat.includes("fast food")) return "🍔";
   if (cat.includes("pizza")) return "🍕";
   if (cat.includes("drink") || cat.includes("beverage") || cat.includes("shake")) return "🥤";
@@ -230,9 +229,11 @@ export default function FoodpandaRestaurantPage({
 
   // Filtered dishes according to search & chips
   const filteredDishes = dishes.filter(d => {
-    const matchesSearch = d.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          d.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          d.category.toLowerCase().includes(searchQuery.toLowerCase());
+    const q = (searchQuery || "").trim().toLowerCase();
+    const matchesSearch = !q ||
+                          (d.name || "").toLowerCase().includes(q) || 
+                          (d.description || "").toLowerCase().includes(q) ||
+                          (d.category || "").toLowerCase().includes(q);
     
     if (!matchesSearch) return false;
 
@@ -240,7 +241,7 @@ export default function FoodpandaRestaurantPage({
       return Boolean(d.isBestseller);
     }
     if (filterType === "veg") {
-      return d.isVeg || d.category.toLowerCase().includes("veg") || d.description?.toLowerCase().includes("veg");
+      return d.isVeg || (d.category || "").toLowerCase().includes("veg") || (d.description || "").toLowerCase().includes("veg");
     }
     return true;
   });
@@ -849,7 +850,6 @@ function DishCard({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    triggerHaptic("light");
                     if (onQuickAdd) onQuickAdd(-1);
                   }}
                   className="w-6 h-6 rounded-xl bg-white/20 hover:bg-white/30 text-white flex items-center justify-center font-black transition-colors cursor-pointer active:scale-90"
@@ -861,7 +861,6 @@ function DishCard({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    triggerHaptic("medium");
                     if (hasOptions) {
                       onAdd();
                     } else if (onQuickAdd) {
@@ -878,7 +877,6 @@ function DishCard({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  triggerHaptic("medium");
                   onAdd();
                 }}
                 className="bg-white dark:bg-zinc-800 border-2 border-[#D70F64] text-[#D70F64] dark:text-pink-400 hover:bg-[#D70F64] hover:text-white px-3.5 sm:px-4 py-1 sm:py-1.5 rounded-2xl font-black text-xs uppercase tracking-wider shadow-md shadow-pink-500/10 transition-all flex items-center justify-center gap-1 active:scale-95 cursor-pointer group/btn"
@@ -890,7 +888,6 @@ function DishCard({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  triggerHaptic("success");
                   if (onQuickAdd) {
                     onQuickAdd(1);
                   } else {
