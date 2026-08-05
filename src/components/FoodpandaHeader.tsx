@@ -33,6 +33,7 @@ interface FoodpandaHeaderProps {
   onReorder?: (order: Order) => void;
   theme?: "light" | "dark";
   onToggleTheme?: () => void;
+  onInstallApp?: () => void;
 }
 
 export default function FoodpandaHeader({
@@ -65,6 +66,7 @@ export default function FoodpandaHeader({
   onReorder,
   theme = "light",
   onToggleTheme,
+  onInstallApp,
 }: FoodpandaHeaderProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -150,6 +152,18 @@ export default function FoodpandaHeader({
         {/* Action Widgets Grid */}
         <div className="flex items-center gap-2.5 shrink-0">
           
+          {/* Header Install App Button */}
+          {onInstallApp && (
+            <button
+              onClick={onInstallApp}
+              className="p-2.5 bg-[#d70f64]/10 hover:bg-[#d70f64]/20 border border-[#d70f64]/30 text-[#d70f64] dark:text-pink-400 rounded-xl transition cursor-pointer flex items-center gap-1.5 shrink-0 font-extrabold text-xs"
+              title="Install Dadu Food App"
+            >
+              <Download className="w-4 h-4 shrink-0 text-[#d70f64]" />
+              <span className="hidden sm:inline">Install App</span>
+            </button>
+          )}
+
           {/* In-App Notifications Center Dropdown */}
           <div className="relative">
             <button
@@ -266,6 +280,19 @@ export default function FoodpandaHeader({
                     <User className="w-4 h-4 shrink-0 text-[#d70f64]" />
                     Sign In / Register
                   </button>
+
+                  {onInstallApp && (
+                    <button
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        onInstallApp();
+                      }}
+                      className="w-full text-left font-bold text-xs text-[#d70f64] px-3.5 py-2 hover:bg-pink-50 dark:hover:bg-zinc-800/60 rounded-xl transition flex items-center gap-2 cursor-pointer"
+                    >
+                      <Download className="w-4 h-4 shrink-0 text-[#d70f64]" />
+                      <span>Install App</span>
+                    </button>
+                  )}
 
                   <button
                     onClick={() => {
