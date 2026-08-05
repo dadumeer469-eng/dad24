@@ -1,40 +1,91 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
+    <!-- Premium Pink Brand Gradient -->
     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#E21B6D"/>
-      <stop offset="100%" stop-color="#B0094E"/>
+      <stop offset="100%" stop-color="#9C0843"/>
     </linearGradient>
-    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000" flood-opacity="0.3"/>
+
+    <!-- Metallic Gold Highlight Gradient -->
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFDF00"/>
+      <stop offset="100%" stop-color="#FF9900"/>
+    </linearGradient>
+
+    <!-- Drop Shadow Filter -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000000" flood-opacity="0.35"/>
     </filter>
   </defs>
 
-  <!-- Background rounded square with continuous curve -->
+  <!-- Squircle App Icon Container -->
   <rect width="512" height="512" rx="128" fill="url(#bgGrad)"/>
-  
-  <!-- Outer subtle glowing ring -->
-  <rect x="16" y="16" width="480" height="480" rx="112" fill="none" stroke="#FFFFFF" stroke-opacity="0.25" stroke-width="6"/>
 
-  <!-- Center emblem group -->
-  <g filter="url(#shadow)" transform="translate(256, 215)">
-    <!-- Food Cloche Cover -->
-    <path d="M-90 30 C-90 -50, 90 -50, 90 30 Z" fill="#FFFFFF"/>
-    <!-- Cloche Handle Knob -->
-    <circle cx="0" cy="-55" r="14" fill="#FFFFFF"/>
-    <path d="M-105 32 L105 32 C110 32, 110 44, 105 44 L-105 44 C-110 44, -110 32, -105 32 Z" fill="#FFFFFF"/>
-    <!-- Speed Motion Lines -->
-    <path d="M-130 -10 L-100 -10" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" opacity="0.9"/>
-    <path d="M-140 10 L-110 10" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" opacity="0.9"/>
-    <path d="M-125 30 L-105 30" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" opacity="0.9"/>
+  <!-- Inner Gloss Border -->
+  <rect x="14" y="14" width="484" height="484" rx="114" fill="none" stroke="#FFFFFF" stroke-opacity="0.22" stroke-width="5"/>
+
+  <!-- SPEED MOTION RAYS -->
+  <g stroke="#FFFFFF" stroke-opacity="0.7" stroke-linecap="round" stroke-width="7" filter="url(#shadow)">
+    <line x1="40" y1="170" x2="120" y2="170" stroke-dasharray="12 8" />
+    <line x1="20" y1="210" x2="130" y2="210" stroke-dasharray="16 10" />
+    <line x1="50" y1="250" x2="140" y2="250" stroke-dasharray="14 8" />
+    <line x1="30" y1="290" x2="110" y2="290" stroke-dasharray="10 6" />
   </g>
 
-  <!-- Brand Typography DADUFOOD -->
-  <text x="256" y="415" font-family="'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif" font-weight="900" font-size="52" fill="#FFFFFF" text-anchor="middle" letter-spacing="4">
+  <!-- DELIVERY RIDER ON SCOOTER VECTOR -->
+  <g filter="url(#shadow)" transform="translate(45, 25)">
+    <!-- Scooter Back Wheel -->
+    <circle cx="160" cy="270" r="38" fill="#18181B" stroke="#FFFFFF" stroke-width="9"/>
+    <circle cx="160" cy="270" r="16" fill="#FFFFFF"/>
+
+    <!-- Scooter Front Wheel -->
+    <circle cx="330" cy="270" r="38" fill="#18181B" stroke="#FFFFFF" stroke-width="9"/>
+    <circle cx="330" cy="270" r="16" fill="#FFFFFF"/>
+
+    <!-- Scooter Body & Chassis -->
+    <path d="M160 270 L210 270 L235 210 L300 210 L330 270 Z" fill="#FFFFFF"/>
+    <!-- Floorboard & Front Shield -->
+    <path d="M210 265 L275 265 L295 180 L260 180 Z" fill="#FFFFFF"/>
+
+    <!-- Scooter Front Headlight & Handlebars -->
+    <path d="M285 180 L315 145 L300 140 Z" fill="#FFFFFF"/>
+    <!-- Bright Yellow Headlight Beam -->
+    <polygon points="315,145 420,130 410,185 305,160" fill="url(#goldGrad)" opacity="0.9"/>
+
+    <!-- FOOD DELIVERY BOX ON BACK -->
+    <rect x="110" y="145" width="85" height="85" rx="10" fill="url(#goldGrad)" stroke="#FFFFFF" stroke-width="4"/>
+    <!-- Hot Food Symbol / Steam Lines on Box -->
+    <path d="M138 180 C138 170, 148 170, 148 160" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" fill="none"/>
+    <path d="M152 185 C152 175, 162 175, 162 165" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" fill="none"/>
+    <path d="M166 180 C166 170, 176 170, 176 160" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" fill="none"/>
+
+    <!-- RIDER DRIVER -->
+    <!-- Seat -->
+    <rect x="180" y="200" width="65" height="16" rx="8" fill="#18181B"/>
+
+    <!-- Rider Legs & Body -->
+    <path d="M195 200 L230 180 L260 230 L210 240 Z" fill="#18181B"/>
+    <!-- Jacket/Torso -->
+    <path d="M220 185 L200 135 L245 130 L260 175 Z" fill="#FFFFFF"/>
+
+    <!-- Rider Arms steering scooter -->
+    <path d="M235 140 L295 152" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round"/>
+
+    <!-- Rider Helmet with visor -->
+    <circle cx="215" cy="105" r="28" fill="#FFFFFF"/>
+    <!-- Visor -->
+    <path d="M225 92 C240 92, 243 112, 228 118 Z" fill="#18181B"/>
+    <!-- Helmet Strap / Detail -->
+    <path d="M195 108 L225 108" stroke="url(#bgGrad)" stroke-width="4"/>
+  </g>
+
+  <!-- BRAND NAME: DADUFOOD -->
+  <text x="256" y="418" font-family="'Plus Jakarta Sans', 'Montserrat', Arial, sans-serif" font-weight="900" font-size="50" fill="#FFFFFF" text-anchor="middle" letter-spacing="3" filter="url(#shadow)">
     DADUFOOD
   </text>
-  
-  <!-- Subtitle EXPRESS -->
-  <text x="256" y="452" font-family="'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif" font-weight="800" font-size="22" fill="#FFC2D6" text-anchor="middle" letter-spacing="8">
-    FAST DELIVERY
+
+  <!-- SUBTITLE: EXPRESS DELIVERY -->
+  <text x="256" y="456" font-family="'Plus Jakarta Sans', 'Montserrat', Arial, sans-serif" font-weight="800" font-size="20" fill="#FFDF00" text-anchor="middle" letter-spacing="6">
+    ⚡ FAST RIDER DELIVERY ⚡
   </text>
 </svg>
