@@ -17,9 +17,30 @@ export default function OrderSuccessAnimation({
   onTrackOrder,
 }: OrderSuccessAnimationProps) {
   const [particles, setParticles] = useState<{ id: number; x: number; y: number; color: string; size: number; delay: number; duration: number }[]>([]);
+  const [progressCount, setProgressCount] = useState<number>(0);
 
   useEffect(() => {
     if (isOpen) {
+      // Smooth 0 to 100 progress counter
+      setProgressCount(0);
+      const startTime = performance.now();
+      const duration = 2500; // 2.5s smooth count to 100%
+
+      const animateProgress = (now: number) => {
+        const elapsed = now - startTime;
+        const rawProgress = Math.min(1, elapsed / duration);
+        // Smooth easeOutQuad
+        const eased = 1 - (1 - rawProgress) * (1 - rawProgress);
+        const currentVal = Math.round(eased * 100);
+        setProgressCount(currentVal);
+
+        if (rawProgress < 1) {
+          requestAnimationFrame(animateProgress);
+        }
+      };
+
+      requestAnimationFrame(animateProgress);
+
       // Generate confetti particles on load
       const colors = ["#D70F64", "#EA580C", "#10B981", "#3B82F6", "#F59E0B", "#EC4899", "#8B5CF6", "#f43f5e", "#84cc16"];
       const generated = Array.from({ length: 60 }).map((_, i) => ({
@@ -50,7 +71,6 @@ export default function OrderSuccessAnimation({
             osc.stop(context.currentTime + duration);
           }, delay * 1000);
         };
-        // Sweet double ascending bell sound for success!
         playTone(523.25, "sine", 0.1, 0.4); // C5
         playTone(659.25, "sine", 0.25, 0.5); // E5
         playTone(783.99, "sine", 0.4, 0.6); // G5
@@ -111,7 +131,7 @@ export default function OrderSuccessAnimation({
           animate={{ scale: 1, y: 0, opacity: 1, rotateX: 0 }}
           exit={{ scale: 0.95, y: -20, opacity: 0 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="relative w-full max-w-[360px] bg-white rounded-[28px] shadow-[0_20px_60px_-15px_rgba(215,15,100,0.3)] border border-pink-100 overflow-hidden z-10"
+          className="relative w-full max-w-[360px] bg-white dark:bg-zinc-900 rounded-[28px] shadow-[0_20px_60px_-15px_rgba(215,15,100,0.3)] border border-pink-100 dark:border-zinc-800 overflow-hidden z-10"
           style={{ transformPerspective: 1000 }}
         >
           {/* Top colored accent line with gradient */}
@@ -120,7 +140,7 @@ export default function OrderSuccessAnimation({
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 rounded-full bg-zinc-100/80 text-zinc-500 hover:bg-zinc-200 hover:text-zinc-900 transition-colors cursor-pointer"
+            className="absolute top-4 right-4 p-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer z-30"
           >
             <X className="w-4 h-4" />
           </button>
@@ -182,28 +202,36 @@ export default function OrderSuccessAnimation({
               transition={{ delay: 0.4 }}
               className="mt-5 space-y-1.5"
             >
-              <h3 className="text-2xl font-black text-zinc-900 tracking-tight leading-tight">
+              <h3 className="text-2xl font-black text-zinc-900 dark:text-zinc-100 tracking-tight leading-tight">
                 Order Confirmed!
               </h3>
-              <p className="text-zinc-500 text-sm max-w-[280px] mx-auto font-medium">
+              <p className="text-zinc-500 dark:text-zinc-400 text-sm max-w-[280px] mx-auto font-medium">
                 Your order has been sent to the kitchen. We're getting everything ready for you!
               </p>
             </motion.div>
 
-            {/* Live Scooter / Rider Riding Animation - Mini Map Style */}
+            {/* Live Scooter / Rider Riding Animation - Smooth & Direction Correct */}
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.6 }}
-              className="w-full bg-zinc-950 rounded-2xl p-4 mt-5 overflow-hidden relative shadow-inner"
+              className="w-full bg-zinc-950 dark:bg-black rounded-2xl p-4 mt-5 overflow-hidden relative shadow-inner border border-zinc-800"
             >
-              <div className="flex justify-between items-center mb-4 relative z-10">
-                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-md">
-                  Express Route
+              <div className="flex justify-between items-center mb-3 relative z-10">
+                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                  Express Dispatch ({progressCount}%)
                 </span>
                 <span className="flex items-center gap-1.5 text-zinc-400 text-xs font-bold">
-                  <Clock className="w-3.5 h-3.5" /> ~25 min
+                  <Clock className="w-3.5 h-3.5 text-pink-500 animate-pulse" /> ~25 min
                 </span>
+              </div>
+
+              {/* Progress Bar Track */}
+              <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden mb-3">
+                <div 
+                  className="bg-gradient-to-r from-emerald-500 via-[#D70F64] to-pink-500 h-full transition-all duration-300 ease-out rounded-full shadow-[0_0_8px_rgba(215,15,100,0.8)]"
+                  style={{ width: `${progressCount}%` }}
+                />
               </div>
 
               {/* Road Map Visual */}
@@ -212,34 +240,35 @@ export default function OrderSuccessAnimation({
                 <div className="absolute left-6 right-6 top-1/2 -translate-y-1/2 h-0.5 bg-zinc-800 border-t-2 border-dashed border-zinc-600 w-[calc(100%-3rem)]" />
                 
                 {/* Store Point */}
-                <div className="absolute left-2 z-10 w-8 h-8 bg-zinc-800 rounded-full flex items-center justify-center border-2 border-zinc-700 shadow-md">
+                <div className="absolute left-1 z-10 w-8 h-8 bg-zinc-900 rounded-full flex items-center justify-center border-2 border-zinc-700 shadow-md">
                   <span className="text-sm">🏬</span>
                 </div>
 
-                {/* Home Point */}
-                <div className="absolute right-2 z-10 w-8 h-8 bg-pink-500/20 rounded-full flex items-center justify-center border-2 border-pink-500 shadow-[0_0_15px_rgba(215,15,100,0.3)]">
+                {/* Home Destination Point */}
+                <div className="absolute right-1 z-10 w-8 h-8 bg-pink-500/20 rounded-full flex items-center justify-center border-2 border-pink-500 shadow-[0_0_15px_rgba(215,15,100,0.5)]">
                   <MapPin className="w-4 h-4 text-pink-400" />
                 </div>
 
-                {/* Moving Scooter */}
+                {/* Moving Scooter - Facing Right towards destination */}
                 <motion.div
-                  initial={{ x: "1rem" }}
-                  animate={{ x: "calc(100% - 6rem)" }}
+                  initial={{ x: "1.5rem" }}
+                  animate={{ x: "calc(100% - 4.5rem)" }}
                   transition={{
                     repeat: Infinity,
-                    duration: 3,
+                    duration: 2.8,
                     ease: "easeInOut",
-                    repeatType: "mirror"
+                    repeatType: "loop"
                   }}
                   className="absolute z-20 flex items-center"
                 >
                   <motion.div
-                    animate={{ y: [0, -3, 0], rotate: [0, -2, 2, 0] }}
-                    transition={{ repeat: Infinity, duration: 0.4, ease: "easeInOut" }}
-                    className="flex items-center drop-shadow-[0_0_10px_rgba(255,255,255,0.2)] bg-zinc-900 rounded-full px-1"
+                    animate={{ y: [0, -3, 0], rotate: [0, 1, -1, 0] }}
+                    transition={{ repeat: Infinity, duration: 0.35, ease: "easeInOut" }}
+                    className="flex items-center drop-shadow-[0_2px_10px_rgba(215,15,100,0.5)] bg-zinc-900/90 rounded-full px-1.5 py-0.5 border border-pink-500/40"
                   >
-                    <span className="text-xl -mr-2 z-10">{order.orderType === "grocery" ? "🛒" : "🍔"}</span>
-                    <span className="text-3xl relative z-20">🛵</span>
+                    <span className="text-xs mr-0.5">{order.orderType === "grocery" ? "🛒" : "🍔"}</span>
+                    {/* Standard rider emoji rotated so it faces FORWARD to the RIGHT */}
+                    <span className="text-2xl inline-block transform -scale-x-1">🛵</span>
                   </motion.div>
                 </motion.div>
               </div>
@@ -252,43 +281,36 @@ export default function OrderSuccessAnimation({
               transition={{ delay: 0.7 }}
               className="w-full relative mt-4"
             >
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-white px-3 text-zinc-300">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-white dark:bg-zinc-900 px-3 text-zinc-300 dark:text-zinc-600">
                 <Receipt className="w-6 h-6" />
               </div>
-              <div className="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-5 pt-6 text-left shadow-sm relative">
-                
-                {/* Zigzag top effect using radial gradients */}
-                <div className="absolute -top-1.5 left-0 right-0 h-3" style={{ backgroundImage: 'radial-gradient(circle at 6px 0, transparent 6px, #fbfbfb 7px)', backgroundSize: '12px 10px', backgroundRepeat: 'repeat-x' }}></div>
-
-                <div className="flex justify-between items-center pb-3 border-b border-dashed border-zinc-300 text-xs">
-                  <span className="text-zinc-500 font-bold uppercase tracking-wider">Order ID</span>
-                  <span className="font-mono font-black text-zinc-900 bg-zinc-200/60 px-2 py-0.5 rounded text-[10px]">
+              <div className="w-full bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-xl p-5 pt-6 text-left shadow-sm relative">
+                <div className="flex justify-between items-center pb-3 border-b border-dashed border-zinc-300 dark:border-zinc-700 text-xs">
+                  <span className="text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-wider">Order ID</span>
+                  <span className="font-mono font-black text-zinc-900 dark:text-zinc-100 bg-zinc-200/60 dark:bg-zinc-700/60 px-2 py-0.5 rounded text-[10px]">
                     DADU-{order.id.slice(-6).toUpperCase()}
                   </span>
                 </div>
                 
-                <div className="py-3 space-y-2 border-b border-dashed border-zinc-300">
+                <div className="py-3 space-y-2 border-b border-dashed border-zinc-300 dark:border-zinc-700">
                   <div className="flex justify-between text-xs">
-                    <span className="text-zinc-500 font-bold">Deliver To</span>
-                    <span className="font-black text-zinc-800 text-right">{order.userName || order.name}</span>
+                    <span className="text-zinc-500 dark:text-zinc-400 font-bold">Deliver To</span>
+                    <span className="font-black text-zinc-800 dark:text-zinc-200 text-right">{order.userName || order.name}</span>
                   </div>
                   <div className="flex justify-between text-xs">
-                    <span className="text-zinc-500 font-bold">Address</span>
-                    <span className="font-bold text-zinc-700 max-w-[180px] truncate text-right">
+                    <span className="text-zinc-500 dark:text-zinc-400 font-bold">Address</span>
+                    <span className="font-bold text-zinc-700 dark:text-zinc-300 max-w-[180px] truncate text-right">
                       {order.userAddress || order.address}
                     </span>
                   </div>
                 </div>
 
                 <div className="flex justify-between items-center pt-3 text-sm">
-                  <span className="font-black text-zinc-800">Total Paid</span>
+                  <span className="font-black text-zinc-800 dark:text-zinc-200">Total Paid</span>
                   <span className="font-black text-xl text-[#D70F64] tracking-tight">
                     Rs. {order.grandTotal}
                   </span>
                 </div>
-
-                {/* Zigzag bottom effect */}
-                <div className="absolute -bottom-1.5 left-0 right-0 h-3 rotate-180" style={{ backgroundImage: 'radial-gradient(circle at 6px 0, transparent 6px, #fbfbfb 7px)', backgroundSize: '12px 10px', backgroundRepeat: 'repeat-x' }}></div>
               </div>
             </motion.div>
 

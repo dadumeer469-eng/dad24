@@ -2815,6 +2815,74 @@ export default function App() {
   );
 
 
+  if (showSplash) {
+    return (
+      <div className="min-h-screen bg-zinc-950 text-white flex flex-col items-center justify-center p-6 text-center select-none font-sans relative overflow-hidden">
+        {/* Glow behind logo */}
+        <div className="absolute w-72 h-72 bg-[#D70F64]/20 rounded-full blur-3xl pointer-events-none animate-pulse" />
+
+        {/* Logo Card */}
+        <div className="relative z-10 mb-6">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="w-24 h-24 sm:w-28 sm:h-28 rounded-full p-1 bg-[#D70F64] shadow-[0_0_30px_rgba(215,15,100,0.4)] border-2 border-white/20 flex items-center justify-center overflow-hidden mx-auto"
+          >
+            <img src={daduLogo} alt="Dadu Food Logo" className="w-full h-full object-cover rounded-full" />
+          </motion.div>
+        </div>
+
+        {/* Title */}
+        <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight uppercase mb-1">
+          DADU <span className="text-[#D70F64]">FOOD</span>
+        </h1>
+        <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-8">
+          Fastest Delivery in Dadu City
+        </p>
+
+        {/* Rider Riding Animation Box */}
+        <div className="w-full max-w-xs bg-zinc-900/90 border border-zinc-800 rounded-2xl p-4 shadow-xl mb-6 relative overflow-hidden">
+          <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-2">
+            <span className="text-[#D70F64] flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-[#D70F64] animate-ping" />
+              Loading App...
+            </span>
+            <span className="font-mono text-emerald-400 text-xs font-black">{splashProgress}%</span>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden mb-3">
+            <div
+              className="bg-gradient-to-r from-emerald-400 via-[#D70F64] to-pink-500 h-full rounded-full transition-all duration-150 ease-out shadow-[0_0_10px_rgba(215,15,100,0.6)]"
+              style={{ width: `${splashProgress}%` }}
+            />
+          </div>
+
+          {/* Road & Moving Scooter */}
+          <div className="relative h-10 flex items-center w-full px-1">
+            <div className="absolute left-2 right-2 top-1/2 -translate-y-1/2 h-0.5 bg-zinc-800 border-t border-dashed border-zinc-700" />
+            
+            {/* Moving Scooter Facing FORWARD to the Right */}
+            <motion.div
+              style={{ left: `calc(${splashProgress}% - ${splashProgress > 15 ? 2.5 : 0.5}rem)` }}
+              className="absolute z-10 flex items-center transition-all duration-150 ease-out"
+            >
+              <div className="flex items-center bg-zinc-950 px-2 py-0.5 rounded-full border border-pink-500/40 shadow-[0_0_10px_rgba(215,15,100,0.3)]">
+                <span className="text-xs mr-0.5">🍔</span>
+                <span className="text-2xl inline-block transform -scale-x-1">🛵</span>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+
+        <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-extrabold">
+          Powered by Dadu City Express
+        </p>
+      </div>
+    );
+  }
+
   if (currentUser?.status === "blocked") {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 text-center">

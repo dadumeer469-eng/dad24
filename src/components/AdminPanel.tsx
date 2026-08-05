@@ -3025,21 +3025,21 @@ export default function AdminPanel({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-50 text-slate-900 overflow-y-auto font-sans flex flex-col antialiased">
+    <div className="fixed inset-0 z-50 bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 overflow-y-auto font-sans flex flex-col antialiased">
       {/* Header Admin Strip */}
-      <div className="bg-white border-b border-slate-200 px-3 py-2.5 sm:px-6 sm:py-3.5 sticky top-0 z-20 flex items-center justify-between shadow-md">
+      <div className="bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800 px-3 py-2.5 sm:px-6 sm:py-3.5 sticky top-0 z-20 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-2 sm:gap-4">
           <div className="bg-gradient-to-r from-[#D70F64] to-[#b00c50] text-white px-2.5 py-1 text-[9.5px] sm:text-[10.5px] font-black uppercase tracking-widest rounded-lg shadow-sm">
             Console Active
           </div>
           <div>
-            <h2 className="text-xs sm:text-base font-black tracking-tight text-slate-900 flex items-center gap-1.5">
+            <h2 className="text-xs sm:text-base font-black tracking-tight text-slate-900 dark:text-zinc-100 flex items-center gap-1.5">
               Dadu Hub
-              <span className="text-[#D70F64] font-mono text-[10px] sm:text-xs select-all bg-[#D70F64]/5 px-1.5 py-0.5 rounded border border-[#D70F64]/20">
+              <span className="text-[#D70F64] font-mono text-[10px] sm:text-xs select-all bg-[#D70F64]/5 dark:bg-[#D70F64]/20 px-1.5 py-0.5 rounded border border-[#D70F64]/20">
                 @{adminUsername}
               </span>
             </h2>
-            <span className="hidden sm:block text-[11px] text-slate-500 font-medium font-sans">
+            <span className="hidden sm:block text-[11px] text-slate-500 dark:text-zinc-400 font-medium font-sans">
               Enterprise Business Management Control & Live Logistics Telemetry
             </span>
           </div>
@@ -3052,7 +3052,7 @@ export default function AdminPanel({
             className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95 ${
               activeSubTab === "orders"
                 ? "bg-[#D70F64] text-white shadow-md ring-2 ring-[#D70F64]/30"
-                : "bg-pink-50 text-[#D70F64] hover:bg-pink-100 border border-pink-200"
+                : "bg-pink-50 dark:bg-pink-950/40 text-[#D70F64] hover:bg-pink-100 dark:hover:bg-pink-900/60 border border-pink-200 dark:border-pink-800"
             }`}
           >
             <span className="relative flex h-2 w-2">
@@ -3072,10 +3072,10 @@ export default function AdminPanel({
             onClick={toggleAdminMute}
             className={`px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition cursor-pointer border active:scale-95 ${
               isAdminMuted
-                ? "bg-slate-100 text-slate-500 border-slate-200"
+                ? "bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 border-slate-200 dark:border-zinc-700"
                 : (unapprovedOrdersCount > 0 || lockedUsersCount > 0)
                 ? "bg-red-500 text-white border-red-600 animate-pulse shadow-md"
-                : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                : "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
             }`}
             title="Toggle Admin Ringtone Sound"
           >
@@ -3084,14 +3084,14 @@ export default function AdminPanel({
 
           <button
             onClick={handleExportCSV}
-            className="hidden md:flex bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-1.5 rounded-xl transition cursor-pointer items-center gap-1.5 border border-slate-200"
+            className="hidden md:flex bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 text-xs font-bold px-3 py-1.5 rounded-xl transition cursor-pointer items-center gap-1.5 border border-slate-200 dark:border-zinc-700"
           >
-            <ClipboardList className="w-3.5 h-3.5 text-slate-600" /> Export CSV
+            <ClipboardList className="w-3.5 h-3.5 text-slate-600 dark:text-zinc-300" /> Export CSV
           </button>
 
           <button
             onClick={onClose}
-            className="bg-white hover:bg-slate-50 border border-slate-200 text-[11px] sm:text-xs font-bold text-slate-700 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1 shadow-xs active:scale-95"
+            className="bg-white dark:bg-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-700 border border-slate-200 dark:border-zinc-700 text-[11px] sm:text-xs font-bold text-slate-700 dark:text-zinc-200 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1 shadow-xs active:scale-95"
           >
             Exit 🚪
           </button>
@@ -3157,7 +3157,7 @@ export default function AdminPanel({
           </div>
         )}
         {/* Mobile Horizontal Navigation Tab Bar (Shown only on small/medium screens) */}
-        <div className="lg:hidden col-span-1 bg-white border border-slate-200 p-2 rounded-2xl shadow-xs space-y-1.5">
+        <div className="lg:hidden col-span-1 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-2 rounded-2xl shadow-xs space-y-1.5">
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-nowrap scrollbar-none">
             {/* Prominent High-Priority Live Orders Pill First */}
             <button
@@ -3165,7 +3165,7 @@ export default function AdminPanel({
               className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 border transition cursor-pointer shadow-xs ${
                 activeSubTab === "orders"
                   ? "bg-[#D70F64] border-[#D70F64] text-white shadow-md"
-                  : "bg-pink-50 border-pink-200 text-[#D70F64]"
+                  : "bg-pink-50 dark:bg-pink-950/40 border-pink-200 dark:border-pink-800 text-[#D70F64] dark:text-pink-400"
               }`}
             >
               <ShoppingCart className="w-3.5 h-3.5 animate-pulse" /> Live Orders {totalActiveCount > 0 && `(${totalActiveCount})`}
@@ -3173,7 +3173,7 @@ export default function AdminPanel({
             <button
               onClick={() => setActiveSubTab("analytics")}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
-                activeSubTab === "analytics" ? "bg-[#D70F64] border-[#D70F64] text-white" : "bg-slate-50 border-slate-200 text-slate-700"
+                activeSubTab === "analytics" ? "bg-[#D70F64] border-[#D70F64] text-white" : "bg-slate-50 dark:bg-zinc-800 border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-200"
               }`}
             >
               <LayoutDashboard className="w-3.5 h-3.5" /> Analytics
