@@ -1,5 +1,5 @@
 import LocationPermissionModal from "./components/LocationPermissionModal";
-import React, { useState, useEffect, useRef, useCallback, Suspense } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from "firebase/auth";
 import {
   collection,
@@ -35,7 +35,6 @@ import { INITIAL_MENU_ITEMS } from "./data";
 
 // Import modules
 import FoodpandaHeader from "./components/FoodpandaHeader";
-import RestaurantLogoLoader from "./components/RestaurantLogoLoader";
 const FoodpandaHero = React.lazy(() => import("./components/FoodpandaHero"));
 const BannerCarousel = React.lazy(() => import("./components/BannerCarousel"));
 const CartDrawer = React.lazy(() => import("./components/CartDrawer"));
@@ -54,7 +53,9 @@ import MobileAccountDrawer from "./components/MobileAccountDrawer";
 import { LazyImage } from "./components/LazyImage";
 import DaduLogoLoader from "./components/DaduLogoLoader";
 import useLazyBatchLoad from "./hooks/useLazyBatchLoad";
-import daduLogo from "./assets/images/dadu_food_logo_1782079256405.jpg";
+import daduLogo from "./assets/images/dadu_food_logo_new_1782333467889.jpg";
+import { initPushNotifications, showNativeNotification } from "./lib/notifications";
+import triggerHaptic from "./utils/haptics";
 
 // Icons & Motion
 import {
@@ -157,86 +158,13 @@ function BannerLiveChatButton({
   );
 }
 
-// Local Cache Helpers for Instant Zero-Latency Offline & Fast Load Hydration
-function getInitialDishes(): Dish[] {
-  try {
-    const cached = localStorage.getItem("dadu_cached_dishes");
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    }
-  } catch (e) {
-    console.warn("Failed to read cached dishes:", e);
-  }
-  return INITIAL_MENU_ITEMS || [];
-}
-
-function getInitialFoodCategories(): FoodCategory[] {
-  try {
-    const cached = localStorage.getItem("dadu_cached_food_categories");
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    }
-  } catch (e) {
-    console.warn("Failed to read cached food categories:", e);
-  }
-  return [];
-}
-
-function getInitialGroceryProducts(): GroceryProduct[] {
-  try {
-    const cached = localStorage.getItem("dadu_cached_grocery_products");
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    }
-  } catch (e) {
-    console.warn("Failed to read cached grocery products:", e);
-  }
-  return [];
-}
-
-function getInitialGroceryCategories(): GroceryCategory[] {
-  try {
-    const cached = localStorage.getItem("dadu_cached_grocery_categories");
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    }
-  } catch (e) {
-    console.warn("Failed to read cached grocery categories:", e);
-  }
-  return [];
-}
-
-function getInitialDeliverySettings(): SystemSettings {
-  try {
-    const cached = localStorage.getItem("dadu_cached_delivery_settings");
-    if (cached) {
-      const parsed = JSON.parse(cached);
-      if (parsed && typeof parsed === "object") return parsed;
-    }
-  } catch (e) {
-    console.warn("Failed to read cached delivery settings:", e);
-  }
-  return {
-    deliveryFee: 50,
-    restaurantStatus: {
-      isTemporarilyUnavailable: false,
-      openingTime: "09:00",
-      closingTime: "23:00",
-    },
-  };
-}
-
 export default function App() {
-  const [showSplash, setShowSplash] = useState(false);
-  const [splashProgress, setSplashProgress] = useState(100);
+  const [showSplash, setShowSplash] = useState(true);
+  const [splashProgress, setSplashProgress] = useState(0);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
-  // Load saved theme on mount
+  // Load saved theme and initialize background push notifications on mount
   useEffect(() => {
     const saved = localStorage.getItem("dadu_theme");
     if (saved === "dark") {
@@ -248,6 +176,11 @@ export default function App() {
       document.documentElement.classList.remove("dark");
       document.body.classList.remove("dark");
     }
+
+    // Auto prompt push notification permission on launch & setup FCM service worker
+    initPushNotifications().catch((err) => {
+      console.warn("Push notification setup notice:", err);
+    });
   }, []);
 
   const handleToggleTheme = () => {
@@ -263,21 +196,21 @@ export default function App() {
     }
   };
 
-  const [dishes, setDishes] = useState<Dish[]>(getInitialDishes);
-  const [isLoadingDishes, setIsLoadingDishes] = useState<boolean>(() => dishes.length === 0);
+  const [dishes, setDishes] = useState<Dish[]>([]);
+  const [isLoadingDishes, setIsLoadingDishes] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [deliverySettings, setDeliverySettings] = useState<SystemSettings>(getInitialDeliverySettings);
+  const [deliverySettings, setDeliverySettings] = useState<SystemSettings>({
+    deliveryFee: 50,
+    restaurantStatus: {
+      isTemporarilyUnavailable: false,
+      openingTime: "09:00",
+      closingTime: "23:00",
+    },
+  });
 
   // Favorites and Deal of the Hour configuration
   const [favoriteDishIds, setFavoriteDishIds] = useState<string[]>([]);
-  const handleToggleFavorite = (dishId: string) => {
-    setFavoriteDishIds((prev) =>
-      prev.includes(dishId)
-        ? prev.filter((id) => id !== dishId)
-        : [...prev, dishId]
-    );
-  };
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [isExitConfirmationOpen, setIsExitConfirmationOpen] = useState(false);
   const isExitingRef = useRef(false);
@@ -339,10 +272,12 @@ export default function App() {
 
   // Standalone Grocery Module states
   const [activeModule, setActiveModule] = useState<"food" | "grocery">("food");
-  const [foodCategories, setFoodCategories] = useState<FoodCategory[]>(getInitialFoodCategories);
-  const [groceryCategories, setGroceryCategories] = useState<GroceryCategory[]>(getInitialGroceryCategories);
-  const [groceryProducts, setGroceryProducts] = useState<GroceryProduct[]>(getInitialGroceryProducts);
-  const [isLoadingGrocery, setIsLoadingGrocery] = useState<boolean>(() => groceryProducts.length === 0);
+  const [foodCategories, setFoodCategories] = useState<FoodCategory[]>([]);
+  const [groceryCategories, setGroceryCategories] = useState<GroceryCategory[]>(
+    [],
+  );
+  const [groceryProducts, setGroceryProducts] = useState<GroceryProduct[]>([]);
+  const [isLoadingGrocery, setIsLoadingGrocery] = useState(true);
   const [groceryDeliveryConfig, setGroceryDeliveryConfig] =
     useState<GroceryDeliveryConfig>({
       baseDeliveryFee: 40,
@@ -359,38 +294,6 @@ export default function App() {
   const [selectedRestaurant, setSelectedRestaurant] =
     useState<string>("All Restaurants");
   const [initialRestaurantCategory, setInitialRestaurantCategory] = useState<string | undefined>(undefined);
-  const [animatingRestaurant, setAnimatingRestaurant] = useState<{
-    name: string;
-    category?: string;
-    logoUrl?: string;
-  } | null>(null);
-
-  const handleOpenRestaurant = (restaurantName: string, initialCategory?: string) => {
-    if (!restaurantName || restaurantName === "All Restaurants") {
-      setSelectedRestaurant("All Restaurants");
-      setInitialRestaurantCategory(undefined);
-      return;
-    }
-    const logoUrl = deliverySettings?.restaurantStatuses?.[restaurantName]?.imageUrl;
-    setAnimatingRestaurant({
-      name: restaurantName,
-      category: initialCategory,
-      logoUrl: logoUrl,
-    });
-  };
-
-  const handleFinishRestaurantAnimation = useCallback(() => {
-    setAnimatingRestaurant((curr) => {
-      if (curr) {
-        setSelectedRestaurant(curr.name);
-        if (curr.category) {
-          setInitialRestaurantCategory(curr.category);
-        }
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }
-      return null;
-    });
-  }, []);
   const [searchQuery, setSearchQuery] = useState("");
   const [cartItems, setCartItems] = useState<OrderItem[]>([]);
   const [activeTrackingOrder, setActiveTrackingOrder] = useState<Order | null>(
@@ -715,6 +618,9 @@ export default function App() {
       } else {
         setCurrentUser(null);
         setIsAdminConsoleOpen(false);
+        
+        // Auto-open auth modal for new/unauthenticated users
+        setIsAuthOpen(true);
       }
     };
     
@@ -761,9 +667,27 @@ export default function App() {
     }
   }, [currentUser?.status]);
 
-  // 1.5. Splash animation disabled per user request
+  // 1.5. Premium Foodpanda Splash Screen timer (2.4s duration for vibrant app launch animation)
   useEffect(() => {
-    setShowSplash(false);
+    let animId: number;
+    const startTime = performance.now();
+    const duration = 2400; // 2.4s smooth launch sequence
+
+    const step = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(100, Math.floor((elapsed / duration) * 100));
+      setSplashProgress(progress);
+
+      if (elapsed < duration) {
+        animId = requestAnimationFrame(step);
+      } else {
+        setShowSplash(false);
+        playChimeSound();
+      }
+    };
+
+    animId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(animId);
   }, []);
 
   // 2. Real-time Menu Listening & Auto-Seeding
@@ -785,11 +709,6 @@ export default function App() {
           list.sort((a, b) => (a.position || 0) - (b.position || 0));
           setDishes(list);
           setIsLoadingDishes(false);
-          try {
-            localStorage.setItem("dadu_cached_dishes", JSON.stringify(list));
-          } catch (e) {
-            console.warn("Failed to cache dishes to localStorage:", e);
-          }
         }
       },
       (err) => {
@@ -812,11 +731,7 @@ export default function App() {
           docSnap.exists(),
         );
         if (docSnap.exists()) {
-          const data = docSnap.data() as SystemSettings;
-          setDeliverySettings(data);
-          try {
-            localStorage.setItem("dadu_cached_delivery_settings", JSON.stringify(data));
-          } catch (e) {}
+          setDeliverySettings(docSnap.data() as SystemSettings);
         } else {
           // Seed default
           setDoc(doc(db, "settings", "delivery_config"), {
@@ -989,9 +904,6 @@ export default function App() {
         } else {
           list.sort((a, b) => (a.position || 0) - (b.position || 0));
           setFoodCategories(list);
-          try {
-            localStorage.setItem("dadu_cached_food_categories", JSON.stringify(list));
-          } catch (e) {}
         }
       },
       (err) => {
@@ -1018,9 +930,6 @@ export default function App() {
         list.sort((a, b) => (a.position || 0) - (b.position || 0));
         setGroceryCategories(list);
         setIsLoadingGrocery(false);
-        try {
-          localStorage.setItem("dadu_cached_grocery_categories", JSON.stringify(list));
-        } catch (e) {}
       },
       (err) => {
         console.error(handleFirestoreError(err));
@@ -1045,10 +954,6 @@ export default function App() {
           list.push({ id: doc.id, ...doc.data() } as GroceryProduct);
         });
         setGroceryProducts(list);
-        setIsLoadingGrocery(false);
-        try {
-          localStorage.setItem("dadu_cached_grocery_products", JSON.stringify(list));
-        } catch (e) {}
       },
       (err) => {
         console.error(handleFirestoreError(err));
@@ -1328,6 +1233,13 @@ export default function App() {
             message: currentUnread[0].message,
           });
           playChimeSound(); // Synthesis alarm beeper
+          triggerHaptic("success");
+
+          // Trigger native push / system notification
+          showNativeNotification(currentUnread[0].title, {
+            body: currentUnread[0].message,
+            icon: "/logo-192.png",
+          });
 
           // Hide toast window in 5 seconds
           setTimeout(() => {
@@ -1536,6 +1448,11 @@ export default function App() {
       setIsVerificationModalOpen(true);
       return;
     }
+    if (!currentUser) {
+      setPendingAction(() => () => handleAddToCart(dish, quantityToAdd, options));
+      setIsAuthOpen(true);
+      return;
+    }
 
     // Check if mixed cart is allowed
     if (!groceryDeliveryConfig?.allowMixedCart && groceryCartItems.length > 0) {
@@ -1678,6 +1595,11 @@ export default function App() {
   const handleAddToGroceryCart = (product: GroceryProduct, quantity = 1) => {
     if (currentUser?.status === 'locked') {
       setIsVerificationModalOpen(true);
+      return;
+    }
+    if (!currentUser) {
+      setPendingAction(() => () => handleAddToGroceryCart(product, quantity));
+      setIsAuthOpen(true);
       return;
     }
 
@@ -2150,7 +2072,14 @@ export default function App() {
       );
       setCurrentUser(updatedProfile);
 
-      // 4. Trigger success animation overlay
+      // 4. Trigger native push notification & haptic feedback
+      triggerHaptic("success");
+      showNativeNotification("🛵 Order Placed Successfully!", {
+        body: `Order #${uniqueOrderId.slice(-6)} received! Dadu Food Express is preparing your meal.`,
+        icon: "/logo-192.png",
+      });
+
+      // 5. Trigger success animation overlay
       setSuccessAnimationOrder(orderModel);
       setIsSuccessAnimationOpen(true);
     } catch (err: any) {
@@ -2367,13 +2296,10 @@ export default function App() {
         selectedRestaurant === "All Restaurants" || rName === selectedRestaurant;
       const matchesFavorites =
         !showFavoritesOnly || favoriteDishIds.includes(dish.id);
-      const q = (searchQuery || "").trim().toLowerCase();
       const matchesSearch =
-        !q ||
-        (dish.name || "").toLowerCase().includes(q) ||
-        (dish.description || "").toLowerCase().includes(q) ||
-        (rName || "").toLowerCase().includes(q) ||
-        (dish.category || "").toLowerCase().includes(q);
+        dish.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        dish.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        rName.toLowerCase().includes(searchQuery.toLowerCase());
 
       return (
         matchesCategory && matchesRestaurant && matchesSearch && matchesFavorites
@@ -3621,57 +3547,18 @@ export default function App() {
                   exit={{ opacity: 0, y: -14, scale: 0.995 }}
                   transition={{ duration: 0.24, ease: [0.25, 0.1, 0.25, 1.0] }}
                 >
-                  {selectedRestaurant !== "All Restaurants" ? (
-                    <Suspense fallback={<DaduLogoLoader text={`Opening ${selectedRestaurant}...`} />}>
-                      <FoodpandaRestaurantPage
-                        restaurantName={selectedRestaurant}
-                        dishes={dishes.filter((d) => {
-                          const isSvc = d.type === "service";
-                          const name = d.restaurantName?.trim() || (isSvc ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
-                          return name === selectedRestaurant;
-                        })}
-                        deliverySettings={deliverySettings}
-                        initialCategory={initialRestaurantCategory}
-                        isRestaurantClosed={checkIsRestaurantClosed(selectedRestaurant)}
-                        bgImageUrl={deliverySettings?.restaurantStatuses?.[selectedRestaurant]?.imageUrl}
-                        onBack={() => {
-                          setSelectedRestaurant("All Restaurants");
-                          setInitialRestaurantCategory(undefined);
-                        }}
-                        onAddToCart={handleAddToCart}
-                        cartItems={cartItems}
-                        cartCountTotal={cartCountTotal}
-                        cartPriceTotal={cartPriceTotal}
-                        onViewCart={() => setIsCartOpen(true)}
-                        toggleFavorite={handleToggleFavorite}
-                        favoriteDishIds={favoriteDishIds}
-                        isRiderRangeExceeded={isRiderRangeExceeded}
-                        distanceDisplay={(() => {
-                          const vendorCoords = deliverySettings?.restaurantStatuses?.[selectedRestaurant]?.coords;
-                          const refCoords = globalCoords || (
-                            deliverySettings?.baseLocationCoords?.lat && deliverySettings?.baseLocationCoords?.lng
-                              ? { latitude: deliverySettings.baseLocationCoords.lat, longitude: deliverySettings.baseLocationCoords.lng }
-                              : { latitude: 26.7323, longitude: 67.7744 }
-                          );
-                          return vendorCoords?.lat && vendorCoords?.lng
-                            ? calculateDistanceKm(refCoords.latitude, refCoords.longitude, vendorCoords.lat, vendorCoords.lng).toFixed(1) + " km away"
-                            : "Nearby";
-                        })()}
-                      />
-                    </Suspense>
-                  ) : (
-                    <>
-                      <BannerCarousel 
-                        bannerVersion={deliverySettings.bannerVersion} 
-                        onBannerClick={(actionLink) => {
-                          if (actionLink.startsWith("http")) {
-                            window.open(actionLink, "_blank");
-                          } else {
-                            setActiveCategory("All");
-                            handleOpenRestaurant(actionLink);
-                          }
-                        }}
-                      />
+              <>
+                <BannerCarousel 
+                  bannerVersion={deliverySettings.bannerVersion} 
+                  onBannerClick={(actionLink) => {
+                    if (actionLink.startsWith("http")) {
+                      window.open(actionLink, "_blank");
+                    } else {
+                      setActiveCategory("All");
+                      setSelectedRestaurant(actionLink);
+                    }
+                  }}
+                />
                 {/* Billboard / category selectors */}
                 <FoodpandaHero
                   activeCategory={activeCategory}
@@ -3780,7 +3667,7 @@ export default function App() {
                                 whileHover={{ scale: 1.04 }}
                                 whileTap={{ scale: 0.96 }}
                                 onClick={() =>
-                                  handleOpenRestaurant(vendor)
+                                  setSelectedRestaurant(vendor)
                                 }
                                 className={`w-[90px] h-[95px] rounded-2xl flex flex-col items-center justify-between p-1.5 font-black transition shrink-0 cursor-pointer border overflow-hidden shadow-xs hover:shadow-md ${
                                   selectedRestaurant === vendor
@@ -4125,7 +4012,7 @@ export default function App() {
                             return (
                               <div
                                 key={vendor}
-                                onClick={() => handleOpenRestaurant(vendor)}
+                                onClick={() => setSelectedRestaurant(vendor)}
                                 className={`bg-white border border-zinc-200/80 rounded-3xl overflow-hidden shadow-xs hover:shadow-md transition-all cursor-pointer group flex flex-col ${isClosed ? "opacity-70 grayscale-[20%]" : ""}`}
                               >
                                 <div className="h-40 bg-zinc-100 relative overflow-hidden shrink-0">
@@ -4202,7 +4089,8 @@ export default function App() {
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         if (!isClosed && d.isAvailable !== false) {
-                                          handleOpenRestaurant(vendor, d.category);
+                                          setInitialRestaurantCategory(d.category);
+                                          setSelectedRestaurant(vendor);
                                         }
                                       }}
                                     >
@@ -4227,7 +4115,7 @@ export default function App() {
                                   <div
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      handleOpenRestaurant(vendor);
+                                      setSelectedRestaurant(vendor);
                                     }}
                                     className="w-16 h-20 flex flex-col items-center justify-center gap-1 shrink-0 bg-red-50/50 rounded-xl text-[#d70f64] hover:bg-red-100 transition border border-red-100/50 cursor-pointer"
                                   >
@@ -4607,7 +4495,6 @@ export default function App() {
                 </div>
               </main>
             </>
-          )}
           </motion.div>
         ) : (
           <motion.div
@@ -4657,14 +4544,6 @@ export default function App() {
       )}
 
       {commonModals}
-
-      <RestaurantLogoLoader
-        isOpen={!!animatingRestaurant}
-        restaurantName={animatingRestaurant?.name || ""}
-        logoUrl={animatingRestaurant?.logoUrl}
-        onFinish={handleFinishRestaurantAnimation}
-        durationMs={1200}
-      />
 
       {/* Floating Bottom Cart for mobile screens */}
       {cartCountTotal > 0 && selectedRestaurant === "All Restaurants" && (

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { motion } from "motion/react";
 import { X, Phone, ArrowRight, UserCog, Key } from "lucide-react";
-import daduLogo from "../assets/images/dadu_food_logo_1782079256405.jpg";
+import daduLogo from "../assets/images/dadu_food_logo_new_1782333467889.jpg";
 import DaduLogoLoader from "./DaduLogoLoader";
 
 interface AuthModalProps {

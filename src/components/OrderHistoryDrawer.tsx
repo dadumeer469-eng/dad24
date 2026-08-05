@@ -76,12 +76,10 @@ export default function OrderHistoryDrawer({
   // Filter and search logic
   const filteredOrders = orders.filter((order) => {
     // Search query matches Order ID, Address, or Item Names
-    const q = (searchQuery || "").trim().toLowerCase();
     const matchesSearch = 
-      !q ||
-      (order.id || "").toLowerCase().includes(q) ||
-      (order.userAddress || "").toLowerCase().includes(q) ||
-      (order.items || []).some(item => (item.name || "").toLowerCase().includes(q));
+      order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (order.userAddress || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.items.some(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesType = 
       filterType === "all" || 
