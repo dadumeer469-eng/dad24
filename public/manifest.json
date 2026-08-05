@@ -1,8 +1,10 @@
 {
-  "name": "Dadu Food",
-  "short_name": "DADUFOOD",
+  "id": "/",
+  "name": "Dadu Food - Food Delivery, Groceries & Services",
+  "short_name": "Dadu Food",
   "description": "Fast food and grocery delivery in Dadu",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#ffffff",
