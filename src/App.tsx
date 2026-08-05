@@ -669,13 +669,13 @@ export default function App() {
     }
   }, [currentUser?.status]);
 
-  // 1.5. Initial 3D Site Loading Splash Screen Animation
+  // 1.5. Initial Fast & Smooth Site Loading Splash Screen
   useEffect(() => {
     setShowSplash(true);
     setSplashProgress(0);
 
     const startTime = Date.now();
-    const duration = 2400;
+    const duration = 500; // Ultra fast 0.5s initial load
 
     const interval = setInterval(() => {
       const elapsed = Date.now() - startTime;
@@ -686,9 +686,9 @@ export default function App() {
         clearInterval(interval);
         setTimeout(() => {
           setShowSplash(false);
-        }, 350);
+        }, 100);
       }
-    }, 30);
+    }, 16);
 
     return () => clearInterval(interval);
   }, []);
@@ -3169,129 +3169,59 @@ export default function App() {
         </motion.div>
       </div>
 
-      {/* Welcome Intro Splash Animation Screen with Site Logo */}
+      {/* Fast & Smooth Site Intro Splash Screen with Site Logo */}
       <AnimatePresence mode="wait">
         {showSplash && (
           <motion.div
             initial={{ opacity: 1 }}
             exit={{
               opacity: 0,
-              scale: 1.05,
-              filter: "blur(12px)",
-              transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] },
+              scale: 0.98,
+              transition: { duration: 0.25, ease: "easeOut" },
             }}
-            className="fixed inset-0 z-[99999] flex items-center justify-center overflow-hidden bg-black/90 text-white select-none"
-            style={{ perspective: 1500 }}
+            className="fixed inset-0 z-[99999] flex items-center justify-center overflow-hidden bg-[#09090b] text-white select-none"
           >
-            {/* Cinematic Dark Glass Backdrop */}
-            <motion.div
-              initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
-              animate={{ opacity: 1, backdropFilter: "blur(20px)" }}
-              exit={{ opacity: 0, backdropFilter: "blur(0px)", transition: { duration: 0.6 } }}
-              className="absolute inset-0 bg-black/70 z-0"
-            />
+            {/* Subtle Gradient Glow */}
+            <div className="absolute inset-0 bg-gradient-to-b from-pink-950/30 via-zinc-950 to-zinc-950 pointer-events-none z-0" />
 
-            {/* Animated Mesh/Orb Gradients */}
+            {/* Main Content */}
             <motion.div
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 1.5, opacity: 0, transition: { duration: 0.5 } }}
-              transition={{ duration: 1, ease: "easeOut" }}
-              className="absolute inset-0 flex items-center justify-center z-0"
-            >
-              <motion.div
-                animate={{ rotate: 360, scale: [1, 1.1, 1] }}
-                transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                className="absolute w-[80vw] h-[80vw] max-w-[600px] max-h-[600px] bg-gradient-to-tr from-[#d70f64] to-[#7209b7] rounded-full blur-[100px] opacity-60"
-              />
-              <motion.div
-                animate={{ rotate: -360, scale: [1, 1.2, 1] }}
-                transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                className="absolute w-[60vw] h-[60vw] max-w-[400px] max-h-[400px] bg-gradient-to-bl from-[#f72585] to-[#4cc9f0] rounded-full blur-[80px] opacity-50 mix-blend-screen"
-              />
-            </motion.div>
-
-            {/* Portal Ring */}
-            <motion.div
-              initial={{ scale: 0, opacity: 0, rotateX: 60 }}
-              animate={{ scale: 1, opacity: 1, rotateX: 0 }}
-              exit={{ scale: 2, opacity: 0, transition: { duration: 0.5 } }}
-              transition={{ duration: 1.2, type: "spring", bounce: 0.4 }}
-              className="absolute w-[300px] h-[300px] md:w-[400px] md:h-[400px] rounded-full border border-white/20 shadow-[0_0_80px_rgba(215,15,100,0.5)] z-0"
-              style={{ background: "radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%)" }}
-            />
-
-            {/* Main Content Floating */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.5, rotateY: -30, z: -400 }}
-              animate={{ opacity: 1, scale: 1, rotateY: 0, z: 0 }}
-              exit={{ opacity: 0, scale: 1.2, rotateY: 15, z: 200, filter: "blur(15px)", transition: { duration: 0.5 } }}
-              transition={{ duration: 0.9, type: "spring", bounce: 0.5, delay: 0.1 }}
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
               className="relative z-10 flex flex-col items-center justify-center text-white w-full px-4 text-center"
             >
               {/* Site Logo Presentation Frame */}
-              <motion.div
-                animate={{ y: [-8, 8, -8], rotateZ: [-2, 2, -2] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                className="relative mb-6 group"
-              >
-                {/* Glow Behind Logo */}
-                <div className="absolute -inset-4 bg-white/25 blur-2xl rounded-full scale-110 opacity-70 group-hover:opacity-100 transition duration-700 pointer-events-none" />
-
-                {/* 3D Glassmorphic App Icon Frame */}
-                <motion.div
-                  whileHover={{ scale: 1.05, rotateY: 10, rotateX: 5 }}
-                  transition={{ type: "spring", bounce: 0.5 }}
-                  className="w-40 h-40 md:w-48 md:h-48 rounded-[2.5rem] overflow-hidden bg-white/10 backdrop-blur-xl shadow-[0_30px_80px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.4)] relative z-10 border border-white/30 p-2 transform-gpu"
-                >
-                  <div className="w-full h-full rounded-[2rem] overflow-hidden bg-white relative flex items-center justify-center p-0.5">
-                    <img
-                      src={daduLogo}
-                      alt="Site Logo"
-                      className="w-full h-full object-cover rounded-[1.8rem] transform scale-105 transition-transform duration-700 group-hover:scale-100"
-                    />
-                  </div>
-                </motion.div>
-              </motion.div>
-
-              {/* Brand Title Text matching screenshot styling */}
-              <motion.h2
-                initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
-                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                transition={{ delay: 0.3, duration: 0.7, type: "spring", bounce: 0.4 }}
-                className="text-4xl md:text-5xl font-black tracking-tight text-white mb-6 text-center drop-shadow-[0_4px_10px_rgba(0,0,0,0.6)] leading-tight lowercase font-sans"
-              >
-                foodpanda
-              </motion.h2>
-
-              {/* High-tech Loading Progress Indicator Bar */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.4, duration: 0.6 }}
-                className="flex flex-col items-center space-y-3"
-              >
-                <div className="relative h-2 w-[200px] md:w-[240px] bg-black/60 rounded-full overflow-hidden backdrop-blur-sm border border-white/15 shadow-[0_0_15px_rgba(215,15,100,0.3)]">
-                  <motion.div
-                    className="h-full bg-gradient-to-r from-[#d70f64] via-pink-400 to-[#4cc9f0] rounded-full transition-all duration-150 ease-out"
-                    style={{ width: `${splashProgress}%` }}
+              <div className="relative mb-5 group">
+                <div className="absolute -inset-3 bg-[#d70f64]/30 rounded-full blur-lg opacity-70 pointer-events-none" />
+                <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-3xl overflow-hidden bg-zinc-900 border-2 border-pink-500/40 p-1.5 shadow-2xl relative z-10 transform-gpu">
+                  <img
+                    src={daduLogo}
+                    alt="DADUFOOD Logo"
+                    className="w-full h-full object-cover rounded-2xl"
                   />
-                  <motion.div
-                    animate={{ x: ["-100%", "100%"] }}
-                    transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none"
+                </div>
+              </div>
+
+              {/* Brand Title Text */}
+              <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white mb-4 text-center leading-tight uppercase font-sans">
+                DADUFOOD
+              </h2>
+
+              {/* Fast Progress Indicator Bar */}
+              <div className="flex flex-col items-center space-y-2.5">
+                <div className="relative h-2 w-[180px] sm:w-[220px] bg-zinc-800 rounded-full overflow-hidden border border-zinc-700/60 shadow-inner">
+                  <div
+                    className="h-full bg-gradient-to-r from-[#d70f64] via-pink-400 to-amber-300 rounded-full transition-all duration-100 ease-out"
+                    style={{ width: `${splashProgress}%` }}
                   />
                 </div>
 
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                  className="text-[10px] md:text-[11px] font-extrabold uppercase tracking-[0.3em] text-white/70"
-                >
-                  PREPARING EXPERIENCE
-                </motion.p>
-              </motion.div>
+                <p className="text-[10px] font-extrabold uppercase tracking-[0.25em] text-zinc-400">
+                  FAST DELIVERY EXPRSS
+                </p>
+              </div>
             </motion.div>
           </motion.div>
         )}
