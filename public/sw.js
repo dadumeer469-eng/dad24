@@ -1,19 +1,19 @@
-const CACHE_NAME = "dadu-food-static-v3";
-const RUNTIME_CACHE = "dadu-food-runtime-v3";
-const IMAGE_CACHE = "dadu-food-images-v3";
+const CACHE_NAME = "dadu-food-static-v4";
+const RUNTIME_CACHE = "dadu-food-runtime-v4";
+const IMAGE_CACHE = "dadu-food-images-v4";
 
 const PRECACHE_URLS = [
   "/",
   "/index.html",
   "/manifest.json",
+  "/android-chrome-192x192.png",
+  "/android-chrome-512x512.png",
+  "/apple-touch-icon.png",
+  "/favicon-32x32.png",
+  "/favicon-16x16.png",
   "/icon-192.png",
   "/icon-512.png",
-  "/icons/icon-192.png",
-  "/icons/icon-512.png",
-  "/logo.png",
-  "/logo-192.png",
-  "/logo-512.png",
-  "/logo.jpg"
+  "/logo.png"
 ];
 
 // Install Event: Precache static core assets
