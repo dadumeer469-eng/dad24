@@ -118,8 +118,10 @@ export default function FoodDeliveryTracker({
   };
 
   let statusTitle = "Order Received";
-  let statusSubtitle = "Waiting for restaurant confirmation";
+  let statusSubtitle = "Waiting for order confirmation & rider time...";
   let gaugePercent = "18";
+
+  const hasValidEta = !!orderEta && orderEta.trim() !== "";
 
   if (isDelivered) {
     statusTitle = "Order Delivered!";
@@ -127,19 +129,19 @@ export default function FoodDeliveryTracker({
     gaugePercent = "100";
   } else if (isOutForDelivery) {
     statusTitle = "On the way";
-    statusSubtitle = "The rider is heading to you";
+    statusSubtitle = hasValidEta ? "The rider is heading to you" : "Waiting for rider to update arrival time...";
     gaugePercent = "80";
   } else if (isKitchen) {
     statusTitle = "Preparing in kitchen";
-    statusSubtitle = "Chef is cooking your fresh hot meal";
+    statusSubtitle = hasValidEta ? "Chef is cooking your fresh hot meal" : "Waiting for rider to send delivery time...";
     gaugePercent = "55";
   } else if (isAccepted) {
     statusTitle = "Order Confirmed";
-    statusSubtitle = "Restaurant accepted your order";
+    statusSubtitle = hasValidEta ? "Restaurant accepted your order" : "Waiting for rider to send delivery time...";
     gaugePercent = "38";
   } else {
-    statusTitle = "Order Received";
-    statusSubtitle = "Waiting for restaurant to confirm";
+    statusTitle = "Order Placed";
+    statusSubtitle = "Waiting for order confirmation & rider time...";
     gaugePercent = "18";
   }
 
@@ -482,7 +484,11 @@ export default function FoodDeliveryTracker({
             <div className="bg-white/98 backdrop-blur-md shadow-xl rounded-2xl p-2.5 sm:p-3 border border-slate-100/90 flex items-center justify-between transition-all">
               <div className="space-y-0.5">
                 <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-none">
-                  {orderEta ? (orderEta.toLowerCase().includes("min") ? orderEta : `${orderEta} mins`) : `${minEta} — ${maxEta} mins`}
+                  {hasValidEta ? (orderEta.toLowerCase().includes("min") || orderEta.toLowerCase().includes("hour") || orderEta.toLowerCase().includes("waiting") ? orderEta : `${orderEta} mins`) : (
+                    <span className="text-[#D70F64] flex items-center gap-1.5 animate-pulse">
+                      <Clock className="w-5 h-5 inline shrink-0" /> Waiting...
+                    </span>
+                  )}
                 </h2>
                 <p className="text-xs font-bold text-slate-900 pt-0.5">
                   {statusTitle}
@@ -576,7 +582,11 @@ export default function FoodDeliveryTracker({
               </div>
               <div>
                 <h4 className="text-sm font-black text-slate-900 leading-tight">
-                  {orderEta ? (orderEta.toLowerCase().includes("min") ? orderEta : `${orderEta} mins`) : `${minEta} — ${maxEta} mins`}
+                  {hasValidEta ? (orderEta.toLowerCase().includes("min") || orderEta.toLowerCase().includes("hour") || orderEta.toLowerCase().includes("waiting") ? orderEta : `${orderEta} mins`) : (
+                    <span className="text-[#D70F64] animate-pulse flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 inline shrink-0" /> Waiting...
+                    </span>
+                  )}
                 </h4>
                 <p className="text-xs font-bold text-[#D70F64] mt-0.5">
                   {statusTitle}

@@ -156,6 +156,79 @@ function BannerLiveChatButton({
   );
 }
 
+// Local Cache Helpers for Instant Zero-Latency Offline & Fast Load Hydration
+function getInitialDishes(): Dish[] {
+  try {
+    const cached = localStorage.getItem("dadu_cached_dishes");
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.warn("Failed to read cached dishes:", e);
+  }
+  return INITIAL_MENU_ITEMS || [];
+}
+
+function getInitialFoodCategories(): FoodCategory[] {
+  try {
+    const cached = localStorage.getItem("dadu_cached_food_categories");
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.warn("Failed to read cached food categories:", e);
+  }
+  return [];
+}
+
+function getInitialGroceryProducts(): GroceryProduct[] {
+  try {
+    const cached = localStorage.getItem("dadu_cached_grocery_products");
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.warn("Failed to read cached grocery products:", e);
+  }
+  return [];
+}
+
+function getInitialGroceryCategories(): GroceryCategory[] {
+  try {
+    const cached = localStorage.getItem("dadu_cached_grocery_categories");
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.warn("Failed to read cached grocery categories:", e);
+  }
+  return [];
+}
+
+function getInitialDeliverySettings(): SystemSettings {
+  try {
+    const cached = localStorage.getItem("dadu_cached_delivery_settings");
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed && typeof parsed === "object") return parsed;
+    }
+  } catch (e) {
+    console.warn("Failed to read cached delivery settings:", e);
+  }
+  return {
+    deliveryFee: 50,
+    restaurantStatus: {
+      isTemporarilyUnavailable: false,
+      openingTime: "09:00",
+      closingTime: "23:00",
+    },
+  };
+}
+
 export default function App() {
   const [showSplash, setShowSplash] = useState(false);
   const [splashProgress, setSplashProgress] = useState(100);
@@ -189,18 +262,11 @@ export default function App() {
     }
   };
 
-  const [dishes, setDishes] = useState<Dish[]>([]);
-  const [isLoadingDishes, setIsLoadingDishes] = useState(true);
+  const [dishes, setDishes] = useState<Dish[]>(getInitialDishes);
+  const [isLoadingDishes, setIsLoadingDishes] = useState<boolean>(() => dishes.length === 0);
   const [orders, setOrders] = useState<Order[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [deliverySettings, setDeliverySettings] = useState<SystemSettings>({
-    deliveryFee: 50,
-    restaurantStatus: {
-      isTemporarilyUnavailable: false,
-      openingTime: "09:00",
-      closingTime: "23:00",
-    },
-  });
+  const [deliverySettings, setDeliverySettings] = useState<SystemSettings>(getInitialDeliverySettings);
 
   // Favorites and Deal of the Hour configuration
   const [favoriteDishIds, setFavoriteDishIds] = useState<string[]>([]);
@@ -265,12 +331,10 @@ export default function App() {
 
   // Standalone Grocery Module states
   const [activeModule, setActiveModule] = useState<"food" | "grocery">("food");
-  const [foodCategories, setFoodCategories] = useState<FoodCategory[]>([]);
-  const [groceryCategories, setGroceryCategories] = useState<GroceryCategory[]>(
-    [],
-  );
-  const [groceryProducts, setGroceryProducts] = useState<GroceryProduct[]>([]);
-  const [isLoadingGrocery, setIsLoadingGrocery] = useState(true);
+  const [foodCategories, setFoodCategories] = useState<FoodCategory[]>(getInitialFoodCategories);
+  const [groceryCategories, setGroceryCategories] = useState<GroceryCategory[]>(getInitialGroceryCategories);
+  const [groceryProducts, setGroceryProducts] = useState<GroceryProduct[]>(getInitialGroceryProducts);
+  const [isLoadingGrocery, setIsLoadingGrocery] = useState<boolean>(() => groceryProducts.length === 0);
   const [groceryDeliveryConfig, setGroceryDeliveryConfig] =
     useState<GroceryDeliveryConfig>({
       baseDeliveryFee: 40,
@@ -681,6 +745,11 @@ export default function App() {
           list.sort((a, b) => (a.position || 0) - (b.position || 0));
           setDishes(list);
           setIsLoadingDishes(false);
+          try {
+            localStorage.setItem("dadu_cached_dishes", JSON.stringify(list));
+          } catch (e) {
+            console.warn("Failed to cache dishes to localStorage:", e);
+          }
         }
       },
       (err) => {
@@ -703,7 +772,11 @@ export default function App() {
           docSnap.exists(),
         );
         if (docSnap.exists()) {
-          setDeliverySettings(docSnap.data() as SystemSettings);
+          const data = docSnap.data() as SystemSettings;
+          setDeliverySettings(data);
+          try {
+            localStorage.setItem("dadu_cached_delivery_settings", JSON.stringify(data));
+          } catch (e) {}
         } else {
           // Seed default
           setDoc(doc(db, "settings", "delivery_config"), {
@@ -876,6 +949,9 @@ export default function App() {
         } else {
           list.sort((a, b) => (a.position || 0) - (b.position || 0));
           setFoodCategories(list);
+          try {
+            localStorage.setItem("dadu_cached_food_categories", JSON.stringify(list));
+          } catch (e) {}
         }
       },
       (err) => {
@@ -902,6 +978,9 @@ export default function App() {
         list.sort((a, b) => (a.position || 0) - (b.position || 0));
         setGroceryCategories(list);
         setIsLoadingGrocery(false);
+        try {
+          localStorage.setItem("dadu_cached_grocery_categories", JSON.stringify(list));
+        } catch (e) {}
       },
       (err) => {
         console.error(handleFirestoreError(err));
@@ -926,6 +1005,10 @@ export default function App() {
           list.push({ id: doc.id, ...doc.data() } as GroceryProduct);
         });
         setGroceryProducts(list);
+        setIsLoadingGrocery(false);
+        try {
+          localStorage.setItem("dadu_cached_grocery_products", JSON.stringify(list));
+        } catch (e) {}
       },
       (err) => {
         console.error(handleFirestoreError(err));
