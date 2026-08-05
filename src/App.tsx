@@ -2861,41 +2861,50 @@ export default function App() {
           </div>
 
           {/* Road & Moving Delivery Bike Badge */}
-          <div className="relative h-12 flex items-center w-full px-1">
+          <div className="relative h-14 flex items-center w-full px-1">
             <div className="absolute left-2 right-2 top-1/2 -translate-y-1/2 h-0.5 bg-zinc-800 border-t border-dashed border-zinc-700/80" />
             
             {/* Smooth Moving Badge (Hardware accelerated GPU transform) */}
             <div
               style={{
-                left: `${Math.min(Math.max(splashProgress, 7), 93)}%`,
+                left: `${Math.min(Math.max(splashProgress, 8), 92)}%`,
                 transform: "translateX(-50%)",
                 willChange: "left",
               }}
               className="absolute z-10 transition-all duration-100 ease-out"
             >
-              <div className="flex items-center gap-1.5 bg-zinc-950/95 pl-1.5 pr-2.5 py-1 rounded-full border border-[#D70F64] shadow-[0_0_18px_rgba(215,15,100,0.6)]">
+              <div className="flex items-center gap-2 bg-zinc-950/95 pl-1.5 pr-3 py-1.5 rounded-full border-2 border-[#D70F64] shadow-[0_0_20px_rgba(215,15,100,0.6)]">
                 {/* Dadu Site Logo Avatar */}
                 <div className="relative shrink-0">
                   <img
                     src={daduLogo}
-                    alt="Dadu Icon"
-                    className="w-6 h-6 rounded-full object-cover border border-[#D70F64] shadow-xs"
+                    alt="Dadu App Icon"
+                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-[#D70F64] shadow-md"
                   />
-                  <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 border border-black" />
+                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-black" />
                 </div>
 
-                {/* Stylish Delivery Bike Badge */}
-                <div className="flex items-center gap-1 text-white">
+                {/* Delivery Motorbike & Text */}
+                <div className="flex items-center gap-1.5">
                   <motion.div
-                    animate={{ y: [0, -1.5, 0] }}
+                    animate={{ y: [0, -2, 0], rotate: [0, 1, -1, 0] }}
                     transition={{ repeat: Infinity, duration: 0.3, ease: "easeInOut" }}
-                    className="relative flex items-center justify-center bg-gradient-to-r from-[#D70F64] to-pink-600 p-1 rounded-full text-white shadow-xs"
+                    className="flex items-center justify-center bg-gradient-to-r from-[#D70F64] to-pink-600 p-1.5 rounded-full text-white shadow-md shrink-0"
                   >
-                    <Bike className="w-4 h-4 transform -scale-x-1" />
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white fill-current transform -scale-x-1 drop-shadow-xs" viewBox="0 0 24 24">
+                      {/* High-detail Delivery Motorbike / Scooter SVG */}
+                      <path d="M19 13c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12.8-4.2l-2.3-3.8c-.3-.5-.8-.8-1.4-.8h-3.1c-.6 0-1.1.3-1.4.8l-1.1 1.8h-3.5c-.6 0-1.1.5-1.1 1.1v2.1h1.7c.4-1.2 1.5-2 2.8-2s2.4.8 2.8 2h3.4c.4-1.2 1.5-2 2.8-2s2.4.8 2.8 2h1.4v-3.2c0-.4-.2-.8-.5-1zm-6.8-1.8h2.3l1.3 2.1h-3.6l-.0-.0z" />
+                    </svg>
                   </motion.div>
-                  <span className="text-[11px] font-black tracking-wider text-pink-100 uppercase font-mono">
-                    FAST
-                  </span>
+                  
+                  <div className="flex flex-col text-left leading-none">
+                    <span className="text-[10px] font-black tracking-wider text-white uppercase">
+                      DADU RIDER
+                    </span>
+                    <span className="text-[9px] font-bold text-pink-400 font-mono tracking-widest mt-0.5">
+                      EXPRESS ⚡
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
