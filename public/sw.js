@@ -9,13 +9,7 @@ const PRECACHE_URLS = [
   "/logo.png",
   "/logo-192.png",
   "/logo-512.png",
-  "/logo.jpg",
-  "/icons/192x192.png",
-  "/icons/512x512.png",
-  "/icons/icon-192.png",
-  "/icons/icon-512.png",
-  "/screenshots/desktop.png",
-  "/screenshots/mobile.png"
+  "/logo.jpg"
 ];
 
 // Install Event: Precache static core assets
