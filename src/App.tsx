@@ -615,6 +615,8 @@ export default function App() {
         (window as any).deferredPrompt = null;
         setDeferredPrompt(null);
       }
+    } else {
+      alert("App is already installed or your browser doesn't support 1-click install. To install manually, tap the Share button (iOS) or Menu button (Android) and select 'Add to Home Screen'.");
     }
   };
 
