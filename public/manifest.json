@@ -1,6 +1,6 @@
 {
   "name": "Dadu Food",
-  "short_name": "DADUFOOD",
+  "short_name": "Dadu Food",
   "description": "Fast food and grocery delivery in Dadu",
   "id": "/",
   "scope": "/",
@@ -42,14 +42,14 @@
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Dadu Food App Home"
+      "label": "Dadu Food Mobile App"
     },
     {
       "src": "/android-chrome-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Dadu Food App Desktop"
+      "label": "Dadu Food Desktop App"
     }
   ]
 }
