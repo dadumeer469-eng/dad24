@@ -3254,43 +3254,78 @@ export default function App() {
                 </motion.div>
               </motion.div>
 
-              {/* Brand Title Text matching screenshot styling */}
+              {/* Brand Title Text matching DADUFOOD branding */}
               <motion.h2
                 initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
                 animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                 transition={{ delay: 0.3, duration: 0.7, type: "spring", bounce: 0.4 }}
-                className="text-4xl md:text-5xl font-black tracking-tight text-white mb-6 text-center drop-shadow-[0_4px_10px_rgba(0,0,0,0.6)] leading-tight lowercase font-sans"
+                className="text-3xl md:text-5xl font-black tracking-widest text-white mb-1 text-center drop-shadow-[0_4px_12px_rgba(215,15,100,0.6)] uppercase font-sans"
               >
-                foodpanda
+                DADUFOOD
               </motion.h2>
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                className="text-[11px] md:text-xs text-pink-300 font-black uppercase tracking-[0.3em] mb-7 flex items-center justify-center gap-1.5"
+              >
+                <span>⚡</span>
+                <span>FAST RIDER DELIVERY</span>
+                <span>⚡</span>
+              </motion.p>
 
-              {/* High-tech Loading Progress Indicator Bar */}
+              {/* High-tech Animated Rider Loading Progress Bar */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.4, duration: 0.6 }}
-                className="flex flex-col items-center space-y-3"
+                transition={{ delay: 0.45, duration: 0.6 }}
+                className="flex flex-col items-center space-y-3 w-full max-w-[280px]"
               >
-                <div className="relative h-2 w-[200px] md:w-[240px] bg-black/60 rounded-full overflow-hidden backdrop-blur-sm border border-white/15 shadow-[0_0_15px_rgba(215,15,100,0.3)]">
-                  <motion.div
-                    className="h-full bg-gradient-to-r from-[#d70f64] via-pink-400 to-[#4cc9f0] rounded-full transition-all duration-150 ease-out"
-                    style={{ width: `${splashProgress}%` }}
-                  />
-                  <motion.div
-                    animate={{ x: ["-100%", "100%"] }}
-                    transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none"
-                  />
+                {/* Track Container with Animated Rider */}
+                <div className="relative w-full pt-6">
+                  {/* Moving Scooter Rider Icon on Top of Progress Bar */}
+                  <div
+                    className="absolute top-0 text-xl z-20 transition-all duration-150 ease-out transform -translate-x-1/2 pointer-events-none"
+                    style={{ left: `${Math.max(6, Math.min(splashProgress, 94))}%` }}
+                  >
+                    <motion.span
+                      animate={{ y: [0, -3, 0], rotate: [-3, 3, -3] }}
+                      transition={{ duration: 0.35, repeat: Infinity, ease: "easeInOut" }}
+                      className="inline-block filter drop-shadow-[0_4px_8px_rgba(215,15,100,0.8)]"
+                    >
+                      🛵💨
+                    </motion.span>
+                  </div>
+
+                  {/* Progress Bar Track */}
+                  <div className="relative h-3 w-full bg-black/70 rounded-full overflow-hidden backdrop-blur-md border border-white/20 shadow-[0_0_25px_rgba(215,15,100,0.5)]">
+                    <motion.div
+                      className="h-full bg-gradient-to-r from-[#d70f64] via-pink-500 to-[#FFDF00] rounded-full transition-all duration-150 ease-out shadow-[0_0_15px_#d70f64]"
+                      style={{ width: `${splashProgress}%` }}
+                    />
+                    <motion.div
+                      animate={{ x: ["-100%", "100%"] }}
+                      transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+                      className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-white/60 to-transparent pointer-events-none"
+                    />
+                  </div>
                 </div>
 
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                  className="text-[10px] md:text-[11px] font-extrabold uppercase tracking-[0.3em] text-white/70"
-                >
-                  PREPARING EXPERIENCE
-                </motion.p>
+                {/* Percentage & Dynamic Status Text */}
+                <div className="flex items-center justify-between w-full px-1 text-white/90">
+                  <motion.span
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-[10px] md:text-[11px] font-extrabold uppercase tracking-[0.2em] text-pink-200"
+                  >
+                    {splashProgress < 35 && "Connecting Dadu City..."}
+                    {splashProgress >= 35 && splashProgress < 75 && "Fetching Fresh Menu..."}
+                    {splashProgress >= 75 && "Riders Ready to Deliver! 🚀"}
+                  </motion.span>
+                  <span className="text-xs font-black font-mono text-[#FFDF00]">
+                    {splashProgress}%
+                  </span>
+                </div>
               </motion.div>
             </motion.div>
           </motion.div>
