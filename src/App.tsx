@@ -333,7 +333,6 @@ export default function App() {
 
   // PWA Install State
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [showInstallBanner, setShowInstallBanner] = useState(false);
   const [showInstallBubble, setShowInstallBubble] = useState(false);
 
   // Global Location State
@@ -471,11 +470,7 @@ export default function App() {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
     
     if (!isStandalone) {
-      if (!localStorage.getItem("pwaInstallDismissed")) {
-        setShowInstallBanner(true);
-      } else {
-        setShowInstallBubble(true);
-      }
+      setShowInstallBubble(true);
     }
 
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -496,18 +491,11 @@ export default function App() {
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === "accepted") {
         setDeferredPrompt(null);
-        setShowInstallBanner(false);
         setShowInstallBubble(false);
       }
     } else {
       alert("To install: Tap the Share button (iOS) or Menu button (Android) and select 'Add to Home Screen'.");
     }
-  };
-
-  const handleDismissInstallBanner = () => {
-    setShowInstallBanner(false);
-    setShowInstallBubble(true);
-    localStorage.setItem("pwaInstallDismissed", "true");
   };
 
   // Audio synthesizer chime tone
@@ -4498,7 +4486,7 @@ export default function App() {
 
       {/* Floating Bottom Cart for mobile screens */}
       {cartCountTotal > 0 && selectedRestaurant === "All Restaurants" && (
-        <div className={`fixed ${showInstallBanner ? 'bottom-[92px]' : 'bottom-[72px]'} left-4 right-4 z-40 md:hidden bg-zinc-900/95 border border-zinc-800 p-3 rounded-2xl shadow-2xl flex items-center justify-between gap-3 backdrop-blur-md transition-all duration-300`}>
+        <div className={`fixed bottom-[72px] left-4 right-4 z-40 md:hidden bg-zinc-900/95 border border-zinc-800 p-3 rounded-2xl shadow-2xl flex items-center justify-between gap-3 backdrop-blur-md transition-all duration-300`}>
           <div className="flex items-center gap-2">
             <div className="bg-[#d70f64] text-white px-2 rounded-lg font-black text-xs h-7 flex items-center justify-center min-w-[28px]">
               {cartCountTotal}
@@ -4537,45 +4525,9 @@ export default function App() {
         </p>
       </footer>
 
-      {/* PWA Install Banner */}
-      <AnimatePresence>
-        {showInstallBanner && (
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-zinc-900 border-t border-zinc-800 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] md:hidden flex items-center justify-between gap-4 backdrop-blur-md"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#d70f64] to-red-500 flex items-center justify-center shrink-0">
-                <img src={daduLogo} alt="Logo" className="w-full h-full object-cover rounded-xl" />
-              </div>
-              <div>
-                <h4 className="text-zinc-100 font-bold text-sm leading-tight">Install Dadu Food</h4>
-                <p className="text-zinc-400 text-[10px] leading-tight mt-0.5">Add to home screen for fast ordering</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={handleDismissInstallBanner}
-                className="text-zinc-400 hover:text-zinc-200 text-xs font-bold px-2 py-2 uppercase tracking-wider"
-              >
-                Later
-              </button>
-              <button
-                onClick={handleInstallClick}
-                className="bg-[#d70f64] hover:bg-pink-700 text-white font-black text-[10px] uppercase tracking-wider px-4 py-2 rounded-lg transition"
-              >
-                Install
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* PWA Install Bubble (Very Small) */}
       <AnimatePresence>
-        {showInstallBubble && !showInstallBanner && (
+        {showInstallBubble && (
           <motion.button
             initial={{ opacity: 0, scale: 0.8, x: -50 }}
             animate={{ opacity: 1, scale: 1, x: 0 }}
