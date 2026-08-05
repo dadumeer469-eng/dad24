@@ -1,41 +1,29 @@
-const CACHE_NAME = "dadu-food-static-v6";
-const RUNTIME_CACHE = "dadu-food-runtime-v6";
-const IMAGE_CACHE = "dadu-food-images-v6";
+const CACHE_NAME = "dadu-food-static-v3";
+const RUNTIME_CACHE = "dadu-food-runtime-v3";
+const IMAGE_CACHE = "dadu-food-images-v3";
 
-// Guaranteed core precache paths only
 const PRECACHE_URLS = [
   "/",
   "/index.html",
   "/manifest.json",
-  "/site.webmanifest",
-  "/favicon-96x96.png",
-  "/web-app-manifest-192x192.png",
-  "/web-app-manifest-512x512.png",
-  "/android-chrome-192x192.png",
-  "/android-chrome-512x512.png"
+  "/logo.png",
+  "/logo-192.png",
+  "/logo-512.png",
+  "/logo.jpg"
 ];
 
-// Install Event: Fault-tolerant precaching (individual fetches so single 404 never blocks installation)
+// Install Event: Precache static core assets
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return Promise.allSettled(
-        PRECACHE_URLS.map(async (url) => {
-          try {
-            const response = await fetch(url);
-            if (response.ok) {
-              await cache.put(url, response);
-            }
-          } catch (err) {
-            console.warn(`PWA SW Precache skipped for ${url}:`, err);
-          }
-        })
-      );
+      return cache.addAll(PRECACHE_URLS).catch((err) => {
+        console.warn("PWA SW precache notice:", err);
+      });
     }).then(() => self.skipWaiting())
   );
 });
 
-// Activate Event: Clean old cache versions and claim clients immediately
+// Activate Event: Clean old cache versions immediately
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {

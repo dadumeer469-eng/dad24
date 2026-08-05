@@ -1,9 +1,7 @@
 {
   "name": "Dadu Food",
-  "short_name": "Dadufood",
+  "short_name": "DADUFOOD",
   "description": "Fast food and grocery delivery in Dadu",
-  "id": "/",
-  "scope": "/",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
@@ -11,51 +9,21 @@
   "theme_color": "#D70F64",
   "icons": [
     {
-      "src": "/favicon-96x96.png",
-      "sizes": "96x96",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/web-app-manifest-192x192.png",
+      "src": "/logo-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
-      "src": "/android-chrome-192x192.png",
-      "sizes": "192x192",
+      "src": "/logo-512.png",
+      "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     },
     {
-      "src": "/web-app-manifest-512x512.png",
+      "src": "/logo.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/android-chrome-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    }
-  ],
-  "categories": ["food", "shopping", "lifestyle"],
-  "screenshots": [
-    {
-      "src": "/web-app-manifest-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Dadu Food Mobile App"
-    },
-    {
-      "src": "/web-app-manifest-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "Dadu Food Desktop App"
+      "type": "image/png"
     }
   ]
 }

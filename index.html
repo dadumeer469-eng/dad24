@@ -8,14 +8,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     
-    <script>
-      window.deferredPrompt = null;
-      window.addEventListener('beforeinstallprompt', (e) => {
-        // e.preventDefault(); // Don't prevent default, let Android show the native install prompt automatically
-        window.deferredPrompt = e;
-      });
-    </script>
-    
     <!-- Primary SEO Meta Tags -->
     <title>Dadu Food | Fast Food Delivery in Dadu (Sindh, Pakistan)</title>
     <meta name="description" content="Dadu Food se apna pasandida khana online order karein. Best food delivery service in Dadu, Sindh, Pakistan. Fast delivery aur fresh food ke liye abhi Dadu Food par visit karein!" />
@@ -42,7 +34,6 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="shortcut icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <meta name="apple-mobile-web-app-title" content="Dadufood " />
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="theme-color" content="#D70F64" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -166,6 +157,7 @@
           }
         }
 
+        let deferredPrompt;
         const pwaBanner = document.getElementById('pwaBanner');
         const installBtn = document.getElementById('installBtn');
         const closeBannerBtn = document.getElementById('closeBannerBtn');
@@ -174,8 +166,8 @@
         const isBannerDismissed = sessionStorage.getItem('pwa-banner-dismissed');
 
         window.addEventListener('beforeinstallprompt', (e) => {
-          // e.preventDefault();
-          window.deferredPrompt = e;
+          e.preventDefault();
+          deferredPrompt = e;
           if (pwaBanner && !isBannerDismissed) {
             pwaBanner.style.display = 'block';
           }
@@ -183,21 +175,19 @@
 
         if (installBtn) {
           installBtn.addEventListener('click', async () => {
-            if (window.deferredPrompt) {
+            if (deferredPrompt) {
               try {
-                window.deferredPrompt.prompt();
-                window.deferredPrompt.userChoice.then(() => {
-                  window.deferredPrompt = null;
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
                   if (pwaBanner) {
                     pwaBanner.style.display = 'none';
                   }
-                });
+                }
               } catch (err) {
                 console.warn('Prompt failed or cancelled:', err);
-                window.deferredPrompt = null;
               }
-            } else {
-              alert("App install prompt is not ready. Please ensure you are opening this app in a full browser tab (not inside an iframe or preview window). To install manually, tap the Share button (iOS) or Menu button (Android) and select 'Add to Home Screen'.");
+              deferredPrompt = null;
             }
           });
         }

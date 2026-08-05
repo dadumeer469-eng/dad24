@@ -583,40 +583,28 @@ export default function App() {
     }
 
     const handleBeforeInstallPrompt = (e: Event) => {
-      // e.preventDefault();
+      e.preventDefault();
       setDeferredPrompt(e);
-      (window as any).deferredPrompt = e;
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-
-    if ((window as any).deferredPrompt) {
-      setDeferredPrompt((window as any).deferredPrompt);
-    }
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     };
   }, []);
 
-  const handleInstallClick = () => {
-    const promptObj = (window as any).deferredPrompt || deferredPrompt;
-    if (promptObj) {
-      try {
-        promptObj.prompt();
-        promptObj.userChoice.then(() => {
-          (window as any).deferredPrompt = null;
-          setDeferredPrompt(null);
-          setShowInstallBanner(false);
-          setShowInstallBubble(false);
-        });
-      } catch (err) {
-        console.warn("PWA install error:", err);
-        (window as any).deferredPrompt = null;
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === "accepted") {
         setDeferredPrompt(null);
+        setShowInstallBanner(false);
+        setShowInstallBubble(false);
       }
     } else {
-      alert("App install prompt is not ready. Please ensure you are opening this app in a full browser tab (not inside an iframe or preview window). To install manually, tap the Share button (iOS) or Menu button (Android) and select 'Add to Home Screen'.");
+      alert("To install: Tap the Share button (iOS) or Menu button (Android) and select 'Add to Home Screen'.");
     }
   };
 
