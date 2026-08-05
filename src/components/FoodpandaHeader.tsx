@@ -33,7 +33,6 @@ interface FoodpandaHeaderProps {
   onReorder?: (order: Order) => void;
   theme?: "light" | "dark";
   onToggleTheme?: () => void;
-  onInstallApp?: () => void;
 }
 
 export default function FoodpandaHeader({
@@ -66,7 +65,6 @@ export default function FoodpandaHeader({
   onReorder,
   theme = "light",
   onToggleTheme,
-  onInstallApp,
 }: FoodpandaHeaderProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -203,18 +201,6 @@ export default function FoodpandaHeader({
               </div>
             )}
           </div>
-
-          {/* Install App Button */}
-          {onInstallApp && (
-            <button
-              onClick={onInstallApp}
-              className="flex items-center gap-1.5 py-2 px-3 bg-gradient-to-r from-[#d70f64] via-pink-600 to-rose-600 hover:opacity-95 text-white rounded-xl text-xs font-black shadow-md active:scale-95 transition-all cursor-pointer shrink-0"
-              title="Install Dadu Food App"
-            >
-              <Download className="w-4 h-4 stroke-[2.5] animate-pulse" />
-              <span className="hidden sm:inline">Install App</span>
-            </button>
-          )}
 
           {/* Dynamic Checkout Cart Trigger */}
           <button
