@@ -2871,40 +2871,19 @@ export default function App() {
         >
           {/* Progress Header */}
           <div className="flex justify-between items-center text-xs font-black uppercase tracking-wider text-zinc-300">
-            <span className="flex items-center gap-2 text-zinc-200 font-bold">
+            <span className="flex items-center gap-2 text-zinc-200">
               <span className="w-2 h-2 rounded-full bg-[#D70F64] animate-ping" />
               PREPARING YOUR FEAST...
             </span>
             <span className="font-mono text-emerald-400 text-sm font-extrabold tracking-wider">{splashProgress}%</span>
           </div>
 
-          {/* Glowing Gradient Progress Bar Container with Riding Scooter on top */}
-          <div className="relative w-full pt-7 pb-1">
-            {/* Moving Scooter Rider riding right at the tip of progress bar fill */}
+          {/* Glowing Gradient Progress Bar */}
+          <div className="relative w-full h-3.5 bg-zinc-950/90 rounded-full border border-zinc-800/80 p-0.5 overflow-hidden">
             <div
-              style={{
-                left: `${Math.min(Math.max(splashProgress, 4), 96)}%`,
-                transform: "translateX(-85%)",
-                willChange: "left",
-              }}
-              className="absolute top-0.5 z-10 transition-all duration-150 ease-out flex items-center"
-            >
-              <motion.div
-                animate={{ y: [0, -2, 0] }}
-                transition={{ repeat: Infinity, duration: 0.35, ease: "easeInOut" }}
-                className="flex items-center gap-1 drop-shadow-[0_2px_10px_rgba(215,15,100,0.9)]"
-              >
-                <span className="text-2xl sm:text-3xl inline-block transform -scale-x-1">🛵</span>
-              </motion.div>
-            </div>
-
-            {/* Track Bar */}
-            <div className="relative w-full h-3.5 bg-zinc-950/90 rounded-full border border-zinc-800/90 p-0.5 overflow-hidden shadow-inner">
-              <div
-                className="bg-gradient-to-r from-emerald-400 via-pink-500 to-[#D70F64] h-full rounded-full transition-all duration-150 ease-out shadow-[0_0_16px_#D70F64]"
-                style={{ width: `${splashProgress}%` }}
-              />
-            </div>
+              className="bg-gradient-to-r from-emerald-400 via-pink-500 to-[#D70F64] h-full rounded-full transition-all duration-100 ease-out shadow-[0_0_14px_#D70F64]"
+              style={{ width: `${splashProgress}%` }}
+            />
           </div>
 
           {/* Sub-Card: Nearest Dadu Rider Assigned & Preparing */}
