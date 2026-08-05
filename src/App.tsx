@@ -3279,52 +3279,97 @@ export default function App() {
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.45, duration: 0.6 }}
-                className="flex flex-col items-center space-y-3 w-full max-w-[280px]"
+                className="flex flex-col items-center space-y-4 w-full max-w-[300px]"
               >
-                {/* Track Container with Animated Rider */}
-                <div className="relative w-full pt-6">
-                  {/* Moving Scooter Rider Icon on Top of Progress Bar */}
+                {/* Track Container with Animated Rider Facing RIGHT */}
+                <div className="relative w-full pt-10">
+                  {/* Moving Bike Rider Icon on Top of Progress Bar (Facing Right -> Moving Left to Right) */}
                   <div
-                    className="absolute top-0 text-xl z-20 transition-all duration-150 ease-out transform -translate-x-1/2 pointer-events-none"
-                    style={{ left: `${Math.max(6, Math.min(splashProgress, 94))}%` }}
+                    className="absolute -top-1 z-20 transition-all duration-150 ease-out transform -translate-x-1/2 pointer-events-none"
+                    style={{ left: `${Math.max(8, Math.min(splashProgress, 92))}%` }}
                   >
-                    <motion.span
-                      animate={{ y: [0, -3, 0], rotate: [-3, 3, -3] }}
-                      transition={{ duration: 0.35, repeat: Infinity, ease: "easeInOut" }}
-                      className="inline-block filter drop-shadow-[0_4px_8px_rgba(215,15,100,0.8)]"
+                    <motion.div
+                      animate={{ y: [0, -2, 0], rotate: [-1, 2, -1] }}
+                      transition={{ duration: 0.25, repeat: Infinity, ease: "easeInOut" }}
+                      className="relative flex items-center justify-center"
                     >
-                      🛵💨
-                    </motion.span>
+                      {/* Speed Trail Smoke Behind Rider (on the left side of rider) */}
+                      <motion.div
+                        animate={{ opacity: [0.4, 1, 0.4], x: [-6, 0, -6], scale: [0.8, 1.1, 0.8] }}
+                        transition={{ duration: 0.3, repeat: Infinity }}
+                        className="absolute -left-6 top-2 text-xs font-bold text-pink-300 drop-shadow-[0_0_6px_rgba(255,194,214,0.9)]"
+                      >
+                        💨💨
+                      </motion.div>
+
+                      {/* Crisp Delivery Bike Rider SVG Facing RIGHT */}
+                      <div className="relative filter drop-shadow-[0_6px_12px_rgba(215,15,100,0.9)]">
+                        <svg width="48" height="48" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          {/* Wheels with rotation animation effect */}
+                          <g stroke="#FFFFFF" strokeWidth="6">
+                            {/* Rear Wheel */}
+                            <circle cx="25" cy="72" r="15" fill="#111827" />
+                            <circle cx="25" cy="72" r="6" fill="#FFDF00" />
+                            {/* Front Wheel */}
+                            <circle cx="75" cy="72" r="15" fill="#111827" />
+                            <circle cx="75" cy="72" r="6" fill="#FFDF00" />
+                          </g>
+                          {/* Scooter Chassis */}
+                          <path d="M25 72 L42 72 L50 52 L68 52 L75 72 Z" fill="#FFFFFF" />
+                          <path d="M42 70 L60 70 L66 42 L55 42 Z" fill="#E21B6D" />
+                          {/* Front Shield & Headlight */}
+                          <path d="M66 42 L74 30 L68 28 Z" fill="#FFFFFF" />
+                          <circle cx="74" cy="30" r="5" fill="#FFDF00" />
+                          {/* Delivery Box on Back */}
+                          <rect x="10" y="32" width="22" height="22" rx="4" fill="#FFDF00" stroke="#FFFFFF" strokeWidth="2" />
+                          <path d="M15 43 L27 43" stroke="#9C0843" strokeWidth="3" strokeLinecap="round" />
+                          {/* Rider Helmet & Visor */}
+                          <circle cx="48" cy="20" r="10" fill="#FFFFFF" />
+                          <path d="M51 16 C57 16, 58 23, 52 25 Z" fill="#111827" />
+                          {/* Rider Body & Arm steering right */}
+                          <path d="M44 30 L55 35 L68 34" stroke="#FFFFFF" strokeWidth="5" strokeLinecap="round" />
+                          <path d="M38 32 L46 50 L56 50 Z" fill="#111827" />
+                        </svg>
+                      </div>
+                    </motion.div>
                   </div>
 
                   {/* Progress Bar Track */}
-                  <div className="relative h-3 w-full bg-black/70 rounded-full overflow-hidden backdrop-blur-md border border-white/20 shadow-[0_0_25px_rgba(215,15,100,0.5)]">
+                  <div className="relative h-3.5 w-full bg-black/80 rounded-full p-0.5 backdrop-blur-md border border-white/20 shadow-[0_0_25px_rgba(215,15,100,0.6)]">
                     <motion.div
-                      className="h-full bg-gradient-to-r from-[#d70f64] via-pink-500 to-[#FFDF00] rounded-full transition-all duration-150 ease-out shadow-[0_0_15px_#d70f64]"
+                      className="h-full bg-gradient-to-r from-[#d70f64] via-pink-400 to-[#FFDF00] rounded-full transition-all duration-150 ease-out shadow-[0_0_15px_#FFDF00]"
                       style={{ width: `${splashProgress}%` }}
                     />
                     <motion.div
                       animate={{ x: ["-100%", "100%"] }}
-                      transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
-                      className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-white/60 to-transparent pointer-events-none"
+                      transition={{ duration: 1.1, repeat: Infinity, ease: "easeInOut" }}
+                      className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-white/70 to-transparent pointer-events-none rounded-full"
                     />
                   </div>
                 </div>
 
-                {/* Percentage & Dynamic Status Text */}
-                <div className="flex items-center justify-between w-full px-1 text-white/90">
+                {/* Stylish 0-100% Counter Badge & Dynamic Status Text */}
+                <div className="flex flex-col items-center justify-center w-full space-y-2 pt-1">
+                  {/* High-Tech Glowing Number Counter Box */}
+                  <div className="flex items-center gap-2 bg-black/60 border border-white/15 px-4 py-1.5 rounded-full backdrop-blur-md shadow-[0_4px_20px_rgba(215,15,100,0.4)]">
+                    <span className="text-sm">⚡</span>
+                    <span className="text-xl font-black font-mono tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-[#FFDF00] via-pink-300 to-white drop-shadow-[0_2px_8px_rgba(255,223,0,0.8)]">
+                      {splashProgress}%
+                    </span>
+                    <span className="text-xs font-bold text-pink-300">LOADED</span>
+                  </div>
+
+                  {/* Dynamic Status Text */}
                   <motion.span
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-[10px] md:text-[11px] font-extrabold uppercase tracking-[0.2em] text-pink-200"
+                    key={splashProgress < 35 ? "1" : splashProgress < 75 ? "2" : "3"}
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-pink-200 text-center"
                   >
                     {splashProgress < 35 && "Connecting Dadu City..."}
                     {splashProgress >= 35 && splashProgress < 75 && "Fetching Fresh Menu..."}
                     {splashProgress >= 75 && "Riders Ready to Deliver! 🚀"}
                   </motion.span>
-                  <span className="text-xs font-black font-mono text-[#FFDF00]">
-                    {splashProgress}%
-                  </span>
                 </div>
               </motion.div>
             </motion.div>
