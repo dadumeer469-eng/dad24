@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "motion/react";
-import daduLogo from "../assets/images/dadu_food_logo_new_1782333467889.jpg";
+import daduLogo from "../assets/images/dadu_food_logo_1782079256405.jpg";
 
 interface DaduLogoLoaderProps {
   size?: "sm" | "md" | "lg" | "xl" | "full";

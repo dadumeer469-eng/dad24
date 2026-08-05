@@ -54,7 +54,7 @@ import MobileAccountDrawer from "./components/MobileAccountDrawer";
 import { LazyImage } from "./components/LazyImage";
 import DaduLogoLoader from "./components/DaduLogoLoader";
 import useLazyBatchLoad from "./hooks/useLazyBatchLoad";
-import daduLogo from "./assets/images/dadu_food_logo_new_1782333467889.jpg";
+import daduLogo from "./assets/images/dadu_food_logo_1782079256405.jpg";
 
 // Icons & Motion
 import {

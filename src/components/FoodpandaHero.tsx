@@ -10,7 +10,7 @@ import {
 import { motion } from "motion/react";
 
 import { FoodCategory } from "../types";
-import daduLogo from "../assets/images/dadu_food_logo_new_1782333467889.jpg";
+import daduLogo from "../assets/images/dadu_food_logo_1782079256405.jpg";
 import { LazyImage } from "./LazyImage";
 
 interface FoodpandaHeroProps {

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import { getDatabase, ref, onValue, off } from "firebase/database";
 import { app, db } from "../firebase";
-import daduLogo from "../assets/images/dadu_food_logo_new_1782333467889.jpg";
+import daduLogo from "../assets/images/dadu_food_logo_1782079256405.jpg";
 import {
   ChevronLeft,
   Compass,
