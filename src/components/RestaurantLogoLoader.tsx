@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Sparkles, Star, Store, BadgeCheck, Clock } from "lucide-react";
+import { Sparkles, Star, Store, ShieldCheck, Clock } from "lucide-react";
 import { LazyImage } from "./LazyImage";
 
 interface RestaurantLogoLoaderProps {
@@ -148,19 +148,9 @@ export default function RestaurantLogoLoader({
               )}
 
               {/* Verified Badge Icon */}
-              <motion.div
-                initial={{ scale: 0, opacity: 0, rotate: -180, y: 12 }}
-                animate={{ scale: 1, opacity: 1, rotate: 0, y: 0 }}
-                transition={{
-                  type: "spring",
-                  stiffness: 400,
-                  damping: 14,
-                  delay: 0.2
-                }}
-                className="absolute bottom-1 right-1 bg-[#D70F64] text-white p-1 rounded-full shadow-md border border-white/30 z-10"
-              >
-                <BadgeCheck className="w-4 h-4 fill-white text-[#D70F64]" />
-              </motion.div>
+              <div className="absolute bottom-1 right-1 bg-[#D70F64] text-white p-1 rounded-full shadow-md border border-white/30">
+                <ShieldCheck className="w-3.5 h-3.5 fill-white text-[#D70F64]" />
+              </div>
             </motion.div>
           </div>
 

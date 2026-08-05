@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { motion } from "motion/react";
 import { UserProfile, AppNotification, Order } from "../types";
 import { Search, ShoppingBag, User, LogOut, Phone, Bell, ShieldAlert, BadgeCheck, Download, History, Heart, RotateCcw, Sun, Moon, X } from "lucide-react";
 import daduLogo from "../assets/images/dadu_food_logo_new_1782333467889.jpg";
@@ -112,30 +111,9 @@ export default function FoodpandaHeader({
               referrerPolicy="no-referrer"
             />
           </div>
-          <motion.span 
-            initial={{ opacity: 0, x: -8, scale: 0.95 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            transition={{ type: "spring", stiffness: 350, damping: 20 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="text-base sm:text-xl font-black tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center"
-          >
-            DADU
-            <motion.span 
-              animate={{ 
-                color: ["#d70f64", "#ff2a85", "#d70f64"],
-                scale: [1, 1.05, 1]
-              }}
-              transition={{ 
-                duration: 2.2, 
-                repeat: Infinity, 
-                ease: "easeInOut" 
-              }}
-              className="text-[#d70f64] inline-block font-black ml-0.5"
-            >
-              FOOD
-            </motion.span>
-          </motion.span>
+          <span className="text-base sm:text-xl font-black tracking-tight text-zinc-900 dark:text-zinc-100">
+            DADU<span className="text-[#d70f64]">FOOD</span>
+          </span>
         </div>
 
         {/* Address and support info - desktop only */}
@@ -171,20 +149,6 @@ export default function FoodpandaHeader({
 
         {/* Action Widgets Grid */}
         <div className="flex items-center gap-2.5 shrink-0">
-          
-          {/* Install App Button */}
-          <button
-            onClick={() => {
-              if ((window as any).triggerPWAInstall) {
-                (window as any).triggerPWAInstall();
-              }
-            }}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-pink-600 to-[#d70f64] hover:from-pink-700 hover:to-[#b00c50] text-white rounded-xl font-black text-xs shadow-sm cursor-pointer transition active:scale-95 border border-pink-400/20"
-            title="Install Dadu Food App"
-          >
-            <Download className="w-3.5 h-3.5 animate-bounce" />
-            <span>Install App</span>
-          </button>
           
           {/* In-App Notifications Center Dropdown */}
           <div className="relative">
@@ -301,24 +265,6 @@ export default function FoodpandaHeader({
                   >
                     <User className="w-4 h-4 shrink-0 text-[#d70f64]" />
                     Sign In / Register
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowUserMenu(false);
-                      if ((window as any).triggerPWAInstall) {
-                        (window as any).triggerPWAInstall();
-                      }
-                    }}
-                    className="w-full text-left font-extrabold text-xs text-[#d70f64] bg-pink-50/60 dark:bg-pink-950/20 px-3.5 py-2 my-1 hover:bg-pink-100 dark:hover:bg-pink-900/40 rounded-xl transition flex items-center justify-between cursor-pointer border border-pink-200/50 dark:border-pink-800/30"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Download className="w-4 h-4 text-[#d70f64] shrink-0 animate-bounce" />
-                      <span>Install Dadu Food App</span>
-                    </span>
-                    <span className="text-[10px] bg-[#d70f64] text-white font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider">
-                      App
-                    </span>
                   </button>
 
                   <button
