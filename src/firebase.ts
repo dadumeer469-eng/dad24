@@ -62,10 +62,15 @@ const storage = getStorage(app);
 
 // Graceful FireStore Error Mapper for diagnostics
 export function handleFirestoreError(err: any): string {
-  console.error("Firestore operation failure:", err);
-  if (err?.code === "resource-exhausted" || err?.message?.includes("Quota")) {
+  const isQuota = err?.code === "resource-exhausted" || err?.message?.includes("Quota");
+  if (isQuota) {
+    console.warn(
+      "Firebase Quota Notice: Free daily read units reached for project gen-lang-client-0422088194.\n" +
+      "Database URL: https://console.firebase.google.com/project/gen-lang-client-0422088194/firestore/databases/ai-studio-1ab132d4-43e2-4cce-bcc4-70c5fbc725d3/data?openUpgradeDialog=true"
+    );
     return "Dadu's daily Firebase limits reached! Everything will continue to run beautifully offline.";
   }
+  console.error("Firestore operation failure:", err);
   if (err?.code === "permission-denied") {
     return "Database permission denied. (Database ke rules lagane/auth permissions check karein).";
   }
