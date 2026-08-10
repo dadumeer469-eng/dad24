@@ -46,13 +46,19 @@ const db = databaseId
   ? initializeFirestore(app, { experimentalForceLongPolling: true }, databaseId) 
   : initializeFirestore(app, { experimentalForceLongPolling: true });
 
-enableIndexedDbPersistence(db).catch((err) => {
-  if (err.code == 'failed-precondition') {
-    console.warn("Firestore persistence failed-precondition: multiple tabs open");
-  } else if (err.code == 'unimplemented') {
-    console.warn("Firestore persistence unimplemented in this browser");
+if (typeof window !== "undefined" && "indexedDB" in window) {
+  try {
+    enableIndexedDbPersistence(db).catch((err) => {
+      if (err.code == 'failed-precondition') {
+        console.warn("Firestore persistence failed-precondition: multiple tabs open");
+      } else if (err.code == 'unimplemented') {
+        console.warn("Firestore persistence unimplemented in this browser");
+      }
+    });
+  } catch (err) {
+    console.warn("Firestore persistence disabled or restricted in Safari/Private Mode:", err);
   }
-});
+}
 
 console.log("Firestore instance initialized successfully.");
 

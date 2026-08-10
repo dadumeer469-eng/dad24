@@ -175,9 +175,9 @@ function ProductImageSelector({
           setUploadProgress(60);
           const canvas = document.createElement("canvas");
           
-          // Max dimensions
-          const MAX_WIDTH = 800;
-          const MAX_HEIGHT = 800;
+          // Max dimensions for lightweight storage (prevents Firestore doc bloat)
+          const MAX_WIDTH = 600;
+          const MAX_HEIGHT = 600;
           let width = img.width;
           let height = img.height;
 
@@ -199,7 +199,7 @@ function ProductImageSelector({
           const ctx = canvas.getContext("2d");
           if (ctx) {
             ctx.drawImage(img, 0, 0, width, height);
-            const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+            const dataUrl = canvas.toDataURL("image/jpeg", 0.6);
             setUploadProgress(100);
             onChange(dataUrl);
             setIsProcessing(false);
@@ -936,14 +936,14 @@ export default function AdminPanel({
 
   const handleSaveUiConfig = async () => {
     try {
-      await setDoc(
-        doc(db, "settings", "ui_config"),
-        {
-          heroBgUrl: heroBgUrl,
-          partnerShopsBgUrl: partnerShopsBgUrl,
-        },
-        { merge: true },
-      );
+      const uiData = {
+        heroBgUrl: heroBgUrl,
+        partnerShopsBgUrl: partnerShopsBgUrl,
+      };
+      await setDoc(doc(db, "settings", "ui_config"), uiData, { merge: true });
+      try {
+        localStorage.setItem("dadu_ui_config_cache", JSON.stringify(uiData));
+      } catch (e) {}
       alert(`UI settings successfully saved!`);
     } catch (err) {
       alert(`Failed to save UI settings: ${handleFirestoreError(err)}`);
@@ -2109,7 +2109,11 @@ export default function AdminPanel({
         },
       };
 
-      await setDoc(doc(db, "settings", "delivery_config"), cleanObject(newSettings));
+      const cleaned = cleanObject(newSettings);
+      await setDoc(doc(db, "settings", "delivery_config"), cleaned);
+      try {
+        localStorage.setItem("dadu_delivery_config_cache", JSON.stringify(cleaned));
+      } catch (e) {}
       alert(`Settings successfully saved for ${selectedScheduleRestaurant}!`);
     } catch (err) {
       console.error(err);

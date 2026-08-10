@@ -86,12 +86,16 @@ import { motion, AnimatePresence } from "motion/react";
 import FoodpandaRestaurantPage from "./components/FoodpandaRestaurantPage";
 
 export function getDeviceId(): string {
-  let id = localStorage.getItem("dadu_device_id");
-  if (!id) {
-    id = "dev-" + Math.random().toString(36).substring(2, 10) + "-" + Date.now();
-    localStorage.setItem("dadu_device_id", id);
+  try {
+    let id = localStorage.getItem("dadu_device_id");
+    if (!id) {
+      id = "dev-" + Math.random().toString(36).substring(2, 10) + "-" + Date.now();
+      localStorage.setItem("dadu_device_id", id);
+    }
+    return id;
+  } catch (e) {
+    return "dev-safari-" + Math.random().toString(36).substring(2, 10);
   }
-  return id;
 }
 
 const deviceId = getDeviceId();
@@ -194,13 +198,19 @@ export default function App() {
   const [isLoadingDishes, setIsLoadingDishes] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [deliverySettings, setDeliverySettings] = useState<SystemSettings>({
-    deliveryFee: 50,
-    restaurantStatus: {
-      isTemporarilyUnavailable: false,
-      openingTime: "09:00",
-      closingTime: "23:00",
-    },
+  const [deliverySettings, setDeliverySettings] = useState<SystemSettings>(() => {
+    try {
+      const cached = localStorage.getItem("dadu_delivery_config_cache");
+      if (cached) return JSON.parse(cached);
+    } catch (e) {}
+    return {
+      deliveryFee: 50,
+      restaurantStatus: {
+        isTemporarilyUnavailable: false,
+        openingTime: "09:00",
+        closingTime: "23:00",
+      },
+    };
   });
 
   // Favorites and Deal of the Hour configuration
@@ -210,8 +220,26 @@ export default function App() {
   const isExitingRef = useRef(false);
   const isProgrammaticBackRef = useRef(false);
   const lastPushedScreenRef = useRef<string>("home");
-  const [heroBgUrl, setHeroBgUrl] = useState<string>("");
-  const [partnerShopsBgUrl, setPartnerShopsBgUrl] = useState<string>("");
+  const [heroBgUrl, setHeroBgUrl] = useState<string>(() => {
+    try {
+      const cached = localStorage.getItem("dadu_ui_config_cache");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed.heroBgUrl) return parsed.heroBgUrl;
+      }
+    } catch (e) {}
+    return "";
+  });
+  const [partnerShopsBgUrl, setPartnerShopsBgUrl] = useState<string>(() => {
+    try {
+      const cached = localStorage.getItem("dadu_ui_config_cache");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed.partnerShopsBgUrl) return parsed.partnerShopsBgUrl;
+      }
+    } catch (e) {}
+    return "";
+  });
   const [dealConfig, setDealConfig] = useState<{
     isActive: boolean;
     timerMinutes: number;
@@ -732,16 +760,15 @@ export default function App() {
 
   // 3. Real-time Delivery Settings Listening
   useEffect(() => {
-    console.log("Trace: Initializing Delivery Settings collection listener...");
     const unsubscribe = onSnapshot(
       doc(db, "settings", "delivery_config"),
       (docSnap) => {
-        console.log(
-          "Trace: Delivery Settings snapshot received, exists:",
-          docSnap.exists(),
-        );
         if (docSnap.exists()) {
-          setDeliverySettings(docSnap.data() as SystemSettings);
+          const data = docSnap.data() as SystemSettings;
+          setDeliverySettings(data);
+          try {
+            localStorage.setItem("dadu_delivery_config_cache", JSON.stringify(data));
+          } catch (e) {}
         } else {
           // Seed default
           setDoc(doc(db, "settings", "delivery_config"), {
@@ -759,6 +786,10 @@ export default function App() {
           "Delivery config subscription error:",
           handleFirestoreError(err),
         );
+        try {
+          const cached = localStorage.getItem("dadu_delivery_config_cache");
+          if (cached) setDeliverySettings(JSON.parse(cached));
+        } catch (e) {}
       },
     );
 
@@ -1049,10 +1080,21 @@ export default function App() {
           if (data.partnerShopsBgUrl !== undefined) {
             setPartnerShopsBgUrl(data.partnerShopsBgUrl);
           }
+          try {
+            localStorage.setItem("dadu_ui_config_cache", JSON.stringify(data));
+          } catch (e) {}
         }
       },
       (err) => {
         console.warn("Error loading ui_config:", err);
+        try {
+          const cached = localStorage.getItem("dadu_ui_config_cache");
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed.heroBgUrl) setHeroBgUrl(parsed.heroBgUrl);
+            if (parsed.partnerShopsBgUrl) setPartnerShopsBgUrl(parsed.partnerShopsBgUrl);
+          }
+        } catch (e) {}
       }
     );
     return () => unsubscribe();
