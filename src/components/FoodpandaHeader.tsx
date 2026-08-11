@@ -86,7 +86,7 @@ export default function FoodpandaHeader({
 
   return (
     <>
-      <header className="relative z-40 bg-white/90 dark:bg-zinc-950/95 backdrop-blur-md text-zinc-800 dark:text-zinc-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)] border-b border-pink-100/60 dark:border-zinc-800">
+      <header className="relative z-40 bg-white dark:bg-zinc-950 text-zinc-800 dark:text-zinc-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)] border-b border-pink-100/60 dark:border-zinc-800">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           
           {/* Logo and Brand */}
@@ -470,7 +470,7 @@ export default function FoodpandaHeader({
       </header>
       
       {/* Mobile-only Search Sub Bar */}
-      <div className="sticky top-0 z-30 bg-white/95 dark:bg-zinc-950/95 border-b border-zinc-100 dark:border-zinc-800/80 block sm:hidden px-4 py-2 shadow-xs backdrop-blur-md">
+      <div className="sticky top-0 z-30 bg-white dark:bg-zinc-950 border-b border-zinc-100 dark:border-zinc-800/80 block sm:hidden px-4 py-2 shadow-xs">
         <div className="relative flex items-center">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#d70f64] pointer-events-none" />
           <input

@@ -212,7 +212,7 @@ export default function GroceryCartDrawer({
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden font-sans">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-xs transition-opacity" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/80 transition-opacity" onClick={onClose} />
 
       <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
         <div className="w-screen max-w-md bg-zinc-950 text-zinc-100 border-l border-zinc-900 shadow-2xl flex flex-col h-full">

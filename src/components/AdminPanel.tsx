@@ -31,7 +31,6 @@ import {
   increment,
 } from "firebase/firestore";
 import { db, firebaseConfig, databaseId, cleanObject, storage, handleFirestoreError, app } from "../firebase";
-import { safeStorage } from "../utils/safeStorage";
 import { getDatabase, ref, set as setRtdb, onValue, off } from "firebase/database";
 import { initializeApp, deleteApp } from "firebase/app";
 import {
@@ -176,9 +175,9 @@ function ProductImageSelector({
           setUploadProgress(60);
           const canvas = document.createElement("canvas");
           
-          // Max dimensions for lightweight storage (prevents Firestore doc bloat & Safari memory crashes)
-          const MAX_WIDTH = 400;
-          const MAX_HEIGHT = 400;
+          // Max dimensions
+          const MAX_WIDTH = 800;
+          const MAX_HEIGHT = 800;
           let width = img.width;
           let height = img.height;
 
@@ -200,7 +199,7 @@ function ProductImageSelector({
           const ctx = canvas.getContext("2d");
           if (ctx) {
             ctx.drawImage(img, 0, 0, width, height);
-            const dataUrl = canvas.toDataURL("image/jpeg", 0.5);
+            const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
             setUploadProgress(100);
             onChange(dataUrl);
             setIsProcessing(false);
@@ -937,12 +936,14 @@ export default function AdminPanel({
 
   const handleSaveUiConfig = async () => {
     try {
-      const uiData = {
-        heroBgUrl: heroBgUrl,
-        partnerShopsBgUrl: partnerShopsBgUrl,
-      };
-      await setDoc(doc(db, "settings", "ui_config"), uiData, { merge: true });
-      safeStorage.setItem("dadu_ui_config_cache", JSON.stringify(uiData));
+      await setDoc(
+        doc(db, "settings", "ui_config"),
+        {
+          heroBgUrl: heroBgUrl,
+          partnerShopsBgUrl: partnerShopsBgUrl,
+        },
+        { merge: true },
+      );
       alert(`UI settings successfully saved!`);
     } catch (err) {
       alert(`Failed to save UI settings: ${handleFirestoreError(err)}`);
@@ -2108,9 +2109,7 @@ export default function AdminPanel({
         },
       };
 
-      const cleaned = cleanObject(newSettings);
-      await setDoc(doc(db, "settings", "delivery_config"), cleaned);
-      safeStorage.setItem("dadu_delivery_config_cache", JSON.stringify(cleaned));
+      await setDoc(doc(db, "settings", "delivery_config"), cleanObject(newSettings));
       alert(`Settings successfully saved for ${selectedScheduleRestaurant}!`);
     } catch (err) {
       console.error(err);

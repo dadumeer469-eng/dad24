@@ -75,8 +75,8 @@ export default function FoodpandaHero({
             <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/60 to-transparent" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30" />
             {/* Ambient back glows */}
-            <div className="absolute right-1/3 top-1/4 w-80 h-80 bg-pink-500/10 rounded-full blur-[110px] pointer-events-none" />
-            <div className="absolute left-10 bottom-5 w-64 h-64 bg-amber-500/10 rounded-full blur-[90px] pointer-events-none" />
+            <div className="absolute right-1/3 top-1/4 w-80 h-80 bg-pink-500/10 rounded-full blur-xl pointer-events-none" />
+            <div className="absolute left-10 bottom-5 w-64 h-64 bg-amber-500/10 rounded-full blur-lg pointer-events-none" />
           </div>
 
           {/* Subtle branding absolute label in background */}
@@ -142,7 +142,7 @@ export default function FoodpandaHero({
           <div className="hidden md:flex items-center justify-center relative w-full md:w-1/3 h-52 z-10 shrink-0">
             <div className="relative w-full h-full flex items-center justify-center">
               {/* Radial background flare */}
-              <div className="absolute w-52 h-52 bg-pink-600/30 rounded-full blur-3xl animate-pulse"></div>
+              <div className="absolute w-52 h-52 bg-pink-600/20 rounded-full blur-xl"></div>
 
               {/* Floating Burger Card */}
               <motion.img

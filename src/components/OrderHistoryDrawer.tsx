@@ -405,7 +405,7 @@ export default function OrderHistoryDrawer({
                                         type="button"
                                         disabled={!ratingStars[order.id] || submittingRating[order.id]}
                                         onClick={() =>
-                                          handleRatingSubmit(order.id, ratingStars[order.id] || 5, ratingComments[order.id] || "")
+                                          handleRateOrder(order.id)
                                         }
                                         className="bg-[#D70F64] text-white text-[10px] font-bold px-3 py-1 rounded-lg hover:bg-[#b00c50] disabled:opacity-50 transition cursor-pointer shrink-0"
                                       >

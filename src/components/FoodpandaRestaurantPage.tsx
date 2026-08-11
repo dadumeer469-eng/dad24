@@ -708,7 +708,7 @@ export default function FoodpandaRestaurantPage({
 }
 
 // Professional Dish Card Component
-function DishCard({ 
+const DishCard = React.memo(function DishCard({ 
   dish, 
   onAdd, 
   isClosed,
@@ -909,4 +909,4 @@ function DishCard({
       </div>
     </motion.div>
   );
-}
+});

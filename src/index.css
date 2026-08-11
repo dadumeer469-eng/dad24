@@ -13,6 +13,18 @@
   --color-zinc-800: #0f2d1c;
 }
 
+/* Global scrollbar hiding for Chrome, Safari, Edge, and Firefox */
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+* {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
 @layer utilities {
   /* Scrollbar none helper */
   .scrollbar-none::-webkit-scrollbar {
@@ -96,41 +108,11 @@ html {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* WebKit / Safari Fallbacks & Enhancements */
-@supports (-webkit-touch-callout: none) {
-  /* Safari iOS viewport height fix */
-  .min-h-screen {
-    min-h: -webkit-fill-available;
-  }
-}
-
-/* Ensure backdrop-filter works on Safari WebKit */
-.backdrop-blur-xs {
-  -webkit-backdrop-filter: blur(2px);
-  backdrop-filter: blur(2px);
-}
-.backdrop-blur-sm {
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
-}
-.backdrop-blur-md {
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-}
-.backdrop-blur-lg {
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-}
-.backdrop-blur-xl {
-  -webkit-backdrop-filter: blur(24px);
-  backdrop-filter: blur(24px);
-}
-
 body {
   background-color: #FFFDFE;
   color: #27272a;
   font-family: var(--font-sans);
-  overflow-x: hidden;
+  overflow-x: clip;
   transition: background-color 0.2s ease, color 0.2s ease;
   scroll-behavior: smooth;
   text-rendering: optimizeLegibility;

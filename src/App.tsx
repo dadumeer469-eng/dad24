@@ -1,5 +1,6 @@
 import LocationPermissionModal from "./components/LocationPermissionModal";
-import React, { useState, useEffect, useRef, Suspense } from "react";
+import React, { useState, useEffect, useRef, Suspense, useCallback } from "react";
+import { DashboardMenuItemCard } from "./components/DashboardMenuItemCard";
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from "firebase/auth";
 import {
   collection,
@@ -54,6 +55,7 @@ import { LazyImage } from "./components/LazyImage";
 import DaduLogoLoader from "./components/DaduLogoLoader";
 import useLazyBatchLoad from "./hooks/useLazyBatchLoad";
 import daduLogo from "./assets/images/dadu_food_logo_new_1782333467889.jpg";
+import { logMemoryUsage, useMemoryMonitor } from "./utils/memoryLogger";
 
 // Icons & Motion
 import {
@@ -84,13 +86,12 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 
 import FoodpandaRestaurantPage from "./components/FoodpandaRestaurantPage";
-import { safeStorage } from "./utils/safeStorage";
 
 export function getDeviceId(): string {
-  let id = safeStorage.getItem("dadu_device_id");
+  let id = localStorage.getItem("dadu_device_id");
   if (!id) {
     id = "dev-" + Math.random().toString(36).substring(2, 10) + "-" + Date.now();
-    safeStorage.setItem("dadu_device_id", id);
+    localStorage.setItem("dadu_device_id", id);
   }
   return id;
 }
@@ -159,6 +160,7 @@ function BannerLiveChatButton({
 }
 
 export default function App() {
+  useMemoryMonitor("App");
   const [showSplash, setShowSplash] = useState(true);
   const [splashProgress, setSplashProgress] = useState(0);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
@@ -166,7 +168,7 @@ export default function App() {
 
   // Load saved theme on mount (Defaults to dark mode for all users)
   useEffect(() => {
-    const saved = safeStorage.getItem("dadu_theme");
+    const saved = localStorage.getItem("dadu_theme");
     if (saved === "light") {
       setTheme("light");
       document.documentElement.classList.remove("dark");
@@ -181,7 +183,7 @@ export default function App() {
   const handleToggleTheme = () => {
     const nextTheme = theme === "dark" ? "light" : "dark";
     setTheme(nextTheme);
-    safeStorage.setItem("dadu_theme", nextTheme);
+    localStorage.setItem("dadu_theme", nextTheme);
     if (nextTheme === "dark") {
       document.documentElement.classList.add("dark");
       document.body.classList.add("dark");
@@ -195,19 +197,13 @@ export default function App() {
   const [isLoadingDishes, setIsLoadingDishes] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [deliverySettings, setDeliverySettings] = useState<SystemSettings>(() => {
-    try {
-      const cached = safeStorage.getItem("dadu_delivery_config_cache");
-      if (cached) return JSON.parse(cached);
-    } catch (e) {}
-    return {
-      deliveryFee: 50,
-      restaurantStatus: {
-        isTemporarilyUnavailable: false,
-        openingTime: "09:00",
-        closingTime: "23:00",
-      },
-    };
+  const [deliverySettings, setDeliverySettings] = useState<SystemSettings>({
+    deliveryFee: 50,
+    restaurantStatus: {
+      isTemporarilyUnavailable: false,
+      openingTime: "09:00",
+      closingTime: "23:00",
+    },
   });
 
   // Favorites and Deal of the Hour configuration
@@ -217,26 +213,8 @@ export default function App() {
   const isExitingRef = useRef(false);
   const isProgrammaticBackRef = useRef(false);
   const lastPushedScreenRef = useRef<string>("home");
-  const [heroBgUrl, setHeroBgUrl] = useState<string>(() => {
-    try {
-      const cached = safeStorage.getItem("dadu_ui_config_cache");
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (parsed.heroBgUrl) return parsed.heroBgUrl;
-      }
-    } catch (e) {}
-    return "";
-  });
-  const [partnerShopsBgUrl, setPartnerShopsBgUrl] = useState<string>(() => {
-    try {
-      const cached = safeStorage.getItem("dadu_ui_config_cache");
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (parsed.partnerShopsBgUrl) return parsed.partnerShopsBgUrl;
-      }
-    } catch (e) {}
-    return "";
-  });
+  const [heroBgUrl, setHeroBgUrl] = useState<string>("");
+  const [partnerShopsBgUrl, setPartnerShopsBgUrl] = useState<string>("");
   const [dealConfig, setDealConfig] = useState<{
     isActive: boolean;
     timerMinutes: number;
@@ -460,13 +438,21 @@ export default function App() {
     if (navigator.geolocation) {
       watchId = navigator.geolocation.watchPosition(
         (pos) => {
-          setGlobalCoords({
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude
+          const newLat = pos.coords.latitude;
+          const newLng = pos.coords.longitude;
+          
+          setGlobalCoords((prev) => {
+            if (!prev) return { latitude: newLat, longitude: newLng };
+            const distKm = calculateDistanceKm(prev.latitude, prev.longitude, newLat, newLng);
+            // Only update state if position moved at least 10 meters (0.01 km) to avoid unnecessary re-renders
+            if (distKm >= 0.01) {
+              return { latitude: newLat, longitude: newLng };
+            }
+            return prev;
           });
         },
         (err) => console.log("Real-time watch location error:", err),
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+        { enableHighAccuracy: false, timeout: 20000, maximumAge: 10000 }
       );
     }
     
@@ -585,6 +571,12 @@ export default function App() {
       gain2.connect(ctx.destination);
       osc2.start(now + 0.1);
       osc2.stop(now + 0.4);
+
+      setTimeout(() => {
+        if (ctx.state !== "closed") {
+          ctx.close().catch(() => {});
+        }
+      }, 600);
     } catch (err) {
       console.warn("AudioContext blocked or waiting for user gesture:", err);
     }
@@ -695,14 +687,14 @@ export default function App() {
     }
   }, [currentUser?.status]);
 
-  // 1.5. Ultra 60FPS Smooth Loading Splash Screen Animation using requestAnimationFrame
+  // 1.5. Ultra 60FPS Smooth Fast Loading Splash Screen Animation using requestAnimationFrame
   useEffect(() => {
     setShowSplash(true);
     setSplashProgress(0);
 
     let animationFrameId: number;
     const startTime = performance.now();
-    const duration = 2200; // 2.2 seconds total duration
+    const duration = 400; // Fast 0.4 seconds total duration
 
     const updateProgress = (currentTime: number) => {
       const elapsed = currentTime - startTime;
@@ -714,7 +706,7 @@ export default function App() {
       } else {
         setTimeout(() => {
           setShowSplash(false);
-        }, 250);
+        }, 50);
       }
     };
 
@@ -757,13 +749,16 @@ export default function App() {
 
   // 3. Real-time Delivery Settings Listening
   useEffect(() => {
+    console.log("Trace: Initializing Delivery Settings collection listener...");
     const unsubscribe = onSnapshot(
       doc(db, "settings", "delivery_config"),
       (docSnap) => {
+        console.log(
+          "Trace: Delivery Settings snapshot received, exists:",
+          docSnap.exists(),
+        );
         if (docSnap.exists()) {
-          const data = docSnap.data() as SystemSettings;
-          setDeliverySettings(data);
-          safeStorage.setItem("dadu_delivery_config_cache", JSON.stringify(data));
+          setDeliverySettings(docSnap.data() as SystemSettings);
         } else {
           // Seed default
           setDoc(doc(db, "settings", "delivery_config"), {
@@ -781,12 +776,6 @@ export default function App() {
           "Delivery config subscription error:",
           handleFirestoreError(err),
         );
-        const cached = safeStorage.getItem("dadu_delivery_config_cache");
-        if (cached) {
-          try {
-            setDeliverySettings(JSON.parse(cached));
-          } catch (e) {}
-        }
       },
     );
 
@@ -1077,19 +1066,10 @@ export default function App() {
           if (data.partnerShopsBgUrl !== undefined) {
             setPartnerShopsBgUrl(data.partnerShopsBgUrl);
           }
-          safeStorage.setItem("dadu_ui_config_cache", JSON.stringify(data));
         }
       },
       (err) => {
         console.warn("Error loading ui_config:", err);
-        const cached = safeStorage.getItem("dadu_ui_config_cache");
-        if (cached) {
-          try {
-            const parsed = JSON.parse(cached);
-            if (parsed.heroBgUrl) setHeroBgUrl(parsed.heroBgUrl);
-            if (parsed.partnerShopsBgUrl) setPartnerShopsBgUrl(parsed.partnerShopsBgUrl);
-          } catch (e) {}
-        }
       }
     );
     return () => unsubscribe();
@@ -1140,7 +1120,7 @@ export default function App() {
 
   // 3f. Load favorites from LocalStorage on mount
   useEffect(() => {
-    const saved = safeStorage.getItem("dadu_favorite_dishes");
+    const saved = localStorage.getItem("dadu_favorite_dishes");
     if (saved) {
       try {
         setFavoriteDishIds(JSON.parse(saved));
@@ -1157,7 +1137,7 @@ export default function App() {
 
   // 3f. Save favorites to LocalStorage whenever they change
   useEffect(() => {
-    safeStorage.setItem(
+    localStorage.setItem(
       "dadu_favorite_dishes",
       JSON.stringify(favoriteDishIds),
     );
@@ -1176,7 +1156,7 @@ export default function App() {
 
   // 3d. Grocery cart LocalStorage Sync
   useEffect(() => {
-    const saved = safeStorage.getItem("dadu_grocery_cart");
+    const saved = localStorage.getItem("dadu_grocery_cart");
     if (saved) {
       try {
         setGroceryCartItems(JSON.parse(saved));
@@ -1187,7 +1167,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    safeStorage.setItem("dadu_grocery_cart", JSON.stringify(groceryCartItems));
+    localStorage.setItem("dadu_grocery_cart", JSON.stringify(groceryCartItems));
   }, [groceryCartItems]);
 
   // 4. Real-time Orders & Notification Listeners
@@ -1474,7 +1454,7 @@ export default function App() {
   ]);
 
   // --- CART CONTROLLER OPERATIONS ---
-  const handleAddToCart = (
+  const handleAddToCart = useCallback((
     dish: Dish,
     quantityToAdd: number = 1,
     options?: {
@@ -1608,7 +1588,7 @@ export default function App() {
         },
       ];
     });
-  };
+  }, [currentUser, groceryDeliveryConfig, groceryCartItems.length, cartItems]);
 
   const handleAddExclusiveDrink = (drink: any) => {
     const firstRestName =
@@ -1919,7 +1899,7 @@ export default function App() {
   };
 
   // Submit order to database
-  const handlePlaceOrderSubmit = async (details: {
+  const handlePlaceOrderSubmit = useCallback(async (details: {
     name: string;
     phone: string;
     location: { area: string; street: string; lat?: number; lng?: number; googleMapsLink?: string };
@@ -2109,7 +2089,7 @@ export default function App() {
       console.error(err);
       alert(handleFirestoreError(err));
     }
-  };
+  }, [currentUser, cartItems, deliverySettings, deviceId]);
 
   const handleClearNotificationsAll = async () => {
     try {
@@ -3266,27 +3246,27 @@ export default function App() {
             initial={{ opacity: 1 }}
             exit={{
               opacity: 0,
-              scale: 1.05,
-              filter: "blur(12px)",
-              transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] },
+              scale: 1.02,
+              filter: "blur(4px)",
+              transition: { duration: 0.18, ease: "easeOut" },
             }}
             className="fixed inset-0 z-[99999] flex items-center justify-center overflow-hidden bg-black/90 text-white select-none"
             style={{ perspective: 1500 }}
           >
             {/* Cinematic Dark Glass Backdrop */}
             <motion.div
-              initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
-              animate={{ opacity: 1, backdropFilter: "blur(20px)" }}
-              exit={{ opacity: 0, backdropFilter: "blur(0px)", transition: { duration: 0.6 } }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, transition: { duration: 0.15 } }}
               className="absolute inset-0 bg-black/70 z-0"
             />
 
             {/* Animated Mesh/Orb Gradients */}
             <motion.div
-              initial={{ scale: 0, opacity: 0 }}
+              initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 1.5, opacity: 0, transition: { duration: 0.5 } }}
-              transition={{ duration: 1, ease: "easeOut" }}
+              exit={{ scale: 1.2, opacity: 0, transition: { duration: 0.15 } }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
               className="absolute inset-0 flex items-center justify-center z-0"
             >
               <motion.div
@@ -3303,20 +3283,20 @@ export default function App() {
 
             {/* Portal Ring */}
             <motion.div
-              initial={{ scale: 0, opacity: 0, rotateX: 60 }}
-              animate={{ scale: 1, opacity: 1, rotateX: 0 }}
-              exit={{ scale: 2, opacity: 0, transition: { duration: 0.5 } }}
-              transition={{ duration: 1.2, type: "spring", bounce: 0.4 }}
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 1.5, opacity: 0, transition: { duration: 0.15 } }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
               className="absolute w-[300px] h-[300px] md:w-[400px] md:h-[400px] rounded-full border border-white/20 shadow-[0_0_80px_rgba(215,15,100,0.5)] z-0"
               style={{ background: "radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%)" }}
             />
 
             {/* Main Content Floating */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.5, rotateY: -30, z: -400 }}
-              animate={{ opacity: 1, scale: 1, rotateY: 0, z: 0 }}
-              exit={{ opacity: 0, scale: 1.2, rotateY: 15, z: 200, filter: "blur(15px)", transition: { duration: 0.5 } }}
-              transition={{ duration: 0.9, type: "spring", bounce: 0.5, delay: 0.1 }}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.1, transition: { duration: 0.15 } }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
               className="relative z-10 flex flex-col items-center justify-center text-white w-full px-4 text-center"
             >
               {/* Site Logo Presentation Frame */}
@@ -3346,9 +3326,9 @@ export default function App() {
 
               {/* Brand Title Text matching DADUFOOD branding */}
               <motion.h2
-                initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
-                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                transition={{ delay: 0.3, duration: 0.7, type: "spring", bounce: 0.4 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
                 className="text-3xl md:text-5xl font-black tracking-widest text-white mb-1 text-center drop-shadow-[0_4px_12px_rgba(215,15,100,0.6)] uppercase font-sans"
               >
                 DADUFOOD
@@ -3356,7 +3336,7 @@ export default function App() {
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.4 }}
+                transition={{ duration: 0.2 }}
                 className="text-[11px] md:text-xs text-pink-300 font-black uppercase tracking-[0.3em] mb-7 flex items-center justify-center gap-1.5"
               >
                 <span>⚡</span>
@@ -3366,9 +3346,9 @@ export default function App() {
 
               {/* High-tech Smooth 60FPS Animated Rider Loading Screen */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
+                initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.45, duration: 0.5 }}
+                transition={{ duration: 0.2 }}
                 className="flex flex-col items-center space-y-4 w-full max-w-[320px]"
               >
                 {/* Track Container with 60FPS Smooth Rider (Facing Right) */}
@@ -4337,279 +4317,29 @@ export default function App() {
                                 : "Dadu Fast Food & Kitchen");
                             const isRestaurantClosed =
                               checkIsRestaurantClosed(dishRestaurantName);
+                            const openingTime =
+                              deliverySettings?.restaurantStatuses?.[
+                                dishRestaurantName
+                              ]?.openingTime ||
+                              deliverySettings?.restaurantStatus?.openingTime;
+                            const isFavorite = favoriteDishIds.includes(dish.id);
+                            const cartItem = cartItems.find((item) => item.dishId === dish.id);
+                            const quantityInCart = cartItem ? cartItem.quantity : 0;
+
                             return (
-                              <motion.div
+                              <DashboardMenuItemCard
                                 key={dish.id}
-                                initial={{ opacity: 0, y: 22 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.38, delay: Math.min(idx * 0.035, 0.35), ease: "easeOut" }}
-                                className={`bg-white border border-zinc-200/80 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs hover:border-[#d70f64]/30 hover:shadow-md hover:shadow-red-500/5 transition-all flex flex-col group relative text-zinc-800 ${isRestaurantClosed ? "opacity-70 grayscale-[20%]" : ""}`}
-                              >
-                                {/* Sold Out Overlay */}
-                                {!dish.isAvailable && !isRestaurantClosed && (
-                                  <div className="absolute inset-0 bg-white/95 z-20 flex flex-col items-center justify-center text-center p-2 sm:p-4">
-                                    <BadgeAlert className="w-5 h-5 sm:w-8 sm:h-8 text-zinc-400 mb-1" />
-                                    <span className="font-extrabold text-[10px] sm:text-sm uppercase tracking-widest text-[#d70f64]">
-                                      SOLD OUT
-                                    </span>
-                                    <span className="text-[8px] sm:text-[10px] text-zinc-500 mt-0.5 font-bold">
-                                      Soon
-                                    </span>
-                                  </div>
-                                )}
-
-                                {isRestaurantClosed && (
-                                  <div className="absolute inset-0 bg-white/70 z-20 flex flex-col items-center justify-center text-center p-2 sm:p-4 cursor-not-allowed">
-                                    <Clock className="w-5 h-5 sm:w-8 sm:h-8 text-red-500 mb-1" />
-                                    <span className="font-extrabold text-[10px] sm:text-sm uppercase tracking-widest text-pink-600">
-                                      UNAVAILABLE
-                                    </span>
-                                    <span className="text-[9px] sm:text-xs font-bold text-zinc-800 mt-1 bg-white px-2 py-0.5 rounded shadow-sm border border-red-100">
-                                      Opens at{" "}
-                                      {deliverySettings?.restaurantStatuses?.[
-                                        dishRestaurantName
-                                      ]?.openingTime ||
-                                        deliverySettings?.restaurantStatus
-                                          ?.openingTime ||
-                                        "soon"}
-                                    </span>
-                                  </div>
-                                )}
-
-                                {/* Card Image */}
-                                <div
-                                  className="relative h-28 sm:h-44 bg-zinc-100 overflow-hidden shrink-0 cursor-pointer"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (!dish.isAvailable || isRestaurantClosed)
-                                      return;
-                                    setActiveDetailDish(dish);
-                                  }}
-                                >
-                                  <LazyImage
-                                    referrerPolicy="no-referrer"
-                                    src={dish.imageUrl || (dish.type === "service" ? "https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&q=80&w=400" : "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=400")}
-                                    alt={dish.name}
-                                    className="w-full h-full"
-                                    imgClassName="group-hover:scale-105"
-                                  />
-                                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent"></div>
-
-                                  {/* Add to Favorite (Heart Icon Button) */}
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      toggleFavorite(dish.id);
-                                    }}
-                                    className="absolute top-2 right-2 z-30 p-1.5 sm:p-2 rounded-full bg-white/90 hover:bg-white text-[#d70f64] hover:scale-110 active:scale-95 shadow-md transition duration-200 cursor-pointer"
-                                    title={
-                                      favoriteDishIds.includes(dish.id)
-                                        ? "Remove from Favorites"
-                                        : "Add to Favorites"
-                                    }
-                                  >
-                                    <Heart
-                                      className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition duration-200 ${
-                                        favoriteDishIds.includes(dish.id)
-                                          ? "fill-[#d70f64] text-[#d70f64]"
-                                          : "text-zinc-650 hover:text-[#d70f64]"
-                                      }`}
-                                    />
-                                  </button>
-
-                                  {/* Top Tag */}
-                                  <div className="absolute top-2 left-2 flex flex-col gap-1 items-start">
-                                    <span
-                                      className={`text-[8px] sm:text-[10px] font-black uppercase tracking-wider py-0.5 sm:py-1 px-1.5 sm:px-2.5 rounded-md sm:rounded-lg shadow-md ${
-                                        isSvc
-                                          ? "bg-amber-500 text-neutral-950 font-extrabold"
-                                          : "bg-[#d70f64] text-white"
-                                      }`}
-                                    >
-                                      {isSvc ? "🛠️ Service" : "🍔 Food"}
-                                    </span>
-                                    {dish.discountPrice &&
-                                      dish.discountPrice < dish.price && (
-                                        <span className="text-[7.5px] sm:text-[9px] font-black uppercase tracking-wider py-0.5 sm:py-0.8 px-1.5 sm:px-2 bg-gradient-to-r from-pink-500 to-pink-400 text-white rounded-md sm:rounded-lg shadow-md animate-pulse">
-                                          🔥{" "}
-                                          {Math.round(
-                                            ((dish.price - dish.discountPrice) /
-                                              dish.price) *
-                                              100,
-                                          )}
-                                          % OFF
-                                        </span>
-                                      )}
-                                  </div>
-                                </div>
-
-                                {/* Card Contents */}
-                                <div className="p-2.5 sm:p-4 flex-1 flex flex-col justify-between space-y-2 sm:space-y-3.5 bg-white">
-                                  <div
-                                    className="space-y-1 sm:space-y-1.5 flex-1 cursor-pointer"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      if (
-                                        !dish.isAvailable ||
-                                        isRestaurantClosed
-                                      )
-                                        return;
-                                      setActiveDetailDish(dish);
-                                    }}
-                                  >
-                                    <div className="text-[8.5px] sm:text-[10.5px] text-zinc-500 font-extrabold tracking-wider uppercase flex items-center gap-1 break-words">
-                                      <span>🏪</span>{" "}
-                                      {dish.restaurantName ||
-                                        (dish.type === "service"
-                                          ? "Dadu Home Services"
-                                          : "Dadu Fast Food & Kitchen")}
-                                    </div>
-                                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-1 sm:gap-1.5">
-                                      <h4 className="font-bold text-zinc-800 text-xs sm:text-sm tracking-tight leading-snug group-hover:text-[#d70f64] transition break-words">
-                                        {dish.name}
-                                      </h4>
-                                      {dish.discountPrice &&
-                                      dish.discountPrice < dish.price ? (
-                                        <div className="flex flex-col items-end shrink-0 leading-none">
-                                          <span
-                                            className={`font-black text-xs sm:text-sm whitespace-nowrap text-emerald-600`}
-                                          >
-                                            Rs. {dish.discountPrice}
-                                          </span>
-                                          <span className="text-[9px] sm:text-[10.5px] line-through text-zinc-400 font-bold mt-0.5">
-                                            Rs. {dish.price}
-                                          </span>
-                                        </div>
-                                      ) : (
-                                        <span
-                                          className={`font-black text-xs sm:text-sm shrink-0 whitespace-nowrap ${isSvc ? "text-amber-600" : "text-[#d70f64]"}`}
-                                        >
-                                          Rs. {dish.price}
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-
-                                  {/* Detail Badging - CUSTOMIZED FOR SERVICES (Hidden on mobile grid for cleanliness) */}
-                                  <div className="hidden sm:flex items-center gap-2 border-t border-zinc-100 pt-3 text-[10.5px] font-semibold text-zinc-500">
-                                    {isSvc ? (
-                                      <>
-                                        <Wrench className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                                        <span className="text-amber-500 truncate font-bold">
-                                          Visiting Fee - Repairs onsite
-                                        </span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Clock className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                                        <span>Prep: 20-30m</span>
-                                        <span className="text-zinc-350">•</span>
-                                        <span className="text-emerald-600 font-bold">
-                                          Fast Delivery
-                                        </span>
-                                      </>
-                                    )}
-                                  </div>
-
-                                  {/* Add to checkout CTAs */}
-                                  <div className="pt-1 shrink-0">
-                                    {(() => {
-                                      const cartItem = cartItems.find(
-                                        (item) => item.dishId === dish.id,
-                                      );
-                                      const qty = cartItem
-                                        ? cartItem.quantity
-                                        : 0;
-
-                                      if (qty > 0) {
-                                        return (
-                                          <div className="flex items-center justify-between bg-zinc-950 border border-zinc-800 p-1.5 rounded-xl">
-                                            <button
-                                              onClick={() =>
-                                                handleUpdateCartQuantity(
-                                                  dish.id,
-                                                  qty - 1,
-                                                )
-                                              }
-                                              className="w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 transition font-black flex items-center justify-center cursor-pointer active:scale-90"
-                                            >
-                                              <Minus className="w-3.5 h-3.5" />
-                                            </button>
-                                            <span className="text-xs font-black text-white font-mono shrink-0">
-                                              {qty}
-                                            </span>
-                                            <button
-                                              onClick={() =>
-                                                handleUpdateCartQuantity(
-                                                  dish.id,
-                                                  qty + 1,
-                                                )
-                                              }
-                                              className={`w-8 h-8 rounded-lg transition font-black flex items-center justify-center cursor-pointer active:scale-90 ${
-                                                isSvc
-                                                  ? "bg-amber-500 hover:bg-amber-600 text-[#121212]"
-                                                  : "bg-[#d70f64] hover:bg-[#b00c50] text-white"
-                                              }`}
-                                            >
-                                              <Plus className="w-3.5 h-3.5" />
-                                            </button>
-                                          </div>
-                                        );
-                                      }
-
-                                      return (
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            const hasCustomization =
-                                              (dish.sizes &&
-                                                dish.sizes.length > 0) ||
-                                              (dish.flavors &&
-                                                dish.flavors.length > 0) ||
-                                              (dish.addOns &&
-                                                dish.addOns.length > 0);
-                                            if (hasCustomization) {
-                                              setActiveDetailDish(dish);
-                                            } else {
-                                              handleAddToCart(dish);
-                                            }
-                                          }}
-                                          disabled={
-                                            !dish.isAvailable ||
-                                            isRestaurantClosed
-                                          }
-                                          className={`w-full py-1.5 sm:py-2.5 rounded-xl sm:rounded-2xl text-[9px] sm:text-xs font-black uppercase tracking-wider transition shadow-xs flex items-center justify-center gap-1 ${!dish.isAvailable || isRestaurantClosed ? "cursor-not-allowed opacity-60" : "cursor-pointer"} ${
-                                            isSvc
-                                              ? "bg-amber-500 hover:bg-amber-600 text-[#121212] font-semibold"
-                                              : "bg-[#d70f64] hover:bg-[#b00c50] text-white"
-                                          }`}
-                                        >
-                                          {isSvc ? (
-                                            <>
-                                              <span className="sm:hidden">
-                                                + Book
-                                              </span>
-                                              <span className="hidden sm:inline">
-                                                Book Diagnosis (Rs. 500)
-                                              </span>
-                                            </>
-                                          ) : (
-                                            <>
-                                              <span className="sm:hidden">
-                                                + Add
-                                              </span>
-                                              <span className="hidden sm:inline">
-                                                Add To Dadu Cart
-                                              </span>
-                                            </>
-                                          )}
-                                        </button>
-                                      );
-                                    })()}
-                                  </div>
-                                </div>
-                              </motion.div>
+                                dish={dish}
+                                idx={idx}
+                                isRestaurantClosed={isRestaurantClosed}
+                                openingTime={openingTime}
+                                isFavorite={isFavorite}
+                                quantityInCart={quantityInCart}
+                                onToggleFavorite={toggleFavorite}
+                                onSelectDetail={setActiveDetailDish}
+                                onAddToCart={handleAddToCart}
+                                onUpdateCartQuantity={handleUpdateCartQuantity}
+                              />
                             );
                           })}
                       </div>

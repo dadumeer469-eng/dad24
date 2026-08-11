@@ -42,41 +42,51 @@ export default function OrderSuccessAnimation({
       requestAnimationFrame(animateProgress);
 
       // Generate confetti particles on load
-      const colors = ["#D70F64", "#EA580C", "#10B981", "#3B82F6", "#F59E0B", "#EC4899", "#8B5CF6", "#f43f5e", "#84cc16"];
-      const generated = Array.from({ length: 60 }).map((_, i) => ({
+      const colors = ["#D70F64", "#EA580C", "#10B981", "#3B82F6", "#F59E0B", "#EC4899", "#8B5CF6"];
+      const generated = Array.from({ length: 18 }).map((_, i) => ({
         id: i,
         x: Math.random() * 100, // percentage of screen width
         y: -10, // start above screen
         color: colors[Math.floor(Math.random() * colors.length)],
-        size: Math.random() * 8 + 6,
-        delay: Math.random() * 1.5,
-        duration: Math.random() * 2 + 2,
+        size: Math.random() * 6 + 5,
+        delay: Math.random() * 0.8,
+        duration: Math.random() * 1.5 + 1.5,
       }));
       setParticles(generated);
 
-      // Play bubble pop sounds if possible (non-blocking)
+      // Play bubble pop sounds with proper AudioContext cleanup
       try {
-        const context = new (window.AudioContext || (window as any).webkitAudioContext)();
-        const playTone = (freq: number, type: OscillatorType, delay: number, duration: number) => {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioCtx) {
+          const context = new AudioCtx();
+          const playTone = (freq: number, type: OscillatorType, delay: number, duration: number) => {
+            setTimeout(() => {
+              if (context.state === "closed") return;
+              const osc = context.createOscillator();
+              const gain = context.createGain();
+              osc.type = type;
+              osc.frequency.setValueAtTime(freq, context.currentTime);
+              gain.gain.setValueAtTime(0.12, context.currentTime);
+              gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + duration);
+              osc.connect(gain);
+              gain.connect(context.destination);
+              osc.start();
+              osc.stop(context.currentTime + duration);
+            }, delay * 1000);
+          };
+          playTone(523.25, "sine", 0.05, 0.3); // C5
+          playTone(659.25, "sine", 0.15, 0.3); // E5
+          playTone(783.99, "sine", 0.25, 0.4); // G5
+          
+          // Clean up context after audio finishes
           setTimeout(() => {
-            const osc = context.createOscillator();
-            const gain = context.createGain();
-            osc.type = type;
-            osc.frequency.setValueAtTime(freq, context.currentTime);
-            gain.gain.setValueAtTime(0.15, context.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + duration);
-            osc.connect(gain);
-            gain.connect(context.destination);
-            osc.start();
-            osc.stop(context.currentTime + duration);
-          }, delay * 1000);
-        };
-        playTone(523.25, "sine", 0.1, 0.4); // C5
-        playTone(659.25, "sine", 0.25, 0.5); // E5
-        playTone(783.99, "sine", 0.4, 0.6); // G5
-        playTone(1046.50, "sine", 0.55, 0.8); // C6
+            if (context.state !== "closed") {
+              context.close().catch(() => {});
+            }
+          }, 1200);
+        }
       } catch (e) {
-        console.log("Audio feedback omitted or context blocked by user browser permissions.");
+        console.log("Audio feedback omitted or context blocked");
       }
     }
   }, [isOpen]);
@@ -92,7 +102,7 @@ export default function OrderSuccessAnimation({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-zinc-950/80 backdrop-blur-md"
+          className="absolute inset-0 bg-zinc-950/90"
         />
 
         {/* Confetti Canvas */}

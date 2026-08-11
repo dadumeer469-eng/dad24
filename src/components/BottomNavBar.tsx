@@ -73,7 +73,7 @@ export default function BottomNavBar({
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-zinc-900/95 border-t border-zinc-100 dark:border-zinc-800 shadow-[0_-4px_16px_rgba(0,0,0,0.04)] backdrop-blur-md pb-safe lg:hidden">
+    <div className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-zinc-900 border-t border-zinc-100 dark:border-zinc-800 shadow-[0_-4px_16px_rgba(0,0,0,0.04)] pb-safe lg:hidden">
       <div className="grid grid-cols-5 h-13.5 max-w-2xl mx-auto px-1">
         
         {/* Food Tab */}

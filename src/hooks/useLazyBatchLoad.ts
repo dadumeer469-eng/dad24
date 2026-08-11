@@ -17,23 +17,26 @@ export function useLazyBatchLoad<T>(items: T[], batchSize: number = 12) {
 
   const hasMore = visibleCount < items.length;
 
+  const isLoadingMoreRef = useRef<boolean>(false);
+
   useEffect(() => {
     if (!hasMore) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !isLoadingMore) {
+        if (entries[0].isIntersecting && !isLoadingMoreRef.current) {
+          isLoadingMoreRef.current = true;
           setIsLoadingMore(true);
-          // Small smooth delay to simulate gentle batch loading
           setTimeout(() => {
             setVisibleCount((prev) => Math.min(prev + batchSize, items.length));
             setIsLoadingMore(false);
-          }, 150);
+            isLoadingMoreRef.current = false;
+          }, 100);
         }
       },
       {
         root: null,
-        rootMargin: "300px", // Trigger 300px before reaching the exact bottom
+        rootMargin: "200px",
         threshold: 0.1,
       }
     );
@@ -48,7 +51,7 @@ export function useLazyBatchLoad<T>(items: T[], batchSize: number = 12) {
         observer.unobserve(currentTarget);
       }
     };
-  }, [hasMore, items.length, batchSize, isLoadingMore]);
+  }, [hasMore, items.length, batchSize]);
 
   return {
     visibleItems: items.slice(0, visibleCount),
