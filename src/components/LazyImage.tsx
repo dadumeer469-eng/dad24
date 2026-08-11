@@ -45,16 +45,14 @@ export function LazyImage({
           <span className="text-[9px] font-bold text-zinc-400/80 uppercase tracking-widest mt-1">Dadu Express</span>
         </div>
       ) : (
-        /* Actual Image with GPU-accelerated smooth scale/fade transition */
+        /* Actual Image with lightweight opacity transition (Safari WebKit memory-safe) */
         <img
           src={src}
           alt={alt}
           loading={loading}
           decoding="async"
-          className={`w-full h-full transition-all duration-500 cubic-bezier(0.16, 1, 0.3, 1) transform-gpu ${
-            isLoaded
-              ? "opacity-100 scale-100 blur-0"
-              : "opacity-0 scale-105 blur-xs"
+          className={`w-full h-full transition-opacity duration-300 ease-out ${
+            isLoaded ? "opacity-100" : "opacity-0"
           } ${imgClassName}`}
           referrerPolicy={referrerPolicy}
           onLoad={() => setIsLoaded(true)}

@@ -31,6 +31,7 @@ import {
   increment,
 } from "firebase/firestore";
 import { db, firebaseConfig, databaseId, cleanObject, storage, handleFirestoreError, app } from "../firebase";
+import { safeStorage } from "../utils/safeStorage";
 import { getDatabase, ref, set as setRtdb, onValue, off } from "firebase/database";
 import { initializeApp, deleteApp } from "firebase/app";
 import {
@@ -175,9 +176,9 @@ function ProductImageSelector({
           setUploadProgress(60);
           const canvas = document.createElement("canvas");
           
-          // Max dimensions for lightweight storage (prevents Firestore doc bloat)
-          const MAX_WIDTH = 600;
-          const MAX_HEIGHT = 600;
+          // Max dimensions for lightweight storage (prevents Firestore doc bloat & Safari memory crashes)
+          const MAX_WIDTH = 400;
+          const MAX_HEIGHT = 400;
           let width = img.width;
           let height = img.height;
 
@@ -199,7 +200,7 @@ function ProductImageSelector({
           const ctx = canvas.getContext("2d");
           if (ctx) {
             ctx.drawImage(img, 0, 0, width, height);
-            const dataUrl = canvas.toDataURL("image/jpeg", 0.6);
+            const dataUrl = canvas.toDataURL("image/jpeg", 0.5);
             setUploadProgress(100);
             onChange(dataUrl);
             setIsProcessing(false);
@@ -941,9 +942,7 @@ export default function AdminPanel({
         partnerShopsBgUrl: partnerShopsBgUrl,
       };
       await setDoc(doc(db, "settings", "ui_config"), uiData, { merge: true });
-      try {
-        localStorage.setItem("dadu_ui_config_cache", JSON.stringify(uiData));
-      } catch (e) {}
+      safeStorage.setItem("dadu_ui_config_cache", JSON.stringify(uiData));
       alert(`UI settings successfully saved!`);
     } catch (err) {
       alert(`Failed to save UI settings: ${handleFirestoreError(err)}`);
@@ -2111,9 +2110,7 @@ export default function AdminPanel({
 
       const cleaned = cleanObject(newSettings);
       await setDoc(doc(db, "settings", "delivery_config"), cleaned);
-      try {
-        localStorage.setItem("dadu_delivery_config_cache", JSON.stringify(cleaned));
-      } catch (e) {}
+      safeStorage.setItem("dadu_delivery_config_cache", JSON.stringify(cleaned));
       alert(`Settings successfully saved for ${selectedScheduleRestaurant}!`);
     } catch (err) {
       console.error(err);

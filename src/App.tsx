@@ -84,18 +84,15 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 
 import FoodpandaRestaurantPage from "./components/FoodpandaRestaurantPage";
+import { safeStorage } from "./utils/safeStorage";
 
 export function getDeviceId(): string {
-  try {
-    let id = localStorage.getItem("dadu_device_id");
-    if (!id) {
-      id = "dev-" + Math.random().toString(36).substring(2, 10) + "-" + Date.now();
-      localStorage.setItem("dadu_device_id", id);
-    }
-    return id;
-  } catch (e) {
-    return "dev-safari-" + Math.random().toString(36).substring(2, 10);
+  let id = safeStorage.getItem("dadu_device_id");
+  if (!id) {
+    id = "dev-" + Math.random().toString(36).substring(2, 10) + "-" + Date.now();
+    safeStorage.setItem("dadu_device_id", id);
   }
+  return id;
 }
 
 const deviceId = getDeviceId();
@@ -169,7 +166,7 @@ export default function App() {
 
   // Load saved theme on mount (Defaults to dark mode for all users)
   useEffect(() => {
-    const saved = localStorage.getItem("dadu_theme");
+    const saved = safeStorage.getItem("dadu_theme");
     if (saved === "light") {
       setTheme("light");
       document.documentElement.classList.remove("dark");
@@ -184,7 +181,7 @@ export default function App() {
   const handleToggleTheme = () => {
     const nextTheme = theme === "dark" ? "light" : "dark";
     setTheme(nextTheme);
-    localStorage.setItem("dadu_theme", nextTheme);
+    safeStorage.setItem("dadu_theme", nextTheme);
     if (nextTheme === "dark") {
       document.documentElement.classList.add("dark");
       document.body.classList.add("dark");
@@ -200,7 +197,7 @@ export default function App() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [deliverySettings, setDeliverySettings] = useState<SystemSettings>(() => {
     try {
-      const cached = localStorage.getItem("dadu_delivery_config_cache");
+      const cached = safeStorage.getItem("dadu_delivery_config_cache");
       if (cached) return JSON.parse(cached);
     } catch (e) {}
     return {
@@ -222,7 +219,7 @@ export default function App() {
   const lastPushedScreenRef = useRef<string>("home");
   const [heroBgUrl, setHeroBgUrl] = useState<string>(() => {
     try {
-      const cached = localStorage.getItem("dadu_ui_config_cache");
+      const cached = safeStorage.getItem("dadu_ui_config_cache");
       if (cached) {
         const parsed = JSON.parse(cached);
         if (parsed.heroBgUrl) return parsed.heroBgUrl;
@@ -232,7 +229,7 @@ export default function App() {
   });
   const [partnerShopsBgUrl, setPartnerShopsBgUrl] = useState<string>(() => {
     try {
-      const cached = localStorage.getItem("dadu_ui_config_cache");
+      const cached = safeStorage.getItem("dadu_ui_config_cache");
       if (cached) {
         const parsed = JSON.parse(cached);
         if (parsed.partnerShopsBgUrl) return parsed.partnerShopsBgUrl;
@@ -766,9 +763,7 @@ export default function App() {
         if (docSnap.exists()) {
           const data = docSnap.data() as SystemSettings;
           setDeliverySettings(data);
-          try {
-            localStorage.setItem("dadu_delivery_config_cache", JSON.stringify(data));
-          } catch (e) {}
+          safeStorage.setItem("dadu_delivery_config_cache", JSON.stringify(data));
         } else {
           // Seed default
           setDoc(doc(db, "settings", "delivery_config"), {
@@ -786,10 +781,12 @@ export default function App() {
           "Delivery config subscription error:",
           handleFirestoreError(err),
         );
-        try {
-          const cached = localStorage.getItem("dadu_delivery_config_cache");
-          if (cached) setDeliverySettings(JSON.parse(cached));
-        } catch (e) {}
+        const cached = safeStorage.getItem("dadu_delivery_config_cache");
+        if (cached) {
+          try {
+            setDeliverySettings(JSON.parse(cached));
+          } catch (e) {}
+        }
       },
     );
 
@@ -1080,21 +1077,19 @@ export default function App() {
           if (data.partnerShopsBgUrl !== undefined) {
             setPartnerShopsBgUrl(data.partnerShopsBgUrl);
           }
-          try {
-            localStorage.setItem("dadu_ui_config_cache", JSON.stringify(data));
-          } catch (e) {}
+          safeStorage.setItem("dadu_ui_config_cache", JSON.stringify(data));
         }
       },
       (err) => {
         console.warn("Error loading ui_config:", err);
-        try {
-          const cached = localStorage.getItem("dadu_ui_config_cache");
-          if (cached) {
+        const cached = safeStorage.getItem("dadu_ui_config_cache");
+        if (cached) {
+          try {
             const parsed = JSON.parse(cached);
             if (parsed.heroBgUrl) setHeroBgUrl(parsed.heroBgUrl);
             if (parsed.partnerShopsBgUrl) setPartnerShopsBgUrl(parsed.partnerShopsBgUrl);
-          }
-        } catch (e) {}
+          } catch (e) {}
+        }
       }
     );
     return () => unsubscribe();
@@ -1145,7 +1140,7 @@ export default function App() {
 
   // 3f. Load favorites from LocalStorage on mount
   useEffect(() => {
-    const saved = localStorage.getItem("dadu_favorite_dishes");
+    const saved = safeStorage.getItem("dadu_favorite_dishes");
     if (saved) {
       try {
         setFavoriteDishIds(JSON.parse(saved));
@@ -1162,7 +1157,7 @@ export default function App() {
 
   // 3f. Save favorites to LocalStorage whenever they change
   useEffect(() => {
-    localStorage.setItem(
+    safeStorage.setItem(
       "dadu_favorite_dishes",
       JSON.stringify(favoriteDishIds),
     );
@@ -1181,7 +1176,7 @@ export default function App() {
 
   // 3d. Grocery cart LocalStorage Sync
   useEffect(() => {
-    const saved = localStorage.getItem("dadu_grocery_cart");
+    const saved = safeStorage.getItem("dadu_grocery_cart");
     if (saved) {
       try {
         setGroceryCartItems(JSON.parse(saved));
@@ -1192,7 +1187,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("dadu_grocery_cart", JSON.stringify(groceryCartItems));
+    safeStorage.setItem("dadu_grocery_cart", JSON.stringify(groceryCartItems));
   }, [groceryCartItems]);
 
   // 4. Real-time Orders & Notification Listeners
