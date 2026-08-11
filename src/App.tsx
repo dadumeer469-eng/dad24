@@ -311,8 +311,8 @@ export default function App() {
       window.scrollTo({ top: 0, behavior: "instant" });
       setTimeout(() => {
         setAnimatingRestaurant(null);
-      }, 500);
-    }, 2000);
+      }, 150);
+    }, 380);
   };
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -4482,7 +4482,7 @@ export default function App() {
             <motion.div
               initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
               animate={{ opacity: 1, backdropFilter: "blur(20px)" }}
-              exit={{ opacity: 0, backdropFilter: "blur(0px)", transition: { duration: 0.6, delay: 0.1 } }}
+              exit={{ opacity: 0, backdropFilter: "blur(0px)", transition: { duration: 0.15 } }}
               className="absolute inset-0 bg-black/60 z-0"
             />
             
@@ -4490,18 +4490,18 @@ export default function App() {
             <motion.div 
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 1.5, opacity: 0, transition: { duration: 0.5 } }}
-              transition={{ duration: 1, ease: "easeOut" }}
+              exit={{ scale: 1.5, opacity: 0, transition: { duration: 0.15 } }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
               className="absolute inset-0 flex items-center justify-center z-0"
             >
               <motion.div 
                 animate={{ rotate: 360, scale: [1, 1.1, 1] }} 
-                transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
                 className="absolute w-[80vw] h-[80vw] max-w-[600px] max-h-[600px] bg-gradient-to-tr from-[#d70f64] to-[#7209b7] rounded-full blur-[100px] opacity-60"
               />
               <motion.div 
                 animate={{ rotate: -360, scale: [1, 1.2, 1] }} 
-                transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
                 className="absolute w-[60vw] h-[60vw] max-w-[400px] max-h-[400px] bg-gradient-to-bl from-[#f72585] to-[#4cc9f0] rounded-full blur-[80px] opacity-50 mix-blend-screen"
               />
             </motion.div>
@@ -4510,8 +4510,8 @@ export default function App() {
             <motion.div
               initial={{ scale: 0, opacity: 0, rotateX: 60 }}
               animate={{ scale: 1, opacity: 1, rotateX: 0 }}
-              exit={{ scale: 2, opacity: 0, transition: { duration: 0.5 } }}
-              transition={{ duration: 1.2, type: "spring", bounce: 0.4 }}
+              exit={{ scale: 2, opacity: 0, transition: { duration: 0.15 } }}
+              transition={{ duration: 0.3, type: "spring", bounce: 0.2 }}
               className="absolute w-[300px] h-[300px] md:w-[400px] md:h-[400px] rounded-full border border-white/20 shadow-[0_0_80px_rgba(215,15,100,0.5)] z-0"
               style={{ background: "radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%)" }}
             />
@@ -4520,18 +4520,18 @@ export default function App() {
             <motion.div
               initial={{ opacity: 0, scale: 0.5, rotateY: -30, z: -400 }}
               animate={{ opacity: 1, scale: 1, rotateY: 0, z: 0 }}
-              exit={{ opacity: 0, scale: 1.2, rotateY: 15, z: 200, filter: "blur(15px)", transition: { duration: 0.5 } }}
-              transition={{ duration: 0.9, type: "spring", bounce: 0.5, delay: 0.1 }}
+              exit={{ opacity: 0, scale: 1.2, rotateY: 15, z: 200, filter: "blur(15px)", transition: { duration: 0.15 } }}
+              transition={{ duration: 0.25, type: "spring", bounce: 0.3 }}
               className="relative z-10 flex flex-col items-center justify-center text-white w-full px-4"
             >
               {/* Logo Presentation */}
               <motion.div 
-                animate={{ y: [-8, 8, -8], rotateZ: [-2, 2, -2] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                animate={{ y: [-4, 4, -4], rotateZ: [-1, 1, -1] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                 className="relative mb-8 group"
               >
                 {/* Glow Behind Logo */}
-                <div className="absolute -inset-4 bg-white/20 blur-2xl rounded-full scale-110 opacity-70 group-hover:opacity-100 transition duration-700" />
+                <div className="absolute -inset-4 bg-white/20 blur-2xl rounded-full scale-110 opacity-70 group-hover:opacity-100 transition duration-300" />
                 
                 {/* 3D Glassmorphic Frame */}
                 <motion.div 
@@ -4541,7 +4541,7 @@ export default function App() {
                 >
                   <div className="w-full h-full rounded-[2rem] overflow-hidden bg-white relative">
                     {animatingRestaurant.imageUrl ? (
-                      <img src={animatingRestaurant.imageUrl} alt={animatingRestaurant.name} className="w-full h-full object-cover transform scale-105 transition-transform duration-700 group-hover:scale-100" />
+                      <img src={animatingRestaurant.imageUrl} alt={animatingRestaurant.name} className="w-full h-full object-cover transform scale-105 transition-transform duration-300 group-hover:scale-100" />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-pink-50 to-pink-100 flex items-center justify-center text-7xl font-black text-[#d70f64] shadow-inner">
                         {animatingRestaurant.name.charAt(0)}
@@ -4552,9 +4552,9 @@ export default function App() {
               </motion.div>
               
               <motion.h2 
-                initial={{ opacity: 0, y: 30, filter: "blur(10px)" }}
+                initial={{ opacity: 0, y: 20, filter: "blur(10px)" }}
                 animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                transition={{ delay: 0.3, duration: 0.7, type: "spring", bounce: 0.4 }}
+                transition={{ delay: 0.1, duration: 0.25, type: "spring", bounce: 0.3 }}
                 className="text-4xl md:text-5xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white to-white/70 mb-6 text-center drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)] leading-tight"
               >
                 {animatingRestaurant.name}
@@ -4564,26 +4564,26 @@ export default function App() {
               <motion.div 
                 initial={{ opacity: 0, scale: 0.8, width: 0 }}
                 animate={{ opacity: 1, scale: 1, width: 180 }}
-                transition={{ delay: 0.5, duration: 0.8, type: "spring" }}
+                transition={{ delay: 0.15, duration: 0.25, type: "spring" }}
                 className="relative h-1.5 bg-black/40 rounded-full overflow-hidden backdrop-blur-sm border border-white/10 shadow-[0_0_15px_rgba(215,15,100,0.3)]"
               >
                 <motion.div 
                   initial={{ x: "-100%" }}
                   animate={{ x: "100%" }}
-                  transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+                  transition={{ duration: 0.6, repeat: Infinity, ease: "easeInOut" }}
                   className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-[#4cc9f0] to-transparent"
                 />
                 <motion.div 
                   initial={{ x: "-100%" }}
                   animate={{ x: "100%" }}
-                  transition={{ duration: 1.2, delay: 0.6, repeat: Infinity, ease: "easeInOut" }}
+                  transition={{ duration: 0.6, delay: 0.3, repeat: Infinity, ease: "easeInOut" }}
                   className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-[#f72585] to-transparent"
                 />
               </motion.div>
               <motion.p 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.7 }}
+                transition={{ delay: 0.2 }}
                 className="mt-3 text-[10px] font-bold uppercase tracking-[0.3em] text-white/60"
               >
                 Preparing Experience
