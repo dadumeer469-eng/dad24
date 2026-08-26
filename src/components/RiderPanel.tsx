@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import OrderReceiptModal from "./OrderReceiptModal";
+import RiderAiAssistant from "./RiderAiAssistant";
 import { 
   collection, query, where, onSnapshot, doc, updateDoc, Timestamp, addDoc
 } from "firebase/firestore";
@@ -8,7 +9,8 @@ import { Order, UserProfile } from "../types";
 import { awardLoyaltyCoinsForOrder } from "../lib/loyalty";
 import { 
   CheckCircle2, Compass, Coins, CalendarDays, TrendingUp, History, User, 
-  MapPin, PhoneCall, LogOut, ArrowRight, ClipboardList, DollarSign, Clock, Check, Store, XCircle, Star
+  MapPin, PhoneCall, LogOut, ArrowRight, ClipboardList, DollarSign, Clock, Check, Store, XCircle, Star,
+  Bot, AlertTriangle, Sparkles
 } from "lucide-react";
 import OrderChat from "./OrderChat";
 import { useRiderLocationTracker } from "../lib/riderLocationTracker";
@@ -24,6 +26,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
   const [timeframe, setTimeframe] = useState<"1day" | "7days" | "30days" | "60days" | "all">("all");
   const [riderReceiptOrder, setRiderReceiptOrder] = useState<any | null>(null);
   const [isRiderReceiptModalOpen, setIsRiderReceiptModalOpen] = useState(false);
+  const [isAiAssistantOpen, setIsAiAssistantOpen] = useState(false);
   const [isOnline, setIsOnline] = useState<boolean>(() => {
     const saved = localStorage.getItem(`rider_online_${currentUser.uid}`);
     return saved !== "false";
@@ -575,9 +578,17 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
           <span>{isOnline ? "DUTY: ONLINE" : "DUTY: OFFLINE"}</span>
         </button>
 
-        {/* Center: Rider Badge */}
-        <div className="flex items-center gap-1.5 text-xs font-black text-white">
-          <span className="text-pink-400 font-bold text-[11px] truncate max-w-[120px] sm:max-w-none">
+        {/* Center: Rider Badge & AI Assistant Trigger */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsAiAssistantOpen(true)}
+            className="py-1 px-2.5 rounded-full text-[11px] font-black bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 text-amber-400 border border-amber-500/40 shadow-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+            title="Open Rider AI Assistant / Report Incident"
+          >
+            <Bot className="w-3.5 h-3.5 text-amber-400 animate-bounce" />
+            <span>AI Assistant</span>
+          </button>
+          <span className="text-pink-400 font-bold text-[11px] truncate max-w-[100px] sm:max-w-none">
             {currentUser.name}
           </span>
         </div>
@@ -1993,6 +2004,31 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
           <span className="text-[9.5px] uppercase tracking-wider">History</span>
         </button>
       </nav>
+
+      {/* Floating Quick Action Button for Rider AI Assistant */}
+      <div className="fixed bottom-20 md:bottom-6 right-4 z-40">
+        <button
+          onClick={() => setIsAiAssistantOpen(true)}
+          className="group flex items-center gap-2 bg-gradient-to-r from-amber-600 via-orange-600 to-amber-500 hover:from-amber-500 hover:to-orange-500 text-white px-3.5 py-3 rounded-full shadow-2xl shadow-orange-950/60 border border-amber-400/40 transition-all transform hover:scale-105 active:scale-95 cursor-pointer"
+          title="Rider AI Assistant - Report Problem"
+        >
+          <Bot className="w-5 h-5 animate-pulse" />
+          <span className="text-xs font-black uppercase tracking-wider hidden sm:inline pr-1">
+            Rider AI Help
+          </span>
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        </button>
+      </div>
+
+      {/* RIDER AI ASSISTANT MODAL OVERLAY */}
+      <RiderAiAssistant
+        currentUser={currentUser}
+        activeOrder={riderActiveOrder}
+        allOrders={myOrders}
+        deliverySettings={deliverySettings}
+        isOpen={isAiAssistantOpen}
+        onClose={() => setIsAiAssistantOpen(false)}
+      />
 
       {/* RIDER ORDER RECEIPT & WHATSAPP MODAL */}
       <OrderReceiptModal

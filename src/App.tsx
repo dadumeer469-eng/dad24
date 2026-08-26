@@ -31,6 +31,7 @@ import {
   GroceryOrderItem,
   GroceryDeliveryConfig,
   GroceryOrder,
+  getUserCoins,
 } from "./types";
 import { INITIAL_MENU_ITEMS } from "./data";
 
@@ -1837,7 +1838,7 @@ export default function App() {
 
       // Update profile with new location & name & deduct coins if any
       if (currentUser) {
-        let finalCoins = (currentUser.loyaltyCoins || 0);
+        let finalCoins = getUserCoins(currentUser, deliverySettings);
         if (details.coinsUsed) {
           finalCoins = Math.max(0, finalCoins - details.coinsUsed);
         }
@@ -1857,6 +1858,7 @@ export default function App() {
             address: `${details.location.area}, ${details.location.street}`,
             ordersCount: (currentUser.ordersCount || 0) + 1,
             loyaltyCoins: finalCoins,
+            coins: finalCoins,
           };
           await setDoc(profileRef, cleanObject(updatedProfile));
           setCurrentUser(updatedProfile);
@@ -2062,7 +2064,7 @@ export default function App() {
       setCartItems([]);
       setIsCartOpen(false);
 
-      let finalCoins = (currentUser.loyaltyCoins || 0);
+      let finalCoins = getUserCoins(currentUser, deliverySettings);
       if (details.coinsUsed) {
         finalCoins = Math.max(0, finalCoins - details.coinsUsed);
       }
@@ -2075,6 +2077,7 @@ export default function App() {
         address: `${details.location.area}, ${details.location.street}`,
         ordersCount: (currentUser.ordersCount || 0) + 1,
         loyaltyCoins: finalCoins,
+        coins: finalCoins,
       };
       await setDoc(
         doc(db, "users", currentUser.uid),

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import OrderReceiptModal from "./OrderReceiptModal";
 import MapLocationPickerModal from "./MapLocationPickerModal";
+import AiMenuGeneratorModal from "./AiMenuGeneratorModal";
+import AiManagerWorkspace from "./AiManagerWorkspace";
 import {
   UserProfile,
   Dish,
@@ -31,6 +33,7 @@ import {
   increment,
 } from "firebase/firestore";
 import { db, firebaseConfig, databaseId, cleanObject, storage, handleFirestoreError, app } from "../firebase";
+import { compressImageToLowRes } from "../utils/imageCompressor";
 import { getDatabase, ref, set as setRtdb, onValue, off } from "firebase/database";
 import { initializeApp, deleteApp } from "firebase/app";
 import {
@@ -98,6 +101,9 @@ import {
   Coins,
   ClipboardList,
   Navigation,
+  Sparkles,
+  Wand2,
+  Bot,
 } from "lucide-react";
 
 interface AdminPanelProps {
@@ -130,12 +136,17 @@ function ProductImageSelector({
   uploadPath,
 }: ProductImageSelectorProps) {
   const [isDragOver, setIsDragOver] = React.useState(false);
-  const [mode, setMode] = React.useState<"url" | "file">("file");
+  const [mode, setMode] = React.useState<"url" | "file" | "ai">("file");
   const [urlInput, setUrlInput] = React.useState(imageUrl || "");
   const [isProcessing, setIsProcessing] = React.useState(false);
   const [uploadProgress, setUploadProgress] = React.useState(0);
   const [uploadError, setUploadError] = React.useState("");
   const [failedFile, setFailedFile] = React.useState<File | null>(null);
+
+  // Google AI Web Search State
+  const [aiPromptInput, setAiPromptInput] = React.useState("");
+  const [isGeneratingAi, setIsGeneratingAi] = React.useState(false);
+  const [aiError, setAiError] = React.useState("");
 
   React.useEffect(() => {
     setUrlInput(imageUrl || "");
@@ -144,6 +155,42 @@ function ProductImageSelector({
   const handleUrlChange = (val: string) => {
     setUrlInput(val);
     onChange(val);
+  };
+
+  const handleSearchGoogleImage = async () => {
+    if (!aiPromptInput.trim()) {
+      setAiError("Please type a dish or item name to search Google");
+      return;
+    }
+
+    setIsGeneratingAi(true);
+    setAiError("");
+
+    try {
+      const res = await fetch("/api/ai/search-food-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          itemName: aiPromptInput.trim(),
+          query: aiPromptInput.trim()
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success || !data.imageUrl) {
+        throw new Error(data.error || "Failed to find image on Google");
+      }
+
+      // Compress to low resolution (<30KB) to prevent Firebase load
+      const lowResUrl = await compressImageToLowRes(data.imageUrl, 380, 380, 0.72);
+      onChange(lowResUrl);
+      setUrlInput(lowResUrl);
+    } catch (err: any) {
+      console.error(err);
+      setAiError(err?.message || "Google image search failed");
+    } finally {
+      setIsGeneratingAi(false);
+    }
   };
 
   const processFile = async (file: File) => {
@@ -256,7 +303,7 @@ function ProductImageSelector({
         <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block">
           {label}
         </label>
-        <div className="flex rounded-lg bg-white border border-slate-200 p-0.5 border border-slate-200">
+        <div className="flex rounded-lg bg-white border border-slate-200 p-0.5">
           <button
             type="button"
             onClick={() => setMode("file")}
@@ -266,7 +313,7 @@ function ProductImageSelector({
                 : "text-slate-500 hover:text-slate-700"
             }`}
           >
-            Local File
+            File
           </button>
           <button
             type="button"
@@ -277,7 +324,19 @@ function ProductImageSelector({
                 : "text-slate-500 hover:text-slate-700"
             }`}
           >
-            Image Link/URL
+            URL
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("ai")}
+            className={`px-2 py-0.5 text-[8px] uppercase font-black tracking-wide rounded transition cursor-pointer flex items-center gap-0.5 ${
+              mode === "ai"
+                ? "bg-blue-600 text-white shadow-xs"
+                : "text-blue-700 hover:text-blue-900 bg-blue-50"
+            }`}
+          >
+            <span>🔍</span>
+            <span>Google Search</span>
           </button>
         </div>
       </div>
@@ -385,7 +444,7 @@ function ProductImageSelector({
             </div>
           )}
         </div>
-      ) : (
+      ) : mode === "url" ? (
         <div className="space-y-2">
           <input
             type="text"
@@ -423,6 +482,81 @@ function ProductImageSelector({
             </div>
           )}
         </div>
+      ) : (
+        <div className="space-y-2 p-3 bg-blue-50/70 border border-blue-200 rounded-xl">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black text-blue-900 uppercase tracking-wide flex items-center gap-1">
+              <span>🔍</span> Google Food Image Search (Web Photo)
+            </span>
+            <span className="text-[8.5px] font-bold text-blue-700 bg-blue-200 px-1.5 py-0.5 rounded">
+              Google Web
+            </span>
+          </div>
+
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={aiPromptInput}
+              onChange={(e) => setAiPromptInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleSearchGoogleImage();
+                }
+              }}
+              placeholder="e.g. Special Peshawari Karahi, Karak Chai, Zinger..."
+              className="flex-1 p-2 bg-white border border-blue-300 rounded-lg text-xs outline-none text-slate-900 font-medium focus:border-blue-500"
+            />
+            <button
+              type="button"
+              onClick={handleSearchGoogleImage}
+              disabled={isGeneratingAi}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
+            >
+              {isGeneratingAi ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Searching...</span>
+                </>
+              ) : (
+                <>
+                  <span>🔍</span>
+                  <span>Search</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {aiError && (
+            <p className="text-[9px] font-bold text-red-600">{aiError}</p>
+          )}
+
+          {imageUrl && (
+            <div className="flex items-center gap-3 p-2 bg-white border border-blue-200 rounded-lg mt-2">
+              <img
+                src={imageUrl}
+                alt="Search Preview"
+                className="h-12 w-12 object-cover rounded-lg border border-blue-300 shrink-0"
+                referrerPolicy="no-referrer"
+              />
+              <div className="truncate flex-1">
+                <p className="text-[9.5px] font-black text-blue-900">
+                  🔍 Found via Google Search
+                </p>
+                <p className="text-[8.5px] text-slate-500">
+                  Real web photography &bull; Optimized payload
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => onChange("")}
+                className="text-red-500 hover:text-red-700 text-[10px] font-bold uppercase shrink-0 px-2 cursor-pointer"
+              >
+                Clear
+              </button>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
@@ -451,6 +585,7 @@ export default function AdminPanel({
 }: AdminPanelProps) {
   const [activeSubTab, setActiveSubTab] = useState<
     | "analytics"
+    | "ai_manager"
     | "restaurants"
     | "items"
     | "orders"
@@ -463,6 +598,7 @@ export default function AdminPanel({
     | "food_categories"
     | "loyalty"
   >("analytics");
+  const [isAiManagerDrawerOpen, setIsAiManagerDrawerOpen] = useState(false);
   const [editingRiderPasswordId, setEditingRiderPasswordId] = useState<string | null>(null);
   const [newPasswordInputValue, setNewPasswordInputValue] = useState<string>("");
   const [showPasswordId, setShowPasswordId] = useState<string | null>(null);
@@ -480,6 +616,7 @@ export default function AdminPanel({
   const [userFilterTab, setUserFilterTab] = useState<"new" | "active" | "blocked">("new");
   const [receiptModalOrder, setReceiptModalOrder] = useState<Order | null>(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  const [isAiMenuGeneratorOpen, setIsAiMenuGeneratorOpen] = useState(false);
 
   useEffect(() => {
     const q = query(collection(db, "promotional_banners"), orderBy("createdAt", "desc"));
@@ -3159,6 +3296,18 @@ export default function AdminPanel({
         {/* Mobile Horizontal Navigation Tab Bar (Shown only on small/medium screens) */}
         <div className="lg:hidden col-span-1 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-2 rounded-2xl shadow-xs space-y-1.5">
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-nowrap scrollbar-none">
+            {/* AI Manager Tab */}
+            <button
+              onClick={() => setActiveSubTab("ai_manager")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 border transition cursor-pointer shadow-xs ${
+                activeSubTab === "ai_manager"
+                  ? "bg-gradient-to-r from-amber-500 to-[#D70F64] border-transparent text-white shadow-md"
+                  : "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400"
+              }`}
+            >
+              <Bot className="w-3.5 h-3.5 animate-bounce" />
+              <span>🤖 AI Manager</span>
+            </button>
             {/* Prominent High-Priority Live Orders Pill First */}
             <button
               onClick={() => setActiveSubTab("orders")}
@@ -3310,9 +3459,24 @@ export default function AdminPanel({
               {/* Group 1: High-Priority Operations */}
               <div>
                 <span className="text-[9px] font-black text-[#D70F64] block uppercase tracking-widest pl-1 mb-1.5 flex items-center gap-1">
-                  ⚡ Operational Control
+                  ⚡ Operational Control & AI Copilot
                 </span>
                 <div className="space-y-1">
+                  <button
+                    onClick={() => setActiveSubTab("ai_manager")}
+                    className={`w-full font-black text-xs px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
+                      activeSubTab === "ai_manager"
+                        ? "bg-gradient-to-r from-amber-500 via-[#D70F64] to-rose-600 border-transparent text-white shadow-md ring-2 ring-amber-400/40"
+                        : "bg-gradient-to-r from-amber-50/80 to-pink-50/80 border-amber-200/80 text-amber-900 hover:from-amber-100 hover:to-pink-100"
+                    }`}
+                  >
+                    <Bot className="w-4 h-4 shrink-0 text-amber-600 animate-pulse" />
+                    <span>🤖 AI Business Manager</span>
+                    <span className="ml-auto bg-amber-400 text-slate-950 font-black px-1.5 py-0.5 text-[8.5px] rounded-full uppercase tracking-wider">
+                      Copilot
+                    </span>
+                  </button>
+
                   <button
                     onClick={() => setActiveSubTab("orders")}
                     className={`w-full font-extrabold text-xs px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
@@ -3379,6 +3543,15 @@ export default function AdminPanel({
                   >
                     <ListCollapse className="w-3.5 h-3.5 shrink-0" />
                     Manage Food Items
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsAiMenuGeneratorOpen(true)}
+                    className="w-full font-black text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border border-pink-200 bg-gradient-to-r from-pink-50 to-purple-50 text-[#D70F64] hover:from-pink-100 hover:to-purple-100 shadow-sm"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-[#D70F64] animate-pulse" />
+                    <span>✨ AI Bulk Menu Gen</span>
                   </button>
 
                   <button
@@ -3554,6 +3727,21 @@ export default function AdminPanel({
 
         {/* Dashboard Panels Area */}
         <div className="col-span-1 lg:col-span-9 space-y-8">
+          {/* TAB 0: AI Business Manager & Operations Copilot */}
+          {activeSubTab === "ai_manager" && (
+            <div className="space-y-6 animate-fade-in">
+              <AiManagerWorkspace
+                dishes={dishes}
+                orders={orders}
+                deliverySettings={deliverySettings}
+                adminUsername={adminUsername}
+                foodCategories={foodCategories}
+                totalUsersCount={allUsersList.length}
+                onNavigateTab={(tab) => setActiveSubTab(tab)}
+              />
+            </div>
+          )}
+
           {/* TAB 1: Real-time Analytics Dashboard */}
           {activeSubTab === "analytics" && (
             <div className="space-y-8 animate-fade-in">
@@ -4459,7 +4647,15 @@ export default function AdminPanel({
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsAiMenuGeneratorOpen(true)}
+                    className="bg-gradient-to-r from-[#D70F64] via-pink-600 to-purple-600 hover:from-[#b00c50] hover:to-purple-700 text-white px-4 py-2 rounded-xl text-[10px] uppercase font-black tracking-wider transition-all shadow-md shadow-pink-600/30 hover:scale-[1.02] flex items-center gap-2 cursor-pointer border border-white/20"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-yellow-300 animate-pulse" />
+                    ✨ AI Menu &amp; Photo Generator
+                  </button>
                   <button
                     onClick={async () => {
                         const btn = document.getElementById("clear-menu-btn");
@@ -11307,6 +11503,50 @@ export default function AdminPanel({
           setUnlockCoords({ lat, lng });
         }}
       />
+
+      <AiMenuGeneratorModal
+        isOpen={isAiMenuGeneratorOpen}
+        onClose={() => setIsAiMenuGeneratorOpen(false)}
+        uniqueRestaurants={uniqueRestaurants}
+        foodCategories={foodCategories}
+      />
+
+      {/* Floating AI Manager Copilot Button */}
+      {activeSubTab !== "ai_manager" && (
+        <button
+          type="button"
+          onClick={() => setIsAiManagerDrawerOpen(true)}
+          className="fixed bottom-6 left-6 z-[110] bg-gradient-to-r from-amber-500 via-[#D70F64] to-rose-600 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 font-black text-xs uppercase tracking-wider hover:scale-105 active:scale-95 transition cursor-pointer border-2 border-white/20 ring-4 ring-[#D70F64]/30 animate-bounce"
+        >
+          <Bot className="w-5 h-5 text-amber-200 animate-pulse" />
+          <span>Ask AI Manager</span>
+          <span className="bg-white/20 text-white text-[9px] px-1.5 py-0.5 rounded-full font-black">
+            Live
+          </span>
+        </button>
+      )}
+
+      {/* Floating AI Manager Drawer Modal */}
+      {isAiManagerDrawerOpen && (
+        <div className="fixed inset-0 z-[150] bg-slate-950/70 backdrop-blur-xs flex items-center justify-end p-2 sm:p-6 animate-fade-in">
+          <div className="w-full max-w-2xl h-[90vh] bg-slate-900 rounded-3xl shadow-2xl overflow-hidden border border-slate-700 flex flex-col relative animate-slide-in">
+            <AiManagerWorkspace
+              dishes={dishes}
+              orders={orders}
+              deliverySettings={deliverySettings}
+              adminUsername={adminUsername}
+              foodCategories={foodCategories}
+              totalUsersCount={allUsersList.length}
+              onNavigateTab={(tab) => {
+                setActiveSubTab(tab);
+                setIsAiManagerDrawerOpen(false);
+              }}
+              isFloatingDrawer={true}
+              onCloseFloating={() => setIsAiManagerDrawerOpen(false)}
+            />
+          </div>
+        </div>
+      )}
 
       {/* NEW USER REALTIME NOTIFICATION TOAST */}
       {newUserToast && newUserToast.show && (

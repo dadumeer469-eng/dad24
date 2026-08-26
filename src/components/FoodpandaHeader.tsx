@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { UserProfile, AppNotification, Order } from "../types";
+import { UserProfile, AppNotification, Order, getUserCoins } from "../types";
 import { Search, ShoppingBag, User, LogOut, Phone, Bell, ShieldAlert, BadgeCheck, Download, History, Heart, RotateCcw, Sun, Moon, X } from "lucide-react";
 import daduLogo from "../assets/images/dadu_food_logo_new_1782333467889.jpg";
 
@@ -308,7 +308,7 @@ export default function FoodpandaHeader({
                   {/* Loyalty Balance Badge */}
                   <div className="mt-2 w-full bg-gradient-to-r from-[#d70f64] to-pink-600 rounded-xl p-2 text-white flex items-center justify-between text-[10px] font-sans">
                     <span className="font-extrabold flex items-center gap-1">👑 Coin Benefit Wallet:</span>
-                    <span className="font-black bg-white text-[#d70f64] px-1.5 py-0.5 rounded-md text-[9px]">Rs. {user.loyaltyCoins ?? ((user.ordersCount || 0) * 15)}</span>
+                    <span className="font-black bg-white text-[#d70f64] px-1.5 py-0.5 rounded-md text-[9px]">Rs. {getUserCoins(user)}</span>
                   </div>
                 </div>
 
