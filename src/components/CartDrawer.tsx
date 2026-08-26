@@ -52,11 +52,8 @@ export default function CartDrawer({
       return null;
     }
 
-    // Check if running inside an iframe (preview frame)
-    const isIframe = typeof window !== "undefined" && window.self !== window.top;
-
     return new Promise((resolve) => {
-      // Direct call to trigger browser permission popup
+      // Direct call to trigger Chrome / Safari browser permission popup immediately
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           const coords = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
@@ -68,38 +65,19 @@ export default function CartDrawer({
           resolve(coords);
         },
         (err) => {
-          // Retry once with low accuracy fast fallback
-          navigator.geolocation.getCurrentPosition(
-            (pos2) => {
-              const coords2 = { latitude: pos2.coords.latitude, longitude: pos2.coords.longitude };
-              if (onUpdateUserCoords) {
-                onUpdateUserCoords(coords2);
-              }
-              setIsLocating(false);
-              setLocatingError(null);
-              resolve(coords2);
-            },
-            (err2) => {
-              setIsLocating(false);
-              let errMsg = "Chrome / Safari mein location permission block ya restricted hai.";
-              if (err2.code === 1) {
-                if (isIframe) {
-                  errMsg = "Preview Frame mein Chrome/Safari location permission block karta hai. Kripya niche '🌐 Open in New Tab' button dabayein taake direct tab me permission popup aaye!";
-                } else {
-                  errMsg = "Location permission Deny hai. Browser ke top address bar 🔒 Lock icon par tap karein aur 'Location -> Allow' set karke reload karein!";
-                }
-              } else if (err2.code === 2) {
-                errMsg = "GPS signal nahi mila. Mobile/Device GPS/Location Turn ON karein.";
-              } else if (err2.code === 3) {
-                errMsg = "Location request timeout ho gaya. Phir se 'Allow Location' dabayein.";
-              }
-              setLocatingError(errMsg);
-              resolve(null);
-            },
-            { enableHighAccuracy: false, timeout: 6000 }
-          );
+          setIsLocating(false);
+          let errMsg = "Chrome / Safari mein location permission block ya denied hai.";
+          if (err.code === 1) { // PERMISSION_DENIED
+            errMsg = "Location Permission Deny ho gayi. Phir se 'Allow Location' button dabayein ya browser ke address bar (🔒 icon) par tap karke Location Allow karein!";
+          } else if (err.code === 2) { // POSITION_UNAVAILABLE
+            errMsg = "GPS Signal nahi mila. Kripya Mobile GPS / Location Services ON karke dobara click karein.";
+          } else if (err.code === 3) { // TIMEOUT
+            errMsg = "Location request timeout ho gaya. Phir se 'Allow Location' dabayein.";
+          }
+          setLocatingError(errMsg);
+          resolve(null);
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
     });
   };
