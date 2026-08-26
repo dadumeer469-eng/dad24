@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { UserProfile, GroceryOrderItem, GroceryDeliveryConfig, getUserCoins } from "../types";
-import { X, ShoppingBag, MapPin, Phone, User, AlertTriangle, ShieldCheck, Heart, Edit2, Compass, Trash2, CheckCircle, Coins } from "lucide-react";
+import { UserProfile, GroceryOrderItem, GroceryDeliveryConfig, getUserCoins, Voucher, calculateVoucherDiscount, isVoucherExpired } from "../types";
+import { X, ShoppingBag, MapPin, Phone, User, AlertTriangle, ShieldCheck, Heart, Edit2, Compass, Trash2, CheckCircle, Coins, Ticket, Tag } from "lucide-react";
 import { LazyImage } from "./LazyImage";
+import UserVouchersModal from "./UserVouchersModal";
 
 interface GroceryCartDrawerProps {
   isOpen: boolean;
@@ -22,9 +23,11 @@ interface GroceryCartDrawerProps {
     grandTotal: number;
     userCoords?: { latitude: number; longitude: number };
     coinsUsed?: number;
+    voucher?: { code: string; discountAmount: number };
   }) => Promise<void>;
   userCoords?: { latitude: number; longitude: number } | null;
   systemSettings?: any;
+  allVouchers?: Voucher[];
 }
 
 export default function GroceryCartDrawer({
@@ -39,15 +42,23 @@ export default function GroceryCartDrawer({
   onPlaceGroceryOrder,
   userCoords,
   systemSettings,
+  allVouchers = [],
 }: GroceryCartDrawerProps) {
   const [submitting, setSubmitting] = useState(false);
   const [useCoins, setUseCoins] = useState(false);
   const [activeDiscountTab, setActiveDiscountTab] = useState<'none' | 'coins'>('none');
+  const [appliedVoucher, setAppliedVoucher] = useState<Voucher | null>(null);
+  const [voucherInputCode, setVoucherInputCode] = useState("");
+  const [voucherError, setVoucherError] = useState<string | null>(null);
+  const [isVouchersModalOpen, setIsVouchersModalOpen] = useState(false);
 
   React.useEffect(() => {
     if (!isOpen || cartItems.length === 0) {
       setUseCoins(false);
       setActiveDiscountTab('none');
+      setAppliedVoucher(null);
+      setVoucherInputCode("");
+      setVoucherError(null);
     }
   }, [isOpen, cartItems.length]);
 
@@ -73,7 +84,14 @@ export default function GroceryCartDrawer({
     : deliveryFeeRate;
 
   const taxesAmount = Math.round(totalGroceryPrice * 0.02); // 2% GST
-  let grandTotal = totalGroceryPrice + finalDeliveryFee + taxesAmount;
+  
+  // Voucher Discount
+  let voucherDiscount = 0;
+  if (appliedVoucher) {
+    voucherDiscount = calculateVoucherDiscount(appliedVoucher, totalGroceryPrice);
+  }
+
+  let grandTotal = Math.max(0, totalGroceryPrice + finalDeliveryFee + taxesAmount - voucherDiscount);
 
   const userCoins = getUserCoins(currentUser, systemSettings);
   const isLoyaltyEnabledForGrocery = (systemSettings?.loyaltyEnabled !== false) && (systemSettings?.loyaltyAllowOnGrocery || false);
@@ -104,6 +122,69 @@ export default function GroceryCartDrawer({
       estimatedCoinsEarned = Math.floor(grandTotal * (loyaltyEarnVal / 100));
     }
   }
+
+  const handleApplyVoucher = (codeOrVoucher: string | Voucher) => {
+    let targetVoucher: Voucher | undefined;
+    if (typeof codeOrVoucher === "string") {
+      const code = codeOrVoucher.trim().toUpperCase();
+      if (!code) {
+        setVoucherError("Please enter a voucher code.");
+        return;
+      }
+      targetVoucher = allVouchers.find((v) => v.code.toUpperCase() === code);
+    } else {
+      targetVoucher = codeOrVoucher;
+    }
+
+    setVoucherError(null);
+
+    if (!targetVoucher) {
+      setVoucherError("Invalid voucher code.");
+      return;
+    }
+
+    if (!targetVoucher.isActive) {
+      setVoucherError("This voucher is currently inactive.");
+      return;
+    }
+
+    if (isVoucherExpired(targetVoucher)) {
+      setVoucherError("This voucher has expired.");
+      return;
+    }
+
+    if (targetVoucher.maxUses && (targetVoucher.currentUses || 0) >= targetVoucher.maxUses) {
+      setVoucherError("This voucher has reached its maximum usage limit.");
+      return;
+    }
+
+    if (targetVoucher.applicableType === "food_only" || targetVoucher.applicableType === "restaurant") {
+      setVoucherError("This voucher is only valid on restaurant food orders.");
+      return;
+    }
+
+    if (targetVoucher.assignedUserIds && targetVoucher.assignedUserIds.length > 0) {
+      if (!currentUser || !targetVoucher.assignedUserIds.includes(currentUser.uid)) {
+        setVoucherError("This voucher is exclusive to select customer accounts.");
+        return;
+      }
+    }
+
+    if (targetVoucher.minOrderAmount && totalGroceryPrice < targetVoucher.minOrderAmount) {
+      setVoucherError(`Minimum grocery order of Rs. ${targetVoucher.minOrderAmount} required.`);
+      return;
+    }
+
+    setAppliedVoucher(targetVoucher);
+    setVoucherInputCode(targetVoucher.code);
+    setVoucherError(null);
+  };
+
+  const handleRemoveVoucher = () => {
+    setAppliedVoucher(null);
+    setVoucherInputCode("");
+    setVoucherError(null);
+  };
 
   const handleCheckoutSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -201,6 +282,10 @@ export default function GroceryCartDrawer({
         grandTotal: grandTotal,
         userCoords: activeCoords || undefined,
         coinsUsed: useCoins ? coinsDeducted : undefined,
+        voucher: appliedVoucher ? {
+          code: appliedVoucher.code,
+          discountAmount: voucherDiscount,
+        } : undefined,
       });
       onClose();
     } catch (err) {
@@ -344,7 +429,79 @@ export default function GroceryCartDrawer({
           {/* Pricing & Checkout Panel */}
           {cartItems.length > 0 && (
             <div className="p-5 border-t border-zinc-900 bg-zinc-900/60 space-y-4">
-                        {/* Coin Benefit Section - Rendered ONLY if enabled by admin and user has coins */}
+                        {/* VOUCHER / PROMO CODE SECTION */}
+              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-black text-orange-400">
+                    <Ticket className="w-4 h-4 text-orange-500" />
+                    <span>Grocery Voucher</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsVouchersModalOpen(true)}
+                    className="text-[11px] font-black text-orange-400 hover:text-orange-300 underline cursor-pointer"
+                  >
+                    View My Vouchers 🎟️
+                  </button>
+                </div>
+
+                {appliedVoucher ? (
+                  <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-2.5 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono font-black text-xs text-white">{appliedVoucher.code}</span>
+                          <span className="bg-orange-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-md">
+                            Rs. {voucherDiscount} OFF
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-zinc-400 block">{appliedVoucher.title}</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleRemoveVoucher}
+                      className="text-xs text-rose-400 hover:text-rose-300 font-bold px-2 py-1 bg-rose-500/10 rounded-lg cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <Tag className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          placeholder="ENTER VOUCHER CODE"
+                          value={voucherInputCode}
+                          onChange={(e) => setVoucherInputCode(e.target.value.toUpperCase())}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleApplyVoucher(voucherInputCode);
+                            }
+                          }}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-8 pr-3 py-2 text-xs font-mono font-bold text-white placeholder:text-zinc-600 focus:outline-none focus:border-orange-500 uppercase"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleApplyVoucher(voucherInputCode)}
+                        className="bg-orange-600 hover:bg-orange-700 text-white text-xs font-black px-3.5 py-2 rounded-xl transition cursor-pointer"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                    {voucherError && (
+                      <p className="text-[10px] text-rose-400 font-semibold">{voucherError}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Coin Benefit Section - Rendered ONLY if enabled by admin and user has coins */}
               {isLoyaltyEnabledForGrocery && maxAllowedCoinsByAdmin > 0 && userCoins > 0 && (
                 <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/15 to-amber-600/10 border border-amber-500/30 rounded-2xl p-3.5 mt-3 space-y-2.5 animate-fadeIn text-left shadow-sm">
                   <div className="flex items-center justify-between gap-2">
@@ -445,6 +602,13 @@ export default function GroceryCartDrawer({
                   <span>Cart Subtotal</span>
                   <span>Rs. {totalGroceryPrice}</span>
                 </div>
+
+                {appliedVoucher && voucherDiscount > 0 && (
+                  <div className="flex justify-between text-orange-400 font-bold">
+                    <span>Voucher Discount ({appliedVoucher.code})</span>
+                    <span>- Rs. {voucherDiscount}</span>
+                  </div>
+                )}
                 
                 {/* GST Tax representation */}
                 <div className="flex justify-between text-zinc-400 font-semibold">
@@ -551,6 +715,20 @@ export default function GroceryCartDrawer({
 
         </div>
       </div>
+
+      {/* USER VOUCHERS MODAL */}
+      <UserVouchersModal
+        isOpen={isVouchersModalOpen}
+        onClose={() => setIsVouchersModalOpen(false)}
+        vouchers={allVouchers}
+        currentUser={currentUser}
+        cartType="grocery"
+        cartSubtotal={totalGroceryPrice}
+        onApplyVoucher={(v) => {
+          handleApplyVoucher(v);
+          setIsVouchersModalOpen(false);
+        }}
+      />
     </div>
   );
 }

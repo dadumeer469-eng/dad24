@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { UserProfile, OrderItem, getUserCoins } from "../types";
-import { X, ShoppingBag, MapPin, Phone, User, AlertTriangle, ShieldCheck, Heart, Edit2, Compass, Coins } from "lucide-react";
+import { UserProfile, OrderItem, getUserCoins, Voucher, calculateVoucherDiscount, isVoucherExpired } from "../types";
+import { X, ShoppingBag, MapPin, Phone, User, AlertTriangle, ShieldCheck, Heart, Edit2, Compass, Coins, Ticket, CheckCircle, Tag } from "lucide-react";
 import { CHECKOUT_DRINKS } from "../data";
 import { LazyImage } from "./LazyImage";
+import UserVouchersModal from "./UserVouchersModal";
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -13,10 +14,20 @@ interface CartDrawerProps {
   currentUser: UserProfile | null;
   onOpenAuth: () => void;
   deliveryFee: number; // Stored inside Firestore settings!
-  onPlaceOrder: (details: { name: string; phone: string; location: { area: string; street: string; lat?: number; lng?: number; googleMapsLink?: string }; paymentMethod: string; orderType: "food" | "service"; userCoords?: { latitude: number; longitude: number }; coinsUsed?: number }) => Promise<void>;
+  onPlaceOrder: (details: {
+    name: string;
+    phone: string;
+    location: { area: string; street: string; lat?: number; lng?: number; googleMapsLink?: string };
+    paymentMethod: string;
+    orderType: "food" | "service";
+    userCoords?: { latitude: number; longitude: number };
+    coinsUsed?: number;
+    voucher?: { code: string; discountAmount: number };
+  }) => Promise<void>;
   onAddDrink: (drink: any) => void;
   userCoords?: { latitude: number; longitude: number } | null;
   systemSettings?: any;
+  allVouchers?: Voucher[];
 }
 
 export default function CartDrawer({
@@ -32,13 +43,21 @@ export default function CartDrawer({
   onAddDrink,
   userCoords,
   systemSettings,
+  allVouchers = [],
 }: CartDrawerProps) {
   const [submitting, setSubmitting] = useState(false);
   const [useCoins, setUseCoins] = useState(false);
+  const [appliedVoucher, setAppliedVoucher] = useState<Voucher | null>(null);
+  const [voucherInputCode, setVoucherInputCode] = useState("");
+  const [voucherError, setVoucherError] = useState<string | null>(null);
+  const [isVouchersModalOpen, setIsVouchersModalOpen] = useState(false);
 
   React.useEffect(() => {
     if (!isOpen || cartItems.length === 0) {
       setUseCoins(false);
+      setAppliedVoucher(null);
+      setVoucherInputCode("");
+      setVoucherError(null);
     }
   }, [isOpen, cartItems.length]);
 
@@ -55,7 +74,13 @@ export default function CartDrawer({
   const isDoubleFee = hasFood && totalFoodItemsPrice < 500;
   const finalDeliveryFee = hasFood ? (isDoubleFee ? deliveryFee * 2 : deliveryFee) : 0;
   
-  let grandTotal = totalFoodItemsPrice + finalDeliveryFee;
+  // Voucher discount
+  let voucherDiscount = 0;
+  if (appliedVoucher) {
+    voucherDiscount = calculateVoucherDiscount(appliedVoucher, totalFoodItemsPrice);
+  }
+
+  let grandTotal = Math.max(0, totalFoodItemsPrice + finalDeliveryFee - voucherDiscount);
 
   const userCoins = getUserCoins(currentUser, systemSettings);
   const isLoyaltyEnabledForFood = (systemSettings?.loyaltyEnabled !== false) && (systemSettings?.loyaltyAllowOnFood !== false);
@@ -86,6 +111,80 @@ export default function CartDrawer({
       estimatedCoinsEarned = Math.floor(grandTotal * (loyaltyEarnVal / 100));
     }
   }
+
+  // Voucher application logic
+  const handleApplyVoucher = (codeOrVoucher: string | Voucher) => {
+    let targetVoucher: Voucher | undefined;
+    if (typeof codeOrVoucher === "string") {
+      const code = codeOrVoucher.trim().toUpperCase();
+      if (!code) {
+        setVoucherError("Please enter a voucher code.");
+        return;
+      }
+      targetVoucher = allVouchers.find((v) => v.code.toUpperCase() === code);
+    } else {
+      targetVoucher = codeOrVoucher;
+    }
+
+    setVoucherError(null);
+
+    if (!targetVoucher) {
+      setVoucherError("Invalid voucher code.");
+      return;
+    }
+
+    if (!targetVoucher.isActive) {
+      setVoucherError("This voucher is currently inactive.");
+      return;
+    }
+
+    if (isVoucherExpired(targetVoucher)) {
+      setVoucherError("This voucher has expired.");
+      return;
+    }
+
+    if (targetVoucher.maxUses && (targetVoucher.currentUses || 0) >= targetVoucher.maxUses) {
+      setVoucherError("This voucher has reached its maximum usage limit.");
+      return;
+    }
+
+    if (targetVoucher.applicableType === "grocery_only") {
+      setVoucherError("This voucher is only valid on Grocery orders.");
+      return;
+    }
+
+    if (targetVoucher.applicableType === "restaurant" && targetVoucher.applicableRestaurant) {
+      const matchRest = cartItems.some(
+        (i) => i.restaurantName?.toLowerCase() === targetVoucher?.applicableRestaurant?.toLowerCase()
+      );
+      if (!matchRest) {
+        setVoucherError(`This voucher is valid only for ${targetVoucher.applicableRestaurant}.`);
+        return;
+      }
+    }
+
+    if (targetVoucher.assignedUserIds && targetVoucher.assignedUserIds.length > 0) {
+      if (!currentUser || !targetVoucher.assignedUserIds.includes(currentUser.uid)) {
+        setVoucherError("This voucher is exclusive to select customer accounts.");
+        return;
+      }
+    }
+
+    if (targetVoucher.minOrderAmount && totalFoodItemsPrice < targetVoucher.minOrderAmount) {
+      setVoucherError(`Minimum food order of Rs. ${targetVoucher.minOrderAmount} required.`);
+      return;
+    }
+
+    setAppliedVoucher(targetVoucher);
+    setVoucherInputCode(targetVoucher.code);
+    setVoucherError(null);
+  };
+
+  const handleRemoveVoucher = () => {
+    setAppliedVoucher(null);
+    setVoucherInputCode("");
+    setVoucherError(null);
+  };
 
   // Handles auto checkout detail mapping
   const handleSubmitOrder = async (e: React.FormEvent) => {
@@ -186,6 +285,10 @@ export default function CartDrawer({
         orderType: orderTypeValue,
         userCoords: activeCoords || undefined,
         coinsUsed: useCoins ? coinsDeducted : undefined,
+        voucher: appliedVoucher ? {
+          code: appliedVoucher.code,
+          discountAmount: voucherDiscount,
+        } : undefined,
       });
     } catch (err) {
       console.error(err);
@@ -523,6 +626,79 @@ export default function CartDrawer({
                 </div>
               </div>
             )}
+
+            {/* VOUCHER / DISCOUNT CODE SECTION */}
+            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs font-black text-pink-400">
+                  <Ticket className="w-4 h-4 text-[#D70F64]" />
+                  <span>Promo Voucher</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsVouchersModalOpen(true)}
+                  className="text-[11px] font-black text-[#D70F64] hover:text-pink-300 underline cursor-pointer"
+                >
+                  View My Vouchers 🎟️
+                </button>
+              </div>
+
+              {appliedVoucher ? (
+                <div className="bg-pink-500/10 border border-[#D70F64]/30 rounded-xl p-2.5 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono font-black text-xs text-white">{appliedVoucher.code}</span>
+                        <span className="bg-[#D70F64] text-white text-[9px] font-black px-1.5 py-0.2 rounded-md">
+                          Rs. {voucherDiscount} OFF
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-zinc-400 block">{appliedVoucher.title}</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRemoveVoucher}
+                    className="text-xs text-rose-400 hover:text-rose-300 font-bold px-2 py-1 bg-rose-500/10 rounded-lg cursor-pointer"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <Tag className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        placeholder="ENTER PROMO CODE"
+                        value={voucherInputCode}
+                        onChange={(e) => setVoucherInputCode(e.target.value.toUpperCase())}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleApplyVoucher(voucherInputCode);
+                          }
+                        }}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-8 pr-3 py-2 text-xs font-mono font-bold text-white placeholder:text-zinc-600 focus:outline-none focus:border-[#D70F64] uppercase"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleApplyVoucher(voucherInputCode)}
+                      className="bg-[#D70F64] hover:bg-[#b00c50] text-white text-xs font-black px-3.5 py-2 rounded-xl transition cursor-pointer"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                  {voucherError && (
+                    <p className="text-[10px] text-rose-400 font-semibold">{voucherError}</p>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Coin Benefit Section - Rendered ONLY if enabled by admin and user has coins */}
             {isLoyaltyEnabledForFood && maxAllowedCoinsByAdmin > 0 && userCoins > 0 && (
               <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/15 to-amber-600/10 border border-amber-500/30 rounded-2xl p-3.5 mt-3 space-y-2.5 animate-fadeIn text-left shadow-sm">
@@ -616,6 +792,13 @@ export default function CartDrawer({
                 <span className="text-zinc-100 font-extrabold font-mono">Rs. {totalFoodItemsPrice}</span>
               </div>
 
+              {appliedVoucher && voucherDiscount > 0 && (
+                <div className="flex justify-between text-pink-400">
+                  <span>Voucher Discount ({appliedVoucher.code}):</span>
+                  <span className="font-extrabold font-mono">- Rs. {voucherDiscount}</span>
+                </div>
+              )}
+
               {useCoins && coinsDeducted > 0 && (
                 <div className="flex justify-between text-amber-400">
                   <span>Coin Benefit Discount:</span>
@@ -669,6 +852,21 @@ export default function CartDrawer({
         )}
 
       </div>
+
+      {/* USER VOUCHERS MODAL */}
+      <UserVouchersModal
+        isOpen={isVouchersModalOpen}
+        onClose={() => setIsVouchersModalOpen(false)}
+        vouchers={allVouchers}
+        currentUser={currentUser}
+        cartType="food"
+        cartSubtotal={totalFoodItemsPrice}
+        cartRestaurant={cartItems[0]?.restaurantName}
+        onApplyVoucher={(v) => {
+          handleApplyVoucher(v);
+          setIsVouchersModalOpen(false);
+        }}
+      />
     </div>
   );
 }

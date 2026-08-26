@@ -286,11 +286,49 @@ export interface Voucher {
   discountValue: number;
   minOrderAmount?: number;
   maxDiscountAmount?: number;
+  applicableType?: "all" | "food_only" | "grocery_only" | "restaurant";
+  applicableRestaurant?: string;
+  expiryDate?: string; // ISO format e.g. "2026-12-31T23:59" or date string
   maxUses: number;
   currentUses: number;
+  perUserLimit?: number;
+  assignedUserIds?: string[];
+  assignedUserNames?: { [uid: string]: string };
   successMessage?: string;
   isActive: boolean;
   createdAt?: any;
+}
+
+/**
+ * Checks if a voucher has expired based on its expiryDate field.
+ */
+export function isVoucherExpired(voucher?: Voucher | null): boolean {
+  if (!voucher || !voucher.expiryDate) return false;
+  try {
+    const expTime = new Date(voucher.expiryDate).getTime();
+    if (isNaN(expTime)) return false;
+    return Date.now() > expTime;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Calculates the exact rupee discount given a voucher and order subtotal.
+ */
+export function calculateVoucherDiscount(voucher: Voucher, subtotal: number): number {
+  if (!voucher || subtotal <= 0) return 0;
+  if (voucher.minOrderAmount && subtotal < voucher.minOrderAmount) return 0;
+  
+  if (voucher.discountType === "percentage") {
+    let discount = (subtotal * voucher.discountValue) / 100;
+    if (voucher.maxDiscountAmount && voucher.maxDiscountAmount > 0) {
+      discount = Math.min(discount, voucher.maxDiscountAmount);
+    }
+    return Math.round(discount);
+  } else {
+    return Math.min(subtotal, Math.round(voucher.discountValue));
+  }
 }
 
 /**

@@ -3,7 +3,6 @@ import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db, analytics } from "../firebase";
 import { logEvent } from "firebase/analytics";
 import { Banner } from "../types";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { LazyImage } from "./LazyImage";
 
 interface BannerCarouselProps {
@@ -301,61 +300,28 @@ export default function BannerCarousel({ onBannerClick }: BannerCarouselProps) {
           ))}
         </div>
 
-        {/* Floating Auto-Scroll Indicator & Nav Arrows */}
+        {/* Floating Auto-Scroll Bottom Dots Indicator Bar */}
         {displayBanners.length > 1 && (
-          <>
-            {/* Left Prev Arrow Button */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                prevSlide();
-                setIsPaused(true);
-                setTimeout(() => setIsPaused(false), 3000);
-              }}
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 md:w-11 md:h-11 rounded-full bg-black/40 hover:bg-[#d70f64] text-white backdrop-blur-md flex items-center justify-center opacity-80 group-hover:opacity-100 transition-all cursor-pointer shadow-lg border border-white/20 active:scale-90 z-20"
-              aria-label="Previous image"
-            >
-              <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
-            </button>
-
-            {/* Right Next Arrow Button */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                nextSlide();
-                setIsPaused(true);
-                setTimeout(() => setIsPaused(false), 3000);
-              }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 md:w-11 md:h-11 rounded-full bg-black/40 hover:bg-[#d70f64] text-white backdrop-blur-md flex items-center justify-center opacity-80 group-hover:opacity-100 transition-all cursor-pointer shadow-lg border border-white/20 active:scale-90 z-20"
-              aria-label="Next image"
-            >
-              <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
-            </button>
-
-            {/* Bottom Dots Indicator Bar */}
-            <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/15 shadow-sm">
-              {displayBanners.map((_, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCurrentIndex(idx);
-                    setIsPaused(true);
-                    setTimeout(() => setIsPaused(false), 3000);
-                  }}
-                  className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-                    currentIndex === idx
-                      ? "bg-[#d70f64] w-3.5 ring-1 ring-[#d70f64]/40"
-                      : "bg-white/50 hover:bg-white/80 w-1.5"
-                  }`}
-                  aria-label={`Go to slide ${idx + 1}`}
-                />
-              ))}
-            </div>
-          </>
+          <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/15 shadow-sm">
+            {displayBanners.map((_, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentIndex(idx);
+                  setIsPaused(true);
+                  setTimeout(() => setIsPaused(false), 3000);
+                }}
+                className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                  currentIndex === idx
+                    ? "bg-[#d70f64] w-3.5 ring-1 ring-[#d70f64]/40"
+                    : "bg-white/50 hover:bg-white/80 w-1.5"
+                }`}
+                aria-label={`Go to slide ${idx + 1}`}
+              />
+            ))}
+          </div>
         )}
       </div>
     </div>

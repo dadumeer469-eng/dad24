@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import OrderReceiptModal from "./OrderReceiptModal";
 import MapLocationPickerModal from "./MapLocationPickerModal";
 import AiMenuGeneratorModal from "./AiMenuGeneratorModal";
+import AdminVoucherManager from "./AdminVoucherManager";
+import UserVoucherInspectorModal from "./UserVoucherInspectorModal";
 import {
   UserProfile,
   Dish,
@@ -13,6 +15,7 @@ import {
   GroceryProduct,
   GroceryDeliveryConfig,
   Banner,
+  Voucher,
   getUserCoins,
 } from "../types";
 import { awardLoyaltyCoinsForOrder, creditRiderCoinsForOrder } from "../lib/loyalty";
@@ -595,6 +598,7 @@ export default function AdminPanel({
     | "banners"
     | "food_categories"
     | "loyalty"
+    | "vouchers"
   >("analytics");
   const [editingRiderPasswordId, setEditingRiderPasswordId] = useState<string | null>(null);
   const [newPasswordInputValue, setNewPasswordInputValue] = useState<string>("");
@@ -609,6 +613,8 @@ export default function AdminPanel({
 
   const [allUsersList, setAllUsersList] = useState<UserProfile[]>([]);
   const [bannersList, setBannersList] = useState<Banner[]>([]);
+  const [vouchersList, setVouchersList] = useState<Voucher[]>([]);
+  const [inspectingVoucherUser, setInspectingVoucherUser] = useState<UserProfile | null>(null);
   const [userSearchTerm, setUserSearchTerm] = useState("");
   const [userFilterTab, setUserFilterTab] = useState<"new" | "active" | "blocked">("new");
   const [receiptModalOrder, setReceiptModalOrder] = useState<Order | null>(null);
@@ -620,6 +626,20 @@ export default function AdminPanel({
     const unsub = onSnapshot(q, (snap) => {
       setBannersList(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Banner)));
     });
+    return () => unsub();
+  }, []);
+
+  // Realtime subscription to vouchers
+  useEffect(() => {
+    const unsub = onSnapshot(
+      collection(db, "vouchers"),
+      (snap) => {
+        setVouchersList(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Voucher)));
+      },
+      (err) => {
+        console.warn("Error subscribing to vouchers:", err);
+      }
+    );
     return () => unsub();
   }, []);
 
@@ -3379,6 +3399,14 @@ export default function AdminPanel({
               <ImageIcon className="w-3.5 h-3.5" /> Banners
             </button>
             <button
+              onClick={() => setActiveSubTab("vouchers")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
+                activeSubTab === "vouchers" ? "bg-[#D70F64] border-[#D70F64] text-white" : "bg-slate-50 border-slate-200 text-slate-700"
+              }`}
+            >
+              <Ticket className="w-3.5 h-3.5" /> Vouchers ({vouchersList.length})
+            </button>
+            <button
               onClick={() => setActiveSubTab("loyalty")}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
                 activeSubTab === "loyalty" ? "bg-[#D70F64] border-[#D70F64] text-white" : "bg-slate-50 border-slate-200 text-slate-700"
@@ -3623,6 +3651,25 @@ export default function AdminPanel({
                   >
                     <ImageIcon className="w-3.5 h-3.5 shrink-0" />
                     Promotional Banners
+                  </button>
+
+                  <button
+                    onClick={() => setActiveSubTab("vouchers")}
+                    className={`w-full font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
+                      activeSubTab === "vouchers"
+                        ? "bg-[#D70F64] border-[#D70F64] text-white shadow-sm"
+                        : "bg-transparent border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    }`}
+                  >
+                    <Ticket className="w-3.5 h-3.5 shrink-0" />
+                    <span>Vouchers & Discounts</span>
+                    {vouchersList.length > 0 && (
+                      <span className={`ml-auto text-[10px] font-black px-1.5 py-0.2 rounded-md ${
+                        activeSubTab === "vouchers" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
+                      }`}>
+                        {vouchersList.length}
+                      </span>
+                    )}
                   </button>
 
                   <button
@@ -9117,6 +9164,13 @@ export default function AdminPanel({
                             <div className="pt-2 flex items-center gap-2 flex-wrap">
                               <button
                                 type="button"
+                                onClick={() => setInspectingVoucherUser(u)}
+                                className="flex-1 min-w-[70px] py-1.5 rounded-lg text-[10px] font-black uppercase transition-all bg-pink-500/10 text-[#D70F64] hover:bg-pink-500/20 cursor-pointer text-center"
+                              >
+                                🎟️ Vouchers ({vouchersList.filter(v => v.assignedUserIds?.includes(u.uid)).length})
+                              </button>
+                              <button
+                                type="button"
                                 onClick={() => {
                                   setCoinManagingUser(u);
                                   setCoinAmountInput(50);
@@ -9323,6 +9377,13 @@ export default function AdminPanel({
                                   </td>
                                   {/* Actions */}
                                   <td className="py-4 px-5 text-right flex items-center justify-end gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => setInspectingVoucherUser(u)}
+                                      className="p-1 px-2.5 rounded text-[10px] font-black uppercase transition-all bg-pink-500/10 text-[#D70F64] hover:bg-pink-500/20 cursor-pointer flex items-center gap-1"
+                                    >
+                                      🎟️ Vouchers ({vouchersList.filter(v => v.assignedUserIds?.includes(u.uid)).length})
+                                    </button>
                                     <button
                                       type="button"
                                       onClick={() => {
@@ -10172,6 +10233,14 @@ export default function AdminPanel({
                 </div>
               </div>
             </div>
+          )}
+
+          {activeSubTab === "vouchers" && (
+            <AdminVoucherManager
+              vouchers={vouchersList}
+              allUsersList={allUsersList}
+              restaurantNames={uniqueRestaurants}
+            />
           )}
 
 
@@ -11504,6 +11573,15 @@ export default function AdminPanel({
         uniqueRestaurants={uniqueRestaurants}
         foodCategories={foodCategories}
       />
+
+      {/* USER VOUCHERS INSPECTOR & SENDER MODAL */}
+      {inspectingVoucherUser && (
+        <UserVoucherInspectorModal
+          user={inspectingVoucherUser}
+          onClose={() => setInspectingVoucherUser(null)}
+          allVouchers={vouchersList}
+        />
+      )}
 
       {/* NEW USER REALTIME NOTIFICATION TOAST */}
       {newUserToast && newUserToast.show && (

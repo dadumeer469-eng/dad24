@@ -31,6 +31,7 @@ import {
   GroceryOrderItem,
   GroceryDeliveryConfig,
   GroceryOrder,
+  Voucher,
 } from "./types";
 import { INITIAL_MENU_ITEMS } from "./data";
 
@@ -317,6 +318,7 @@ export default function App() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [cartItems, setCartItems] = useState<OrderItem[]>([]);
+  const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [activeTrackingOrder, setActiveTrackingOrder] = useState<Order | null>(
     null,
   );
@@ -1048,6 +1050,24 @@ export default function App() {
           "Deal config subscription error:",
           handleFirestoreError(err),
         );
+      },
+    );
+    return () => unsubscribe();
+  }, []);
+
+  // 3v. Real-time Vouchers Listening
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      collection(db, "vouchers"),
+      (snapshot) => {
+        const list: Voucher[] = [];
+        snapshot.forEach((docSnap) => {
+          list.push({ id: docSnap.id, ...docSnap.data() } as Voucher);
+        });
+        setVouchers(list);
+      },
+      (err) => {
+        console.warn("Vouchers subscription notice:", handleFirestoreError(err));
       },
     );
     return () => unsubscribe();
@@ -1785,12 +1805,29 @@ export default function App() {
     deliveryFee: number;
     grandTotal: number;
     userCoords?: { latitude: number; longitude: number };
+    voucher?: { code: string; discountAmount: number };
     coinsUsed?: number;
   }) => {
     if (currentUser?.status === 'locked' || currentUser?.status === 'blocked') {
       alert("Verification pending or blocked. Cannot place order.");
       return;
     }
+
+    if (details.voucher) {
+      const vRef = doc(db, "vouchers", details.voucher.code);
+      const vSnap = await getDoc(vRef);
+      if (vSnap.exists()) {
+        const vData = vSnap.data();
+        if (!vData.isActive || vData.currentUses >= vData.maxUses) {
+          alert("Sorry, the applied voucher is no longer valid or has reached its usage limit.");
+          return;
+        }
+      } else {
+        alert("Invalid voucher code.");
+        return;
+      }
+    }
+
     try {
       const generatedOrderId = `gorder_${Date.now()}`;
 
@@ -1830,10 +1867,17 @@ export default function App() {
         createdAt: { seconds: Math.floor(Date.now() / 1000) },
         userCoords: details.userCoords || null,
         totalCommission,
+        voucher: details.voucher || undefined,
         coinsUsed: details.coinsUsed || undefined,
       };
 
-      await setDoc(doc(db, "orders", generatedOrderId), orderDoc);
+      await setDoc(doc(db, "orders", generatedOrderId), cleanObject(orderDoc));
+
+      if (details.voucher) {
+        await updateDoc(doc(db, "vouchers", details.voucher.code), {
+          currentUses: increment(1)
+        }).catch((err) => console.error("Failed to update voucher uses:", err));
+      }
 
       // Update profile with new location & name & deduct coins if any
       if (currentUser) {
@@ -2375,6 +2419,7 @@ export default function App() {
             onAddDrink={handleAddExclusiveDrink}
             userCoords={globalCoords}
             systemSettings={deliverySettings}
+            allVouchers={vouchers}
           />
         );
       })()}
@@ -2398,6 +2443,7 @@ export default function App() {
             onPlaceGroceryOrder={handlePlaceGroceryOrder}
             userCoords={globalCoords}
             systemSettings={deliverySettings}
+            allVouchers={vouchers}
           />
         );
       })()}
