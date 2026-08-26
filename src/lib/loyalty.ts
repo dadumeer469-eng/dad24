@@ -73,3 +73,52 @@ export async function awardLoyaltyCoinsForOrder(db: any, orderId: string) {
     console.error("Error in awardLoyaltyCoinsForOrder:", error);
   }
 }
+
+/**
+ * Credits redeemed coins used by customer on an order directly to the assigned rider's account.
+ * Rider can later exchange these coins for cash during admin settlement.
+ */
+export async function creditRiderCoinsForOrder(db: any, orderId: string) {
+  try {
+    const orderRef = doc(db, "orders", orderId);
+    const orderSnap = await getDoc(orderRef);
+    if (!orderSnap.exists()) return;
+    const order = orderSnap.data();
+
+    const coinsUsed = Number(order.coinsUsed) || 0;
+    if (coinsUsed <= 0) return;
+    if (!order.riderId) return;
+
+    // Prevent double crediting
+    if (order.coinsCreditedToRider) {
+      console.log("Coins already credited to rider for this order.");
+      return;
+    }
+
+    // Update rider's user profile with credited coins
+    const riderRef = doc(db, "users", order.riderId);
+    await updateDoc(riderRef, {
+      loyaltyCoins: increment(coinsUsed),
+      coinsCollected: increment(coinsUsed)
+    });
+
+    // Mark order as coins credited to rider
+    await updateDoc(orderRef, {
+      coinsCreditedToRider: true
+    });
+
+    // Send in-app notification to the rider
+    await addDoc(collection(db, "notifications"), {
+      userId: order.riderId,
+      title: "🪙 Customer Coins Added to Rider Wallet!",
+      message: `Customer ne order #${orderId.substring(0, 6)} par ${coinsUsed} Dadu Coins (Rs. ${coinsUsed} value) redeem kiye the, jo aapke rider account mein credit kar diye gaye hain! Admin settlement ke waqt iske paise le sakte hain. 💵`,
+      createdAt: { seconds: Date.now() / 1000 },
+      read: false
+    });
+
+    console.log(`Successfully credited ${coinsUsed} coins to rider ${order.riderId} for order ${orderId}`);
+  } catch (error) {
+    console.error("Error in creditRiderCoinsForOrder:", error);
+  }
+}
+

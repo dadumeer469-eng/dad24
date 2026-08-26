@@ -31,7 +31,6 @@ import {
   GroceryOrderItem,
   GroceryDeliveryConfig,
   GroceryOrder,
-  getUserCoins,
 } from "./types";
 import { INITIAL_MENU_ITEMS } from "./data";
 
@@ -165,19 +164,19 @@ export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [splashProgress, setSplashProgress] = useState(0);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [theme, setTheme] = useState<"light" | "dark">("light");
 
-  // Load saved theme on mount (Defaults to dark mode for all users)
+  // Load saved theme on mount (Defaults to normal light mode unless user turned on dark mode)
   useEffect(() => {
     const saved = localStorage.getItem("dadu_theme");
-    if (saved === "light") {
-      setTheme("light");
-      document.documentElement.classList.remove("dark");
-      document.body.classList.remove("dark");
-    } else {
+    if (saved === "dark") {
       setTheme("dark");
       document.documentElement.classList.add("dark");
       document.body.classList.add("dark");
+    } else {
+      setTheme("light");
+      document.documentElement.classList.remove("dark");
+      document.body.classList.remove("dark");
     }
   }, []);
 
@@ -1838,7 +1837,7 @@ export default function App() {
 
       // Update profile with new location & name & deduct coins if any
       if (currentUser) {
-        let finalCoins = getUserCoins(currentUser, deliverySettings);
+        let finalCoins = (currentUser.loyaltyCoins || 0);
         if (details.coinsUsed) {
           finalCoins = Math.max(0, finalCoins - details.coinsUsed);
         }
@@ -1858,7 +1857,6 @@ export default function App() {
             address: `${details.location.area}, ${details.location.street}`,
             ordersCount: (currentUser.ordersCount || 0) + 1,
             loyaltyCoins: finalCoins,
-            coins: finalCoins,
           };
           await setDoc(profileRef, cleanObject(updatedProfile));
           setCurrentUser(updatedProfile);
@@ -2064,7 +2062,7 @@ export default function App() {
       setCartItems([]);
       setIsCartOpen(false);
 
-      let finalCoins = getUserCoins(currentUser, deliverySettings);
+      let finalCoins = (currentUser.loyaltyCoins || 0);
       if (details.coinsUsed) {
         finalCoins = Math.max(0, finalCoins - details.coinsUsed);
       }
@@ -2077,7 +2075,6 @@ export default function App() {
         address: `${details.location.area}, ${details.location.street}`,
         ordersCount: (currentUser.ordersCount || 0) + 1,
         loyaltyCoins: finalCoins,
-        coins: finalCoins,
       };
       await setDoc(
         doc(db, "users", currentUser.uid),
@@ -2101,6 +2098,25 @@ export default function App() {
       );
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleMarkNotificationAsRead = async (id: string) => {
+    try {
+      await updateDoc(doc(db, "notifications", id), { read: true });
+    } catch (err) {
+      console.error("Failed to mark notification as read:", err);
+    }
+  };
+
+  const handleMarkAllNotificationsAsRead = async () => {
+    try {
+      const unread = notifications.filter((n) => !n.read);
+      await Promise.all(
+        unread.map((n) => updateDoc(doc(db, "notifications", n.id), { read: true })),
+      );
+    } catch (err) {
+      console.error("Failed to mark all notifications as read:", err);
     }
   };
 
@@ -2358,6 +2374,7 @@ export default function App() {
             onPlaceOrder={handlePlaceOrderSubmit}
             onAddDrink={handleAddExclusiveDrink}
             userCoords={globalCoords}
+            onUpdateUserCoords={(coords) => setGlobalCoords(coords)}
             systemSettings={deliverySettings}
           />
         );
@@ -2381,6 +2398,7 @@ export default function App() {
             deliveryConfig={computedGroceryDeliveryConfig}
             onPlaceGroceryOrder={handlePlaceGroceryOrder}
             userCoords={globalCoords}
+            onUpdateUserCoords={(coords) => setGlobalCoords(coords)}
             systemSettings={deliverySettings}
           />
         );
@@ -3537,6 +3555,8 @@ export default function App() {
           setSearchQuery={setSearchQuery}
           notifications={notifications}
           onClearNotifications={handleClearNotificationsAll}
+          onMarkNotificationAsRead={handleMarkNotificationAsRead}
+          onMarkAllNotificationsAsRead={handleMarkAllNotificationsAsRead}
           activeCategory={activeCategory}
           setActiveCategory={setActiveCategory}
           onToggleFavorites={() => setShowFavoritesOnly(!showFavoritesOnly)}

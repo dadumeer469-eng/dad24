@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from "react";
 import OrderReceiptModal from "./OrderReceiptModal";
-import RiderAiAssistant from "./RiderAiAssistant";
 import { 
   collection, query, where, onSnapshot, doc, updateDoc, Timestamp, addDoc
 } from "firebase/firestore";
 import { db, handleFirestoreError } from "../firebase";
 import { Order, UserProfile } from "../types";
-import { awardLoyaltyCoinsForOrder } from "../lib/loyalty";
+import { awardLoyaltyCoinsForOrder, creditRiderCoinsForOrder } from "../lib/loyalty";
 import { 
   CheckCircle2, Compass, Coins, CalendarDays, TrendingUp, History, User, 
-  MapPin, PhoneCall, LogOut, ArrowRight, ClipboardList, DollarSign, Clock, Check, Store, XCircle, Star,
-  Bot, AlertTriangle, Sparkles
+  MapPin, PhoneCall, LogOut, ArrowRight, ClipboardList, DollarSign, Clock, Check, Store, XCircle, Star
 } from "lucide-react";
 import OrderChat from "./OrderChat";
 import { useRiderLocationTracker } from "../lib/riderLocationTracker";
@@ -26,7 +24,6 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
   const [timeframe, setTimeframe] = useState<"1day" | "7days" | "30days" | "60days" | "all">("all");
   const [riderReceiptOrder, setRiderReceiptOrder] = useState<any | null>(null);
   const [isRiderReceiptModalOpen, setIsRiderReceiptModalOpen] = useState(false);
-  const [isAiAssistantOpen, setIsAiAssistantOpen] = useState(false);
   const [isOnline, setIsOnline] = useState<boolean>(() => {
     const saved = localStorage.getItem(`rider_online_${currentUser.uid}`);
     return saved !== "false";
@@ -492,6 +489,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
         deliveryCompletedAt: Timestamp.now()
       });
       await awardLoyaltyCoinsForOrder(db, orderId);
+      await creditRiderCoinsForOrder(db, orderId);
     } catch (err) {
       alert("Deliver transaction failed: " + handleFirestoreError(err));
     } finally {
@@ -578,17 +576,9 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
           <span>{isOnline ? "DUTY: ONLINE" : "DUTY: OFFLINE"}</span>
         </button>
 
-        {/* Center: Rider Badge & AI Assistant Trigger */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setIsAiAssistantOpen(true)}
-            className="py-1 px-2.5 rounded-full text-[11px] font-black bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 text-amber-400 border border-amber-500/40 shadow-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
-            title="Open Rider AI Assistant / Report Incident"
-          >
-            <Bot className="w-3.5 h-3.5 text-amber-400 animate-bounce" />
-            <span>AI Assistant</span>
-          </button>
-          <span className="text-pink-400 font-bold text-[11px] truncate max-w-[100px] sm:max-w-none">
+        {/* Center: Rider Badge */}
+        <div className="flex items-center gap-1.5 text-xs font-black text-white">
+          <span className="text-pink-400 font-bold text-[11px] truncate max-w-[120px] sm:max-w-none">
             {currentUser.name}
           </span>
         </div>
@@ -820,6 +810,27 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                         <span className="text-[9px] text-zinc-400 font-bold block mt-0.5">Pure Earnings</span>
                       </div>
                     </div>
+
+                    {riderActiveOrder.coinsUsed && riderActiveOrder.coinsUsed > 0 ? (
+                      <div className="bg-amber-950/50 border border-amber-500/40 p-3 sm:p-3.5 rounded-2xl flex items-center justify-between gap-3 shadow-md text-amber-200 animate-fadeIn">
+                        <div className="flex items-center gap-2.5">
+                          <div className="p-2 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30 shrink-0">
+                            <Coins className="w-5 h-5 animate-bounce" />
+                          </div>
+                          <div>
+                            <span className="text-[11px] font-black uppercase tracking-wider block text-amber-300">
+                              🪙 Customer Redeemed Coins: {riderActiveOrder.coinsUsed} Coins
+                            </span>
+                            <span className="text-[10px] text-amber-200/80 font-medium block mt-0.5">
+                              Delivery complete hone par {riderActiveOrder.coinsUsed} Coins (Rs. {riderActiveOrder.coinsUsed} value) aapke wallet me credit hongay!
+                            </span>
+                          </div>
+                        </div>
+                        <span className="bg-amber-500 text-zinc-950 font-black text-[10px] px-2.5 py-1 rounded-lg uppercase shrink-0 shadow-xs">
+                          +Rs. {riderActiveOrder.coinsUsed} Cash
+                        </span>
+                      </div>
+                    ) : null}
                     
                     {/* Interactive Milestones Shipment Progress Pipeline */}
                     <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 space-y-3 animate-fadeIn">
@@ -1770,6 +1781,54 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                 </div>
               </div>
 
+              {/* Customer Coins Earnings & Cash Value Wallet */}
+              <div className="bg-gradient-to-r from-amber-950/80 via-zinc-900 to-amber-950/80 border border-amber-500/40 p-5 rounded-3xl space-y-4 shadow-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-amber-500/20 pb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-amber-500/20 text-amber-400 rounded-2xl border border-amber-500/30 shrink-0">
+                      <Coins className="w-6 h-6 animate-pulse" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm sm:text-base font-black text-amber-300 uppercase tracking-wide flex items-center gap-2">
+                        <span>🪙 Customer Coins Wallet & Cash Exchange</span>
+                        <span className="bg-amber-500/20 text-amber-300 text-[9px] px-2 py-0.5 rounded-full border border-amber-500/30 font-extrabold">
+                          1 Coin = Rs. 1 Cash
+                        </span>
+                      </h3>
+                      <p className="text-xs text-amber-200/80 font-medium mt-0.5">
+                        Orders par customer ke redeemed coins aapke account me add hotay hain. Settlement par Admin se inke badle paise receive karein.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="bg-zinc-950/70 border border-amber-500/20 p-4 rounded-2xl">
+                    <span className="text-[9.5px] uppercase tracking-widest text-zinc-400 font-extrabold block">Rider Coin Balance</span>
+                    <span className="text-2xl font-black text-amber-400 block mt-1 font-mono">
+                      {currentUser?.loyaltyCoins || currentUser?.coinsCollected || 0} Coins
+                    </span>
+                    <span className="text-[10px] text-zinc-400 font-medium block mt-0.5">Total Coins Credited</span>
+                  </div>
+
+                  <div className="bg-zinc-950/70 border border-emerald-500/20 p-4 rounded-2xl">
+                    <span className="text-[9.5px] uppercase tracking-widest text-emerald-400 font-extrabold block">Cash Value for Settlement</span>
+                    <span className="text-2xl font-black text-emerald-400 block mt-1 font-mono">
+                      Rs. {currentUser?.loyaltyCoins || currentUser?.coinsCollected || 0}
+                    </span>
+                    <span className="text-[10px] text-zinc-400 font-medium block mt-0.5">Payable by Admin in Cash</span>
+                  </div>
+
+                  <div className="bg-zinc-950/70 border border-amber-500/20 p-4 rounded-2xl">
+                    <span className="text-[9.5px] uppercase tracking-widest text-amber-300 font-extrabold block">Filtered Coins Collected</span>
+                    <span className="text-2xl font-black text-amber-300 block mt-1 font-mono">
+                      {filteredRiderOrders.reduce((sum, o) => sum + (o.coinsUsed || 0), 0)} Coins
+                    </span>
+                    <span className="text-[10px] text-zinc-400 font-medium block mt-0.5">From Selected Timeframe</span>
+                  </div>
+                </div>
+              </div>
+
               {/* Analytics Widgets Grid */}
               <section className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                 <div className="bg-zinc-900 border border-zinc-800 p-4 sm:p-5 rounded-2xl relative overflow-hidden flex flex-col justify-between shadow-sm">
@@ -2004,31 +2063,6 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
           <span className="text-[9.5px] uppercase tracking-wider">History</span>
         </button>
       </nav>
-
-      {/* Floating Quick Action Button for Rider AI Assistant */}
-      <div className="fixed bottom-20 md:bottom-6 right-4 z-40">
-        <button
-          onClick={() => setIsAiAssistantOpen(true)}
-          className="group flex items-center gap-2 bg-gradient-to-r from-amber-600 via-orange-600 to-amber-500 hover:from-amber-500 hover:to-orange-500 text-white px-3.5 py-3 rounded-full shadow-2xl shadow-orange-950/60 border border-amber-400/40 transition-all transform hover:scale-105 active:scale-95 cursor-pointer"
-          title="Rider AI Assistant - Report Problem"
-        >
-          <Bot className="w-5 h-5 animate-pulse" />
-          <span className="text-xs font-black uppercase tracking-wider hidden sm:inline pr-1">
-            Rider AI Help
-          </span>
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-        </button>
-      </div>
-
-      {/* RIDER AI ASSISTANT MODAL OVERLAY */}
-      <RiderAiAssistant
-        currentUser={currentUser}
-        activeOrder={riderActiveOrder}
-        allOrders={myOrders}
-        deliverySettings={deliverySettings}
-        isOpen={isAiAssistantOpen}
-        onClose={() => setIsAiAssistantOpen(false)}
-      />
 
       {/* RIDER ORDER RECEIPT & WHATSAPP MODAL */}
       <OrderReceiptModal

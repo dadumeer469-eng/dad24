@@ -1,7 +1,7 @@
 import React from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, User, History, Heart, Sun, Moon, ShieldAlert, LogOut, BadgeCheck, RotateCcw } from "lucide-react";
-import { UserProfile, Order, getUserCoins } from "../types";
+import { UserProfile, Order } from "../types";
 
 interface MobileAccountDrawerProps {
   isOpen: boolean;
@@ -110,7 +110,7 @@ export default function MobileAccountDrawer({
                   Dadu Coin Benefit Wallet
                 </span>
                 <div className="mt-2.5 flex items-baseline gap-1.5">
-                  <span className="text-2xl sm:text-3xl font-black">Rs. {getUserCoins(user)}</span>
+                  <span className="text-2xl sm:text-3xl font-black">Rs. {user.loyaltyCoins ?? ((user.ordersCount || 0) * 15)}</span>
                   <span className="text-[11px] font-bold text-pink-100">Coin Benefit</span>
                 </div>
                 <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between text-[10.5px]">

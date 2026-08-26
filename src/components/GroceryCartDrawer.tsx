@@ -24,6 +24,7 @@ interface GroceryCartDrawerProps {
     coinsUsed?: number;
   }) => Promise<void>;
   userCoords?: { latitude: number; longitude: number } | null;
+  onUpdateUserCoords?: (coords: { latitude: number; longitude: number }) => void;
   systemSettings?: any;
 }
 
@@ -38,11 +39,62 @@ export default function GroceryCartDrawer({
   deliveryConfig,
   onPlaceGroceryOrder,
   userCoords,
+  onUpdateUserCoords,
   systemSettings,
 }: GroceryCartDrawerProps) {
   const [submitting, setSubmitting] = useState(false);
   const [useCoins, setUseCoins] = useState(false);
   const [activeDiscountTab, setActiveDiscountTab] = useState<'none' | 'coins'>('none');
+  const [isLocating, setIsLocating] = useState(false);
+  const [locatingError, setLocatingError] = useState<string | null>(null);
+
+  const handleRequestLocationPermission = async (): Promise<{ latitude: number; longitude: number } | null> => {
+    setIsLocating(true);
+    setLocatingError(null);
+
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      const msg = "Aapke browser mein GPS Geolocation support nahi hai.";
+      setLocatingError(msg);
+      alert(msg);
+      setIsLocating(false);
+      return null;
+    }
+
+    try {
+      const coords = await new Promise<{ latitude: number; longitude: number }>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+          (err) => {
+            navigator.geolocation.getCurrentPosition(
+              (pos2) => resolve({ latitude: pos2.coords.latitude, longitude: pos2.coords.longitude }),
+              (err2) => reject(err2),
+              { enableHighAccuracy: false, timeout: 5000 }
+            );
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+      });
+
+      if (onUpdateUserCoords) {
+        onUpdateUserCoords(coords);
+      }
+      setIsLocating(false);
+      setLocatingError(null);
+      return coords;
+    } catch (err: any) {
+      setIsLocating(false);
+      let errMsg = "Chrome / Safari mein location permission block hai.";
+      if (err.code === 1) {
+        errMsg = "Location access deny kar diya gaya hai. Chrome/Safari ki Site Settings mein 'Location Allow' karein.";
+      } else if (err.code === 2) {
+        errMsg = "GPS position hasil nahi ho saki. Device GPS/Location Turn ON karein.";
+      } else if (err.code === 3) {
+        errMsg = "Location request timeout ho gaya. Kripya dobara button dabayein.";
+      }
+      setLocatingError(errMsg);
+      return null;
+    }
+  };
 
   React.useEffect(() => {
     if (!isOpen || cartItems.length === 0) {
@@ -159,29 +211,14 @@ export default function GroceryCartDrawer({
       activeCoords = { latitude: currentUser.savedLocation.lat, longitude: currentUser.savedLocation.lng };
     }
 
-    if (typeof navigator !== "undefined" && navigator.geolocation) {
-      try {
-        const coords = await new Promise<{ latitude: number; longitude: number }>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(
-            (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-            () => {
-              navigator.geolocation.getCurrentPosition(
-                (pos2) => resolve({ latitude: pos2.coords.latitude, longitude: pos2.coords.longitude }),
-                (err2) => reject(err2),
-                { enableHighAccuracy: false, timeout: 3000 }
-              );
-            },
-            { enableHighAccuracy: true, timeout: 3000, maximumAge: 30000 }
-          );
-        });
-        activeCoords = coords;
-      } catch (err) {
-        console.warn("Could not fetch fresh GPS location, using fallback coordinates", err);
-      }
+    if (!activeCoords) {
+      activeCoords = await handleRequestLocationPermission();
     }
 
     if (!activeCoords) {
-      activeCoords = { latitude: 26.7322, longitude: 67.7771 };
+      alert("⚠️ Pinpoint Location Access Required!\n\nGrocery order submit karne ke liye location access allow karein. Kripya Chrome ya Safari popup mein 'Allow' select karein.");
+      setSubmitting(false);
+      return;
     }
 
     try {
@@ -493,54 +530,98 @@ export default function GroceryCartDrawer({
                 </div>
               </div>
 
-              {!userCoords && (
-                <div className="bg-pink-500/10 border border-red-500/20 rounded-xl p-3 text-center flex flex-col items-center justify-center gap-2">
-                  <span className="text-pink-400 text-xs font-bold uppercase tracking-tight flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5" /> Location Access Required
+              {/* GPS Location Pinpoint Widget for buyers - Persistent until location allowed */}
+              <div className={`p-4 rounded-3xl space-y-3 mt-4 border transition-all ${
+                userCoords 
+                  ? 'bg-emerald-950/20 border-emerald-500/30' 
+                  : 'bg-gradient-to-br from-orange-500/10 via-zinc-900 to-amber-950/20 border-orange-500/50 shadow-lg shadow-orange-500/10'
+              }`}>
+                <div className="flex items-center justify-between border-b border-zinc-800 pb-2.5">
+                  <span className="text-[11px] font-black uppercase text-orange-400 tracking-wider flex items-center gap-1.5">
+                    <MapPin className="w-4 h-4 text-orange-500 animate-bounce" /> GROCERY GPS PINPOINT LOCATION
                   </span>
-                  <span className="text-pink-300/70 text-[10px] leading-tight max-w-[250px]">
-                    Please allow GPS location access to place your order. This ensures accurate and fast delivery to your exact doorstep.
-                  </span>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        const coords = await new Promise<{ latitude: number, longitude: number }>((resolve, reject) => {
-                          navigator.geolocation.getCurrentPosition(
-                            (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-                            (err) => {
-                              navigator.geolocation.getCurrentPosition(
-                                (pos2) => resolve({ latitude: pos2.coords.latitude, longitude: pos2.coords.longitude }),
-                                (err2) => reject(err2),
-                                { enableHighAccuracy: false, timeout: 3000 }
-                              );
-                            },
-                            { enableHighAccuracy: true, timeout: 4000 }
-                          );
-                        });
-                        alert("📍 GPS pinpoint successfully attached! Your rider will receive turn-by-turn directions.");
-                      } catch (err: any) {
-                        alert("📍 Default location saved! Your delivery address will be used.");
-                      }
-                    }}
-                    className="mt-1 bg-red-500 hover:bg-pink-600 text-white font-bold text-[10px] uppercase tracking-wider py-2 px-5 rounded-lg transition-colors cursor-pointer"
-                  >
-                    Allow Location Access
-                  </button>
+                  {userCoords ? (
+                    <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                      Locked
+                    </span>
+                  ) : (
+                    <span className="bg-orange-500/20 text-orange-300 border border-orange-500/40 text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full flex items-center gap-1 animate-pulse">
+                      <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
+                      Allow Needed
+                    </span>
+                  )}
                 </div>
-              )}
+
+                {userCoords ? (
+                  <div className="space-y-2">
+                    <div className="text-zinc-200 text-xs font-bold flex items-center justify-between flex-wrap gap-1">
+                      <span className="flex items-center gap-1.5 text-emerald-400">
+                        📍 Doorstep Pin Coordinates Locked
+                      </span>
+                      <span className="font-mono text-[10px] text-zinc-400">
+                        ({userCoords.latitude.toFixed(5)}, {userCoords.longitude.toFixed(5)})
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleRequestLocationPermission}
+                      disabled={isLocating}
+                      className="text-[10px] text-zinc-400 hover:text-white underline font-bold cursor-pointer transition"
+                    >
+                      {isLocating ? "Refetching GPS..." : "🔄 Refresh Pinpoint GPS Location"}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    <p className="text-xs text-zinc-300 font-bold leading-normal">
+                      📍 Rider ko aapke ghar ka exact rasta dikhane ke liye Chrome / Safari location trigger allow karein:
+                    </p>
+
+                    {locatingError && (
+                      <div className="p-2.5 bg-rose-500/15 border border-rose-500/30 rounded-xl text-[11px] text-rose-300 font-semibold leading-tight">
+                        ⚠️ {locatingError}
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={handleRequestLocationPermission}
+                      disabled={isLocating}
+                      className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-zinc-800 text-white font-black text-xs uppercase tracking-wider py-3 px-4 rounded-2xl transition-all cursor-pointer shadow-lg shadow-orange-600/20 flex items-center justify-center gap-2 border border-orange-400/30 animate-pulse hover:animate-none active:scale-95"
+                    >
+                      {isLocating ? (
+                        <>
+                          <Compass className="w-4 h-4 animate-spin text-white" />
+                          Requesting Chrome / Safari Location...
+                        </>
+                      ) : (
+                        <>
+                          <Compass className="w-4 h-4 text-white" />
+                          📍 Allow Location (Chrome / Safari Trigger)
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
 
               <button
                 onClick={handleCheckoutSubmit}
-                disabled={submitting}
-                className="w-full py-3.5 bg-orange-600 hover:bg-orange-700 disabled:bg-orange-850 text-white font-black text-xs uppercase tracking-widest rounded-2-xl shadow-xl shadow-orange-600/10 transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+                disabled={submitting || isLocating}
+                className={`w-full py-3.5 ${!userCoords ? 'bg-gradient-to-r from-orange-600 to-amber-600 animate-pulse' : 'bg-orange-600 hover:bg-orange-700'} disabled:bg-orange-850 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl shadow-orange-600/10 transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer`}
               >
                 {submitting ? (
                   <>Packing Shipment...</>
+                ) : isLocating ? (
+                  <>
+                    <Compass className="w-4 h-4 animate-spin" />
+                    Fetching Location...
+                  </>
                 ) : !userCoords ? (
                   <>
-                    <MapPin className="w-4 h-4" />
-                    Grant Location to Place Order
+                    <MapPin className="w-4 h-4 animate-bounce" />
+                    Allow Location to Place Order 📍
                   </>
                 ) : (
                   <>Place Express Grocery Order (COD) 🛒</>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { UserProfile, AppNotification, Order, getUserCoins } from "../types";
+import { UserProfile, AppNotification, Order } from "../types";
 import { Search, ShoppingBag, User, LogOut, Phone, Bell, ShieldAlert, BadgeCheck, Download, History, Heart, RotateCcw, Sun, Moon, X } from "lucide-react";
 import daduLogo from "../assets/images/dadu_food_logo_new_1782333467889.jpg";
 
@@ -16,6 +16,8 @@ interface FoodpandaHeaderProps {
   setSearchQuery: (query: string) => void;
   notifications: AppNotification[];
   onClearNotifications: () => void;
+  onMarkNotificationAsRead?: (id: string) => void;
+  onMarkAllNotificationsAsRead?: () => void;
   activeCategory?: string;
   setActiveCategory?: (cat: string) => void;
   onToggleFavorites?: () => void;
@@ -48,6 +50,8 @@ export default function FoodpandaHeader({
   setSearchQuery,
   notifications,
   onClearNotifications,
+  onMarkNotificationAsRead,
+  onMarkAllNotificationsAsRead,
   activeCategory,
   setActiveCategory,
   onToggleFavorites,
@@ -68,6 +72,7 @@ export default function FoodpandaHeader({
 }: FoodpandaHeaderProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState<AppNotification | null>(null);
 
   const unreadNotifications = notifications.filter(n => !n.read);
 
@@ -168,32 +173,88 @@ export default function FoodpandaHeader({
             </button>
 
             {showNotifications && (
-              <div className="absolute right-0 mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-100 rounded-2xl shadow-xl w-72 max-sm:fixed max-sm:top-16 max-sm:left-4 max-sm:right-4 max-sm:w-auto overflow-hidden z-50 animate-fade-in">
+              <div className="absolute right-0 mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-100 rounded-2xl shadow-xl w-80 max-sm:fixed max-sm:top-16 max-sm:left-4 max-sm:right-4 max-sm:w-auto overflow-hidden z-50 animate-fade-in">
                 <div className="p-3.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50 dark:bg-zinc-950">
-                  <span className="font-bold text-xs tracking-wide uppercase text-zinc-500 dark:text-zinc-400">Notification Hub</span>
-                  {notifications.length > 0 && (
-                    <button
-                      onClick={() => {
-                        onClearNotifications();
-                        setShowNotifications(false);
-                      }}
-                      className="text-[10px] text-[#d70f64] font-bold hover:underline cursor-pointer"
-                    >
-                      Clear All
-                    </button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-xs tracking-wide uppercase text-zinc-600 dark:text-zinc-300">Notifications</span>
+                    {unreadNotifications.length > 0 && (
+                      <span className="bg-[#d70f64] text-white text-[9px] font-black px-2 py-0.5 rounded-full">
+                        {unreadNotifications.length} unread
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {unreadNotifications.length > 0 && onMarkAllNotificationsAsRead && (
+                      <button
+                        onClick={() => {
+                          onMarkAllNotificationsAsRead();
+                        }}
+                        className="text-[10px] text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 font-semibold cursor-pointer"
+                        title="Mark all as read"
+                      >
+                        Mark all read
+                      </button>
+                    )}
+                    {notifications.length > 0 && (
+                      <button
+                        onClick={() => {
+                          onClearNotifications();
+                          setShowNotifications(false);
+                        }}
+                        className="text-[10px] text-[#d70f64] font-bold hover:underline cursor-pointer"
+                      >
+                        Clear All
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                <div className="max-h-60 overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-800 bg-white dark:bg-zinc-900">
+                <div className="max-h-72 overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-800 bg-white dark:bg-zinc-900">
                   {notifications.length === 0 ? (
                     <div className="p-6 text-center text-xs text-zinc-400 dark:text-zinc-500">
                       No updates yet. Order progress notifications will sound and appear here!
                     </div>
                   ) : (
                     notifications.map((notif) => (
-                      <div key={notif.id} className="p-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition text-xs">
-                        <div className="font-bold text-zinc-800 dark:text-zinc-200">{notif.title}</div>
-                        <p className="text-zinc-500 dark:text-zinc-400 mt-1 font-medium">{notif.message}</p>
+                      <div
+                        key={notif.id}
+                        onClick={() => {
+                          if (!notif.read && onMarkNotificationAsRead) {
+                            onMarkNotificationAsRead(notif.id);
+                          }
+                          setSelectedNotification(notif);
+                        }}
+                        className={`p-3.5 transition text-xs cursor-pointer group flex items-start gap-2.5 ${
+                          !notif.read
+                            ? "bg-pink-50/70 dark:bg-pink-950/20 hover:bg-pink-100/70 dark:hover:bg-pink-950/40 border-l-4 border-l-[#d70f64]"
+                            : "hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
+                        }`}
+                      >
+                        <div className="mt-0.5 shrink-0">
+                          {!notif.read ? (
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#d70f64] block animate-pulse" />
+                          ) : (
+                            <span className="w-2.5 h-2.5 rounded-full bg-zinc-300 dark:bg-zinc-700 block" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className={`font-bold truncate ${!notif.read ? "text-zinc-900 dark:text-white" : "text-zinc-700 dark:text-zinc-300"}`}>
+                              {notif.title}
+                            </span>
+                            {!notif.read && (
+                              <span className="text-[9px] font-black uppercase text-[#d70f64] bg-pink-100 dark:bg-pink-900/40 px-1.5 py-0.2 rounded shrink-0">
+                                NEW
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-zinc-500 dark:text-zinc-400 mt-1 font-medium line-clamp-2 leading-relaxed">
+                            {notif.message}
+                          </p>
+                          <span className="text-[9.5px] text-zinc-400 dark:text-zinc-500 mt-1.5 block font-semibold group-hover:text-[#d70f64] transition-colors">
+                            Click to read full message →
+                          </span>
+                        </div>
                       </div>
                     ))
                   )}
@@ -308,7 +369,7 @@ export default function FoodpandaHeader({
                   {/* Loyalty Balance Badge */}
                   <div className="mt-2 w-full bg-gradient-to-r from-[#d70f64] to-pink-600 rounded-xl p-2 text-white flex items-center justify-between text-[10px] font-sans">
                     <span className="font-extrabold flex items-center gap-1">👑 Coin Benefit Wallet:</span>
-                    <span className="font-black bg-white text-[#d70f64] px-1.5 py-0.5 rounded-md text-[9px]">Rs. {getUserCoins(user)}</span>
+                    <span className="font-black bg-white text-[#d70f64] px-1.5 py-0.5 rounded-md text-[9px]">Rs. {user.loyaltyCoins ?? ((user.ordersCount || 0) * 15)}</span>
                   </div>
                 </div>
 
@@ -493,6 +554,59 @@ export default function FoodpandaHeader({
           )}
         </div>
       </div>
+
+      {/* Notification Detail View Modal */}
+      {selectedNotification && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl max-w-md w-full p-6 shadow-2xl relative overflow-hidden animate-scale-up">
+            <div className="flex items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-full bg-pink-100 dark:bg-pink-950/50 flex items-center justify-center text-[#d70f64] shrink-0">
+                  <Bell className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider block">Message Detail</span>
+                  <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
+                    {selectedNotification.createdAt?.seconds
+                      ? new Date(selectedNotification.createdAt.seconds * 1000).toLocaleString([], {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        })
+                      : "Recently received"}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedNotification(null)}
+                className="p-2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-full bg-zinc-100 dark:bg-zinc-800 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="py-4">
+              <h3 className="text-base font-black text-zinc-900 dark:text-white leading-snug">
+                {selectedNotification.title}
+              </h3>
+              <div className="text-xs sm:text-sm text-zinc-700 dark:text-zinc-200 mt-3 font-normal leading-relaxed whitespace-pre-line bg-zinc-50 dark:bg-zinc-800/60 p-4 rounded-2xl border border-zinc-150 dark:border-zinc-750 max-h-60 overflow-y-auto">
+                {selectedNotification.message}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-2 border-t border-zinc-100 dark:border-zinc-800">
+              <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                ✓ Marked as Read
+              </span>
+              <button
+                onClick={() => setSelectedNotification(null)}
+                className="px-5 py-2.5 bg-[#d70f64] text-white text-xs font-bold rounded-xl hover:bg-[#b00c50] transition cursor-pointer shadow-md"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

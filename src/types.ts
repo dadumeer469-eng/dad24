@@ -9,8 +9,6 @@ export interface Dish {
   isAvailable: boolean; // ON/OFF toggle switch from admin
   openingTime?: string;
   closingTime?: string;
-  scheduleDays?: string[]; // e.g. ["Monday", "Tuesday", "Sunday"] or ["All"]
-  stockCount?: number; // Real inventory stock count
   isFeatured?: boolean; position?: number; // Highlighted / favorite item shown in top spots
   isBestseller?: boolean;
   isVeg?: boolean;
@@ -47,7 +45,7 @@ export interface UserProfile {
   vehicleNumber?: string;
   riderCoords?: { latitude: number; longitude: number; lastUpdated?: number };
   loyaltyCoins?: number; // User's custom loyalty coin wallet balance
-  coins?: number; // Synced alias for loyalty coins balance
+  coinsCollected?: number; // Total customer coins collected by rider
   password?: string; // Stored plaintext passcode or password for easy admin control
   lastSettledAt?: any; // Timestamp when admin cleared/settled the rider's commission and deliveries
   blockReason?: string;
@@ -118,6 +116,7 @@ export interface Order {
   ratedAt?: any;
   coinsUsed?: number; // How many coins were redeemed/deducted for this order
   coinsEarned?: number; // How many coins were rewarded for this order
+  coinsCreditedToRider?: boolean; // Whether redeemed coins have been credited to rider wallet
   riderSettled?: boolean;
   riderSettledAt?: any;
 }
@@ -153,18 +152,7 @@ export interface SystemSettings {
     commissionEnabled?: boolean;
     commissionType?: "percentage" | "fixed";
     commissionValue?: number;
-    temporaryClosure?: {
-      isTemporarilyClosed: boolean;
-      reason: string;
-      closedAt: any;
-      expectedReopenAt?: any;
-      closedBy: "ai" | "admin";
-      riderIncidentId?: string;
-    };
   }>;
-  // Configurable COD Limit & Safety rules
-  maxCodLimit?: number; // e.g. Rs. 3,000 (configurable from admin/AI)
-  autoReopenDurationHours?: number; // Default 2 hours for AI temporary closures
   // Loyalty Wallet Settings controlled by admin
   loyaltyEnabled?: boolean;
   loyaltyMinOrderForEarn?: number;
@@ -181,78 +169,6 @@ export interface SystemSettings {
     description?: string;
     active: boolean;
   };
-}
-
-export interface IncidentReport {
-  id: string;
-  riderId: string;
-  riderName: string;
-  riderPhone: string;
-  restaurantId?: string;
-  restaurantName?: string;
-  orderId?: string;
-  orderTotal?: number;
-  customerName?: string;
-  customerPhone?: string;
-  customerId?: string;
-  incidentType: 
-    | "restaurant_closed" 
-    | "customer_unavailable" 
-    | "restaurant_delay" 
-    | "wrong_address" 
-    | "customer_refused" 
-    | "item_unavailable" 
-    | "payment_issue" 
-    | "accident_emergency" 
-    | "other";
-  riderMessage: string;
-  status: "reported" | "under_review" | "resolved" | "dismissed";
-  severity: "low" | "medium" | "high" | "critical";
-  aiAnalysis?: string;
-  aiActionTaken?: string;
-  decisionDetails?: {
-    action: string;
-    reason: string;
-    confidence: number;
-    autoReopenAt?: any;
-  };
-  adminNotes?: string;
-  createdAt: any;
-  resolvedAt?: any;
-  resolvedBy?: string;
-}
-
-export interface AiAuditLog {
-  id: string;
-  action: string;
-  reason: string;
-  source: "rider_report" | "admin_command" | "cron_monitor" | "anomaly_detector" | "manual_admin";
-  riderId?: string;
-  riderName?: string;
-  restaurantName?: string;
-  customerPhone?: string;
-  orderId?: string;
-  previousStatus?: string;
-  newStatus?: string;
-  aiDecision: string;
-  adminOverridden?: boolean;
-  timestamp: any;
-}
-
-export interface CustomerRiskProfile {
-  userId?: string;
-  phone: string;
-  name: string;
-  totalOrders: number;
-  deliveredOrders: number;
-  cancelledOrders: number;
-  failedCodOrders: number;
-  riskLevel: "LOW" | "MEDIUM" | "HIGH";
-  trustScore: number; // 0 to 100
-  isCodRestricted?: boolean;
-  isAccountRestricted?: boolean;
-  lastIncidentDate?: any;
-  notes?: string;
 }
 
 export interface AppNotification {
@@ -383,8 +299,7 @@ export interface Voucher {
  */
 export function getUserCoins(user: UserProfile | null, settings?: SystemSettings): number {
   if (!user) return 0;
-  if (user.loyaltyCoins !== undefined && user.loyaltyCoins !== null) return Number(user.loyaltyCoins);
-  if (user.coins !== undefined && user.coins !== null) return Number(user.coins);
+  if (user.loyaltyCoins !== undefined) return user.loyaltyCoins;
   const earnRate = settings?.loyaltyEarnCoins ?? 15;
   return (user.ordersCount || 0) * earnRate;
 }

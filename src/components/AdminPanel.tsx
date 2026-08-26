@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import OrderReceiptModal from "./OrderReceiptModal";
 import MapLocationPickerModal from "./MapLocationPickerModal";
 import AiMenuGeneratorModal from "./AiMenuGeneratorModal";
-import AiManagerWorkspace from "./AiManagerWorkspace";
 import {
   UserProfile,
   Dish,
@@ -16,7 +15,7 @@ import {
   Banner,
   getUserCoins,
 } from "../types";
-import { awardLoyaltyCoinsForOrder } from "../lib/loyalty";
+import { awardLoyaltyCoinsForOrder, creditRiderCoinsForOrder } from "../lib/loyalty";
 import {
   doc,
   setDoc,
@@ -103,7 +102,6 @@ import {
   Navigation,
   Sparkles,
   Wand2,
-  Bot,
 } from "lucide-react";
 
 interface AdminPanelProps {
@@ -585,7 +583,6 @@ export default function AdminPanel({
 }: AdminPanelProps) {
   const [activeSubTab, setActiveSubTab] = useState<
     | "analytics"
-    | "ai_manager"
     | "restaurants"
     | "items"
     | "orders"
@@ -598,7 +595,6 @@ export default function AdminPanel({
     | "food_categories"
     | "loyalty"
   >("analytics");
-  const [isAiManagerDrawerOpen, setIsAiManagerDrawerOpen] = useState(false);
   const [editingRiderPasswordId, setEditingRiderPasswordId] = useState<string | null>(null);
   const [newPasswordInputValue, setNewPasswordInputValue] = useState<string>("");
   const [showPasswordId, setShowPasswordId] = useState<string | null>(null);
@@ -3034,6 +3030,7 @@ export default function AdminPanel({
 
       if (nextStatus === "delivered") {
         await awardLoyaltyCoinsForOrder(db, orderId);
+        await creditRiderCoinsForOrder(db, orderId);
       }
 
       // Dispatch an automatic in-app notification to the customer profile!
@@ -3296,18 +3293,6 @@ export default function AdminPanel({
         {/* Mobile Horizontal Navigation Tab Bar (Shown only on small/medium screens) */}
         <div className="lg:hidden col-span-1 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 p-2 rounded-2xl shadow-xs space-y-1.5">
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-nowrap scrollbar-none">
-            {/* AI Manager Tab */}
-            <button
-              onClick={() => setActiveSubTab("ai_manager")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 border transition cursor-pointer shadow-xs ${
-                activeSubTab === "ai_manager"
-                  ? "bg-gradient-to-r from-amber-500 to-[#D70F64] border-transparent text-white shadow-md"
-                  : "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400"
-              }`}
-            >
-              <Bot className="w-3.5 h-3.5 animate-bounce" />
-              <span>🤖 AI Manager</span>
-            </button>
             {/* Prominent High-Priority Live Orders Pill First */}
             <button
               onClick={() => setActiveSubTab("orders")}
@@ -3459,24 +3444,9 @@ export default function AdminPanel({
               {/* Group 1: High-Priority Operations */}
               <div>
                 <span className="text-[9px] font-black text-[#D70F64] block uppercase tracking-widest pl-1 mb-1.5 flex items-center gap-1">
-                  ⚡ Operational Control & AI Copilot
+                  ⚡ Operational Control
                 </span>
                 <div className="space-y-1">
-                  <button
-                    onClick={() => setActiveSubTab("ai_manager")}
-                    className={`w-full font-black text-xs px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
-                      activeSubTab === "ai_manager"
-                        ? "bg-gradient-to-r from-amber-500 via-[#D70F64] to-rose-600 border-transparent text-white shadow-md ring-2 ring-amber-400/40"
-                        : "bg-gradient-to-r from-amber-50/80 to-pink-50/80 border-amber-200/80 text-amber-900 hover:from-amber-100 hover:to-pink-100"
-                    }`}
-                  >
-                    <Bot className="w-4 h-4 shrink-0 text-amber-600 animate-pulse" />
-                    <span>🤖 AI Business Manager</span>
-                    <span className="ml-auto bg-amber-400 text-slate-950 font-black px-1.5 py-0.5 text-[8.5px] rounded-full uppercase tracking-wider">
-                      Copilot
-                    </span>
-                  </button>
-
                   <button
                     onClick={() => setActiveSubTab("orders")}
                     className={`w-full font-extrabold text-xs px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
@@ -3727,21 +3697,6 @@ export default function AdminPanel({
 
         {/* Dashboard Panels Area */}
         <div className="col-span-1 lg:col-span-9 space-y-8">
-          {/* TAB 0: AI Business Manager & Operations Copilot */}
-          {activeSubTab === "ai_manager" && (
-            <div className="space-y-6 animate-fade-in">
-              <AiManagerWorkspace
-                dishes={dishes}
-                orders={orders}
-                deliverySettings={deliverySettings}
-                adminUsername={adminUsername}
-                foodCategories={foodCategories}
-                totalUsersCount={allUsersList.length}
-                onNavigateTab={(tab) => setActiveSubTab(tab)}
-              />
-            </div>
-          )}
-
           {/* TAB 1: Real-time Analytics Dashboard */}
           {activeSubTab === "analytics" && (
             <div className="space-y-8 animate-fade-in">
@@ -11510,43 +11465,6 @@ export default function AdminPanel({
         uniqueRestaurants={uniqueRestaurants}
         foodCategories={foodCategories}
       />
-
-      {/* Floating AI Manager Copilot Button */}
-      {activeSubTab !== "ai_manager" && (
-        <button
-          type="button"
-          onClick={() => setIsAiManagerDrawerOpen(true)}
-          className="fixed bottom-6 left-6 z-[110] bg-gradient-to-r from-amber-500 via-[#D70F64] to-rose-600 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 font-black text-xs uppercase tracking-wider hover:scale-105 active:scale-95 transition cursor-pointer border-2 border-white/20 ring-4 ring-[#D70F64]/30 animate-bounce"
-        >
-          <Bot className="w-5 h-5 text-amber-200 animate-pulse" />
-          <span>Ask AI Manager</span>
-          <span className="bg-white/20 text-white text-[9px] px-1.5 py-0.5 rounded-full font-black">
-            Live
-          </span>
-        </button>
-      )}
-
-      {/* Floating AI Manager Drawer Modal */}
-      {isAiManagerDrawerOpen && (
-        <div className="fixed inset-0 z-[150] bg-slate-950/70 backdrop-blur-xs flex items-center justify-end p-2 sm:p-6 animate-fade-in">
-          <div className="w-full max-w-2xl h-[90vh] bg-slate-900 rounded-3xl shadow-2xl overflow-hidden border border-slate-700 flex flex-col relative animate-slide-in">
-            <AiManagerWorkspace
-              dishes={dishes}
-              orders={orders}
-              deliverySettings={deliverySettings}
-              adminUsername={adminUsername}
-              foodCategories={foodCategories}
-              totalUsersCount={allUsersList.length}
-              onNavigateTab={(tab) => {
-                setActiveSubTab(tab);
-                setIsAiManagerDrawerOpen(false);
-              }}
-              isFloatingDrawer={true}
-              onCloseFloating={() => setIsAiManagerDrawerOpen(false)}
-            />
-          </div>
-        </div>
-      )}
 
       {/* NEW USER REALTIME NOTIFICATION TOAST */}
       {newUserToast && newUserToast.show && (
