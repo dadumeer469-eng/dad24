@@ -52,40 +52,56 @@ export default function CartDrawer({
       return null;
     }
 
-    try {
-      const coords = await new Promise<{ latitude: number; longitude: number }>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-          (err) => {
-            navigator.geolocation.getCurrentPosition(
-              (pos2) => resolve({ latitude: pos2.coords.latitude, longitude: pos2.coords.longitude }),
-              (err2) => reject(err2),
-              { enableHighAccuracy: false, timeout: 5000 }
-            );
-          },
-          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-        );
-      });
+    // Check if running inside an iframe (preview frame)
+    const isIframe = typeof window !== "undefined" && window.self !== window.top;
 
-      if (onUpdateUserCoords) {
-        onUpdateUserCoords(coords);
-      }
-      setIsLocating(false);
-      setLocatingError(null);
-      return coords;
-    } catch (err: any) {
-      setIsLocating(false);
-      let errMsg = "Chrome / Safari mein location permission block hai.";
-      if (err.code === 1) {
-        errMsg = "Location access deny kar diya gaya hai. Chrome/Safari ki Site Settings mein 'Location Allow' karein.";
-      } else if (err.code === 2) {
-        errMsg = "GPS position hasil nahi ho saki. Device GPS/Location Turn ON karein.";
-      } else if (err.code === 3) {
-        errMsg = "Location request timeout ho gaya. Kripya dobara button dabayein.";
-      }
-      setLocatingError(errMsg);
-      return null;
-    }
+    return new Promise((resolve) => {
+      // Direct call to trigger browser permission popup
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const coords = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+          if (onUpdateUserCoords) {
+            onUpdateUserCoords(coords);
+          }
+          setIsLocating(false);
+          setLocatingError(null);
+          resolve(coords);
+        },
+        (err) => {
+          // Retry once with low accuracy fast fallback
+          navigator.geolocation.getCurrentPosition(
+            (pos2) => {
+              const coords2 = { latitude: pos2.coords.latitude, longitude: pos2.coords.longitude };
+              if (onUpdateUserCoords) {
+                onUpdateUserCoords(coords2);
+              }
+              setIsLocating(false);
+              setLocatingError(null);
+              resolve(coords2);
+            },
+            (err2) => {
+              setIsLocating(false);
+              let errMsg = "Chrome / Safari mein location permission block ya restricted hai.";
+              if (err2.code === 1) {
+                if (isIframe) {
+                  errMsg = "Preview Frame mein Chrome/Safari location permission block karta hai. Kripya niche '🌐 Open in New Tab' button dabayein taake direct tab me permission popup aaye!";
+                } else {
+                  errMsg = "Location permission Deny hai. Browser ke top address bar 🔒 Lock icon par tap karein aur 'Location -> Allow' set karke reload karein!";
+                }
+              } else if (err2.code === 2) {
+                errMsg = "GPS signal nahi mila. Mobile/Device GPS/Location Turn ON karein.";
+              } else if (err2.code === 3) {
+                errMsg = "Location request timeout ho gaya. Phir se 'Allow Location' dabayein.";
+              }
+              setLocatingError(errMsg);
+              resolve(null);
+            },
+            { enableHighAccuracy: false, timeout: 6000 }
+          );
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    });
   };
 
   React.useEffect(() => {
@@ -567,6 +583,16 @@ export default function CartDrawer({
                       </>
                     )}
                   </button>
+
+                  {typeof window !== "undefined" && window.self !== window.top && (
+                    <button
+                      type="button"
+                      onClick={() => window.open(window.location.href, "_blank")}
+                      className="w-full bg-zinc-800 hover:bg-zinc-700 text-pink-300 font-extrabold text-[11px] py-2.5 px-3 rounded-2xl transition flex items-center justify-center gap-1.5 cursor-pointer border border-zinc-700"
+                    >
+                      🌐 Open App in New Tab to Allow Location (Chrome / Safari)
+                    </button>
+                  )}
                 </div>
               )}
             </div>
