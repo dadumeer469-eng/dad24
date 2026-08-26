@@ -74,3 +74,29 @@ export async function compressImageToLowRes(
     }
   });
 }
+
+export async function compressImageFile(
+  file: File,
+  maxWidth = 1000,
+  maxHeight = 600,
+  quality = 0.75
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const resultStr = e.target?.result as string;
+      if (!resultStr) {
+        reject(new Error("Empty file content"));
+        return;
+      }
+      try {
+        const compressed = await compressImageToLowRes(resultStr, maxWidth, maxHeight, quality);
+        resolve(compressed);
+      } catch (err) {
+        resolve(resultStr);
+      }
+    };
+    reader.onerror = () => reject(new Error("Failed to read file"));
+    reader.readAsDataURL(file);
+  });
+}

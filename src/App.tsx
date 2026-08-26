@@ -2374,7 +2374,6 @@ export default function App() {
             onPlaceOrder={handlePlaceOrderSubmit}
             onAddDrink={handleAddExclusiveDrink}
             userCoords={globalCoords}
-            onUpdateUserCoords={(coords) => setGlobalCoords(coords)}
             systemSettings={deliverySettings}
           />
         );
@@ -2398,7 +2397,6 @@ export default function App() {
             deliveryConfig={computedGroceryDeliveryConfig}
             onPlaceGroceryOrder={handlePlaceGroceryOrder}
             userCoords={globalCoords}
-            onUpdateUserCoords={(coords) => setGlobalCoords(coords)}
             systemSettings={deliverySettings}
           />
         );
@@ -3772,7 +3770,7 @@ export default function App() {
                       )}
                     </div>
 
-                    <div className="flex items-start gap-3 overflow-x-auto pb-2 scrollbar-none scroll-smooth px-1 relative z-10">
+                    <div className="flex items-start gap-3 overflow-x-auto pb-2 scrollbar-none scroll-smooth px-1 relative z-10 touch-pan-both overscroll-x-contain">
                       <motion.button
                         initial={{ opacity: 0, y: 15 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -3882,7 +3880,7 @@ export default function App() {
                 if (!currentUser || activeUserOrders.length === 0) return null;
 
                 return (
-                  <div className="max-w-7xl mx-auto px-3 sm:px-4 mt-4 sm:mt-6 flex overflow-x-auto gap-3 sm:gap-4 pb-2 scrollbar-none snap-x">
+                  <div className="max-w-7xl mx-auto px-3 sm:px-4 mt-4 sm:mt-6 flex overflow-x-auto gap-3 sm:gap-4 pb-2 scrollbar-none snap-x touch-pan-both overscroll-x-contain">
                     {activeUserOrders.map((activeOrderForBanner) => {
                       const getStepProgress = (status: string) => {
                         switch (status) {
@@ -4240,7 +4238,7 @@ export default function App() {
                                     </div>
                                   )}
                                 </div>
-                                <div className="p-3 bg-white flex items-center gap-3 overflow-x-auto scrollbar-none border-t border-zinc-100">
+                                <div className="p-3 bg-white flex items-center gap-3 overflow-x-auto scrollbar-none border-t border-zinc-100 touch-pan-both overscroll-x-contain">
                                   {vendorDishes.map((d) => (
                                     <div
                                       key={d.id}

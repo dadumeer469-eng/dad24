@@ -32,7 +32,7 @@ import {
   increment,
 } from "firebase/firestore";
 import { db, firebaseConfig, databaseId, cleanObject, storage, handleFirestoreError, app } from "../firebase";
-import { compressImageToLowRes } from "../utils/imageCompressor";
+import { compressImageToLowRes, compressImageFile } from "../utils/imageCompressor";
 import { getDatabase, ref, set as setRtdb, onValue, off } from "firebase/database";
 import { initializeApp, deleteApp } from "firebase/app";
 import {
@@ -102,6 +102,7 @@ import {
   Navigation,
   Sparkles,
   Wand2,
+  Upload,
 } from "lucide-react";
 
 interface AdminPanelProps {
@@ -9971,23 +9972,24 @@ export default function AdminPanel({
                     const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
                     const originalText = submitBtn.innerText;
                     
-                    const imageUrl = (form.elements.namedItem("imageUrl") as HTMLInputElement).value;
+                    const imageUrlInput = form.elements.namedItem("imageUrl") as HTMLInputElement;
+                    const imageUrl = imageUrlInput.value.trim();
                     const restaurantName = (form.elements.namedItem("restaurantName") as HTMLSelectElement).value;
                     const detail = (form.elements.namedItem("detail") as HTMLInputElement).value;
                     const isActive = (form.elements.namedItem("isActive") as HTMLInputElement).checked;
                     
-                    if (!imageUrl) return;
+                    if (!imageUrl) {
+                      alert("Please select an image file or enter an Image URL.");
+                      return;
+                    }
 
-                    // Regex validation for URL
-                    const urlPattern = new RegExp('^(https?:\\/\\/)?'+ // protocol
-                      '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|'+ // domain name
-                      '((\\d{1,3}\\.){3}\\d{1,3}))'+ // OR ip (v4) address
-                      '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*'+ // port and path
-                      '(\\?[;&a-z\\d%_.~+=-]*)?'+ // query string
-                      '(\\#[-a-z\\d_]*)?$','i'); // fragment locator
+                    // Flexible validation for http/https or data:image
+                    const isValidUrl = imageUrl.startsWith("data:image/") || 
+                                       imageUrl.startsWith("http://") || 
+                                       imageUrl.startsWith("https://");
                     
-                    if (!urlPattern.test(imageUrl)) {
-                      alert("Please enter a valid Image URL.");
+                    if (!isValidUrl) {
+                      alert("Please enter a valid Image URL (e.g. starting with https:// or data:image/).");
                       return;
                     }
 
@@ -9995,8 +9997,11 @@ export default function AdminPanel({
                     submitBtn.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>';
 
                     try {
+                      // Compress image if needed to stay well under Firestore's 1MB document limit
+                      const finalImageUrl = await compressImageToLowRes(imageUrl, 1200, 600, 0.75);
+
                       await addDoc(collection(db, "promotional_banners"), {
-                        imageUrl,
+                        imageUrl: finalImageUrl,
                         restaurantName: restaurantName || null,
                         detail: detail || null,
                         isActive,
@@ -10015,15 +10020,49 @@ export default function AdminPanel({
                 >
                   <div>
                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">
-                      Banner Image URL (Required)
+                      Banner Image (Upload File OR Paste URL)
                     </label>
-                    <input
-                      name="imageUrl"
-                      type="url"
-                      required
-                      placeholder="https://..."
-                      className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs outline-none text-slate-900 focus:border-pink-500/60 transition"
-                    />
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        id="bannerImageUrlInput"
+                        name="imageUrl"
+                        type="text"
+                        required
+                        placeholder="https://... or select photo below"
+                        className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs outline-none text-slate-900 focus:border-pink-500/60 transition"
+                      />
+                      <label className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs py-3 px-4 rounded-2xl border border-slate-300 flex items-center justify-center gap-2 cursor-pointer shrink-0 transition">
+                        <Upload className="w-4 h-4 text-pink-500" />
+                        <span>Choose Photo</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            if (file.size > 10 * 1024 * 1024) {
+                              alert("File size too large. Please select an image under 10MB.");
+                              return;
+                            }
+                            const inputEl = document.getElementById("bannerImageUrlInput") as HTMLInputElement;
+                            if (inputEl) {
+                              inputEl.placeholder = "Compressing photo...";
+                            }
+                            try {
+                              const compressed = await compressImageFile(file, 1200, 600, 0.75);
+                              if (inputEl) {
+                                inputEl.value = compressed;
+                                inputEl.placeholder = "https://... or select photo below";
+                              }
+                            } catch (err) {
+                              console.error("Error compressing image", err);
+                              alert("Failed to process image file.");
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
                   </div>
                   <div>
                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">

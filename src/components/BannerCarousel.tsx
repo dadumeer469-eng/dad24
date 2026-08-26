@@ -198,17 +198,63 @@ export default function BannerCarousel({ onBannerClick }: BannerCarouselProps) {
     setIsPaused(false);
   };
 
+  const startYRef = useRef<number>(0);
+  const isTouchActiveRef = useRef<boolean>(false);
+  const isTouchDraggingRef = useRef<boolean>(false);
+  const isVerticalScrollRef = useRef<boolean>(false);
+
   // Touch drag events
   const handleTouchStart = (e: React.TouchEvent) => {
-    handleDragStart(e.touches[0].clientX);
+    const touch = e.touches[0];
+    startXRef.current = touch.clientX;
+    startYRef.current = touch.clientY;
+    currentXRef.current = touch.clientX;
+    isTouchActiveRef.current = true;
+    isTouchDraggingRef.current = false;
+    isVerticalScrollRef.current = false;
+    setIsPaused(true);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    handleDragMove(e.touches[0].clientX);
+    if (!isTouchActiveRef.current || isVerticalScrollRef.current) return;
+
+    const touch = e.touches[0];
+    const diffX = touch.clientX - startXRef.current;
+    const diffY = touch.clientY - startYRef.current;
+
+    // First movement classification: vertical vs horizontal
+    if (!isTouchDraggingRef.current && !isVerticalScrollRef.current) {
+      if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 5) {
+        // Yield completely to native page vertical scrolling
+        isVerticalScrollRef.current = true;
+        return;
+      }
+      if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 5) {
+        // Start horizontal carousel dragging
+        isTouchDraggingRef.current = true;
+        setIsDragging(true);
+      }
+    }
+
+    if (isTouchDraggingRef.current) {
+      currentXRef.current = touch.clientX;
+      setDragOffset(diffX);
+    }
   };
 
   const handleTouchEnd = () => {
-    handleDragEnd();
+    if (!isTouchActiveRef.current) return;
+    isTouchActiveRef.current = false;
+
+    if (isTouchDraggingRef.current) {
+      handleDragEnd();
+    } else {
+      setIsPaused(false);
+      setIsDragging(false);
+      setDragOffset(0);
+    }
+    isTouchDraggingRef.current = false;
+    isVerticalScrollRef.current = false;
   };
 
   if (isLoading) {
@@ -225,7 +271,7 @@ export default function BannerCarousel({ onBannerClick }: BannerCarouselProps) {
     <div className="max-w-7xl mx-auto px-4 mt-4 mb-4">
       <div
         ref={containerRef}
-        className={`relative w-full h-44 sm:h-56 md:h-64 rounded-3xl overflow-hidden shadow-xl border border-pink-200/50 dark:border-zinc-800 group select-none ${
+        className={`relative w-full h-44 sm:h-56 md:h-64 rounded-3xl overflow-hidden shadow-xl border border-pink-200/50 dark:border-zinc-800 group select-none touch-pan-both ${
           isDragging ? "cursor-grabbing" : "cursor-grab"
         }`}
         onMouseEnter={() => setIsPaused(true)}

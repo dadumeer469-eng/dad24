@@ -460,7 +460,7 @@ export default function FoodpandaRestaurantPage({
           </div>
 
           {/* Quick Filter Chips */}
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1 touch-pan-both overscroll-x-contain">
             <button
               onClick={() => setFilterType("all")}
               className={`px-3.5 py-2 rounded-2xl text-xs font-black transition-all shrink-0 cursor-pointer ${
@@ -490,7 +490,7 @@ export default function FoodpandaRestaurantPage({
       {!searchQuery && allNavCategories.length > 0 && (
         <div className="sticky top-0 z-30 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border-y border-zinc-200/80 dark:border-zinc-800 shadow-xs mt-6">
           <div className="max-w-4xl mx-auto px-4">
-            <div className="flex overflow-x-auto scrollbar-none py-2.5 gap-2 items-center" ref={scrollRef}>
+            <div className="flex overflow-x-auto scrollbar-none py-2.5 gap-2 items-center touch-pan-both overscroll-x-contain" ref={scrollRef}>
               {allNavCategories.map(cat => {
                 const isBestsellerTab = cat === "🔥 Bestsellers";
                 const count = isBestsellerTab ? bestsellerDishes.length : dishes.filter(d => d.category === cat).length;
@@ -602,7 +602,7 @@ export default function FoodpandaRestaurantPage({
                   </div>
                 </div>
 
-                <div className="flex overflow-x-auto gap-4 pb-3 pt-1 -mx-4 px-4 scrollbar-none snap-x touch-pan-x">
+                <div className="flex overflow-x-auto gap-4 pb-3 pt-1 -mx-4 px-4 scrollbar-none snap-x touch-pan-both overscroll-x-contain">
                   {bestsellerDishes.map(dish => (
                     <div key={`bestseller-${dish.id}`} className="w-[280px] sm:w-[320px] shrink-0 snap-start">
                       <DishCard 

@@ -95,7 +95,7 @@ export default function FoodpandaHero({
       {/* Category Horizontal Filter Bar (Spacing tightly adjusted, headers removed) */}
       <div id="catalog-section" className="max-w-7xl mx-auto px-4 pt-1.5 pb-2">
         {/* Scroll wrapper */}
-        <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory">
+        <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory touch-pan-both overscroll-x-contain">
           {displayCategories.map((cat, idx) => {
             const isSelected = activeCategory === cat.name;
             return (

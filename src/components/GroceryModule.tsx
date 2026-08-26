@@ -94,7 +94,7 @@ export default function GroceryModule({
 
         {/* Sticky horizontal categories filter list */}
         <div className="relative z-30 bg-slate-50/90 dark:bg-zinc-950/90 backdrop-blur-md py-2.5 border-y border-slate-200/80 dark:border-zinc-800">
-          <div className="flex items-start gap-2.5 sm:gap-3.5 overflow-x-auto pb-2 scrollbar-none px-1">
+          <div className="flex items-start gap-2.5 sm:gap-3.5 overflow-x-auto pb-2 scrollbar-none px-1 touch-pan-both overscroll-x-contain">
             <button
               onClick={() => setSelectedCategoryId("All")}
               className={`p-2 sm:p-2.5 w-[78px] sm:w-[92px] rounded-2xl text-[9.5px] sm:text-[10.5px] font-black tracking-wide uppercase transition shrink-0 cursor-pointer select-none border flex flex-col items-center justify-start gap-1.5 shadow-2xs ${
