@@ -335,7 +335,7 @@ export default function BannerCarousel({ onBannerClick }: BannerCarouselProps) {
             </button>
 
             {/* Bottom Dots Indicator Bar */}
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+            <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/15 shadow-sm">
               {displayBanners.map((_, idx) => (
                 <button
                   key={idx}
@@ -346,10 +346,10 @@ export default function BannerCarousel({ onBannerClick }: BannerCarouselProps) {
                     setIsPaused(true);
                     setTimeout(() => setIsPaused(false), 3000);
                   }}
-                  className={`h-2 rounded-full transition-all cursor-pointer ${
+                  className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
                     currentIndex === idx
-                      ? "bg-[#d70f64] w-6 md:w-8"
-                      : "bg-white/60 hover:bg-white w-2"
+                      ? "bg-[#d70f64] w-3.5 ring-1 ring-[#d70f64]/40"
+                      : "bg-white/50 hover:bg-white/80 w-1.5"
                   }`}
                   aria-label={`Go to slide ${idx + 1}`}
                 />
