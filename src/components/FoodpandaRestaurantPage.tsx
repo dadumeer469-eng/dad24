@@ -129,22 +129,26 @@ export default function FoodpandaRestaurantPage({
   isRiderRangeExceeded,
   distanceDisplay
 }: FoodpandaRestaurantPageProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState<string>(initialCategory || "");
-  const [activeDetailDish, setActiveDetailDish] = useState<Dish | null>(null);
-  const [filterType, setFilterType] = useState<"all" | "bestsellers" | "veg">("all");
-  const [copiedLink, setCopiedLink] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
   // Group dishes by category & bestsellers
   const categories = Array.from(new Set(dishes.map(d => d.category)));
   const bestsellerDishes = dishes.filter(d => Boolean(d.isBestseller));
   const hasBestsellers = bestsellerDishes.length > 0;
   const allNavCategories = hasBestsellers ? ["🔥 Bestsellers", ...categories] : categories;
 
-  if (allNavCategories.length > 0 && !activeCategory) {
-    setActiveCategory(allNavCategories[0]);
-  }
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState<string>(
+    initialCategory || (allNavCategories[0] || "")
+  );
+  const [activeDetailDish, setActiveDetailDish] = useState<Dish | null>(null);
+  const [filterType, setFilterType] = useState<"all" | "bestsellers" | "veg">("all");
+  const [copiedLink, setCopiedLink] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!activeCategory && allNavCategories.length > 0) {
+      setActiveCategory(allNavCategories[0]);
+    }
+  }, [allNavCategories, activeCategory]);
 
   const categoryRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const categoryButtonRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
@@ -215,15 +219,18 @@ export default function FoodpandaRestaurantPage({
     return () => window.removeEventListener("scroll", handleScroll);
   }, [allNavCategories, activeCategory, searchQuery, filterType]);
 
-  // Keep active category button centered in horizontal scrollbar smoothly
+  // Keep active category button centered in horizontal scrollbar smoothly without causing page window vertical jumps
   useEffect(() => {
-    if (activeCategory && categoryButtonRefs.current[activeCategory]) {
+    if (activeCategory && categoryButtonRefs.current[activeCategory] && scrollRef.current) {
+      const container = scrollRef.current;
       const btn = categoryButtonRefs.current[activeCategory];
-      btn?.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-        inline: "center"
-      });
+      if (btn && container) {
+        const targetScrollLeft = btn.offsetLeft - (container.clientWidth / 2) + (btn.clientWidth / 2);
+        container.scrollTo({
+          left: Math.max(0, targetScrollLeft),
+          behavior: "smooth"
+        });
+      }
     }
   }, [activeCategory]);
 
