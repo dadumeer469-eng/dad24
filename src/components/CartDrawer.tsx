@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { UserProfile, OrderItem, getUserCoins } from "../types";
-import { X, ShoppingBag, MapPin, Phone, User, AlertTriangle, ShieldCheck, Heart, Edit2, Compass, Coins } from "lucide-react";
+import { X, ShoppingBag, MapPin, Phone, User, AlertTriangle, ShieldCheck, Heart, Edit2, Compass, Coins, Map } from "lucide-react";
 import { CHECKOUT_DRINKS } from "../data";
 import { LazyImage } from "./LazyImage";
+import MapLocationPickerModal from "./MapLocationPickerModal";
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -39,6 +40,7 @@ export default function CartDrawer({
   const [useCoins, setUseCoins] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [locatingError, setLocatingError] = useState<string | null>(null);
+  const [isMapOpen, setIsMapOpen] = useState(false);
 
   const handleRequestLocationPermission = async (): Promise<{ latitude: number; longitude: number } | null> => {
     setIsLocating(true);
@@ -562,11 +564,20 @@ export default function CartDrawer({
                     )}
                   </button>
 
+                  <button
+                    type="button"
+                    onClick={() => setIsMapOpen(true)}
+                    className="w-full bg-zinc-800 hover:bg-zinc-750 text-emerald-400 font-extrabold text-xs py-2.5 px-3 rounded-2xl transition flex items-center justify-center gap-1.5 cursor-pointer border border-emerald-500/30 shadow-sm"
+                  >
+                    <Map className="w-4 h-4 text-emerald-400" />
+                    🗺️ Select Home Location on Map (Easy Alternate)
+                  </button>
+
                   {typeof window !== "undefined" && window.self !== window.top && (
                     <button
                       type="button"
                       onClick={() => window.open(window.location.href, "_blank")}
-                      className="w-full bg-zinc-800 hover:bg-zinc-700 text-pink-300 font-extrabold text-[11px] py-2.5 px-3 rounded-2xl transition flex items-center justify-center gap-1.5 cursor-pointer border border-zinc-700"
+                      className="w-full bg-zinc-850 hover:bg-zinc-800 text-pink-300 font-extrabold text-[11px] py-2 px-3 rounded-2xl transition flex items-center justify-center gap-1.5 cursor-pointer border border-zinc-700"
                     >
                       🌐 Open App in New Tab to Allow Location (Chrome / Safari)
                     </button>
@@ -741,6 +752,21 @@ export default function CartDrawer({
         )}
 
       </div>
+
+      <MapLocationPickerModal
+        isOpen={isMapOpen}
+        onClose={() => setIsMapOpen(false)}
+        initialLat={userCoords?.latitude || 26.7323}
+        initialLng={userCoords?.longitude || 67.7744}
+        title="Select Your Doorstep Location on Map 📍"
+        onSaveLocation={(selectedLat, selectedLng) => {
+          if (onUpdateUserCoords) {
+            onUpdateUserCoords({ latitude: selectedLat, longitude: selectedLng });
+          }
+          setIsMapOpen(false);
+          setLocatingError(null);
+        }}
+      />
     </div>
   );
 }
