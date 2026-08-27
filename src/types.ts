@@ -50,6 +50,12 @@ export interface UserProfile {
   totalDiscountSubsidyCollected?: number; // Total combined voucher + coin discount subsidy
   password?: string; // Stored plaintext passcode or password for easy admin control
   lastSettledAt?: any; // Timestamp when admin cleared/settled the rider's commission and deliveries
+  isDutyOn?: boolean; // Real-time Duty On / Off status for rider
+  isOnline?: boolean; // Online status
+  dutyStatus?: "online" | "offline"; // Duty status string
+  lastDutyUpdated?: any; // Timestamp of duty toggle
+  withdrawableBalance?: number; // Total available balance to withdraw
+  totalWithdrawn?: number; // Total payout already withdrawn
   blockReason?: string;
   blockContact?: string;
   needsUnblockAlert?: boolean;
@@ -388,6 +394,27 @@ export function isVoucherExhaustedForUser(
     if (userUsedCount >= limitPerUser) return true;
   }
   return false;
+}
+
+export interface PayoutRequest {
+  id?: string;
+  riderId: string;
+  riderName: string;
+  riderPhone: string;
+  amount: number;
+  deliveryFeesPortion?: number;
+  discountSubsidiesPortion?: number;
+  paymentMethod: "easypaisa" | "jazzcash" | "bank" | "nayapay" | "sadapay" | "cash";
+  accountNumber?: string;
+  accountTitle?: string;
+  bankName?: string;
+  notes?: string;
+  status: "pending" | "approved" | "completed" | "rejected";
+  rejectionReason?: string;
+  transactionRef?: string;
+  processedAt?: any;
+  processedBy?: string;
+  createdAt?: any;
 }
 
 /**

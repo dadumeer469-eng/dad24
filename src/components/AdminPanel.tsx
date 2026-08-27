@@ -605,6 +605,7 @@ export default function AdminPanel({
   const [showPasswordId, setShowPasswordId] = useState<string | null>(null);
   const [selectedRiderStatsId, setSelectedRiderStatsId] = useState<string | null>(null);
   const [statsTimeframe, setStatsTimeframe] = useState<"1day" | "7days" | "30days" | "60days" | "all">("all");
+  const [riderDutyFilter, setRiderDutyFilter] = useState<"all" | "online" | "offline" | "delivering">("all");
   const [showSettledHistory, setShowSettledHistory] = useState<boolean>(false);
 
   const [selectedRestLedgerName, setSelectedRestLedgerName] = useState<string | null>(null);
@@ -1878,36 +1879,61 @@ export default function AdminPanel({
   };
 
   const handleSettleRider = async (riderUid: string, name: string) => {
+    // 1. Query all completed/delivered orders of this rider that aren't settled yet
+    const riderOrdersToSettle = orders.filter((o) => {
+      if (o.riderId !== riderUid) return false;
+      if (o.status !== "delivered" && o.status !== "completed") return false;
+      if (o.riderSettled) return false;
+      return true;
+    });
+
+    const totalDeliveryFees = riderOrdersToSettle.reduce((sum, o) => sum + (o.deliveryFee || 0), 0);
+    const totalVoucherSubsidy = riderOrdersToSettle.reduce((sum, o) => sum + (o.voucher?.discountAmount || 0), 0);
+    const totalCoinSubsidy = riderOrdersToSettle.reduce((sum, o) => sum + (o.coinsUsed || 0), 0);
+    const totalSubsidyAmount = totalVoucherSubsidy + totalCoinSubsidy;
+    const totalPayoutAmount = totalDeliveryFees + totalSubsidyAmount;
+
     const isConfirmed = window.confirm(
-      `Kya aap Rider "${name}" ki active statistics aur earned commission ko settle aur clear karna chahte hain? Settle karne ke baad active counters reset ho jayenge.`
+      `Kya aap Rider "${name}" ki payment settle aur payout process karna chahte hain?\n\n` +
+      `ğŸ“¦ Unsettled Orders: ${riderOrdersToSettle.length}\n` +
+      `ğŸš² Delivery Fees: Rs. ${totalDeliveryFees}\n` +
+      `ğŸŸï¸ Voucher Discount Subsidy: Rs. ${totalVoucherSubsidy}\n` +
+      `ğŸª™ Coin Discount Subsidy: Rs. ${totalCoinSubsidy}\n` +
+      `ğŸ’µ KUL PAYABLE AMOUNT (Withdrawable): Rs. ${totalPayoutAmount}\n\n` +
+      `Settle karne ke baad rider ka pending balance 0 ho jayega aur uske account me payment confirmed mark hogi.`
     );
     if (!isConfirmed) return;
 
     try {
-      // 1. Update rider user profile with lastSettledAt
+      const now = new Date();
+      // 1. Update rider user profile with lastSettledAt and balance reset
       await updateDoc(doc(db, "users", riderUid), {
-        lastSettledAt: new Date()
+        lastSettledAt: now,
+        lastSettledAmount: totalPayoutAmount,
+        withdrawableBalance: 0,
+        totalWithdrawn: increment(totalPayoutAmount)
       });
 
-      // 2. Query all completed/delivered orders of this rider that aren't settled yet
-      const riderOrdersToSettle = orders.filter((o) => {
-        if (o.riderId !== riderUid) return false;
-        if (o.status !== "delivered" && o.status !== "completed") return false;
-        if (o.riderSettled) return false;
-        return true;
-      });
-
-      // 3. Mark them as settled in Firestore
+      // 2. Mark orders as settled in Firestore
       await Promise.all(
         riderOrdersToSettle.map((o) =>
           updateDoc(doc(db, "orders", o.id), {
             riderSettled: true,
-            riderSettledAt: new Date()
+            riderSettledAt: now
           })
         )
       );
 
-      alert(`Rider "${name}" ki active stats successfully settled aur clear ho gayi hain!`);
+      // 3. Send in-app notification to rider
+      await addDoc(collection(db, "notifications"), {
+        userId: riderUid,
+        title: "ğŸ’µ Rider Payout Settled & Transferred!",
+        message: `Admin ne aapki payment (Rs. ${totalPayoutAmount}) settle kar di hai! Is me Rs. ${totalDeliveryFees} Delivery Fees aur Rs. ${totalSubsidyAmount} Customer Discount Subsidy (Voucher + Coins) shamil hai.`,
+        createdAt: { seconds: Date.now() / 1000 },
+        read: false
+      }).catch(() => {});
+
+      alert(`Rider "${name}" ki payment (Rs. ${totalPayoutAmount}) successfully settle aur clear ho gayi hai!`);
     } catch (err) {
       console.error("Failed to settle rider stats:", err);
       alert("Error: Database permission denied or insufficient administrative credentials.");
@@ -3379,7 +3405,9 @@ export default function AdminPanel({
                 activeSubTab === "riders" ? "bg-[#D70F64] border-[#D70F64] text-white" : "bg-slate-50 border-slate-200 text-slate-700"
               }`}
             >
-              <Truck className="w-3.5 h-3.5" /> Riders
+              <Truck className="w-3.5 h-3.5" />
+              <span>Riders ({ridersSubset.length})</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block" title="Online status active"></span>
             </button>
             <button
               onClick={() => setActiveSubTab("users")}
@@ -3387,7 +3415,7 @@ export default function AdminPanel({
                 activeSubTab === "users" ? "bg-[#D70F64] border-[#D70F64] text-white" : "bg-slate-50 border-slate-200 text-slate-700"
               }`}
             >
-              <Users className="w-3.5 h-3.5" /> Users ({allUsersList.length})
+              <Users className="w-3.5 h-3.5" /> Customers ({allUsersList.filter(u => u.role !== "rider").length})
             </button>
 
             <button
@@ -3609,7 +3637,15 @@ export default function AdminPanel({
                     }`}
                   >
                     <Truck className="w-3.5 h-3.5 shrink-0" />
-                    Riders Directory
+                    <span>Riders Directory</span>
+                    <span className={`ml-auto font-black px-1.5 py-0.5 text-[9px] rounded-full flex items-center gap-1 leading-none ${
+                      activeSubTab === "riders"
+                        ? "bg-white text-[#D70F64]"
+                        : "bg-emerald-50 text-emerald-700 border border-emerald-200/60"
+                    }`}>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      {ridersSubset.filter(r => r.isDutyOn === true || r.isOnline === true || r.dutyStatus === "online").length} ON / {ridersSubset.length}
+                    </span>
                   </button>
 
                   <button
@@ -3621,13 +3657,13 @@ export default function AdminPanel({
                     }`}
                   >
                     <Users className="w-3.5 h-3.5 shrink-0" />
-                    Users Directory
+                    <span>Customers Directory</span>
                     <span className={`ml-auto font-bold px-1.5 py-0.5 text-[9px] rounded-full leading-none ${
                       activeSubTab === "users" 
                         ? "bg-white text-[#D70F64]" 
                         : "bg-slate-100 text-slate-500"
                     }`}>
-                      {allUsersList.length}
+                      {allUsersList.filter(u => u.role !== "rider").length}
                     </span>
                   </button>
 
@@ -7623,49 +7659,180 @@ export default function AdminPanel({
                 </div>
               </div>
 
+              {/* Fleet Operations Duty & Live Status Command Bar */}
+              {(() => {
+                const onlineRiders = ridersSubset.filter(
+                  (r) => r.isDutyOn === true || r.isOnline === true || r.dutyStatus === "online"
+                );
+                const offlineRiders = ridersSubset.filter(
+                  (r) => !r.isDutyOn && !r.isOnline && r.dutyStatus !== "online"
+                );
+                const activeDeliveringRiders = ridersSubset.filter((r) =>
+                  orders.some(
+                    (o) =>
+                      o.riderId === r.uid &&
+                      o.status !== "delivered" &&
+                      o.status !== "cancelled" &&
+                      o.status !== "completed"
+                  )
+                );
+
+                return (
+                  <div className="bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 text-white rounded-3xl p-6 shadow-xl border border-slate-800 space-y-5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+                          Real-time Rider Duty Monitor (Dadu City)
+                        </span>
+                        <h3 className="text-xl font-black text-white mt-1 flex items-center gap-2">
+                          <span>Fleet Duty Operations & Rider Payouts</span>
+                        </h3>
+                        <p className="text-xs text-slate-400 font-medium mt-0.5">
+                          Track online riders, delivery fees, customer voucher subsidies, and coin discount reimbursements.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2.5">
+                        <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-3.5 py-1.5 rounded-2xl text-xs font-black uppercase flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                          {onlineRiders.length} Captains On Duty (Online)
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* 4 Stat Counters */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-2xl">
+                        <span className="text-[9px] uppercase tracking-widest text-slate-400 font-black block">Total Fleet</span>
+                        <span className="text-2xl font-black text-white block mt-1 font-mono font-sans">{ridersSubset.length} Riders</span>
+                        <span className="text-[10px] text-slate-500 font-semibold block mt-0.5">Registered Captains</span>
+                      </div>
+
+                      <div className="bg-emerald-950/40 border border-emerald-500/30 p-3.5 rounded-2xl">
+                        <span className="text-[9px] uppercase tracking-widest text-emerald-400 font-black block flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                          Duty ON (Online)
+                        </span>
+                        <span className="text-2xl font-black text-emerald-300 block mt-1 font-mono font-sans">{onlineRiders.length} Active</span>
+                        <span className="text-[10px] text-emerald-400/70 font-semibold block mt-0.5">Ready to deliver</span>
+                      </div>
+
+                      <div className="bg-slate-900/90 border border-slate-800 p-3.5 rounded-2xl">
+                        <span className="text-[9px] uppercase tracking-widest text-slate-400 font-black block">Duty OFF (Offline)</span>
+                        <span className="text-2xl font-black text-slate-300 block mt-1 font-mono font-sans">{offlineRiders.length} Resting</span>
+                        <span className="text-[10px] text-slate-500 font-semibold block mt-0.5">Duty paused</span>
+                      </div>
+
+                      <div className="bg-pink-950/40 border border-pink-500/30 p-3.5 rounded-2xl">
+                        <span className="text-[9px] uppercase tracking-widest text-pink-400 font-black block">Active In Transit</span>
+                        <span className="text-2xl font-black text-pink-300 block mt-1 font-mono font-sans">{activeDeliveringRiders.length} Orders</span>
+                        <span className="text-[10px] text-pink-400/70 font-semibold block mt-0.5">Currently on ride</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Master directory list */}
               <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm relative space-y-4">
                 <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-slate-500/20 to-transparent" />
-                <h4 className="font-black text-sm text-slate-900 flex items-center gap-2 pb-3 border-b border-slate-200/50 uppercase tracking-wide">
-                  <User className="w-4 h-4 text-slate-500" />
-                  Riders Directory Registry ({ridersSubset.length} Profiles)
-                </h4>
+                
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/50">
+                  <h4 className="font-black text-sm text-slate-900 flex items-center gap-2 uppercase tracking-wide">
+                    <User className="w-4 h-4 text-[#D70F64]" />
+                    <span>Riders Directory Registry ({ridersSubset.length} Profiles)</span>
+                  </h4>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {ridersSubset.length === 0 ? (
-                    <div className="text-center p-8 col-span-2 text-slate-500 text-xs font-semibold">
-                      ğŸ“‹ No active riders provisioned.
-                    </div>
-                  ) : (
-                    ridersSubset.map((rider) => {
-                      // Calculate sales performance stats for each rider
+                  {/* Rider Duty Filter Tabs */}
+                  <div className="flex flex-wrap gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                    {[
+                      { id: "all", label: `All (${ridersSubset.length})` },
+                      { id: "online", label: `ğŸŸ¢ Duty ON (${ridersSubset.filter(r => r.isDutyOn === true || r.isOnline === true || r.dutyStatus === "online").length})` },
+                      { id: "offline", label: `âšª Duty OFF (${ridersSubset.filter(r => !r.isDutyOn && !r.isOnline && r.dutyStatus !== "online").length})` },
+                      { id: "delivering", label: `ğŸš´ Delivering (${ridersSubset.filter(r => orders.some(o => o.riderId === r.uid && o.status !== "delivered" && o.status !== "cancelled" && o.status !== "completed")).length})` },
+                    ].map((tab) => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setRiderDutyFilter(tab.id as any)}
+                        className={`px-2.5 py-1 text-[10px] font-black uppercase tracking-wide rounded-lg transition-all cursor-pointer ${
+                          riderDutyFilter === tab.id
+                            ? "bg-[#D70F64] text-white shadow-xs"
+                            : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {(() => {
+                    const filteredRiders = ridersSubset.filter((rider) => {
+                      const isDutyOn = rider.isDutyOn === true || rider.isOnline === true || rider.dutyStatus === "online";
+                      const isDelivering = orders.some(
+                        (o) =>
+                          o.riderId === rider.uid &&
+                          o.status !== "delivered" &&
+                          o.status !== "cancelled" &&
+                          o.status !== "completed"
+                      );
+
+                      if (riderDutyFilter === "online") return isDutyOn;
+                      if (riderDutyFilter === "offline") return !isDutyOn;
+                      if (riderDutyFilter === "delivering") return isDelivering;
+                      return true;
+                    });
+
+                    if (filteredRiders.length === 0) {
+                      return (
+                        <div className="text-center p-12 col-span-2 bg-slate-50 border border-dashed border-slate-200 rounded-3xl text-slate-500 text-xs font-semibold space-y-2">
+                          <p className="text-2xl">ğŸ“‹</p>
+                          <p className="font-bold text-slate-700">Koi rider match nahi hua is filter ke mutabiq.</p>
+                          <p className="text-[11px] text-slate-400">Total registered fleet: {ridersSubset.length} riders</p>
+                        </div>
+                      );
+                    }
+
+                    return filteredRiders.map((rider) => {
+                      const isDutyOn = rider.isDutyOn === true || rider.isOnline === true || rider.dutyStatus === "online";
+                      const activeDeliveringOrder = orders.find(
+                        (o) =>
+                          o.riderId === rider.uid &&
+                          o.status !== "delivered" &&
+                          o.status !== "cancelled" &&
+                          o.status !== "completed"
+                      );
+
+                      // Calculate sales and settlement stats for each rider
                       const stats = (() => {
                         const completedRiderOrders = orders.filter(
                           (o) =>
                             o.riderId === rider.uid &&
-                            (o.status === "delivered" ||
-                              o.status === "completed"),
+                            (o.status === "delivered" || o.status === "completed")
                         );
+
+                        // Unsettled orders for pending payout
+                        const unsettledOrders = completedRiderOrders.filter((o) => !o.riderSettled);
+                        const unsettledDeliveryFees = unsettledOrders.reduce((sum, o) => sum + (o.deliveryFee || 0), 0);
+                        const unsettledVoucherSubsidy = unsettledOrders.reduce((sum, o) => sum + (o.voucher?.discountAmount || 0), 0);
+                        const unsettledCoinSubsidy = unsettledOrders.reduce((sum, o) => sum + (o.coinsUsed || 0), 0);
+                        const totalPendingPayout = unsettledDeliveryFees + unsettledVoucherSubsidy + unsettledCoinSubsidy;
 
                         const now = new Date();
                         const todayStart = new Date(
                           now.getFullYear(),
                           now.getMonth(),
-                          now.getDate(),
+                          now.getDate()
                         ).getTime();
 
-                        // Time limitations
-                        const sevenDaysAgo =
-                          Date.now() - 7 * 24 * 60 * 60 * 1000;
-                        const thirtyDaysAgo =
-                          Date.now() - 30 * 24 * 60 * 60 * 1000;
+                        const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+                        const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
 
-                        let todayC = 0,
-                          todayS = 0;
-                        let weekC = 0,
-                          weekS = 0;
-                        let monthC = 0,
-                          monthS = 0;
+                        let todayC = 0, todayS = 0;
+                        let weekC = 0, weekS = 0;
+                        let monthC = 0, monthS = 0;
 
                         completedRiderOrders.forEach((o) => {
                           let t = 0;
@@ -7697,23 +7864,6 @@ export default function AdminPanel({
                           }
                         });
 
-                        const totalCommission = completedRiderOrders.reduce(
-                          (sum, o) => {
-                            return (
-                              sum +
-                              (o.totalCommission !== undefined
-                                ? o.totalCommission
-                                : (o.items || []).reduce(
-                                    (itemSum, item) =>
-                                      itemSum +
-                                      (item.commission || 0) * item.quantity,
-                                    0,
-                                  ))
-                            );
-                          },
-                          0,
-                        );
-
                         const ratedOrders = completedRiderOrders.filter((o) => o.rating !== undefined);
                         const totalRated = ratedOrders.length;
                         const avgRating = totalRated > 0
@@ -7725,7 +7875,11 @@ export default function AdminPanel({
                           week: { count: weekC, sales: weekS },
                           month: { count: monthC, sales: monthS },
                           totalCompleted: completedRiderOrders.length,
-                          totalCommission,
+                          unsettledCount: unsettledOrders.length,
+                          unsettledDeliveryFees,
+                          unsettledVoucherSubsidy,
+                          unsettledCoinSubsidy,
+                          totalPendingPayout,
                           avgRating,
                           totalRated
                         };
@@ -7734,297 +7888,286 @@ export default function AdminPanel({
                       return (
                         <div
                           key={rider.uid}
-                          className="bg-white border border-slate-200 p-4.5 rounded-2xl space-y-3 shadow-xs font-sans"
+                          className="bg-white border border-slate-200 p-5 rounded-2xl space-y-4 shadow-sm hover:shadow-md transition-all font-sans relative overflow-hidden"
                         >
-                          <div className="flex justify-between items-start">
+                          {/* Duty Status Bar Highlight on Card Top */}
+                          <div className={`absolute top-0 inset-x-0 h-1 ${
+                            rider.status === "blocked"
+                              ? "bg-red-500"
+                              : activeDeliveringOrder
+                              ? "bg-pink-500"
+                              : isDutyOn
+                              ? "bg-emerald-500"
+                              : "bg-slate-300"
+                          }`} />
+
+                          <div className="flex justify-between items-start gap-3">
                             <div>
-                              <span className="text-[10.5px] font-black tracking-wider text-slate-900 flex items-center gap-1.5 flex-wrap">
-                                Rider Name: {rider.name}
-                                {rider.status === "blocked" && (
-                                  <span className="text-[8.5px] bg-red-600 text-white font-extrabold px-1.5 py-0.5 rounded uppercase shrink-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-black text-slate-900">
+                                  {rider.name}
+                                </span>
+                                
+                                {/* Real-time Duty Pill */}
+                                {rider.status === "blocked" ? (
+                                  <span className="text-[9px] bg-red-600 text-white font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
                                     Blocked ğŸš«
                                   </span>
+                                ) : activeDeliveringOrder ? (
+                                  <span className="text-[9px] bg-pink-100 text-pink-700 border border-pink-300 font-black px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-pink-600 animate-ping"></span>
+                                    ğŸš´ On Delivery
+                                  </span>
+                                ) : isDutyOn ? (
+                                  <span className="text-[9px] bg-emerald-50 text-emerald-700 border border-emerald-300 font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1.5 shadow-xs">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    ğŸŸ¢ Duty ON (Online)
+                                  </span>
+                                ) : (
+                                  <span className="text-[9px] bg-slate-100 text-slate-600 border border-slate-200 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                    âšª Duty OFF
+                                  </span>
                                 )}
-                              </span>
-                              <div className="flex flex-wrap gap-1.5 mt-1">
+                              </div>
+
+                              <div className="flex flex-wrap gap-1.5 mt-1.5">
                                 <span className="text-[9px] text-[#D70F64] font-bold block bg-[#D70F64]/5 border border-[#D70F64]/20 px-2.5 py-0.5 rounded-full uppercase">
-                                  Vehicle/Owner No: {rider.vehicleNumber || "N/A"}
+                                  Vehicle: {rider.vehicleNumber || "Standard Bike"}
                                 </span>
-                                <span className="text-[9px] font-bold block bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-full uppercase text-amber-600 flex items-center gap-1 shrink-0">
+                                <span className="text-[9px] font-bold block bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-full uppercase text-amber-600 flex items-center gap-1">
                                   â­ {stats.avgRating !== "N/A" ? `${stats.avgRating} / 5` : "No Ratings"} ({stats.totalRated})
+                                </span>
+                                <span className="text-[9px] font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
+                                  ğŸ“ {rider.phone || rider.phoneNumber || "N/A"}
                                 </span>
                               </div>
                             </div>
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-mono text-[9px] text-slate-500">
-                                {rider.uid.substring(0, 8)}
-                              </span>
+
+                            <div className="flex items-center gap-1.5 shrink-0">
                               <button
-                                onClick={() =>
-                                  handleDeleteRider(rider.uid, rider.name)
-                                }
-                                className="text-pink-400 hover:text-pink-300 p-1.5 rounded-lg hover:bg-red-500/10 transition cursor-pointer shrink-0"
-                                title="Delete Rider Permanent"
+                                onClick={() => handleDeleteRider(rider.uid, rider.name)}
+                                title="Rider delete karein"
+                                className="text-slate-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-lg transition cursor-pointer"
                               >
-                                <Trash2 className="w-3.5 h-3.5" />
+                                <Trash2 className="w-4 h-4" />
                               </button>
                             </div>
                           </div>
-                          <div className="border-t border-slate-200 pt-2 text-[11px] font-semibold text-slate-600 font-sans space-y-1">
-                            <div>
-                              ğŸ“ Contact Phone:{" "}
-                              <span className="font-mono text-slate-800">
-                                {rider.phone}
+
+                          {/* Active Delivery Order Notice if delivering */}
+                          {activeDeliveringOrder && (
+                            <div className="bg-pink-50 border border-pink-200/80 p-2.5 rounded-xl flex items-center justify-between text-xs">
+                              <span className="text-[10px] text-pink-700 font-bold flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-pink-500 animate-pulse"></span>
+                                Active Order: <b className="font-mono">dadu-{activeDeliveringOrder.id.substring(0, 6)}</b> ({activeDeliveringOrder.userName})
+                              </span>
+                              <span className="text-[10px] text-pink-800 font-extrabold uppercase">
+                                {activeDeliveringOrder.status}
                               </span>
                             </div>
-                            <div className="flex items-center justify-between gap-2">
-                              <span>ğŸ“ Logged-in HQ Status:</span>
-                              <span className="text-emerald-440 font-bold uppercase text-[9px]">
-                                ONLINE DUTY
+                          )}
+
+                          {/* Earnings & Settlement Balance Card */}
+                          <div className="bg-gradient-to-br from-slate-50 to-slate-100/80 border border-slate-200/80 p-3.5 rounded-xl space-y-2.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                                ğŸ’µ Net Pending Payout (To Pay):
+                              </span>
+                              <span className="text-base font-black text-emerald-600 font-mono">
+                                Rs. {stats.totalPendingPayout}
                               </span>
                             </div>
 
-                            {/* Rider Total Deliveries & Earned Commission */}
-                            <div className="bg-emerald-950/20 border border-emerald-900/40 rounded-xl p-3 mt-2.5 flex items-center justify-between gap-3 text-xs font-semibold">
-                              <div>
-                                <span className="text-[9px] text-emerald-400 uppercase tracking-widest font-black block">
-                                  delivered runs
-                                </span>
-                                <span className="text-xs font-extrabold text-slate-900 block mt-0.5">
-                                  {stats.totalCompleted} Orders
-                                </span>
+                            {/* Breakdown of pending payout */}
+                            <div className="grid grid-cols-3 gap-1.5 text-[9.5px] border-t border-slate-200/70 pt-2 font-semibold">
+                              <div className="bg-white/90 p-1.5 rounded-lg border border-slate-200/60 text-center">
+                                <span className="text-slate-400 block text-[8px] uppercase">Delivery Fees</span>
+                                <span className="text-slate-900 font-bold">Rs. {stats.unsettledDeliveryFees}</span>
                               </div>
-                              <div className="text-right">
-                                <span className="text-[9px] text-emerald-400 uppercase tracking-widest font-black block font-sans">
-                                  earned commission
-                                </span>
-                                <span className="text-xs font-black text-emerald-400 block mt-0.5">
-                                  Rs. {stats.totalCommission}
-                                </span>
+                              <div className="bg-white/90 p-1.5 rounded-lg border border-slate-200/60 text-center">
+                                <span className="text-slate-400 block text-[8px] uppercase">Vouchers Subsidy</span>
+                                <span className="text-[#D70F64] font-bold">Rs. {stats.unsettledVoucherSubsidy}</span>
+                              </div>
+                              <div className="bg-white/90 p-1.5 rounded-lg border border-slate-200/60 text-center">
+                                <span className="text-slate-400 block text-[8px] uppercase">Coins Subsidy</span>
+                                <span className="text-amber-600 font-bold">Rs. {stats.unsettledCoinSubsidy}</span>
                               </div>
                             </div>
 
-                            {/* Rider Sales Performance Statistics Dashboard */}
-                            <div className="bg-white border border-slate-200 rounded-xl p-3 mt-2 space-y-2">
-                              <span className="text-[9.5px] font-black uppercase text-[#D70F64] tracking-wider flex items-center gap-1">
-                                ğŸ“Š Rider Earnings & Sales Stats
-                              </span>
-
-                              <div className="grid grid-cols-3 gap-2 text-center">
-                                {/* Today */}
-                                <div className="bg-slate-100/60 border border-slate-200 p-2 rounded-lg">
-                                  <span className="text-[8px] text-slate-500 uppercase font-black block">
-                                    Aaj (Today)
-                                  </span>
-                                  <span className="text-[10.5px] font-black text-rose-500 block mt-0.5">
-                                    {stats.today.count} Orders
-                                  </span>
-                                  <span className="text-[9.5px] font-bold text-slate-800 block font-mono mt-0.5">
-                                    Rs. {stats.today.sales}
-                                  </span>
-                                </div>
-
-                                {/* Week */}
-                                <div className="bg-slate-100/60 border border-slate-200 p-2 rounded-lg">
-                                  <span className="text-[8px] text-slate-500 uppercase font-black block">
-                                    Hafta (Week)
-                                  </span>
-                                  <span className="text-[10.5px] font-black text-[#D70F64] block mt-0.5">
-                                    {stats.week.count} Orders
-                                  </span>
-                                  <span className="text-[9.5px] font-bold text-slate-800 block font-mono mt-0.5">
-                                    Rs. {stats.week.sales}
-                                  </span>
-                                </div>
-
-                                {/* Month */}
-                                <div className="bg-slate-100/60 border border-slate-200 p-2 rounded-lg">
-                                  <span className="text-[8px] text-slate-500 uppercase font-black block">
-                                    Mahina (Month)
-                                  </span>
-                                  <span className="text-[10.5px] font-black text-emerald-500 block mt-0.5">
-                                    {stats.month.count} Orders
-                                  </span>
-                                  <span className="text-[9.5px] font-bold text-slate-800 block font-mono mt-0.5">
-                                    Rs. {stats.month.sales}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-
-                            {rider.riderCoords ? (
-                              <div className="bg-emerald-950/10 border border-emerald-950 p-2.5 rounded-xl mt-1.5 space-y-1.5 text-slate-700">
-                                <div className="flex items-center justify-between text-[10px]">
-                                  <span className="text-emerald-400 font-black flex items-center gap-1">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                                    LIVE GPS SIGNAL
-                                  </span>
-                                  <span className="text-[9px] text-slate-500">
-                                    {rider.riderCoords.lastUpdated
-                                      ? `${Math.round((Date.now() - rider.riderCoords.lastUpdated) / 1000)}s ago`
-                                      : "Active"}
-                                  </span>
-                                </div>
-                                <div className="flex items-center justify-between gap-1">
-                                  <span className="font-mono text-[9.5px] text-slate-600">
-                                    {rider.riderCoords.latitude.toFixed(5)},{" "}
-                                    {rider.riderCoords.longitude.toFixed(5)}
-                                  </span>
-                                  <a
-                                    href={`https://www.google.com/maps/search/?api=1&query=${rider.riderCoords.latitude},${rider.riderCoords.longitude}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="bg-emerald-500 text-slate-50 font-black text-[9px] px-2.5 py-1 rounded-lg hover:bg-emerald-400 transition uppercase tracking-widest leading-none block shrink-0"
-                                  >
-                                    Open Map ğŸ—ºï¸
-                                  </a>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="text-slate-500 text-[10px] italic mt-2 bg-slate-100/30 p-2 rounded-xl border border-slate-200 text-center">
-                                ğŸ“¡ Awaiting active GPS tracking signal...
-                              </div>
+                            {stats.unsettledCount > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => handleSettleRider(rider.uid, rider.name)}
+                                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-2 rounded-xl text-[10.5px] uppercase tracking-wider transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                              >
+                                <span>ğŸ’µ Settle & Pay Rider (Rs. {stats.totalPendingPayout})</span>
+                              </button>
                             )}
+                          </div>
 
-                            {/* Password Management */}
-                            <div className="flex items-center gap-2 mt-3 bg-slate-50 border border-slate-200 rounded-xl p-2.5">
-                              <Key className="w-3.5 h-3.5 text-[#D70F64] shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <span className="text-[10px] text-slate-500 uppercase tracking-widest block font-bold">Rider Password</span>
-                                {editingRiderPasswordId === rider.uid ? (
-                                  <div className="flex items-center gap-2 mt-1">
-                                    <input
-                                      type="text"
-                                      value={newPasswordInputValue}
-                                      onChange={(e) => setNewPasswordInputValue(e.target.value)}
-                                      placeholder="Naya Password (min 6 chars)"
-                                      className="bg-white border border-slate-300 rounded-lg p-1.5 px-2.5 text-xs font-mono outline-none flex-grow text-slate-900"
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => handleSaveRiderPassword(rider.uid)}
-                                      className="bg-emerald-500 text-white text-[10px] font-black px-2.5 py-1.5 rounded-lg uppercase shrink-0 hover:bg-emerald-600 transition"
-                                    >
-                                      Save
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => setEditingRiderPasswordId(null)}
-                                      className="bg-slate-200 text-slate-700 text-[10px] font-black px-2.5 py-1.5 rounded-lg uppercase shrink-0 hover:bg-slate-300 transition"
-                                    >
-                                      X
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center justify-between mt-0.5">
-                                    <span className="font-mono text-xs font-black text-slate-800 truncate">
-                                      {showPasswordId === rider.uid ? (rider.password || "No Custom Password (use fallback)") : "â€¢â€¢â€¢â€¢â€¢â€¢"}
-                                    </span>
-                                    <div className="flex items-center gap-2 shrink-0">
-                                      <button
-                                        type="button"
-                                        onClick={() => setShowPasswordId(showPasswordId === rider.uid ? null : rider.uid)}
-                                        className="text-[9.5px] font-black text-slate-500 hover:text-slate-700 uppercase"
-                                      >
-                                        {showPasswordId === rider.uid ? "Hide" : "Show"}
-                                      </button>
-                                      <span className="text-slate-300 text-[10px]">|</span>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setEditingRiderPasswordId(rider.uid);
-                                          setNewPasswordInputValue(rider.password || "");
-                                        }}
-                                        className="text-[9.5px] font-black text-[#D70F64] hover:text-[#b00c50] uppercase"
-                                      >
-                                        Edit
-                                      </button>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
+                          {/* Quick Stats Grid */}
+                          <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                            <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                              <span className="text-[8.5px] text-slate-400 font-bold uppercase block">Today</span>
+                              <span className="font-extrabold text-slate-800 text-xs block mt-0.5">{stats.today.count} runs</span>
+                              <span className="text-[9px] text-slate-500 font-mono">Rs. {stats.today.sales}</span>
                             </div>
+                            <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                              <span className="text-[8.5px] text-slate-400 font-bold uppercase block">7 Days</span>
+                              <span className="font-extrabold text-slate-800 text-xs block mt-0.5">{stats.week.count} runs</span>
+                              <span className="text-[9px] text-slate-500 font-mono">Rs. {stats.week.sales}</span>
+                            </div>
+                            <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                              <span className="text-[8.5px] text-slate-400 font-bold uppercase block">Lifetime</span>
+                              <span className="font-extrabold text-[#D70F64] text-xs block mt-0.5">{stats.totalCompleted} runs</span>
+                              <span className="text-[9px] text-slate-500 font-mono">Rs. {stats.month.sales}</span>
+                            </div>
+                          </div>
 
-                            {/* Block / Unblock Controls */}
-                            <div className="mt-2.5 space-y-1.5">
-                              {rider.status === "blocked" ? (
-                                <div className="space-y-1.5">
-                                  <div className="text-[10px] text-red-600 font-semibold bg-red-50 border border-red-200/50 p-2.5 rounded-xl text-left">
-                                    <span className="block text-[8.5px] uppercase tracking-wider text-red-500 font-black">Blocked Reason / Wajah:</span>
-                                    <span className="block font-bold mt-0.5 whitespace-pre-wrap">{rider.blockReason || "No reason provided."}</span>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={async () => {
-                                      const isConfirmed = window.confirm(`Kya aap Rider "${rider.name}" ko unblock karna chahte hain?`);
-                                      if (isConfirmed) {
-                                        try {
-                                          await updateDoc(doc(db, "users", rider.uid), {
-                                            status: "verified",
-                                            needsUnblockAlert: true,
-                                            unblockAlertMessage: "Aapka account admin ne unblock kar diya hai! Ab aap duty shuru kar sakte hain."
-                                          });
-                                          alert(`âœ… Rider "${rider.name}" successfully unblock ho gaya hai!`);
-                                        } catch (err) {
-                                          console.error("Failed to unblock rider:", err);
-                                          alert("Error: Database permission denied.");
-                                        }
-                                      }
-                                    }}
-                                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-2.5 rounded-xl transition text-[11px] uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-emerald-500/10"
-                                  >
-                                    ğŸ”“ Unblock Rider (Kholain)
-                                  </button>
-                                </div>
-                              ) : (
+                          {/* Password & Security Panel */}
+                          <div className="bg-slate-50 border border-slate-200/80 p-2.5 rounded-xl space-y-1.5">
+                            <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 block">
+                              Access Password
+                            </span>
+                            {editingRiderPasswordId === rider.uid ? (
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="text"
+                                  value={newPasswordInputValue}
+                                  onChange={(e) => setNewPasswordInputValue(e.target.value)}
+                                  placeholder="New password (min 6 chars)"
+                                  className="w-full text-xs font-mono font-bold p-1.5 bg-white border border-slate-300 rounded-lg outline-none focus:border-[#D70F64]"
+                                />
                                 <button
                                   type="button"
                                   onClick={async () => {
-                                    const reason = window.prompt(
-                                      `Rider "${rider.name}" ko block karne ki wajah (Reason) aur unblock hone ka tareeqa likhein (yeh msg use show hoga):`,
-                                      "Aapki duty timing par non-seriousness ki wajah se block kiya gaya hai. Unblock karwane ke liye niche diye gaye WhatsApp par rabta karein."
-                                    );
-                                    if (reason !== null) {
-                                      try {
-                                        await updateDoc(doc(db, "users", rider.uid), {
-                                          status: "blocked",
-                                          blockReason: reason || "Temporarily blocked by admin. Contact admin to unblock.",
-                                          needsUnblockAlert: false,
-                                          unblockAlertMessage: ""
-                                        });
-                                        alert(`âŒ Rider "${rider.name}" block ho gaya hai.`);
-                                      } catch (err) {
-                                        console.error("Failed to block rider:", err);
-                                        alert("Error: Database permission denied.");
-                                      }
+                                    if (newPasswordInputValue.trim().length < 6) {
+                                      alert("Password must be at least 6 characters.");
+                                      return;
+                                    }
+                                    try {
+                                      await updateDoc(doc(db, "users", rider.uid), {
+                                        password: newPasswordInputValue.trim()
+                                      });
+                                      alert(`Password updated for ${rider.name}!`);
+                                      setEditingRiderPasswordId(null);
+                                    } catch (err) {
+                                      console.error("Failed to update password:", err);
+                                      alert("Error updating password.");
                                     }
                                   }}
-                                  className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-2.5 rounded-xl transition text-[11px] uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-red-500/10"
+                                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black px-2.5 py-1.5 rounded-lg uppercase shrink-0"
                                 >
-                                  ğŸš« Block Rider (Band Karein)
+                                  Save
                                 </button>
-                              )}
-                            </div>
-
-                            {/* Detailed Statistics Ledger */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSelectedRiderStatsId(rider.uid);
-                                setStatsTimeframe("all");
-                                setShowSettledHistory(false);
-                              }}
-                              className="w-full bg-[#D70F64]/10 text-[#D70F64] font-black border border-[#D70F64]/20 py-2.5 rounded-xl hover:bg-[#D70F64]/20 transition text-xs uppercase flex items-center justify-center gap-1.5 mt-2.5"
-                            >
-                              <ClipboardList className="w-4 h-4" /> Reports & Ledger (All Data / Settle)
-                            </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingRiderPasswordId(null)}
+                                  className="bg-slate-200 text-slate-700 text-[10px] font-black px-2 py-1.5 rounded-lg uppercase shrink-0"
+                                >
+                                  X
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-mono text-slate-700 font-bold">
+                                  {showPasswordId === rider.uid ? (rider.password || "â€¢â€¢â€¢â€¢â€¢â€¢ (Encrypted)") : "â€¢â€¢â€¢â€¢â€¢â€¢"}
+                                </span>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowPasswordId(showPasswordId === rider.uid ? null : rider.uid)}
+                                    className="text-[9.5px] font-black text-slate-500 hover:text-slate-700 uppercase"
+                                  >
+                                    {showPasswordId === rider.uid ? "Hide" : "Show"}
+                                  </button>
+                                  <span className="text-slate-300">|</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingRiderPasswordId(rider.uid);
+                                      setNewPasswordInputValue(rider.password || "");
+                                    }}
+                                    className="text-[9.5px] font-black text-[#D70F64] hover:text-[#b00c50] uppercase"
+                                  >
+                                    Edit
+                                  </button>
+                                </div>
+                              </div>
+                            )}
                           </div>
+
+                          {/* Block / Unblock Button */}
+                          <div className="space-y-1.5">
+                            {rider.status === "blocked" ? (
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  if (window.confirm(`Kya aap Rider "${rider.name}" ko unblock karna chahte hain?`)) {
+                                    try {
+                                      await updateDoc(doc(db, "users", rider.uid), {
+                                        status: "verified",
+                                        needsUnblockAlert: true,
+                                        unblockAlertMessage: "Aapka account admin ne unblock kar diya hai! Ab aap duty shuru kar sakte hain."
+                                      });
+                                      alert(`âœ… Rider "${rider.name}" successfully unblock ho gaya hai!`);
+                                    } catch (err) {
+                                      console.error("Failed to unblock rider:", err);
+                                      alert("Error: Database permission denied.");
+                                    }
+                                  }
+                                }}
+                                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-2 rounded-xl text-[11px] uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                              >
+                                ğŸ”“ Unblock Rider (Kholain)
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  const reason = window.prompt(
+                                    `Rider "${rider.name}" ko block karne ki wajah (Reason) likhein:`,
+                                    "Aapki duty timing par non-seriousness ki wajah se block kiya gaya hai. Rabta karein."
+                                  );
+                                  if (reason !== null) {
+                                    try {
+                                      await updateDoc(doc(db, "users", rider.uid), {
+                                        status: "blocked",
+                                        blockReason: reason || "Temporarily blocked by admin.",
+                                        needsUnblockAlert: false,
+                                        unblockAlertMessage: ""
+                                      });
+                                      alert(`âŒ Rider "${rider.name}" block ho gaya hai.`);
+                                    } catch (err) {
+                                      console.error("Failed to block rider:", err);
+                                      alert("Error: Database permission denied.");
+                                    }
+                                  }
+                                }}
+                                className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-2 rounded-xl text-[11px] uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                              >
+                                ğŸš« Block Rider (Band Karein)
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Detailed Statistics Ledger */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedRiderStatsId(rider.uid);
+                              setStatsTimeframe("all");
+                              setShowSettledHistory(false);
+                            }}
+                            className="w-full bg-[#D70F64]/10 text-[#D70F64] font-black border border-[#D70F64]/20 py-2.5 rounded-xl hover:bg-[#D70F64]/20 transition text-xs uppercase flex items-center justify-center gap-1.5"
+                          >
+                            <ClipboardList className="w-4 h-4" /> Reports & Ledger (All Data / Settle)
+                          </button>
                         </div>
                       );
-                    })
-                  )}
-                </div>
-              </div>
+                    });
+                  })()}
+                </div>              </div>
             </div>
           )}
 
@@ -10058,1553 +10201,65 @@ export default function AdminPanel({
                     submitBtn.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>';
 
                     try {
-                      // Compress image if needed to stay well under Firestore's 1MB document limit
-                      const finalImageUrl = await compressImageToLowRes(imageUrl, 1200, 600, 0.75);
-
-                      await addDoc(collection(db, "promotional_banners"), {
-                        imageUrl: finalImageUrl,
-                        restaurantName: restaurantName || null,
-                        detail: detail || null,
-                        isActive,
-                        createdAt: Date.now()
-                      });
-                      form.reset();
-                      alert("Banner added successfully!");
-                    } catch (err: any) {
-                      alert(handleFirestoreError(err));
-                    } finally {
-                      submitBtn.disabled = false;
-                      submitBtn.innerText = originalText;
-                    }
-                  }}
-                  className="space-y-4"
-                >
-                  <div>
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">
-                      Banner Image (Upload File OR Paste URL)
-                    </label>
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <input
-                        id="bannerImageUrlInput"
-                        name="imageUrl"
-                        type="text"
-                        required
-                        placeholder="https://... or select photo below"
-                        className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs outline-none text-slate-900 focus:border-pink-500/60 transition"
-                      />
-                      <label className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs py-3 px-4 rounded-2xl border border-slate-300 flex items-center justify-center gap-2 cursor-pointer shrink-0 transition">
-                        <Upload className="w-4 h-4 text-pink-500" />
-                        <span>Choose Photo</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
-                            if (file.size > 10 * 1024 * 1024) {
-                              alert("File size too large. Please select an image under 10MB.");
-                              return;
-                            }
-                            const inputEl = document.getElementById("bannerImageUrlInput") as HTMLInputElement;
-                            if (inputEl) {
-                              inputEl.placeholder = "Compressing photo...";
-                            }
-                            try {
-                              const compressed = await compressImageFile(file, 1200, 600, 0.75);
-                              if (inputEl) {
-                                inputEl.value = compressed;
-                                inputEl.placeholder = "https://... or select photo below";
-                              }
-                            } catch (err) {
-                              console.error("Error compressing image", err);
-                              alert("Failed to process image file.");
-                            }
-                          }}
-                        />
-                      </label>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">
-                      Display Text / Detail (Optional)
-                    </label>
-                    <input
-                      name="detail"
-                      type="text"
-                      placeholder="e.g. 50% OFF THIS WEEKEND"
-                      className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs outline-none text-slate-900 focus:border-pink-500/60 transition"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">
-                      Redirect Link / Target Restaurant (Optional)
-                    </label>
-                    <select
-                      name="restaurantName"
-                      className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs outline-none text-slate-900 focus:border-pink-500/60 transition"
-                    >
-                      <option value="">No link (View Only)</option>
-                      {uniqueRestaurants.map(r => (
-                        <option key={r} value={r}>{r}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex items-center gap-3 py-2">
-                    <input 
-                      type="checkbox" 
-                      name="isActive" 
-                      id="isActiveNewBanner" 
-                      defaultChecked
-                      className="w-4 h-4 text-pink-500 border-slate-300 rounded focus:ring-pink-500"
-                    />
-                    <label htmlFor="isActiveNewBanner" className="text-xs font-bold text-slate-700">
-                      Set as Active immediately
-                    </label>
-                  </div>
-                  <button type="submit" className="bg-pink-500 hover:bg-pink-600 disabled:opacity-70 text-white font-black text-[10px] uppercase tracking-widest py-3 px-6 rounded-xl transition cursor-pointer min-w-[120px]">
-                    Save Banner
-                  </button>
-                </form>
-              </div>
-
-              <div className="bg-white border border-slate-200 rounded-[24px] p-5 lg:p-7 shadow-sm relative overflow-hidden">
-                <h3 className="text-sm font-black text-slate-900 mb-4">Active Banners ({bannersList.length})</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {bannersList.map(banner => (
-                    <div key={banner.id} className={`border ${banner.isActive ? 'border-pink-200/50 bg-pink-50/30' : 'border-slate-200 bg-slate-50 opacity-75'} rounded-2xl p-3 relative group transition-all`}>
-                      <button
-                        onClick={() => {
-                          setConfirmDialog({
-                            title: "Delete Banner",
-                            message: "Are you sure you want to permanently delete this banner?",
-                            onConfirm: async () => {
-                              try {
-                                await deleteDoc(doc(db, "promotional_banners", banner.id));
-                              } catch (err: any) {
-                                alert(handleFirestoreError(err));
-                              }
-                            }
-                          });
-                        }}
-                        className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 shadow-md text-white w-7 h-7 rounded-full flex items-center justify-center transition z-10 cursor-pointer"
-                        title="Delete Banner"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                      <div className="w-full aspect-[21/9] rounded-xl mb-3 overflow-hidden bg-slate-100 relative">
-                        <img 
-                          src={banner.imageUrl} 
-                          className={`w-full h-full object-cover transition-transform ${!banner.isActive && 'grayscale'}`} 
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = "https://placehold.co/800x400/f8fafc/94a3b8?text=Image+Load+Error";
-                          }}
-                        />
-                      </div>
-                      <div className="text-[10px] font-black text-slate-600 truncate mb-1">
-                        {banner.restaurantName ? `ğŸ”— ${banner.restaurantName}` : 'No Link'}
-                      </div>
-                      {banner.detail && (
-                        <div className="text-[10px] font-bold text-pink-500 truncate mb-2">
-                          {banner.detail}
-                        </div>
-                      )}
-                      <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                        <span className="text-[9px] font-bold text-slate-400">
-                          {new Date(banner.createdAt).toLocaleDateString()}
-                        </span>
-                        <button
-                          onClick={async () => {
-                            try {
-                              await updateDoc(doc(db, "promotional_banners", banner.id), {
-                                isActive: !banner.isActive
-                              });
-                            } catch (err: any) {
-                              alert(handleFirestoreError(err));
-                            }
-                          }}
-                          className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider cursor-pointer transition-colors ${banner.isActive ? "bg-green-100 hover:bg-green-200 text-green-700" : "bg-slate-200 hover:bg-slate-300 text-slate-600"}`}
-                        >
-                          {banner.isActive ? "ğŸŸ¢ Active" : "âš« Hidden"}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeSubTab === "vouchers" && (
-            <AdminVoucherManager
-              vouchers={vouchersList}
-              allUsersList={allUsersList}
-              restaurantNames={uniqueRestaurants}
-            />
-          )}
-
-
-        </div>
-      </div>
-
-      {showClearSalesModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-fade-in text-left">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl text-slate-900 p-6 space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-              <div className="flex items-center gap-2.5 text-rose-600">
-                <Trash2 className="w-5 h-5 shrink-0" />
-                <div>
-                  <h4 className="font-black text-sm uppercase tracking-wider text-slate-900">
-                    Clear Sales & Order History ğŸ§¹
-                  </h4>
-                  <p className="text-[11px] text-slate-500 font-bold">
-                    Filter and permanently delete order records from database
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowClearSalesModal(false)}
-                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Scope Filter 1: Status */}
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-black uppercase text-slate-700 tracking-wider">
-                1. Order Status Scope:
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setClearSalesStatus("delivered")}
-                  className={`py-2 px-3 rounded-xl text-xs font-extrabold border transition cursor-pointer ${
-                    clearSalesStatus === "delivered"
-                      ? "bg-[#D70F64] text-white border-[#D70F64]"
-                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  âœ… Delivered Only
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setClearSalesStatus("cancelled")}
-                  className={`py-2 px-3 rounded-xl text-xs font-extrabold border transition cursor-pointer ${
-                    clearSalesStatus === "cancelled"
-                      ? "bg-[#D70F64] text-white border-[#D70F64]"
-                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  âŒ Cancelled Only
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setClearSalesStatus("all")}
-                  className={`py-2 px-3 rounded-xl text-xs font-extrabold border transition cursor-pointer ${
-                    clearSalesStatus === "all"
-                      ? "bg-[#D70F64] text-white border-[#D70F64]"
-                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  ğŸŒ All Statuses
-                </button>
-              </div>
-            </div>
-
-            {/* Scope Filter 2: Date Range */}
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-black uppercase text-slate-700 tracking-wider">
-                2. Select Time Period:
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setClearSalesRange("all")}
-                  className={`py-2 px-2 rounded-xl text-[11px] font-extrabold border transition cursor-pointer ${
-                    clearSalesRange === "all"
-                      ? "bg-slate-900 text-white border-slate-900"
-                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  All Time
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setClearSalesRange("1day")}
-                  className={`py-2 px-2 rounded-xl text-[11px] font-extrabold border transition cursor-pointer ${
-                    clearSalesRange === "1day"
-                      ? "bg-slate-900 text-white border-slate-900"
-                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  1 Day
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setClearSalesRange("7days")}
-                  className={`py-2 px-2 rounded-xl text-[11px] font-extrabold border transition cursor-pointer ${
-                    clearSalesRange === "7days"
-                      ? "bg-slate-900 text-white border-slate-900"
-                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  7 Days
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setClearSalesRange("30days")}
-                  className={`py-2 px-2 rounded-xl text-[11px] font-extrabold border transition cursor-pointer ${
-                    clearSalesRange === "30days"
-                      ? "bg-slate-900 text-white border-slate-900"
-                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  1 Month
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setClearSalesRange("custom")}
-                  className={`py-2 px-2 rounded-xl text-[11px] font-extrabold border transition cursor-pointer ${
-                    clearSalesRange === "custom"
-                      ? "bg-slate-900 text-white border-slate-900"
-                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  Manual
-                </button>
-              </div>
-
-              {clearSalesRange === "custom" && (
-                <div className="grid grid-cols-2 gap-2 pt-2">
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">From Date:</label>
-                    <input
-                      type="date"
-                      value={clearSalesCustomStart}
-                      onChange={(e) => setClearSalesCustomStart(e.target.value)}
-                      className="w-full px-3 py-1.5 text-xs font-bold border border-slate-300 rounded-xl focus:ring-1 focus:ring-[#D70F64]"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">To Date:</label>
-                    <input
-                      type="date"
-                      value={clearSalesCustomEnd}
-                      onChange={(e) => setClearSalesCustomEnd(e.target.value)}
-                      className="w-full px-3 py-1.5 text-xs font-bold border border-slate-300 rounded-xl focus:ring-1 focus:ring-[#D70F64]"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Live Count Preview */}
-            {(() => {
-              const matchingOrders = orders.filter((order) => {
-                const isDelivered = order.status === "delivered" || order.status === "completed";
-                const isCancelled = order.status === "cancelled";
-
-                if (clearSalesStatus === "delivered" && !isDelivered) return false;
-                if (clearSalesStatus === "cancelled" && !isCancelled) return false;
-
-                return checkOrderInDateRange(order, clearSalesRange, clearSalesCustomStart, clearSalesCustomEnd);
-              });
-              const matchingRevenue = matchingOrders.reduce((acc, o) => acc + (o.grandTotal || 0), 0);
-
-              return (
-                <div className="bg-rose-50 border border-rose-200 p-4 rounded-2xl space-y-1">
-                  <div className="flex items-center justify-between text-xs font-black text-rose-900">
-                    <span>Target Orders to Delete:</span>
-                    <span className="bg-rose-600 text-white px-2.5 py-0.5 rounded-lg">
-                      {matchingOrders.length} orders
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] font-bold text-rose-700">
-                    <span>Associated Revenue Value:</span>
-                    <span>Rs. {Math.round(matchingRevenue).toLocaleString()}</span>
-                  </div>
-                </div>
-              );
-            })()}
-
-            <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setShowClearSalesModal(false)}
-                className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-black text-xs hover:bg-slate-100 cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={isDeletingSales}
-                onClick={handleExecuteClearSalesHistory}
-                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs uppercase tracking-wider shadow-md shadow-rose-500/20 cursor-pointer disabled:opacity-50"
-              >
-                {isDeletingSales ? "Deleting Orders..." : "Permanently Delete Selected Orders ğŸ§¹"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {confirmDialog && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-fade-in text-left">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full overflow-hidden shadow-sm text-slate-900 p-6 space-y-4">
-            <div className="flex items-center gap-2.5 text-red-500">
-              <AlertTriangle className="w-5 h-5 shrink-0 animate-pulse" />
-              <h4 className="font-black text-xs uppercase tracking-widest">
-                {confirmDialog.title}
-              </h4>
-            </div>
-            <p className="text-[11px] text-slate-600 font-semibold leading-relaxed">
-              {confirmDialog.message}
-            </p>
-            <div className="flex items-center justify-end gap-2.5 pt-1">
-              <button
-                type="button"
-                onClick={() => setConfirmDialog(null)}
-                className="px-3.5 py-2 bg-slate-100 border border-slate-200 rounded-xl text-[10px] uppercase font-black text-slate-600 hover:text-slate-700 hover:bg-slate-200 transition cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  const callback = confirmDialog.onConfirm;
-                  setConfirmDialog(null);
-                  await callback();
-                }}
-                className="px-4 py-2 bg-gradient-to-r from-pink-600 to-pink-700 text-slate-900 rounded-xl text-[10px] font-black hover:brightness-110 shadow-md cursor-pointer transition uppercase tracking-wide"
-              >
-                Delete Permanently
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ADDRESS ENTRY MODAL FOR UNLOCKING USER */}
-      {unlockingUser && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-fade-in text-left">
-          <div className="bg-white border border-slate-200 rounded-[32px] max-w-md w-full overflow-hidden shadow-2xl p-6 relative">
-            <button
-              onClick={() => {
-                setUnlockingUser(null);
-                setUnlockArea("");
-                setUnlockStreet("");
-                setUnlockLandmark("");
-                setUnlockNotes("");
-                setUnlockCoords(null);
-              }}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-105 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition cursor-pointer font-black text-xs"
-            >
-              âœ•
-            </button>
-            
-            <div className="space-y-4">
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-[#D70F64] block">
-                  {unlockingUser.status === "locked" ? "Verify & Configure Address" : "Update Delivery Address"}
-                </span>
-                <h3 className="text-lg font-black text-slate-900 mt-1">
-                  {unlockingUser.status === "locked" ? "Unlock User:" : "Edit Address for:"} {unlockingUser.phone}
-                </h3>
-                <p className="text-[11.5px] text-slate-500 mt-1 font-semibold leading-relaxed">
-                  {unlockingUser.status === "locked"
-                    ? "Call user to verify their details, then enter their delivery/mohalla address below. After saving, the user will be unlocked!"
-                    : "Update the user's structured address and coordinates below. This address will be used for all future deliveries."}
-                </p>
-              </div>
-
-              <form onSubmit={handleUnlockSubmit} className="space-y-4">
-                <div className="space-y-3.5">
-                  <div>
-                    <label className="text-[9.5px] font-black uppercase tracking-wider text-slate-600 block mb-1">
-                      Area / Mohalla <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={unlockArea}
-                      onChange={(e) => setUnlockArea(e.target.value)}
-                      placeholder="e.g. Model Town, Gulberg, Dadu"
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none text-slate-900 focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[9.5px] font-black uppercase tracking-wider text-slate-600 block mb-1">
-                      Street / Gali <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={unlockStreet}
-                      onChange={(e) => setUnlockStreet(e.target.value)}
-                      placeholder="e.g. Gali No. 4, Street 12, Main Road"
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none text-slate-900 focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[9.5px] font-black uppercase tracking-wider text-slate-600 block mb-1">
-                      Landmark / Mashoor Jagah
-                    </label>
-                    <input
-                      type="text"
-                      value={unlockLandmark}
-                      onChange={(e) => setUnlockLandmark(e.target.value)}
-                      placeholder="e.g. Near Bilal Masjid, Opp. Govt School"
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none text-slate-905 focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[9.5px] font-black uppercase tracking-wider text-slate-600 block mb-1">
-                      Delivery Notes / Special Instructions
-                    </label>
-                    <textarea
-                      value={unlockNotes}
-                      onChange={(e) => setUnlockNotes(e.target.value)}
-                      placeholder="e.g. deliver to back gate, call on arrival, orange gate house"
-                      rows={2}
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none text-slate-900 focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition resize-none"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-[9.5px] font-black uppercase tracking-wider text-slate-600 block">
-                        Precise GPS coordinates / Location
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setShowUserManualCoords(!showUserManualCoords)}
-                        className="text-[9.5px] font-bold text-[#D70F64] hover:underline cursor-pointer"
-                      >
-                        {showUserManualCoords ? "Hide Manual Inputs" : "âœï¸ Manual Fill (Lat / Lng)"}
-                      </button>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={handleDetectUnlockGPS}
-                        disabled={isDetectingUnlockGPS}
-                        className="bg-slate-100 border border-slate-200 text-slate-700 py-2.5 px-3.5 rounded-xl font-bold text-[10.5px] uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 hover:bg-slate-200"
-                      >
-                        {isDetectingUnlockGPS ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          "ğŸ“ Auto Fill GPS"
-                        )}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setIsUserMapPickerOpen(true)}
-                        className="bg-[#D70F64] text-white py-2.5 px-3.5 rounded-xl font-bold text-[10.5px] uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer shadow-xs hover:bg-[#b00c50]"
-                      >
-                        <MapPin className="w-3.5 h-3.5" />
-                        <span>{unlockCoords?.lat && unlockCoords?.lng ? "Change on Map" : "ğŸ—ºï¸ Select on Map"}</span>
-                      </button>
-
-                      {unlockCoords && !showUserManualCoords && (
-                        <div className="flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-100">
-                          <span className="text-[10px] font-mono text-emerald-700 font-bold">
-                            {unlockCoords.lat?.toFixed(5)}, {unlockCoords.lng?.toFixed(5)}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setUnlockCoords(null)}
-                            className="text-rose-500 hover:text-rose-700 text-xs font-bold px-1 cursor-pointer"
-                            title="Clear coordinates"
-                          >
-                            âœ•
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {showUserManualCoords && (
-                      <div className="grid grid-cols-2 gap-2.5 mt-2.5 p-3 bg-slate-100/90 border border-slate-200/90 rounded-2xl animate-fadeIn">
-                        <div>
-                          <label className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider block mb-1">
-                            Latitude (e.g. 26.7323)
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="26.7323"
-                            value={unlockCoords?.lat !== undefined ? String(unlockCoords.lat) : ""}
-                            onChange={(e) => {
-                              const val = e.target.value !== "" ? parseFloat(e.target.value) : undefined;
-                              setUnlockCoords({
-                                lat: isNaN(val as number) ? undefined : val,
-                                lng: unlockCoords?.lng,
-                              });
-                            }}
-                            className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 outline-none focus:border-[#D70F64] transition"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider block mb-1">
-                            Longitude (e.g. 67.7744)
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="67.7744"
-                            value={unlockCoords?.lng !== undefined ? String(unlockCoords.lng) : ""}
-                            onChange={(e) => {
-                              const val = e.target.value !== "" ? parseFloat(e.target.value) : undefined;
-                              setUnlockCoords({
-                                lat: unlockCoords?.lat,
-                                lng: isNaN(val as number) ? undefined : val,
-                              });
-                            }}
-                            className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 outline-none focus:border-[#D70F64] transition"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 mt-4">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUnlockingUser(null);
-                      setUnlockArea("");
-                      setUnlockStreet("");
-                      setUnlockLandmark("");
-                      setUnlockNotes("");
-                      setUnlockCoords(null);
-                    }}
-                    className="px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-[10.5px] uppercase font-black text-slate-600 hover:text-slate-700 hover:bg-slate-200 transition cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-5 py-2.5 bg-[#D70F64] text-white rounded-xl text-[10.5px] font-black hover:bg-[#b00c50] shadow-md cursor-pointer transition uppercase tracking-wider flex items-center gap-1.5"
-                  >
-                    {unlockingUser.status === "locked" ? "Save & Unlock âœ…" : "Save Address ğŸ’¾"}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* COIN MANAGEMENT MODAL */}
-      {coinManagingUser && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-fade-in text-left">
-          <div className="bg-white border border-slate-200 rounded-[32px] max-w-md w-full overflow-hidden shadow-2xl p-6 relative">
-            <button
-              onClick={() => {
-                setCoinManagingUser(null);
-                setCoinAmountInput(50);
-                setCoinNoteInput("");
-              }}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition cursor-pointer font-black text-xs"
-            >
-              âœ•
-            </button>
-            
-            <div className="space-y-4">
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 block">
-                  Coin Benefit Wallet Management
-                </span>
-                <h3 className="text-lg font-black text-slate-900 mt-1 flex items-center gap-2">
-                  <Coins className="w-5 h-5 text-amber-500" />
-                  Coins for {coinManagingUser.name || coinManagingUser.phone || "User"}
-                </h3>
-                <p className="text-[11.5px] text-slate-500 mt-1 font-semibold leading-relaxed">
-                  Aap user ko manually Coin Benefit send (add) bhi kar sakte hain aur deduct (remove) bhi kar sakte hain!
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                {/* User Current Balance */}
-                <div className="bg-amber-50 border border-amber-200 p-3.5 rounded-2xl text-xs space-y-1.5">
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-500 font-bold uppercase text-[9.5px]">Current Coin Balance:</span>
-                    <span className="text-amber-700 font-mono font-black text-sm bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-300">
-                      {getUserCoins(coinManagingUser, deliverySettings)} Coins (Rs. {getUserCoins(coinManagingUser, deliverySettings)})
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400 font-bold uppercase text-[9px]">Phone Number:</span>
-                    <span className="text-slate-800 font-mono font-bold">{coinManagingUser.phone || "Guest"}</span>
-                  </div>
-                </div>
-
-                {/* Coin Amount Input */}
-                <div>
-                  <label className="text-[9.5px] font-black uppercase tracking-wider text-slate-600 block mb-1">
-                    Number of Coins (Amount) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={coinAmountInput}
-                    onChange={(e) => setCoinAmountInput(Math.max(1, Number(e.target.value)))}
-                    placeholder="Enter coin amount e.g. 50"
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
-                  />
-                </div>
-
-                {/* Custom Note / Message */}
-                <div>
-                  <label className="text-[9.5px] font-black uppercase tracking-wider text-slate-600 block mb-1">
-                    Optional Note / Notification Message
-                  </label>
-                  <input
-                    type="text"
-                    value={coinNoteInput}
-                    onChange={(e) => setCoinNoteInput(e.target.value)}
-                    placeholder="e.g. Special loyalty bonus or manual correction"
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
-                  />
-                </div>
-
-                {/* Actions */}
-                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100 mt-4">
-                  {/* Remove / Deduct Button */}
-                  <button
-                    type="button"
-                    disabled={isCoinProcessing}
-                    onClick={async () => {
-                      if (!coinAmountInput || coinAmountInput <= 0) {
-                        alert("Please enter a valid coin amount!");
-                        return;
-                      }
-                      setIsCoinProcessing(true);
-                      try {
-                        const currentBalance = getUserCoins(coinManagingUser, deliverySettings);
-                        const newBalance = Math.max(0, currentBalance - coinAmountInput);
-                        
-                        await updateDoc(doc(db, "users", coinManagingUser.uid), {
-                          loyaltyCoins: newBalance
-                        });
-
-                        const msg = coinNoteInput.trim() || `âš ï¸ Admin ne aapke wallet se ${coinAmountInput} Coins deduct/remove kiye hain. Naya balance: ${newBalance} coins.`;
-                        await addDoc(collection(db, "notifications"), {
-                          userId: coinManagingUser.uid,
-                          title: "ğŸª™ Coins Deducted",
-                          message: msg,
-                          createdAt: new Date(),
-                          read: false
-                        });
-
-                        alert(`âš ï¸ ${coinAmountInput} coins deducted from ${coinManagingUser.name || coinManagingUser.phone}! New Balance: ${newBalance}`);
-                        setCoinManagingUser(null);
-                      } catch (err: any) {
-                        alert("Failed to deduct coins: " + err.message);
-                      } finally {
-                        setIsCoinProcessing(false);
-                      }
-                    }}
-                    className="px-4 py-3 bg-red-500 text-white rounded-xl text-[10.5px] font-black hover:bg-red-600 shadow-md cursor-pointer transition uppercase tracking-wider flex items-center justify-center gap-1 disabled:opacity-50"
-                  >
-                    â– Remove Coins
-                  </button>
-
-                  {/* Add / Send Button */}
-                  <button
-                    type="button"
-                    disabled={isCoinProcessing}
-                    onClick={async () => {
-                      if (!coinAmountInput || coinAmountInput <= 0) {
-                        alert("Please enter a valid coin amount!");
-                        return;
-                      }
-                      setIsCoinProcessing(true);
-                      try {
-                        await updateDoc(doc(db, "users", coinManagingUser.uid), {
-                          loyaltyCoins: increment(coinAmountInput)
-                        });
-
-                        const msg = coinNoteInput.trim() || `ğŸ‰ Mubarak ho! Admin ne aapko ${coinAmountInput} Coins credit kar diye hain! Enjoy your rewards! ğŸ`;
-                        await addDoc(collection(db, "notifications"), {
-                          userId: coinManagingUser.uid,
-                          title: "ğŸª™ Coins Received!",
-                          message: msg,
-                          createdAt: new Date(),
-                          read: false
-                        });
-
-                        alert(`âœ… ${coinAmountInput} coins successfully sent to ${coinManagingUser.name || coinManagingUser.phone}!`);
-                        setCoinManagingUser(null);
-                      } catch (err: any) {
-                        alert("Failed to send coins: " + err.message);
-                      } finally {
-                        setIsCoinProcessing(false);
-                      }
-                    }}
-                    className="px-4 py-3 bg-amber-500 text-zinc-950 rounded-xl text-[10.5px] font-black hover:bg-amber-400 shadow-md cursor-pointer transition uppercase tracking-wider flex items-center justify-center gap-1 disabled:opacity-50"
-                  >
-                    â• Send / Add Coins
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* RIDER STATS LEDGER MODAL */}
-      {selectedRiderStatsId && (() => {
-        const selectedRiderObj = ridersSubset.find((r) => r.uid === selectedRiderStatsId);
-        if (!selectedRiderObj) return null;
-
-        // 1. Gather all delivered orders for this rider
-        const riderDeliveredOrders = orders.filter((o) => {
-          if (o.riderId !== selectedRiderStatsId) return false;
-          if (o.status !== "delivered" && o.status !== "completed") return false;
-
-          // If NOT showing settled/cleared history, filter out settled orders
-          if (!showSettledHistory) {
-            if (o.riderSettled) return false;
-            if (selectedRiderObj.lastSettledAt) {
-              const orderDeliveredTime = parseDateToMillis(o.deliveryCompletedAt || o.createdAt);
-              const settledTime = parseDateToMillis(selectedRiderObj.lastSettledAt);
-
-              if (orderDeliveredTime <= settledTime) {
-                return false;
-              }
-            }
-          }
-          return true;
-        });
-
-        // 2. Filter by timeframe
-        const now = Date.now();
-        const timeframeFiltered = riderDeliveredOrders.filter((o) => {
-          const orderTime = parseDateToMillis(o.deliveryCompletedAt || o.createdAt);
-
-          if (statsTimeframe === "1day") {
-            const todayStart = new Date().setHours(0, 0, 0, 0);
-            return orderTime >= todayStart;
-          } else if (statsTimeframe === "7days") {
-            const limit = now - 7 * 24 * 60 * 60 * 1000;
-            return orderTime >= limit;
-          } else if (statsTimeframe === "30days") {
-            const limit = now - 30 * 24 * 60 * 60 * 1000;
-            return orderTime >= limit;
-          } else if (statsTimeframe === "60days") {
-            const limit = now - 60 * 24 * 60 * 60 * 1000;
-            return orderTime >= limit;
-          }
-          return true; // all
-        });
-
-        // 3. Group by day for daily list
-        const dailyGroups: Record<string, {
-          dateStr: string;
-          count: number;
-          sales: number;
-          commission: number;
-          orders: Order[];
-        }> = {};
-
-        timeframeFiltered.forEach((o) => {
-          const orderTime = parseDateToMillis(o.deliveryCompletedAt || o.createdAt);
-
-          const dateObj = new Date(orderTime);
-          const formattedDate = dateObj.toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "short",
-            day: "numeric"
-          });
-
-          const amt = o.grandTotal || o.totalPrice || 0;
-          const comm = o.deliveryFee || 0;
-
-          if (!dailyGroups[formattedDate]) {
-            dailyGroups[formattedDate] = {
-              dateStr: formattedDate,
-              count: 0,
-              sales: 0,
-              commission: 0,
-              orders: []
-            };
-          }
-
-          dailyGroups[formattedDate].count += 1;
-          dailyGroups[formattedDate].sales += amt;
-          dailyGroups[formattedDate].commission += comm;
-          dailyGroups[formattedDate].orders.push(o);
-        });
-
-        const dailyGroupsArray = Object.values(dailyGroups).sort((a, b) => {
-          return Date.parse(b.dateStr) - Date.parse(a.dateStr);
-        });
-
-        // Totals inside timeframe
-        const totalTimeframeOrders = timeframeFiltered.length;
-        const totalTimeframeSales = timeframeFiltered.reduce((sum, o) => sum + (o.grandTotal || o.totalPrice || 0), 0);
-        const totalTimeframeCommission = timeframeFiltered.reduce((sum, o) => {
-          return sum + (o.deliveryFee || 0);
-        }, 0);
-
-        return (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fade-in text-left">
-            <div className="bg-white border border-slate-200 rounded-[32px] max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl p-6 relative font-sans text-slate-900">
-              <button
-                type="button"
-                onClick={() => setSelectedRiderStatsId(null)}
-                className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-full transition cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-                <div className="bg-[#D70F64]/10 p-2.5 rounded-2xl">
-                  <ClipboardList className="w-6 h-6 text-[#D70F64]" />
-                </div>
-                <div>
-                  <h3 className="text-base font-black text-slate-900 uppercase tracking-wide">
-                    Delivery Report Ledger
-                  </h3>
-                  <p className="text-[11px] text-slate-500 font-bold">
-                    Rider: <span className="text-[#D70F64] font-black">{selectedRiderObj.name}</span> ({selectedRiderObj.phone})
-                  </p>
-                </div>
-              </div>
-
-              {/* Body */}
-              <div className="flex-1 overflow-y-auto py-4 space-y-5 scrollbar-none">
-                
-                {/* Filters */}
-                <div className="bg-slate-50 border border-slate-200/60 p-4 rounded-2xl space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2.5">
-                    <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
-                      ğŸ“… Select Duration (Mudat)
-                    </span>
-                    <div className="flex flex-wrap gap-1 bg-white border border-slate-200 p-1 rounded-xl">
-                      {[
-                        { id: "1day", label: "1 Din (Today)" },
-                        { id: "7days", label: "7 Din (Week)" },
-                        { id: "30days", label: "30 Din (Month)" },
-                        { id: "60days", label: "60 Din (2 Months)" },
-                        { id: "all", label: "All Data" },
-                      ].map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => setStatsTimeframe(item.id as any)}
-                          className={`px-2.5 py-1 text-[9.5px] font-black uppercase tracking-wide rounded-lg transition-all cursor-pointer ${
-                            statsTimeframe === item.id
-                              ? "bg-[#D70F64] text-white"
-                              : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
-                          }`}
-                        >
-                          {item.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Settle Options */}
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-200/65 flex-wrap gap-3">
-                    <label className="flex items-center gap-2 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={showSettledHistory}
-                        onChange={(e) => setShowSettledHistory(e.target.checked)}
-                        className="w-4 h-4 rounded border-slate-300 text-[#D70F64] focus:ring-[#D70F64]"
-                      />
-                      <span className="text-[10.5px] text-slate-600 font-extrabold uppercase tracking-wide">
-                        Settle kiya hua history bhi shamil karein
-                      </span>
-                    </label>
-
-                    {selectedRiderObj.lastSettledAt && (
-                      <span className="text-[9px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded-md font-bold uppercase">
-                        Aakhri Settle Time: {new Date(
-                          selectedRiderObj.lastSettledAt?.seconds
-                            ? selectedRiderObj.lastSettledAt.seconds * 1000
-                            : selectedRiderObj.lastSettledAt
-                        ).toLocaleDateString()}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Ledger Key Numbers */}
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl text-center">
-                    <span className="text-[8.5px] text-slate-500 uppercase tracking-widest font-black block leading-none">
-                      DELIVERED RUNS
-                    </span>
-                    <span className="text-lg font-black text-slate-900 block mt-1.5 leading-none">
-                      {totalTimeframeOrders}
-                    </span>
-                    <span className="text-[8px] text-slate-400 font-bold block mt-1">
-                      completed shipments
-                    </span>
-                  </div>
-                  
-                  <div className="bg-[#D70F64]/5 border border-[#D70F64]/10 p-3 rounded-2xl text-center">
-                    <span className="text-[8.5px] text-slate-500 uppercase tracking-widest font-black block leading-none">
-                      TOTAL ORDER AMOUNT
-                    </span>
-                    <span className="text-lg font-black text-[#D70F64] block mt-1.5 leading-none font-mono">
-                      Rs. {totalTimeframeSales}
-                    </span>
-                    <span className="text-[8px] text-slate-400 font-bold block mt-1">
-                      cumulative collection
-                    </span>
-                  </div>
-
-                  <div className="bg-emerald-500/5 border border-emerald-500/10 p-3 rounded-2xl text-center">
-                    <span className="text-[8.5px] text-slate-500 uppercase tracking-widest font-black block leading-none">
-                      EARNED RIDER FEE (KAMAEE)
-                    </span>
-                    <span className="text-lg font-black text-emerald-600 block mt-1.5 leading-none font-mono font-sans">
-                      Rs. {totalTimeframeCommission}
-                    </span>
-                    <span className="text-[8px] text-slate-400 font-bold block mt-1">
-                      due rider fee payout
-                    </span>
-                  </div>
-                </div>
-
-                {/* Daily Performance list */}
-                <div className="space-y-3 pt-2">
-                  <h4 className="text-[11px] font-black uppercase text-slate-500 tracking-wider flex items-center justify-between">
-                    <span>ğŸ“… Daily Performance Breakdown (Rozana Reports)</span>
-                    <span className="text-[10px] text-slate-400 lowercase font-medium">({dailyGroupsArray.length} active days)</span>
-                  </h4>
-
-                  {dailyGroupsArray.length === 0 ? (
-                    <div className="text-center p-8 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-slate-400 text-xs font-semibold">
-                      Is duration me koi completed deliveries nahi hain.
-                    </div>
-                  ) : (
-                    <div className="space-y-3.5 max-h-[300px] overflow-y-auto pr-1 scrollbar-none">
-                      {dailyGroupsArray.map((group) => (
-                        <div key={group.dateStr} className="bg-white border border-slate-200/80 rounded-2xl p-4 space-y-2.5 hover:border-slate-300 transition-colors">
-                          <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
-                            <span className="text-xs font-black text-slate-800">
-                              {group.dateStr}
-                            </span>
-                            <span className="text-[10px] bg-[#D70F64]/10 text-[#D70F64] font-black px-2.5 py-0.5 rounded-full uppercase">
-                              {group.count} Delivered {group.count === 1 ? "Order" : "Orders"}
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2 text-xs font-semibold">
-                            <div className="flex items-center justify-between bg-slate-50 p-2 rounded-xl">
-                              <span className="text-slate-500 text-[10px]">Total Order Value:</span>
-                              <span className="font-mono text-slate-900 font-black">Rs. {group.sales}</span>
-                            </div>
-                            <div className="flex items-center justify-between bg-emerald-500/5 p-2 rounded-xl">
-                              <span className="text-slate-500 text-[10px]">Rider Fee Earned:</span>
-                              <span className="font-mono text-emerald-600 font-black font-sans">Rs. {group.commission}</span>
-                            </div>
-                          </div>
-
-                          {/* Order-by-order detail drawer inside daily item */}
-                          <div className="space-y-2 pt-1.5">
-                            <span className="text-[8.5px] font-black uppercase text-slate-400 tracking-widest block">Deliveries List:</span>
-                            <div className="space-y-2 max-h-[280px] overflow-y-auto text-[10px] leading-none scrollbar-none">
-                              {group.orders.map((order) => {
-                                const fee = order.deliveryFee !== undefined ? order.deliveryFee : 0;
-                                const riderTotal = fee;
-                                return (
-                                  <div key={order.id} className="p-3 bg-slate-50/70 hover:bg-slate-50 border border-slate-200/80 rounded-2xl space-y-2.5 transition text-left font-sans">
-                                    <div className="flex justify-between items-start gap-2.5">
-                                      <div className="flex items-center gap-1.5 truncate">
-                                        <span className="font-black text-[#D70F64] text-[10px]">dadu-{order.id.substring(0,6)}</span>
-                                        <span className="text-slate-350">|</span>
-                                        <span className="text-slate-700 font-sans truncate font-bold text-[10.5px]">{order.userName}</span>
-                                      </div>
-                                      <div className="flex items-center gap-2.5 shrink-0 text-[10px] font-sans">
-                                        <span className="text-slate-400 font-medium">Order: Rs. {order.grandTotal || order.totalPrice}</span>
-                                        <span className="bg-[#D70F64]/10 text-[#D70F64] font-black px-2 py-0.5 rounded-md">
-                                          Total: Rs. {riderTotal}
-                                        </span>
-                                      </div>
-                                    </div>
-
-                                    {/* Breakdown details */}
-                                    <div className="flex justify-between items-center text-[10px] border-t border-slate-150 pt-2 font-sans font-semibold">
-                                      <span className="text-slate-500">Rider Delivery Fee (Pure Payout):</span>
-                                      <span className="font-mono text-[#D70F64] font-extrabold text-[11px]">Rs. {riderTotal}</span>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-              </div>
-
-              {/* Action Buttons / Footer */}
-              <div className="border-t border-slate-150 pt-4 flex items-center justify-between gap-3 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => setSelectedRiderStatsId(null)}
-                  className="px-5 py-3 bg-slate-100 border border-slate-200 rounded-xl text-xs uppercase font-black text-slate-500 hover:text-slate-700 hover:bg-slate-200 transition cursor-pointer"
-                >
-                  Close (Band Karein)
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleSettleRider(selectedRiderStatsId, selectedRiderObj.name);
-                  }}
-                  className="px-5 py-3 bg-[#D70F64] text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-[#b00c50] transition shadow-lg shadow-pink-500/10 cursor-pointer flex items-center gap-1.5"
-                >
-                  ğŸ§¹ Clear & Settle Stats (Stats Reset Karein)
-                </button>
-              </div>
-
-            </div>
-          </div>
-        );
-      })()}
-
-      {selectedRestLedgerName && (() => {
-        const restName = selectedRestLedgerName;
-        // 1. Gather all delivered orders that contain at least one item of this restaurant
-        const restDeliveredOrders = orders.filter((o) => {
-          if (o.status !== "delivered" && o.status !== "completed") return false;
-
-          // Check if it contains at least one item from this restaurant
-          const hasItem = (o.items || []).some((item) => {
-            const itemRestName = item.restaurantName || (item.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
-            return itemRestName === restName;
-          });
-          if (!hasItem) return false;
-
-          // If NOT showing settled/cleared history, filter out settled orders based on restaurant's lastSettledAt
-          if (!showRestSettledHistory) {
-            const restConfig = deliverySettings?.restaurantStatuses?.[restName];
-            if (restConfig?.lastSettledAt) {
-              const orderDeliveredTime = parseDateToMillis(o.deliveryCompletedAt || o.createdAt);
-              const settledTime = parseDateToMillis(restConfig.lastSettledAt);
-
-              if (orderDeliveredTime <= settledTime) {
-                return false;
-              }
-            }
-          }
-          return true;
-        });
-
-        // 2. Filter by statsTimeframe
-        const filteredOrders = restDeliveredOrders.filter((o) => {
-          if (restStatsTimeframe === "all") return true;
-
-          const orderTime = parseDateToMillis(o.deliveryCompletedAt || o.createdAt);
-
-          const diffMs = Date.now() - orderTime;
-          const diffDays = diffMs / (1000 * 60 * 60 * 24);
-
-          if (restStatsTimeframe === "1day") return diffDays <= 1;
-          if (restStatsTimeframe === "7days") return diffDays <= 7;
-          if (restStatsTimeframe === "30days") return diffDays <= 30;
-          if (restStatsTimeframe === "60days") return diffDays <= 60;
-          return true;
-        });
-
-        // 3. Compute stats metrics
-        let totalOrdersCount = filteredOrders.length;
-        let totalRestaurantSales = 0;
-        let totalRestaurantCommission = 0;
-
-        const restConfig = deliverySettings?.restaurantStatuses?.[restName];
-        const isCustomCommission = restConfig?.commissionEnabled === true;
-        const commType = restConfig?.commissionType || "percentage";
-        const commVal = Number(restConfig?.commissionValue || 0);
-
-        filteredOrders.forEach((o) => {
-          let orderSales = 0;
-          let orderItemCommission = 0;
-          (o.items || []).forEach((item) => {
-            const itemRestName = item.restaurantName || (item.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
-            if (itemRestName === restName) {
-              const itemTotal = item.price * item.quantity;
-              orderSales += itemTotal;
-              orderItemCommission += (item.commission || 0) * item.quantity;
-            }
-          });
-          totalRestaurantSales += orderSales;
-          if (isCustomCommission) {
-            if (orderSales > 0) {
-              if (commType === "percentage") {
-                totalRestaurantCommission += orderSales * (commVal / 100);
-              } else {
-                totalRestaurantCommission += commVal;
-              }
-            }
-          } else {
-            totalRestaurantCommission += orderItemCommission;
-          }
-        });
-
-        // 4. Group by Day
-        const groupedByDay: Record<string, { dateStr: string; orders: typeof filteredOrders; sales: number; commission: number }> = {};
-        filteredOrders.forEach((o) => {
-          const orderTime = parseDateToMillis(o.deliveryCompletedAt || o.createdAt);
-          const dateObj = new Date(orderTime);
-
-          const dayKey = dateObj.toLocaleDateString("en-US", {
-            weekday: "short",
-            month: "short",
-            day: "numeric",
-            year: "numeric"
-          });
-
-          if (!groupedByDay[dayKey]) {
-            groupedByDay[dayKey] = { dateStr: dayKey, orders: [], sales: 0, commission: 0 };
-          }
-          groupedByDay[dayKey].orders.push(o);
-
-          // Calculate matching items contribution for this specific order inside the day
-          let orderSales = 0;
-          let orderItemCommission = 0;
-          (o.items || []).forEach((item) => {
-            const itemRestName = item.restaurantName || (item.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
-            if (itemRestName === restName) {
-              orderSales += item.price * item.quantity;
-              orderItemCommission += (item.commission || 0) * item.quantity;
-            }
-          });
-
-          groupedByDay[dayKey].sales += orderSales;
-          if (isCustomCommission) {
-            if (orderSales > 0) {
-              if (commType === "percentage") {
-                groupedByDay[dayKey].commission += orderSales * (commVal / 100);
-              } else {
-                groupedByDay[dayKey].commission += commVal;
-              }
-            }
-          } else {
-            groupedByDay[dayKey].commission += orderItemCommission;
-          }
-        });
-
-        const dailyGroups = Object.values(groupedByDay);
-
-        return (
-          <div className="fixed inset-0 z-[110] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in font-sans">
-            <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full p-6 space-y-6 max-h-[90vh] overflow-y-auto border border-slate-100 flex flex-col justify-between">
-              
-              {/* Header */}
-              <div className="flex justify-between items-start border-b border-slate-150 pb-4">
-                <div>
-                  <h3 className="text-base font-black text-slate-900 tracking-wide uppercase flex items-center gap-2">
-                    <ClipboardList className="w-5 h-5 text-emerald-500 animate-pulse" />
-                    Restaurant Ledger Report: {restName}
-                  </h3>
-                  <p className="text-[11px] text-slate-500 font-medium mt-1">
-                    Manage sales, calculate commission settings, and clear/settle stats for this restaurant.
-                  </p>
-                </div>
-                <button
-                  onClick={() => setSelectedRestLedgerName(null)}
-                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition cursor-pointer"
-                >
-                  âœ•
-                </button>
-              </div>
-
-              {/* Timeframe Selector & Settle Switcher */}
-              <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="flex flex-wrap gap-1 bg-white p-1 rounded-xl border border-slate-150/80 shadow-sm shrink-0">
-                  {(["1day", "7days", "30days", "60days", "all"] as const).map((tf) => (
-                    <button
-                      key={tf}
-                      onClick={() => setRestStatsTimeframe(tf)}
-                      className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition cursor-pointer ${
-                        restStatsTimeframe === tf
-                          ? "bg-emerald-500 text-white shadow-sm"
-                          : "text-slate-500 hover:bg-slate-100"
-                      }`}
-                    >
-                      {tf === "1day" ? "Today" : tf === "7days" ? "1 Week" : tf === "30days" ? "1 Month" : tf === "60days" ? "2 Month" : "All Time"}
-                    </button>
-                  ))}
-                </div>
-
-                <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={showRestSettledHistory}
-                    onChange={(e) => setShowRestSettledHistory(e.target.checked)}
-                    className="w-4.5 h-4.5 rounded text-emerald-600 focus:ring-emerald-500/20 border-slate-300"
-                  />
-                  <div className="text-left leading-tight">
-                    <span className="text-[11px] font-black text-slate-800 block">Settle kiya hua data bhi shamil karein</span>
-                    <span className="text-[9.5px] text-slate-400 font-medium block">Include settled orders history</span>
-                  </div>
-                </label>
-              </div>
-
-              {/* Stats Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl space-y-1 text-left">
-                  <span className="text-[9px] font-black uppercase text-emerald-600 tracking-wider block">Delivered Orders Count</span>
-                  <div className="text-2xl font-black text-slate-900 font-mono">{totalOrdersCount}</div>
-                  <span className="text-[9.5px] text-slate-500 font-semibold block">Total completed runs</span>
-                </div>
-
-                <div className="p-4 bg-purple-500/5 border border-purple-500/10 rounded-2xl space-y-1 text-left">
-                  <span className="text-[9px] font-black uppercase text-purple-600 tracking-wider block">Total Restaurant Sales</span>
-                  <div className="text-2xl font-black text-slate-900 font-mono">Rs. {totalRestaurantSales}</div>
-                  <span className="text-[9.5px] text-slate-500 font-semibold block">Excludes other vendors' items</span>
-                </div>
-
-                <div className="p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl space-y-1 text-left">
-                  <span className="text-[9px] font-black uppercase text-indigo-600 tracking-wider block">Admin Commission</span>
-                  <div className="text-2xl font-black text-indigo-600 font-mono">Rs. {totalRestaurantCommission}</div>
-                  <span className="text-[9.5px] text-slate-500 font-semibold block">Based on per-item commission</span>
-                </div>
-
-                <div className="p-4 bg-[#D70F64]/5 border border-[#D70F64]/10 rounded-2xl space-y-1 text-left">
-                  <span className="text-[9px] font-black uppercase text-[#D70F64] tracking-wider block">Kul Kamaee (Total Earnings)</span>
-                  <div className="text-2xl font-black text-[#D70F64] font-mono">Rs. {totalRestaurantSales - totalRestaurantCommission}</div>
-                  <span className="text-[9.5px] text-slate-500 font-semibold block">Sales minus Commission net payout</span>
-                </div>
-              </div>
-
-              {/* Detailed Daily Breakdown */}
-              <div className="space-y-3 text-left">
-                <h4 className="font-extrabold text-[11px] uppercase tracking-wider text-slate-400 flex items-center gap-1.5 border-b border-slate-100 pb-2">
-                  <span>ğŸ“…</span> Daily Reports & Settle Breakdown
-                </h4>
-
-                {dailyGroups.length === 0 ? (
-                  <div className="p-10 text-center bg-slate-50 border border-slate-200/50 rounded-2xl text-xs font-semibold text-slate-500 italic">
-                    Is timeframe me koi completed order ya commission statistics nahi mili.
-                  </div>
-                ) : (
-                  <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1">
-                    {dailyGroups.map((group) => (
-                      <div key={group.dateStr} className="p-4 bg-white border border-slate-200/80 rounded-2xl space-y-3.5">
-                        
-                        {/* Day Header */}
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 border-b border-slate-100 pb-2.5">
-                          <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                            {group.dateStr}
-                          </span>
-                          <div className="flex items-center gap-4 text-[10.5px]">
-                            <div className="flex items-center gap-1">
-                              <span className="text-slate-400 font-medium">Sales:</span>
-                              <span className="font-mono text-slate-900 font-black">Rs. {group.sales}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <span className="text-slate-400 font-medium">Commission:</span>
-                              <span className="font-mono text-emerald-600 font-black">Rs. {group.commission}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Deliveries List */}
-                        <div className="space-y-2 pt-1">
-                          <span className="text-[8.5px] font-black uppercase text-slate-400 tracking-widest block">Orders List:</span>
-                          <div className="space-y-2 max-h-[220px] overflow-y-auto text-[10px] leading-none scrollbar-none">
-                            {group.orders.map((order) => {
-                              // Compute matching items and totals
-                              const matchingItems = (order.items || []).filter((item) => {
-                                const itemRestName = item.restaurantName || (item.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
-                                return itemRestName === restName;
-                              });
-
-                              const orderSales = matchingItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-                              let orderComm = 0;
-                              if (isCustomCommission) {
-                                if (orderSales > 0) {
-                                  if (commType === "percentage") {
-                                    orderComm = orderSales * (commVal / 100);
-                                  } else {
-                                    orderComm = commVal;
-                                  }
-                                }
-                              } else {
-                                orderComm = matchingItems.reduce((sum, item) => sum + ((item.commission || 0) * item.quantity), 0);
-                              }
-
-                              return (
-                                <div key={order.id} className="p-3 bg-slate-50/70 hover:bg-slate-50 border border-slate-200/80 rounded-2xl space-y-2.5 transition text-left font-sans">
-                                  <div className="flex justify-between items-start gap-2.5">
-                                    <div className="flex items-center gap-1.5 truncate">
-                                      <span className="font-black text-[#D70F64] text-[10px]">dadu-{order.id.substring(0,6)}</span>
-                                      <span className="text-slate-350">|</span>
-                                      <span className="text-slate-700 font-sans truncate font-bold text-[10.5px]">{order.userName}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2.5 shrink-0 text-[10px] font-sans">
-                                      <span className="text-slate-400 font-medium">Order: Rs. {order.grandTotal}</span>
-                                      <span className="bg-[#D70F64]/10 text-[#D70F64] font-black px-2 py-0.5 rounded-md">
-                                        Rest Sales: Rs. {orderSales}
-                                      </span>
-                                    </div>
-                                  </div>
-
-                                  {/* Breakdown details */}
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 border-t border-slate-150 pt-2 font-sans">
-                                    <div className="space-y-1">
-                                      <span className="font-bold text-slate-400 uppercase tracking-wider block">Items & Commission</span>
-                                      {matchingItems.map((item, itemIdx) => {
-                                        let itemCommStr = `Rs. ${(item.commission || 0) * item.quantity}`;
-                                        if (isCustomCommission) {
-                                          if (commType === "percentage") {
-                                            itemCommStr = `Rs. ${(item.price * item.quantity * (commVal / 100)).toFixed(1)} (${commVal}%)`;
-                                          } else {
-                                            itemCommStr = "Flat order rate";
-                                          }
-                                        }
-                                        return (
-                                          <div key={itemIdx} className="flex justify-between text-slate-600 font-semibold gap-2">
-                                            <span className="truncate">{item.quantity}x {item.name}</span>
-                                            <span className="shrink-0 text-emerald-650 font-bold font-mono">{itemCommStr}</span>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                    <div className="flex flex-col justify-end items-end text-right">
-                                      <div className="text-[10px] font-black text-slate-800">
-                                        Commission Earned: <span className="font-mono text-[#D70F64] font-extrabold">Rs. {orderComm}</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Action Buttons / Footer */}
-              <div className="border-t border-slate-150 pt-4 flex items-center justify-between gap-3 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => setSelectedRestLedgerName(null)}
-                  className="px-5 py-3 bg-slate-100 border border-slate-200 rounded-xl text-xs uppercase font-black text-slate-500 hover:text-slate-700 hover:bg-slate-200 transition cursor-pointer"
-                >
-                  Close (Band Karein)
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleSettleRestaurant(restName);
-                  }}
-                  className="px-5 py-3 bg-[#D70F64] text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-[#b00c50] transition shadow-lg shadow-pink-500/10 cursor-pointer flex items-center gap-1.5"
-                >
-                  ğŸ§¹ Clear & Settle Stats (Stats Reset Karein)
-                </button>
-              </div>
-
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* ORDER RECEIPT & WHATSAPP MODAL */}
-      <OrderReceiptModal
-        order={receiptModalOrder}
-        isOpen={isReceiptModalOpen}
-        onClose={() => setIsReceiptModalOpen(false)}
-        senderRole="admin"
-      />
-
-      {/* Map Location Picker Modals */}
-      <MapLocationPickerModal
-        isOpen={isRestaurantMapPickerOpen}
-        onClose={() => setIsRestaurantMapPickerOpen(false)}
-        initialLat={restLat ? parseFloat(restLat) : null}
-        initialLng={restLng ? parseFloat(restLng) : null}
-        title={`Select Location for ${selectedScheduleRestaurant}`}
-        onSaveLocation={(lat, lng) => {
-          setRestLat(lat.toString());
-          setRestLng(lng.toString());
-        }}
-      />
-
-      <MapLocationPickerModal
-        isOpen={isBaseMapPickerOpen}
-        onClose={() => setIsBaseMapPickerOpen(false)}
-        initialLat={baseLatInput}
-        initialLng={baseLngInput}
-        title="Select Central Base Delivery Location"
-        onSaveLocation={(lat, lng) => {
-          setBaseLatInput(lat);
-          setBaseLngInput(lng);
-        }}
-      />
-
-      <MapLocationPickerModal
-        isOpen={isUserMapPickerOpen}
-        onClose={() => setIsUserMapPickerOpen(false)}
-        initialLat={unlockCoords?.lat ?? null}
-        initialLng={unlockCoords?.lng ?? null}
-        title={`Select Location on Map for ${unlockingUser?.phone || "User"}`}
-        onSaveLocation={(lat, lng) => {
-          setUnlockCoords({ lat, lng });
-        }}
-      />
-
-      <AiMenuGeneratorModal
-        isOpen={isAiMenuGeneratorOpen}
-        onClose={() => setIsAiMenuGeneratorOpen(false)}
-        uniqueRestaurants={uniqueRestaurants}
-        foodCategories={foodCategories}
-      />
-
-      {/* USER VOUCHERS INSPECTOR & SENDER MODAL */}
-      {inspectingVoucherUser && (
-        <UserVoucherInspectorModal
-          user={inspectingVoucherUser}
-          onClose={() => setInspectingVoucherUser(null)}
-          allVouchers={vouchersList}
-        />
-      )}
-
-      {/* NEW USER REALTIME NOTIFICATION TOAST */}
-      {newUserToast && newUserToast.show && (
-        <div className="fixed bottom-6 right-6 z-[120] p-4 max-w-sm bg-zinc-950 border-2 border-orange-500 text-zinc-100 rounded-2xl shadow-2xl flex items-start gap-3 animate-slide-in">
-          <div className="bg-orange-500 text-black p-2.5 rounded-xl shrink-0 animate-bounce">
-            <span className="text-lg">â³</span>
-          </div>
-          <div>
-            <h5 className="font-extrabold text-xs text-orange-400 uppercase tracking-wider flex items-center gap-2">
-              Naya user aaya!
-              <span className="bg-orange-500/20 text-orange-400 text-[8px] font-black px-1.5 py-0.5 rounded-md animate-pulse">
-                NEW USER
-              </span>
-            </h5>
-            <p className="text-sm font-black text-zinc-100 mt-1 select-all">
-              {newUserToast.phone}
-            </p>
-            <p className="text-[10px] text-zinc-400 mt-0.5 font-semibold">
-              Call verification is pending! Check Registered Directory.
-            </p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+                      // Compress xœì}_sÜH’ßû~ŠRïÜLsÄn6ÿJâŠTP$5CÿIÍî†Ba¡ K4Ğ Eõpùà‡}¸ˆ»[Ç×¾[¶_.Â~¼p„Ïş0ó¬àÌªPU¨* ü£áè¦c†ê
+…ª¬¬Ì¬¬Ì_ù#çÌ#ş)	=Ïõ\’F$I)¹ğ‚€LB×‹É?ö’4Š½/2¿÷œ¸Ñ`2òÂ”şÈOA´ŸA&)9õC'ØÁW¼Œ²FœÇOáŞhU&ôÆI´]yIÛçÅfÉüB¯7KVğO¯ûhyæW¿0¼„Uç¸îV4h¢ ğ©…m·?KZã8EøÓ	şmß	C/NZ3³äÒP!YVåfÏ@²8“Ø	Ó}gä­*¿Éş@ÂI`yŞõRÇ‡×±«ËûÉôï­g.1ˆ='õÜt•lÁ—n]´g¥¯€®ú;§Q<êBg¼´m,ã^œ¶[Ï)aq€w’É` Ãz
+˜>h½"'IÛ‹ãUâ„Óã°wĞ¼œ	·ã8ŠñáãèğSc½É¤Œû<»®Ÿ8ı š¾FN ñL½-ğ±¿'Ş»‰bÿ_…?mÑ\½Ò]N’ ×¬µ’±3ğ:ÓÎR«Tn]óäS×«»w§ïbÕ)4´ój¾7~÷9L;ıÀœz9	€a:Ë½™ŒÇ^<p¤1ÜöÃ³Î…ïõI?ˆ ø¨ß™ï.·ô/%„³>¤ırD2$ğÈÁ9t’Ô#/võ\ùt¶ÙĞè©Ø›ÓÀ{GğO¦>IF«ô{]3gÜY06ğ©'&¹³Ì]k1y‘I€,_ìÒÖdÒÃ\.ù˜ËÄŞï'Àé®±ÀFÌFæµÖ0MÇÉêÜ\·Ûf$‰‡Œ‡Hq cta~‘@Ç‹ÎX2î,’>õĞ‡êG1Š~öçÊ$P'¸…wc›w	‰&ià‡^'ŒBOä¥'PştE²Ê«ûá9rØÜJY+L|Ï¦6ÎÇ¯Ä×ĞlöÊyxå0zëÅ«ù%lµĞ¨Ç´QÈú@Ã¼ã)t~ü®³$uPG„E|¨4J:ĞƒPäw“$õO§ÙOÊd0‰“zùôb2Œ±ÿR×M]„Nò‰#ÓÂÿ´Ñ-[f:A% KÂõÍaÁd>D¶x:G/™Ÿ°ÏŒ‰Oa:›y$7(‚qÊ'ÅÜ—¶¢B‡>¨#?à'
+7Aœyk—N2 DfÈÚºE§Ó7pS$Ğñº©Ÿyi'Ïº¯z¯MBŸ}À4j?ÀÂ309ÓIVÇÒİÄÿÎ#ëd¾G¾„?Kü³¶Ë>\³R‰I+I£ˆØè.9<”Ë|¢;!³Y¸6ßÛ{Ş5©İâS§:U|A)§l£U—„] ëvàá×çÓ·­£3ÄIÈ×'{»;ìyZ¼š¦ümÕäã»‚ „&¶6¹Í	ÚŒ	H™­›!ÍFöa„ÊÌ]jfh,`iÊ3:Ë·¢³M(SĞæ­Lp2-«z‘‘®Õ*¨ªj;™Es±º‹Hğ&ŸGÄµó^âĞÓùÒš%X[UÃ²‰¶9[ÁŠí[>éè,¯šn¶ÎiAö1ë>«4g°Í7î›ñ¸å'À`SB-ì9²ÅVFíƒ1[È]Çj´i4fº±õ—IïT›m’MæuÏºd¹÷WäàÅròõÎ1ùõöö7Ûû[¦§ï»%¦åÅŸGy.Ô “v¡ÏÀR'TıÃål­~3îbÏÊ^²[à§ÊF‰QêªSÖZ­õ}°VÔío}ï‚„Átæé+dªãrú¿ŸxÅ˜$İ‘3nÇhÛµÍ¶*ó¹7]»Œ¯xàÛ:ü_õÊ™½ô™hc¦/­L¥®q™aZ–21E¬2h0ôçıè]ËTŒ¯D¹›ÈXW¸Y¡}ï‚-Ø¥]ïÔ™é&¾Ü¸0­Z¦”Qœq9CÆ8­ó5M}9”‹•a:
+^D±¶cªÈ)¢,Y³Á«Mür2WV7X #+ğL0m*3ÌLÔŸ¤)°3kæqj)«Üœœù"—^ƒ‘d®¬Õhìüt
+½a}còC•¯\ìš…k¶$^ÉEJ˜\H¨«Û‘v. Ö¬Ö@ÅcHÇEKF€ò³OçĞ#©^ç„T¯*S±¶ }µ°„w–Ip¶:î<‚»ãFdK&(ãT?£¶Ã—ªš¶Kü5èÕ
+dP_K­uÎWŒ8	i_rõ®Ÿ¤İÀÏÒáˆÑá¢æJÏbß%øİbIg=cÅÏì]ñs‘J¦%í€Im@yÌ~›…2m	•Æ¬d×w¯„–]¾ácğY~ŸÏUòŒ|!ª$—¹å)~n±÷YÍ£—»y xÎøË_\IzEo>„gpg,0rÇ	‚7WFíÆxÒ¨ƒ¢p3ğçk—íJGDâ¥›QxêÇ£-ß	¢³¶}1“úià­’Ö¨£4ãŒ–ÙõŸ¬N`iOmÄ™F’Lø—´tpãÅ#'¥LA²ÓªÓ¡Ÿ6"Ï*^ İe]X%ÜSÃÿRo­œíæ°Fá†‹ÿ›vrfIÎc¦€âÓ`ÏAhÎµv„—^ah©Û²hd€Ó‡eğÆ¶“FèŠìÄşÙ0…/0_b˜’
+Á¨A¸¼¹¢Ş¸ A8„ÿ³ùD-ÓJ¨ '¾ëÌ÷eaq‘#Ó¯)<o(mqbşF¶G»ËĞøkq–šµ¿¯HYn£;ÉŒEPósO^‹šÄú¢ª.ˆä§Î$’Í	ìÎLf~’xPÈZîe»²= 
+cŞƒ!û'êÿ;2À&‹Ò‘~EõRû*¶?ÿœ|q;Ód “å‹«7ÖwG!< *ë8mÛ™£6wbÿ¸»p¦=½Où
+¼;ˆæ÷zï–@ƒœ>>uNsO–œÅşãgÈÓk´’‡»‘ã>¤±:§®çŸ1®Ë<T½şÅi™Æ“Ä—GºfÉAÙ…~FŞ|xÿş¡Pºòı«7¨WaÍ†Ëã/L=¶v+«˜ocSXÖl•$ÈmòÜÖ	`ŞÕ+·Ä<|Öî†uVy™ì{é…ó}LE.³YRÙôœ·¬5øÆM™NO4dbÕ-Y«Ê„°Ç nÄuóH™níF8ñöqŠ+±¶‘tlßAª°˜›©¾	QÇ€`æÃdì:Í[LHöÉDŞ*Q…`•På nnšÜÌ0¹¦GZÖ°.¤ŞŒyĞ¬™ÒÎˆA ™±º†Ô,N"XéV
+¸¤;‹azÉ»½ìR¾ÛË~âŠä[KÚV6ˆåb¹-ĞdFBÔ‘?bk?¼ÿßIæ¦üğÿ“|ÍV¶IVa˜˜ñ–Îã¥-¬¹Xºu	¿.Ú¿ãIÿÄé“µ5ĞÌo£É`ˆ3­¬n¸#?ü–ØsBPÉª? {zí2û†‹Pµı°r{™ğ{ M„_jIYçAµ%‡£üÄœÚ×ü§D	Ùq™£‹ÍÀsâc˜¢É^ä:Š6,iÿç?„¥a§–2LŞëjëX—N,°t@ŒÎİŒü~0‰i(Cg	ÄXƒÀË§ëuü±wà¦’¸¶«dí[ç]çç<7#US—/&r·táğwVHã¤ºí›«XŞÈ~I»’q_ã×¨ç©] ±F[G	“·ËIì$ÃyM€ëŒå<ÒC»Ü0m<.ISíÁ‘YŒÊ6Ø”1	åLò99 #üµºcJ>¼ÿ§Ñzä†KÚ¦5&Ü<
+}eë&7UmzáHrĞd:¿ãÂØÀ—„œ‚' Û>P@ÛØ±ÎsXO¾™Íæe7Ë+QÅıóø¸,Ú4´P#}K~ÂÌ”ã*JYŒ%uKQdÈôö…¶†@¿Ñ0°†oõ
+Iç‚½œû’¢±—îü*9Nt’/ç®¬³=“
+ºí<ãîá¼ÙØ<ûÊ¤Ñpä|—OŞ\Ú‹Õ!´ı
+'ì¢1$Ñl.Û9OÇ{ß±´[0“@/ÇÛÒZô’I7…µ
+µëD¿¸]ßc‡.<¸‚0ï|¦·aJ™©P4Ò`í0›ïÕ/·õ^¬,½İS\êç÷LUˆ6àr¯¬Ú”©VYºŠuf¢NĞığıÉVÖIº#ªTÆÍ;e¼ ¸ßR4òSeÿü7d3ëäıb°ªï3k`ó>Q¦øğşoş=Ù Óšõ×Kjó„yg×Ô,k„aˆí}×Ö]rÌ‚Oü‘G½ØÜÛÑÖò–é2UŞú£»™|t Î½…ÒÜ©}›ó±G½éW,ûÊÓ¯X±ÜÇé‡39ëG—Äœæ]gzÏ¹6ñe‡y?¾Væ¼ğÜsf`müD¹árC}…|Çì°Øû	ğoä'Êódh7¼/1˜$i4ºçÁù‰rÄNœ ©Í®\½´N¿Ó^iÛ²äDÜšÖzeoÀ¯lKKñû­õèÃÅ%ÆêõS6ØìÀM^Ó°ó8ğ‚t›”^°ŒŠKCÙ§H,äÑ)Ò¬*ÈãRX•q£\Î/ì™–ÃM¹¦Â¼"¥çÅËØ™¿aş“èGüíĞ½ÉĞÃãŸöÀk/+}4ùvq§{š›’ÃØ{‹Yªïà²­ò`	’#Œ€€Qï{Bğ¦è‚Ni·éOC”ÏEM
+ÿ*¼›h]Ìˆ²Q¾)‚¸çäjÂ²7:İ
+¥­Ó4«|ß(ÍıÈÒMÀæ:‹¦ğ:ó–«u–*å·i¢	g,³*h§gU].^ädù2Ì¡RhJ9:Fæˆ#ï­ÒTU™Gº@ ÉÀk·Á`–D”7à+yHÚQ÷¬÷$J
+©Ò›™…ÿK}å=­ÖŸ ‹»À¹‘MUzuîËÉ°¹cÌ¨_›mqË2£Ø¦0oø²äîÆ§V[»jã*EŸe4X‘í04A¦hëIq@ÆH´KeybŸïú¶Ûyƒl,-…%çd®Èh¿Í‰AŒÈI0È%Ç~‹J¢šÊëGI—\î9é°Ké×V8¿ˆÎË#óSD/Ûå‰w5Ó–CzšÑİ,Á­YÀã¼éN?p	$o«›Â_”å‚:a†ŞÂ†<“Õ¥ÅaÑp-úe™bk—Tİx)ğ%\™X9©Y´áö;o0I½‚Ô<€¤ŠÊË:*2¥HEà³Í–¹t6FÂ)üİ½¹u(Ê	sË¥õ^yxT’á25»À…,KàÒóPˆhá	lÃ·ø˜8Æ¸›R 5ÔÂxAúYLåË˜rô‰G£%£Šh4(`	FS£ÅšÆŠ±¼š²ÛÀxİ“Øk)ğlñb9¥Æ]º({Œ˜yf$©FÉ¼Ñ¥¹7efTCÀt›‹uâÁr‘™x#ŸêW".6a€óJ-TÚÇ“ÛÔ5É¸é ©Z‹š0©ÆZ»-í$gı!Ä_¥ZZdfÕ‚œ1T5
+ß’ÛkN.)š=2 h™<~÷B£ÕÎ(à€<N ¤¢8"‹åéºzıHêJrŒş†¢&Ğ^g—×³8·“F˜FA9ßp‰~$['OÌ<!pešÂÜêÌÏ‹9€ÆØ|“Œ©æ®Åx§ªoîK²±µu´}|L¶÷O~Kö¶6vÉ‹ƒ#òr÷`ó›ı¯ÈËãí#Á]q9	Tú„±äMõå|3}¹¬èKPOA_¾Z\@N`*º:€•¤![Q?_+³¢d/EB›æR^n#öœvK‡¶”’ç¥…vÁ9ñyE±ı(õ’Š2›Æ%ë[^šßºÜ\LÍ]",3w	†á1åD[Aü/W .×&4oÜ”m	y>«³ù‡ïÿ¢LRİÔµªf“İerB’âê¦àgäa?H} ‰ÉÑ‡×Ñµ†ÿ·^´%ŸªÎ0Õ~ÃujŒ. ^ÒT´,òsšßÓ¥áè—ô:0‰àÌ&¡³cêwˆ16Á"«´Û.(2Şn„^m]©U‡QX2©á¨ÃªĞZŠİeMî v¥¡ÁX¯£Zgt~ÓAÄk”úiDŞ²¡M‡s|æd†„Ï$~‡íÜ(Âã!SZQè».Ù8¥ÈŸÎ[h}œ½àÂÇ¹¸¬Mô*x({ò‹„$i<¤ôtg/Ãü‰J#?„ÂùËO×!+“¿2¡˜;1&O‘Ó	V”õÂ÷’®–9K‰èš&…Çº&ópáL¯]Õ›şfQ±h új¾kõ„1],EÅd.PÇŒ~NÔVdìq¦Ğ®|½ø¥ÕKxÃ½2n]Ø0ßJ›ä
+¸Éš ¶knœ•Qôö"àLr]„³ä«IĞ÷b˜D[;iŒ¡¦Ä ÔƒQ+<ÁµÕ
+İR¹gw#Ü½û?˜5“à+'ğ?‰ÀzÔ|p»ôÚ³€p?ê’¥ÙŒªó³dÏ¥ÁQä“"~ºŠ~”É­:P'8ÉT5ù7Î™Sc½º;~—:kUs–ÎWQ×fê}LF}îN€ùïÎ’ƒñ˜=z›’ãÈXşñùzùg¾ÖE¾´¡ëeàîã±7ğaLwBf¦B¿MÛº6&Ç–8`:Ôábúêæ,ÌVø×æ_n2ãRzÏ€j³Ôåï$NûPã,‰bµ‡waù¶·QEÉÚåBƒ ¢Ÿ‚,GÜÿ;Vı]óãMÿ
+Üà;šP”Ã&ÔòÕá±´œ›#€ô45Õ6™l‘ÆìSoÌ>ú]w\d³HWî{h®Zà„ìôÍÃ0
+îb^0zâ²nMh93Õ/uFÀ×0†<Š—Ğ³
+˜Wç‡ïÿöÿıï?e7^à²º½ë ¥»Í1]ìˆ.f7p6=êæ"vÆšI3Kß.#°õı–—z.TsÍ#-‡àCè¤©~ÎtÎK0Üá‘|SMŠª”9l¾Ç8Ï<¹ÆğnV)î]çÉr½a0ş³:Aãæ½SëHLmfî@X</VMrìÄ|["û¡õÔ™˜&¶µ>¼ÿû¿%Ğtú@ÓÌÜfFcË'ÔG{;	“ãC¸îÅc/lƒ±c¶TÖ¦$ßk6å{Ab„Ó«_ö{½ÁrÏ˜;mæ§”v¡ÏjhÄ-?&ªŸuašàFr1<£N]jş¡M/¥òûÃûø?(Àyò0¿c‰ª£ï­b6©I4ìV«Va#êãMpx€şŞÈ‹ ı'B¦Ç&KÈì	;ò`m–QFŒ³:Õ ûÑ’
+ïY7^à^j{yæjV½I÷m¯@&¬	ø©'ğSåÁŠƒ”T‡VÃ2ä8Éz‡Ÿ¯­KûÆàu”`bÚ²¦º(ª`ì,A¼ø1Ñ`6–ôÖœeÚÕK—‚y5JÙ,×]0•æ-¼%.¿Ä}ıëÙošĞû¦¥‰&cÏ”£j«}ö[×O'`·éBxa¥ûhqaÑtÈ(m®}yB‹T;WïôDüHkuŞ:û’;AT*ÖÖèÑj§°ÎpA›ğlU~¡½Ó²€9â§äˆ¨wt4M<³Û…Íjá~íØ‰ïE9%ï2´(oxN¹*·ªÁP¡Ï«ÄÖÛoc„„“QSt	ôZÅÖÛáäieáÙjYwW=W	«Z[ğæş”¦XëÑ¨Şªµ9pèJ‘Ü,¿Jõ˜ø±ÙF6Qzß…J‰ReåQ÷Ñ£¥¥{*Uxë®#UÀ*­%UÂ³R¥$„k
+Û‘F?K•ÒÇho¾©µİì	JåëÍc¹+2ĞŠÓvc[T/	jS7ìQ)m~T
+ÚB •¢ö@H¥°%R)iŠdÃ2¤e]7ş]õ‘|Äxüèç„6?¶uR5cò£ÂjuY «Öe¤d9n\pİ$j<Ö8¥2¸µÚ„­İHûœğ Ç¾ÿ#õÑ«Yˆã‡÷ş¿Zk;œL1\>±ìaì›;ûdocã«í½íıÈ.D­€ŞIıã®ÿ8‰^÷$p}S¡µ%v‹nŒn µ—{ær(cY)œ½ƒxr½û9¼q<¹ƒÆfÅ/0yî…`Œ¦ä×Nx)a'àqF™r‹ñàk@ÿÁ–&º$E¡¯³§·ÙÓ^\I]<œJ7h9ŞiáOmòK¾áŒY¼öyRı‰ÁTÊÏ¶ãº3¤?ôÉ¹ƒÁŞçìÑyÎ#ÄİÉ %íØÁtÓ{ éoİˆëÚ3€éª6'ql@;Ú#%¬]Å $²¡WÄ4»Ì`0Ä+1ŞÄ†«{eX5\Cd`ƒU_:@…åA­õŒ6lšAeÓ$ß–qÒ9UéqZ0&µ5_´ìâ\Â’‡šÎÆ¶:ßfó¬…c/ÅâdæŠOÜ6E£hü´éÜìÛAîPác¿d{:ò‡TíSÏÁ5Fœ½è±fÄé†XYBï«	¦g_ÖC;Ñ)ÿ2ËƒÅ®g¹ö…?–D§'²ÆÏÜ rÜv³Ù1È–TÌƒ¤_Rüp­5¯¿—¡ÉvŸ~Å«ÅSF
+o{~–“HõÉ™Î1—–ÛTëc«ˆÃ˜‚zYË€ìs‹Ñ†ùÑÇüW¹™aŒ6,JØ=\ºxló†"UÑpVŒÕfˆ÷}îŒÙávY³áÿÔgƒYny~˜æÂÈW4Íø¿XÕŠÎ-ÇæfAÈA4u‚t
+\N6)³á`€’˜}¢wl{ÿÙƒEl×2	µåUPfÿ+¾şˆÚÈÀÁ[Ìh~NW€ÚÖÜÔa+#"ÓÆÑ f
+ĞÖÈ¬õÏ¬Dh¾ŠÈV>â¥§k¤g;î‘ôØ:„µ
+H	¶tsp†ù®(Ì˜ı²Îé¾i?ƒ†¹Éta1n¦ŠìtrØf\gë5ÒÔĞ4÷’½ ô.ŠÊsÕÙ›UßÜQGÂR³ypLÇâŠ-™|“Ê³F¹Ä¢Yºc|äªl¨e”œQœA°vÓØK¾ùáÿ+FÃÑ#áÄqÆç¹`.
+àºÏJÆ·ĞØÂv­kÉ¹?e«Ù.Ùw¦éóµ<_tãŠ6#é¾1“›QÔHR,ÔŒ²¡ Ø’V-qvÜUí0ØöiŒüÿ‰w•‰#ÏmÙãğD«Hp[¹üà]:ÀìLŞÛPºAáì®ÇLŒd#­Ğ0 ˜(ÍŸ5uà\= ûĞŸçÚc™a\ª¼³MÌå2ô…ã#rke™›c-ò@5¸”å§~Hı?æWé„&C!l&~ëïQ«„¯…®½ƒÏ£yË›8ºÈâ:˜{øÑÛ¹?ü—ÿ˜™t^Z·i&Æ†ëbšºí~¶.>ëâî5±‚ÔFO}[5îP3xÿwMö&}'vp¶>utdÖÌĞV„mA/³›©åd;ü]4%Óh‚Gª^8±›< ğŠ÷SSÆGŞÀ³Ğ}ğ×ÆßÿÑ¬Š“É ç®=§¸Ç¢âº†F¾Gj—î”|:JWX€£‚ı$DçÉ²%E§yY%K?İû¦5ç¨
+­Ö¿å;×<i¾~”ÄÑÎÖö9>Ù89&»Û[_Á5PB_øsr¸ñÛƒ—'¦§.Û{„ôF¨ıdÇ¥!ª¦f‚]*~ĞÿHù¿&Ç“>ğk¸Úm·Ù‰TÒPİK&¦j_­9ôÇ™+¹9<Íø+X{é)?g€c­Ó=Ú¢hË”ĞkùIÆcJf
+¶1êÒ§@L2lÀçá;Êç#È÷ŠC,ç %vNÉşÁ	ÁÌDi† ¥âÎÑó	€ C†a=KX¿Ğ/—•)Ó³Q€šY	€­ŠB¼ í8,­lOÊŸİHË¢–m_>Pô Ì5À‹šì$ÚóƒÀO )™/e3£Ùµ£n® '1pJ«®hwIRÊ”[ıtM|“N³ØNÃ§·øKüÎk@K³¨@ÒÕÀ,İì4ÔşÌ‘w;Â!ÜÑ] 1]ø*¼²ûùs¬*zdˆnNY¦’0¾7V…}q
+%'Y…“Uªó¾Dpém(l¤.××`L&è_ãÿ),Äé]ôa}M¨M,{E<Ucëøq‡ÚæşÈ§-ƒ!éGäK²°VzÙŸù^¯Wİ.ZMƒ&eGîÕhÓbïc5j¥~£Vn±Q†)†³	Tq¦-‚‚siŒÚM5’öâ^‘¤ÊŒ¢7hq°a	 MzšĞÄ	yákÀãìSvóWÒŒ3{•'ˆ7ò×İÈf×Oÿm4€‚E­î»S]	4x-·S<¤æĞE™¶aLû¬²Ó^½„Ö:äå•@Ï’Äé9·Áğe‹Z)ÒŸY<¹¨Èß£)Q²N
+•Ñs§×²ÇóCO¶Øp¢QßòÂÎËã–ºÎœ‚‡Ï‹ı²&á™Œpvœ*÷€å„çD~–E&k¨3Â¹£-uÙBtÖÓôĞóèƒ/JrnÚò“}‚ÿ~ÖÃò.çĞ?M—Vù³ô×K„úÔ—Sƒ¢Ø¼‡Ò«U•TÇa¾’Æîµ*tÌ%‘uıÏZ©¤ºç¸§^çó·t]¾¥Ûêì-&oé®4wKw³©ûêµlšÈ‚S\&zui¿ÉÃ52ÿ«zP‚àÀµ5i…O_Ô|R&#>+pSÍ:JcÖz\
+|œ1wÍgùšf<I† )vaImÄ1h¬5²
+¬_Ÿ´…`Èi·YÒ/É_®%©ıH%o»ßåS`t³pİÉ¯›-V*çGÀ"“ÉJi”Ûù’®¬7Ø™\%‹Vzœ}£{:;—-™Œ²sÙà«î\¶’ìœ‘-Hİ{·D.múzU×xß·Œ“›¿Ë&»k¼—y:›¾Tú5^s˜i•šH¢Ş m8SsÀ^uÊÂÍP¹òPn+ƒ}xœ^v^=é½ò~Pœ®AT;K…G©;0ür¸Ğİ¦ñĞÔ8¤FÊ:YáY'+D‰º-%×­Ğ@ñİIiRÈóÎ›yúMú‚î0%Ó^a=ÅŒ=úJ”"òôÑUŒqİ5°Í/:ó@ü#†‰zsójÈYqk¡N–Œ —7¥Å?‰'ƒs¹}+Ğ¼mÆ‡)4ùÚ'3Ú ìšf¿˜ããKN+ÜH1ÍèrOè[úP­¼ULI˜!x"». c©Ü·"Ò|?"ô‡UÀõ~YvôùÉÖ$„XµææAˆÑ3Vì=Ÿp
+W%°)=´Õ¢|,£‘ŒB^°>ùÔÎ£6ú‚Ân%ğ­,Ù®è‚z¸ÛzZ—ì›HgyºIê½6ê]RJ¤œê¹>Ø£	j Ğ·ŞĞà–m™ß²[<Òù´Mè:±KûçÀ”ä„&/w¶Ô
+¸bê&°J`ş€Ş,™ïºZJŸ²ï?UÈÿ\uO;‚féL4Yg‰$ƒ8Â“¾bÉ‹ÿ,.9X…Ïu÷a¢Ÿ¯›‰U†Œù¹åd¬ü[:•¸@ µÊìæ9–2çÉ{Æyyäa½E‰3'¦Q	«¥\Ô*ÛG­´±P±l–Ô¯Œsÿ’øî*÷ÊÏ¦?É³ít¡Ï´È•9L?ÏüæEX¿ö¼óZÏs'wQÁbÕ°‡~µZU¬¨U¬ğ*­$©U‹B [aìX|İ9ãv˜Ú¹ĞÅJHÀsoºv‰5u}×†ÿR8Pc‚K¾ü6"Ù`”…í¯^¾` IÃœ4²°¼;¸q¬Ä#|fÇñÑìJğŞX£ç/0)ì(Kô$EdÔAô˜7£êâçê™ê6Ä)Æ'”QÍT¡"šRºÌ*Üˆˆ
+‡mÆò,!}nÇuä¿%ÑuĞÊ²"8õzG—0eX”@i©údØòF€";›²ƒ¡78ïGïÌAK`8gyçß<Ìºü¦ãÒóE’I=á0<†ˆöÀ&®LÿÅ,,I‹ÚŸ_4õ×ˆeTæ¥¤ûü°ß3Îtj¨y:qÆ=÷§Nœ,Pƒ¦Ğ'CgäãèùfXü‡
+éW;ö¨†¬iŒ§ÉëÖ*#W—¶l¡Ø†sk{N80¡ó=8‹È²wõY7ñQèêOñÈ>Ï*jÉ*á›ÌÖºV+ê2><£Û5´À‡ßÎÊ–N·ë¹g ¨¾ñ¦<y7!í%2ÀØÛ™ëåØ%£ÕâçR†M[Ë¢¯“¿ˆ^­Rã5 ^=ÖÂp˜T…¥»fğVé¾µ½»óíöÑÎöqsK_Ûn+–
+ÏÃMéB¿Vû.u›.Í}/&+–QŠÖ›—ÇÏ‘xb<¦§”à_5ãı–¼Ø¾{Ş{lã½Â‡h^#¦‡y‡çşğcŸ?æ;¸wÉ‘ôØt`¹e…'ówÄ•ùáí·Î”;Ç›/÷OÈñËçÇ;[w*•3”o3íÛ‹wÀ«ùx?nÈ­|‹7‹—¹Kf¼Èå­ ñæâñ¬èy¿m¶=98ÙØÅ üç»ÛwÇ±YVn_š²mô;àM¡ÍÙ3ôx?‰iÂ¦~\G—µ/âñ½„l¿NÈ0H(.É-ÁŒÍ=2ğ¸ˆ3¦7ˆo÷‹xµàˆn©~L>¼ÿóã<ğâhËÛv~ˆâ‹Ç h PNK]’¡eÔt°xâ
+õà	ã)OÜè1t#oßyÄÒÏøsG£ˆpéM¶xÔK†(¦—ñW3!o—Ã´ğ\{ë£LÌpÎ>G(½‘ãáV
+	Š¬—vR¯ËS%A´;d<‰’ğà2ş\„:R³#»7‘´¬¿EC—½˜˜!Ì†1×bû|kjæ.éĞ¯·‹b‰¨²¶şáıßÿQÓİç±çœ»ÑE#}sŸoÊ$3×‚lV*Öd]ˆpÎ›¶/ÕÈ<ÄvÅÀÂX_[+Î—ôîSCÅÔ±İ3§¦¯ ƒAv=¶@	¹N2T½yz\­œ(ÎPoiT;	qùöy0|aÈ#äP|ÓÙDñ<š¹¢Íg¿™ÏÖaqS‹=:êê~+Ò(»¬æ%wiÄèFĞ^¨Ú	ÂÒÍZ:‹¼¼j!†"U+ŒFË:Š›3|¢ä¬-ö\QÅ‰ı€®Æ¾zC¤RF*ÙAå/ÔÎÑÛJ³`­¨!*%Û__y®Wu0KUòK#Î:şW©oT]‘<åKºN%È<n{Q¯E"gş¡Š#?jrf9‹—°»ù~K3É¢¯ZuX§šm]™ÕV {ŠNvj£Åc¿Åí:¬¤y›6Pë‰lÔZgØ©tˆi ~Å‘‚üUöC{î)IE“5¹Mš>6ÓTÌP¸CÒ*kí['°¸”¶‘xÖol™p;ô×¿
+i·CàjI„†óÓMÓS©®—‚
+'nì€±—e5°¼@Ôq†ıëü•+ƒs]M—ùBª,í%ÕÒûŸcÂo¦Õí c¸º7ÜbZx¬µ˜Då'ù7jZQùğ0Æà92Ô’¢ßk5¥dÀásÖ,8[Jn­«n~œ­^tİI•šçlÕĞgéÒş°*±®”W§ÿh²'LŸÂne]ğ]ÉdU°KÑ¢ÄÂØ#	u1„b|~]Qä.T2–Ğòz¸ï	M@·íwÖ~öDİ4„èuíªMWë$æckİuÜI'+)¢ue¦–àµ¶BG#ş·YciÏ2T8ÑLgT·Öy7ş	ëjØ»\(\/· Æ:ËÄdSŞ­¢T¾û•y)6W™û˜EI‡£×Š”¸›3‚`ÌÌ÷”zÙÎ2Ÿ4 áÍ­‰'öQ‰öUÔ‘»â‘js¤ø aR8´˜MbŠÓ¼ÉGl]«k¯,€Óe×ãvâğ«/!)­E{~•<í×9Ş€› ç€Uû•é
+yEÅ¸NzöƒÑµ.[iy\Ûzæ‡>ôÕîíH; ´ä©8à[èqnjÜRwóc‡@´ Zc¾fm¸ËVÅ\'ˆàHèA@<ş“zC~øÓ?“C/DÛÕv8†¦u%BÍ‚g‚bBv•Ë¦Ş:éZ·kÊ7È)Pâ9~jBæÈ‹(BIV–¥õµ~™J±¥êm	x™KR]v¥1¿*>ÿf©±Ú£¯w~å»¤òäÊºqîO®Ô1ÌfA3ÚÏÁZ!ßĞxÛò†¤w÷ÖD¿ŞB³	:Nm]ŞØl9¨S>µS[‹i\Ñ­b`–}åÆæ|ğ$/Q1|<i<8Ë¾)Ş*õ¾ú'kêşÃû?ÿ¯,ûstFq#O·1Ë<g¨×C?æ£u5ƒq½¿(¢´½$e±¶8B`Æ
+Ò"0¡ôlÁÕŠéĞAB˜Ò£ŞRt´ + ô˜Ÿ*:åøŠğgc¨BZákc,Ş6Fâ&&`İ~Ş§DÓ)
+oêVÖ±¡“ì`á5l(e?\à¼z˜(#OÈÊÒÁ”áÍ£b˜h>Mñ.z*c9R(@ò¬/ßÂ¢‰óºëkò5¼	x—^M¨=A/¿ÀŞ€ºr¡¿ñS0üBŞšSIn¼#ã	ÁGz–"$ñÎß1"%•„¡0_$Ä(Ÿ£VbìÈ•onFá©Õê9Ï„9¦¼æÁµW^ËôÄwÕ=û©àZMş¤-å=E"r”™\iDT…dÂ'5Ğ„˜Á9#··$7nì’£6ù§§{‰×I:Å»4vğÀ–3ÅGø³s¤i+XâÂRYÓÔy®É{Ÿ×ÿTAô²U‘A`jêxT·³RSÉb¯n-+–ZV¤Zjqçb—àx"’åM2òÒØñ´xµ5ÿm²İs…WK¨UùSG…¨â U=k)hÌÈO´¶hQÒ¾ÁÈu]Â‚é¤wŠ²rßØ)v7™ ÙFÆhtBÕ¡¡zAĞôcĞ9óZºJ¾u¨ƒŸ5¨¯Šî¤3Œ)>Ê€Xà'‘êtşiFD¸‹jT¢˜jZäï»ßÖÎ,£iaÒ†ø só&)hÚ—ìÇï'Ğt?ª*D ñÃµ¢m1…ÖPÑ t6ŞöwJjJê¸v*>\Ú¨ŠŸòÜĞbl}\×v‚eŠ©c)°¿N'›¥ÔZ C;›-s˜ÓX>±Aõ6|¯³5 {Mu'äñÖ£ùª’zIÀë¯ÈºSì¹Ï§[ˆ«ª"ô–pys€Lœe°T’¥Ç¯L^Rğav­ÀÀÍÚQ_ ıxø·šòSL½òí…ç3[¼m}è[ù‚§«ÌhuM!ú+Ö—¬®]Áìâ¬ š:[€ºJcßSTí¯)¡{*‹^'LĞMFFx²	.Å˜NÁpì÷'Ôé’Ÿ”à¹¢§ş€µ3ÜÒøâŸõ[Îô[YG5Ğmw£´ªX*¹·ºKÛÜÁík°ï¹=V·CµY	Ï·å+¾zæ¦¨¦ó=ûá	Û¶-—V¢8b,¹è¥"š¢ŒH§™£z£{
+HR†lºT ›"Ægı³"ãœªmÒírÌgùR9jUÂ‰ò÷¾ö·Ö6Se‘¹Ó€Ù©OË)CRöÍ»6OÔ ÁJ$B#®Úfàû‘»»˜eT<•ã=Êøƒ&”—ÂlÌà+XÏ*¹ÌÄ¸C“©ÍF›×¤è+ƒ¦ÄFz\™Ç¬0r.H…„¯Æg	îXQŸêóÄqCqôQŞ×¦`¥ËÆM.Ë®¢´óPk_ñ¢óÆöq	f²˜dºí?…Ğ•h±7Û.üáû¿h¨fİÒÌõÂétœ¡$~íE_PÛ£Ö†³ø8.“È®!ìqE•VÉh•~£ü.‘~ë¶©Mb¤>¾ Œ#¨—«Ë4F“KîddÇö½l¿Ê0slÀä¯Àê£ŞÚ×ˆ?Gå‹üMO-	Tv=ššÂ$Êsä¨ä|Ä×›WPğ)Ê†¨vMs}M“À†€gp™¦§Æ'2à;QNÛÈù¸Ú°êL xu°îL8wfD›SÁ¥§h”¸DÈî0ÆÂ[ó‘&Å{œ×ØMŠÿ(Ş])î.w)Ü#ÔˆZlFÓÓÇ˜¢ kãĞc5D¢³ ĞÕA “ĞçÊ;xÆ#…µèsåçë"ĞÉèsòx©˜dº,“rNSXè5ÿQ×m­y¢M¬¥¡çY–CŠ8ô±hÕ,jöNk]E£sÔ)CÑ]#ÕùI	²H‰ÎZ°‚‰ë©[Á|·ø8O[Z£“©h#_a²`µæ­]¦ƒ„TëA•­¤e©=JŒ.aaŞx„}hìY?Rğ¬?ä´,¾§J·¯,C¥cpìˆy=!y^ªûdWfÈĞº¼˜ÛæYhÖ5¶!!cˆ™:f”¹úÁOb¨TÏTÜú¨CÍßkiFaõD½,w5ÒE–²©r—#¾ıÊŸ„D4(ê­ºQœ|ÁTä-½ºşY¤záÖGzş^óĞ3°‘Âuƒ.¼³bÔ‹×ŞåĞ?ÏÂÆ8Ü5¨ìnÃ‘/2ôÕ—r÷?Ş¸é[ÚaÿfoüL›Íşm'Ñó`ƒ©Ë
+<AÅ´'ó¦ß]ò{9°ÿ$& Ÿ[“—†œ³œY`A;SdæT"¸I|»X4íğP‚gÌ5´¢qè~ğ'('GØ)|#9e4×‚Üˆ€)uĞmÊ³7Ô(NçªL+]Ö Ú¨@*ÿùÀŞşÀ`Úï$ÅYie\Ö
+°ÛE/!³`8ûu&¼J;yL87&î[Ê1n–7†¾I#TÍ¦–—»ğlĞKŠ™ñÃÉšš=ùfBŞØ·P9ó*‹›£à4†ˆ3¾êL (ná|!:µQxjÀÎÔÊ¿]R3„ít¨—¿}c¬)Q—ê´Zğ÷)æ£«Pû·D³H%Ñ¸¹= ’ŠÛv±V |ìšpÿòú¬ %×B· PÂıØöãXL²p‡À$7‚%Á¸p¬Dıàv!µ¢í‡dáÙÓ;ôá5Ğ¡Díğ`yCĞ¹ò=G÷i’£û\•“'ô½—¢§$:Ëàædågàšˆ”ÓpõŸ<4eš¥ûÔö1=Y dz®QPî#ö±IDîcŒªz±!DHûÊ2U%j·RlaÆ«xV‹	¯ª¦Hmh ˆBéÜèîè>€Y!–›Cİ@ &P/¨‘ÉLm-ĞMÇºÖé@Ğ`Ûb_Ø6Dİæß!®G’7Aù©Øğœ—7<8®cáÆjv|mz¥8à–Ì?äşpf^k#D÷¹”õm~€'Ó¶;î»štöAkÎç‘ÁÇi
+ırég—õ”õÕ›:¦	û\ß”ë¸±e—Wfî·Ö<.Û~xšÚŒdnÏÏ\‘ög—üöÕ_Í4 LCûPßüÖàAîÄQ7zí²õK6 gÌ>…-Æ™ùªÒ¾¦ßJiÿÅllCIGåÖÍ¥ÌúïøA¦asÌ>Ã«d5›»x–ÅSMÄH®Ñ€FÀ5²OÒÓ5Şo÷sg<á….7_ğ¥al‰tª~!²!Š{ñ6ÿpÔsW+ı|ŠQ’ï¶qO_¾»;ĞÈÛF
+«U¬‚Ùì,v#G¥åa=Š˜iï«´åú3TØ‚ú»ƒ!©–{SÛy~âáÀt˜ßìÕ/û½Ş`¹÷Ú
+–dw8`ÿô/0°#æ`ĞXĞ6ûH	¶võp«×ËR£)ûAQä¶¶ÈÑöæöÎá	´ó×_oœo’½ƒ­]Aà<¥«ï#<mœîE®äµÓ©¶v÷há‚üä`ì…`Ä%bx­(ƒœ“@;¥Òm
+ú#H†ô:´*
+€£Œ'Ë†fn]ìå3&˜NYàøÆ’V*®ZŸB©¬+#wSìD6àV´N_´•ºä‡À©N°ë¤k4u¾g,ÓşE9lÚÁE¥@9Y~2<ãO†gš'Ã³ò“`½˜ÂÄqA*Lùú,Ç‹;=w"Š 1"
+·^ö(tdã,	ğuŠ`á‰*Ğ,¦ìĞiId¥àT¢/•™b¸ë"ç5¿RqëÈa6#|ÙÁıÑ°j—K°‘hñØ±?Áw“m8ë^ëz´.4ªT.4I[ô~™À½úô.·Ò{¢7e3Y” XÌ™g–é¡Ç‰¢7Í	øÅ	›¬`Klí³îxˆ›²„¿[×/…æµ/IVTB‡ÑÅ†¿ç…“¯¼Ö‰id	¥XõXh(Æ$ô?dC‚TV.¥O£Èİãé,Â½ÿµKùw¹k(Å_ƒªúöàåæ×ÛGÇdgÿøp{óäàµëö>ª1Ug]ú!‚O`Z+‡¶Æa‘Q¤Ÿâ%~w‡W	}KPÁikÍét”Í['²Ó×2díc
+ŠByb¬¿÷·Íèr´½±{²³·‰;/v67NvöÉÉÁÆñ‰H‘Ğ»À&œD¸•„w1QJ¡6I¿a2ê¬º˜†1[­1Ø£9•`‚}ç‡ƒÎ“|?¬päF1&Yy{´à¼rbŸX/˜bÅÎÕb»•>Mä—V+š¤VõµÜ£Ow4s3÷ºdõ÷áŞ@İÍ2¡ÛZÿáOÿ\^|—m´2’ëp¹*šŒ`ú/ï‰ÕÁ\75~ß™:”Å‰ß¨ö¦f«¤ #æ¥©â±5Šşùòq#WÀ+Â‹—ìà²{ãéÜpY¹RN¤ÖT×{9ûa
+}–—ˆÙ¼jk¤ùÃÄı•Ò‚qeÄS:é›—Ø›‘.öCã6QÃ¥N}®ü„ŒÚûF{äà ÉS[~LÅÙ´kk£Â˜ÒO.¥òk ®~ñÿ  ÿÿ 1”WR
