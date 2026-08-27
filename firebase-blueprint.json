@@ -138,22 +138,6 @@
         "createdAt": { "type": "object" }
       },
       "required": ["id", "senderId", "senderName", "senderRole", "text", "createdAt"]
-    },
-    "PayoutRequest": {
-      "title": "PayoutRequest",
-      "description": "Withdrawal and payout disbursement requests initiated by riders.",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "riderId": { "type": "string" },
-        "riderName": { "type": "string" },
-        "riderPhone": { "type": "string" },
-        "amount": { "type": "number" },
-        "paymentMethod": { "type": "string" },
-        "status": { "type": "string" },
-        "createdAt": { "type": "object" }
-      },
-      "required": ["id", "riderId", "riderName", "amount", "paymentMethod", "status"]
     }
   },
   "firestore": {
@@ -192,10 +176,6 @@
     "groceryOrders/{orderId}": {
       "schema": "GroceryOrder",
       "description": "Standalone history log of user grocery checkouts."
-    },
-    "payoutRequests/{payoutId}": {
-      "schema": "PayoutRequest",
-      "description": "Rider payout and withdrawal ledger requests."
     }
   }
 }

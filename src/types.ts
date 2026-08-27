@@ -396,27 +396,6 @@ export function isVoucherExhaustedForUser(
   return false;
 }
 
-export interface PayoutRequest {
-  id?: string;
-  riderId: string;
-  riderName: string;
-  riderPhone: string;
-  amount: number;
-  deliveryFeesPortion?: number;
-  discountSubsidiesPortion?: number;
-  paymentMethod: "easypaisa" | "jazzcash" | "bank" | "nayapay" | "sadapay" | "cash";
-  accountNumber?: string;
-  accountTitle?: string;
-  bankName?: string;
-  notes?: string;
-  status: "pending" | "approved" | "completed" | "rejected";
-  rejectionReason?: string;
-  transactionRef?: string;
-  processedAt?: any;
-  processedBy?: string;
-  createdAt?: any;
-}
-
 /**
  * Calculates the exact rupee discount given a voucher and order subtotal.
  */

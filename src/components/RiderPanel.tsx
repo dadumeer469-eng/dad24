@@ -1,17 +1,15 @@
 import React, { useState, useEffect } from "react";
 import OrderReceiptModal from "./OrderReceiptModal";
-import RiderWithdrawModal from "./RiderWithdrawModal";
 import { 
   collection, query, where, onSnapshot, doc, updateDoc, Timestamp, addDoc
 } from "firebase/firestore";
 import { db, handleFirestoreError } from "../firebase";
-import { Order, UserProfile, PayoutRequest } from "../types";
+import { Order, UserProfile } from "../types";
 import { awardLoyaltyCoinsForOrder, creditRiderCoinsForOrder } from "../lib/loyalty";
 import { 
   CheckCircle2, Compass, Coins, CalendarDays, TrendingUp, History, User, 
   MapPin, PhoneCall, LogOut, ArrowRight, ClipboardList, DollarSign, Clock, Check, Store, XCircle, Star,
-  Ticket, Sparkles, Wallet, Banknote, ShieldCheck, Info, ArrowUpRight, ArrowDownRight, CreditCard,
-  Building2, CheckCircle, Clock3, AlertTriangle, RefreshCw
+  Ticket, Sparkles, Wallet, Banknote, ShieldCheck, Info
 } from "lucide-react";
 import OrderChat from "./OrderChat";
 import { useRiderLocationTracker } from "../lib/riderLocationTracker";
@@ -27,9 +25,6 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
   const [timeframe, setTimeframe] = useState<"1day" | "7days" | "30days" | "60days" | "all">("all");
   const [riderReceiptOrder, setRiderReceiptOrder] = useState<any | null>(null);
   const [isRiderReceiptModalOpen, setIsRiderReceiptModalOpen] = useState(false);
-  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
-  const [liveRiderProfile, setLiveRiderProfile] = useState<UserProfile>(currentUser);
-  const [payoutRequests, setPayoutRequests] = useState<PayoutRequest[]>([]);
   const [isOnline, setIsOnline] = useState<boolean>(() => {
     if (currentUser.isDutyOn !== undefined) return currentUser.isDutyOn;
     if (currentUser.isOnline !== undefined) return currentUser.isOnline;
@@ -330,37 +325,6 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
     return () => unsubscribe();
   }, [currentUser]);
 
-  // 3. Real-time Live Rider Profile Sync (settled amounts, balance, phone, etc.)
-  useEffect(() => {
-    if (!currentUser?.uid) return;
-    const unsub = onSnapshot(doc(db, "users", currentUser.uid), (docSnap) => {
-      if (docSnap.exists()) {
-        setLiveRiderProfile({ ...currentUser, ...docSnap.data(), uid: currentUser.uid } as UserProfile);
-      }
-    });
-    return () => unsub();
-  }, [currentUser?.uid]);
-
-  // 4. Real-time Rider Payout Requests Listener
-  useEffect(() => {
-    if (!currentUser?.uid) return;
-    const q = query(
-      collection(db, "payoutRequests"),
-      where("riderId", "==", currentUser.uid)
-    );
-    const unsub = onSnapshot(q, (snapshot) => {
-      const list: PayoutRequest[] = [];
-      snapshot.forEach((d) => {
-        list.push({ id: d.id, ...(d.data() as PayoutRequest) });
-      });
-      list.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-      setPayoutRequests(list);
-    }, (err) => {
-      console.warn("Payout requests listener error:", err);
-    });
-    return () => unsub();
-  }, [currentUser?.uid]);
-
   // Helper date parsing (handles firestore timestamp and object objects safely)
   const parseCompletedDate = (order: Order): Date | null => {
     if (!order.deliveryCompletedAt) return null;
@@ -495,17 +459,6 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
   const unsettledCoinsSubsidies = deliveredOrders.reduce((sum, o) => sum + (o.coinsUsed || 0), 0);
   const unsettledTotalSubsidies = unsettledVoucherSubsidies + unsettledCoinsSubsidies;
   const unsettledTotalPayoutDue = unsettledDeliveryFees + unsettledTotalSubsidies;
-
-  // All-time Lifetime Earnings Calculations
-  const allDeliveredOrders = myOrders.filter((o) => o.status === "delivered");
-  const lifetimeDeliveryFees = allDeliveredOrders.reduce((sum, o) => sum + (o.deliveryFee || 0), 0);
-  const lifetimeVoucherSubsidies = allDeliveredOrders.reduce((sum, o) => sum + (o.voucher?.discountAmount || 0), 0);
-  const lifetimeCoinsSubsidies = allDeliveredOrders.reduce((sum, o) => sum + (o.coinsUsed || 0), 0);
-  const lifetimeTotalSubsidies = lifetimeVoucherSubsidies + lifetimeCoinsSubsidies;
-  const lifetimeTotalEarnings = lifetimeDeliveryFees + lifetimeTotalSubsidies;
-  const totalWithdrawnEarnings = (liveRiderProfile?.totalWithdrawn !== undefined && liveRiderProfile?.totalWithdrawn !== null)
-    ? liveRiderProfile.totalWithdrawn
-    : Math.max(0, lifetimeTotalEarnings - unsettledTotalPayoutDue);
 
   // Group delivered history by Date format: YYYY-MM-DD
   const historyGroupedByDate = deliveredOrders.reduce((groups: Record<string, Order[]>, order) => {
@@ -708,22 +661,16 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
         {activeTab === "dashboard" && (
           <div className="space-y-6 sm:space-y-8 animate-fade-in">
 
-            {/* Compact Rider Header Bar with Total Unsettled Balance and Withdraw Button */}
+            {/* Compact Rider Header Bar */}
             <div className="bg-zinc-900 border border-zinc-800 p-3.5 sm:p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-md">
               <div className="flex items-center gap-3">
-                <div className="bg-emerald-500/10 text-emerald-400 p-2.5 rounded-xl border border-emerald-500/20">
+                <div className="bg-emerald-500/10 text-emerald-400 p-2 rounded-xl border border-emerald-500/20">
                   <Coins className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Today:</span>
-                    <span className="text-xs font-bold text-pink-400">{stats.todayCount} Runs</span>
-                    <span className="text-zinc-600">|</span>
-                    <span className="text-xs font-bold text-emerald-400">Rs. {stats.todayEarnings}</span>
-                  </div>
-                  <p className="text-xs sm:text-sm font-black text-white flex items-center gap-1.5 mt-0.5">
-                    <span>Withdrawable Balance:</span>
-                    <span className="text-emerald-400 font-mono font-black text-sm sm:text-base">Rs. {unsettledTotalPayoutDue}</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block">Today's Summary</span>
+                  <p className="text-xs sm:text-sm font-black text-white">
+                    Completed: <span className="text-pink-400">{stats.todayCount} Runs</span> | Earned: <span className="text-emerald-400">Rs. {stats.todayEarnings}</span>
                   </p>
                 </div>
               </div>
@@ -732,32 +679,16 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                 {availableOrders.length > 0 && (
                   <button
                     onClick={() => setIsMuted(prev => !prev)}
-                    className="py-2 px-3 rounded-xl text-[10px] font-black uppercase tracking-wider bg-pink-950/60 text-pink-300 border border-pink-800/60 hover:bg-pink-900/60 transition cursor-pointer flex items-center gap-1.5"
+                    className="py-1.5 px-3 rounded-xl text-[10px] font-black uppercase tracking-wider bg-pink-950/60 text-pink-300 border border-pink-800/60 hover:bg-pink-900/60 transition cursor-pointer flex items-center gap-1.5"
                   >
-                    <span>{isMuted ? "🔇 Muted" : "🚨 Active"}</span>
+                    <span>{isMuted ? "🔇 Alarm Muted" : "🚨 Alarm Active"}</span>
                   </button>
                 )}
-
-                {/* Direct Withdraw Button */}
-                <button
-                  onClick={() => setIsWithdrawModalOpen(true)}
-                  disabled={unsettledTotalPayoutDue <= 0}
-                  className={`py-2 px-3.5 rounded-xl text-[10.5px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-md active:scale-95 cursor-pointer ${
-                    unsettledTotalPayoutDue > 0
-                      ? "bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-zinc-950 shadow-emerald-500/20"
-                      : "bg-zinc-800/70 text-zinc-500 border border-zinc-750 cursor-not-allowed opacity-60"
-                  }`}
-                  title="Request Payout / Withdraw Earnings"
-                >
-                  <ArrowUpRight className="w-4 h-4 font-black" />
-                  <span>Withdraw (Rs. {unsettledTotalPayoutDue})</span>
-                </button>
-
                 <button
                   onClick={() => setActiveTab("performance")}
-                  className="py-2 px-3 rounded-xl text-[10px] font-black uppercase tracking-wider bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition cursor-pointer"
+                  className="py-1.5 px-3 rounded-xl text-[10px] font-black uppercase tracking-wider bg-zinc-800 text-zinc-200 hover:bg-zinc-700 transition cursor-pointer"
                 >
-                  Ledger →
+                  Earnings Details →
                 </button>
               </div>
             </div>
@@ -1914,287 +1845,14 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
           return (
             <div className="space-y-6 sm:space-y-8 animate-fade-in text-zinc-100">
 
-              {/* HERO FINANCIAL WALLET & EARNINGS COMMAND CENTER */}
-              <div className="bg-gradient-to-br from-zinc-900 via-zinc-900/95 to-zinc-950 border border-zinc-800 rounded-3xl p-5 sm:p-7 shadow-2xl space-y-6 relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
-                  <Wallet className="w-48 h-48 text-emerald-400" />
-                </div>
-
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-zinc-800/80 pb-5">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <div className="p-2 bg-[#D70F64]/15 text-[#D70F64] rounded-xl border border-[#D70F64]/25">
-                        <Wallet className="w-5 h-5" />
-                      </div>
-                      <h2 className="text-base sm:text-lg font-black text-white uppercase tracking-tight">
-                        Rider Total Earnings & Payout Wallet
-                      </h2>
-                      <span className="bg-emerald-500/15 text-emerald-400 text-[10px] px-2.5 py-0.5 rounded-full border border-emerald-500/30 font-extrabold uppercase tracking-wider">
-                        Live Sync
-                      </span>
-                    </div>
-                    <p className="text-xs text-zinc-400 font-medium">
-                      Aapki tamam delivery fees aur customer discount subsidies (Voucher + Coins) ka mukammal hisab.
-                    </p>
-                  </div>
-
-                  {/* Primary Withdraw CTA */}
-                  <button
-                    type="button"
-                    onClick={() => setIsWithdrawModalOpen(true)}
-                    disabled={unsettledTotalPayoutDue <= 0}
-                    className={`py-3 px-6 rounded-2xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-xl active:scale-95 cursor-pointer shrink-0 ${
-                      unsettledTotalPayoutDue > 0
-                        ? "bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-zinc-950 shadow-emerald-500/25 ring-2 ring-emerald-400/30 animate-pulse"
-                        : "bg-zinc-800/80 text-zinc-500 border border-zinc-700 cursor-not-allowed opacity-60"
-                    }`}
-                  >
-                    <ArrowUpRight className="w-5 h-5 font-black" />
-                    <span>Withdraw (Rs. {unsettledTotalPayoutDue})</span>
-                  </button>
-                </div>
-
-                {/* Main 3 High-Level Wallet Metrics */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {/* Total Lifetime Earnings */}
-                  <div className="bg-zinc-950/80 border border-zinc-800/80 p-5 rounded-2xl space-y-1 relative overflow-hidden">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block">
-                      🌟 Total Lifetime Earnings
-                    </span>
-                    <p className="text-2xl sm:text-3xl font-black text-white font-mono">
-                      Rs. {lifetimeTotalEarnings}
-                    </p>
-                    <p className="text-[10.5px] text-zinc-500 font-medium">
-                      Total {allDeliveredOrders.length} Completed Orders
-                    </p>
-                  </div>
-
-                  {/* Withdrawable Balance */}
-                  <div className="bg-gradient-to-br from-emerald-950/40 via-zinc-950 to-teal-950/30 border border-emerald-500/30 p-5 rounded-2xl space-y-1 relative overflow-hidden">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 block">
-                        💰 Available to Withdraw
-                      </span>
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                    </div>
-                    <p className="text-2xl sm:text-3xl font-black text-emerald-400 font-mono">
-                      Rs. {unsettledTotalPayoutDue}
-                    </p>
-                    <p className="text-[10.5px] text-emerald-300/80 font-medium">
-                      Ready for instant payout request
-                    </p>
-                  </div>
-
-                  {/* Settled / Already Withdrawn */}
-                  <div className="bg-zinc-950/80 border border-zinc-800/80 p-5 rounded-2xl space-y-1 relative overflow-hidden">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block">
-                      ✅ Settled / Paid Out
-                    </span>
-                    <p className="text-2xl sm:text-3xl font-black text-zinc-300 font-mono">
-                      Rs. {totalWithdrawnEarnings}
-                    </p>
-                    <p className="text-[10.5px] text-zinc-500 font-medium">
-                      Admin verified & transferred
-                    </p>
-                  </div>
-                </div>
-
-                {/* Subsidies Breakdown Card */}
-                <div className="bg-zinc-950/90 border border-amber-500/30 p-4 sm:p-5 rounded-2xl space-y-3">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-amber-400" />
-                      <span className="text-xs font-black text-amber-300 uppercase tracking-wide">
-                        Customer Discounts Processed Breakdown (100% Admin Reimbursed)
-                      </span>
-                    </div>
-                    <span className="text-[10px] bg-amber-500/15 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-500/20">
-                      Guaranteed Rider Income
-                    </span>
-                  </div>
-
-                  <p className="text-[11px] text-zinc-400 font-medium leading-relaxed">
-                    Customer ne aapke deliver kiye huye orders mein jo bhi discount use kiya, wo rider ke earnings mein shamil hota hai:
-                  </p>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                    <div className="bg-zinc-900 border border-zinc-800 p-3 rounded-xl flex items-center justify-between">
-                      <div>
-                        <span className="text-[9.5px] text-zinc-400 font-bold uppercase block">Pure Delivery Fees</span>
-                        <span className="text-base font-black text-zinc-200 font-mono">Rs. {lifetimeDeliveryFees}</span>
-                      </div>
-                      <span className="text-xl">🚲</span>
-                    </div>
-
-                    <div className="bg-zinc-900 border border-amber-500/20 p-3 rounded-xl flex items-center justify-between">
-                      <div>
-                        <span className="text-[9.5px] text-amber-400 font-bold uppercase block">🎟️ Voucher Subsidies</span>
-                        <span className="text-base font-black text-amber-300 font-mono">Rs. {lifetimeVoucherSubsidies}</span>
-                      </div>
-                      <span className="text-xl">🎟️</span>
-                    </div>
-
-                    <div className="bg-zinc-900 border border-amber-500/20 p-3 rounded-xl flex items-center justify-between">
-                      <div>
-                        <span className="text-[9.5px] text-amber-400 font-bold uppercase block">🪙 Coins Subsidies</span>
-                        <span className="text-base font-black text-amber-400 font-mono">Rs. {lifetimeCoinsSubsidies}</span>
-                      </div>
-                      <span className="text-xl">🪙</span>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-
-              {/* PAYOUT REQUESTS & WITHDRAWAL HISTORY */}
-              <section className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 sm:p-6 space-y-5 shadow-xl">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-zinc-800 pb-4">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
-                      <Clock className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="text-xs sm:text-sm font-black uppercase tracking-widest text-emerald-400">
-                        Payout Requests & Withdrawal History
-                      </h3>
-                      <p className="text-[11px] text-zinc-400 font-semibold">
-                        Aapke tamam bhejay gaye withdraw requests ka status aur transaction details.
-                      </p>
-                    </div>
-                  </div>
-
-                  {unsettledTotalPayoutDue > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setIsWithdrawModalOpen(true)}
-                      className="py-1.5 px-3.5 rounded-xl text-[10.5px] font-black uppercase tracking-wider bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 transition cursor-pointer flex items-center gap-1 self-start sm:self-auto"
-                    >
-                      <ArrowUpRight className="w-3.5 h-3.5" />
-                      <span>Request Payout</span>
-                    </button>
-                  )}
-                </div>
-
-                {payoutRequests.length === 0 ? (
-                  <div className="text-center py-10 px-4 bg-zinc-950 border border-zinc-850 rounded-2xl space-y-3">
-                    <div className="w-12 h-12 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto text-zinc-500">
-                      <Wallet className="w-6 h-6" />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-xs font-black uppercase text-zinc-400 tracking-wider">
-                        No Withdrawal Requests Yet
-                      </p>
-                      <p className="text-[11px] text-zinc-500 font-medium max-w-sm mx-auto">
-                        Jab aapke paas available earnings hon, aap "Withdraw" button press karke EasyPaisa, JazzCash ya Bank transfer request bhej saktay hain.
-                      </p>
-                    </div>
-                    {unsettledTotalPayoutDue > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => setIsWithdrawModalOpen(true)}
-                        className="py-2 px-4 rounded-xl text-xs font-black uppercase tracking-wider bg-emerald-500 hover:bg-emerald-400 text-zinc-950 transition cursor-pointer"
-                      >
-                        Submit First Withdrawal (Rs. {unsettledTotalPayoutDue})
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {payoutRequests.map((req) => {
-                      const reqDate = req.createdAt?.seconds 
-                        ? new Date(req.createdAt.seconds * 1000)
-                        : (req.createdAt instanceof Date ? req.createdAt : new Date());
-
-                      const isPending = req.status === "pending";
-                      const isApproved = req.status === "approved" || req.status === "settled" || req.status === "completed";
-                      const isRejected = req.status === "rejected";
-
-                      return (
-                        <div 
-                          key={req.id} 
-                          className="bg-zinc-950 border border-zinc-850 p-4 rounded-2xl flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow-sm hover:border-zinc-750 transition"
-                        >
-                          <div className="space-y-1.5 flex-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-xs font-black text-white font-mono">
-                                ID: #{req.id?.substring(0, 8)}
-                              </span>
-
-                              {/* Status Badge */}
-                              {isPending && (
-                                <span className="bg-amber-500/15 text-amber-300 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-amber-500/30 flex items-center gap-1">
-                                  <Clock3 className="w-3 h-3" />
-                                  <span>Pending Admin Review</span>
-                                </span>
-                              )}
-                              {isApproved && (
-                                <span className="bg-emerald-500/15 text-emerald-400 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1">
-                                  <CheckCircle className="w-3 h-3" />
-                                  <span>Paid / Settled</span>
-                                </span>
-                              )}
-                              {isRejected && (
-                                <span className="bg-rose-500/15 text-rose-400 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-rose-500/30 flex items-center gap-1">
-                                  <AlertTriangle className="w-3 h-3" />
-                                  <span>Rejected</span>
-                                </span>
-                              )}
-
-                              {/* Payment Channel Badge */}
-                              <span className="bg-zinc-900 text-zinc-300 text-[10px] font-bold px-2 py-0.5 rounded border border-zinc-800 uppercase">
-                                {req.paymentMethod}
-                              </span>
-                            </div>
-
-                            <div className="text-xs text-zinc-300 flex items-center gap-2 flex-wrap">
-                              <span className="font-semibold">{req.accountTitle}</span>
-                              <span className="text-zinc-500">•</span>
-                              <span className="font-mono text-zinc-400">{req.accountNumber}</span>
-                              {req.bankName && (
-                                <>
-                                  <span className="text-zinc-500">•</span>
-                                  <span className="text-zinc-400">{req.bankName}</span>
-                                </>
-                              )}
-                            </div>
-
-                            {req.note && (
-                              <p className="text-[10.5px] text-zinc-400 italic bg-zinc-900/60 px-2.5 py-1 rounded-lg border border-zinc-850/60 max-w-lg">
-                                Rider Note: "{req.note}"
-                              </p>
-                            )}
-
-                            {req.adminNote && (
-                              <p className="text-[10.5px] text-amber-300/90 font-medium bg-amber-950/30 px-2.5 py-1 rounded-lg border border-amber-500/30 max-w-lg">
-                                Admin Remark: "{req.adminNote}"
-                              </p>
-                            )}
-                          </div>
-
-                          {/* Right Side: Amount & Date */}
-                          <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-t-0 border-zinc-850 pt-2 sm:pt-0 gap-1">
-                            <span className="text-xl font-black text-emerald-400 font-mono">
-                              Rs. {req.amount}
-                            </span>
-                            <span className="text-[10px] text-zinc-500 font-medium">
-                              {reqDate.toLocaleDateString()} at {reqDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </section>
-
               {/* Timeframe Filter Panel */}
               <div className="bg-zinc-900 border border-zinc-800 p-4 sm:p-5 rounded-3xl space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-zinc-800/60 pb-3">
                   <div>
                     <h3 className="text-xs sm:text-sm font-black uppercase tracking-widest text-[#D70F64] flex items-center gap-1.5">
-                      📊 Dynamic Range Calculator
+                      📊 Dynamic Earnings Calculator
                     </h3>
-                    <p className="text-[10px] text-zinc-400 font-semibold mt-0.5">Filter runs by duration and inspect delivery charges.</p>
+                    <p className="text-[10px] text-zinc-400 font-semibold mt-0.5">Apni pure rider fees (Rs. 50, 100, 200, etc.) filter karkay check karein.</p>
                   </div>
                   
                   {/* Timeframe selector */}
@@ -2245,10 +1903,66 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                   </div>
                   <div className="bg-zinc-950/60 border border-pink-500/20 p-4 rounded-2xl flex items-center justify-between">
                     <div>
-                      <span className="text-[9px] uppercase tracking-widest text-pink-400 font-black">Filtered Total</span>
+                      <span className="text-[9px] uppercase tracking-widest text-pink-400 font-black">Total Payout Due</span>
                       <span className="text-xl sm:text-2xl font-mono font-black text-white block mt-1 font-sans">Rs. {filteredRiderEarnings}</span>
                     </div>
                     <span className="text-2xl">💵</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Customer Discounts & Subsidy Reimbursement Wallet */}
+              <div className="bg-gradient-to-r from-amber-950/80 via-zinc-900 to-amber-950/80 border border-amber-500/40 p-5 rounded-3xl space-y-4 shadow-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-amber-500/20 pb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-amber-500/20 text-amber-400 rounded-2xl border border-amber-500/30 shrink-0">
+                      <Wallet className="w-6 h-6 animate-pulse" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm sm:text-base font-black text-amber-300 uppercase tracking-wide flex items-center gap-2 flex-wrap">
+                        <span>🎟️ & 🪙 Customer Discount Reimbursement (Admin Payable)</span>
+                        <span className="bg-amber-500/20 text-amber-300 text-[9px] px-2 py-0.5 rounded-full border border-amber-500/30 font-extrabold uppercase">
+                          100% Guaranteed by Admin
+                        </span>
+                      </h3>
+                      <p className="text-xs text-amber-200/80 font-medium mt-0.5">
+                        Customer ne jo bhi Voucher code ya Coins discount use kiya hai, wo amount aapke is panel mein add ho jati hai. Admin settlement ke waqt aapko iska full cash/online payout deta hai.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="bg-zinc-950/70 border border-amber-500/20 p-4 rounded-2xl">
+                    <span className="text-[9.5px] uppercase tracking-widest text-amber-300 font-extrabold block">🎟️ Voucher Subsidies</span>
+                    <span className="text-2xl font-black text-amber-300 block mt-1 font-mono font-sans">
+                      Rs. {unsettledVoucherSubsidies}
+                    </span>
+                    <span className="text-[10px] text-zinc-400 font-medium block mt-0.5">Voucher Discount Reimbursement</span>
+                  </div>
+
+                  <div className="bg-zinc-950/70 border border-amber-500/20 p-4 rounded-2xl">
+                    <span className="text-[9.5px] uppercase tracking-widest text-amber-400 font-extrabold block">🪙 Coin Subsidies</span>
+                    <span className="text-2xl font-black text-amber-400 block mt-1 font-mono font-sans">
+                      Rs. {unsettledCoinsSubsidies}
+                    </span>
+                    <span className="text-[10px] text-zinc-400 font-medium block mt-0.5">Coins Redeemed Reimbursement</span>
+                  </div>
+
+                  <div className="bg-zinc-950/70 border border-emerald-500/20 p-4 rounded-2xl">
+                    <span className="text-[9.5px] uppercase tracking-widest text-emerald-400 font-extrabold block">Total Pending Subsidy</span>
+                    <span className="text-2xl font-black text-emerald-400 block mt-1 font-mono font-sans">
+                      Rs. {unsettledTotalSubsidies}
+                    </span>
+                    <span className="text-[10px] text-zinc-400 font-medium block mt-0.5">Pending from Admin</span>
+                  </div>
+
+                  <div className="bg-zinc-950/70 border border-pink-500/20 p-4 rounded-2xl">
+                    <span className="text-[9.5px] uppercase tracking-widest text-pink-300 font-extrabold block">⭐ Net Payable to Rider</span>
+                    <span className="text-2xl font-black text-pink-400 block mt-1 font-mono font-sans">
+                      Rs. {unsettledTotalPayoutDue}
+                    </span>
+                    <span className="text-[10px] text-zinc-400 font-medium block mt-0.5">Delivery Fees + Discount Subsidies</span>
                   </div>
                 </div>
               </div>
@@ -2494,19 +2208,6 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
         isOpen={isRiderReceiptModalOpen}
         onClose={() => setIsRiderReceiptModalOpen(false)}
         senderRole="rider"
-      />
-
-      {/* RIDER WITHDRAWAL & PAYOUT REQUEST MODAL */}
-      <RiderWithdrawModal
-        isOpen={isWithdrawModalOpen}
-        onClose={() => setIsWithdrawModalOpen(false)}
-        currentUser={liveRiderProfile || currentUser}
-        withdrawableBalance={unsettledTotalPayoutDue}
-        deliveryFeesPortion={unsettledDeliveryFees}
-        discountSubsidiesPortion={unsettledTotalSubsidies}
-        voucherSubsidies={unsettledVoucherSubsidies}
-        coinsSubsidies={unsettledCoinsSubsidies}
-        unsettledOrdersCount={deliveredOrders.length}
       />
 
       {/* RIDER LIVE CHAT MODAL OVERLAY */}
