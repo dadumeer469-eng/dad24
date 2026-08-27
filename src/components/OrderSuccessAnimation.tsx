@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Check, ShoppingBag, MapPin, Sparkles, Navigation, X, Receipt, Clock, ArrowRight } from "lucide-react";
 import { Order } from "../types";
+import { getDisplayOrderId } from "../lib/orderUtils";
 
 interface OrderSuccessAnimationProps {
   isOpen: boolean;
@@ -297,8 +298,8 @@ export default function OrderSuccessAnimation({
               <div className="w-full bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700 rounded-xl p-5 pt-6 text-left shadow-sm relative">
                 <div className="flex justify-between items-center pb-3 border-b border-dashed border-zinc-300 dark:border-zinc-700 text-xs">
                   <span className="text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-wider">Order ID</span>
-                  <span className="font-mono font-black text-zinc-900 dark:text-zinc-100 bg-zinc-200/60 dark:bg-zinc-700/60 px-2 py-0.5 rounded text-[10px]">
-                    DADU-{order.id.slice(-6).toUpperCase()}
+                  <span className="font-mono font-black text-[#D70F64] bg-pink-500/10 border border-pink-500/20 px-2.5 py-0.5 rounded-lg text-xs">
+                    {getDisplayOrderId(order)}
                   </span>
                 </div>
                 

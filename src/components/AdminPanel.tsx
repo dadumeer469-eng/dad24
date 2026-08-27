@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import OrderReceiptModal from "./OrderReceiptModal";
+import AdminOrderInspectorModal from "./AdminOrderInspectorModal";
+import { getDisplayOrderId, searchMatchesOrder } from "../lib/orderUtils";
 import MapLocationPickerModal from "./MapLocationPickerModal";
 import AiMenuGeneratorModal from "./AiMenuGeneratorModal";
 import AdminVoucherManager from "./AdminVoucherManager";
@@ -59,6 +61,7 @@ import {
 } from "recharts";
 import {
   Plus,
+  Search,
   Settings,
   LayoutDashboard,
   ShoppingCart,
@@ -1494,6 +1497,8 @@ export default function AdminPanel({
   );
   const [orderEtas, setOrderEtas] = useState<{ [orderId: string]: string }>({});
   const [adminOrderFilterTab, setAdminOrderFilterTab] = useState<"new" | "delivered" | "cancelled">("new");
+  const [orderSearchQuery, setOrderSearchQuery] = useState<string>("");
+  const [inspectedOrder, setInspectedOrder] = useState<Order | null>(null);
 
   // Date range filter state for Live Operational Orders & History
   const [orderDateRange, setOrderDateRange] = useState<"all" | "1day" | "7days" | "30days" | "custom">("all");
@@ -6311,6 +6316,45 @@ export default function AdminPanel({
                   )}
                 </div>
 
+                {/* Universal Order Search Bar */}
+                <div className="bg-white border-b border-slate-200 p-3 sm:p-4">
+                  <div className="relative flex items-center">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={orderSearchQuery}
+                      onChange={(e) => setOrderSearchQuery(e.target.value)}
+                      placeholder="ğŸ” Search Order by ID (#DF-...), Phone, Customer Name, Rider, Status, Price, Dish, Voucher..."
+                      className="w-full pl-10 pr-24 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#D70F64] focus:bg-white transition"
+                    />
+                    {orderSearchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setOrderSearchQuery("")}
+                        className="absolute right-3 px-2.5 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-[10px] font-black uppercase tracking-wider transition cursor-pointer"
+                      >
+                        Clear âœ•
+                      </button>
+                    )}
+                  </div>
+
+                  {orderSearchQuery.trim() && (
+                    <div className="mt-2.5 flex items-center justify-between text-xs font-bold text-slate-600 px-1">
+                      <span className="flex items-center gap-1.5">
+                        <span className="text-[#D70F64] font-black">Search Active:</span>
+                        <span>Showing results matching "{orderSearchQuery}" across all order pipelines</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setOrderSearchQuery("")}
+                        className="text-[#D70F64] hover:underline font-black text-xs cursor-pointer"
+                      >
+                        Reset Search
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 {/* Modern Filter Sub-Tabs for Orders */}
                 <div className="bg-slate-50 border-b border-slate-200 p-3 flex flex-wrap gap-2 items-center justify-between">
                   <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
@@ -6488,6 +6532,10 @@ export default function AdminPanel({
                     </div>
                   ) : (() => {
                     const filtered = orders.filter((order) => {
+                      if (orderSearchQuery.trim()) {
+                        return searchMatchesOrder(order, orderSearchQuery);
+                      }
+
                       const isDelivered = order.status === "delivered" || order.status === "completed";
                       const isCancelled = order.status === "cancelled";
                       if (adminOrderFilterTab === "new" && (isDelivered || isCancelled)) return false;
@@ -6521,9 +6569,15 @@ export default function AdminPanel({
                           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white border border-slate-200 p-4 rounded-2xl border border-slate-200">
                             <div>
                               <div className="flex items-center gap-2.5">
-                                <span className="font-mono text-xs font-black text-slate-900 uppercase bg-slate-100 border border-slate-200 py-1.5 px-3 rounded-lg shadow-inner">
-                                  dadu-{order.id.substring(0, 8)}
-                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => setInspectedOrder(order)}
+                                  className="font-mono text-xs font-black text-[#D70F64] hover:text-white uppercase bg-pink-500/10 hover:bg-[#D70F64] border border-pink-500/25 py-1.5 px-3 rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5"
+                                  title="Click to Inspect Order Data"
+                                >
+                                  <span>{getDisplayOrderId(order)}</span>
+                                  <span className="text-[10px] bg-white/30 px-1 rounded">ğŸ” Inspect</span>
+                                </button>
                                 <span
                                   className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${
                                     isSvc
@@ -6601,17 +6655,65 @@ export default function AdminPanel({
                                   </span>
                                 );
                               })()}
-                              <div className="mt-2 text-right">
+                              <div className="mt-2 flex items-center justify-end gap-2 flex-wrap">
+                                <button
+                                  type="button"
+                                  onClick={() => setInspectedOrder(order)}
+                                  className="inline-flex items-center justify-center gap-1 p-1.5 px-3 text-[10px] bg-[#D70F64] hover:bg-[#b00c50] text-white rounded-lg transition-colors font-black border border-[#D70F64] shadow-xs cursor-pointer"
+                                >
+                                  ğŸ” View All Data
+                                </button>
                                 <button
                                   type="button"
                                   onClick={() => handlePrintReceipt(order)}
                                   className="inline-flex items-center justify-center p-1.5 text-[10px] bg-slate-200/50 text-slate-700 hover:bg-slate-300 rounded-md transition-colors font-bold border border-slate-300 cursor-pointer"
                                 >
-                                  ğŸ–¨ï¸ Print Receipt
+                                  ğŸ–¨ï¸ Receipt
                                 </button>
                               </div>
                             </div>
                           </div>
+
+                          {/* Cancellation Banner if Cancelled */}
+                          {order.status === "cancelled" && (
+                            <div className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-3.5 flex items-start gap-2.5 text-xs">
+                              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                              <div className="space-y-0.5">
+                                <div className="font-black text-rose-700 uppercase tracking-wide">
+                                  Cancellation Record
+                                </div>
+                                <div className="font-bold text-rose-900">
+                                  Reason: {order.cancelledReason || order.cancelledNotes || "Cancelled by User/Admin"}
+                                </div>
+                                {order.cancelledBy && (
+                                  <div className="text-[11px] text-rose-600 font-medium">
+                                    Cancelled by: <span className="font-bold">{order.cancelledBy}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Financial & Discount Quick Pill Badges */}
+                          {((order.voucher?.discountAmount || 0) > 0 || (order.coinsUsed || 0) > 0) && (
+                            <div className="flex flex-wrap gap-2 text-xs font-bold">
+                              {(order.voucher?.discountAmount || 0) > 0 && (
+                                <span className="bg-rose-500/10 text-rose-700 border border-rose-500/25 px-2.5 py-1 rounded-xl flex items-center gap-1">
+                                  ğŸŸï¸ Voucher Discount: <span className="font-mono font-black">-Rs. {order.voucher?.discountAmount}</span> ({order.voucher?.code})
+                                </span>
+                              )}
+                              {(order.coinsUsed || 0) > 0 && (
+                                <span className="bg-amber-500/10 text-amber-800 border border-amber-500/25 px-2.5 py-1 rounded-xl flex items-center gap-1">
+                                  ğŸª™ Coins Discount: <span className="font-mono font-black">-Rs. {order.coinsUsed}</span> ({order.coinsUsed} coins)
+                                </span>
+                              )}
+                              {order.riderName && (
+                                <span className="bg-blue-500/10 text-blue-800 border border-blue-500/25 px-2.5 py-1 rounded-xl flex items-center gap-1">
+                                  ğŸ›µ Rider Payout: <span className="font-mono font-black">Rs. {(order.deliveryFee || 0) + (order.voucher?.discountAmount || 0) + (order.coinsUsed || 0)}</span> (Fee + Platform Subsidy)
+                                </span>
+                              )}
+                            </div>
+                          )}
 
                           {/* Items descriptions and customer address */}
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs font-medium">
@@ -7576,7 +7678,7 @@ export default function AdminPanel({
                           <div>
                             <div className="flex items-center gap-2">
                               <span className="font-extrabold text-[#D70F64]">
-                                dadu-{order.id.substring(0, 8)}
+                                {getDisplayOrderId(order)}
                               </span>
                               {(() => {
                                 const isCompleted = order.status === "delivered" || order.status === "completed";
@@ -10119,1492 +10221,47 @@ export default function AdminPanel({
                             } catch (err) {
                               console.error("Error compressing image", err);
                               alert("Failed to process image file.");
-                            }
-                          }}
-                        />
-                      </label>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">
-                      Display Text / Detail (Optional)
-                    </label>
-                    <input
-                      name="detail"
-                      type="text"
-                      placeholder="e.g. 50% OFF THIS WEEKEND"
-                      className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs outline-none text-slate-900 focus:border-pink-500/60 transition"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">
-                      Redirect Link / Target Restaurant (Optional)
-                    </label>
-                    <select
-                      name="restaurantName"
-                      className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs outline-none text-slate-900 focus:border-pink-500/60 transition"
-                    >
-                      <option value="">No link (View Only)</option>
-                      {uniqueRestaurants.map(r => (
-                        <option key={r} value={r}>{r}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex items-center gap-3 py-2">
-                    <input 
-                      type="checkbox" 
-                      name="isActive" 
-                      id="isActiveNewBanner" 
-                      defaultChecked
-                      className="w-4 h-4 text-pink-500 border-slate-300 rounded focus:ring-pink-500"
-                    />
-                    <label htmlFor="isActiveNewBanner" className="text-xs font-bold text-slate-700">
-                      Set as Active immediately
-                    </label>
-                  </div>
-                  <button type="submit" className="bg-pink-500 hover:bg-pink-600 disabled:opacity-70 text-white font-black text-[10px] uppercase tracking-widest py-3 px-6 rounded-xl transition cursor-pointer min-w-[120px]">
-                    Save Banner
-                  </button>
-                </form>
-              </div>
-
-              <div className="bg-white border border-slate-200 rounded-[24px] p-5 lg:p-7 shadow-sm relative overflow-hidden">
-                <h3 className="text-sm font-black text-slate-900 mb-4">Active Banners ({bannersList.length})</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {bannersList.map(banner => (
-                    <div key={banner.id} className={`border ${banner.isActive ? 'border-pink-200/50 bg-pink-50/30' : 'border-slate-200 bg-slate-50 opacity-75'} rounded-2xl p-3 relative group transition-all`}>
-                      <button
-                        onClick={() => {
-                          setConfirmDialog({
-                            title: "Delete Banner",
-                            message: "Are you sure you want to permanently delete this banner?",
-                            onConfirm: async () => {
-                              try {
-                                await deleteDoc(doc(db, "promotional_banners", banner.id));
-                              } catch (err: any) {
-                                alert(handleFirestoreError(err));
-                              }
-                            }
-                          });
-                        }}
-                        className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 shadow-md text-white w-7 h-7 rounded-full flex items-center justify-center transition z-10 cursor-pointer"
-                        title="Delete Banner"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                      <div className="w-full aspect-[21/9] rounded-xl mb-3 overflow-hidden bg-slate-100 relative">
-                        <img 
-                          src={banner.imageUrl} 
-                          className={`w-full h-full object-cover transition-transform ${!banner.isActive && 'grayscale'}`} 
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = "https://placehold.co/800x400/f8fafc/94a3b8?text=Image+Load+Error";
-                          }}
-                        />
-                      </div>
-                      <div className="text-[10px] font-black text-slate-600 truncate mb-1">
-                        {banner.restaurantName ? `ğŸ”— ${banner.restaurantName}` : 'No Link'}
-                      </div>
-                      {banner.detail && (
-                        <div className="text-[10px] font-bold text-pink-500 truncate mb-2">
-                          {banner.detail}
-                        </div>
-                      )}
-                      <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                        <span className="text-[9px] font-bold text-slate-400">
-                          {new Date(banner.createdAt).toLocaleDateString()}
-                        </span>
-                        <button
-                          onClick={async () => {
-                            try {
-                              await updateDoc(doc(db, "promotional_banners", banner.id), {
-                                isActive: !banner.isActive
-                              });
-                            } catch (err: any) {
-                              alert(handleFirestoreError(err));
-                            }
-                          }}
-                          className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider cursor-pointer transition-colors ${banner.isActive ? "bg-green-100 hover:bg-green-200 text-green-700" : "bg-slate-200 hover:bg-slate-300 text-slate-600"}`}
-                        >
-                          {banner.isActive ? "ğŸŸ¢ Active" : "âš« Hidden"}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeSubTab === "vouchers" && (
-            <AdminVoucherManager
-              vouchers={vouchersList}
-              allUsersList={allUsersList}
-              restaurantNames={uniqueRestaurants}
-            />
-          )}
-
-
-        </div>
-      </div>
-
-      {showClearSalesModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-fade-in text-left">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl text-slate-900 p-6 space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-              <div className="flex items-center gap-2.5 text-rose-600">
-                <Trash2 className="w-5 h-5 shrink-0" />
-                <div>
-                  <h4 className="font-black text-sm uppercase tracking-wider text-slate-900">
-                    Clear Sales & Order History ğŸ§¹
-                  </h4>
-                  <p className="text-[11px] text-slate-500 font-bold">
-                    Filter and permanently delete order records from database
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowClearSalesModal(false)}
-                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Scope Filter 1: Status */}
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-black uppercase text-slate-700 tracking-wider">
-                1. Order Status Scope:
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setClearSalesStatus("delivered")}
-                  className={`py-2 px-3 rounded-xl text-xs font-extrabold border transition cursor-pointer ${
-                    clearSalesStatus === "delivered"
-                      ? "bg-[#D70F64] text-white border-[#D70F64]"
-                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  âœ… Delivered Only
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setClearSalesStatus("cancelled")}
-                  className={`py-2 px-3 rounded-xl text-xs font-extrabold border transition cursor-pointer ${
-                    clearSalesStatus === "cancelled"
-                      ? "bg-[#D70F64] text-white border-[#D70F64]"
-                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  âŒ Cancelled Only
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setClearSalesStatus("all")}
-                  className={`py-2 px-3 rounded-xl text-xs font-extrabold border transition cursor-pointer ${
-                    clearSalesStatus === "all"
-                      ? "bg-[#D70F64] text-white border-[#D70F64]"
-                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  ğŸŒ All Statuses
-                </button>
-              </div>
-            </div>
-
-            {/* Scope Filter 2: Date Range */}
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-black uppercase text-slate-700 tracking-wider">
-                2. Select Time Period:
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setClearSalesRange("all")}
-                  className={`py-2 px-2 rounded-xl text-[11px] font-extrabold border transition cursor-pointer ${
-                    clearSalesRange === "all"
-                      ? "bg-slate-900 text-white border-slate-900"
-                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  All Time
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setClearSalesRange("1day")}
-                  className={`py-2 px-2 rounded-xl text-[11px] font-extrabold border transition cursor-pointer ${
-                    clearSalesRange === "1day"
-                      ? "bg-slate-900 text-white border-slate-900"
-                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  1 Day
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setClearSalesRange("7days")}
-                  className={`py-2 px-2 rounded-xl text-[11px] font-extrabold border transition cursor-pointer ${
-                    clearSalesRange === "7days"
-                      ? "bg-slate-900 text-white border-slate-900"
-                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  7 Days
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setClearSalesRange("30days")}
-                  className={`py-2 px-2 rounded-xl text-[11px] font-extrabold border transition cursor-pointer ${
-                    clearSalesRange === "30days"
-                      ? "bg-slate-900 text-white border-slate-900"
-                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  1 Month
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setClearSalesRange("custom")}
-                  className={`py-2 px-2 rounded-xl text-[11px] font-extrabold border transition cursor-pointer ${
-                    clearSalesRange === "custom"
-                      ? "bg-slate-900 text-white border-slate-900"
-                      : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  Manual
-                </button>
-              </div>
-
-              {clearSalesRange === "custom" && (
-                <div className="grid grid-cols-2 gap-2 pt-2">
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">From Date:</label>
-                    <input
-                      type="date"
-                      value={clearSalesCustomStart}
-                      onChange={(e) => setClearSalesCustomStart(e.target.value)}
-                      className="w-full px-3 py-1.5 text-xs font-bold border border-slate-300 rounded-xl focus:ring-1 focus:ring-[#D70F64]"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">To Date:</label>
-                    <input
-                      type="date"
-                      value={clearSalesCustomEnd}
-                      onChange={(e) => setClearSalesCustomEnd(e.target.value)}
-                      className="w-full px-3 py-1.5 text-xs font-bold border border-slate-300 rounded-xl focus:ring-1 focus:ring-[#D70F64]"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Live Count Preview */}
-            {(() => {
-              const matchingOrders = orders.filter((order) => {
-                const isDelivered = order.status === "delivered" || order.status === "completed";
-                const isCancelled = order.status === "cancelled";
-
-                if (clearSalesStatus === "delivered" && !isDelivered) return false;
-                if (clearSalesStatus === "cancelled" && !isCancelled) return false;
-
-                return checkOrderInDateRange(order, clearSalesRange, clearSalesCustomStart, clearSalesCustomEnd);
-              });
-              const matchingRevenue = matchingOrders.reduce((acc, o) => acc + (o.grandTotal || 0), 0);
-
-              return (
-                <div className="bg-rose-50 border border-rose-200 p-4 rounded-2xl space-y-1">
-                  <div className="flex items-center justify-between text-xs font-black text-rose-900">
-                    <span>Target Orders to Delete:</span>
-                    <span className="bg-rose-600 text-white px-2.5 py-0.5 rounded-lg">
-                      {matchingOrders.length} orders
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-[11px] font-bold text-rose-700">
-                    <span>Associated Revenue Value:</span>
-                    <span>Rs. {Math.round(matchingRevenue).toLocaleString()}</span>
-                  </div>
-                </div>
-              );
-            })()}
-
-            <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setShowClearSalesModal(false)}
-                className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-black text-xs hover:bg-slate-100 cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={isDeletingSales}
-                onClick={handleExecuteClearSalesHistory}
-                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs uppercase tracking-wider shadow-md shadow-rose-500/20 cursor-pointer disabled:opacity-50"
-              >
-                {isDeletingSales ? "Deleting Orders..." : "Permanently Delete Selected Orders ğŸ§¹"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {confirmDialog && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-fade-in text-left">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full overflow-hidden shadow-sm text-slate-900 p-6 space-y-4">
-            <div className="flex items-center gap-2.5 text-red-500">
-              <AlertTriangle className="w-5 h-5 shrink-0 animate-pulse" />
-              <h4 className="font-black text-xs uppercase tracking-widest">
-                {confirmDialog.title}
-              </h4>
-            </div>
-            <p className="text-[11px] text-slate-600 font-semibold leading-relaxed">
-              {confirmDialog.message}
-            </p>
-            <div className="flex items-center justify-end gap-2.5 pt-1">
-              <button
-                type="button"
-                onClick={() => setConfirmDialog(null)}
-                className="px-3.5 py-2 bg-slate-100 border border-slate-200 rounded-xl text-[10px] uppercase font-black text-slate-600 hover:text-slate-700 hover:bg-slate-200 transition cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  const callback = confirmDialog.onConfirm;
-                  setConfirmDialog(null);
-                  await callback();
-                }}
-                className="px-4 py-2 bg-gradient-to-r from-pink-600 to-pink-700 text-slate-900 rounded-xl text-[10px] font-black hover:brightness-110 shadow-md cursor-pointer transition uppercase tracking-wide"
-              >
-                Delete Permanently
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ADDRESS ENTRY MODAL FOR UNLOCKING USER */}
-      {unlockingUser && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-fade-in text-left">
-          <div className="bg-white border border-slate-200 rounded-[32px] max-w-md w-full overflow-hidden shadow-2xl p-6 relative">
-            <button
-              onClick={() => {
-                setUnlockingUser(null);
-                setUnlockArea("");
-                setUnlockStreet("");
-                setUnlockLandmark("");
-                setUnlockNotes("");
-                setUnlockCoords(null);
-              }}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-105 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition cursor-pointer font-black text-xs"
-            >
-              âœ•
-            </button>
-            
-            <div className="space-y-4">
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-[#D70F64] block">
-                  {unlockingUser.status === "locked" ? "Verify & Configure Address" : "Update Delivery Address"}
-                </span>
-                <h3 className="text-lg font-black text-slate-900 mt-1">
-                  {unlockingUser.status === "locked" ? "Unlock User:" : "Edit Address for:"} {unlockingUser.phone}
-                </h3>
-                <p className="text-[11.5px] text-slate-500 mt-1 font-semibold leading-relaxed">
-                  {unlockingUser.status === "locked"
-                    ? "Call user to verify their details, then enter their delivery/mohalla address below. After saving, the user will be unlocked!"
-                    : "Update the user's structured address and coordinates below. This address will be used for all future deliveries."}
-                </p>
-              </div>
-
-              <form onSubmit={handleUnlockSubmit} className="space-y-4">
-                <div className="space-y-3.5">
-                  <div>
-                    <label className="text-[9.5px] font-black uppercase tracking-wider text-slate-600 block mb-1">
-                      Area / Mohalla <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={unlockArea}
-                      onChange={(e) => setUnlockArea(e.target.value)}
-                      placeholder="e.g. Model Town, Gulberg, Dadu"
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none text-slate-900 focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[9.5px] font-black uppercase tracking-wider text-slate-600 block mb-1">
-                      Street / Gali <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={unlockStreet}
-                      onChange={(e) => setUnlockStreet(e.target.value)}
-                      placeholder="e.g. Gali No. 4, Street 12, Main Road"
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none text-slate-900 focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[9.5px] font-black uppercase tracking-wider text-slate-600 block mb-1">
-                      Landmark / Mashoor Jagah
-                    </label>
-                    <input
-                      type="text"
-                      value={unlockLandmark}
-                      onChange={(e) => setUnlockLandmark(e.target.value)}
-                      placeholder="e.g. Near Bilal Masjid, Opp. Govt School"
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none text-slate-905 focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[9.5px] font-black uppercase tracking-wider text-slate-600 block mb-1">
-                      Delivery Notes / Special Instructions
-                    </label>
-                    <textarea
-                      value={unlockNotes}
-                      onChange={(e) => setUnlockNotes(e.target.value)}
-                      placeholder="e.g. deliver to back gate, call on arrival, orange gate house"
-                      rows={2}
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold outline-none text-slate-900 focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64] transition resize-none"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-[9.5px] font-black uppercase tracking-wider text-slate-600 block">
-                        Precise GPS coordinates / Location
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setShowUserManualCoords(!showUserManualCoords)}
-                        className="text-[9.5px] font-bold text-[#D70F64] hover:underline cursor-pointer"
-                      >
-                        {showUserManualCoords ? "Hide Manual Inputs" : "âœï¸ Manual Fill (Lat / Lng)"}
-                      </button>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={handleDetectUnlockGPS}
-                        disabled={isDetectingUnlockGPS}
-                        className="bg-slate-100 border border-slate-200 text-slate-700 py-2.5 px-3.5 rounded-xl font-bold text-[10.5px] uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 hover:bg-slate-200"
-                      >
-                        {isDetectingUnlockGPS ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          "ğŸ“ Auto Fill GPS"
-                        )}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setIsUserMapPickerOpen(true)}
-                        className="bg-[#D70F64] text-white py-2.5 px-3.5 rounded-xl font-bold text-[10.5px] uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer shadow-xs hover:bg-[#b00c50]"
-                      >
-                        <MapPin className="w-3.5 h-3.5" />
-                        <span>{unlockCoords?.lat && unlockCoords?.lng ? "Change on Map" : "ğŸ—ºï¸ Select on Map"}</span>
-                      </button>
-
-                      {unlockCoords && !showUserManualCoords && (
-                        <div className="flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-100">
-                          <span className="text-[10px] font-mono text-emerald-700 font-bold">
-                            {unlockCoords.lat?.toFixed(5)}, {unlockCoords.lng?.toFixed(5)}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setUnlockCoords(null)}
-                            className="text-rose-500 hover:text-rose-700 text-xs font-bold px-1 cursor-pointer"
-                            title="Clear coordinates"
-                          >
-                            âœ•
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {showUserManualCoords && (
-                      <div className="grid grid-cols-2 gap-2.5 mt-2.5 p-3 bg-slate-100/90 border border-slate-200/90 rounded-2xl animate-fadeIn">
-                        <div>
-                          <label className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider block mb-1">
-                            Latitude (e.g. 26.7323)
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="26.7323"
-                            value={unlockCoords?.lat !== undefined ? String(unlockCoords.lat) : ""}
-                            onChange={(e) => {
-                              const val = e.target.value !== "" ? parseFloat(e.target.value) : undefined;
-                              setUnlockCoords({
-                                lat: isNaN(val as number) ? undefined : val,
-                                lng: unlockCoords?.lng,
-                              });
-                            }}
-                            className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 outline-none focus:border-[#D70F64] transition"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider block mb-1">
-                            Longitude (e.g. 67.7744)
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="67.7744"
-                            value={unlockCoords?.lng !== undefined ? String(unlockCoords.lng) : ""}
-                            onChange={(e) => {
-                              const val = e.target.value !== "" ? parseFloat(e.target.value) : undefined;
-                              setUnlockCoords({
-                                lat: unlockCoords?.lat,
-                                lng: isNaN(val as number) ? undefined : val,
-                              });
-                            }}
-                            className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-900 outline-none focus:border-[#D70F64] transition"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 mt-4">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUnlockingUser(null);
-                      setUnlockArea("");
-                      setUnlockStreet("");
-                      setUnlockLandmark("");
-                      setUnlockNotes("");
-                      setUnlockCoords(null);
-                    }}
-                    className="px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-[10.5px] uppercase font-black text-slate-600 hover:text-slate-700 hover:bg-slate-200 transition cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-5 py-2.5 bg-[#D70F64] text-white rounded-xl text-[10.5px] font-black hover:bg-[#b00c50] shadow-md cursor-pointer transition uppercase tracking-wider flex items-center gap-1.5"
-                  >
-                    {unlockingUser.status === "locked" ? "Save & Unlock âœ…" : "Save Address ğŸ’¾"}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* COIN MANAGEMENT MODAL */}
-      {coinManagingUser && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-fade-in text-left">
-          <div className="bg-white border border-slate-200 rounded-[32px] max-w-md w-full overflow-hidden shadow-2xl p-6 relative">
-            <button
-              onClick={() => {
-                setCoinManagingUser(null);
-                setCoinAmountInput(50);
-                setCoinNoteInput("");
-              }}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition cursor-pointer font-black text-xs"
-            >
-              âœ•
-            </button>
-            
-            <div className="space-y-4">
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 block">
-                  Coin Benefit Wallet Management
-                </span>
-                <h3 className="text-lg font-black text-slate-900 mt-1 flex items-center gap-2">
-                  <Coins className="w-5 h-5 text-amber-500" />
-                  Coins for {coinManagingUser.name || coinManagingUser.phone || "User"}
-                </h3>
-                <p className="text-[11.5px] text-slate-500 mt-1 font-semibold leading-relaxed">
-                  Aap user ko manually Coin Benefit send (add) bhi kar sakte hain aur deduct (remove) bhi kar sakte hain!
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                {/* User Current Balance */}
-                <div className="bg-amber-50 border border-amber-200 p-3.5 rounded-2xl text-xs space-y-1.5">
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-500 font-bold uppercase text-[9.5px]">Current Coin Balance:</span>
-                    <span className="text-amber-700 font-mono font-black text-sm bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-300">
-                      {getUserCoins(coinManagingUser, deliverySettings)} Coins (Rs. {getUserCoins(coinManagingUser, deliverySettings)})
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400 font-bold uppercase text-[9px]">Phone Number:</span>
-                    <span className="text-slate-800 font-mono font-bold">{coinManagingUser.phone || "Guest"}</span>
-                  </div>
-                </div>
-
-                {/* Coin Amount Input */}
-                <div>
-                  <label className="text-[9.5px] font-black uppercase tracking-wider text-slate-600 block mb-1">
-                    Number of Coins (Amount) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={coinAmountInput}
-                    onChange={(e) => setCoinAmountInput(Math.max(1, Number(e.target.value)))}
-                    placeholder="Enter coin amount e.g. 50"
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
-                  />
-                </div>
-
-                {/* Custom Note / Message */}
-                <div>
-                  <label className="text-[9.5px] font-black uppercase tracking-wider text-slate-600 block mb-1">
-                    Optional Note / Notification Message
-                  </label>
-                  <input
-                    type="text"
-                    value={coinNoteInput}
-                    onChange={(e) => setCoinNoteInput(e.target.value)}
-                    placeholder="e.g. Special loyalty bonus or manual correction"
-                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
-                  />
-                </div>
-
-                {/* Actions */}
-                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100 mt-4">
-                  {/* Remove / Deduct Button */}
-                  <button
-                    type="button"
-                    disabled={isCoinProcessing}
-                    onClick={async () => {
-                      if (!coinAmountInput || coinAmountInput <= 0) {
-                        alert("Please enter a valid coin amount!");
-                        return;
-                      }
-                      setIsCoinProcessing(true);
-                      try {
-                        const currentBalance = getUserCoins(coinManagingUser, deliverySettings);
-                        const newBalance = Math.max(0, currentBalance - coinAmountInput);
-                        
-                        await updateDoc(doc(db, "users", coinManagingUser.uid), {
-                          loyaltyCoins: newBalance
-                        });
-
-                        const msg = coinNoteInput.trim() || `âš ï¸ Admin ne aapke wallet se ${coinAmountInput} Coins deduct/remove kiye hain. Naya balance: ${newBalance} coins.`;
-                        await addDoc(collection(db, "notifications"), {
-                          userId: coinManagingUser.uid,
-                          title: "ğŸª™ Coins Deducted",
-                          message: msg,
-                          createdAt: new Date(),
-                          read: false
-                        });
-
-                        alert(`âš ï¸ ${coinAmountInput} coins deducted from ${coinManagingUser.name || coinManagingUser.phone}! New Balance: ${newBalance}`);
-                        setCoinManagingUser(null);
-                      } catch (err: any) {
-                        alert("Failed to deduct coins: " + err.message);
-                      } finally {
-                        setIsCoinProcessing(false);
-                      }
-                    }}
-                    className="px-4 py-3 bg-red-500 text-white rounded-xl text-[10.5px] font-black hover:bg-red-600 shadow-md cursor-pointer transition uppercase tracking-wider flex items-center justify-center gap-1 disabled:opacity-50"
-                  >
-                    â– Remove Coins
-                  </button>
-
-                  {/* Add / Send Button */}
-                  <button
-                    type="button"
-                    disabled={isCoinProcessing}
-                    onClick={async () => {
-                      if (!coinAmountInput || coinAmountInput <= 0) {
-                        alert("Please enter a valid coin amount!");
-                        return;
-                      }
-                      setIsCoinProcessing(true);
-                      try {
-                        await updateDoc(doc(db, "users", coinManagingUser.uid), {
-                          loyaltyCoins: increment(coinAmountInput)
-                        });
-
-                        const msg = coinNoteInput.trim() || `ğŸ‰ Mubarak ho! Admin ne aapko ${coinAmountInput} Coins credit kar diye hain! Enjoy your rewards! ğŸ`;
-                        await addDoc(collection(db, "notifications"), {
-                          userId: coinManagingUser.uid,
-                          title: "ğŸª™ Coins Received!",
-                          message: msg,
-                          createdAt: new Date(),
-                          read: false
-                        });
-
-                        alert(`âœ… ${coinAmountInput} coins successfully sent to ${coinManagingUser.name || coinManagingUser.phone}!`);
-                        setCoinManagingUser(null);
-                      } catch (err: any) {
-                        alert("Failed to send coins: " + err.message);
-                      } finally {
-                        setIsCoinProcessing(false);
-                      }
-                    }}
-                    className="px-4 py-3 bg-amber-500 text-zinc-950 rounded-xl text-[10.5px] font-black hover:bg-amber-400 shadow-md cursor-pointer transition uppercase tracking-wider flex items-center justify-center gap-1 disabled:opacity-50"
-                  >
-                    â• Send / Add Coins
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* RIDER STATS LEDGER MODAL */}
-      {selectedRiderStatsId && (() => {
-        const selectedRiderObj = ridersSubset.find((r) => r.uid === selectedRiderStatsId);
-        if (!selectedRiderObj) return null;
-
-        // 1. Gather all delivered orders for this rider
-        const riderDeliveredOrders = orders.filter((o) => {
-          if (o.riderId !== selectedRiderStatsId) return false;
-          if (o.status !== "delivered" && o.status !== "completed") return false;
-
-          // If NOT showing settled/cleared history, filter out settled orders
-          if (!showSettledHistory) {
-            if (o.riderSettled) return false;
-            if (selectedRiderObj.lastSettledAt) {
-              const orderDeliveredTime = parseDateToMillis(o.deliveryCompletedAt || o.createdAt);
-              const settledTime = parseDateToMillis(selectedRiderObj.lastSettledAt);
-
-              if (orderDeliveredTime <= settledTime) {
-                return false;
-              }
-            }
-          }
-          return true;
-        });
-
-        // 2. Filter by timeframe
-        const now = Date.now();
-        const timeframeFiltered = riderDeliveredOrders.filter((o) => {
-          const orderTime = parseDateToMillis(o.deliveryCompletedAt || o.createdAt);
-
-          if (statsTimeframe === "1day") {
-            const todayStart = new Date().setHours(0, 0, 0, 0);
-            return orderTime >= todayStart;
-          } else if (statsTimeframe === "7days") {
-            const limit = now - 7 * 24 * 60 * 60 * 1000;
-            return orderTime >= limit;
-          } else if (statsTimeframe === "30days") {
-            const limit = now - 30 * 24 * 60 * 60 * 1000;
-            return orderTime >= limit;
-          } else if (statsTimeframe === "60days") {
-            const limit = now - 60 * 24 * 60 * 60 * 1000;
-            return orderTime >= limit;
-          }
-          return true; // all
-        });
-
-        // 3. Group by day for daily list
-        const dailyGroups: Record<string, {
-          dateStr: string;
-          count: number;
-          sales: number;
-          commission: number;
-          orders: Order[];
-        }> = {};
-
-        timeframeFiltered.forEach((o) => {
-          const orderTime = parseDateToMillis(o.deliveryCompletedAt || o.createdAt);
-
-          const dateObj = new Date(orderTime);
-          const formattedDate = dateObj.toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "short",
-            day: "numeric"
-          });
-
-          const amt = o.grandTotal || o.totalPrice || 0;
-          const comm = o.deliveryFee || 0;
-
-          if (!dailyGroups[formattedDate]) {
-            dailyGroups[formattedDate] = {
-              dateStr: formattedDate,
-              count: 0,
-              sales: 0,
-              commission: 0,
-              orders: []
-            };
-          }
-
-          dailyGroups[formattedDate].count += 1;
-          dailyGroups[formattedDate].sales += amt;
-          dailyGroups[formattedDate].commission += comm;
-          dailyGroups[formattedDate].orders.push(o);
-        });
-
-        const dailyGroupsArray = Object.values(dailyGroups).sort((a, b) => {
-          return Date.parse(b.dateStr) - Date.parse(a.dateStr);
-        });
-
-        // Totals inside timeframe
-        const totalTimeframeOrders = timeframeFiltered.length;
-        const totalTimeframeSales = timeframeFiltered.reduce((sum, o) => sum + (o.grandTotal || o.totalPrice || 0), 0);
-        const totalTimeframeCommission = timeframeFiltered.reduce((sum, o) => {
-          return sum + (o.deliveryFee || 0);
-        }, 0);
-
-        return (
-          <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fade-in text-left">
-            <div className="bg-white border border-slate-200 rounded-[32px] max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl p-6 relative font-sans text-slate-900">
-              <button
-                type="button"
-                onClick={() => setSelectedRiderStatsId(null)}
-                className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-full transition cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-                <div className="bg-[#D70F64]/10 p-2.5 rounded-2xl">
-                  <ClipboardList className="w-6 h-6 text-[#D70F64]" />
-                </div>
-                <div>
-                  <h3 className="text-base font-black text-slate-900 uppercase tracking-wide">
-                    Delivery Report Ledger
-                  </h3>
-                  <p className="text-[11px] text-slate-500 font-bold">
-                    Rider: <span className="text-[#D70F64] font-black">{selectedRiderObj.name}</span> ({selectedRiderObj.phone})
-                  </p>
-                </div>
-              </div>
-
-              {/* Body */}
-              <div className="flex-1 overflow-y-auto py-4 space-y-5 scrollbar-none">
-                
-                {/* Filters */}
-                <div className="bg-slate-50 border border-slate-200/60 p-4 rounded-2xl space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2.5">
-                    <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
-                      ğŸ“… Select Duration (Mudat)
-                    </span>
-                    <div className="flex flex-wrap gap-1 bg-white border border-slate-200 p-1 rounded-xl">
-                      {[
-                        { id: "1day", label: "1 Din (Today)" },
-                        { id: "7days", label: "7 Din (Week)" },
-                        { id: "30days", label: "30 Din (Month)" },
-                        { id: "60days", label: "60 Din (2 Months)" },
-                        { id: "all", label: "All Data" },
-                      ].map((item) => (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => setStatsTimeframe(item.id as any)}
-                          className={`px-2.5 py-1 text-[9.5px] font-black uppercase tracking-wide rounded-lg transition-all cursor-pointer ${
-                            statsTimeframe === item.id
-                              ? "bg-[#D70F64] text-white"
-                              : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
-                          }`}
-                        >
-                          {item.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Settle Options */}
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-200/65 flex-wrap gap-3">
-                    <label className="flex items-center gap-2 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={showSettledHistory}
-                        onChange={(e) => setShowSettledHistory(e.target.checked)}
-                        className="w-4 h-4 rounded border-slate-300 text-[#D70F64] focus:ring-[#D70F64]"
-                      />
-                      <span className="text-[10.5px] text-slate-600 font-extrabold uppercase tracking-wide">
-                        Settle kiya hua history bhi shamil karein
-                      </span>
-                    </label>
-
-                    {selectedRiderObj.lastSettledAt && (
-                      <span className="text-[9px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded-md font-bold uppercase">
-                        Aakhri Settle Time: {new Date(
-                          selectedRiderObj.lastSettledAt?.seconds
-                            ? selectedRiderObj.lastSettledAt.seconds * 1000
-                            : selectedRiderObj.lastSettledAt
-                        ).toLocaleDateString()}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Ledger Key Numbers */}
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="bg-slate-50 border border-slate-200 p-3 rounded-2xl text-center">
-                    <span className="text-[8.5px] text-slate-500 uppercase tracking-widest font-black block leading-none">
-                      DELIVERED RUNS
-                    </span>
-                    <span className="text-lg font-black text-slate-900 block mt-1.5 leading-none">
-                      {totalTimeframeOrders}
-                    </span>
-                    <span className="text-[8px] text-slate-400 font-bold block mt-1">
-                      completed shipments
-                    </span>
-                  </div>
-                  
-                  <div className="bg-[#D70F64]/5 border border-[#D70F64]/10 p-3 rounded-2xl text-center">
-                    <span className="text-[8.5px] text-slate-500 uppercase tracking-widest font-black block leading-none">
-                      TOTAL ORDER AMOUNT
-                    </span>
-                    <span className="text-lg font-black text-[#D70F64] block mt-1.5 leading-none font-mono">
-                      Rs. {totalTimeframeSales}
-                    </span>
-                    <span className="text-[8px] text-slate-400 font-bold block mt-1">
-                      cumulative collection
-                    </span>
-                  </div>
-
-                  <div className="bg-emerald-500/5 border border-emerald-500/10 p-3 rounded-2xl text-center">
-                    <span className="text-[8.5px] text-slate-500 uppercase tracking-widest font-black block leading-none">
-                      EARNED RIDER FEE (KAMAEE)
-                    </span>
-                    <span className="text-lg font-black text-emerald-600 block mt-1.5 leading-none font-mono font-sans">
-                      Rs. {totalTimeframeCommission}
-                    </span>
-                    <span className="text-[8px] text-slate-400 font-bold block mt-1">
-                      due rider fee payout
-                    </span>
-                  </div>
-                </div>
-
-                {/* Daily Performance list */}
-                <div className="space-y-3 pt-2">
-                  <h4 className="text-[11px] font-black uppercase text-slate-500 tracking-wider flex items-center justify-between">
-                    <span>ğŸ“… Daily Performance Breakdown (Rozana Reports)</span>
-                    <span className="text-[10px] text-slate-400 lowercase font-medium">({dailyGroupsArray.length} active days)</span>
-                  </h4>
-
-                  {dailyGroupsArray.length === 0 ? (
-                    <div className="text-center p-8 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-slate-400 text-xs font-semibold">
-                      Is duration me koi completed deliveries nahi hain.
-                    </div>
-                  ) : (
-                    <div className="space-y-3.5 max-h-[300px] overflow-y-auto pr-1 scrollbar-none">
-                      {dailyGroupsArray.map((group) => (
-                        <div key={group.dateStr} className="bg-white border border-slate-200/80 rounded-2xl p-4 space-y-2.5 hover:border-slate-300 transition-colors">
-                          <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
-                            <span className="text-xs font-black text-slate-800">
-                              {group.dateStr}
-                            </span>
-                            <span className="text-[10px] bg-[#D70F64]/10 text-[#D70F64] font-black px-2.5 py-0.5 rounded-full uppercase">
-                              {group.count} Delivered {group.count === 1 ? "Order" : "Orders"}
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2 text-xs font-semibold">
-                            <div className="flex items-center justify-between bg-slate-50 p-2 rounded-xl">
-                              <span className="text-slate-500 text-[10px]">Total Order Value:</span>
-                              <span className="font-mono text-slate-900 font-black">Rs. {group.sales}</span>
-                            </div>
-                            <div className="flex items-center justify-between bg-emerald-500/5 p-2 rounded-xl">
-                              <span className="text-slate-500 text-[10px]">Rider Fee Earned:</span>
-                              <span className="font-mono text-emerald-600 font-black font-sans">Rs. {group.commission}</span>
-                            </div>
-                          </div>
-
-                          {/* Order-by-order detail drawer inside daily item */}
-                          <div className="space-y-2 pt-1.5">
-                            <span className="text-[8.5px] font-black uppercase text-slate-400 tracking-widest block">Deliveries List:</span>
-                            <div className="space-y-2 max-h-[280px] overflow-y-auto text-[10px] leading-none scrollbar-none">
-                              {group.orders.map((order) => {
-                                const fee = order.deliveryFee !== undefined ? order.deliveryFee : 0;
-                                const riderTotal = fee;
-                                return (
-                                  <div key={order.id} className="p-3 bg-slate-50/70 hover:bg-slate-50 border border-slate-200/80 rounded-2xl space-y-2.5 transition text-left font-sans">
-                                    <div className="flex justify-between items-start gap-2.5">
-                                      <div className="flex items-center gap-1.5 truncate">
-                                        <span className="font-black text-[#D70F64] text-[10px]">dadu-{order.id.substring(0,6)}</span>
-                                        <span className="text-slate-350">|</span>
-                                        <span className="text-slate-700 font-sans truncate font-bold text-[10.5px]">{order.userName}</span>
-                                      </div>
-                                      <div className="flex items-center gap-2.5 shrink-0 text-[10px] font-sans">
-                                        <span className="text-slate-400 font-medium">Order: Rs. {order.grandTotal || order.totalPrice}</span>
-                                        <span className="bg-[#D70F64]/10 text-[#D70F64] font-black px-2 py-0.5 rounded-md">
-                                          Total: Rs. {riderTotal}
-                                        </span>
-                                      </div>
-                                    </div>
-
-                                    {/* Breakdown details */}
-                                    <div className="flex justify-between items-center text-[10px] border-t border-slate-150 pt-2 font-sans font-semibold">
-                                      <span className="text-slate-500">Rider Delivery Fee (Pure Payout):</span>
-                                      <span className="font-mono text-[#D70F64] font-extrabold text-[11px]">Rs. {riderTotal}</span>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-              </div>
-
-              {/* Action Buttons / Footer */}
-              <div className="border-t border-slate-150 pt-4 flex items-center justify-between gap-3 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => setSelectedRiderStatsId(null)}
-                  className="px-5 py-3 bg-slate-100 border border-slate-200 rounded-xl text-xs uppercase font-black text-slate-500 hover:text-slate-700 hover:bg-slate-200 transition cursor-pointer"
-                >
-                  Close (Band Karein)
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleSettleRider(selectedRiderStatsId, selectedRiderObj.name);
-                  }}
-                  className="px-5 py-3 bg-[#D70F64] text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-[#b00c50] transition shadow-lg shadow-pink-500/10 cursor-pointer flex items-center gap-1.5"
-                >
-                  ğŸ§¹ Clear & Settle Stats (Stats Reset Karein)
-                </button>
-              </div>
-
-            </div>
-          </div>
-        );
-      })()}
-
-      {selectedRestLedgerName && (() => {
-        const restName = selectedRestLedgerName;
-        // 1. Gather all delivered orders that contain at least one item of this restaurant
-        const restDeliveredOrders = orders.filter((o) => {
-          if (o.status !== "delivered" && o.status !== "completed") return false;
-
-          // Check if it contains at least one item from this restaurant
-          const hasItem = (o.items || []).some((item) => {
-            const itemRestName = item.restaurantName || (item.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
-            return itemRestName === restName;
-          });
-          if (!hasItem) return false;
-
-          // If NOT showing settled/cleared history, filter out settled orders based on restaurant's lastSettledAt
-          if (!showRestSettledHistory) {
-            const restConfig = deliverySettings?.restaurantStatuses?.[restName];
-            if (restConfig?.lastSettledAt) {
-              const orderDeliveredTime = parseDateToMillis(o.deliveryCompletedAt || o.createdAt);
-              const settledTime = parseDateToMillis(restConfig.lastSettledAt);
-
-              if (orderDeliveredTime <= settledTime) {
-                return false;
-              }
-            }
-          }
-          return true;
-        });
-
-        // 2. Filter by statsTimeframe
-        const filteredOrders = restDeliveredOrders.filter((o) => {
-          if (restStatsTimeframe === "all") return true;
-
-          const orderTime = parseDateToMillis(o.deliveryCompletedAt || o.createdAt);
-
-          const diffMs = Date.now() - orderTime;
-          const diffDays = diffMs / (1000 * 60 * 60 * 24);
-
-          if (restStatsTimeframe === "1day") return diffDays <= 1;
-          if (restStatsTimeframe === "7days") return diffDays <= 7;
-          if (restStatsTimeframe === "30days") return diffDays <= 30;
-          if (restStatsTimeframe === "60days") return diffDays <= 60;
-          return true;
-        });
-
-        // 3. Compute stats metrics
-        let totalOrdersCount = filteredOrders.length;
-        let totalRestaurantSales = 0;
-        let totalRestaurantCommission = 0;
-
-        const restConfig = deliverySettings?.restaurantStatuses?.[restName];
-        const isCustomCommission = restConfig?.commissionEnabled === true;
-        const commType = restConfig?.commissionType || "percentage";
-        const commVal = Number(restConfig?.commissionValue || 0);
-
-        filteredOrders.forEach((o) => {
-          let orderSales = 0;
-          let orderItemCommission = 0;
-          (o.items || []).forEach((item) => {
-            const itemRestName = item.restaurantName || (item.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
-            if (itemRestName === restName) {
-              const itemTotal = item.price * item.quantity;
-              orderSales += itemTotal;
-              orderItemCommission += (item.commission || 0) * item.quantity;
-            }
-          });
-          totalRestaurantSales += orderSales;
-          if (isCustomCommission) {
-            if (orderSales > 0) {
-              if (commType === "percentage") {
-                totalRestaurantCommission += orderSales * (commVal / 100);
-              } else {
-                totalRestaurantCommission += commVal;
-              }
-            }
-          } else {
-            totalRestaurantCommission += orderItemCommission;
-          }
-        });
-
-        // 4. Group by Day
-        const groupedByDay: Record<string, { dateStr: string; orders: typeof filteredOrders; sales: number; commission: number }> = {};
-        filteredOrders.forEach((o) => {
-          const orderTime = parseDateToMillis(o.deliveryCompletedAt || o.createdAt);
-          const dateObj = new Date(orderTime);
-
-          const dayKey = dateObj.toLocaleDateString("en-US", {
-            weekday: "short",
-            month: "short",
-            day: "numeric",
-            year: "numeric"
-          });
-
-          if (!groupedByDay[dayKey]) {
-            groupedByDay[dayKey] = { dateStr: dayKey, orders: [], sales: 0, commission: 0 };
-          }
-          groupedByDay[dayKey].orders.push(o);
-
-          // Calculate matching items contribution for this specific order inside the day
-          let orderSales = 0;
-          let orderItemCommission = 0;
-          (o.items || []).forEach((item) => {
-            const itemRestName = item.restaurantName || (item.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
-            if (itemRestName === restName) {
-              orderSales += item.price * item.quantity;
-              orderItemCommission += (item.commission || 0) * item.quantity;
-            }
-          });
-
-          groupedByDay[dayKey].sales += orderSales;
-          if (isCustomCommission) {
-            if (orderSales > 0) {
-              if (commType === "percentage") {
-                groupedByDay[dayKey].commission += orderSales * (commVal / 100);
-              } else {
-                groupedByDay[dayKey].commission += commVal;
-              }
-            }
-          } else {
-            groupedByDay[dayKey].commission += orderItemCommission;
-          }
-        });
-
-        const dailyGroups = Object.values(groupedByDay);
-
-        return (
-          <div className="fixed inset-0 z-[110] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-fade-in font-sans">
-            <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full p-6 space-y-6 max-h-[90vh] overflow-y-auto border border-slate-100 flex flex-col justify-between">
-              
-              {/* Header */}
-              <div className="flex justify-between items-start border-b border-slate-150 pb-4">
-                <div>
-                  <h3 className="text-base font-black text-slate-900 tracking-wide uppercase flex items-center gap-2">
-                    <ClipboardList className="w-5 h-5 text-emerald-500 animate-pulse" />
-                    Restaurant Ledger Report: {restName}
-                  </h3>
-                  <p className="text-[11px] text-slate-500 font-medium mt-1">
-                    Manage sales, calculate commission settings, and clear/settle stats for this restaurant.
-                  </p>
-                </div>
-                <button
-                  onClick={() => setSelectedRestLedgerName(null)}
-                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition cursor-pointer"
-                >
-                  âœ•
-                </button>
-              </div>
-
-              {/* Timeframe Selector & Settle Switcher */}
-              <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="flex flex-wrap gap-1 bg-white p-1 rounded-xl border border-slate-150/80 shadow-sm shrink-0">
-                  {(["1day", "7days", "30days", "60days", "all"] as const).map((tf) => (
-                    <button
-                      key={tf}
-                      onClick={() => setRestStatsTimeframe(tf)}
-                      className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition cursor-pointer ${
-                        restStatsTimeframe === tf
-                          ? "bg-emerald-500 text-white shadow-sm"
-                          : "text-slate-500 hover:bg-slate-100"
-                      }`}
-                    >
-                      {tf === "1day" ? "Today" : tf === "7days" ? "1 Week" : tf === "30days" ? "1 Month" : tf === "60days" ? "2 Month" : "All Time"}
-                    </button>
-                  ))}
-                </div>
-
-                <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={showRestSettledHistory}
-                    onChange={(e) => setShowRestSettledHistory(e.target.checked)}
-                    className="w-4.5 h-4.5 rounded text-emerald-600 focus:ring-emerald-500/20 border-slate-300"
-                  />
-                  <div className="text-left leading-tight">
-                    <span className="text-[11px] font-black text-slate-800 block">Settle kiya hua data bhi shamil karein</span>
-                    <span className="text-[9.5px] text-slate-400 font-medium block">Include settled orders history</span>
-                  </div>
-                </label>
-              </div>
-
-              {/* Stats Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl space-y-1 text-left">
-                  <span className="text-[9px] font-black uppercase text-emerald-600 tracking-wider block">Delivered Orders Count</span>
-                  <div className="text-2xl font-black text-slate-900 font-mono">{totalOrdersCount}</div>
-                  <span className="text-[9.5px] text-slate-500 font-semibold block">Total completed runs</span>
-                </div>
-
-                <div className="p-4 bg-purple-500/5 border border-purple-500/10 rounded-2xl space-y-1 text-left">
-                  <span className="text-[9px] font-black uppercase text-purple-600 tracking-wider block">Total Restaurant Sales</span>
-                  <div className="text-2xl font-black text-slate-900 font-mono">Rs. {totalRestaurantSales}</div>
-                  <span className="text-[9.5px] text-slate-500 font-semibold block">Excludes other vendors' items</span>
-                </div>
-
-                <div className="p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl space-y-1 text-left">
-                  <span className="text-[9px] font-black uppercase text-indigo-600 tracking-wider block">Admin Commission</span>
-                  <div className="text-2xl font-black text-indigo-600 font-mono">Rs. {totalRestaurantCommission}</div>
-                  <span className="text-[9.5px] text-slate-500 font-semibold block">Based on per-item commission</span>
-                </div>
-
-                <div className="p-4 bg-[#D70F64]/5 border border-[#D70F64]/10 rounded-2xl space-y-1 text-left">
-                  <span className="text-[9px] font-black uppercase text-[#D70F64] tracking-wider block">Kul Kamaee (Total Earnings)</span>
-                  <div className="text-2xl font-black text-[#D70F64] font-mono">Rs. {totalRestaurantSales - totalRestaurantCommission}</div>
-                  <span className="text-[9.5px] text-slate-500 font-semibold block">Sales minus Commission net payout</span>
-                </div>
-              </div>
-
-              {/* Detailed Daily Breakdown */}
-              <div className="space-y-3 text-left">
-                <h4 className="font-extrabold text-[11px] uppercase tracking-wider text-slate-400 flex items-center gap-1.5 border-b border-slate-100 pb-2">
-                  <span>ğŸ“…</span> Daily Reports & Settle Breakdown
-                </h4>
-
-                {dailyGroups.length === 0 ? (
-                  <div className="p-10 text-center bg-slate-50 border border-slate-200/50 rounded-2xl text-xs font-semibold text-slate-500 italic">
-                    Is timeframe me koi completed order ya commission statistics nahi mili.
-                  </div>
-                ) : (
-                  <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1">
-                    {dailyGroups.map((group) => (
-                      <div key={group.dateStr} className="p-4 bg-white border border-slate-200/80 rounded-2xl space-y-3.5">
-                        
-                        {/* Day Header */}
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 border-b border-slate-100 pb-2.5">
-                          <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                            {group.dateStr}
-                          </span>
-                          <div className="flex items-center gap-4 text-[10.5px]">
-                            <div className="flex items-center gap-1">
-                              <span className="text-slate-400 font-medium">Sales:</span>
-                              <span className="font-mono text-slate-900 font-black">Rs. {group.sales}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <span className="text-slate-400 font-medium">Commission:</span>
-                              <span className="font-mono text-emerald-600 font-black">Rs. {group.commission}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Deliveries List */}
-                        <div className="space-y-2 pt-1">
-                          <span className="text-[8.5px] font-black uppercase text-slate-400 tracking-widest block">Orders List:</span>
-                          <div className="space-y-2 max-h-[220px] overflow-y-auto text-[10px] leading-none scrollbar-none">
-                            {group.orders.map((order) => {
-                              // Compute matching items and totals
-                              const matchingItems = (order.items || []).filter((item) => {
-                                const itemRestName = item.restaurantName || (item.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
-                                return itemRestName === restName;
-                              });
-
-                              const orderSales = matchingItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-                              let orderComm = 0;
-                              if (isCustomCommission) {
-                                if (orderSales > 0) {
-                                  if (commType === "percentage") {
-                                    orderComm = orderSales * (commVal / 100);
-                                  } else {
-                                    orderComm = commVal;
-                                  }
-                                }
-                              } else {
-                                orderComm = matchingItems.reduce((sum, item) => sum + ((item.commission || 0) * item.quantity), 0);
-                              }
-
-                              return (
-                                <div key={order.id} className="p-3 bg-slate-50/70 hover:bg-slate-50 border border-slate-200/80 rounded-2xl space-y-2.5 transition text-left font-sans">
-                                  <div className="flex justify-between items-start gap-2.5">
-                                    <div className="flex items-center gap-1.5 truncate">
-                                      <span className="font-black text-[#D70F64] text-[10px]">dadu-{order.id.substring(0,6)}</span>
-                                      <span className="text-slate-350">|</span>
-                                      <span className="text-slate-700 font-sans truncate font-bold text-[10.5px]">{order.userName}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2.5 shrink-0 text-[10px] font-sans">
-                                      <span className="text-slate-400 font-medium">Order: Rs. {order.grandTotal}</span>
-                                      <span className="bg-[#D70F64]/10 text-[#D70F64] font-black px-2 py-0.5 rounded-md">
-                                        Rest Sales: Rs. {orderSales}
-                                      </span>
-                                    </div>
-                                  </div>
-
-                                  {/* Breakdown details */}
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 border-t border-slate-150 pt-2 font-sans">
-                                    <div className="space-y-1">
-                                      <span className="font-bold text-slate-400 uppercase tracking-wider block">Items & Commission</span>
-                                      {matchingItems.map((item, itemIdx) => {
-                                        let itemCommStr = `Rs. ${(item.commission || 0) * item.quantity}`;
-                                        if (isCustomCommission) {
-                                          if (commType === "percentage") {
-                                            itemCommStr = `Rs. ${(item.price * item.quantity * (commVal / 100)).toFixed(1)} (${commVal}%)`;
-                                          } else {
-                                            itemCommStr = "Flat order rate";
-                                          }
-                                        }
-                                        return (
-                                          <div key={itemIdx} className="flex justify-between text-slate-600 font-semibold gap-2">
-                                            <span className="truncate">{item.quantity}x {item.name}</span>
-                                            <span className="shrink-0 text-emerald-650 font-bold font-mono">{itemCommStr}</span>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                    <div className="flex flex-col justify-end items-end text-right">
-                                      <div className="text-[10px] font-black text-slate-800">
-                                        Commission Earned: <span className="font-mono text-[#D70F64] font-extrabold">Rs. {orderComm}</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Action Buttons / Footer */}
-              <div className="border-t border-slate-150 pt-4 flex items-center justify-between gap-3 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => setSelectedRestLedgerName(null)}
-                  className="px-5 py-3 bg-slate-100 border border-slate-200 rounded-xl text-xs uppercase font-black text-slate-500 hover:text-slate-700 hover:bg-slate-200 transition cursor-pointer"
-                >
-                  Close (Band Karein)
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleSettleRestaurant(restName);
-                  }}
-                  className="px-5 py-3 bg-[#D70F64] text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-[#b00c50] transition shadow-lg shadow-pink-500/10 cursor-pointer flex items-center gap-1.5"
-                >
-                  ğŸ§¹ Clear & Settle Stats (Stats Reset Karein)
-                </button>
-              </div>
-
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* ORDER RECEIPT & WHATSAPP MODAL */}
-      <OrderReceiptModal
-        order={receiptModalOrder}
-        isOpen={isReceiptModalOpen}
-        onClose={() => setIsReceiptModalOpen(false)}
-        senderRole="admin"
-      />
-
-      {/* Map Location Picker Modals */}
-      <MapLocationPickerModal
-        isOpen={isRestaurantMapPickerOpen}
-        onClose={() => setIsRestaurantMapPickerOpen(false)}
-        initialLat={restLat ? parseFloat(restLat) : null}
-        initialLng={restLng ? parseFloat(restLng) : null}
-        title={`Select Location for ${selectedScheduleRestaurant}`}
-        onSaveLocation={(lat, lng) => {
-          setRestLat(lat.toString());
-          setRestLng(lng.toString());
-        }}
-      />
-
-      <MapLocationPickerModal
-        isOpen={isBaseMapPickerOpen}
-        onClose={() => setIsBaseMapPickerOpen(false)}
-        initialLat={baseLatInput}
-        initialLng={baseLngInput}
-        title="Select Central Base Delivery Location"
-        onSaveLocation={(lat, lng) => {
-          setBaseLatInput(lat);
-          setBaseLngInput(lng);
-        }}
-      />
-
-      <MapLocationPickerModal
-        isOpen={isUserMapPickerOpen}
-        onClose={() => setIsUserMapPickerOpen(false)}
-        initialLat={unlockCoords?.lat ?? null}
-        initialLng={unlockCoords?.lng ?? null}
-        title={`Select Location on Map for ${unlockingUser?.phone || "User"}`}
-        onSaveLocation={(lat, lng) => {
-          setUnlockCoords({ lat, lng });
-        }}
-      />
-
-      <AiMenuGeneratorModal
-        isOpen={isAiMenuGeneratorOpen}
-        onClose={() => setIsAiMenuGeneratorOpen(false)}
-        uniqueRestaurants={uniqueRestaurants}
-        foodCategories={foodCategories}
-      />
-
-      {/* USER VOUCHERS INSPECTOR & SENDER MODAL */}
-      {inspectingVoucherUser && (
-        <UserVoucherInspectorModal
-          user={inspectingVoucherUser}
-          onClose={() => setInspectingVoucherUser(null)}
-          allVouchers={vouchersList}
-        />
-      )}
-
-      {/* NEW USER REALTIME NOTIFICATION TOAST */}
-      {newUserToast && newUserToast.show && (
-        <div className="fixed bottom-6 right-6 z-[120] p-4 max-w-sm bg-zinc-950 border-2 border-orange-500 text-zinc-100 rounded-2xl shadow-2xl flex items-start gap-3 animate-slide-in">
-          <div className="bg-orange-500 text-black p-2.5 rounded-xl shrink-0 animate-bounce">
-            <span className="text-lg">â³</span>
-          </div>
-          <div>
-            <h5 className="font-extrabold text-xs text-orange-400 uppercase tracking-wider flex items-center gap-2">
-              Naya user aaya!
-              <span className="bg-orange-500/20 text-orange-400 text-[8px] font-black px-1.5 py-0.5 rounded-md animate-pulse">
-                NEW USER
-              </span>
-            </h5>
-            <p className="text-sm font-black text-zinc-100 mt-1 select-all">
-              {newUserToast.phone}
-            </p>
-            <p className="text-[10px] text-zinc-400 mt-0.5 font-semibold">
-              Call verification is pending! Check Registered Directory.
-            </p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+              xœì}[sÜÈ’ŞûşŠRïìLs†İl^%qD)(^$zDRÁ¦fC¡°Ğ4#4ĞQ=<|ğÃypÄ®×áõzÃcËá—°ıâõƒÌüë'8³ª 
+U IJ”<ºt…BUVVfVVæW„ˆŸË¿ ÚÏ¥şæÒCÍ­K5p<õíK¶ûVuKCsîĞ÷¡gEÑ‘5q¶Z±ó.î¼\îMß½"£À;Ï¾!ôräY±ÓYïõH2:áĞŠ‡pÛõÏ:ç®íD1xŸ:Ëİõ–®»n4õ¬9…ZÉÙubËõHûx»oyš~›ˆâúÓ$Ö¼Î§=³é[Zš2ñlÊ{¯+-:ãÀ³p«åtÏºd½÷WäxŸœ>=è“Ÿöö~Ø;ÚÕ=-ø¼3J<L;«d t»±CAõòÿ8¡W€Ğaø¶cwVŞylŞE$HbÏõø80÷¡ü(&Ñ&¯fêúop¸–6z8N~ä"}Õ-TòâçÃQ'í†Î0&Ï ÏÀR§VxæÄp9Š­º_»"ÇƒÊìf¯Ân®l •H¥yky	´½õğ( ’ºı£ëœ“cß›-<Xb…tu\$¾ûÇÄÉÇ$êN¬i;$[I[+$Ó7¿qf[á%o|{«^¹° –¾–Øˆ6fzq GóÀ¨M¢ÎĞñc·3Gs:ë¬h•‰)b”AÃ±3|3ŞµtÅ¿¹Ñö0vß:Úb®:rÎ[¾ï„ÚÒ¶3²/ŞÁ—;vî]#cøK/å°"ã®æŒË2Äin ‡2±2'Ş~*;&‹˜"LÜ€ÈçÇ]xµ_ú 3¬ˆ°º‰;™€Xg¼YS™¡g¢AÇÀÎl¬£d0qãBÛ9…È8xë„›é•¸b»‘5ğ{3˜ZC7AoXß˜üå+»zá
+¼
+û®³‘‰”0™ Ã$Œ!K|âús¨u«ÕP±oéØ (	ÃP~öÁÒ('òuNHùª4kĞ—+kHigxg›ÓÎ]-;8ïD:PÇ©>òàâØµmÇWôóÁxµÄoPƒZ½¡@õµÖzÈùŠ'"í‹ûöÌâ®çøgñøÄèxUñF©Çg¡kü§3¼¨³L¢Éfşs{—ÿ\¥’iM9`…6 <f¿õB™¶„JcV²ëÚ—BË.^ó1ø*»Ïç*yD¾UŒËÒzä¿´Úû†lf…òÑƒ"©¥@2Æ_ÿæ² QôfCxw¦#w,Ï{}©ÕnŒ'µ:(ğw<wøfë¢½€t¹0˜û‘ïşÈ'»®ågmSaùnì9›¤µê(N9£µh|fâD‘u†Om‡™	‰şå-8 0İ'–JÉ›d§UÇc7"lDU¼ ºËº°	ÂpæIu·i_ÂYeB¬sËy£vƒaÛÆ¿ƒEÒš†Á$`&Ú¿â<ÙZ$-,|_Q7p¡Ç¤í„!´ÜŸ-Ôiç„q{lù¶çì»hÄ¡³†AˆÕÔx©ñ¾qah¨Û°hd€5ˆ/±íÄÁæ|'tÏÆ1|ùÂ¬(¨¼€„Ë»‰-ês„cø›Î'j™–í›Ÿ“(vG³ô§ '~é,÷$e¡39ÓoI<¯)­›²0iÿP´GV»ëĞø·eZXë´¿/IYn£[ÑŒEPËK÷_‰šÄúª¬.riµŒŠ‡K$­ÉFáäLg–á'
+‡¹¬ÀÌz—¦DaÌ{0fÿƒŸ±#Cl²(éWT¿ µïÈbûë¯É7g¡5‹†0Y¾¹|m|wàÓÉ¢Ò©!4ÚN7f+5°º>;ÀşíyÎ8l¡='[¤5ãi´¹´”­À»Ã`é^¯÷n4ÈèŞÈ—î¯Y«ƒ{§·h%ß=,û;Ú˜–iÏçŸÑ®Ë<T½şÅi‡‰âË¡]³¤ŒP\n‚j}ıáıø‡\éï_¾F½
+k6\£ë±±[iÅÌ‚LaX³U’ ³É3[W$€nù¤j‰~øŒİÑ,ë¬òR)8pâsæû”Š\f³ÄEÓsÙ°Ö@·ÂÔòËtº¯ «nÍXPÆ‡µø.”äF\w:ğËŞ†¹ÏœÀx»ãJ¬­¥] CÛM¯°˜›©¾	QÇ€`æC2µ­†æÃbc y›D‚UV@…0‡ir5ÃdNtQwÀºz3–A³¦JÏ;#¦Yd†òRP;°8	`¤Z)à’î,„éEµhfÅ°K¸& ­`?qEò­•)Şñ‘ÜQ¹-ĞdZBÔ‘?bk?¼ÿßHê¦üöÿƒ<e«GÓ$«°FôL{KåñRV\,]‚º„_í_?œZ²µšùmÇ8ÓÊúàÁ¶=qıYCË•,ûÒ§·.Òo¸•Û+·¿ÒDø%—,ê<¨¶äp,>±$÷5ûY DÑqƒóÏ±Â>LÑè0°-I–4ˆûÎ±‰ëÃÒ°ÓK¦NïUµu¬K'X: Æ†oìŒü—„èÙ‚Õ<ˆ°—G–ít\Ÿ±·çŒâ‚˜ÛU²Šö­õ®ss›‘²©Ë™[:wxL;TÈĞéÌ:²Û¾¹Šå”´+™~zÚk´Õa1‰ p»œ†V4^)®	p±}Ñvé)—º’ãµBÃd{p¢£Ekì Ê˜„r&ùšÓ~ê¢î˜‘ïÿéŸ•¹ñš²©S…	·ŒB_ÚºÉLM›ö]IšLå—`\:Cø‘hqºİ ”ª<‡õä›ŞlaŞXv³¼•Ü?0ûeĞY^ä(¤oÉO˜šr\EIiAİÂÄ’2½y¡­ Ğ¬à[µBR¹`/–¾%ıa0uÒÑ]Ş$ıØŠ“ˆ|»tiœí©TPmçiw—õÆFÁ³/MG.wù´àÍ¥½Ø,BéÙ¯pÂ27«jñ¢7—Íœ§â½œïXÚ-˜I —CÇn)-ú‚I7ƒµ
+µëD¿¸]ßC‹.<¸‚Ğï|¥¶a‡R™©7Rcí0›ïå_îŞíío¬½İS\êg÷tUˆ6àz¯¬Ú¤©VYªŠUf¢JĞıöëŸÉnÚIº#ªTÚÍe¡åÏ»İ’7òKeÿü×d'íäíb°ªo3k`ó¾P¦øğş¯ÿÙÓšõ×‰jó„~gÖÔ+›ÔEDN,ÿÌ¹íÚz¥Kú4Rƒœº‡<wB7°¯G[¯·L×©òVÇİÌä£Ğpî­”æHíëœŒ=êM¿|ÙW~ùŠå6N?œyÈYŸ\sfX¶­Ù-çÚÄ/”–A4~z­Ìyá.:ºåÌÀÚø…rÃ]ä†ú
+ù†Ùaµ÷ğoäÊËäh7¾-1L¢8˜ÜràüB9âĞòËkj³KW/L„Sï´WÚ¶ÔE·¦•^Ù«ğKÛÒ…øıÖÃ}ôáâcsş”6;p“W7ì<<'İ¥,£ÂÒÆPú95FgÑ)…Y%TÅ¥ték´åŠp~aÏ´†¬ÚsÂ¤q^
+‘ÒËâŠeìÇÌß0ÿiğÉÏ·¯2ôğø—=ğÊËRu>„g¸Ó½ÍÉóĞy‹Y²ïà¢­ò~“	F@@‡¨÷="[lç'ê¨[¢İ¦?5Q"¬7Êı«üñn¤t1“?ıIqL¦¸çd+ÂÒ7ä:Õrå÷²'Ä‘v•ï¥ù¡$tâ$ô	İ=*7K_gŞ^gÖr¹ÎR¥ü6M4¡£qàãŒeVíô¢¬ËÅ‚œ,_†9T
+M)GÇ9âÄyëø	¨=‰Gº@ dè´ÛÖp¸HÊğ•|GÚA÷¬û4ˆ-»·°K}å=­ÖŸ ‹»À™‘NUzu…îË­ÂÍ3Ç˜V¿6Ûâ.ÊŒ|K˜6@¿áKcÈòt7>µâ€°ØÚMSW)ú,¥ÁFÑCÃdˆ¶^!H‰v!"Olàó]İm;¯¥¤pÁ9™)2Úo}b#òvCL²IÊ±?¢’¨¦òÃ“¨K.­xÜ¥ôkKœŸGçe‘y)¢–íÅ‰w¹Ğ.†ô4!£ãÛi‚[³€ÇO¼éü»FsòŠÛêºği¹ OG˜¡×°!Ïduiq Y4ÌE¿4Slë‚ª'¾¢„++#5‹6Ü{ç“ØÉIÍHª¨¼®¢² SòT>ÛL™k@gm$LÂÀ¿qÑİ[Z‘‡¢œ0·^Zï•‡G&.SÓ\Èv»]è÷\ˆhá	lÃ·ø˜8Æ¸›R 1ÔB{¡ğ3ŸÊC1åèF‹&ÑhPÀŒ&G‹5cy5e!·ñº§¡Ö’ç˜âÅ2JM]ª(sŒ˜~fD±By£KsoÊÌ(‡€©6ëÄƒe"3r&.Õ¯ Ell &Â ç•Z(µ'·Ék’iÓA“µ5ab…µv]Ú©˜õçVª¥UfV­3†ªfBî»“r{õÉ%¥@³»eGØJ¯§÷øİ
+V;£€­.ÀœòPRÁ²¢ÈbYz£*„^=’ª’,!}K[QFh¯²Kk‡YœÛ‰ƒNH£ óœo¸D¿ß-Z'÷õ<!pešèÃÜê,/‹9€ÚØ|Œ©æ®Åx£ªoé[²½»{²×ï“½£Ó“Iw·Ÿ‘ıãòâèÙñÎGOÈ‹şŞ‰à®¸H|>a,yS}¹ÜL_®KúÔÓGĞ—/WW˜Ê„®àF%©ÉVTÏ×Ê¬h Ù‘Ğº¹”•Û«İj™ŠÀÉqâŠBÏÀXá›ŠbGAìDevŒKV·¼4¿U¹¹˜š»FXfîÃ=0îmñ¿®ËR¼uƒ¼\i~—m‰â|–góo¿ş½4IUS×¨šuv—Î	­IŠ«›n‚Ÿ=E„Qü 5ôAA}x]k`øÿè„@[ò5¡záSí·m;YJ /h*Zù9Ëî©ÒpÔKz˜„wf“PÙ1õ;Ä›`‘MÚ…=o7¼®^ÊUMÇ_2©á¨ÂªPZŠİuEî v¥¡ÁX¯£Jgt~ô5IPêÇyË†6;.¬i:i´ˆ?}Âg¿ÃÆviŒáq‹XœVDi—l°ld½…öĞÇÙÎ]œÛğÃgmº£nTÎCé“ßD$ŠÃd'èéN_†ùC”F®…³—Ÿ"®CZ&{eD1wBL"£+J{á:QWÉœ¥Ä
+ô
+Mü>…®I}\8Ók—õ¦¿^T¬j€¾šïZİgLW'KQ2™sÔ1­ŸµY"‡œ)Ô‚+[/~kô^q¯Ì„[:LÜP‹éÄ·Ò’L7ÙAÔvÍ³2ŠŞa œINƒs‘<I¼Â$Úµì¤1†šPF-÷×TËuKåİ•p÷nÿ`ÖL‚'–ç~3€õ¨ùàvéÜ³€ğ(è’µÅ”ªË+‹äĞ‚¥ÁI`i“"~ŸªŠ>ÉdHW¨¬hªšüëÌ*‡‹±^İ¿:mUs–ÎVQs3õ&£>v=ËCŠüìÚ‹äx:fŞÆ¤?iË?>_¯ÿÎ×ê¡È–6t½ÜİŸ:CÆôÀgf*ô[·­kbrl‰¦C.¦¯nÎÂl…?7ÿr“—
+Ô“xT[¤.?x'±ÂĞ…IÒ¨=¼Ëw°½µŠ(8¶.V}²qÜ_Xõ7Íÿ7ı+pƒohBPz‡0y –'Ïû…åÜÁ ¤§®©¦ÉdŠ4fŸªxcöQïºã"›EºrwØHqÕ 'd¦o†‘só‚!S‡Èº5¡åôT¿P5ıOay/È3ĞºÌ«óÛ¯óÿ×ß¦7öqYİ~f¡¥ûÌ?[Ğbº˜]ô¯álü§sZSÅ†¤¥¯—Øú~×‰!ªÀ¹ú‘.†àCè¤©~®èã®Ş“6³xäßT+DU9l¹Ç8O?s¹Æğn6)î]çşzµã•gÖˆAP¸yç`j‰©õÀlÀ‹ç„¢I†˜mKDS×7 )² ÓÄô¢Ö‡÷÷7d;İI§4MÏmz4¶lB}d±w1i1}×ğxêøm0vôÖƒÌÂÊ”ä[Í¦|/HŒpzù—ƒ^o¸ŞÓæNëùã¥¯á3#k±˜9nù1Qı¨Ó7ê¤‹şuêRóm2x)•ßŞÿÃÿFÎ“‡ùCT}o³šDÃn•j¥6¢:Ş‡èïLœĞòĞ"„aJplE	™>aF¬³Í2	ü€qcZçİ`?JRáà=êÆÁ>î¥¶×.åûşYá¾©áÈ„Õ"?õÄ~Ê¢¡¼1h.9Äx´š–Q‰+Xï0ğËµ¡uiß¼.ƒ‚LLÓSæÁ”·‹Ÿ*;C/~´G4è%µ5g˜võÒ¥`^Mb6ËÄuL¥¥ûZKo‰Ë/q_ÿ@…/¶ÉÈÆº¥‰"cO—#k«}ö[×0Ût!¼²Ñ½»º²ª>:…7×¼<¡ELn-ö©vn±Oa­Î[g~¢àN•Ê­-‚Ã7‚u†Ú„‡`Ëòí–Ì?%GDÈ'‹T‚¦‘-RôRĞfµp¿vj…‘³ïVÉ»-Ê^…S.Ë­j0Tèó&qõÚØ@+"~2`ŠÎ#^›Øz3œ<­Ì?Û,ëîªç*aUkŞÌŸ²Âk½ Ù›BU¢2])7‹Æ¯Rå)d“md¥·]¨ş™(U6îvïŞ][»¥R…·n©Vi-©âŸıÿ)UJB¸¦ ¹iô»T)}Ì€öú›JÛÍœ T¾Ş<–»"	­8õa7¦¥Aõ’ æ10uÃ¥ÒúàG© )R*j„”
+Â!¥’¦ HöÑÌ!MZÖ¼ñï²ä#FÀãG='”‘ğø1­“ª“Vƒ¬ëY•^(-%Ëqã‚è*Qã¡Â)•Â­Õ&l½èFzüØ×„9şöëŸ©?ˆ^MC?¼ÿ÷ÿG©sM‡“)!†Ë'–]!Œ}çøàˆnm?Ù;Ü;:åìBÔúèM‘Ô?Nàú§Iôº%ë;­±ëXt{‚Èt©½ŞÓ—CËJ)äìÄ“«…ÜïñäãÉ-46+6xq€ÉcÇc4&?YçÄ„|€Ç)dÊ5Æƒk¬ı[©’…¾bÌÚfdOcxqI$uñpRd(İ äx§…?•ÈŸ&–|Ûš²xí7Hô'z³âPFhx¶-Û^ ƒ±KŞXìıƒ=0:ÏJ0BÜN†1i‡Î¦›ªØEëF\×LPÕ°“„!°ylyh”°ZTƒH‡^Óì2ƒÁw®ÄxR¬êm”aåp‘M`TıÂq2ì,:h=LiÃ™¨T†0M²MaW8Ğ!£*=®B	¦Á¤¶‚â«†]œX²ãPÓÙØ–çÛb–µĞwbÜ .ùÄmS4ŠÆOëÎÍ¾ä‰æû5óØÓ‘N…ĞõÌ1âìE÷#N7ÄÊÒ0zOLÏÖC9Ñ)ÿ2ËƒÅ®hg¹ò…?–£”Yã®9n:ƒYïdK*æAR/©&®¿ÕZVßKÑÇŠvŸzÅ«Ä“F
+o{y‘“HöÉéÎ1/8,÷¨ÖÇV‹1õ²–/Øç£³£ù¯23Cm˜—0{¸Tğ˜æEª¢á¬«ÍnûÜ9²ÃíÒfÃîÈeƒi®y~èæÂÈV4Íø?_ÕŠÎ-Çæ¦AÈ^0³¼x\ê'›”Ùp0@Éõ>Ñ›
+¶½ıì¿Í"¶k™„Êò*(½ÿ_Bmdàà]f4?¦+@ek®ê°ƒ‘é‡Áf
+ĞVË¬õÏ¬Dh¾;’HW>â¥[¤g:î‘ôØzkléfásmQ˜ßÑûeSœ;İ}İ~s+Ò…Å¸é*2ĞÉa7˜q®;¶HSCSßKöß9Ï+ÏTgoQ~sG	CÍúÁÑ7Š+F<`´dò%•gr‰E	²)tGûÈeØP&Ê$:£8'‚`íÆ¡;–|ıÛ?şWŒ†£G2Â‰eMß8äœ¹(€ë¾*3ÜBcÛ%¶®%oÜ[ÍvÉ‘5³È€¯àù¼—´Q÷µÜŒª° F’‚`ñ˜ f”õÅµ*h‰Ãp`o*‡Á´Hc¤hœàÿO¼«L9vËô‡'ÚD‚›ÊeïÒfgò.˜€òĞ
+g701’´b@‡Â€bv8¢4ÕÔsy‡A+şµa†5p©òÎ692—ËĞ}ËEäÖ8H2C6ÇZä;Õ¤àR†w\Ÿúô¯R	M†BØLüÖß!£V	_Í½ƒÏ£yÍ›8ªÈâ:˜{øQÛ¹¿ı—ÿ˜št^·i4&Æ¶mcšºí~·.¾ëâæ5±ëƒÔFO}[6nP3xÿoÿ9LVhál½SÔÑ^3C[¶½Ìvª–ï=ÿç`FfA‚Gª[¡İ!ğŠı¹)ãgè€YhßùÌµñ¯Ö«â(â¼Àµç÷bT\shä[¤véNÉ—£t…8*Ø_@Btî¯BQTš—U²öyèŞ¿gZs‰ªĞjı[¾3çIóõ£$Nv÷NHÿtû´Oíí>¥@‰ˆ#ğ å4?:°i°„¬s™ˆ.?üò:Ä¯Q? çu?ív›M@…:Q½D`GªÀåš3h~œƒ‚øXZÂs‰ŸÀbÖa˜MÙ‰5î¶ÆõD[&u€^ËÎĞ°P28°A—>º£ë”öŒö<Ä¹S>é x/?~ÁpBPâ`DO	æx Ş2Œ ¨{‰4 34êEÂú…¶´LbÔÔg%8”µ,ÔBğ‚¦ƒ°´<²]!1v;.M6P´}Ù@Ñ#-·X(.ê¤ÓàĞõ<7‚¦¤^‘”fÛÔúº™*Óœ©À)¡­º¢İ%•F)Snõƒ-ñM*a:×¢(…Å_âw^ÚŒy­Ì²ÒMÏ5ÌÀ˜8£Ğsä.£àˆtèÂWª•İÏcUÑÃ?TsÊ0•„ñ½ê°Jì‹S(:M[(œÁ(S÷%€{ôphCníta¸‚Y¡§Œÿ‘XˆÓ;ïÃÃ-¡6±ì%q`Tµ­ã*›ç¹—¶†¤Cî’oÉÊü³ÑKÿYîõzÕí¢Õ4hRzx^6­ö>V£6ê7jã¥™b8›@õhgÚ*((0|¦8Ñ İT#Ù`ùÍàQ,Í(zƒKŒyhÒƒˆ¦@—¸šëÇ`i²›ßfÌ›<Ì_¼!$¿ê(˜‰Æaà«î2İ°ÉPù_¾DÊC óÅ¥ĞÛ’<èBg÷¬áøãÍü”Œ±Ã’l&g/Zø¾TÃQ­j£<o¥g§‹ì2j£õÜrüÎ‹~K^ĞÍ@Ç‚éÔsBw(-¾&xø!Ü}ÆÒ=àá9‘İTı²&ÈÚò!>4¾>‡è‚§Wî!1}2¥ç¾“•µ¾À‚/„y%O8}IdIwe[()/&9óöäëœwK×EÖ-İL9÷å«¢Ş,ÎêÂ¬Òu¨KF¾Û"Ëß×{€¶€1«ùHŞ|Õ|¬Ó$ÃDÓ(ı’€ÙCG[8L¶µ… ü€aÛmk‘JÓ—‹@jĞ‰Ûtù/€à®[Ùu½9By9Â¨kÄ•ÑÙ#”Í3eÙëe±ÃN*™+…ÇÙ	%ª§Óã³¢d’Ÿ_UÇg•fŞBÑ<P½w'åš/W=k<ŸEKG{)õª}_¹h;¬ÙëÇ¾_Wô;ğØ¼0î¼¼ß{;æı Ø@Ã vd<ŒµüH
+Q¸¹óškÉc"İ7x¤û‘"ıJ	=48uEu:S!Ìò
+g\<øƒ"dZu€‹n¢öÇjÊƒrdÅtPIYÌüYZîñE!pEî¹ÓA`…ö3u­Ø×èë†„Ò¥×Å1ê"©Áî}.×}}"²&n*C/<q¦ È3Ç>(bÃUñçºtEüy4
+›º„z/íxëáEi¹Îà4Š”´Ë÷™OXµc¡ˆ77;ì¤«è|{Ø3Å^šŠ¯;Ë¹dšu,ÄšÎ@„¦aâë$†2äÀrãJ°	LÁÔ‹^ªÍµ´¡?Úqµ~»©Moç0#¢›©*E,ºŒµ‘ãŞÿİŸSd¤İ$d!„íÃÌ›¦AŞ•ä`^éJı‡…r¯º>æı¥v‹à‚¸ö&÷Œ,ôˆ?É.¨éö)º1Z`JT=Ï|ywY?9Î›ZÏsGC^ÁjÕ@O¯UÅ†\Å¯b…?Õª–òBÛ ùÀ”µO¾êN¬i»üK5¸Âª`é3ÛºÀšº®öDfüÔ…aRJ›¿qpÏÊôÎœW/^ Z¤a¯Á•ÛtŞK»;_™Q!Şãcô4M†¯³‚9!I:ùÑËzŒBü\¾ÖSİ„ßÁø„2ª¾‚*Œ)]€¼>	E/…J†9ÄyÌµZ×ÌFk›¥ªh]œj¤
+?×dÿ• ş¨Ğ×é[^¹O…MYzvô x§gZƒcÊ»/úaVE‹÷KÏç!ãü%õ@ÏAÍsU_>Œ½dˆÕ=ƒİ€­¡Õé¥ÆìèÄ§™¥‹Î¸oÜ™EÆ‰•n–Ñ„DXN\#FW2\ãˆåİ²)ZØY2¢³©iD1‰L‰Ë(½åTº‰­J3PlÛz3İ”p(‡7ÉEæm5È-su#gø¶=ı<ª¨%­„{ûumVÔ¥}xAå6 ²ê9ä:à`Pü²5ùÁ™ñ|¨¹’V2t•Í)å~Ì‘ªúò2}YŸ€.#,M(Mk6Êñİ½g?îìí’“Gıæv½²íÆ<tÃS„ÒZm¼PyBuš¼i[_Ş“¨\ÌÍ[«m^± ²Óbhàµ__'s'ÎºÄ–’{ç³âÌÓãÓígäøy¶_ŞwJç ª¸3OæÕ¶˜fL+Üî·ˆU“IÂ½yç|ÌZ5shâ^‰9Å{Ÿ{îmŸ¡Ô¤fû{{¤ıÃöáöŞŞ¾‘º\šlÃ$Eå¤sôå7áØ|Ãæö°­8,Ò†Œ‡L­Y Yz\kâü.[xî„tÿ“Å0„¡–‘ùébNm[Ïo=ÆÍx†M«P	©«¯ÜİÇ¡c½±ƒsŸ´O‚_,ßâŞñha&`şI‰¼à\e›8¶›LZÛòÆ-ßã¼ä0öH`j;ª^µl×TL*=í©òø
+²	äÖ=CB°mEcy©ÎÏˆRÈNAj´sã ‚éÁ½³XÓ®`ä§yß‚ÅÍÊkæÑŸà`8˜3İ‰„õ2zÉÅv–«ûº£È3¼PåÄR'#-nÌ_J:ÊèsF€3q¬¦Âæ:¹÷«ä$È}} hƒP/‚U”¬ö÷şLGñ*çh–¡.›í÷*	 ãT¤±ùõ•èübDŞ¹Ôn™ tê¬û}£Q1—$÷,\§dİ­t}BñÙJ¥¸·ÆQ{^¢r}CÉ¢®ºo
+ÂßZcÇ&{Yj“À­‡,.…Ò˜üˆá<F¬ÃK¤ƒ,ÄcÏòMV‡DÇ›;UœÂ_eÆá›¾E³ú&‰L½Dãmö¬Ğwìk¢±hÊ
+³U°Xzç‘b×Côêù„æß1“°³Sìàob‡˜,iè‹lÅÑÒxÿ³Wjt%)W^§+*{qM¶ÁŠåø„»¹€ÑµFWß®õWî)µ¾(À+–š–@68Œ+x µè÷Z¨çY¬ã¤¹/…¨2‘½\b“HñÔú—Ğ5S[øÆêçQkºOnİ°6ºvÁ°‘pj–î–vêá’Ñ#<BdT×Vc¥©h{=”¿ˆ&)˜C"j¾@y~R&şú]»jpSº“
+²ÑôvİhêY3*\lÎ¸µÄš±Âl_]cíO×Yc^Èâ9Át§‘A?Cb¢ï‘ˆTwèªu¦P¸Ö8#ßFãĞõßt
+ê­1ßVQ*ól¤+Y:Î›ÌÏÂ¨"…ÔÒkyXíÕ9¡™i\Şk@	Â™y÷rag¶w­¿)Î¨Vñù‡†¬e®¦çu»ùŠ75,-0 -gŒÈg]“]hœÙÔKÍ»,úõ[ûy:ä9u²-Ô4÷´ï“Ì>‰¥Sd˜û‹›~;5iCm©Y°âŒí¯ZŞÕ³Fçºİ8 EQ^'¬îdÀp2O$Şdëê€O#³¯Uû0yÜsı¢
+qÖU‘]-2]yºÂê|GVÀ½ê°ŠºÁX«PqÌ@3ÚAk‘hPHy‡Ã µsm¢6ìÙ¹Ã,zS[•›¾XzÀiåÜV‚?è·ÖÁE·šºAq–†0t<_Ã;K¿MÑšá[g2Ş~ıS4T#şáı?ı3açB~F¼PB’6ûïÄÙQƒäëe‰R…ğĞåB[ xÈFV²,
+ÇÆ€İBAZDÀ.(<›sB5ÈB<¶0ÅĞ)®{ŒkYLí„…,u#Á /°A9ëoÌÃpİ0
+;‡u»YŸ"E§(œ®[iÇÆVt€…·°¡”ÿĞÄ}ù
+3ë&4¬ÊdÆ›'ù0ÑpÏü]Gİ†…ğ¢è`ÉÑ°Äxf3=Óe×²òŞLK¯²CÚéå}ì(*Xú7_Æ²âT*¶Ş‘òN!²ğ,M$å¿aĞ
+‚Y/6TœÓæ›ˆèB¸2`ì‘Ü"çÍÀ¹G%ƒn>¤OyÍk/S½*ÒßW÷ès¾È›üE^ãÇ%‰4âé˜™0Rˆ¨
+É„Oôè˜`°PloInÜPV¼;FDÒÉßUÎÇv­>ÂŸ]"m¨,à)¬¬•Á7tç ¼÷Yı¤¼jS)J†¢»uëÈ`-•¬öêÖ²a¨e£PK-î\íOLá¤¼I&NºÃ<tAg©c„ñßÛd“xµ”ûœ=u’‹*úÜ3–*$*÷J™ä×$¹®‹¸|á¢¬Ìw<ö|
+ÔE‡ HĞêà”ªCMô&-f'XƒÖ™ÓRUò#uRóƒÔUÑM¶4ï:«BRÎ?ÅˆwQÊ£‘“M‹ì}·ÛºÀ™¥5-tÚH·hÓ¦4õş[öã	4İg²
+HüİV^‡²˜Dk(Ïh €3Ğñ6¿³ ¦
+WNÅï¶„6Êâ§<7”0\yª M±L>5p,öWéd½4(´èĞNgËFÛ—gch>ßÀël`¨^Sİ‰âx«dI½&@ú€À—dİŒsìÇ³]Äv‘A|JĞ=L	Î2X*¥Ç÷l¬'âIÛQ_ ]£¹!WZÁ£(?ÃÄ…yĞwÎçÒQAìÔ‡ß)Ş“0}¤-¯)ÄQÉúRÌQ•Á¡Ëy‚]\ ksì›"ÚŒcc~M	#FZôZŞã 2AS\Š1‚+àĞ$Ôå’)FxˆÈÈ²vf°-c†ø»~Ë¸¢~+ë¨ºíf”VKE·Vw)›;¼~Vã=×£Çêv¨±6+¡B• ¡ÄW_NÒÍ|ñ÷ŒD	1¨oCNåXbH·‘­…JÔ«Ş‘c1H¡µRÁuÒğ"ÀÜ&ÕşÆrzrlDT—.ıÄ§§e×Ú`ª#Ñ„Í®!s®	¦ˆ ìğ48’ÕŒ¾#Î*f¼2M`¦ik%$7ÓÄJì¿I.R1®ÎÛ¼<.aJa'ä2ë LƒLR!â«ñE‚{UÔ§ºÄ<qÜÃ£#g}UÃ×‡À1moö;µv?íÎõ¶äS›Õêï±¹;¹qêœÚµ¶š‹‘o2væ§(­¢É&ıçø½@>ø­Ú ®ƒ¼e†¿)ÂÜ¨åê:Òã’;šdáMêÕÚ/SÈ›º&Ç É¡d¨·öÂ£PE¹À‚+ã‘!ÏÂŒòBÃã‘.B¢<GNJÎG|½îy	¤e•B´ÑLºÒèoÓ)æ€Ë4iŸHqYD9-l!gãj‚RÑá³ÔbÑÁ°èS°G‚KOÁ’p‰ŞaŒ…·–	!‰÷8¯±›H¼»‘ß]ÉïR4"$¨&Âö¢Š‹Ñ…„Õ†IÆj”Ryv¦ ¥ RŞÁ«”f_ù|]€”"8
+æ<ÑS€E<†ˆ"æ)¬ôJX*5©ÔäßÑÈã4<F È†ˆir²¥tz3‘—ÁRl+¶ÊH)sdDŞ/å)Ká£iü¡—€Í(móİâ9r^•‡½êu2‹úx‚9EÕš·”zj2ÿ¹¦EÛëA•İ,\±¾¬_59­BävIó*`°ø*İ¾2•ŠÁ±#úõ„€Gp!ï“]ê­êòbf›§A§i×Ø†Dc&~¤ë˜Væª{š„P©r¬…[u¨ù{õ#ÍÈ!¬¨—å¦F:OØ—6UnrÄ÷ŞQù‘€E½u|;£o˜Š¼¦¡w}Û=”C/Üú¨CÏß«zv[î€º†AŞY1êNÃıã4ÜhŠÁ]ÃÊî6ùšè5oÜ… Nå°ÿxäkba¬<›ı˜IO%¾Bä+¦=éè7ın’/ØËı“H˜ ÄwbÏQÁu8†bpĞl`A†N‘§iT"9‡‰I$}Z‚aÉ(pÚT3cÒ¾%$ÃçHÑœ!8GîÉ(£ ¸CÄU¨‚Q½irQ‹_™W¸® ¾óÑeşs½İ¡Æ´?ˆòCÊğ¬`·‹^B0fÁpv‡LxWíTN†ûÖ2(Œu-†¦o…ª	zQò‚ËİF°¶‡!ùH{ƒÁéÌô|=!¯ì[©œyy¥ÍÁ2øó¼Ïñ¬!½?uüêıûëdKÕë¨NQ+sMN5Ó¡^úî• J¹šT§}¡7@®\íß(&ÄÇ@‚¨¸mkE…F²­ˆ1‡ºîŸ¨‰şPı°rƒØWB~À¸p,Eıàv!µ¢Í0¼ÙYİüéúğè¢vx°¼&hG_ù'äQ}š¤Æ¨>ÆC°ÅŞ¢§
+t.•‘•Ÿ¥ Z(Ÿ`Yşd¡Y;ìà¸J€zÁ>º'«€tÏ5
+
+R}Ä>6‰R}´QBU/Ö„)ßQY¦ªDíVŠ-lÀxõÏj1áeÕ©óù"ÃÜ0.Ì¢Â|jL˜ëF„¹-x0M0?>6Ìµ!Á\u¬?"æê¶Å!öÅ s­hşÂyÔ(y¸—ŠÍÎåâfg
+»XäeN)–yÃ¯*¬$çÛš5;ó…3øëZ› ªÏEQ×fgK1M{`¿«i<§´ä\ÜCPæ¯‘K¿º¨§¨/_×1KØg~°XÇ•­º¬2}¿•¦qÙîÃ3>ö1Š¹½¼pIÚ_]ğÛ—µĞ€0mCuó[ûÀƒÜ¢"nôşÚeë—l€Ì—~r;Œ3óe¥m#L¿ÒŞ‹).XÛ†’Ê,›‹"ë¿ãglùÍ!Û4¯*ªÙÌ½³.¢¿‹QÌÑ€F¸q5€ÒOÀÓï7û¸Sp|››/øÒ04D9U¿FÙè9ÿvn 0îåËVa7‡xİ aµŠU0›™Å®ä¤4<¬Óí{•¶[»B@ÿïa70$5 Â2Oj;ËMüìóCˆnz8ÔÁQÿùŞÎéñ	ˆšİã~ÿ ®ïn?$Î«Å<,>æóÆAxØ–—½…N9°ÔØ]M³OëâÎ]	dF˜‚|8(””å¸Œ¶ĞeÔOğ„XÛs0âgè¸Óxë‚q±x--»ô°L’“½½ƒç§0t?=İ>ío?^¦m¯KIŠP¸§¡†‰à5#=J¥ÛI J¦´*ğ`’Y8d-e/­)Áty:+ƒ ö¦•ŠùP*-ÄÊ»)v"ğ+Z§/Ê‡J]r}˜¼–÷ÌŠ·h&|!ğÀ¾XLÁEŒ,A)?éŸñ'ı3Å“şYùI0è=LŠáÇwg¤Â¸¯2ø¼şpìØ‰(Å´Àï[oôQè:¨‹Eâáë$YËóv XÖééÙš–‚P‰ºÔe™©ë"Æ*6¿RqãÈar'|9À„õÑş™T‚D‹ÄHbX|wº›v¯5íMÃ‚2ÕCÒ_½_Dp¯>½KÅôN|t0í ‹"Äƒ9óÈ0=¤â8Qäâº9Pœ°©Áê¶ÄÖ>êNÇ¸GèIø»5÷ôx!4¯}AÒ¢°ÕXl»‡Ÿ<q|X:—4V>R±ê±P<PÄwÿ˜²!B*K—òÒ£ °wÀ<0bë¢ø[­«^ôAUıxübçéŞI_Pã`pìí*´xªa|~LÅa)ü /ñ»U}‹]_¬M´ü´*½øHÙâ·<ßR¼åß0Ä"/”å9Mš£½Ÿ]Nö¶Ÿî!`äÁşÁÎöéÁñ9=ŞîŸŠñslÂi€;û@ñwóÆ$ê(1Øj“Î¡şøÁVÀöœòøEšb
+Vé/®?ìÜÏ¶sßvbÎYÆH.Kçœ	8‚ušoä­f¡l‘çR\ƒÂN‘ã+¿–orĞMÁÏQiı¸7”7÷tç0¶şö·ÿ³ì(›­¥…óƒñzUp1¬èÿ¼'FŸ{]¤€#kfQ'|»#›àŠİ£œ˜¦'7H8Å±¸•´\>YkbËñˆ¥µAÊâ¥¥AÙãó`i¼.])ã
+ kÊKàŒıQ MÓÄäf¹5…ùÃÄı¥Ô‚ieÄ³é›×Ø›‘.fÜşÆè±‘Ëµ‘Æu‡có8g 8h.Ù®Rq6ëšÚ(1fá'—RÙ5Ğ?—ñÿ   ÿÿ „ìÇL

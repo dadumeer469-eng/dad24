@@ -16,6 +16,8 @@ import {
   orderBy,
   getDocs,
   increment,
+  arrayUnion,
+  arrayRemove,
 } from "firebase/firestore";
 import { auth, db, handleFirestoreError, cleanObject } from "./firebase";
 import {
@@ -56,6 +58,7 @@ import { LazyImage } from "./components/LazyImage";
 import DaduLogoLoader from "./components/DaduLogoLoader";
 import useLazyBatchLoad from "./hooks/useLazyBatchLoad";
 import daduLogo from "./assets/images/dadu_food_logo_new_1782333467889.jpg";
+import { generateOrderIdentifiers } from "./lib/orderUtils";
 import { logMemoryUsage, useMemoryMonitor } from "./utils/memoryLogger";
 
 // Icons & Motion
@@ -1829,7 +1832,7 @@ export default function App() {
     }
 
     try {
-      const generatedOrderId = `gorder_${Date.now()}`;
+      const { id: generatedOrderId, orderNumber: generatedOrderNumber } = generateOrderIdentifiers("grocery");
 
       // Adapt items array representation
       const adaptedItems = details.items.map((item) => ({
@@ -1848,6 +1851,7 @@ export default function App() {
 
       const orderDoc = {
         id: generatedOrderId,
+        orderNumber: generatedOrderNumber,
         userId: currentUser?.uid || "guest",
         name: details.name,
         userName: details.name,
@@ -1874,9 +1878,31 @@ export default function App() {
       await setDoc(doc(db, "orders", generatedOrderId), cleanObject(orderDoc));
 
       if (details.voucher) {
-        await updateDoc(doc(db, "vouchers", details.voucher.code), {
-          currentUses: increment(1)
-        }).catch((err) => console.error("Failed to update voucher uses:", err));
+        const matchedVoucher = vouchers.find(
+          (v) => v.code.toUpperCase() === details.voucher.code.toUpperCase() || v.id === details.voucher.code
+        );
+        const targetDocId = matchedVoucher?.id || details.voucher.code;
+        const uid = currentUser?.uid;
+
+        const voucherUpdate: any = {
+          currentUses: increment(1),
+        };
+        if (uid) {
+          voucherUpdate.usedUserIds = arrayUnion(uid);
+          voucherUpdate[`userUsageCount.${uid}`] = increment(1);
+
+          if (matchedVoucher) {
+            const limit = matchedVoucher.perUserLimit !== undefined && matchedVoucher.perUserLimit > 0 ? matchedVoucher.perUserLimit : 1;
+            const prevUses = matchedVoucher.userUsageCount?.[uid] ?? (matchedVoucher.usedUserIds?.includes(uid) ? 1 : 0);
+            if (prevUses + 1 >= limit && matchedVoucher.assignedUserIds?.includes(uid)) {
+              voucherUpdate.assignedUserIds = arrayRemove(uid);
+            }
+          }
+        }
+
+        await updateDoc(doc(db, "vouchers", targetDocId), voucherUpdate).catch((err) =>
+          console.error("Failed to update grocery voucher uses:", err)
+        );
       }
 
       // Update profile with new location & name & deduct coins if any
@@ -2043,9 +2069,10 @@ export default function App() {
       0,
     );
 
-    const uniqueOrderId = `order_${Date.now()}`;
+    const { id: uniqueOrderId, orderNumber: uniqueOrderNumber } = generateOrderIdentifiers(details.orderType);
     const orderModel: Order = {
       id: uniqueOrderId,
+      orderNumber: uniqueOrderNumber,
       userId: currentUser.uid,
       userName: details.name,
       name: details.name,
@@ -2075,9 +2102,31 @@ export default function App() {
       await setDoc(doc(db, "orders", uniqueOrderId), cleanObject(orderModel));
 
       if (details.voucher) {
-        await updateDoc(doc(db, "vouchers", details.voucher.code), {
-          currentUses: increment(1)
-        }).catch((err) => console.error("Failed to update voucher uses:", err));
+        const matchedVoucher = vouchers.find(
+          (v) => v.code.toUpperCase() === details.voucher.code.toUpperCase() || v.id === details.voucher.code
+        );
+        const targetDocId = matchedVoucher?.id || details.voucher.code;
+        const uid = currentUser?.uid;
+
+        const voucherUpdate: any = {
+          currentUses: increment(1),
+        };
+        if (uid) {
+          voucherUpdate.usedUserIds = arrayUnion(uid);
+          voucherUpdate[`userUsageCount.${uid}`] = increment(1);
+
+          if (matchedVoucher) {
+            const limit = matchedVoucher.perUserLimit !== undefined && matchedVoucher.perUserLimit > 0 ? matchedVoucher.perUserLimit : 1;
+            const prevUses = matchedVoucher.userUsageCount?.[uid] ?? (matchedVoucher.usedUserIds?.includes(uid) ? 1 : 0);
+            if (prevUses + 1 >= limit && matchedVoucher.assignedUserIds?.includes(uid)) {
+              voucherUpdate.assignedUserIds = arrayRemove(uid);
+            }
+          }
+        }
+
+        await updateDoc(doc(db, "vouchers", targetDocId), voucherUpdate).catch((err) =>
+          console.error("Failed to update food voucher uses:", err)
+        );
       }
 
       // 1.2 Update Device Info

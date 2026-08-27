@@ -1,8 +1,10 @@
 import React, { useState } from "react";
-import { UserProfile, GroceryOrderItem, GroceryDeliveryConfig, getUserCoins, Voucher, calculateVoucherDiscount, isVoucherExpired } from "../types";
-import { X, ShoppingBag, MapPin, Phone, User, AlertTriangle, ShieldCheck, Heart, Edit2, Compass, Trash2, CheckCircle, Coins, Ticket, Tag } from "lucide-react";
+import { UserProfile, GroceryOrderItem, GroceryDeliveryConfig, getUserCoins, Voucher, calculateVoucherDiscount, isVoucherExpired, canUserUseVoucher } from "../types";
+import { X, ShoppingBag, MapPin, Phone, User, AlertTriangle, ShieldCheck, Heart, Edit2, Compass, Trash2, CheckCircle, Coins, Ticket, Tag, ChevronDown, Sparkles, Check, Loader2, Info } from "lucide-react";
 import { LazyImage } from "./LazyImage";
 import UserVouchersModal from "./UserVouchersModal";
+import { doc, setDoc } from "firebase/firestore";
+import { db, handleFirestoreError } from "../firebase";
 
 interface GroceryCartDrawerProps {
   isOpen: boolean;
@@ -51,6 +53,59 @@ export default function GroceryCartDrawer({
   const [voucherInputCode, setVoucherInputCode] = useState("");
   const [voucherError, setVoucherError] = useState<string | null>(null);
   const [isVouchersModalOpen, setIsVouchersModalOpen] = useState(false);
+  const [isBenefitsOpen, setIsBenefitsOpen] = useState(false);
+
+  // Address editing states
+  const [isEditingAddress, setIsEditingAddress] = useState(false);
+  const [addressInput, setAddressInput] = useState("");
+  const [isSavingAddress, setIsSavingAddress] = useState(false);
+  const [addressSaveSuccess, setAddressSaveSuccess] = useState(false);
+  const [addressError, setAddressError] = useState<string | null>(null);
+
+  const handleStartEditAddress = () => {
+    setAddressInput(currentUser?.address || "");
+    setIsEditingAddress(true);
+    setAddressError(null);
+    setAddressSaveSuccess(false);
+  };
+
+  const handleSaveAddress = async () => {
+    if (!currentUser) return;
+    const trimmed = addressInput.trim();
+    if (!trimmed) {
+      setAddressError("Please enter a valid address.");
+      return;
+    }
+    if (trimmed.length < 5) {
+      setAddressError("Address must be at least 5 characters long.");
+      return;
+    }
+
+    try {
+      setIsSavingAddress(true);
+      setAddressError(null);
+
+      const updatedData: any = {
+        address: trimmed,
+        savedLocation: {
+          area: trimmed.split(",")[0]?.trim() || trimmed,
+          street: trimmed,
+          lat: currentUser.savedLocation?.lat || 26.7341,
+          lng: currentUser.savedLocation?.lng || 67.7795,
+        }
+      };
+
+      await setDoc(doc(db, "users", currentUser.uid), updatedData, { merge: true });
+      setIsEditingAddress(false);
+      setAddressSaveSuccess(true);
+      setTimeout(() => setAddressSaveSuccess(false), 3500);
+    } catch (err: any) {
+      console.error("Failed to save address to Firebase:", err);
+      setAddressError(handleFirestoreError(err) || "Failed to update address in database.");
+    } finally {
+      setIsSavingAddress(false);
+    }
+  };
 
   React.useEffect(() => {
     if (!isOpen || cartItems.length === 0) {
@@ -59,6 +114,7 @@ export default function GroceryCartDrawer({
       setAppliedVoucher(null);
       setVoucherInputCode("");
       setVoucherError(null);
+      setIsBenefitsOpen(false);
     }
   }, [isOpen, cartItems.length]);
 
@@ -85,13 +141,14 @@ export default function GroceryCartDrawer({
 
   const taxesAmount = Math.round(totalGroceryPrice * 0.02); // 2% GST
   
+  // Base Grocery Total before benefits
+  const baseOrderTotal = totalGroceryPrice + finalDeliveryFee + taxesAmount;
+
   // Voucher Discount
   let voucherDiscount = 0;
   if (appliedVoucher) {
     voucherDiscount = calculateVoucherDiscount(appliedVoucher, totalGroceryPrice);
   }
-
-  let grandTotal = Math.max(0, totalGroceryPrice + finalDeliveryFee + taxesAmount - voucherDiscount);
 
   const userCoins = getUserCoins(currentUser, systemSettings);
   const isLoyaltyEnabledForGrocery = (systemSettings?.loyaltyEnabled !== false) && (systemSettings?.loyaltyAllowOnGrocery || false);
@@ -100,13 +157,14 @@ export default function GroceryCartDrawer({
   const maxCoinsUsable = isLoyaltyEnabledForGrocery ? Math.min(
     userCoins,
     maxAllowedCoinsByAdmin,
-    Math.floor(grandTotal)
+    Math.floor(baseOrderTotal)
   ) : 0;
 
-  const coinsDeducted = useCoins ? maxCoinsUsable : 0;
-  if (useCoins) {
-    grandTotal = Math.max(0, grandTotal - coinsDeducted);
-  }
+  // Mutually Exclusive Benefit: Only voucher OR coins (not both)
+  const coinsDeducted = (useCoins && !appliedVoucher) ? maxCoinsUsable : 0;
+  const totalBenefitDiscount = appliedVoucher ? voucherDiscount : coinsDeducted;
+
+  let grandTotal = Math.max(0, baseOrderTotal - totalBenefitDiscount);
 
   // Real-time Order Reward Calculation (from Admin Loyalty Settings)
   const loyaltyEarnVal = systemSettings?.loyaltyEarnCoins ?? 15;
@@ -143,18 +201,10 @@ export default function GroceryCartDrawer({
       return;
     }
 
-    if (!targetVoucher.isActive) {
-      setVoucherError("This voucher is currently inactive.");
-      return;
-    }
-
-    if (isVoucherExpired(targetVoucher)) {
-      setVoucherError("This voucher has expired.");
-      return;
-    }
-
-    if (targetVoucher.maxUses && (targetVoucher.currentUses || 0) >= targetVoucher.maxUses) {
-      setVoucherError("This voucher has reached its maximum usage limit.");
+    // Check eligibility & per-user limit
+    const eligibility = canUserUseVoucher(targetVoucher, currentUser?.uid);
+    if (!eligibility.allowed) {
+      setVoucherError(eligibility.reason || "This voucher cannot be used.");
       return;
     }
 
@@ -163,27 +213,40 @@ export default function GroceryCartDrawer({
       return;
     }
 
-    if (targetVoucher.assignedUserIds && targetVoucher.assignedUserIds.length > 0) {
-      if (!currentUser || !targetVoucher.assignedUserIds.includes(currentUser.uid)) {
-        setVoucherError("This voucher is exclusive to select customer accounts.");
-        return;
-      }
-    }
-
     if (targetVoucher.minOrderAmount && totalGroceryPrice < targetVoucher.minOrderAmount) {
       setVoucherError(`Minimum grocery order of Rs. ${targetVoucher.minOrderAmount} required.`);
       return;
     }
 
+    // Mutually Exclusive Benefit: disable coins when applying voucher
+    if (useCoins) {
+      setUseCoins(false);
+    }
+
     setAppliedVoucher(targetVoucher);
     setVoucherInputCode(targetVoucher.code);
     setVoucherError(null);
+    setIsBenefitsOpen(true);
   };
 
   const handleRemoveVoucher = () => {
     setAppliedVoucher(null);
     setVoucherInputCode("");
     setVoucherError(null);
+  };
+
+  const handleToggleCoins = () => {
+    if (!useCoins) {
+      // Switching to Coins: Remove any applied voucher for mutual exclusivity
+      if (appliedVoucher) {
+        setAppliedVoucher(null);
+        setVoucherInputCode("");
+        setVoucherError(null);
+      }
+      setUseCoins(true);
+    } else {
+      setUseCoins(false);
+    }
   };
 
   const handleCheckoutSubmit = async (e: React.FormEvent) => {
@@ -405,19 +468,94 @@ export default function GroceryCartDrawer({
                       <span className="font-semibold font-mono">{currentUser.phone}</span>
                     </div>
 
-                    <div className="border-t border-zinc-850 pt-2 mt-2 space-y-2.5">
-                      <div className="flex items-center gap-1.5 text-zinc-300">
-                        <MapPin className="w-4 h-4 text-rose-500 shrink-0" />
-                        <span className="font-bold text-zinc-250 truncate">Shipment Destination Address:</span>
+                    <div className="border-t border-zinc-850 pt-2.5 mt-2 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5 text-orange-500" />
+                          Shipment Destination Address
+                        </span>
+                        {!isEditingAddress && (
+                          <button
+                            type="button"
+                            onClick={handleStartEditAddress}
+                            className="flex items-center gap-1 text-[11px] font-black text-orange-400 hover:text-orange-300 hover:underline transition cursor-pointer"
+                          >
+                            <Edit2 className="w-3 h-3" />
+                            {currentUser.address ? "Change Address" : "Add Address"}
+                          </button>
+                        )}
                       </div>
-                      {currentUser.address ? (
-                        <p className="bg-zinc-950 p-2.5 rounded-xl text-[11px] text-zinc-350 font-bold leading-normal border border-zinc-850">
+
+                      {addressSaveSuccess && (
+                        <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-bold flex items-center gap-1.5 animate-fadeIn">
+                          <Check className="w-3.5 h-3.5 shrink-0" />
+                          Address updated in database successfully!
+                        </div>
+                      )}
+
+                      {isEditingAddress ? (
+                        <div className="space-y-2 pt-1 animate-fadeIn">
+                          <textarea
+                            value={addressInput}
+                            onChange={(e) => {
+                              setAddressInput(e.target.value);
+                              if (addressError) setAddressError(null);
+                            }}
+                            placeholder="Enter full delivery address (House/Shop #, Street, Area, Dadu)..."
+                            rows={3}
+                            className="w-full bg-zinc-950 border border-zinc-700 focus:border-orange-500 rounded-xl p-2.5 text-xs text-white placeholder:text-zinc-600 focus:outline-none resize-none font-medium leading-relaxed"
+                            autoFocus
+                          />
+                          {addressError && (
+                            <p className="text-[10.5px] text-rose-400 font-semibold">{addressError}</p>
+                          )}
+                          <div className="flex items-center justify-end gap-2 pt-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsEditingAddress(false);
+                                setAddressError(null);
+                              }}
+                              disabled={isSavingAddress}
+                              className="px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-400 hover:text-white bg-zinc-900 border border-zinc-800 transition cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleSaveAddress}
+                              disabled={isSavingAddress}
+                              className="px-4 py-1.5 rounded-lg text-xs font-black text-white bg-orange-600 hover:bg-orange-700 shadow-md shadow-orange-600/20 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                            >
+                              {isSavingAddress ? (
+                                <>
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  Saving...
+                                </>
+                              ) : (
+                                <>
+                                  <Check className="w-3.5 h-3.5" />
+                                  Save & Update
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      ) : currentUser.address ? (
+                        <p className="bg-zinc-950 p-2.5 rounded-xl text-[11px] text-zinc-300 font-bold leading-normal border border-zinc-850">
                           {currentUser.address}
                         </p>
                       ) : (
-                        <p className="bg-zinc-955 p-2.5 rounded-xl text-[11px] text-rose-500 font-black leading-normal border border-rose-500/20">
-                          No address assigned! Please contact Admin to configure your delivery address.
-                        </p>
+                        <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold space-y-1">
+                          <p>No address assigned yet!</p>
+                          <button
+                            type="button"
+                            onClick={handleStartEditAddress}
+                            className="text-[11px] underline font-black text-white cursor-pointer"
+                          >
+                            + Click here to add your delivery address
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -429,164 +567,225 @@ export default function GroceryCartDrawer({
           {/* Pricing & Checkout Panel */}
           {cartItems.length > 0 && (
             <div className="p-5 border-t border-zinc-900 bg-zinc-900/60 space-y-4">
-                        {/* VOUCHER / PROMO CODE SECTION */}
-              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-xs font-black text-orange-400">
-                    <Ticket className="w-4 h-4 text-orange-500" />
-                    <span>Grocery Voucher</span>
+            {/* BENEFIT / OFFERS & DISCOUNTS COLLAPSIBLE BOX */}
+            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden transition-all duration-200">
+              {/* Box Click Trigger */}
+              <button
+                type="button"
+                onClick={() => setIsBenefitsOpen(!isBenefitsOpen)}
+                className="w-full p-3 flex items-center justify-between gap-2.5 text-left hover:bg-zinc-850/60 transition cursor-pointer"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-500/20 via-amber-500/10 to-emerald-500/20 border border-orange-500/30 flex items-center justify-center shrink-0 shadow-inner">
+                    <Sparkles className="w-4 h-4 text-orange-500" />
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsVouchersModalOpen(true)}
-                    className="text-[11px] font-black text-orange-400 hover:text-orange-300 underline cursor-pointer"
-                  >
-                    View My Vouchers 🎟️
-                  </button>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-xs font-black text-white tracking-wide">
+                        Offers & Benefits
+                      </span>
+                      {(appliedVoucher || (useCoins && coinsDeducted > 0)) ? (
+                        <span className="bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-[9px] font-black px-2 py-0.5 rounded-full animate-pulse">
+                          Rs. {voucherDiscount + coinsDeducted} Saved
+                        </span>
+                      ) : (
+                        <span className="bg-orange-500/15 border border-orange-500/25 text-orange-400 text-[9px] font-extrabold px-1.5 py-0.5 rounded-md">
+                          Vouchers & Coins
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-zinc-400 font-medium truncate mt-0.5">
+                      {appliedVoucher && useCoins
+                        ? `Voucher: ${appliedVoucher.code} + 🪙 ${coinsDeducted} Coins Active`
+                        : appliedVoucher
+                        ? `Applied: ${appliedVoucher.code} (-Rs. ${voucherDiscount})`
+                        : useCoins
+                        ? `🪙 ${coinsDeducted} Coins Applied (-Rs. ${coinsDeducted})`
+                        : "Tap to apply voucher code or redeem coins"}
+                    </p>
+                  </div>
                 </div>
 
-                {appliedVoucher ? (
-                  <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-2.5 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-mono font-black text-xs text-white">{appliedVoucher.code}</span>
-                          <span className="bg-orange-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-md">
-                            Rs. {voucherDiscount} OFF
-                          </span>
-                        </div>
-                        <span className="text-[10px] text-zinc-400 block">{appliedVoucher.title}</span>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleRemoveVoucher}
-                      className="text-xs text-rose-400 hover:text-rose-300 font-bold px-2 py-1 bg-rose-500/10 rounded-lg cursor-pointer"
-                    >
-                      Remove
-                    </button>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="text-[10px] font-bold text-zinc-400 hidden sm:inline">
+                    {isBenefitsOpen ? "Close" : "Open"}
+                  </span>
+                  <div className={`w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 transition-transform duration-300 ${isBenefitsOpen ? "rotate-180 text-white bg-orange-600" : ""}`}>
+                    <ChevronDown className="w-3.5 h-3.5" />
                   </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <div className="relative flex-1">
-                        <Tag className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                        <input
-                          type="text"
-                          placeholder="ENTER VOUCHER CODE"
-                          value={voucherInputCode}
-                          onChange={(e) => setVoucherInputCode(e.target.value.toUpperCase())}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              handleApplyVoucher(voucherInputCode);
-                            }
-                          }}
-                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-8 pr-3 py-2 text-xs font-mono font-bold text-white placeholder:text-zinc-600 focus:outline-none focus:border-orange-500 uppercase"
-                        />
+                </div>
+              </button>
+
+              {/* Inside Benefit Box (Shown when open) */}
+              {isBenefitsOpen && (
+                <div className="p-3 pt-2.5 border-t border-zinc-800 space-y-3 bg-zinc-950/60">
+                  {/* VOUCHER / PROMO CODE SECTION */}
+                  <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-xs font-black text-orange-400">
+                        <Ticket className="w-3.5 h-3.5 text-orange-500" />
+                        <span>Grocery Voucher</span>
                       </div>
                       <button
                         type="button"
-                        onClick={() => handleApplyVoucher(voucherInputCode)}
-                        className="bg-orange-600 hover:bg-orange-700 text-white text-xs font-black px-3.5 py-2 rounded-xl transition cursor-pointer"
+                        onClick={() => setIsVouchersModalOpen(true)}
+                        className="text-[10.5px] font-black text-orange-400 hover:text-orange-300 underline cursor-pointer"
                       >
-                        Apply
+                        View My Vouchers 🎟️
                       </button>
                     </div>
-                    {voucherError && (
-                      <p className="text-[10px] text-rose-400 font-semibold">{voucherError}</p>
+
+                    {appliedVoucher ? (
+                      <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-2.5 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-mono font-black text-xs text-white">{appliedVoucher.code}</span>
+                              <span className="bg-orange-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-md">
+                                Rs. {voucherDiscount} OFF
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-zinc-400 block">{appliedVoucher.title}</span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleRemoveVoucher}
+                          className="text-xs text-rose-400 hover:text-rose-300 font-bold px-2 py-1 bg-rose-500/10 rounded-lg cursor-pointer"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2">
+                          <div className="relative flex-1">
+                            <Tag className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                            <input
+                              type="text"
+                              placeholder="ENTER VOUCHER CODE"
+                              value={voucherInputCode}
+                              onChange={(e) => setVoucherInputCode(e.target.value.toUpperCase())}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  handleApplyVoucher(voucherInputCode);
+                                }
+                              }}
+                              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-8 pr-3 py-2 text-xs font-mono font-bold text-white placeholder:text-zinc-600 focus:outline-none focus:border-orange-500 uppercase"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleApplyVoucher(voucherInputCode)}
+                            className="bg-orange-600 hover:bg-orange-700 text-white text-xs font-black px-3.5 py-2 rounded-xl transition cursor-pointer"
+                          >
+                            Apply
+                          </button>
+                        </div>
+                        {voucherError && (
+                          <p className="text-[10px] text-rose-400 font-semibold">{voucherError}</p>
+                        )}
+                      </div>
                     )}
                   </div>
-                )}
-              </div>
 
-              {/* Coin Benefit Section - Rendered ONLY if enabled by admin and user has coins */}
-              {isLoyaltyEnabledForGrocery && maxAllowedCoinsByAdmin > 0 && userCoins > 0 && (
-                <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/15 to-amber-600/10 border border-amber-500/30 rounded-2xl p-3.5 mt-3 space-y-2.5 animate-fadeIn text-left shadow-sm">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0 shadow-inner">
-                        <Coins className="w-5 h-5 text-amber-400 animate-pulse" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-black text-amber-300 truncate">
-                            🪙 Coin Benefit Discount
-                          </span>
-                          <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full ${useCoins ? 'bg-amber-400 text-zinc-950' : 'bg-zinc-800 text-zinc-400'}`}>
-                            {useCoins ? `Rs. ${maxCoinsUsable} OFF` : 'OFF'}
-                          </span>
+                  {/* Policy banner for 1 offer limit */}
+                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-[9.5px] text-zinc-400">
+                    <Info className="w-3 h-3 text-orange-400 shrink-0" />
+                    <span>Ek order par sirf 1 offer lag sakti hai (Voucher <strong>ya</strong> Coin Discount).</span>
+                  </div>
+
+                  {/* Coin Benefit Section - Rendered ONLY if enabled by admin and user has coins */}
+                  {isLoyaltyEnabledForGrocery && maxAllowedCoinsByAdmin > 0 && userCoins > 0 && (
+                    <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/15 to-amber-600/10 border border-amber-500/30 rounded-xl p-3 space-y-2.5 animate-fadeIn text-left shadow-sm">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0 shadow-inner">
+                            <Coins className="w-4 h-4 text-amber-400 animate-pulse" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-black text-amber-300 truncate">
+                                🪙 Coin Benefit Discount
+                              </span>
+                              <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full ${useCoins && !appliedVoucher ? 'bg-amber-400 text-zinc-950' : 'bg-zinc-800 text-zinc-400'}`}>
+                                {useCoins && !appliedVoucher ? `Rs. ${maxCoinsUsable} OFF` : 'OFF'}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-amber-400/90 font-bold block truncate mt-0.5">
+                              Wallet: <span className="font-mono font-black text-amber-300">{userCoins} Coins</span> (1 Coin = Rs. 1)
+                            </span>
+                          </div>
                         </div>
-                        <span className="text-[10px] text-amber-400/90 font-bold block truncate mt-0.5">
-                          Wallet: <span className="font-mono font-black text-amber-300">{userCoins} Coins</span> (1 Coin = Rs. 1)
+
+                        {/* Toggle Switch */}
+                        <button
+                          type="button"
+                          onClick={handleToggleCoins}
+                          className={`w-11 h-6 rounded-full transition-all relative cursor-pointer outline-none shrink-0 border ${
+                            useCoins && !appliedVoucher ? "bg-amber-500 border-amber-400 shadow-md shadow-amber-500/20" : "bg-zinc-800 border-zinc-700"
+                          }`}
+                        >
+                          <span
+                            className={`absolute top-0.5 left-0.5 w-4.5 h-4.5 rounded-full bg-white shadow-md transition-transform flex items-center justify-center text-[9px] font-black ${
+                              useCoins && !appliedVoucher ? "transform translate-x-5 text-amber-600" : "text-zinc-500"
+                            }`}
+                          >
+                            {useCoins && !appliedVoucher ? "✓" : ""}
+                          </span>
+                        </button>
+                      </div>
+
+                      {/* Admin settings info row */}
+                      <div className="pt-2 border-t border-amber-500/20 flex items-center justify-between text-[10px] text-amber-300/80 font-semibold">
+                        <span>
+                          ⚡ Admin Max Limit: <strong className="text-amber-300 font-mono">Rs. {maxAllowedCoinsByAdmin}</strong>
+                        </span>
+                        <span className="text-amber-400 font-bold">
+                          {useCoins && !appliedVoucher ? `Applied: Rs. ${coinsDeducted}` : `Available: Rs. ${maxCoinsUsable}`}
                         </span>
                       </div>
                     </div>
+                  )}
 
-                    {/* Toggle Switch */}
-                    <button
-                      type="button"
-                      onClick={() => setUseCoins(!useCoins)}
-                      className={`w-12 h-6.5 rounded-full transition-all relative cursor-pointer outline-none shrink-0 border ${
-                        useCoins ? "bg-amber-500 border-amber-400 shadow-md shadow-amber-500/20" : "bg-zinc-800 border-zinc-700"
-                      }`}
-                    >
-                      <span
-                        className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform flex items-center justify-center text-[9px] font-black ${
-                          useCoins ? "transform translate-x-5.5 text-amber-600" : "text-zinc-500"
-                        }`}
-                      >
-                        {useCoins ? "✓" : ""}
-                      </span>
-                    </button>
-                  </div>
-
-                  {/* Admin settings info row */}
-                  <div className="pt-2 border-t border-amber-500/20 flex items-center justify-between text-[10px] text-amber-300/80 font-semibold">
-                    <span>
-                      ⚡ Admin Max Limit: <strong className="text-amber-300 font-mono">Rs. {maxAllowedCoinsByAdmin}</strong> per order
-                    </span>
-                    <span className="text-amber-400 font-bold">
-                      {useCoins ? `Applied: Rs. ${coinsDeducted}` : `Available: Rs. ${maxCoinsUsable}`}
-                    </span>
-                  </div>
+                  {/* Real-time Loyalty Cashback Earning Banner - Rendered ONLY if enabled by admin */}
+                  {loyaltyEarnEnabled && loyaltyEarnVal > 0 && (
+                    <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between text-left text-xs animate-fadeIn shadow-xs">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/35 flex items-center justify-center shrink-0">
+                          <Coins className="w-3.5 h-3.5 text-emerald-400 animate-bounce" />
+                        </div>
+                        <div>
+                          {grandTotal >= loyaltyMinOrder ? (
+                            <>
+                              <span className="text-xs font-black text-emerald-300 block">
+                                🎉 Cashback: <span className="text-emerald-200 font-mono font-black">+{estimatedCoinsEarned} Coins</span>
+                              </span>
+                              <span className="text-[10px] text-emerald-400/90 font-medium block mt-0.5">
+                                {loyaltyEarnType === "fixed" 
+                                  ? `Flat ${loyaltyEarnVal} Coins (Rs. ${estimatedCoinsEarned} Cashback)` 
+                                  : `${loyaltyEarnVal}% Cashback on Order (Rs. ${estimatedCoinsEarned})`}
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-xs font-black text-amber-300 block">
+                                💡 Rs. {loyaltyMinOrder - Math.floor(grandTotal)} Ka Aur Order Karein
+                              </span>
+                              <span className="text-[10px] text-amber-400/90 font-medium block mt-0.5">
+                                Min order Rs. {loyaltyMinOrder} par +{loyaltyEarnType === 'fixed' ? `${loyaltyEarnVal} Coins` : `${loyaltyEarnVal}% Coins`} cashback!
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
-
-              {/* Real-time Loyalty Cashback Earning Banner - Rendered ONLY if enabled by admin */}
-              {loyaltyEarnEnabled && loyaltyEarnVal > 0 && (
-                <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between text-left text-xs animate-fadeIn shadow-xs">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8.5 h-8.5 rounded-xl bg-emerald-500/20 border border-emerald-500/35 flex items-center justify-center shrink-0">
-                      <Coins className="w-4.5 h-4.5 text-emerald-400 animate-bounce" />
-                    </div>
-                    <div>
-                      {grandTotal >= loyaltyMinOrder ? (
-                        <>
-                          <span className="text-xs font-black text-emerald-300 block">
-                            🎉 Order Receive Par Earn Karenge: <span className="text-emerald-200 font-mono font-black">+{estimatedCoinsEarned} Coins</span>
-                          </span>
-                          <span className="text-[10px] text-emerald-400/90 font-bold block mt-0.5">
-                            {loyaltyEarnType === "fixed" 
-                              ? `Admin Reward: Flat ${loyaltyEarnVal} Coins (Rs. ${estimatedCoinsEarned} Cashback)` 
-                              : `Admin Reward: ${loyaltyEarnVal}% Cashback on Order Total (Rs. ${estimatedCoinsEarned})`}
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-xs font-black text-amber-300 block">
-                            💡 Rs. {loyaltyMinOrder - Math.floor(grandTotal)} Ka Aur Order Karein
-                          </span>
-                          <span className="text-[10px] text-amber-400/90 font-bold block mt-0.5">
-                            Min order Rs. {loyaltyMinOrder} hone par milega +{loyaltyEarnType === 'fixed' ? `${loyaltyEarnVal} Coins` : `${loyaltyEarnVal}% Coins`} cashback!
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
+            </div>
 
               <div className="space-y-1.5 text-xs">
                 {totalGroceryPrice < 500 && (

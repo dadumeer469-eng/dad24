@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, Ticket, Copy, Check, Calendar, Store, ShoppingBag, Sparkles, AlertCircle, ArrowRight } from "lucide-react";
-import { Voucher, UserProfile, isVoucherExpired } from "../types";
+import { X, Ticket, Copy, Check, Calendar, Store, ShoppingBag, Sparkles, AlertCircle, ArrowRight, UserCheck, ShieldCheck, History } from "lucide-react";
+import { Voucher, UserProfile, isVoucherExpired, canUserUseVoucher, isVoucherExhaustedForUser } from "../types";
 
 interface UserVouchersModalProps {
   isOpen: boolean;
@@ -25,7 +25,7 @@ export default function UserVouchersModal({
   cartRestaurant,
 }: UserVouchersModalProps) {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
-  const [filterTab, setFilterTab] = useState<"all" | "food" | "grocery" | "exclusive">("all");
+  const [filterTab, setFilterTab] = useState<"all" | "food" | "grocery" | "exclusive" | "used">("all");
 
   if (!isOpen) return null;
 
@@ -35,8 +35,8 @@ export default function UserVouchersModal({
     setTimeout(() => setCopiedCode(null), 2500);
   };
 
-  // Filter vouchers visible to this user
-  const userVisibleVouchers = vouchers.filter((v) => {
+  // Base list of vouchers targeted to this user or public
+  const baseUserVouchers = vouchers.filter((v) => {
     if (!v.isActive) return false;
     // If voucher is targeted to specific users, check if currentUser.uid is in assignedUserIds
     if (v.assignedUserIds && v.assignedUserIds.length > 0) {
@@ -47,7 +47,17 @@ export default function UserVouchersModal({
     return true;
   });
 
-  const filteredVouchers = userVisibleVouchers.filter((v) => {
+  // Active usable vouchers (exhausted or already-used vouchers automatically removed!)
+  const activeAvailableVouchers = baseUserVouchers.filter((v) => {
+    return !isVoucherExhaustedForUser(v, currentUser?.uid);
+  });
+
+  // Already used / exhausted vouchers for history reference
+  const usedOrExhaustedVouchers = baseUserVouchers.filter((v) => {
+    return isVoucherExhaustedForUser(v, currentUser?.uid);
+  });
+
+  const displayedVouchers = (filterTab === "used" ? usedOrExhaustedVouchers : activeAvailableVouchers).filter((v) => {
     if (filterTab === "food") {
       return v.applicableType === "food_only" || v.applicableType === "restaurant" || !v.applicableType || v.applicableType === "all";
     }
@@ -79,11 +89,11 @@ export default function UserVouchersModal({
                 <h3 className="text-base font-black text-white flex items-center gap-2">
                   My Vouchers & Offers
                   <span className="text-[10px] bg-[#D70F64]/20 border border-[#D70F64]/30 text-pink-400 font-bold px-2 py-0.5 rounded-full">
-                    {userVisibleVouchers.length} Available
+                    {activeAvailableVouchers.length} Available
                   </span>
                 </h3>
                 <p className="text-xs text-zinc-400 font-medium mt-0.5">
-                  Redeem exclusive discount coupons on your checkout
+                  Redeem exclusive discount coupons on your checkout (1 offer per order)
                 </p>
               </div>
             </div>
@@ -105,7 +115,7 @@ export default function UserVouchersModal({
                   : "bg-zinc-800 text-zinc-400 hover:text-zinc-200"
               }`}
             >
-              All ({userVisibleVouchers.length})
+              Available ({activeAvailableVouchers.length})
             </button>
             <button
               onClick={() => setFilterTab("food")}
@@ -115,7 +125,7 @@ export default function UserVouchersModal({
                   : "bg-zinc-800 text-zinc-400 hover:text-zinc-200"
               }`}
             >
-              🍔 Food Vouchers
+              🍔 Food
             </button>
             <button
               onClick={() => setFilterTab("grocery")}
@@ -125,9 +135,9 @@ export default function UserVouchersModal({
                   : "bg-zinc-800 text-zinc-400 hover:text-zinc-200"
               }`}
             >
-              🛒 Grocery Vouchers
+              🛒 Grocery
             </button>
-            {currentUser && userVisibleVouchers.some(v => v.assignedUserIds?.includes(currentUser.uid)) && (
+            {currentUser && activeAvailableVouchers.some(v => v.assignedUserIds?.includes(currentUser.uid)) && (
               <button
                 onClick={() => setFilterTab("exclusive")}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition whitespace-nowrap cursor-pointer ${
@@ -139,34 +149,56 @@ export default function UserVouchersModal({
                 ⭐ Sent Just For You
               </button>
             )}
+            {usedOrExhaustedVouchers.length > 0 && (
+              <button
+                onClick={() => setFilterTab("used")}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition whitespace-nowrap cursor-pointer ${
+                  filterTab === "used"
+                    ? "bg-zinc-700 text-white shadow-sm"
+                    : "bg-zinc-800/60 text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                🕒 Used / Expired ({usedOrExhaustedVouchers.length})
+              </button>
+            )}
           </div>
 
           {/* Vouchers List */}
           <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-zinc-950/60">
-            {filteredVouchers.length === 0 ? (
+            {displayedVouchers.length === 0 ? (
               <div className="text-center py-16 space-y-3">
                 <div className="w-14 h-14 mx-auto rounded-2xl bg-zinc-800/80 border border-zinc-700 flex items-center justify-center text-2xl">
                   🎟️
                 </div>
-                <h4 className="text-sm font-black text-zinc-200">No Vouchers Available</h4>
+                <h4 className="text-sm font-black text-zinc-200">
+                  {filterTab === "used" ? "No Used Vouchers" : "No Vouchers Available"}
+                </h4>
                 <p className="text-xs text-zinc-400 max-w-xs mx-auto">
-                  There are currently no active vouchers in this category. Stay tuned for exciting promotional coupons!
+                  {filterTab === "used"
+                    ? "You haven't used any vouchers yet."
+                    : "There are currently no active vouchers in this category. Used vouchers are automatically cleared!"}
                 </p>
               </div>
             ) : (
-              filteredVouchers.map((voucher) => {
+              displayedVouchers.map((voucher) => {
                 const expired = isVoucherExpired(voucher);
                 const isAssignedToUser = !!(currentUser && voucher.assignedUserIds?.includes(currentUser.uid));
-                const hasReachedLimit = voucher.maxUses > 0 && voucher.currentUses >= voucher.maxUses;
+                const hasReachedTotalLimit = voucher.maxUses > 0 && (voucher.currentUses || 0) >= voucher.maxUses;
+                
+                const userUsage = currentUser?.uid
+                  ? (voucher.userUsageCount?.[currentUser.uid] ?? (voucher.usedUserIds?.includes(currentUser.uid) ? 1 : 0))
+                  : 0;
+                const perUserLimit = voucher.perUserLimit !== undefined && voucher.perUserLimit > 0 ? voucher.perUserLimit : 1;
+                const hasReachedUserLimit = currentUser ? userUsage >= perUserLimit : false;
+
+                const eligibility = canUserUseVoucher(voucher, currentUser?.uid);
                 
                 // Can apply in current cart check
                 let canApplyNow = false;
                 let applyReason = "";
                 if (onApplyVoucher) {
-                  if (expired) {
-                    applyReason = "Voucher expired";
-                  } else if (hasReachedLimit) {
-                    applyReason = "Usage limit reached";
+                  if (!eligibility.allowed) {
+                    applyReason = eligibility.reason || "Not eligible";
                   } else if (voucher.applicableType === "grocery_only" && cartType === "food") {
                     applyReason = "Grocery orders only";
                   } else if (voucher.applicableType === "food_only" && cartType === "grocery") {
@@ -184,7 +216,7 @@ export default function UserVouchersModal({
                   <div
                     key={voucher.id || voucher.code}
                     className={`relative rounded-3xl border transition-all overflow-hidden p-4.5 ${
-                      expired || hasReachedLimit
+                      expired || hasReachedTotalLimit || hasReachedUserLimit
                         ? "bg-zinc-900/40 border-zinc-800/80 opacity-60"
                         : isAssignedToUser
                         ? "bg-gradient-to-br from-amber-500/10 via-zinc-900 to-zinc-900 border-amber-500/30 shadow-md shadow-amber-500/5"
@@ -194,11 +226,23 @@ export default function UserVouchersModal({
                     {/* Top Row: Discount & Badge */}
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        {isAssignedToUser && (
-                          <span className="inline-flex items-center gap-1 bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[9px] font-black uppercase px-2 py-0.5 rounded-full mb-1.5">
-                            <Sparkles className="w-2.5 h-2.5" /> Sent For You by Admin
+                        <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
+                          {isAssignedToUser && (
+                            <span className="inline-flex items-center gap-1 bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[9px] font-black uppercase px-2 py-0.5 rounded-full">
+                              <Sparkles className="w-2.5 h-2.5" /> Sent For You
+                            </span>
+                          )}
+                          <span className="inline-flex items-center gap-1 bg-zinc-800 border border-zinc-700 text-zinc-300 text-[9px] font-black uppercase px-2 py-0.5 rounded-full">
+                            <UserCheck className="w-2.5 h-2.5 text-[#D70F64]" />
+                            {perUserLimit === 1 ? "1 Use Per User" : `${perUserLimit} Uses Per User`}
                           </span>
-                        )}
+                          {voucher.maxUses > 0 && (
+                            <span className="inline-flex items-center gap-1 bg-zinc-800/80 border border-zinc-700 text-zinc-400 text-[9px] font-bold px-2 py-0.5 rounded-full">
+                              👥 {Math.max(0, voucher.maxUses - (voucher.currentUses || 0))} / {voucher.maxUses} users left
+                            </span>
+                          )}
+                        </div>
+
                         <h4 className="text-lg font-black text-white flex items-baseline gap-2">
                           {voucher.discountType === "percentage" ? (
                             <>
@@ -224,9 +268,13 @@ export default function UserVouchersModal({
                           <span className="bg-red-500/10 border border-red-500/20 text-red-400 text-[9px] font-black uppercase px-2.5 py-1 rounded-full">
                             Expired
                           </span>
-                        ) : hasReachedLimit ? (
+                        ) : hasReachedUserLimit ? (
+                          <span className="bg-amber-500/10 border border-amber-500/25 text-amber-400 text-[9px] font-black uppercase px-2.5 py-1 rounded-full">
+                            Already Used
+                          </span>
+                        ) : hasReachedTotalLimit ? (
                           <span className="bg-zinc-800 text-zinc-400 text-[9px] font-black uppercase px-2.5 py-1 rounded-full">
-                            Used Up
+                            All Claims Used
                           </span>
                         ) : (
                           <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase px-2.5 py-1 rounded-full">
@@ -295,9 +343,9 @@ export default function UserVouchersModal({
                     </div>
 
                     {/* Quick Apply Button if modal opened in checkout context */}
-                    {onApplyVoucher && !expired && !hasReachedLimit && (
+                    {onApplyVoucher && !expired && !hasReachedTotalLimit && !hasReachedUserLimit && (
                       <div className="mt-3.5 pt-3 border-t border-zinc-800/60 flex items-center justify-between">
-                        <span className="text-[10px] text-zinc-400 font-medium">
+                        <span className="text-[10px] text-zinc-400 font-medium truncate max-w-[200px]">
                           {canApplyNow ? "Ready to apply to your cart!" : applyReason}
                         </span>
                         <button

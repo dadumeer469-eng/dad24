@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from "react";
 import { X, Printer, Send, Download, Copy, Check, Share2, Sparkles } from "lucide-react";
+import { getDisplayOrderId } from "../lib/orderUtils";
 
 interface OrderReceiptModalProps {
   order: any | null;
@@ -88,7 +89,7 @@ export default function OrderReceiptModal({ order, isOpen, onClose, senderRole =
 
   if (!isOpen || !order) return null;
 
-  const orderIdShort = order.id ? `dadu-${order.id.substring(0, 8)}` : "dadu-00000";
+  const orderIdShort = getDisplayOrderId(order);
   const customerName = order.userName || order.name || "Valued Customer";
   const customerPhone = order.userPhone || order.phone || "";
   const customerAddress = order.userAddress || order.address || "Dadu Address";
@@ -107,6 +108,9 @@ export default function OrderReceiptModal({ order, isOpen, onClose, senderRole =
       )
       .join("\n");
 
+    const vDisc = order.voucher?.discountAmount || 0;
+    const cDisc = order.coinsUsed || 0;
+
     return `🧾 *DADU FOOD & GROCERY RECEIPT* 🛍️
 ━━━━━━━━━━━━━━━━━━━━━
 🆔 *Order ID:* #${orderIdShort}
@@ -122,7 +126,7 @@ ${itemsListText}
 -------------------------------------
 💵 *Items Subtotal:* Rs. ${order.totalPrice || 0}
 🛵 *Delivery Fee:* Rs. ${order.deliveryFee || 0}
-💰 *GRAND TOTAL:* *Rs. ${order.grandTotal || 0}*
+${vDisc > 0 ? `🎟️ *Voucher Discount:* -Rs. ${vDisc}\n` : ""}${cDisc > 0 ? `🪙 *Loyalty Coins Discount:* -Rs. ${cDisc}\n` : ""}💰 *GRAND TOTAL (Cash to Pay):* *Rs. ${order.grandTotal || 0}*
 💳 *Payment:* ${order.paymentMethod === "COD" || order.paymentMethod === "cod" ? "Cash On Delivery (COD)" : order.paymentMethod || "COD"}
 ━━━━━━━━━━━━━━━━━━━━━
 JazakAllah for ordering with Dadu Food! 🙏
@@ -368,10 +372,10 @@ function drawReceiptCanvas(canvas: HTMLCanvasElement, order: any) {
   ctx.font = "bold 12px monospace";
   ctx.fillStyle = "#0f172a";
 
-  const orderIdShort = order.id ? `dadu-${order.id.substring(0, 8)}` : "dadu-00000";
+  const orderIdShort = getDisplayOrderId(order);
   const createdAtFormatted = formatOrderDateTime(order.createdAt || order.date || order.timestamp || order.updatedAt);
 
-  ctx.fillText(`Receipt ID : #${orderIdShort}`, 25, y);
+  ctx.fillText(`Receipt ID : ${orderIdShort}`, 25, y);
   y += 18;
   ctx.fillText(`Date & Time: ${createdAtFormatted}`, 25, y);
   y += 18;
@@ -437,11 +441,29 @@ function drawReceiptCanvas(canvas: HTMLCanvasElement, order: any) {
   ctx.textAlign = "right";
   ctx.fillText(`Rs. ${order.deliveryFee || 0}`, width - 25, y);
 
+  if (order.voucher?.discountAmount) {
+    y += 20;
+    ctx.fillStyle = "#e11d48";
+    ctx.textAlign = "left";
+    ctx.fillText(`Voucher Discount (${order.voucher.code}):`, 25, y);
+    ctx.textAlign = "right";
+    ctx.fillText(`-Rs. ${order.voucher.discountAmount}`, width - 25, y);
+  }
+
+  if (order.coinsUsed && order.coinsUsed > 0) {
+    y += 20;
+    ctx.fillStyle = "#d97706";
+    ctx.textAlign = "left";
+    ctx.fillText(`Coins Redeemed (${order.coinsUsed} pts):`, 25, y);
+    ctx.textAlign = "right";
+    ctx.fillText(`-Rs. ${order.coinsUsed}`, width - 25, y);
+  }
+
   y += 24;
   ctx.fillStyle = "#D70F64";
   ctx.font = "bold 16px monospace";
   ctx.textAlign = "left";
-  ctx.fillText("GRAND TOTAL:", 25, y);
+  ctx.fillText("GRAND TOTAL (CASH):", 25, y);
   ctx.textAlign = "right";
   ctx.fillText(`Rs. ${order.grandTotal || 0}`, width - 25, y);
 

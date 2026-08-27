@@ -89,7 +89,8 @@ service cloud.firestore {
     // Vouchers Collection rules
     match /vouchers/{voucherId} {
       allow read: if true;
-      allow create, update, delete: if isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if true;
     }
 
     // Notifications Collection rules

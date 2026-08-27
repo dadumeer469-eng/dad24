@@ -4,11 +4,13 @@ import {
   collection, query, where, onSnapshot, doc, updateDoc, Timestamp, addDoc
 } from "firebase/firestore";
 import { db, handleFirestoreError } from "../firebase";
-import { Order, UserProfile } from "../types";
+import { Order, UserProfile, RiderWithdrawalRequest } from "../types";
 import { awardLoyaltyCoinsForOrder, creditRiderCoinsForOrder } from "../lib/loyalty";
+import { getDisplayOrderId } from "../lib/orderUtils";
 import { 
   CheckCircle2, Compass, Coins, CalendarDays, TrendingUp, History, User, 
-  MapPin, PhoneCall, LogOut, ArrowRight, ClipboardList, DollarSign, Clock, Check, Store, XCircle, Star
+  MapPin, PhoneCall, LogOut, ArrowRight, ClipboardList, DollarSign, Clock, Check, Store, XCircle, Star,
+  Ticket, Sparkles, Wallet, Banknote, ShieldCheck, Info, Send, CheckCircle, AlertCircle, RefreshCw
 } from "lucide-react";
 import OrderChat from "./OrderChat";
 import { useRiderLocationTracker } from "../lib/riderLocationTracker";
@@ -25,17 +27,77 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
   const [riderReceiptOrder, setRiderReceiptOrder] = useState<any | null>(null);
   const [isRiderReceiptModalOpen, setIsRiderReceiptModalOpen] = useState(false);
   const [isOnline, setIsOnline] = useState<boolean>(() => {
+    if (currentUser?.isOnline !== undefined) return currentUser.isOnline;
     const saved = localStorage.getItem(`rider_online_${currentUser.uid}`);
     return saved !== "false";
   });
 
-  const handleToggleOnline = () => {
-    setIsOnline((prev) => {
-      const next = !prev;
-      localStorage.setItem(`rider_online_${currentUser.uid}`, String(next));
-      return next;
+  // Real-time listen to rider's own profile for duty changes and admin updates
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+    const unsub = onSnapshot(doc(db, "users", currentUser.uid), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.isOnline !== undefined) {
+          setIsOnline(data.isOnline);
+          localStorage.setItem(`rider_online_${currentUser.uid}`, String(data.isOnline));
+        }
+      }
+    }, (err) => {
+      console.warn("Error listening to rider profile doc:", err);
     });
+    return () => unsub();
+  }, [currentUser?.uid]);
+
+  const handleToggleOnline = async () => {
+    const next = !isOnline;
+    setIsOnline(next);
+    localStorage.setItem(`rider_online_${currentUser.uid}`, String(next));
+    try {
+      await updateDoc(doc(db, "users", currentUser.uid), {
+        isOnline: next,
+        dutyStatus: next ? "online" : "offline",
+        lastDutyChangeAt: Timestamp.now(),
+      });
+    } catch (e) {
+      console.warn("Failed to sync rider duty status to Firestore:", e);
+    }
   };
+
+  // Withdrawal / Payout state
+  const [withdrawalRequests, setWithdrawalRequests] = useState<RiderWithdrawalRequest[]>([]);
+  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState<string>("");
+  const [withdrawMethod, setWithdrawMethod] = useState<"easypaisa" | "jazzcash" | "bank" | "cash">("easypaisa");
+  const [accountTitle, setAccountTitle] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [bankName, setBankName] = useState("");
+  const [withdrawLoading, setWithdrawLoading] = useState(false);
+
+  // Real-time listen to withdrawal requests
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+    const q = query(
+      collection(db, "withdrawal_requests"),
+      where("riderId", "==", currentUser.uid)
+    );
+    const unsub = onSnapshot(q, (snapshot) => {
+      const list: RiderWithdrawalRequest[] = [];
+      snapshot.forEach((d) => {
+        list.push({ id: d.id, ...d.data() } as RiderWithdrawalRequest);
+      });
+      list.sort((a, b) => {
+        const timeA = a.requestedAt?.seconds || 0;
+        const timeB = b.requestedAt?.seconds || 0;
+        return timeB - timeA;
+      });
+      setWithdrawalRequests(list);
+    }, (err) => {
+      console.warn("Error listening to withdrawal requests:", err);
+    });
+    return () => unsub();
+  }, [currentUser?.uid]);
+
   const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
   const [myOrders, setMyOrders] = useState<Order[]>([]);
   const [selectedHistoryDate, setSelectedHistoryDate] = useState<string | null>(null);
@@ -353,27 +415,45 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
 
-  // Metrics calculating functions
+  // Metrics calculating functions (Delivery fee + Voucher & Coin discount subsidies)
   const stats = deliveredOrders.reduce(
     (acc, order) => {
       const compDate = parseCompletedDate(order);
       if (!compDate) return acc;
 
       const charge = order.deliveryFee || 0;
+      const voucherSubsidy = order.voucher?.discountAmount || 0;
+      const coinSubsidy = order.coinsUsed || 0;
+      const totalOrderSubsidy = voucherSubsidy + coinSubsidy;
+      const totalOrderEarning = charge + totalOrderSubsidy;
+
       const isToday = compDate.toDateString() === todayStr;
       const isThisMonth = compDate.getMonth() === currentMonth && compDate.getFullYear() === currentYear;
 
       if (isToday) {
         acc.todayCount += 1;
-        acc.todayEarnings += charge;
+        acc.todayDeliveryFees += charge;
+        acc.todayDiscountSubsidies += totalOrderSubsidy;
+        acc.todayEarnings += totalOrderEarning;
       }
       if (isThisMonth) {
         acc.thisMonthCount += 1;
-        acc.thisMonthEarnings += charge;
+        acc.thisMonthDeliveryFees += charge;
+        acc.thisMonthDiscountSubsidies += totalOrderSubsidy;
+        acc.thisMonthEarnings += totalOrderEarning;
       }
       return acc;
     },
-    { todayCount: 0, todayEarnings: 0, thisMonthCount: 0, thisMonthEarnings: 0 }
+    { 
+      todayCount: 0, 
+      todayDeliveryFees: 0,
+      todayDiscountSubsidies: 0,
+      todayEarnings: 0, 
+      thisMonthCount: 0, 
+      thisMonthDeliveryFees: 0,
+      thisMonthDiscountSubsidies: 0,
+      thisMonthEarnings: 0 
+    }
   );
 
   // Filtered statistics for dashboard based on selected timeframe
@@ -398,7 +478,19 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
     return true; // "all"
   });
 
-  const filteredRiderEarnings = filteredRiderOrders.reduce((sum, o) => sum + (o.deliveryFee || 0), 0);
+  const filteredDeliveryFees = filteredRiderOrders.reduce((sum, o) => sum + (o.deliveryFee || 0), 0);
+  const filteredVoucherSubsidies = filteredRiderOrders.reduce((sum, o) => sum + (o.voucher?.discountAmount || 0), 0);
+  const filteredCoinsSubsidies = filteredRiderOrders.reduce((sum, o) => sum + (o.coinsUsed || 0), 0);
+  const filteredTotalSubsidies = filteredVoucherSubsidies + filteredCoinsSubsidies;
+  const filteredRiderEarnings = filteredDeliveryFees + filteredTotalSubsidies;
+  const filteredCustomerCash = filteredRiderOrders.reduce((sum, o) => sum + (o.grandTotal || 0), 0);
+
+  // Lifetime / Unsettled Subsidies for Rider
+  const unsettledDeliveryFees = deliveredOrders.reduce((sum, o) => sum + (o.deliveryFee || 0), 0);
+  const unsettledVoucherSubsidies = deliveredOrders.reduce((sum, o) => sum + (o.voucher?.discountAmount || 0), 0);
+  const unsettledCoinsSubsidies = deliveredOrders.reduce((sum, o) => sum + (o.coinsUsed || 0), 0);
+  const unsettledTotalSubsidies = unsettledVoucherSubsidies + unsettledCoinsSubsidies;
+  const unsettledTotalPayoutDue = unsettledDeliveryFees + unsettledTotalSubsidies;
 
   // Group delivered history by Date format: YYYY-MM-DD
   const historyGroupedByDate = deliveredOrders.reduce((groups: Record<string, Order[]>, order) => {
@@ -772,8 +864,8 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                               ? `RUN #${riderActiveOrders.findIndex(o => o.id === riderActiveOrder.id) + 1} OF ${riderActiveOrders.length}` 
                               : "Active Run"}
                           </span>
-                          <span className="text-[10px] text-zinc-400 font-mono font-bold">
-                            dadu-{riderActiveOrder.id.substring(0, 8)}
+                          <span className="text-[10px] text-pink-400 font-mono font-bold">
+                            {getDisplayOrderId(riderActiveOrder)}
                           </span>
                         </div>
                         <p className="text-[11px] text-zinc-400 font-semibold">
@@ -811,26 +903,45 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                       </div>
                     </div>
 
-                    {riderActiveOrder.coinsUsed && riderActiveOrder.coinsUsed > 0 ? (
-                      <div className="bg-amber-950/50 border border-amber-500/40 p-3 sm:p-3.5 rounded-2xl flex items-center justify-between gap-3 shadow-md text-amber-200 animate-fadeIn">
-                        <div className="flex items-center gap-2.5">
-                          <div className="p-2 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30 shrink-0">
-                            <Coins className="w-5 h-5 animate-bounce" />
+                    {(() => {
+                      const vDisc = riderActiveOrder.voucher?.discountAmount || 0;
+                      const cDisc = riderActiveOrder.coinsUsed || 0;
+                      const totalSubsidy = vDisc + cDisc;
+                      if (totalSubsidy <= 0) return null;
+
+                      return (
+                        <div className="bg-gradient-to-r from-amber-950/70 via-zinc-900 to-amber-950/70 border border-amber-500/40 p-3.5 sm:p-4 rounded-2xl flex items-center justify-between gap-3 shadow-md text-amber-200 animate-fadeIn">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2.5 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30 shrink-0">
+                              {vDisc > 0 ? <Ticket className="w-5 h-5 animate-pulse" /> : <Coins className="w-5 h-5 animate-bounce" />}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-[11px] font-black uppercase tracking-wider block text-amber-300">
+                                  {vDisc > 0 && cDisc > 0 
+                                    ? `🎟️ Voucher (Rs. ${vDisc}) + 🪙 Coins (Rs. ${cDisc})`
+                                    : vDisc > 0 
+                                    ? `🎟️ Voucher Discount: Rs. ${vDisc}`
+                                    : `🪙 Coin Discount: Rs. ${cDisc}`}
+                                </span>
+                                <span className="bg-amber-500/20 text-amber-300 text-[8.5px] px-2 py-0.5 rounded-full border border-amber-500/30 font-black uppercase">
+                                  Admin Payable
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-amber-200/90 font-medium block mt-0.5 leading-snug">
+                                Customer ne discount use kiya hai. Delivery hone par yeh <strong className="text-amber-300">Rs. {totalSubsidy}</strong> aapke Rider Panel mein add ho jayenge jo Admin settlement par aapko pay karega!
+                              </span>
+                            </div>
                           </div>
-                          <div>
-                            <span className="text-[11px] font-black uppercase tracking-wider block text-amber-300">
-                              🪙 Customer Redeemed Coins: {riderActiveOrder.coinsUsed} Coins
+                          <div className="text-right shrink-0">
+                            <span className="bg-amber-500 text-zinc-950 font-black text-[10px] px-2.5 py-1.5 rounded-lg uppercase block shadow-xs font-mono">
+                              +Rs. {totalSubsidy} Subsidy
                             </span>
-                            <span className="text-[10px] text-amber-200/80 font-medium block mt-0.5">
-                              Delivery complete hone par {riderActiveOrder.coinsUsed} Coins (Rs. {riderActiveOrder.coinsUsed} value) aapke wallet me credit hongay!
-                            </span>
+                            <span className="text-[8px] text-amber-400 font-bold block mt-1">Due to Rider</span>
                           </div>
                         </div>
-                        <span className="bg-amber-500 text-zinc-950 font-black text-[10px] px-2.5 py-1 rounded-lg uppercase shrink-0 shadow-xs">
-                          +Rs. {riderActiveOrder.coinsUsed} Cash
-                        </span>
-                      </div>
-                    ) : null}
+                      );
+                    })()}
                     
                     {/* Interactive Milestones Shipment Progress Pipeline */}
                     <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 space-y-3 animate-fadeIn">
@@ -1350,7 +1461,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                                 )}
                               </div>
                               <h4 className="font-extrabold text-xs sm:text-sm mt-2 text-zinc-200">
-                                Dadu Order: <span className="font-mono text-xs text-[#D70F64]">dadu-{order.id.substring(0, 6)}</span>
+                                Order: <span className="font-mono text-xs text-[#D70F64] font-bold">{getDisplayOrderId(order)}</span>
                               </h4>
                             </div>
                             <span className="text-[10px] text-zinc-500 font-mono font-bold mt-1 sm:mt-0">
@@ -1559,7 +1670,9 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                       {sortedDates.map((dateKey) => {
                         const dayOrders = historyGroupedByDate[dateKey] || [];
                         const dayEarnings = dayOrders.reduce((sum, o) => {
-                          return sum + (o.deliveryFee || 0);
+                          const fee = o.deliveryFee || 0;
+                          const subsidy = (o.voucher?.discountAmount || 0) + (o.coinsUsed || 0);
+                          return sum + fee + subsidy;
                         }, 0);
                         const isSelected = selectedHistoryDate === dateKey;
 
@@ -1594,27 +1707,42 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                   <div className="md:col-span-2 space-y-4">
                     {selectedHistoryDate ? (
                       <div className="space-y-4">
-                        <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 flex items-center justify-between gap-3 flex-wrap">
-                          <div>
-                            <span className="text-[9px] uppercase tracking-wider text-[#D70F64] font-black block">Log catalog details for</span>
-                            <h4 className="font-extrabold text-xs sm:text-sm text-zinc-100 mt-1">{formatNiceDate(selectedHistoryDate)}</h4>
-                          </div>
-                          
-                          <div className="flex items-center gap-6">
-                            <div className="text-right">
-                              <span className="text-[9px] text-zinc-550 uppercase tracking-widest block leading-none">Completed</span>
-                              <span className="text-xs sm:text-sm font-black text-zinc-200 block mt-1">{(historyGroupedByDate[selectedHistoryDate] || []).length} Orders</span>
+                        {(() => {
+                          const selectedDayOrders = historyGroupedByDate[selectedHistoryDate] || [];
+                          const dayFees = selectedDayOrders.reduce((sum, o) => sum + (o.deliveryFee || 0), 0);
+                          const daySubsidies = selectedDayOrders.reduce((sum, o) => sum + ((o.voucher?.discountAmount || 0) + (o.coinsUsed || 0)), 0);
+                          const dayTotalPayout = dayFees + daySubsidies;
+
+                          return (
+                            <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 flex items-center justify-between gap-3 flex-wrap">
+                              <div>
+                                <span className="text-[9px] uppercase tracking-wider text-[#D70F64] font-black block">Log catalog details for</span>
+                                <h4 className="font-extrabold text-xs sm:text-sm text-zinc-100 mt-1">{formatNiceDate(selectedHistoryDate)}</h4>
+                              </div>
+                              
+                              <div className="flex items-center gap-4 sm:gap-6 flex-wrap">
+                                <div className="text-right">
+                                  <span className="text-[9px] text-zinc-400 uppercase tracking-widest block leading-none">Completed</span>
+                                  <span className="text-xs sm:text-sm font-black text-zinc-200 block mt-1">{selectedDayOrders.length} Orders</span>
+                                </div>
+                                {daySubsidies > 0 && (
+                                  <div className="text-right">
+                                    <span className="text-[9px] text-amber-400 uppercase tracking-widest block leading-none">Subsidies</span>
+                                    <span className="text-xs sm:text-sm font-mono font-black text-amber-300 block mt-1 font-sans">
+                                      +Rs. {daySubsidies}
+                                    </span>
+                                  </div>
+                                )}
+                                <div className="text-right">
+                                  <span className="text-[9px] text-emerald-400 uppercase tracking-widest block leading-none">Total Payout</span>
+                                  <span className="text-sm sm:text-base font-mono font-black text-emerald-400 block mt-1 font-sans">
+                                    Rs. {dayTotalPayout}
+                                  </span>
+                                </div>
+                              </div>
                             </div>
-                            <div className="text-right">
-                              <span className="text-[9px] text-zinc-555 uppercase tracking-widest block leading-none">Rider earnings</span>
-                              <span className="text-sm sm:text-base font-mono font-black text-emerald-400 block mt-1 font-sans">
-                                Rs. {(historyGroupedByDate[selectedHistoryDate] || []).reduce((sum, o) => {
-                                return sum + (o.deliveryFee || 0);
-                              }, 0)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
+                          );
+                        })()}
 
                         {/* Order catalogs scroll block */}
                         <div className="space-y-4 max-h-[360px] overflow-y-auto scrollbar-none pr-1">
@@ -1622,17 +1750,22 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                             const completedTimeStr = order.deliveryCompletedAt?.seconds
                               ? new Date(order.deliveryCompletedAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                               : "N/A";
+                            const fee = order.deliveryFee || 0;
+                            const vDisc = order.voucher?.discountAmount || 0;
+                            const cDisc = order.coinsUsed || 0;
+                            const totalSubsidy = vDisc + cDisc;
+                            const totalOrderEarning = fee + totalSubsidy;
 
                             return (
                               <div key={order.id} className="bg-zinc-950 border border-zinc-850 p-4 sm:p-5 rounded-2xl space-y-3 shadow-sm text-zinc-100">
                                 {/* metadata */}
                                 <div className="flex justify-between items-start border-b border-zinc-850 pb-2.5 gap-2 text-xs">
                                   <div>
-                                    <span className="text-[#D70F64] font-black uppercase text-[9px] tracking-wider block">ID: dadu-{order.id.substring(0, 8)}</span>
+                                    <span className="text-[#D70F64] font-black uppercase text-[10px] tracking-wider block font-mono">ID: {getDisplayOrderId(order)}</span>
                                     <h5 className="font-extrabold text-zinc-200 mt-1">Buyer: {order.userName}</h5>
                                   </div>
                                   <div className="text-right font-mono">
-                                    <span className="text-[9px] text-zinc-550 uppercase block">Delivered At</span>
+                                    <span className="text-[9px] text-zinc-400 uppercase block">Delivered At</span>
                                     <span className="font-bold text-zinc-200 block mt-0.5">{completedTimeStr}</span>
                                   </div>
                                 </div>
@@ -1661,14 +1794,29 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                                   ))}
                                 </div>
 
-                                 {/* address & diagnostics info */}
+                                 {/* address & earnings breakdown */}
                                 <div className="text-[11px] text-zinc-400 font-semibold border-t border-zinc-900 pt-2.5 space-y-2">
                                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                                    <span className="truncate max-w-xs text-zinc-500">📍 Destination: {order.userAddress}</span>
+                                    <div>
+                                      <span className="truncate max-w-xs text-zinc-400 block">📍 Destination: {order.userAddress}</span>
+                                      <span className="text-[10px] text-zinc-400 font-mono block mt-0.5">
+                                        Customer Paid (Cash): <strong className="text-zinc-200">Rs. {order.grandTotal}</strong>
+                                      </span>
+                                    </div>
                                     <div className="flex flex-col items-end text-right text-[10.5px] shrink-0">
-                                      <div className="text-zinc-400">Base Delivery Fee: <span className="font-mono text-zinc-200">Rs. {order.deliveryFee || 0}</span></div>
-                                      <div className="text-[#D70F64] font-black mt-1 text-xs border-t border-zinc-900 pt-1">
-                                        Total Earnings (Kamaee): Rs. {order.deliveryFee || 0}
+                                      <div className="text-zinc-400">Delivery Fee: <span className="font-mono text-zinc-200">Rs. {fee}</span></div>
+                                      {vDisc > 0 && (
+                                        <div className="text-amber-400 text-[10px] font-bold mt-0.5">
+                                          🎟️ Voucher Subsidy: <span className="font-mono">+Rs. {vDisc}</span>
+                                        </div>
+                                      )}
+                                      {cDisc > 0 && (
+                                        <div className="text-amber-400 text-[10px] font-bold mt-0.5">
+                                          🪙 Coin Subsidy: <span className="font-mono">+Rs. {cDisc}</span>
+                                        </div>
+                                      )}
+                                      <div className="text-emerald-400 font-black mt-1 text-xs border-t border-zinc-900 pt-1 font-mono">
+                                        Total Due to Rider: Rs. {totalOrderEarning}
                                       </div>
                                     </div>
                                   </div>
@@ -1763,68 +1911,90 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   <div className="bg-zinc-950/60 border border-zinc-850 p-4 rounded-2xl flex items-center justify-between">
                     <div>
-                      <span className="text-[9px] uppercase tracking-widest text-zinc-500 font-black">Filtered Completed Orders</span>
+                      <span className="text-[9px] uppercase tracking-widest text-zinc-500 font-black">Filtered Runs</span>
                       <span className="text-xl sm:text-2xl font-black text-zinc-100 block mt-1">{filteredRiderOrders.length} Runs</span>
                     </div>
                     <span className="text-2xl">📦</span>
                   </div>
                   <div className="bg-zinc-950/60 border border-zinc-850 p-4 rounded-2xl flex items-center justify-between">
                     <div>
-                      <span className="text-[9px] uppercase tracking-widest text-emerald-500 font-black">Filtered Rider Earnings (Pure Fee)</span>
-                      <span className="text-xl sm:text-2xl font-mono font-black text-emerald-400 block mt-1 font-sans">Rs. {filteredRiderEarnings}</span>
+                      <span className="text-[9px] uppercase tracking-widest text-emerald-500 font-black">Delivery Fees</span>
+                      <span className="text-xl sm:text-2xl font-mono font-black text-emerald-400 block mt-1 font-sans">Rs. {filteredDeliveryFees}</span>
+                    </div>
+                    <span className="text-2xl">🚲</span>
+                  </div>
+                  <div className="bg-zinc-950/60 border border-amber-500/20 p-4 rounded-2xl flex items-center justify-between">
+                    <div>
+                      <span className="text-[9px] uppercase tracking-widest text-amber-400 font-black">Discount Subsidies</span>
+                      <span className="text-xl sm:text-2xl font-mono font-black text-amber-300 block mt-1 font-sans">Rs. {filteredTotalSubsidies}</span>
+                    </div>
+                    <span className="text-2xl">🎟️</span>
+                  </div>
+                  <div className="bg-zinc-950/60 border border-pink-500/20 p-4 rounded-2xl flex items-center justify-between">
+                    <div>
+                      <span className="text-[9px] uppercase tracking-widest text-pink-400 font-black">Total Payout Due</span>
+                      <span className="text-xl sm:text-2xl font-mono font-black text-white block mt-1 font-sans">Rs. {filteredRiderEarnings}</span>
                     </div>
                     <span className="text-2xl">💵</span>
                   </div>
                 </div>
               </div>
 
-              {/* Customer Coins Earnings & Cash Value Wallet */}
+              {/* Customer Discounts & Subsidy Reimbursement Wallet */}
               <div className="bg-gradient-to-r from-amber-950/80 via-zinc-900 to-amber-950/80 border border-amber-500/40 p-5 rounded-3xl space-y-4 shadow-xl">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-amber-500/20 pb-3">
                   <div className="flex items-center gap-3">
                     <div className="p-2.5 bg-amber-500/20 text-amber-400 rounded-2xl border border-amber-500/30 shrink-0">
-                      <Coins className="w-6 h-6 animate-pulse" />
+                      <Wallet className="w-6 h-6 animate-pulse" />
                     </div>
                     <div>
-                      <h3 className="text-sm sm:text-base font-black text-amber-300 uppercase tracking-wide flex items-center gap-2">
-                        <span>🪙 Customer Coins Wallet & Cash Exchange</span>
-                        <span className="bg-amber-500/20 text-amber-300 text-[9px] px-2 py-0.5 rounded-full border border-amber-500/30 font-extrabold">
-                          1 Coin = Rs. 1 Cash
+                      <h3 className="text-sm sm:text-base font-black text-amber-300 uppercase tracking-wide flex items-center gap-2 flex-wrap">
+                        <span>🎟️ & 🪙 Customer Discount Reimbursement (Admin Payable)</span>
+                        <span className="bg-amber-500/20 text-amber-300 text-[9px] px-2 py-0.5 rounded-full border border-amber-500/30 font-extrabold uppercase">
+                          100% Guaranteed by Admin
                         </span>
                       </h3>
                       <p className="text-xs text-amber-200/80 font-medium mt-0.5">
-                        Orders par customer ke redeemed coins aapke account me add hotay hain. Settlement par Admin se inke badle paise receive karein.
+                        Customer ne jo bhi Voucher code ya Coins discount use kiya hai, wo amount aapke is panel mein add ho jati hai. Admin settlement ke waqt aapko iska full cash/online payout deta hai.
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="bg-zinc-950/70 border border-amber-500/20 p-4 rounded-2xl">
-                    <span className="text-[9.5px] uppercase tracking-widest text-zinc-400 font-extrabold block">Rider Coin Balance</span>
-                    <span className="text-2xl font-black text-amber-400 block mt-1 font-mono">
-                      {currentUser?.loyaltyCoins || currentUser?.coinsCollected || 0} Coins
+                    <span className="text-[9.5px] uppercase tracking-widest text-amber-300 font-extrabold block">🎟️ Voucher Subsidies</span>
+                    <span className="text-2xl font-black text-amber-300 block mt-1 font-mono font-sans">
+                      Rs. {unsettledVoucherSubsidies}
                     </span>
-                    <span className="text-[10px] text-zinc-400 font-medium block mt-0.5">Total Coins Credited</span>
+                    <span className="text-[10px] text-zinc-400 font-medium block mt-0.5">Voucher Discount Reimbursement</span>
+                  </div>
+
+                  <div className="bg-zinc-950/70 border border-amber-500/20 p-4 rounded-2xl">
+                    <span className="text-[9.5px] uppercase tracking-widest text-amber-400 font-extrabold block">🪙 Coin Subsidies</span>
+                    <span className="text-2xl font-black text-amber-400 block mt-1 font-mono font-sans">
+                      Rs. {unsettledCoinsSubsidies}
+                    </span>
+                    <span className="text-[10px] text-zinc-400 font-medium block mt-0.5">Coins Redeemed Reimbursement</span>
                   </div>
 
                   <div className="bg-zinc-950/70 border border-emerald-500/20 p-4 rounded-2xl">
-                    <span className="text-[9.5px] uppercase tracking-widest text-emerald-400 font-extrabold block">Cash Value for Settlement</span>
-                    <span className="text-2xl font-black text-emerald-400 block mt-1 font-mono">
-                      Rs. {currentUser?.loyaltyCoins || currentUser?.coinsCollected || 0}
+                    <span className="text-[9.5px] uppercase tracking-widest text-emerald-400 font-extrabold block">Total Pending Subsidy</span>
+                    <span className="text-2xl font-black text-emerald-400 block mt-1 font-mono font-sans">
+                      Rs. {unsettledTotalSubsidies}
                     </span>
-                    <span className="text-[10px] text-zinc-400 font-medium block mt-0.5">Payable by Admin in Cash</span>
+                    <span className="text-[10px] text-zinc-400 font-medium block mt-0.5">Pending from Admin</span>
                   </div>
 
-                  <div className="bg-zinc-950/70 border border-amber-500/20 p-4 rounded-2xl">
-                    <span className="text-[9.5px] uppercase tracking-widest text-amber-300 font-extrabold block">Filtered Coins Collected</span>
-                    <span className="text-2xl font-black text-amber-300 block mt-1 font-mono">
-                      {filteredRiderOrders.reduce((sum, o) => sum + (o.coinsUsed || 0), 0)} Coins
+                  <div className="bg-zinc-950/70 border border-pink-500/20 p-4 rounded-2xl">
+                    <span className="text-[9.5px] uppercase tracking-widest text-pink-300 font-extrabold block">⭐ Net Payable to Rider</span>
+                    <span className="text-2xl font-black text-pink-400 block mt-1 font-mono font-sans">
+                      Rs. {unsettledTotalPayoutDue}
                     </span>
-                    <span className="text-[10px] text-zinc-400 font-medium block mt-0.5">From Selected Timeframe</span>
+                    <span className="text-[10px] text-zinc-400 font-medium block mt-0.5">Delivery Fees + Discount Subsidies</span>
                   </div>
                 </div>
               </div>
@@ -1972,7 +2142,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                         <div className="flex justify-between items-start gap-2">
                           <div>
                             <span className="text-[11px] font-black text-zinc-200 block">{order.userName || "Customer"}</span>
-                            <span className="text-[9px] text-zinc-500 font-mono">ID: dadu-{order.id.substring(0, 8)}</span>
+                            <span className="text-[10px] text-pink-400 font-mono font-bold">ID: {getDisplayOrderId(order)}</span>
                           </div>
                           <div className="flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 text-amber-400 font-black text-xs">
                             ⭐ {order.rating}

@@ -44,14 +44,38 @@ export interface UserProfile {
   };
   vehicleNumber?: string;
   riderCoords?: { latitude: number; longitude: number; lastUpdated?: number };
+  isOnline?: boolean; // Duty status: true = Online, false = Offline
+  dutyStatus?: "online" | "offline";
+  lastDutyChangeAt?: any;
   loyaltyCoins?: number; // User's custom loyalty coin wallet balance
   coinsCollected?: number; // Total customer coins collected by rider
+  voucherSubsidyCollected?: number; // Total voucher discount subsidy absorbed by rider
+  totalDiscountSubsidyCollected?: number; // Total combined voucher + coin discount subsidy
+  settledEarnings?: number; // Total amount paid out to rider by admin
   password?: string; // Stored plaintext passcode or password for easy admin control
   lastSettledAt?: any; // Timestamp when admin cleared/settled the rider's commission and deliveries
   blockReason?: string;
   blockContact?: string;
   needsUnblockAlert?: boolean;
   unblockAlertMessage?: string;
+}
+
+export interface RiderWithdrawalRequest {
+  id: string;
+  riderId: string;
+  riderName: string;
+  riderPhone: string;
+  amount: number;
+  paymentMethod: "easypaisa" | "jazzcash" | "bank" | "cash";
+  accountTitle?: string;
+  accountNumber?: string;
+  bankName?: string;
+  status: "pending" | "approved" | "rejected";
+  requestedAt: any;
+  settledAt?: any;
+  adminNote?: string;
+  processedBy?: string;
+  transactionRef?: string;
 }
 
 export interface OrderItem {
@@ -114,9 +138,16 @@ export interface Order {
   rating?: number;
   ratingComment?: string;
   ratedAt?: any;
+  orderNumber?: string; // Human-friendly distinct Order ID e.g. DF-849201
+  cancelledReason?: string;
+  cancelledBy?: string;
+  cancelledAt?: any;
+  cancelledNotes?: string;
   coinsUsed?: number; // How many coins were redeemed/deducted for this order
   coinsEarned?: number; // How many coins were rewarded for this order
   coinsCreditedToRider?: boolean; // Whether redeemed coins have been credited to rider wallet
+  discountCreditedToRider?: boolean; // Whether discount reimbursement has been credited to rider
+  discountSubsidyAmount?: number; // Total discount subsidy (Voucher + Coins)
   riderSettled?: boolean;
   riderSettledAt?: any;
 }
@@ -253,6 +284,17 @@ export interface GroceryOrder {
   };
   totalCommission?: number;
   eta?: string;
+  voucher?: {
+    code: string;
+    discountAmount: number;
+  };
+  coinsUsed?: number;
+  coinsEarned?: number;
+  coinsCreditedToRider?: boolean;
+  discountCreditedToRider?: boolean;
+  discountSubsidyAmount?: number;
+  riderSettled?: boolean;
+  riderSettledAt?: any;
 }
 
 export interface GroceryDeliveryConfig {
@@ -289,9 +331,11 @@ export interface Voucher {
   applicableType?: "all" | "food_only" | "grocery_only" | "restaurant";
   applicableRestaurant?: string;
   expiryDate?: string; // ISO format e.g. "2026-12-31T23:59" or date string
-  maxUses: number;
-  currentUses: number;
-  perUserLimit?: number;
+  maxUses: number; // 0 = unlimited total claims across all users
+  currentUses: number; // total redemptions so far
+  perUserLimit?: number; // max uses allowed per user (default: 1)
+  usedUserIds?: string[]; // uids of users who have redeemed this voucher
+  userUsageCount?: { [uid: string]: number }; // count of redemptions by each uid
   assignedUserIds?: string[];
   assignedUserNames?: { [uid: string]: string };
   successMessage?: string;
@@ -311,6 +355,66 @@ export function isVoucherExpired(voucher?: Voucher | null): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Checks whether a specific user is eligible to use this voucher based on:
+ * - Active state
+ * - Expiry date
+ * - Total system limit (maxUses)
+ * - Assigned user restrictions
+ * - Per-user redemption limit (perUserLimit, default 1)
+ */
+export function canUserUseVoucher(
+  voucher?: Voucher | null,
+  userId?: string | null
+): { allowed: boolean; reason?: string } {
+  if (!voucher) return { allowed: false, reason: "Voucher not found." };
+  if (!voucher.isActive) return { allowed: false, reason: "Yeh voucher is waqt active nahi hai." };
+  if (isVoucherExpired(voucher)) return { allowed: false, reason: "Yeh voucher expire ho chuka hai." };
+
+  // Total system claims cap
+  if (voucher.maxUses && voucher.maxUses > 0 && (voucher.currentUses || 0) >= voucher.maxUses) {
+    return { allowed: false, reason: `Is voucher ki total limit (${voucher.maxUses} users) khatam ho chuki hai.` };
+  }
+
+  // Assigned user restriction
+  if (voucher.assignedUserIds && voucher.assignedUserIds.length > 0) {
+    if (!userId || !voucher.assignedUserIds.includes(userId)) {
+      return { allowed: false, reason: "Yeh exclusive voucher aapke account ke liye assign nahi kiya gaya." };
+    }
+  }
+
+  // Per-user usage limit (default 1 use per user)
+  const limitPerUser = voucher.perUserLimit !== undefined && voucher.perUserLimit > 0 ? voucher.perUserLimit : 1;
+  if (userId) {
+    const userUsedCount = voucher.userUsageCount?.[userId] ?? (voucher.usedUserIds?.includes(userId) ? 1 : 0);
+    if (userUsedCount >= limitPerUser) {
+      return {
+        allowed: false,
+        reason: `Aap yeh voucher pehle hi ${limitPerUser === 1 ? "ek bar" : `${limitPerUser} bar`} use kar chuke hain.`
+      };
+    }
+  }
+
+  return { allowed: true };
+}
+
+/**
+ * Checks if a voucher is exhausted for a user (should be hidden or marked used)
+ */
+export function isVoucherExhaustedForUser(
+  voucher: Voucher,
+  userId?: string | null
+): boolean {
+  if (!voucher.isActive || isVoucherExpired(voucher)) return true;
+  if (voucher.maxUses && voucher.maxUses > 0 && (voucher.currentUses || 0) >= voucher.maxUses) return true;
+  if (userId) {
+    const limitPerUser = voucher.perUserLimit !== undefined && voucher.perUserLimit > 0 ? voucher.perUserLimit : 1;
+    const userUsedCount = voucher.userUsageCount?.[userId] ?? (voucher.usedUserIds?.includes(userId) ? 1 : 0);
+    if (userUsedCount >= limitPerUser) return true;
+  }
+  return false;
 }
 
 /**

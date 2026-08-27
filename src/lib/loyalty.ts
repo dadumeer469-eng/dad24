@@ -75,8 +75,8 @@ export async function awardLoyaltyCoinsForOrder(db: any, orderId: string) {
 }
 
 /**
- * Credits redeemed coins used by customer on an order directly to the assigned rider's account.
- * Rider can later exchange these coins for cash during admin settlement.
+ * Credits redeemed coins and voucher discounts used by customer on an order directly to the assigned rider's account.
+ * Rider can later receive this discount reimbursement / subsidy cash during admin settlement.
  */
 export async function creditRiderCoinsForOrder(db: any, orderId: string) {
   try {
@@ -86,39 +86,68 @@ export async function creditRiderCoinsForOrder(db: any, orderId: string) {
     const order = orderSnap.data();
 
     const coinsUsed = Number(order.coinsUsed) || 0;
-    if (coinsUsed <= 0) return;
+    const voucherDiscount = Number(order.voucher?.discountAmount) || 0;
+    const totalSubsidy = coinsUsed + voucherDiscount;
+
+    if (totalSubsidy <= 0) return;
     if (!order.riderId) return;
 
     // Prevent double crediting
-    if (order.coinsCreditedToRider) {
-      console.log("Coins already credited to rider for this order.");
+    if (order.discountCreditedToRider || (coinsUsed > 0 && order.coinsCreditedToRider && voucherDiscount === 0)) {
+      console.log("Discount subsidy already credited to rider for this order.");
       return;
     }
 
-    // Update rider's user profile with credited coins
+    // Update rider's user profile with credited subsidy and coins
     const riderRef = doc(db, "users", order.riderId);
-    await updateDoc(riderRef, {
-      loyaltyCoins: increment(coinsUsed),
-      coinsCollected: increment(coinsUsed)
-    });
+    const riderUpdate: Record<string, any> = {
+      totalDiscountSubsidyCollected: increment(totalSubsidy),
+    };
 
-    // Mark order as coins credited to rider
+    if (coinsUsed > 0) {
+      riderUpdate.loyaltyCoins = increment(coinsUsed);
+      riderUpdate.coinsCollected = increment(coinsUsed);
+    }
+    if (voucherDiscount > 0) {
+      riderUpdate.voucherSubsidyCollected = increment(voucherDiscount);
+    }
+
+    await updateDoc(riderRef, riderUpdate);
+
+    // Mark order as discount credited to rider
     await updateDoc(orderRef, {
-      coinsCreditedToRider: true
+      coinsCreditedToRider: true,
+      discountCreditedToRider: true,
+      discountSubsidyAmount: totalSubsidy,
     });
 
     // Send in-app notification to the rider
+    let noteTitle = "🎟️ / 🪙 Discount Subsidy Added to Balance!";
+    let noteMsg = "";
+    if (voucherDiscount > 0 && coinsUsed > 0) {
+      noteTitle = "🎟️ Voucher & 🪙 Coin Discount Added to Rider Balance!";
+      noteMsg = `Customer ne order #${orderId.substring(0, 6)} par Voucher (Rs. ${voucherDiscount}) aur Coins (Rs. ${coinsUsed}) use kiye the. Kul Rs. ${totalSubsidy} aapke Discount Reimbursement wallet mein add ho gaye hain jo Admin aapko pay karega! 💵`;
+    } else if (voucherDiscount > 0) {
+      noteTitle = "🎟️ Voucher Discount Added to Rider Balance!";
+      noteMsg = `Customer ne order #${orderId.substring(0, 6)} par Voucher Discount (Rs. ${voucherDiscount}) use kiya tha. Yeh Rs. ${voucherDiscount} aapke Discount Reimbursement balance mein add ho gaye hain jo Admin settlement par aapko pay karega! 💵`;
+    } else {
+      noteTitle = "🪙 Customer Coins Added to Rider Wallet!";
+      noteMsg = `Customer ne order #${orderId.substring(0, 6)} par ${coinsUsed} Dadu Coins (Rs. ${coinsUsed} value) redeem kiye the, jo aapke rider account mein credit kar diye gaye hain! Admin settlement ke waqt iske paise le sakte hain. 💵`;
+    }
+
     await addDoc(collection(db, "notifications"), {
       userId: order.riderId,
-      title: "🪙 Customer Coins Added to Rider Wallet!",
-      message: `Customer ne order #${orderId.substring(0, 6)} par ${coinsUsed} Dadu Coins (Rs. ${coinsUsed} value) redeem kiye the, jo aapke rider account mein credit kar diye gaye hain! Admin settlement ke waqt iske paise le sakte hain. 💵`,
+      title: noteTitle,
+      message: noteMsg,
       createdAt: { seconds: Date.now() / 1000 },
-      read: false
+      read: false,
     });
 
-    console.log(`Successfully credited ${coinsUsed} coins to rider ${order.riderId} for order ${orderId}`);
+    console.log(`Successfully credited Rs. ${totalSubsidy} discount subsidy (Voucher: ${voucherDiscount}, Coins: ${coinsUsed}) to rider ${order.riderId} for order ${orderId}`);
   } catch (error) {
     console.error("Error in creditRiderCoinsForOrder:", error);
   }
 }
+
+export const creditRiderDiscountsForOrder = creditRiderCoinsForOrder;
 
