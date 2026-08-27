@@ -17,7 +17,6 @@ import {
   Star
 } from "lucide-react";
 import { Order } from "../types";
-import { getDisplayOrderId } from "../lib/orderUtils";
 import { db } from "../firebase";
 import { doc, updateDoc } from "firebase/firestore";
 
@@ -245,7 +244,7 @@ export default function OrderHistoryDrawer({
                               {order.orderType === "grocery" ? "Grocery" : order.orderType === "service" ? "Service Visit" : "Dadu Food"}
                             </span>
                             <div className="text-xs font-black text-zinc-800 dark:text-zinc-200 flex items-center gap-1 mt-1">
-                              ID: <span className="font-mono text-[#D70F64] font-bold uppercase tracking-tight">{getDisplayOrderId(order)}</span>
+                              ID: <span className="font-mono text-zinc-500 dark:text-zinc-400 uppercase tracking-tight">dadu-{order.id.slice(-6)}</span>
                             </div>
                           </div>
                           

@@ -3,7 +3,6 @@ import L from "leaflet";
 import { getDatabase, ref, onValue, off } from "firebase/database";
 import { app, db } from "../firebase";
 import daduLogo from "../assets/images/dadu_food_logo_new_1782333467889.jpg";
-import { getDisplayOrderId } from "../lib/orderUtils";
 import {
   ChevronLeft,
   Compass,
@@ -761,8 +760,8 @@ export default function FoodDeliveryTracker({
             <span className="font-extrabold text-slate-800">
               {restaurantName || "Dadu Central Kitchen"}
             </span>
-            <span className="text-[10px] text-[#D70F64] font-mono font-bold">
-              {getDisplayOrderId(orderId)}
+            <span className="text-[10px] text-slate-500 font-mono font-bold">
+              #{orderId.slice(-6).toUpperCase()}
             </span>
           </div>
 

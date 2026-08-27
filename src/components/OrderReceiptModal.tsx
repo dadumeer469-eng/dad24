@@ -1,6 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
 import { X, Printer, Send, Download, Copy, Check, Share2, Sparkles } from "lucide-react";
-import { getDisplayOrderId } from "../lib/orderUtils";
 
 interface OrderReceiptModalProps {
   order: any | null;
@@ -89,7 +88,7 @@ export default function OrderReceiptModal({ order, isOpen, onClose, senderRole =
 
   if (!isOpen || !order) return null;
 
-  const orderIdShort = getDisplayOrderId(order);
+  const orderIdShort = order.id ? `dadu-${order.id.substring(0, 8)}` : "dadu-00000";
   const customerName = order.userName || order.name || "Valued Customer";
   const customerPhone = order.userPhone || order.phone || "";
   const customerAddress = order.userAddress || order.address || "Dadu Address";
@@ -372,10 +371,10 @@ function drawReceiptCanvas(canvas: HTMLCanvasElement, order: any) {
   ctx.font = "bold 12px monospace";
   ctx.fillStyle = "#0f172a";
 
-  const orderIdShort = getDisplayOrderId(order);
+  const orderIdShort = order.id ? `dadu-${order.id.substring(0, 8)}` : "dadu-00000";
   const createdAtFormatted = formatOrderDateTime(order.createdAt || order.date || order.timestamp || order.updatedAt);
 
-  ctx.fillText(`Receipt ID : ${orderIdShort}`, 25, y);
+  ctx.fillText(`Receipt ID : #${orderIdShort}`, 25, y);
   y += 18;
   ctx.fillText(`Date & Time: ${createdAtFormatted}`, 25, y);
   y += 18;

@@ -4,13 +4,12 @@ import {
   collection, query, where, onSnapshot, doc, updateDoc, Timestamp, addDoc
 } from "firebase/firestore";
 import { db, handleFirestoreError } from "../firebase";
-import { Order, UserProfile, RiderWithdrawalRequest } from "../types";
+import { Order, UserProfile } from "../types";
 import { awardLoyaltyCoinsForOrder, creditRiderCoinsForOrder } from "../lib/loyalty";
-import { getDisplayOrderId } from "../lib/orderUtils";
 import { 
   CheckCircle2, Compass, Coins, CalendarDays, TrendingUp, History, User, 
   MapPin, PhoneCall, LogOut, ArrowRight, ClipboardList, DollarSign, Clock, Check, Store, XCircle, Star,
-  Ticket, Sparkles, Wallet, Banknote, ShieldCheck, Info, Send, CheckCircle, AlertCircle, RefreshCw
+  Ticket, Sparkles, Wallet, Banknote, ShieldCheck, Info
 } from "lucide-react";
 import OrderChat from "./OrderChat";
 import { useRiderLocationTracker } from "../lib/riderLocationTracker";
@@ -27,77 +26,17 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
   const [riderReceiptOrder, setRiderReceiptOrder] = useState<any | null>(null);
   const [isRiderReceiptModalOpen, setIsRiderReceiptModalOpen] = useState(false);
   const [isOnline, setIsOnline] = useState<boolean>(() => {
-    if (currentUser?.isOnline !== undefined) return currentUser.isOnline;
     const saved = localStorage.getItem(`rider_online_${currentUser.uid}`);
     return saved !== "false";
   });
 
-  // Real-time listen to rider's own profile for duty changes and admin updates
-  useEffect(() => {
-    if (!currentUser?.uid) return;
-    const unsub = onSnapshot(doc(db, "users", currentUser.uid), (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        if (data.isOnline !== undefined) {
-          setIsOnline(data.isOnline);
-          localStorage.setItem(`rider_online_${currentUser.uid}`, String(data.isOnline));
-        }
-      }
-    }, (err) => {
-      console.warn("Error listening to rider profile doc:", err);
+  const handleToggleOnline = () => {
+    setIsOnline((prev) => {
+      const next = !prev;
+      localStorage.setItem(`rider_online_${currentUser.uid}`, String(next));
+      return next;
     });
-    return () => unsub();
-  }, [currentUser?.uid]);
-
-  const handleToggleOnline = async () => {
-    const next = !isOnline;
-    setIsOnline(next);
-    localStorage.setItem(`rider_online_${currentUser.uid}`, String(next));
-    try {
-      await updateDoc(doc(db, "users", currentUser.uid), {
-        isOnline: next,
-        dutyStatus: next ? "online" : "offline",
-        lastDutyChangeAt: Timestamp.now(),
-      });
-    } catch (e) {
-      console.warn("Failed to sync rider duty status to Firestore:", e);
-    }
   };
-
-  // Withdrawal / Payout state
-  const [withdrawalRequests, setWithdrawalRequests] = useState<RiderWithdrawalRequest[]>([]);
-  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
-  const [withdrawAmount, setWithdrawAmount] = useState<string>("");
-  const [withdrawMethod, setWithdrawMethod] = useState<"easypaisa" | "jazzcash" | "bank" | "cash">("easypaisa");
-  const [accountTitle, setAccountTitle] = useState("");
-  const [accountNumber, setAccountNumber] = useState("");
-  const [bankName, setBankName] = useState("");
-  const [withdrawLoading, setWithdrawLoading] = useState(false);
-
-  // Real-time listen to withdrawal requests
-  useEffect(() => {
-    if (!currentUser?.uid) return;
-    const q = query(
-      collection(db, "withdrawal_requests"),
-      where("riderId", "==", currentUser.uid)
-    );
-    const unsub = onSnapshot(q, (snapshot) => {
-      const list: RiderWithdrawalRequest[] = [];
-      snapshot.forEach((d) => {
-        list.push({ id: d.id, ...d.data() } as RiderWithdrawalRequest);
-      });
-      list.sort((a, b) => {
-        const timeA = a.requestedAt?.seconds || 0;
-        const timeB = b.requestedAt?.seconds || 0;
-        return timeB - timeA;
-      });
-      setWithdrawalRequests(list);
-    }, (err) => {
-      console.warn("Error listening to withdrawal requests:", err);
-    });
-    return () => unsub();
-  }, [currentUser?.uid]);
-
   const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
   const [myOrders, setMyOrders] = useState<Order[]>([]);
   const [selectedHistoryDate, setSelectedHistoryDate] = useState<string | null>(null);
@@ -864,8 +803,8 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                               ? `RUN #${riderActiveOrders.findIndex(o => o.id === riderActiveOrder.id) + 1} OF ${riderActiveOrders.length}` 
                               : "Active Run"}
                           </span>
-                          <span className="text-[10px] text-pink-400 font-mono font-bold">
-                            {getDisplayOrderId(riderActiveOrder)}
+                          <span className="text-[10px] text-zinc-400 font-mono font-bold">
+                            dadu-{riderActiveOrder.id.substring(0, 8)}
                           </span>
                         </div>
                         <p className="text-[11px] text-zinc-400 font-semibold">
@@ -1461,7 +1400,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                                 )}
                               </div>
                               <h4 className="font-extrabold text-xs sm:text-sm mt-2 text-zinc-200">
-                                Order: <span className="font-mono text-xs text-[#D70F64] font-bold">{getDisplayOrderId(order)}</span>
+                                Dadu Order: <span className="font-mono text-xs text-[#D70F64]">dadu-{order.id.substring(0, 6)}</span>
                               </h4>
                             </div>
                             <span className="text-[10px] text-zinc-500 font-mono font-bold mt-1 sm:mt-0">
@@ -1761,7 +1700,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                                 {/* metadata */}
                                 <div className="flex justify-between items-start border-b border-zinc-850 pb-2.5 gap-2 text-xs">
                                   <div>
-                                    <span className="text-[#D70F64] font-black uppercase text-[10px] tracking-wider block font-mono">ID: {getDisplayOrderId(order)}</span>
+                                    <span className="text-[#D70F64] font-black uppercase text-[9px] tracking-wider block">ID: dadu-{order.id.substring(0, 8)}</span>
                                     <h5 className="font-extrabold text-zinc-200 mt-1">Buyer: {order.userName}</h5>
                                   </div>
                                   <div className="text-right font-mono">
@@ -2142,7 +2081,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                         <div className="flex justify-between items-start gap-2">
                           <div>
                             <span className="text-[11px] font-black text-zinc-200 block">{order.userName || "Customer"}</span>
-                            <span className="text-[10px] text-pink-400 font-mono font-bold">ID: {getDisplayOrderId(order)}</span>
+                            <span className="text-[9px] text-zinc-500 font-mono">ID: dadu-{order.id.substring(0, 8)}</span>
                           </div>
                           <div className="flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 text-amber-400 font-black text-xs">
                             ⭐ {order.rating}

@@ -58,7 +58,6 @@ import { LazyImage } from "./components/LazyImage";
 import DaduLogoLoader from "./components/DaduLogoLoader";
 import useLazyBatchLoad from "./hooks/useLazyBatchLoad";
 import daduLogo from "./assets/images/dadu_food_logo_new_1782333467889.jpg";
-import { generateOrderIdentifiers } from "./lib/orderUtils";
 import { logMemoryUsage, useMemoryMonitor } from "./utils/memoryLogger";
 
 // Icons & Motion
@@ -1832,7 +1831,7 @@ export default function App() {
     }
 
     try {
-      const { id: generatedOrderId, orderNumber: generatedOrderNumber } = generateOrderIdentifiers("grocery");
+      const generatedOrderId = `gorder_${Date.now()}`;
 
       // Adapt items array representation
       const adaptedItems = details.items.map((item) => ({
@@ -1851,7 +1850,6 @@ export default function App() {
 
       const orderDoc = {
         id: generatedOrderId,
-        orderNumber: generatedOrderNumber,
         userId: currentUser?.uid || "guest",
         name: details.name,
         userName: details.name,
@@ -2069,10 +2067,9 @@ export default function App() {
       0,
     );
 
-    const { id: uniqueOrderId, orderNumber: uniqueOrderNumber } = generateOrderIdentifiers(details.orderType);
+    const uniqueOrderId = `order_${Date.now()}`;
     const orderModel: Order = {
       id: uniqueOrderId,
-      orderNumber: uniqueOrderNumber,
       userId: currentUser.uid,
       userName: details.name,
       name: details.name,

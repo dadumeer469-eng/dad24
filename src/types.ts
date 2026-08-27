@@ -44,38 +44,16 @@ export interface UserProfile {
   };
   vehicleNumber?: string;
   riderCoords?: { latitude: number; longitude: number; lastUpdated?: number };
-  isOnline?: boolean; // Duty status: true = Online, false = Offline
-  dutyStatus?: "online" | "offline";
-  lastDutyChangeAt?: any;
   loyaltyCoins?: number; // User's custom loyalty coin wallet balance
   coinsCollected?: number; // Total customer coins collected by rider
   voucherSubsidyCollected?: number; // Total voucher discount subsidy absorbed by rider
   totalDiscountSubsidyCollected?: number; // Total combined voucher + coin discount subsidy
-  settledEarnings?: number; // Total amount paid out to rider by admin
   password?: string; // Stored plaintext passcode or password for easy admin control
   lastSettledAt?: any; // Timestamp when admin cleared/settled the rider's commission and deliveries
   blockReason?: string;
   blockContact?: string;
   needsUnblockAlert?: boolean;
   unblockAlertMessage?: string;
-}
-
-export interface RiderWithdrawalRequest {
-  id: string;
-  riderId: string;
-  riderName: string;
-  riderPhone: string;
-  amount: number;
-  paymentMethod: "easypaisa" | "jazzcash" | "bank" | "cash";
-  accountTitle?: string;
-  accountNumber?: string;
-  bankName?: string;
-  status: "pending" | "approved" | "rejected";
-  requestedAt: any;
-  settledAt?: any;
-  adminNote?: string;
-  processedBy?: string;
-  transactionRef?: string;
 }
 
 export interface OrderItem {
@@ -138,11 +116,6 @@ export interface Order {
   rating?: number;
   ratingComment?: string;
   ratedAt?: any;
-  orderNumber?: string; // Human-friendly distinct Order ID e.g. DF-849201
-  cancelledReason?: string;
-  cancelledBy?: string;
-  cancelledAt?: any;
-  cancelledNotes?: string;
   coinsUsed?: number; // How many coins were redeemed/deducted for this order
   coinsEarned?: number; // How many coins were rewarded for this order
   coinsCreditedToRider?: boolean; // Whether redeemed coins have been credited to rider wallet

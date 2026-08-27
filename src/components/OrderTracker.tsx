@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { Order } from "../types";
-import { getDisplayOrderId } from "../lib/orderUtils";
 import { Check, ClipboardList, Clock, ShieldCheck, Heart, ArrowRight, Server, Wrench, User, CalendarDays, MapPin, Compass } from "lucide-react";
 import { doc, updateDoc, collection, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
@@ -358,7 +357,7 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
             {isService ? "🛠️ Active Service Live Track" : "☕ Live Tea & Food Tracker"}
           </span>
           <h3 className="font-extrabold text-sm text-zinc-100 mt-1 flex items-center gap-1.5 flex-wrap">
-            Booking ID: <span className="font-mono text-xs text-[#D70F64] font-bold">{getDisplayOrderId(order)}</span>
+            Booking ID: <span className="font-mono text-xs text-zinc-400">dadu-{order.id.substring(0, 8)}</span>
             {getStatusBadge(order.status)}
           </h3>
           <p className="text-[11px] text-zinc-400 mt-1 font-semibold">
