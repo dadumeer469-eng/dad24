@@ -162,9 +162,42 @@ function BannerLiveChatButton({
   );
 }
 
+// Persistent client-side cache helpers to prevent constant reloading of items & UI
+const getCachedData = <T,>(key: string, fallback: T): T => {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed) return parsed;
+    }
+  } catch (e) {
+    console.warn(`Failed to read ${key} from storage:`, e);
+  }
+  return fallback;
+};
+
+const setCachedData = <T,>(key: string, data: T): void => {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (e) {
+    console.warn(`Failed to save ${key} to storage:`, e);
+  }
+};
+
+const preloadImages = (urls: (string | undefined)[]) => {
+  urls.filter(Boolean).forEach((url) => {
+    if (url) {
+      const img = new Image();
+      img.src = url;
+    }
+  });
+};
+
 export default function App() {
   useMemoryMonitor("App");
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(() => {
+    return typeof window !== "undefined" && !sessionStorage.getItem("dadu_splash_seen");
+  });
   const [splashProgress, setSplashProgress] = useState(0);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [theme, setTheme] = useState<"light" | "dark">("light");
@@ -196,18 +229,21 @@ export default function App() {
     }
   };
 
-  const [dishes, setDishes] = useState<Dish[]>([]);
-  const [isLoadingDishes, setIsLoadingDishes] = useState(true);
+  const initialDishes = getCachedData<Dish[]>("dadu_cached_dishes", []);
+  const [dishes, setDishes] = useState<Dish[]>(() => initialDishes);
+  const [isLoadingDishes, setIsLoadingDishes] = useState(() => initialDishes.length === 0);
   const [orders, setOrders] = useState<Order[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [deliverySettings, setDeliverySettings] = useState<SystemSettings>({
-    deliveryFee: 50,
-    restaurantStatus: {
-      isTemporarilyUnavailable: false,
-      openingTime: "09:00",
-      closingTime: "23:00",
-    },
-  });
+  const [deliverySettings, setDeliverySettings] = useState<SystemSettings>(() => 
+    getCachedData<SystemSettings>("dadu_cached_delivery_settings", {
+      deliveryFee: 50,
+      restaurantStatus: {
+        isTemporarilyUnavailable: false,
+        openingTime: "09:00",
+        closingTime: "23:00",
+      },
+    })
+  );
 
   // Favorites and Deal of the Hour configuration
   const [favoriteDishIds, setFavoriteDishIds] = useState<string[]>([]);
@@ -271,13 +307,16 @@ export default function App() {
   }, [dealTimeLeft, dealConfig.isActive]);
 
   // Standalone Grocery Module states
+  const initialGroceryProducts = getCachedData<GroceryProduct[]>("dadu_cached_grocery_products", []);
   const [activeModule, setActiveModule] = useState<"food" | "grocery">("food");
-  const [foodCategories, setFoodCategories] = useState<FoodCategory[]>([]);
-  const [groceryCategories, setGroceryCategories] = useState<GroceryCategory[]>(
-    [],
+  const [foodCategories, setFoodCategories] = useState<FoodCategory[]>(() => 
+    getCachedData<FoodCategory[]>("dadu_cached_food_categories", [])
   );
-  const [groceryProducts, setGroceryProducts] = useState<GroceryProduct[]>([]);
-  const [isLoadingGrocery, setIsLoadingGrocery] = useState(true);
+  const [groceryCategories, setGroceryCategories] = useState<GroceryCategory[]>(() => 
+    getCachedData<GroceryCategory[]>("dadu_cached_grocery_categories", [])
+  );
+  const [groceryProducts, setGroceryProducts] = useState<GroceryProduct[]>(() => initialGroceryProducts);
+  const [isLoadingGrocery, setIsLoadingGrocery] = useState(() => initialGroceryProducts.length === 0);
   const [groceryDeliveryConfig, setGroceryDeliveryConfig] =
     useState<GroceryDeliveryConfig>({
       baseDeliveryFee: 40,
@@ -691,14 +730,19 @@ export default function App() {
     }
   }, [currentUser?.status]);
 
-  // 1.5. Ultra 60FPS Smooth Fast Loading Splash Screen Animation using requestAnimationFrame
+  // 1.5. Ultra 60FPS Smooth Fast Loading Splash Screen Animation
   useEffect(() => {
+    if (sessionStorage.getItem("dadu_splash_seen")) {
+      setShowSplash(false);
+      return;
+    }
+
     setShowSplash(true);
     setSplashProgress(0);
 
     let animationFrameId: number;
     const startTime = performance.now();
-    const duration = 400; // Fast 0.4 seconds total duration
+    const duration = 350; // Ultra fast 0.35s
 
     const updateProgress = (currentTime: number) => {
       const elapsed = currentTime - startTime;
@@ -708,6 +752,7 @@ export default function App() {
       if (progress < 100) {
         animationFrameId = requestAnimationFrame(updateProgress);
       } else {
+        sessionStorage.setItem("dadu_splash_seen", "1");
         setTimeout(() => {
           setShowSplash(false);
         }, 50);
@@ -721,7 +766,7 @@ export default function App() {
     };
   }, []);
 
-  // 2. Real-time Menu Listening & Auto-Seeding
+  // 2. Real-time Menu Listening & Auto-Seeding with persistent instant cache
   useEffect(() => {
     console.log("Trace: Initializing Menu collection listener...");
     const unsubscribe = onSnapshot(
@@ -740,6 +785,8 @@ export default function App() {
           list.sort((a, b) => (a.position || 0) - (b.position || 0));
           setDishes(list);
           setIsLoadingDishes(false);
+          setCachedData("dadu_cached_dishes", list);
+          preloadImages(list.slice(0, 20).map((d) => d.imageUrl));
         }
       },
       (err) => {
@@ -762,17 +809,20 @@ export default function App() {
           docSnap.exists(),
         );
         if (docSnap.exists()) {
-          setDeliverySettings(docSnap.data() as SystemSettings);
+          const data = docSnap.data() as SystemSettings;
+          setDeliverySettings(data);
+          setCachedData("dadu_cached_delivery_settings", data);
         } else {
           // Seed default
-          setDoc(doc(db, "settings", "delivery_config"), {
+          const defaultCfg = {
             deliveryFee: 50,
             restaurantStatus: {
               isTemporarilyUnavailable: false,
               openingTime: "09:00",
               closingTime: "23:00",
             },
-          }).catch(console.error);
+          };
+          setDoc(doc(db, "settings", "delivery_config"), defaultCfg).catch(console.error);
         }
       },
       (err) => {
@@ -935,6 +985,7 @@ export default function App() {
         } else {
           list.sort((a, b) => (a.position || 0) - (b.position || 0));
           setFoodCategories(list);
+          setCachedData("dadu_cached_food_categories", list);
         }
       },
       (err) => {
@@ -960,6 +1011,7 @@ export default function App() {
         });
         list.sort((a, b) => (a.position || 0) - (b.position || 0));
         setGroceryCategories(list);
+        setCachedData("dadu_cached_grocery_categories", list);
         setIsLoadingGrocery(false);
       },
       (err) => {
@@ -985,9 +1037,13 @@ export default function App() {
           list.push({ id: doc.id, ...doc.data() } as GroceryProduct);
         });
         setGroceryProducts(list);
+        setCachedData("dadu_cached_grocery_products", list);
+        setIsLoadingGrocery(false);
+        preloadImages(list.slice(0, 20).map((p) => p.imageUrl));
       },
       (err) => {
         console.warn("Grocery products notice:", handleFirestoreError(err));
+        setIsLoadingGrocery(false);
       },
     );
     return () => unsubscribe();

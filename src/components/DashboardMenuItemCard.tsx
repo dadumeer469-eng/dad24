@@ -36,11 +36,10 @@ export const DashboardMenuItemCard = React.memo(function DashboardMenuItemCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 22 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       transition={{
-        duration: 0.38,
-        delay: Math.min(idx * 0.035, 0.35),
+        duration: 0.2,
         ease: "easeOut",
       }}
       className={`bg-white border border-zinc-200/80 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs hover:border-[#d70f64]/30 hover:shadow-md hover:shadow-red-500/5 transition-all flex flex-col group relative text-zinc-800 ${

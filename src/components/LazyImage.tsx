@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Utensils, ImageOff } from "lucide-react";
 
 interface LazyImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -11,6 +11,9 @@ interface LazyImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   fallbackIcon?: React.ReactNode;
 }
 
+// Global in-memory cache to prevent re-shimmering of already loaded images
+const loadedImageCache = new Set<string>();
+
 export function LazyImage({
   src,
   alt = "Item photo",
@@ -21,17 +24,24 @@ export function LazyImage({
   fallbackIcon,
   ...props
 }: LazyImageProps) {
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [hasError, setHasError] = useState(false);
+  const isAlreadyLoaded = src ? loadedImageCache.has(src) : false;
+  const [isLoaded, setIsLoaded] = useState<boolean>(isAlreadyLoaded);
+  const [hasError, setHasError] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (src && loadedImageCache.has(src)) {
+      setIsLoaded(true);
+    }
+  }, [src]);
 
   return (
     <div className={`relative overflow-hidden bg-zinc-100 dark:bg-zinc-800/90 ${className}`}>
-      {/* Premium Shimmer Skeleton Beam while loading */}
+      {/* Premium Shimmer Skeleton Beam only while actually loading */}
       {!isLoaded && !hasError && (
         <div className="absolute inset-0 z-10 overflow-hidden bg-zinc-200/80 dark:bg-zinc-800/80 pointer-events-none flex items-center justify-center">
           {/* Animated Light Sweep Effect */}
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 dark:via-white/10 to-transparent animate-shimmer-sweep" />
-          {/* Subtle center icon placeholder */}
+          {/* Center icon placeholder */}
           <div className="p-2 rounded-xl bg-white/50 dark:bg-zinc-700/50 text-zinc-400 dark:text-zinc-500 animate-pulse-subtle">
             {fallbackIcon || <Utensils className="w-4 h-4 opacity-50" />}
           </div>
@@ -51,11 +61,14 @@ export function LazyImage({
           alt={alt}
           loading={loading}
           decoding="async"
-          className={`w-full h-full transition-opacity duration-300 transform-gpu ${
+          className={`w-full h-full transition-opacity duration-200 transform-gpu ${
             isLoaded ? "opacity-100" : "opacity-0"
           } ${imgClassName}`}
           referrerPolicy={referrerPolicy}
-          onLoad={() => setIsLoaded(true)}
+          onLoad={() => {
+            if (src) loadedImageCache.add(src);
+            setIsLoaded(true);
+          }}
           onError={() => setHasError(true)}
           {...props}
         />
@@ -63,4 +76,5 @@ export function LazyImage({
     </div>
   );
 }
+
 

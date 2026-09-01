@@ -63,10 +63,35 @@ const BannerImage: React.FC<{ banner: Banner; onClick: () => void }> = ({ banner
   );
 };
 
+const getInitialBanners = (): Banner[] => {
+  try {
+    const saved = localStorage.getItem("dadu_cached_banners");
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to load cached banners:", e);
+  }
+  return DEFAULT_BANNERS;
+};
+
+// Preload banner images
+const preloadBannerImages = (bannerList: Banner[]) => {
+  bannerList.forEach((b) => {
+    if (b.imageUrl) {
+      const img = new Image();
+      img.src = b.imageUrl;
+    }
+  });
+};
+
 export default function BannerCarousel({ onBannerClick }: BannerCarouselProps) {
-  const [banners, setBanners] = useState<Banner[]>([]);
+  const [banners, setBanners] = useState<Banner[]>(getInitialBanners);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -77,6 +102,11 @@ export default function BannerCarousel({ onBannerClick }: BannerCarouselProps) {
   const autoSlideTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const displayBanners = banners.length > 0 ? banners : DEFAULT_BANNERS;
+
+  // Preload initial banner images
+  useEffect(() => {
+    preloadBannerImages(displayBanners);
+  }, []);
 
   const nextSlide = useCallback(() => {
     setCurrentIndex((prev) => (prev + 1) % displayBanners.length);
@@ -96,7 +126,16 @@ export default function BannerCarousel({ onBannerClick }: BannerCarouselProps) {
           (docSnap) => ({ id: docSnap.id, ...docSnap.data() } as Banner)
         );
         fetchedBanners.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-        setBanners(fetchedBanners);
+        
+        if (fetchedBanners.length > 0) {
+          setBanners(fetchedBanners);
+          preloadBannerImages(fetchedBanners);
+          try {
+            localStorage.setItem("dadu_cached_banners", JSON.stringify(fetchedBanners));
+          } catch (e) {
+            console.warn("Failed to cache banners to storage:", e);
+          }
+        }
         setIsLoading(false);
       },
       (err) => {
