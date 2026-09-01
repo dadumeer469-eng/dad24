@@ -95,20 +95,27 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Strategy B: Network-First with Cache Fallback for Navigation/Pages
+  // Strategy B: Stale-While-Revalidate for HTML/Navigation Pages (Instant local render + background update)
   event.respondWith(
-    fetch(req).then((networkResponse) => {
-      if (networkResponse && networkResponse.status === 200) {
-        const resClone = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
+    caches.match(req).then((cachedResponse) => {
+      // 1. Fetch fresh version in background to update cache for next time
+      const fetchPromise = fetch(req)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const resClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
+          }
+          return networkResponse;
+        })
+        .catch(() => cachedResponse);
+
+      // 2. Return cached response IMMEDIATELY if available (0ms load on reopen!), else wait for network
+      if (cachedResponse) {
+        event.waitUntil(fetchPromise);
+        return cachedResponse;
       }
-      return networkResponse;
-    }).catch(async () => {
-      const cached = await caches.match(req);
-      if (cached) return cached;
-      const rootCached = await caches.match("/");
-      if (rootCached) return rootCached;
-      return caches.match("/index.html");
+
+      return fetchPromise;
     })
   );
 });

@@ -3,6 +3,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
+import compression from "compression";
 
 dotenv.config();
 
@@ -28,6 +29,9 @@ function getGenAI(): GoogleGenAI {
 async function startServer() {
   const app = express();
   const PORT = 3000;
+
+  // 🚀 Gzip & Brotli HTTP response compression for lightning-fast asset transfer
+  app.use(compression());
 
   app.use(express.json({ limit: "10mb" }));
   app.use(express.urlencoded({ extended: true, limit: "10mb" }));
@@ -353,7 +357,19 @@ Return ONLY a valid JSON array of strings containing direct public image URLs. N
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
+    app.use(
+      express.static(distPath, {
+        maxAge: "1d",
+        etag: true,
+        setHeaders: (res, filePath) => {
+          if (filePath.endsWith(".html")) {
+            res.setHeader("Cache-Control", "no-cache");
+          } else if (filePath.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff2|webp)$/)) {
+            res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+          }
+        },
+      })
+    );
     app.get("*", (_req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
     });

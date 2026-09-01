@@ -42,18 +42,20 @@ import FoodpandaHeader from "./components/FoodpandaHeader";
 import FoodpandaHero from "./components/FoodpandaHero";
 import BannerCarousel from "./components/BannerCarousel";
 import CartDrawer from "./components/CartDrawer";
-import OrderTracker from "./components/OrderTracker";
-import AdminPanel from "./components/AdminPanel";
-import AuthModal from "./components/AuthModal";
-import RiderPanel from "./components/RiderPanel";
 import FoodDetailModal from "./components/FoodDetailModal";
-import GroceryModule from "./components/GroceryModule";
 import GroceryCartDrawer from "./components/GroceryCartDrawer";
 import OrderSuccessAnimation from "./components/OrderSuccessAnimation";
-import OrderHistoryDrawer from "./components/OrderHistoryDrawer";
-import OrderChat from "./components/OrderChat";
 import BottomNavBar from "./components/BottomNavBar";
 import MobileAccountDrawer from "./components/MobileAccountDrawer";
+
+// Lazy load heavy panels and secondary modal overlays for fast initial load
+const OrderTracker = React.lazy(() => import("./components/OrderTracker"));
+const AdminPanel = React.lazy(() => import("./components/AdminPanel"));
+const AuthModal = React.lazy(() => import("./components/AuthModal"));
+const RiderPanel = React.lazy(() => import("./components/RiderPanel"));
+const GroceryModule = React.lazy(() => import("./components/GroceryModule"));
+const OrderHistoryDrawer = React.lazy(() => import("./components/OrderHistoryDrawer"));
+const OrderChat = React.lazy(() => import("./components/OrderChat"));
 import { LazyImage } from "./components/LazyImage";
 import DaduLogoLoader from "./components/DaduLogoLoader";
 import useLazyBatchLoad from "./hooks/useLazyBatchLoad";
@@ -88,7 +90,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
-import FoodpandaRestaurantPage from "./components/FoodpandaRestaurantPage";
+const FoodpandaRestaurantPage = React.lazy(() => import("./components/FoodpandaRestaurantPage"));
 
 export function getDeviceId(): string {
   let id = localStorage.getItem("dadu_device_id");
@@ -166,20 +168,27 @@ export default function App() {
   useMemoryMonitor("App");
   const [showSplash, setShowSplash] = useState(true);
   const [splashProgress, setSplashProgress] = useState(0);
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
+    try {
+      const cached = localStorage.getItem("dadu_cache_user_profile");
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [theme, setTheme] = useState<"light" | "dark">("light");
 
-  // Load saved theme on mount (Defaults to dark mode unless user explicitly selected light mode)
+  // Load saved theme on mount (Defaults to normal light mode unless user turned on dark mode)
   useEffect(() => {
     const saved = localStorage.getItem("dadu_theme");
-    if (saved === "light") {
-      setTheme("light");
-      document.documentElement.classList.remove("dark");
-      document.body.classList.remove("dark");
-    } else {
+    if (saved === "dark") {
       setTheme("dark");
       document.documentElement.classList.add("dark");
       document.body.classList.add("dark");
+    } else {
+      setTheme("light");
+      document.documentElement.classList.remove("dark");
+      document.body.classList.remove("dark");
     }
   }, []);
 
@@ -196,17 +205,44 @@ export default function App() {
     }
   };
 
-  const [dishes, setDishes] = useState<Dish[]>([]);
-  const [isLoadingDishes, setIsLoadingDishes] = useState(true);
+  const [dishes, setDishes] = useState<Dish[]>(() => {
+    try {
+      const cached = localStorage.getItem("dadu_cache_dishes");
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [isLoadingDishes, setIsLoadingDishes] = useState<boolean>(() => {
+    try {
+      return !localStorage.getItem("dadu_cache_dishes");
+    } catch {
+      return true;
+    }
+  });
   const [orders, setOrders] = useState<Order[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [deliverySettings, setDeliverySettings] = useState<SystemSettings>({
-    deliveryFee: 50,
-    restaurantStatus: {
-      isTemporarilyUnavailable: false,
-      openingTime: "09:00",
-      closingTime: "23:00",
-    },
+  const [deliverySettings, setDeliverySettings] = useState<SystemSettings>(() => {
+    try {
+      const cached = localStorage.getItem("dadu_cache_delivery_settings");
+      return cached ? JSON.parse(cached) : {
+        deliveryFee: 50,
+        restaurantStatus: {
+          isTemporarilyUnavailable: false,
+          openingTime: "09:00",
+          closingTime: "23:00",
+        },
+      };
+    } catch {
+      return {
+        deliveryFee: 50,
+        restaurantStatus: {
+          isTemporarilyUnavailable: false,
+          openingTime: "09:00",
+          closingTime: "23:00",
+        },
+      };
+    }
   });
 
   // Favorites and Deal of the Hour configuration
@@ -272,12 +308,32 @@ export default function App() {
 
   // Standalone Grocery Module states
   const [activeModule, setActiveModule] = useState<"food" | "grocery">("food");
-  const [foodCategories, setFoodCategories] = useState<FoodCategory[]>([]);
+  const [foodCategories, setFoodCategories] = useState<FoodCategory[]>(() => {
+    try {
+      const cached = localStorage.getItem("dadu_cache_food_cats");
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
   const [groceryCategories, setGroceryCategories] = useState<GroceryCategory[]>(
     [],
   );
-  const [groceryProducts, setGroceryProducts] = useState<GroceryProduct[]>([]);
-  const [isLoadingGrocery, setIsLoadingGrocery] = useState(true);
+  const [groceryProducts, setGroceryProducts] = useState<GroceryProduct[]>(() => {
+    try {
+      const cached = localStorage.getItem("dadu_cache_grocery_products");
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [isLoadingGrocery, setIsLoadingGrocery] = useState<boolean>(() => {
+    try {
+      return !localStorage.getItem("dadu_cache_grocery_products");
+    } catch {
+      return true;
+    }
+  });
   const [groceryDeliveryConfig, setGroceryDeliveryConfig] =
     useState<GroceryDeliveryConfig>({
       baseDeliveryFee: 40,
@@ -698,7 +754,8 @@ export default function App() {
 
     let animationFrameId: number;
     const startTime = performance.now();
-    const duration = 400; // Fast 0.4 seconds total duration
+    const hasCachedData = Boolean(localStorage.getItem("dadu_cache_dishes"));
+    const duration = hasCachedData ? 150 : 350; // Ultra-fast 150ms splash on app reopening
 
     const updateProgress = (currentTime: number) => {
       const elapsed = currentTime - startTime;
@@ -740,6 +797,9 @@ export default function App() {
           list.sort((a, b) => (a.position || 0) - (b.position || 0));
           setDishes(list);
           setIsLoadingDishes(false);
+          try {
+            localStorage.setItem("dadu_cache_dishes", JSON.stringify(list));
+          } catch {}
         }
       },
       (err) => {
@@ -762,7 +822,11 @@ export default function App() {
           docSnap.exists(),
         );
         if (docSnap.exists()) {
-          setDeliverySettings(docSnap.data() as SystemSettings);
+          const data = docSnap.data() as SystemSettings;
+          setDeliverySettings(data);
+          try {
+            localStorage.setItem("dadu_cache_delivery_settings", JSON.stringify(data));
+          } catch {}
         } else {
           // Seed default
           setDoc(doc(db, "settings", "delivery_config"), {
@@ -935,6 +999,9 @@ export default function App() {
         } else {
           list.sort((a, b) => (a.position || 0) - (b.position || 0));
           setFoodCategories(list);
+          try {
+            localStorage.setItem("dadu_cache_food_cats", JSON.stringify(list));
+          } catch {}
         }
       },
       (err) => {
@@ -985,6 +1052,9 @@ export default function App() {
           list.push({ id: doc.id, ...doc.data() } as GroceryProduct);
         });
         setGroceryProducts(list);
+        try {
+          localStorage.setItem("dadu_cache_grocery_products", JSON.stringify(list));
+        } catch {}
       },
       (err) => {
         console.warn("Grocery products notice:", handleFirestoreError(err));

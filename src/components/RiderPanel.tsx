@@ -26,45 +26,16 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
   const [riderReceiptOrder, setRiderReceiptOrder] = useState<any | null>(null);
   const [isRiderReceiptModalOpen, setIsRiderReceiptModalOpen] = useState(false);
   const [isOnline, setIsOnline] = useState<boolean>(() => {
-    if (currentUser.isDutyOn !== undefined) return currentUser.isDutyOn;
-    if (currentUser.isOnline !== undefined) return currentUser.isOnline;
     const saved = localStorage.getItem(`rider_online_${currentUser.uid}`);
     return saved !== "false";
   });
 
-  // Sync duty status with Firestore on mount and whenever it changes
-  useEffect(() => {
-    const syncDutyToDb = async () => {
-      try {
-        const riderRef = doc(db, "users", currentUser.uid);
-        await updateDoc(riderRef, {
-          isDutyOn: isOnline,
-          isOnline: isOnline,
-          dutyStatus: isOnline ? "online" : "offline",
-          lastDutyUpdated: new Date()
-        });
-      } catch (err) {
-        console.warn("Could not sync rider duty status to Firestore:", err);
-      }
-    };
-    syncDutyToDb();
-  }, [isOnline, currentUser.uid]);
-
-  const handleToggleOnline = async () => {
-    const next = !isOnline;
-    setIsOnline(next);
-    localStorage.setItem(`rider_online_${currentUser.uid}`, String(next));
-    try {
-      const riderRef = doc(db, "users", currentUser.uid);
-      await updateDoc(riderRef, {
-        isDutyOn: next,
-        isOnline: next,
-        dutyStatus: next ? "online" : "offline",
-        lastDutyUpdated: new Date()
-      });
-    } catch (err) {
-      console.error("Failed to update rider duty in Firestore:", err);
-    }
+  const handleToggleOnline = () => {
+    setIsOnline((prev) => {
+      const next = !prev;
+      localStorage.setItem(`rider_online_${currentUser.uid}`, String(next));
+      return next;
+    });
   };
   const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
   const [myOrders, setMyOrders] = useState<Order[]>([]);
