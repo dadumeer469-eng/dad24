@@ -151,3 +151,214 @@ export const CHECKOUT_DRINKS: DrinkRecommendation[] = [
     description: "Classic delicious ice-cold cola refresher."
   }
 ];
+
+export const DEFAULT_FOOD_CATEGORIES = [
+  {
+    id: "cat_all",
+    name: "All",
+    emoji: "🍽️",
+    subtitle: "Sab Kuch",
+    color: "from-[#d70f64] to-[#f22c80]",
+    isAvailable: true,
+    position: 0,
+  },
+  {
+    id: "cat_pizza",
+    name: "Pizza",
+    emoji: "🍕",
+    subtitle: "Hot Pizzas",
+    color: "from-pink-500 to-rose-600",
+    isAvailable: true,
+    position: 1,
+  },
+  {
+    id: "cat_burgers",
+    name: "Burgers",
+    emoji: "🍔",
+    subtitle: "Zesty Burgers",
+    color: "from-amber-500 to-pink-600",
+    isAvailable: true,
+    position: 2,
+  },
+  {
+    id: "cat_broast",
+    name: "Broast",
+    emoji: "🍗",
+    subtitle: "Crispy Broast",
+    color: "from-yellow-500 to-amber-600",
+    isAvailable: true,
+    position: 3,
+  },
+  {
+    id: "cat_rolls",
+    name: "Rolls & Wraps",
+    emoji: "🌯",
+    subtitle: "Tasty Rolls",
+    color: "from-pink-500 to-pink-600",
+    isAvailable: true,
+    position: 4,
+  },
+  {
+    id: "cat_pasta",
+    name: "Pasta",
+    emoji: "🍝",
+    subtitle: "Creamy Pasta",
+    color: "from-yellow-600 to-orange-600",
+    isAvailable: true,
+    position: 5,
+  },
+  {
+    id: "cat_lazania",
+    name: "Lazania",
+    emoji: "🫓",
+    subtitle: "Cheesy Lazania",
+    color: "from-pink-600 to-rose-700",
+    isAvailable: true,
+    position: 6,
+  },
+  {
+    id: "cat_fries",
+    name: "Fries",
+    emoji: "🍟",
+    subtitle: "Loaded Fries",
+    color: "from-amber-400 to-yellow-600",
+    isAvailable: true,
+    position: 7,
+  },
+  {
+    id: "cat_paratha",
+    name: "Paratha",
+    emoji: "🫓",
+    subtitle: "Hot Parathas",
+    color: "from-amber-600 to-orange-700",
+    isAvailable: true,
+    position: 8,
+  },
+  {
+    id: "cat_sandwich",
+    name: "Sandwich",
+    emoji: "🥪",
+    subtitle: "Grilled Sandwiches",
+    color: "from-yellow-500 to-orange-500",
+    isAvailable: true,
+    position: 9,
+  },
+  {
+    id: "cat_specials",
+    name: "Specials",
+    emoji: "⭐️",
+    subtitle: "Dadu Premium",
+    color: "from-purple-500 to-indigo-600",
+    isAvailable: true,
+    position: 10,
+  },
+  {
+    id: "cat_services",
+    name: "Home Services",
+    emoji: "🛠️",
+    subtitle: "Expert Repairs",
+    color: "from-sky-500 to-blue-600",
+    isAvailable: true,
+    position: 11,
+  },
+];
+
+export const DEFAULT_GROCERY_CATEGORIES = [
+  { id: "gcat_dairy", name: "Dairy & Eggs", icon: "🥛", position: 0, isAvailable: true },
+  { id: "gcat_bakery", name: "Bakery & Bread", icon: "🍞", position: 1, isAvailable: true },
+  { id: "gcat_beverages", name: "Cold Drinks & Juices", icon: "🧃", position: 2, isAvailable: true },
+  { id: "gcat_snacks", name: "Snacks & Chips", icon: "🍿", position: 3, isAvailable: true },
+  { id: "gcat_cooking", name: "Oil, Ghee & Spices", icon: "🧂", position: 4, isAvailable: true },
+  { id: "gcat_personal", name: "Personal & Home Care", icon: "🧼", position: 5, isAvailable: true },
+];
+
+export const DEFAULT_GROCERY_PRODUCTS = [
+  {
+    id: "gprod_milk",
+    name: "Fresh Whole Milk (Olper's 1 Litre)",
+    price: 340,
+    unit: "1 Litre",
+    imageUrl: "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&q=80&w=400",
+    categoryId: "gcat_dairy",
+    isAvailable: true,
+    stock: 50,
+  },
+  {
+    id: "gprod_eggs",
+    name: "Farm Fresh Eggs (Dozen)",
+    price: 380,
+    unit: "12 Eggs",
+    imageUrl: "https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?auto=format&fit=crop&q=80&w=400",
+    categoryId: "gcat_dairy",
+    isAvailable: true,
+    stock: 35,
+  },
+  {
+    id: "gprod_bread",
+    name: "Dawn Sandwich Bread (Large)",
+    price: 190,
+    unit: "Large Pack",
+    imageUrl: "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=400",
+    categoryId: "gcat_bakery",
+    isAvailable: true,
+    stock: 25,
+  },
+  {
+    id: "gprod_lays",
+    name: "Lay's Masala Waves Family Pack",
+    price: 120,
+    unit: "65g",
+    imageUrl: "https://images.unsplash.com/photo-1566478989037-eec170784d0b?auto=format&fit=crop&q=80&w=400",
+    categoryId: "gcat_snacks",
+    isAvailable: true,
+    stock: 60,
+  },
+  {
+    id: "gprod_coke_15",
+    name: "Coca Cola Chilled (1.5 Litre)",
+    price: 210,
+    unit: "1.5L Bottle",
+    imageUrl: "https://images.unsplash.com/photo-1554866585-cd94860890b7?auto=format&fit=crop&q=80&w=400",
+    categoryId: "gcat_beverages",
+    isAvailable: true,
+    stock: 40,
+  },
+  {
+    id: "gprod_oil",
+    name: "Dalda Premium Cooking Oil (1 Litre Pouch)",
+    price: 540,
+    unit: "1 Litre",
+    imageUrl: "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&q=80&w=400",
+    categoryId: "gcat_cooking",
+    isAvailable: true,
+    stock: 30,
+  }
+];
+
+export function getDefaultRestaurantImage(vendorName?: string): string {
+  if (!vendorName) return "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=600";
+  const name = vendorName.toLowerCase();
+  if (name.includes("service") || name.includes("repair") || name.includes("home") || name.includes("electric")) {
+    return "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&q=80&w=600";
+  }
+  if (name.includes("pizza")) {
+    return "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&q=80&w=600";
+  }
+  if (name.includes("burger") || name.includes("fast food") || name.includes("cafe")) {
+    return "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80&w=600";
+  }
+  if (name.includes("tasty bites") || name.includes("tasty")) {
+    return "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=600";
+  }
+  if (name.includes("biryani") || name.includes("karahi") || name.includes("bbq") || name.includes("tikka") || name.includes("shinwari") || name.includes("peshawari")) {
+    return "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&q=80&w=600";
+  }
+  if (name.includes("tea") || name.includes("chai") || name.includes("coffee")) {
+    return "https://images.unsplash.com/photo-1541658016709-82535e94bc69?auto=format&fit=crop&q=80&w=600";
+  }
+  if (name.includes("sweet") || name.includes("bakers") || name.includes("cake") || name.includes("bakery")) {
+    return "https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&q=80&w=600";
+  }
+  return "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=600";
+}
+

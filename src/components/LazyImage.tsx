@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Utensils, ImageOff } from "lucide-react";
 
 interface LazyImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -19,7 +19,7 @@ export function LazyImage({
   alt = "Item photo",
   className = "w-full h-full",
   imgClassName = "",
-  referrerPolicy,
+  referrerPolicy = "no-referrer",
   loading = "lazy",
   fallbackIcon,
   ...props
@@ -27,12 +27,41 @@ export function LazyImage({
   const isAlreadyLoaded = src ? loadedImageCache.has(src) : false;
   const [isLoaded, setIsLoaded] = useState<boolean>(isAlreadyLoaded);
   const [hasError, setHasError] = useState<boolean>(false);
+  const [retryCount, setRetryCount] = useState<number>(0);
+  const imgRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
-    if (src && loadedImageCache.has(src)) {
+    setHasError(false);
+    setRetryCount(0);
+    if (!src) {
+      setIsLoaded(false);
+      return;
+    }
+    if (loadedImageCache.has(src)) {
+      setIsLoaded(true);
+      return;
+    }
+    // Check if the DOM image is already loaded from browser cache
+    if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0) {
+      loadedImageCache.add(src);
       setIsLoaded(true);
     }
   }, [src]);
+
+  const handleImageError = () => {
+    if (retryCount < 1 && src && !src.startsWith("data:")) {
+      setRetryCount((prev) => prev + 1);
+      // Brief timeout before retrying to handle cellular network glitches
+      setTimeout(() => {
+        if (imgRef.current) {
+          const sep = src.includes("?") ? "&" : "?";
+          imgRef.current.src = `${src}${sep}retry=${Date.now()}`;
+        }
+      }, 800);
+    } else {
+      setHasError(true);
+    }
+  };
 
   return (
     <div className={`relative overflow-hidden bg-zinc-100 dark:bg-zinc-800/90 ${className}`}>
@@ -57,6 +86,7 @@ export function LazyImage({
       ) : (
         /* Actual Image with GPU-accelerated smooth scale/fade transition */
         <img
+          ref={imgRef}
           src={src}
           alt={alt}
           loading={loading}
@@ -68,8 +98,9 @@ export function LazyImage({
           onLoad={() => {
             if (src) loadedImageCache.add(src);
             setIsLoaded(true);
+            setHasError(false);
           }}
-          onError={() => setHasError(true)}
+          onError={handleImageError}
           {...props}
         />
       )}

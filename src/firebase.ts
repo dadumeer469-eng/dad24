@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { initializeFirestore, enableIndexedDbPersistence, setLogLevel } from "firebase/firestore";
+import { initializeFirestore, getFirestore, setLogLevel } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAnalytics, isSupported } from "firebase/analytics";
 import appletConfig from "../firebase-applet-config.json";
@@ -39,22 +39,19 @@ if (firebaseConfig.measurementId && typeof window !== "undefined") {
   });
 }
 
-// Initialize Firestore with long-polling enabled for enhanced connectivity in restricted iframe/sandbox environments
+// Fast WebSockets Firestore with Auto-Detect fallback (No experimentalForceLongPolling connection blocking)
 const databaseId = (import.meta as any).env.VITE_FIREBASE_DATABASE_ID || appletConfig.firestoreDatabaseId;
-console.log("Firestore Initializing with Database ID:", databaseId);
-const db = databaseId 
-  ? initializeFirestore(app, { experimentalForceLongPolling: true }, databaseId) 
-  : initializeFirestore(app, { experimentalForceLongPolling: true });
+let dbInstance;
+try {
+  dbInstance = databaseId ? getFirestore(app, databaseId) : getFirestore(app);
+} catch {
+  dbInstance = databaseId 
+    ? initializeFirestore(app, { experimentalAutoDetectLongPolling: true }, databaseId) 
+    : initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
+}
+const db = dbInstance;
 
-enableIndexedDbPersistence(db).catch((err) => {
-  if (err.code == 'failed-precondition') {
-    console.warn("Firestore persistence failed-precondition: multiple tabs open");
-  } else if (err.code == 'unimplemented') {
-    console.warn("Firestore persistence unimplemented in this browser");
-  }
-});
-
-console.log("Firestore instance initialized successfully.");
+console.log("Firestore instance initialized successfully with fast WebSocket transport.");
 
 // Initialize Auth
 const auth = getAuth(app);

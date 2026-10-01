@@ -35,7 +35,7 @@ import {
   GroceryOrder,
   Voucher,
 } from "./types";
-import { INITIAL_MENU_ITEMS } from "./data";
+import { INITIAL_MENU_ITEMS, DEFAULT_FOOD_CATEGORIES, DEFAULT_GROCERY_CATEGORIES, DEFAULT_GROCERY_PRODUCTS, getDefaultRestaurantImage } from "./data";
 
 // Import modules
 import FoodpandaHeader from "./components/FoodpandaHeader";
@@ -199,7 +199,8 @@ export default function App() {
     return typeof window !== "undefined" && !sessionStorage.getItem("dadu_splash_seen");
   });
   const [splashProgress, setSplashProgress] = useState(0);
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const initialUser = getCachedData<UserProfile | null>("dadu_cached_user", null);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => initialUser);
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
   // Load saved theme on mount (Defaults to normal light mode unless user turned on dark mode)
@@ -229,9 +230,9 @@ export default function App() {
     }
   };
 
-  const initialDishes = getCachedData<Dish[]>("dadu_cached_dishes", []);
-  const [dishes, setDishes] = useState<Dish[]>(() => initialDishes);
-  const [isLoadingDishes, setIsLoadingDishes] = useState(() => initialDishes.length === 0);
+  const initialDishes = getCachedData<Dish[]>("dadu_cached_dishes", INITIAL_MENU_ITEMS);
+  const [dishes, setDishes] = useState<Dish[]>(() => initialDishes && initialDishes.length > 0 ? initialDishes : INITIAL_MENU_ITEMS);
+  const [isLoadingDishes, setIsLoadingDishes] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [deliverySettings, setDeliverySettings] = useState<SystemSettings>(() => 
@@ -307,16 +308,16 @@ export default function App() {
   }, [dealTimeLeft, dealConfig.isActive]);
 
   // Standalone Grocery Module states
-  const initialGroceryProducts = getCachedData<GroceryProduct[]>("dadu_cached_grocery_products", []);
+  const initialGroceryProducts = getCachedData<GroceryProduct[]>("dadu_cached_grocery_products", DEFAULT_GROCERY_PRODUCTS as any);
   const [activeModule, setActiveModule] = useState<"food" | "grocery">("food");
   const [foodCategories, setFoodCategories] = useState<FoodCategory[]>(() => 
-    getCachedData<FoodCategory[]>("dadu_cached_food_categories", [])
+    getCachedData<FoodCategory[]>("dadu_cached_food_categories", DEFAULT_FOOD_CATEGORIES as any)
   );
   const [groceryCategories, setGroceryCategories] = useState<GroceryCategory[]>(() => 
-    getCachedData<GroceryCategory[]>("dadu_cached_grocery_categories", [])
+    getCachedData<GroceryCategory[]>("dadu_cached_grocery_categories", DEFAULT_GROCERY_CATEGORIES as any)
   );
   const [groceryProducts, setGroceryProducts] = useState<GroceryProduct[]>(() => initialGroceryProducts);
-  const [isLoadingGrocery, setIsLoadingGrocery] = useState(() => initialGroceryProducts.length === 0);
+  const [isLoadingGrocery, setIsLoadingGrocery] = useState(false);
   const [groceryDeliveryConfig, setGroceryDeliveryConfig] =
     useState<GroceryDeliveryConfig>({
       baseDeliveryFee: 40,
@@ -343,7 +344,11 @@ export default function App() {
       return;
     }
     
-    const vendorImageUrl = deliverySettings?.restaurantStatuses?.[vendor]?.imageUrl || deliverySettings?.restaurantStatuses?.[vendor]?.bgImageUrl;
+    const vendorImageUrl =
+      deliverySettings?.restaurantStatuses?.[vendor]?.imageUrl ||
+      deliverySettings?.restaurantStatuses?.[vendor]?.bgImageUrl ||
+      dishes.find(d => (d.restaurantName || "Dadu Fast Food & Kitchen") === vendor && d.imageUrl)?.imageUrl ||
+      getDefaultRestaurantImage(vendor);
     
     setAnimatingRestaurant({ name: vendor, imageUrl: vendorImageUrl });
     
@@ -654,13 +659,14 @@ export default function App() {
 
         if (userData) {
           const isAdmin = userData.role === "admin" || savedPhone === "03277004471";
+          const finalProfile = (isAdmin && userData.role !== "admin")
+            ? ({ uid: userUid, ...userData, role: "admin" } as UserProfile)
+            : ({ uid: userUid, ...userData } as UserProfile);
           if (isAdmin && userData.role !== "admin") {
-            const updated = { ...userData, role: "admin" };
-            await setDoc(doc(db, "users", userUid), updated, { merge: true });
-            setCurrentUser({ uid: userUid, ...updated } as UserProfile);
-          } else {
-            setCurrentUser({ uid: userUid, ...userData } as UserProfile);
+            setDoc(doc(db, "users", userUid), { role: "admin" }, { merge: true }).catch(console.warn);
           }
+          setCurrentUser(finalProfile);
+          setCachedData("dadu_cached_user", finalProfile);
         } else {
           // Fallback guest with saved phone
           const isAdmin = savedPhone === "03277004471";
@@ -673,16 +679,20 @@ export default function App() {
             ordersCount: 0,
           };
           setCurrentUser(fallback);
+          setCachedData("dadu_cached_user", fallback);
         }
 
         // Live listen to profile changes using the correct userUid
         unsubscribe = onSnapshot(doc(db, "users", userUid), (docSnap) => {
            if (docSnap.exists()) {
-              setCurrentUser({ uid: userUid, ...docSnap.data() } as UserProfile);
+              const liveProfile = { uid: userUid, ...docSnap.data() } as UserProfile;
+              setCurrentUser(liveProfile);
+              setCachedData("dadu_cached_user", liveProfile);
            }
         });
       } else {
         setCurrentUser(null);
+        localStorage.removeItem("dadu_cached_user");
         setIsAdminConsoleOpen(false);
       }
     };
@@ -813,7 +823,7 @@ export default function App() {
           setDeliverySettings(data);
           setCachedData("dadu_cached_delivery_settings", data);
         } else {
-          // Seed default
+          // Seed default safely with merge: true so existing statuses/pictures are never wiped
           const defaultCfg = {
             deliveryFee: 50,
             restaurantStatus: {
@@ -822,7 +832,7 @@ export default function App() {
               closingTime: "23:00",
             },
           };
-          setDoc(doc(db, "settings", "delivery_config"), defaultCfg).catch(console.error);
+          setDoc(doc(db, "settings", "delivery_config"), defaultCfg, { merge: true }).catch(console.error);
         }
       },
       (err) => {
@@ -1364,6 +1374,7 @@ export default function App() {
   // Handle Log Outs
   const handleLogout = async () => {
     localStorage.removeItem("dadu_user_phone");
+    localStorage.removeItem("dadu_cached_user");
     // Trigger custom event so initializeUser updates
     window.dispatchEvent(new StorageEvent("storage", { key: "dadu_user_phone" }));
     setCurrentUser(null);
@@ -1504,6 +1515,7 @@ export default function App() {
       // Priority 4: Default Home root -> Trigger exit confirmation dialogue & push state to trap next back click
       setIsExitConfirmationOpen(true);
       window.history.pushState({ page: "exit_confirm" }, "");
+      lastPushedScreenRef.current = "exit_confirm";
     };
 
     window.addEventListener("popstate", handlePopState);
@@ -2044,17 +2056,14 @@ export default function App() {
     }
 
     if (details.voucher) {
-      const vRef = doc(db, "vouchers", details.voucher.code);
-      const vSnap = await getDoc(vRef);
-      if (vSnap.exists()) {
-        const vData = vSnap.data();
-        if (!vData.isActive || vData.currentUses >= vData.maxUses) {
+      const matchedVoucher = vouchers.find(
+        (v) => v.code.toUpperCase() === details.voucher!.code.toUpperCase() || v.id === details.voucher!.code
+      );
+      if (matchedVoucher) {
+        if (!matchedVoucher.isActive || (matchedVoucher.maxUses && matchedVoucher.currentUses >= matchedVoucher.maxUses)) {
           alert("Sorry, the applied voucher is no longer valid or has reached its usage limit.");
           return;
         }
-      } else {
-        alert("Invalid voucher code.");
-        return;
       }
     }
 
@@ -3193,7 +3202,13 @@ export default function App() {
           deliverySettings={deliverySettings}
           initialCategory={initialRestaurantCategory}
           isRestaurantClosed={checkIsRestaurantClosed(selectedRestaurant)}
-          bgImageUrl={deliverySettings?.restaurantStatuses?.[selectedRestaurant]?.bgImageUrl || selectedFoodCategory?.bgImageUrl}
+          bgImageUrl={
+            deliverySettings?.restaurantStatuses?.[selectedRestaurant]?.bgImageUrl ||
+            deliverySettings?.restaurantStatuses?.[selectedRestaurant]?.imageUrl ||
+            restaurantDishes.find(d => d.imageUrl)?.imageUrl ||
+            selectedFoodCategory?.bgImageUrl ||
+            getDefaultRestaurantImage(selectedRestaurant)
+          }
           onBack={() => {
             setSelectedRestaurant("All Restaurants");
             setInitialRestaurantCategory(undefined);
@@ -3950,9 +3965,10 @@ export default function App() {
                           ))
                         : uniqueRestaurants.map((vendor, idx) => {
                             const vendorImageUrl =
-                              deliverySettings?.restaurantStatuses?.[
-                                vendor
-                              ]?.imageUrl;
+                              deliverySettings?.restaurantStatuses?.[vendor]?.imageUrl ||
+                              deliverySettings?.restaurantStatuses?.[vendor]?.bgImageUrl ||
+                              dishes.find(d => (d.restaurantName || "Dadu Fast Food & Kitchen") === vendor && d.imageUrl)?.imageUrl ||
+                              getDefaultRestaurantImage(vendor);
                             const vendorCoords = deliverySettings?.restaurantStatuses?.[vendor]?.coords;
                             const refCoords = globalCoords || (
                               deliverySettings?.baseLocationCoords?.lat && deliverySettings?.baseLocationCoords?.lng
@@ -4277,9 +4293,6 @@ export default function App() {
                           });
 
                           return uniqueRestaurantsList.map((vendor) => {
-                            const vendorImageUrl =
-                              deliverySettings?.restaurantStatuses?.[vendor]
-                                ?.imageUrl;
                             const vendorDishes = dishes
                               .filter(
                                 (d) =>
@@ -4301,6 +4314,12 @@ export default function App() {
                                 return String(b.id).localeCompare(String(a.id));
                               })
                               .slice(0, 8);
+
+                            const vendorImageUrl =
+                              deliverySettings?.restaurantStatuses?.[vendor]?.imageUrl ||
+                              deliverySettings?.restaurantStatuses?.[vendor]?.bgImageUrl ||
+                              vendorDishes.find((d) => d.imageUrl)?.imageUrl ||
+                              getDefaultRestaurantImage(vendor);
 
                             const isClosed = checkIsRestaurantClosed(vendor);
 

@@ -224,9 +224,9 @@ function ProductImageSelector({
           setUploadProgress(60);
           const canvas = document.createElement("canvas");
           
-          // Max dimensions
-          const MAX_WIDTH = 800;
-          const MAX_HEIGHT = 800;
+          // Max dimensions for restaurant & dish thumbnails (under 25KB lightweight)
+          const MAX_WIDTH = 450;
+          const MAX_HEIGHT = 450;
           let width = img.width;
           let height = img.height;
 
@@ -247,8 +247,10 @@ function ProductImageSelector({
 
           const ctx = canvas.getContext("2d");
           if (ctx) {
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = "high";
             ctx.drawImage(img, 0, 0, width, height);
-            const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+            const dataUrl = canvas.toDataURL("image/jpeg", 0.72);
             setUploadProgress(100);
             onChange(dataUrl);
             setIsProcessing(false);
@@ -815,11 +817,15 @@ export default function AdminPanel({
       const specificStatus =
         deliverySettings.restaurantStatuses?.[selectedScheduleRestaurant];
       if (specificStatus) {
-        setRestStatusUnavailable(specificStatus.isTemporarilyUnavailable);
-        setRestOpeningTime(specificStatus.openingTime);
-        setRestClosingTime(specificStatus.closingTime);
-        setRestImageUrl(specificStatus.imageUrl || "");
-        setRestBgImageUrl(specificStatus.bgImageUrl || "");
+        setRestStatusUnavailable(specificStatus.isTemporarilyUnavailable ?? false);
+        setRestOpeningTime(specificStatus.openingTime || "09:00");
+        setRestClosingTime(specificStatus.closingTime || "23:00");
+        if (specificStatus.imageUrl) {
+          setRestImageUrl(specificStatus.imageUrl);
+        }
+        if (specificStatus.bgImageUrl) {
+          setRestBgImageUrl(specificStatus.bgImageUrl);
+        }
         setRestPhone(specificStatus.phone || "");
         setRestMinOrder(specificStatus.minOrder?.toString() || "");
         setRestDeliveryCharge(specificStatus.deliveryCharge || "");
@@ -832,8 +838,6 @@ export default function AdminPanel({
         setRestStatusUnavailable(false);
         setRestOpeningTime("09:00");
         setRestClosingTime("23:00");
-        setRestImageUrl("");
-        setRestBgImageUrl("");
         setRestPhone("");
         setRestMinOrder("");
         setRestDeliveryCharge("");
@@ -2180,6 +2184,9 @@ export default function AdminPanel({
     if (!newRestaurantInput.trim()) return;
     try {
       const existingStatuses = deliverySettings?.restaurantStatuses || {};
+      const trimmedName = newRestaurantInput.trim();
+      const existingForRestaurant: any = existingStatuses[trimmedName] || {};
+
       const newSettings = {
         deliveryFee: Number(deliveryChargeInput),
         restaurantStatus: deliverySettings?.restaurantStatus || {
@@ -2189,10 +2196,11 @@ export default function AdminPanel({
         },
         restaurantStatuses: {
           ...existingStatuses,
-          [newRestaurantInput.trim()]: {
+          [trimmedName]: {
+            ...existingForRestaurant,
             isTemporarilyUnavailable: false,
-            openingTime: "09:00",
-            closingTime: "23:00",
+            openingTime: existingForRestaurant.openingTime || "09:00",
+            closingTime: existingForRestaurant.closingTime || "23:00",
           },
         },
       };
@@ -2200,10 +2208,10 @@ export default function AdminPanel({
       await setDoc(doc(db, "settings", "delivery_config"), cleanObject(newSettings), {
         merge: true,
       });
-      setSelectedScheduleRestaurant(newRestaurantInput.trim());
+      setSelectedScheduleRestaurant(trimmedName);
       setNewRestaurantInput("");
       alert(
-        `Successfully registered new Restaurant / Vendor: ${newRestaurantInput.trim()}`,
+        `Successfully registered new Restaurant / Vendor: ${trimmedName}`,
       );
     } catch (err) {
       console.error(err);
@@ -2217,6 +2225,7 @@ export default function AdminPanel({
   const handleSaveDeliveryConfig = async () => {
     try {
       const existingStatuses = deliverySettings?.restaurantStatuses || {};
+      const currentRestaurantConfig: any = existingStatuses[selectedScheduleRestaurant] || {};
 
       const newSettings = {
         ...deliverySettings,
@@ -2237,19 +2246,20 @@ export default function AdminPanel({
         restaurantStatuses: {
           ...existingStatuses,
           [selectedScheduleRestaurant]: {
-            ...(existingStatuses[selectedScheduleRestaurant] || {}),
+            ...currentRestaurantConfig,
             isTemporarilyUnavailable: restStatusUnavailable,
             openingTime: restOpeningTime,
             closingTime: restClosingTime,
-            imageUrl: restImageUrl,
-            bgImageUrl: restBgImageUrl,
-            phone: restPhone,
-            minOrder: restMinOrder ? String(restMinOrder) : null,
-            deliveryCharge: restDeliveryCharge,
-            coords: restLat && restLng ? { lat: parseFloat(restLat), lng: parseFloat(restLng) } : null,
+            // CRITICAL FIX: Never wipe existing restaurant picture if restImageUrl is empty/unaltered!
+            imageUrl: restImageUrl || currentRestaurantConfig.imageUrl || "",
+            bgImageUrl: restBgImageUrl || currentRestaurantConfig.bgImageUrl || "",
+            phone: restPhone || currentRestaurantConfig.phone || "",
+            minOrder: restMinOrder ? String(restMinOrder) : (currentRestaurantConfig.minOrder || null),
+            deliveryCharge: restDeliveryCharge || currentRestaurantConfig.deliveryCharge || "",
+            coords: (restLat && restLng ? { lat: parseFloat(restLat), lng: parseFloat(restLng) } : null) || currentRestaurantConfig.coords || null,
             commissionEnabled: restCommissionEnabled,
             commissionType: restCommissionType,
-            commissionValue: restCommissionValue ? Number(restCommissionValue) : 0,
+            commissionValue: restCommissionValue ? Number(restCommissionValue) : (currentRestaurantConfig.commissionValue || 0),
           },
         },
         isMaintenanceMode: isMaintenanceMode,

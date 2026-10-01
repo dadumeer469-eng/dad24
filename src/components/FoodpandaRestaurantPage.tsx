@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Dish, OrderItem, SystemSettings } from "../types";
+import { getDefaultRestaurantImage } from "../data";
 import { LazyImage } from "./LazyImage";
 import FoodDetailModal from "./FoodDetailModal";
 import DaduLogoLoader from "./DaduLogoLoader";
@@ -253,7 +254,19 @@ export default function FoodpandaRestaurantPage({
     return true;
   });
 
-  const restaurantImageUrl = deliverySettings?.restaurantStatuses?.[restaurantName]?.imageUrl;
+  const restaurantImageUrl =
+    deliverySettings?.restaurantStatuses?.[restaurantName]?.imageUrl ||
+    deliverySettings?.restaurantStatuses?.[restaurantName]?.bgImageUrl ||
+    dishes.find(d => d.imageUrl)?.imageUrl ||
+    getDefaultRestaurantImage(restaurantName);
+
+  const restaurantCoverUrl =
+    bgImageUrl ||
+    deliverySettings?.restaurantStatuses?.[restaurantName]?.bgImageUrl ||
+    deliverySettings?.restaurantStatuses?.[restaurantName]?.imageUrl ||
+    dishes.find(d => d.imageUrl)?.imageUrl ||
+    getDefaultRestaurantImage(restaurantName);
+
   const isMerchantVerified = true;
 
   const handleShare = () => {
@@ -282,11 +295,12 @@ export default function FoodpandaRestaurantPage({
       
       {/* Hero Cover Header */}
       <div className="relative h-56 sm:h-72 w-full overflow-hidden bg-gradient-to-r from-zinc-900 via-rose-950 to-pink-900">
-        {(bgImageUrl || restaurantImageUrl) ? (
-          <img 
-            src={bgImageUrl || restaurantImageUrl} 
+        {restaurantCoverUrl ? (
+          <LazyImage 
+            src={restaurantCoverUrl} 
             alt={restaurantName}
-            className="w-full h-full object-cover opacity-85 scale-105 filter saturate-110 transform transition-transform duration-700 hover:scale-100"
+            className="w-full h-full"
+            imgClassName="w-full h-full object-cover opacity-85 scale-105 filter saturate-110 transform transition-transform duration-700 hover:scale-100"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#D70F64] to-rose-700 opacity-90">

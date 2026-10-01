@@ -55,15 +55,26 @@ export default function GroceryCartDrawer({
   const [isVouchersModalOpen, setIsVouchersModalOpen] = useState(false);
   const [isBenefitsOpen, setIsBenefitsOpen] = useState(false);
 
-  // Address editing states
-  const [isEditingAddress, setIsEditingAddress] = useState(false);
-  const [addressInput, setAddressInput] = useState("");
+  // Customer Name & Address editing states
+  const [nameInput, setNameInput] = useState(currentUser?.name || "");
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [isEditingAddress, setIsEditingAddress] = useState(!currentUser?.address);
+  const [addressInput, setAddressInput] = useState(currentUser?.address || "");
   const [isSavingAddress, setIsSavingAddress] = useState(false);
   const [addressSaveSuccess, setAddressSaveSuccess] = useState(false);
   const [addressError, setAddressError] = useState<string | null>(null);
 
+  React.useEffect(() => {
+    if (currentUser?.name && !nameInput) {
+      setNameInput(currentUser.name);
+    }
+    if (currentUser?.address && !addressInput) {
+      setAddressInput(currentUser.address);
+    }
+  }, [currentUser]);
+
   const handleStartEditAddress = () => {
-    setAddressInput(currentUser?.address || "");
+    setAddressInput(currentUser?.address || addressInput || "");
     setIsEditingAddress(true);
     setAddressError(null);
     setAddressSaveSuccess(false);
@@ -251,52 +262,52 @@ export default function GroceryCartDrawer({
 
   const handleCheckoutSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setCheckoutError(null);
     if (cartItems.length === 0) return;
 
     if (!currentUser) {
-      alert("Please Sign In or Register to place an order!");
       onOpenAuth();
       return;
     }
 
-    const userHasNoAddress = !currentUser.address && (!currentUser.savedLocation?.area || !currentUser.savedLocation?.street);
-    if (userHasNoAddress) {
-      alert("Address not assigned! Please contact the admin to configure your delivery address.");
+    const trimmedName = (nameInput.trim() || currentUser.name || "").trim();
+    if (!trimmedName) {
+      setCheckoutError("Apna naam enter karein (Please enter your name).");
+      return;
+    }
+
+    const currentAddr = (addressInput.trim() || currentUser.address || "").trim();
+    if (!currentAddr || currentAddr.length < 4) {
+      setIsEditingAddress(true);
+      setCheckoutError("Ghar ya shop ka delivery address enter karein.");
       return;
     }
 
     setSubmitting(true);
 
-    let finalName = currentUser?.name || "";
-    const isFirstOrder = !currentUser.ordersCount || currentUser.ordersCount === 0 || !currentUser.name;
+    const finalName = trimmedName;
+    const finalPhone = currentUser.phone || "03000000000";
 
-    if (isFirstOrder) {
-      const promptName = window.prompt("Pehli dafa order karne par apna naam dalein (Please enter your name):");
-      if (!promptName || !promptName.trim()) {
-        alert("Naam dalna lazmi hai order karne ke liye! (Name is required to place an order!)");
-        setSubmitting(false);
-        return;
-      }
-      finalName = promptName.trim();
+    // Auto-save address if updated
+    if (currentAddr !== currentUser.address) {
+      const parts = currentAddr.split(",");
+      const areaPart = parts[0]?.trim() || currentAddr;
+      const streetPart = parts.slice(1).join(",")?.trim() || currentAddr;
+      setDoc(doc(db, "users", currentUser.uid), {
+        name: finalName,
+        address: currentAddr,
+        savedLocation: {
+          area: areaPart,
+          street: streetPart,
+          lat: currentUser.savedLocation?.lat || 26.7341,
+          lng: currentUser.savedLocation?.lng || 67.7795,
+        }
+      }, { merge: true }).catch(console.warn);
     }
 
-    let finalPhone = currentUser?.phone || "";
-    let finalArea = currentUser?.savedLocation?.area || "";
-    let finalStreet = currentUser?.savedLocation?.street || "";
-
-    if (!finalArea || !finalStreet) {
-      if (currentUser?.address) {
-        const parts = currentUser.address.split(",");
-        finalArea = parts[0]?.trim() || currentUser.address;
-        finalStreet = parts.slice(1).join(",")?.trim() || "Default Street";
-      }
-    }
-
-    if (!finalName || !finalPhone || !finalArea || !finalStreet) {
-      alert("Delivery details are incomplete. Please contact admin to configure your profile!");
-      setSubmitting(false);
-      return;
-    }
+    const parts = currentAddr.split(",");
+    const finalArea = parts[0]?.trim() || currentAddr;
+    const finalStreet = parts.slice(1).join(",")?.trim() || "Dadu";
 
     let activeCoords = userCoords;
     if (!activeCoords && currentUser?.savedLocation?.lat && currentUser?.savedLocation?.lng) {
@@ -459,9 +470,18 @@ export default function GroceryCartDrawer({
                   </div>
                 ) : (
                   <div className="space-y-2 text-xs">
-                    <div className="flex items-center gap-1.5 text-zinc-300">
-                      <User className="w-4 h-4 text-orange-500 shrink-0" />
-                      <span className="font-bold">{currentUser.name || "No name configured"}</span>
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider block">Customer Name</span>
+                      <input
+                        type="text"
+                        value={nameInput}
+                        onChange={(e) => {
+                          setNameInput(e.target.value);
+                          if (checkoutError) setCheckoutError(null);
+                        }}
+                        placeholder="Apna naam likhein (e.g. Ali Ahmed)..."
+                        className="w-full bg-zinc-950 border border-zinc-700 focus:border-orange-500 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-zinc-500 focus:outline-none font-bold"
+                      />
                     </div>
                     <div className="flex items-center gap-1.5 text-zinc-300">
                       <Phone className="w-4 h-4 text-orange-400 shrink-0" />
@@ -890,6 +910,13 @@ export default function GroceryCartDrawer({
                   >
                     Allow Location Access
                   </button>
+                </div>
+              )}
+
+              {checkoutError && (
+                <div className="p-3 bg-rose-500/15 border border-rose-500/30 rounded-xl text-xs text-rose-300 font-bold flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                  <span>{checkoutError}</span>
                 </div>
               )}
 
