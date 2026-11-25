@@ -341,6 +341,10 @@ export default function App() {
     (item) => item && !String(item.id || "").startsWith("gprod_"),
   );
   const [activeModule, setActiveModule] = useState<"food" | "grocery">("food");
+  // Admin "Refresh All Users" — bumped when the admin presses Refresh; re-runs the fetch-once effects below.
+  const [catalogRefreshTick, setCatalogRefreshTick] = useState(0);
+  const lastRefreshSignalRef = useRef<number>(0);
+  const refreshSignalInitRef = useRef(false);
   const [foodCategories, setFoodCategories] = useState<FoodCategory[]>(() =>
     getCachedData<FoodCategory[]>("dadu_cached_food_categories", DEFAULT_FOOD_CATEGORIES as any),
   );
@@ -681,13 +685,13 @@ export default function App() {
     );
   };
 
-  const handleManualAddressSave = async (area: string, street: string) => {
-    const cleaned = { area: area.trim(), street: street.trim() };
+  const handleManualAddressSave = async (area: string, street?: string) => {
+    const cleaned = { area: area.trim(), street: (street || "").trim() };
     setManualAddress(cleaned);
     try {
       localStorage.setItem("dadu_manual_address", JSON.stringify(cleaned));
     } catch {}
-    const fullAddress = `${cleaned.area}, ${cleaned.street}`;
+    const fullAddress = cleaned.street ? `${cleaned.area}, ${cleaned.street}` : cleaned.area;
     if (currentUser) {
       const updatedUser: UserProfile = {
         ...currentUser,
@@ -1016,12 +1020,14 @@ export default function App() {
     };
   }, []);
 
-  // 2. Real-time Menu Listening & Auto-Seeding with persistent instant cache
+  // 2. Fetch-once Menu Loading (refetch on tab visible) & Auto-Seeding with persistent instant cache
   useEffect(() => {
     console.log("Trace: Initializing Menu collection listener...");
-    const unsubscribe = onSnapshot(
-      collection(db, "menu"),
-      async (snapshot) => {
+    let cancelled = false;
+    const fetchMenu = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, "menu"));
+        if (cancelled) return;
         console.log("Trace: Menu snapshot received, empty:", snapshot.empty);
         if (snapshot.empty) {
           console.log("Menu database is empty.");
@@ -1082,22 +1088,31 @@ export default function App() {
             });
           }
         }
-      },
-      (err) => {
+      } catch (err) {
+        if (cancelled) return;
         console.warn("Menu listening notice:", handleFirestoreError(err));
         setIsLoadingDishes(false);
-      },
-    );
+      }
+    };
+    fetchMenu();
+    const handleVisibility = () => {
+      if (!document.hidden) fetchMenu();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [catalogRefreshTick]);
 
-    return () => unsubscribe();
-  }, []);
-
-  // 3. Real-time Delivery Settings Listening
+  // 3. Fetch-once Delivery Settings Loading (refetch on tab visible)
   useEffect(() => {
     console.log("Trace: Initializing Delivery Settings collection listener...");
-    const unsubscribe = onSnapshot(
-      doc(db, "settings", "delivery_config"),
-      (docSnap) => {
+    let cancelled = false;
+    const fetchDeliverySettings = async () => {
+      try {
+        const docSnap = await getDoc(doc(db, "settings", "delivery_config"));
+        if (cancelled) return;
         console.log(
           "Trace: Delivery Settings snapshot received, exists:",
           docSnap.exists(),
@@ -1118,17 +1133,24 @@ export default function App() {
           };
           setDoc(doc(db, "settings", "delivery_config"), defaultCfg, { merge: true }).catch(console.error);
         }
-      },
-      (err) => {
+      } catch (err) {
+        if (cancelled) return;
         console.warn(
           "Delivery config subscription error:",
           handleFirestoreError(err),
         );
-      },
-    );
-
-    return () => unsubscribe();
-  }, []);
+      }
+    };
+    fetchDeliverySettings();
+    const handleVisibility = () => {
+      if (!document.hidden) fetchDeliverySettings();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [catalogRefreshTick]);
 
   // 3.5 Global Offer / Announcement Pop-up Logic
   useEffect(() => {
@@ -1145,11 +1167,13 @@ export default function App() {
     }
   }, [deliverySettings]);
 
-  // 3a. Real-time Food Categories Listening
+  // 3a. Fetch-once Food Categories Loading (refetch on tab visible)
   useEffect(() => {
-    const unsubscribe = onSnapshot(
-      collection(db, "foodCategories"),
-      async (snapshot) => {
+    let cancelled = false;
+    const fetchFoodCategories = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, "foodCategories"));
+        if (cancelled) return;
         const list: FoodCategory[] = [];
         snapshot.forEach((doc) => {
           list.push({ id: doc.id, ...doc.data() } as FoodCategory);
@@ -1272,13 +1296,21 @@ export default function App() {
           setFoodCategories(list);
           setCachedData("dadu_cached_food_categories", list);
         }
-      },
-      (err) => {
+      } catch (err) {
+        if (cancelled) return;
         console.warn("Food categories notice:", handleFirestoreError(err));
-      },
-    );
-    return () => unsubscribe();
-  }, []);
+      }
+    };
+    fetchFoodCategories();
+    const handleVisibility = () => {
+      if (!document.hidden) fetchFoodCategories();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [catalogRefreshTick]);
 
   // One-time client-side seed guards for the owner grocery catalog
   // (100 items + 12 categories with branded photos in public/images/grocery/).
@@ -1288,12 +1320,14 @@ export default function App() {
   // One-time menu data corrections (wrong descriptions, luxury items, miscategorised steaks)
   const menuFixAttemptedRef = useRef(false);
 
-  // 3b. Real-time Grocery Categories Listening
+  // 3b. Fetch-once Grocery Categories Loading (refetch on tab visible)
   useEffect(() => {
     console.log("Trace: Initializing GroceryCategories collection listener...");
-    const unsubscribe = onSnapshot(
-      collection(db, "groceryCategories"),
-      (snapshot) => {
+    let cancelled = false;
+    const fetchGroceryCategories = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, "groceryCategories"));
+        if (cancelled) return;
         console.log(
           "Trace: GroceryCategories snapshot received, size:",
           snapshot.size,
@@ -1325,21 +1359,31 @@ export default function App() {
               );
           }
         }
-      },
-      (err) => {
+      } catch (err) {
+        if (cancelled) return;
         console.warn("Grocery categories notice:", handleFirestoreError(err));
         setIsLoadingGrocery(false);
-      },
-    );
-    return () => unsubscribe();
-  }, []);
+      }
+    };
+    fetchGroceryCategories();
+    const handleVisibility = () => {
+      if (!document.hidden) fetchGroceryCategories();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [catalogRefreshTick]);
 
-  // 3b. Real-time Grocery Products Listening
+  // 3b. Fetch-once Grocery Products Loading (refetch on tab visible)
   useEffect(() => {
     console.log("Trace: Initializing GroceryProducts collection listener...");
-    const unsubscribe = onSnapshot(
-      collection(db, "groceryProducts"),
-      (snapshot) => {
+    let cancelled = false;
+    const fetchGroceryProducts = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, "groceryProducts"));
+        if (cancelled) return;
         console.log(
           "Trace: GroceryProducts snapshot received, size:",
           snapshot.size,
@@ -1371,20 +1415,30 @@ export default function App() {
               );
           }
         }
-      },
-      (err) => {
+      } catch (err) {
+        if (cancelled) return;
         console.warn("Grocery products notice:", handleFirestoreError(err));
         setIsLoadingGrocery(false);
-      },
-    );
-    return () => unsubscribe();
-  }, []);
+      }
+    };
+    fetchGroceryProducts();
+    const handleVisibility = () => {
+      if (!document.hidden) fetchGroceryProducts();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [catalogRefreshTick]);
 
-  // 3c. Real-time Grocery Delivery Config Listening
+  // 3c. Fetch-once Grocery Delivery Config Loading (refetch on tab visible)
   useEffect(() => {
-    const unsubscribe = onSnapshot(
-      doc(db, "settings", "groceryDeliveryConfig"),
-      (docSnap) => {
+    let cancelled = false;
+    const fetchGroceryDeliveryConfig = async () => {
+      try {
+        const docSnap = await getDoc(doc(db, "settings", "groceryDeliveryConfig"));
+        if (cancelled) return;
         if (docSnap.exists()) {
           setGroceryDeliveryConfig(docSnap.data() as GroceryDeliveryConfig);
         } else {
@@ -1395,19 +1449,29 @@ export default function App() {
             allowMixedCart: true,
           }).catch(console.warn);
         }
-      },
-      (err) => {
+      } catch (err) {
+        if (cancelled) return;
         console.warn("Grocery delivery config notice:", handleFirestoreError(err));
-      },
-    );
-    return () => unsubscribe();
-  }, []);
+      }
+    };
+    fetchGroceryDeliveryConfig();
+    const handleVisibility = () => {
+      if (!document.hidden) fetchGroceryDeliveryConfig();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [catalogRefreshTick]);
 
-  // 3d. Real-time Deal of the Hour Config Listening
+  // 3d. Fetch-once Deal of the Hour Config Loading (refetch on tab visible)
   useEffect(() => {
-    const unsubscribe = onSnapshot(
-      doc(db, "settings", "deal_config"),
-      (docSnap) => {
+    let cancelled = false;
+    const fetchDealConfig = async () => {
+      try {
+        const docSnap = await getDoc(doc(db, "settings", "deal_config"));
+        if (cancelled) return;
         if (docSnap.exists()) {
           const data = docSnap.data();
           const minutes = Number(data.timerMinutes) || 0;
@@ -1433,40 +1497,60 @@ export default function App() {
           );
           setDealTimeLeft({ minutes: 30, seconds: 0 });
         }
-      },
-      (err) => {
+      } catch (err) {
+        if (cancelled) return;
         console.warn(
           "Deal config subscription error:",
           handleFirestoreError(err),
         );
-      },
-    );
-    return () => unsubscribe();
-  }, []);
+      }
+    };
+    fetchDealConfig();
+    const handleVisibility = () => {
+      if (!document.hidden) fetchDealConfig();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [catalogRefreshTick]);
 
-  // 3v. Real-time Vouchers Listening
+  // 3v. Fetch-once Vouchers Loading (refetch on tab visible)
   useEffect(() => {
-    const unsubscribe = onSnapshot(
-      collection(db, "vouchers"),
-      (snapshot) => {
+    let cancelled = false;
+    const fetchVouchers = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, "vouchers"));
+        if (cancelled) return;
         const list: Voucher[] = [];
         snapshot.forEach((docSnap) => {
           list.push({ id: docSnap.id, ...docSnap.data() } as Voucher);
         });
         setVouchers(list);
-      },
-      (err) => {
+      } catch (err) {
+        if (cancelled) return;
         console.warn("Vouchers subscription notice:", handleFirestoreError(err));
-      },
-    );
-    return () => unsubscribe();
-  }, []);
+      }
+    };
+    fetchVouchers();
+    const handleVisibility = () => {
+      if (!document.hidden) fetchVouchers();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [catalogRefreshTick]);
 
-  // 3f. Load UI config
+  // 3f. Load UI config (fetch-once + refetch on tab visible)
   useEffect(() => {
-    const unsubscribe = onSnapshot(
-      doc(db, "settings", "ui_config"),
-      (docSnap) => {
+    let cancelled = false;
+    const fetchUiConfig = async () => {
+      try {
+        const docSnap = await getDoc(doc(db, "settings", "ui_config"));
+        if (cancelled) return;
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data.heroBgUrl) {
@@ -1476,19 +1560,29 @@ export default function App() {
             setPartnerShopsBgUrl(data.partnerShopsBgUrl);
           }
         }
-      },
-      (err) => {
+      } catch (err) {
+        if (cancelled) return;
         console.warn("Error loading ui_config:", err);
       }
-    );
-    return () => unsubscribe();
-  }, []);
+    };
+    fetchUiConfig();
+    const handleVisibility = () => {
+      if (!document.hidden) fetchUiConfig();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [catalogRefreshTick]);
 
-  // 3e. Load SEO config from Admin panel and pass into unified SEO manager
+  // 3e. Load SEO config from Admin panel and pass into unified SEO manager (fetch-once + refetch on tab visible)
   useEffect(() => {
-    const unsubscribe = onSnapshot(
-      doc(db, "settings", "seo_config"),
-      (docSnap) => {
+    let cancelled = false;
+    const fetchSeoConfig = async () => {
+      try {
+        const docSnap = await getDoc(doc(db, "settings", "seo_config"));
+        if (cancelled) return;
         if (docSnap.exists()) {
           const data = docSnap.data();
           setAdminSeoOverride({
@@ -1505,12 +1599,50 @@ export default function App() {
             keywordsMeta.setAttribute("content", data.keywords);
           }
         }
-      },
-      (err) => {
+      } catch (err) {
+        if (cancelled) return;
         console.warn(
           "SEO config subscription error:",
           handleFirestoreError(err),
         );
+      }
+    };
+    fetchSeoConfig();
+    const handleVisibility = () => {
+      if (!document.hidden) fetchSeoConfig();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [catalogRefreshTick]);
+  // Admin "Refresh All Users" signal — one tiny doc listener. When the admin presses
+  // Refresh in the admin panel, this fires and re-runs the fetch-once effects above
+  // (via catalogRefreshTick), so every open user page reloads the latest menu/prices.
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      doc(db, "settings", "refresh_signal"),
+      (docSnap) => {
+        if (!docSnap.exists()) return;
+        const ts = Number(docSnap.data()?.updatedAt || 0);
+        if (!refreshSignalInitRef.current) {
+          refreshSignalInitRef.current = true;
+          lastRefreshSignalRef.current = ts;
+          return;
+        }
+        if (ts && ts !== lastRefreshSignalRef.current) {
+          lastRefreshSignalRef.current = ts;
+          setCatalogRefreshTick((t) => t + 1);
+          setToastNotification({
+            title: "Updated!",
+            message: "Menu aur prices refresh ho gaye.",
+          });
+          setTimeout(() => setToastNotification(null), 2000);
+        }
+      },
+      (err) => {
+        console.warn("Refresh signal notice:", handleFirestoreError(err));
       },
     );
     return () => unsubscribe();
