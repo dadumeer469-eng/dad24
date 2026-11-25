@@ -4334,6 +4334,22 @@ export default function App() {
         </svg>
       </a>
 
+      {/* Home food background — the user's food photo, fixed behind the food home (reference design) */}
+      {activeModule === "food" &&
+        selectedRestaurant === "All Restaurants" &&
+        !activeInfoPage &&
+        !(isAdminConsoleOpen && isUserAdmin) && (
+          <div className="fixed inset-0 z-0 pointer-events-none" aria-hidden="true">
+            <img
+              src="/images/home/food-background.jpg"
+              alt=""
+              className="w-full h-full object-cover"
+              loading="eager"
+              decoding="async"
+            />
+          </div>
+        )}
+
       {/* Primary Navigation System */}
       {!(isMaintenanceActive && !isUserAdmin) && (
         <FoodpandaHeader
