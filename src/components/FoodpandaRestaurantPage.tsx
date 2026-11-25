@@ -456,64 +456,60 @@ export default function FoodpandaRestaurantPage({
           {/* Quick Info Tiles (design: 2x2 pink tiles with chevrons) */}
           <div className="grid grid-cols-2 gap-2 sm:gap-3 mt-4 pt-4 border-t border-[#EFEFF5] dark:border-[#23232E]">
             {/* Items */}
-            <div className="bg-[#FDF2F6] dark:bg-[#2A121D] p-3 rounded-2xl flex items-center gap-2.5 border border-[#F9A8C9]/50 dark:border-[#D70F64]/25 min-w-0">
-              <div className="w-10 h-10 rounded-full bg-[#D70F64] text-white flex items-center justify-center shrink-0 shadow-sm">
+            <div className="bg-[#FDF2F6] dark:bg-[#2A121D] p-2 rounded-2xl flex items-center gap-2 border border-[#F9A8C9]/50 dark:border-[#D70F64]/25 min-w-0">
+              <div className="w-9 h-9 rounded-full bg-[#D70F64] text-white flex items-center justify-center shrink-0 shadow-sm">
                 <ChefHat className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <span className="block text-sm font-extrabold text-[#14141A] dark:text-white truncate tabular-nums">
+                <span className="block text-[13px] font-extrabold text-[#14141A] dark:text-white truncate tabular-nums">
                   {dishes.length} {dishes.length === 1 ? "Item" : "Items"}
                 </span>
                 <span className="block text-[11px] text-[#5A5A6B] dark:text-[#A1A1B2] font-medium truncate">
                   Fresh Menu
                 </span>
               </div>
-              <ChevronRight className="w-4 h-4 text-[#D70F64] shrink-0" />
             </div>
             {/* Delivery Time */}
-            <div className="bg-[#FDF2F6] dark:bg-[#2A121D] p-3 rounded-2xl flex items-center gap-2.5 border border-[#F9A8C9]/50 dark:border-[#D70F64]/25 min-w-0">
-              <div className="w-10 h-10 rounded-full bg-[#D70F64] text-white flex items-center justify-center shrink-0 shadow-sm">
+            <div className="bg-[#FDF2F6] dark:bg-[#2A121D] p-2 rounded-2xl flex items-center gap-2 border border-[#F9A8C9]/50 dark:border-[#D70F64]/25 min-w-0">
+              <div className="w-9 h-9 rounded-full bg-[#D70F64] text-white flex items-center justify-center shrink-0 shadow-sm">
                 <Clock className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <span className="block text-sm font-extrabold text-[#14141A] dark:text-white truncate tabular-nums">
+                <span className="block text-[13px] font-extrabold text-[#14141A] dark:text-white truncate tabular-nums">
                   {shopProfile.deliveryTime}
                 </span>
                 <span className="block text-[11px] text-[#5A5A6B] dark:text-[#A1A1B2] font-medium truncate">
                   Est. Delivery
                 </span>
               </div>
-              <ChevronRight className="w-4 h-4 text-[#D70F64] shrink-0" />
             </div>
             {/* Delivery Fee */}
-            <div className="bg-[#FDF2F6] dark:bg-[#2A121D] p-3 rounded-2xl flex items-center gap-2.5 border border-[#F9A8C9]/50 dark:border-[#D70F64]/25 min-w-0">
-              <div className="w-10 h-10 rounded-full bg-[#D70F64] text-white flex items-center justify-center shrink-0 shadow-sm">
+            <div className="bg-[#FDF2F6] dark:bg-[#2A121D] p-2 rounded-2xl flex items-center gap-2 border border-[#F9A8C9]/50 dark:border-[#D70F64]/25 min-w-0">
+              <div className="w-9 h-9 rounded-full bg-[#D70F64] text-white flex items-center justify-center shrink-0 shadow-sm">
                 <MapPin className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <span className="block text-sm font-extrabold text-[#14141A] dark:text-white truncate tabular-nums">
+                <span className="block text-[13px] font-extrabold text-[#14141A] dark:text-white truncate tabular-nums">
                   {deliveryFeeString}
                 </span>
                 <span className="block text-[11px] text-[#5A5A6B] dark:text-[#A1A1B2] font-medium truncate">
                   {cleanDistance ? `Fee · ${cleanDistance}` : "Delivery Fee"}
                 </span>
               </div>
-              <ChevronRight className="w-4 h-4 text-[#D70F64] shrink-0" />
             </div>
             {/* Min Order */}
-            <div className="bg-[#FDF2F6] dark:bg-[#2A121D] p-3 rounded-2xl flex items-center gap-2.5 border border-[#F9A8C9]/50 dark:border-[#D70F64]/25 min-w-0">
-              <div className="w-10 h-10 rounded-full bg-[#D70F64] text-white flex items-center justify-center shrink-0 shadow-sm">
+            <div className="bg-[#FDF2F6] dark:bg-[#2A121D] p-2 rounded-2xl flex items-center gap-2 border border-[#F9A8C9]/50 dark:border-[#D70F64]/25 min-w-0">
+              <div className="w-9 h-9 rounded-full bg-[#D70F64] text-white flex items-center justify-center shrink-0 shadow-sm">
                 <ClipboardCheck className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <span className="block text-sm font-extrabold text-[#14141A] dark:text-white truncate tabular-nums">
+                <span className="block text-[13px] font-extrabold text-[#14141A] dark:text-white truncate tabular-nums">
                   {shopProfile.minOrder ? `Rs. ${shopProfile.minOrder}` : "No Minimum"}
                 </span>
                 <span className="block text-[11px] text-[#5A5A6B] dark:text-[#A1A1B2] font-medium truncate">
                   Min. Order
                 </span>
               </div>
-              <ChevronRight className="w-4 h-4 text-[#D70F64] shrink-0" />
             </div>
           </div>
 
