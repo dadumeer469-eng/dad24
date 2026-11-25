@@ -4529,7 +4529,7 @@ export default function App() {
                           See All
                         </button>
                       </div>
-                      <div className="flex items-stretch gap-3 overflow-x-auto pb-1 scrollbar-none touch-pan-x overscroll-x-contain">
+                      <div className="flex items-stretch gap-3 overflow-x-auto pb-1 scrollbar-none touch-pan-both overscroll-x-contain">
                         {pastOrders.map((past) => (
                           <div
                             key={`reorder-${past.id}`}
@@ -4603,7 +4603,7 @@ export default function App() {
                       )}
                     </div>
 
-                    <div className="flex items-stretch gap-2.5 overflow-x-auto pb-1 scrollbar-none touch-pan-x overscroll-x-contain">
+                    <div className="flex items-stretch gap-2.5 overflow-x-auto pb-1 scrollbar-none touch-pan-both overscroll-x-contain">
                       <button
                         type="button"
                         onClick={() => setSelectedRestaurant("All Restaurants")}
@@ -4905,7 +4905,7 @@ export default function App() {
                   <div className="flex-1 space-y-5 min-w-0">
 
                     {/* 1-Tap Quick Filter Chips Bar (44px+ touch targets) */}
-                    <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1 touch-pan-x">
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1 touch-pan-both">
                       {[
                         { id: "all", label: "🍽️ All Kitchens" },
                         { id: "top_rated", label: "🔥 Featured" },
@@ -5100,7 +5100,7 @@ export default function App() {
                                     </div>
                                   </div>
                                 </div>
-                                <div className="p-3 bg-white dark:bg-[#14141A] flex items-center gap-2.5 overflow-x-auto scrollbar-none border-t border-[#E6E6EE] dark:border-[#272733] touch-pan-x overscroll-x-contain">
+                                <div className="p-3 bg-white dark:bg-[#14141A] flex items-center gap-2.5 overflow-x-auto scrollbar-none border-t border-[#E6E6EE] dark:border-[#272733] touch-pan-both overscroll-x-contain">
                                   {vendorDishes.map((d) => (
                                     <div
                                       key={d.id}
