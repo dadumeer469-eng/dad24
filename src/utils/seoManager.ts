@@ -12,7 +12,7 @@ export const DADU_FOOD_BUSINESS = {
   phoneDisplay: "03277004471",
   phoneIntl: "+923277004471",
   email: "support@dadufood.pk",
-  openingHoursDisplay: "09:00 AM – 11:59 PM (Daily)",
+  openingHoursDisplay: "12:00 PM – 11:00 PM (Daily)",
   openingHoursSchema: "Mo-Su 09:00-23:59",
   standardDeliveryFee: 50,
   smallOrderThreshold: 500,
@@ -122,7 +122,7 @@ const INFO_PAGE_META: Record<InfoPageSlug, { title: string; description: string 
   about: {
     title: "About Us — Dadu's Trusted Food Delivery | Dadu Food",
     description:
-      "Learn how Dadu Food connects Dadu City households with trusted local restaurants and daily groceries from 9:00 AM to 11:59 PM.",
+      "Learn how Dadu Food connects Dadu City households with trusted local restaurants and daily groceries from 12:00 PM to 11:00 PM.",
   },
   terms: {
     title: "Terms & Conditions | Dadu Food",
@@ -142,7 +142,7 @@ const INFO_PAGE_META: Record<InfoPageSlug, { title: string; description: string 
   contact: {
     title: "Contact Dadu Food Helpline (03277004471) | Dadu Food",
     description:
-      "Reach Dadu Food support on Station Road, Dadu or call/WhatsApp 03277004471 daily between 9:00 AM and 11:59 PM.",
+      "Reach Dadu Food support on Station Road, Dadu or call/WhatsApp 03277004471 daily between 12:00 PM and 11:00 PM.",
   },
   "partner-with-us": {
     title: "Register Your Restaurant in Dadu | Dadu Food Partners",
