@@ -179,7 +179,7 @@ export default function GroceryModule({
         {/* Foodpanda-Style Separate Category Filter Strip */}
         {activeCategories.length > 0 && (
           <div className="sticky top-[56px] sm:top-0 z-30 bg-[#F7F7FA]/95 dark:bg-[#0B0B0F]/95 backdrop-blur-md py-2 border-y border-[#E6E6EE] dark:border-[#272733]">
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none touch-pan-x overscroll-x-contain">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none touch-pan-both overscroll-x-contain">
               <button
                 type="button"
                 onClick={() => {

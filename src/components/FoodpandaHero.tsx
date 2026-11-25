@@ -99,7 +99,7 @@ export default function FoodpandaHero({
             </button>
           )}
         </div>
-        <div className="flex items-start gap-3 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory touch-pan-x overscroll-x-contain">
+        <div className="flex items-start gap-3 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory touch-pan-both overscroll-x-contain">
           {cleanCategories.map((cat) => {
             const isSelected = activeCategory === cat.name;
             return (

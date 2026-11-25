@@ -129,7 +129,7 @@ export default function BannerCarousel({
       </div>
 
       {/* Foodpanda-Style Horizontal Promo Carousel */}
-      <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none snap-x touch-pan-x overscroll-x-contain">
+      <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none snap-x touch-pan-both overscroll-x-contain">
         {promoCards.map((card, idx) => {
           const inner = (
             <div
