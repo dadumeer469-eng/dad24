@@ -13,8 +13,9 @@ export const DADU_FOOD_BUSINESS = {
   phoneIntl: "+923277004471",
   email: "support@dadufood.pk",
   openingHoursDisplay: "12:00 PM – 11:00 PM (Daily)",
-  openingHoursSchema: "Mo-Su 09:00-23:59",
+  openingHoursSchema: "Mo-Su 12:00-23:00",
   standardDeliveryFee: 50,
+  medicineDeliveryFee: 30,
   smallOrderThreshold: 500,
   freeDeliveryThreshold: 1000,
   minOrder: 200,
@@ -29,7 +30,7 @@ export const DADU_FOOD_BUSINESS = {
     "Kacheri Road",
     "Dadu City Center",
   ],
-  siteUrl: typeof window !== "undefined" ? window.location.origin : "https://dadufood.pk",
+  siteUrl: typeof window !== "undefined" ? window.location.origin : "https://dadufood.store",
 };
 
 export interface FaqItem {
@@ -39,34 +40,64 @@ export interface FaqItem {
 
 export const DADU_FOOD_FAQS: FaqItem[] = [
   {
-    question: "Dadu mein khana order kaise karein?",
-    answer:
-      "Dadu Food website kholein, apna pasandeeda restaurant ya dish select karein, cart mein add karein, aur apna phone number aur Dadu address enter karke 1 minute mein order place karein.",
+    question: "What is Dadu Food?",
+    answer: "Dadu Food is an online food delivery service for Dadu city, Sindh, Pakistan. You can order food from local restaurants, groceries, and medicines through one website, dadufood.store, and get them delivered to your home in 20 to 35 minutes.",
   },
   {
-    question: "Delivery time kitna hai?",
-    answer:
-      "Dadu City ke andar khana aam tor par 20 se 35 minute mein garma-garam deliver hota hai, aur aap live order tracker par rider ki status dekh sakte hain.",
+    question: "Where does Dadu Food deliver?",
+    answer: "Dadu Food delivers across Dadu city, Sindh, including Shahani Paro, Moro Road, Station Road, College Road, and nearby areas. Enter your address or share your live location on dadufood.store, and the app will confirm whether delivery is available to you.",
   },
   {
-    question: "Minimum order kitna hai?",
-    answer:
-      "Dadu Food par minimum order aam tor par Rs. 200 hai (kuch chai aur snack shops par Rs. 150 se shuru hota hai).",
+    question: "What are Dadu Food's opening hours?",
+    answer: "Dadu Food delivers food from 12:00 PM to 11:00 PM every day, seven days a week. Grocery and medicine orders can be placed from the morning. Orders placed outside food hours will be accepted once the restaurants open at 12:00 PM.",
   },
   {
-    question: "Payment kaise karein (COD aur Easypaisa)?",
-    answer:
-      "Aap Cash on Delivery (COD) ya Easypaisa (Ghulam Murtaza · 03277004471 par transfer kar ke receipt upload) ke zariye checkout par payment kar sakte hain.",
+    question: "How much is the delivery fee on Dadu Food?",
+    answer: "The delivery fee on Dadu Food is a flat Rs 50 per order for food and groceries, anywhere in Dadu city. Medicine-only orders have a separate, lower delivery fee of Rs 30. There are no hidden charges — the fee is shown clearly at checkout before you confirm your order.",
   },
   {
-    question: "Dadu Food kis area mein delivery karta hai?",
-    answer:
-      "Hum poore Dadu City mein delivery karte hain, jis mein Station Road, Makhdoom Bilawal Nagar, Civil Hospital Road, Degree College Road, Kacheri Road, New Bus Stand aur Moro Road shamil hain.",
+    question: "How can I pay for my Dadu Food order?",
+    answer: "You can pay in two ways on Dadu Food: Cash on Delivery (COD) — pay the rider in cash when your order arrives — or Easypaisa. Dadu Food does not accept JazzCash or card payments. Choose your payment method at checkout before placing the order.",
   },
   {
-    question: "Delivery fee kitni hai aur free delivery kab milti hai?",
-    answer:
-      "Standard delivery fee Rs. 50 hai. Rs. 500 se kam orders par delivery fee double (Rs. 100) hoti hai, aur Rs. 1,000 ya us se zyada ke orders par delivery bilkul FREE hai.",
+    question: "How do I order food on Dadu Food?",
+    answer: "Open dadufood.store, allow location access, browse restaurants and menus, add dishes to your cart, and check out. Enter your name, phone number, and delivery address, choose Cash on Delivery or Easypaisa, and confirm. Your food will arrive in 20 to 35 minutes.",
+  },
+  {
+    question: "Which restaurants are on Dadu Food?",
+    answer: "Dadu Food lists local Dadu restaurants including Dadu Fast Food & Kitchen, S M Bilal Hotel, and Tasty Bites Dadu, with more restaurants being added before the grand opening. Each restaurant's full menu, prices, and delivery time are shown on dadufood.store.",
+  },
+  {
+    question: "Can I order groceries on Dadu Food?",
+    answer: "Yes. Dadu Food delivers groceries across Dadu city, with 297 grocery items in 13 categories including atta, rice, cooking oil, tea, milk, spices, snacks, personal care, cleaning products, and household items. Grocery orders can be placed from the morning.",
+  },
+  {
+    question: "Can I order medicines on Dadu Food?",
+    answer: "Yes. Dadu Food has a Medicine & Pharmacy category, so you can order medicines and health products for home delivery in Dadu city. Browse the pharmacy section on dadufood.store, add medicines to your cart, and pay by Cash on Delivery or Easypaisa.",
+  },
+  {
+    question: "How long does Dadu Food delivery take?",
+    answer: "Dadu Food delivers most orders in 20 to 35 minutes from the time you confirm your order. Delivery time depends on the restaurant's preparation time and your distance from it. You can track your order live on the website after placing it.",
+  },
+  {
+    question: "Is there a minimum order on Dadu Food?",
+    answer: "Dadu Food has no published minimum order amount, so you can order even a single dish or a single grocery item. The flat Rs 50 delivery fee applies to food and grocery orders, and Rs 30 to medicine-only orders. The total, including the delivery fee, is shown before checkout.",
+  },
+  {
+    question: "How can I track my Dadu Food order?",
+    answer: "After placing your order on dadufood.store, you can track it live on the website. The order status shows when the restaurant accepts it, when the rider picks it up, and when it is on its way to you. You can also contact Dadu Food on WhatsApp at 03277004471.",
+  },
+  {
+    question: "How do I contact Dadu Food?",
+    answer: "You can contact Dadu Food by phone or WhatsApp on 03277004471. You can also order directly through the website, dadufood.store. For help with an order, a missing item, or a payment issue, message or call the same number during delivery hours.",
+  },
+  {
+    question: "Dadu Food se khana kaise order karein?",
+    answer: "Dadu Food se khana order karna bohat asaan hai. dadufood.store kholein, apni location allow karein, restaurant aur khana pasand karein, cart mein add karein aur checkout par apna naam, number aur address likhein. Cash on Delivery ya Easypaisa se payment karein — khana 20 se 35 minute mein ghar pahunchega.",
+  },
+  {
+    question: "Dadu Food kab se shuru ho raha hai?",
+    answer: "Dadu Food ki grand opening Tuesday, 15 December 2026 ko ho rahi hai. Us din se Dadu city mein khana, grocery aur dawaai ki home delivery shuru ho jayegi. Opening se pehle aap dadufood.store par restaurants aur grocery items dekh sakte hain.",
   },
 ];
 
@@ -167,9 +198,9 @@ export function syncPageSeo(params: {
   if (typeof document === "undefined") return;
 
   const origin = window.location.origin;
-  let title = "Best Online Food Delivery in Dadu | Dadu Food";
+  let title = "Food Delivery in Dadu | Dadu Food — 20–35 Min, Rs 50, COD & Easypaisa";
   let description =
-    "Fresh, hot food delivered fast in Dadu City. Order pizza, biryani, mutton karahi, broast, chai, and groceries online. COD & Easypaisa. Call 03277004471.";
+    "Food delivery in Dadu, Sindh — biryani, pizza, zinger burgers, karahi & groceries delivered in 20–35 min for Rs 50. Cash on Delivery & Easypaisa. Call 03277004471.";
   let canonicalPath = "/";
   let ogImage = "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=1200&q=80&auto=format&fit=crop";
 
@@ -182,6 +213,11 @@ export function syncPageSeo(params: {
       url: origin,
       telephone: DADU_FOOD_BUSINESS.phoneIntl,
       email: DADU_FOOD_BUSINESS.email,
+      geo: {
+        "@type": "GeoCoordinates",
+        latitude: "26.7323",
+        longitude: "67.7735",
+      },
       priceRange: DADU_FOOD_BUSINESS.priceRange,
       servesCuisine: ["Pakistani", "Fast Food", "Desi Food", "Pizza", "BBQ", "Biryani", "Tea & Chai"],
       openingHours: DADU_FOOD_BUSINESS.openingHoursSchema,
@@ -303,6 +339,34 @@ export function syncPageSeo(params: {
         "@type": "SpeakableSpecification",
         cssSelector: [".speakable-summary", ".faq-answer"],
       },
+    });
+  }
+
+  // BreadcrumbList: Home > current page (shop / info). Home itself has a
+  // single-item breadcrumb in the static JSON-LD in index.html.
+  if (canonicalPath !== "/") {
+    const crumbName =
+      params.pageType === "shop" && params.shopName
+        ? params.shopName
+        : params.pageType === "info" && params.infoSlug
+          ? INFO_PAGE_META[params.infoSlug].title.replace(/ \| Dadu Food.*$/, "")
+          : "Home";
+    graphNodes.push({
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        {
+          "@type": "ListItem",
+          position: 1,
+          name: "Home",
+          item: `${origin}/`,
+        },
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: crumbName,
+          item: `${origin}${canonicalPath}`,
+        },
+      ],
     });
   }
 
