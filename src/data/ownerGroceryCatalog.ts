@@ -193,7 +193,7 @@ const RAW_100_ITEMS: SeedTuple[] = [
 ];
 
 /**
- * 200 MORE owner grocery items (og_101 - og_300) across 10 categories,
+ * 197 MORE owner grocery items (og_101 - og_302, 5 less-common medicines removed) across 10 categories,
  * added 2026-11-26. Prices: grocery items = dailymartdadu.com (25 Nov 2026);
  * medicine = Dawaai.pk / Al-Hikma Pharmacy / DVAGO (rounded to nearest Rs).
  * No vegetables/fruits. New category: Medicine & Pharmacy (gcat_medicine).
@@ -402,11 +402,8 @@ const RAW_200_ITEMS: SeedTuple[] = [
   ["og_290", "gcat_medicine", "Brufen 400mg", "1 strip (10 tablets)", 27, "brufen-400mg-1-strip-10-tablets.jpg"],
   ["og_291", "gcat_medicine", "Calpol 500mg", "1 strip (10 tablets)", 24, "calpol-500mg-1-strip-10-tablets.jpg"],
   ["og_292", "gcat_medicine", "Flagyl 400mg", "1 strip (10 tablets)", 48, "flagyl-400mg-1-strip-10-tablets.jpg"],
-  ["og_293", "gcat_medicine", "Arinac 200mg/30mg", "1 strip (10 tablets)", 49, "arinac-200mg-30mg-1-strip-10-tablets.jpg"],
-  ["og_294", "gcat_medicine", "Rigix 10mg", "1 strip (10 tablets)", 130, "rigix-10mg-1-strip-10-tablets.jpg"],
   ["og_295", "gcat_medicine", "Risek 20mg", "1 strip (7 capsules)", 193, "risek-20mg-1-strip-7-capsules.jpg"],
   ["og_296", "gcat_medicine", "Strepsils Lozenges Original", "1 pack", 133, "strepsils-lozenges-original-1-pack.jpg"],
-  ["og_297", "gcat_medicine", "Strepsils Lozenges Honey & Lemon", "1 pack", 190, "strepsils-lozenges-honey-and-lemon-1-pack.jpg"],
   ["og_298", "gcat_medicine", "Peditral ORS Orange", "1 sachet", 35, "peditral-ors-orange-1-sachet.jpg"],
   ["og_299", "gcat_medicine", "Dettol Antiseptic Liquid", "100ml", 428, "dettol-antiseptic-liquid-100ml.jpg"],
   ["og_300", "gcat_medicine", "Polyfax Skin Ointment", "20g tube", 152, "polyfax-skin-ointment-20g-tube.jpg"],
