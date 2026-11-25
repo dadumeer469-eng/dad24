@@ -762,7 +762,7 @@ export default function AdminPanel({
 
   // Restaurant Status Management
   const [restStatusUnavailable, setRestStatusUnavailable] = useState(false);
-  const [restOpeningTime, setRestOpeningTime] = useState("09:00");
+  const [restOpeningTime, setRestOpeningTime] = useState("12:00");
   const [restClosingTime, setRestClosingTime] = useState("23:00");
   const [restImageUrl, setRestImageUrl] = useState("");
   const [restBgImageUrl, setRestBgImageUrl] = useState("");
@@ -864,7 +864,7 @@ export default function AdminPanel({
         deliverySettings.restaurantStatuses?.[selectedScheduleRestaurant];
       if (specificStatus) {
         setRestStatusUnavailable(specificStatus.isTemporarilyUnavailable ?? false);
-        setRestOpeningTime(specificStatus.openingTime || "09:00");
+        setRestOpeningTime(specificStatus.openingTime || "12:00");
         setRestClosingTime(specificStatus.closingTime || "23:00");
         if (specificStatus.imageUrl) {
           setRestImageUrl(specificStatus.imageUrl);
@@ -882,7 +882,7 @@ export default function AdminPanel({
         setRestCommissionValue(specificStatus.commissionValue?.toString() || "");
       } else {
         setRestStatusUnavailable(false);
-        setRestOpeningTime("09:00");
+        setRestOpeningTime("12:00");
         setRestClosingTime("23:00");
         setRestPhone("");
         setRestMinOrder("");
@@ -2244,7 +2244,7 @@ export default function AdminPanel({
         deliveryFee: Number(deliveryChargeInput),
         restaurantStatus: deliverySettings?.restaurantStatus || {
           isTemporarilyUnavailable: false,
-          openingTime: "09:00",
+          openingTime: "12:00",
           closingTime: "23:00",
         },
         restaurantStatuses: {
@@ -2252,7 +2252,7 @@ export default function AdminPanel({
           [trimmedName]: {
             ...existingForRestaurant,
             isTemporarilyUnavailable: false,
-            openingTime: existingForRestaurant.openingTime || "09:00",
+            openingTime: existingForRestaurant.openingTime || "12:00",
             closingTime: existingForRestaurant.closingTime || "23:00",
           },
         },
@@ -2307,7 +2307,7 @@ export default function AdminPanel({
         // Keep legacy for safety
         restaurantStatus: deliverySettings?.restaurantStatus || {
           isTemporarilyUnavailable: false,
-          openingTime: "09:00",
+          openingTime: "12:00",
           closingTime: "23:00",
         },
         restaurantStatuses: {
@@ -3099,7 +3099,7 @@ export default function AdminPanel({
           const existingStatuses = deliverySettings?.restaurantStatuses || {};
           const oldStatus = existingStatuses[oldName] || {
             isTemporarilyUnavailable: false,
-            openingTime: "09:00",
+            openingTime: "12:00",
             closingTime: "23:00",
           };
 
@@ -7010,7 +7010,7 @@ export default function AdminPanel({
                             },
                             restaurantStatus: deliverySettings?.restaurantStatus || {
                               isTemporarilyUnavailable: false,
-                              openingTime: "09:00",
+                              openingTime: "12:00",
                               closingTime: "23:00",
                             },
                             restaurantStatuses: existingStatuses,
