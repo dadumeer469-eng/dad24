@@ -267,7 +267,7 @@ export default function App() {
       deliveryFee: 50,
       restaurantStatus: {
         isTemporarilyUnavailable: false,
-        openingTime: "09:00",
+        openingTime: "12:00",
         closingTime: "23:00",
       },
     })
@@ -1131,7 +1131,7 @@ export default function App() {
             deliveryFee: 50,
             restaurantStatus: {
               isTemporarilyUnavailable: false,
-              openingTime: "09:00",
+              openingTime: "12:00",
               closingTime: "23:00",
             },
           };
