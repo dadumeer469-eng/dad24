@@ -5288,7 +5288,7 @@ export default function App() {
                                           imgClassName="object-cover"
                                         />
                                       </div>
-                                      <span className="text-[11px] font-bold text-[#111118] dark:text-[#F5F5F8] line-clamp-1">
+                                      <span className="text-[11px] font-bold text-[#111118] dark:text-[#F5F5F8] line-clamp-2 leading-[1.25] min-h-[27px]">
                                         {d.name}
                                       </span>
                                       <span className="text-[11px] text-[#D70F64] dark:text-[#FF4D94] font-extrabold leading-none tabular-nums">
