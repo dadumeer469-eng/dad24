@@ -150,7 +150,7 @@ export const DashboardMenuItemCard = React.memo(function DashboardMenuItemCard({
                 type="button"
                 onClick={() => onUpdateCartQuantity(dish.id, quantityInCart - 1)}
                 aria-label="Decrease quantity"
-                className="w-9 h-9 rounded-lg bg-white dark:bg-[#14141A] text-[#14141A] dark:text-white transition font-bold flex items-center justify-center cursor-pointer active:scale-95"
+                className="w-11 h-11 rounded-lg bg-white dark:bg-[#14141A] text-[#14141A] dark:text-white transition font-bold flex items-center justify-center cursor-pointer active:scale-95"
               >
                 <Minus className="w-4 h-4" />
               </button>
@@ -161,7 +161,7 @@ export const DashboardMenuItemCard = React.memo(function DashboardMenuItemCard({
                 type="button"
                 onClick={() => onUpdateCartQuantity(dish.id, quantityInCart + 1)}
                 aria-label="Increase quantity"
-                className="w-9 h-9 rounded-lg bg-[#E21B70] hover:bg-[#C2145E] text-white transition font-bold flex items-center justify-center cursor-pointer active:scale-95"
+                className="w-11 h-11 rounded-lg btn-pink text-white transition font-bold flex items-center justify-center cursor-pointer active:scale-95"
               >
                 <Plus className="w-4 h-4" />
               </button>
@@ -182,7 +182,7 @@ export const DashboardMenuItemCard = React.memo(function DashboardMenuItemCard({
                 }
               }}
               disabled={!dish.isAvailable || isRestaurantClosed}
-              className={`w-full min-h-[44px] py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition flex items-center justify-center gap-1.5 bg-[#E21B70] hover:bg-[#C2145E] text-white active:scale-[0.98] ${
+              className={`w-full min-h-[44px] py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition flex items-center justify-center gap-1.5 btn-pink text-white active:scale-[0.98] ${
                 !dish.isAvailable || isRestaurantClosed
                   ? "cursor-not-allowed opacity-50"
                   : "cursor-pointer"

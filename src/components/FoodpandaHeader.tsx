@@ -65,6 +65,7 @@ export default function FoodpandaHeader({
   groceryCartCount = 0,
   isLocked = false,
   activeModule = "food",
+  setActiveModule,
   onResetFoodHome,
   onResetGroceryHome,
   allOrders = [],
@@ -146,7 +147,7 @@ export default function FoodpandaHeader({
   return (
     <>
       {/* Foodpanda Signature Pink Header */}
-      <header className="relative z-40 bg-[#D70F64] text-white shadow-sm">
+      <header className="relative z-40 bg-gradient-to-b from-[#FF2B85] via-[#E21B70] to-[#D70F64] text-white shadow-[0_4px_20px_rgba(215,15,100,0.35)]">
         <div className="max-w-7xl mx-auto px-3.5 sm:px-4 h-[60px] flex items-center justify-between gap-2 sm:gap-3.5">
           {/* Logo + Mobile Location Trigger */}
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 sm:flex-initial">
@@ -208,7 +209,7 @@ export default function FoodpandaHeader({
               placeholder={
                 activeModule === "grocery"
                   ? "Search 100 Dadu Mart groceries..."
-                  : "Search biryani, pizza, burgers or shops..."
+                  : "Search shops, dishes & groceries..."
               }
               className="w-full min-h-[42px] pl-10 pr-10 py-2 bg-white text-[#14141A] placeholder-[#6E6E80] rounded-full text-sm outline-none shadow-xs focus:ring-2 focus:ring-white/60 transition-all font-medium"
             />
@@ -663,7 +664,7 @@ export default function FoodpandaHeader({
       </header>
 
       {/* Mobile Foodpanda Pink Sticky Pill Search Bar */}
-      <div className="sticky top-0 z-30 bg-[#D70F64] block sm:hidden px-3.5 pb-3 pt-0.5 shadow-sm">
+      <div className="sticky top-0 z-30 bg-gradient-to-b from-[#FF2B85] via-[#E21B70] to-[#D70F64] block sm:hidden px-3.5 pb-3 pt-0.5 shadow-sm">
         <div className="relative flex items-center">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#D70F64] pointer-events-none" />
           <input
@@ -705,7 +706,7 @@ export default function FoodpandaHeader({
       </div>
 
       {/* Desktop Food / Groceries segmented switch */}
-      <div className="hidden sm:block bg-[#D70F64] px-4 pb-3">
+      <div className="hidden sm:block bg-gradient-to-b from-[#FF2B85] via-[#E21B70] to-[#D70F64] px-4 pb-3">
         <div className="max-w-7xl mx-auto">
           <div className="mx-auto max-w-lg">{moduleSwitch}</div>
         </div>

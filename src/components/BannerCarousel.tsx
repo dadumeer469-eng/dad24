@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ArrowRight, Clock, MessageCircle, Truck, ShoppingBasket, ShoppingCart, Sparkles } from "lucide-react";
 import heroFeastImg from "../assets/images/dadu_food_hero_feast_1795614443664.jpg";
 
@@ -11,6 +11,7 @@ interface BannerCarouselProps {
   cartCount?: number;
   onOpenCart?: () => void;
   freeDeliveryAbove?: number;
+  whatsappNumber?: string;
 }
 
 export default function BannerCarousel({
@@ -20,8 +21,28 @@ export default function BannerCarousel({
   cartCount = 0,
   onOpenCart,
   freeDeliveryAbove = 1000,
+  whatsappNumber = "923277004471",
 }: BannerCarouselProps) {
   const [activeSlide, setActiveSlide] = useState(0);
+  const carouselRef = useRef<HTMLDivElement | null>(null);
+  const pausedRef = useRef(false);
+  const lastInteractRef = useRef(0);
+  const whatsappDisplay = `0${whatsappNumber.replace(/^92/, "")}`;
+
+  // Auto-advance the promo carousel every 4s (pauses on hover / shortly after touch)
+  useEffect(() => {
+    const t = setInterval(() => {
+      if (pausedRef.current) return;
+      if (Date.now() - lastInteractRef.current < 6000) return;
+      setActiveSlide((s) => {
+        const next = (s + 1) % promoCards.length;
+        const el = carouselRef.current?.children[next] as HTMLElement | undefined;
+        el?.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" });
+        return next;
+      });
+    }, 4000);
+    return () => clearInterval(t);
+  }, []);
 
   // Purge any legacy cached Firestore banners
   useEffect(() => {
@@ -43,7 +64,7 @@ export default function BannerCarousel({
     {
       id: "free-delivery",
       badge: "FREE DELIVERY",
-      title: "Orders Rs. 1,000+",
+      title: `Orders Rs. ${freeDeliveryAbove.toLocaleString()}+`,
       subtitle: `Standard fee Rs. ${deliveryFee} · COD & Easypaisa`,
       bg: "from-[#D70F64] to-[#9E0B49]",
       actionLabel: "Order Now",
@@ -64,10 +85,10 @@ export default function BannerCarousel({
       id: "whatsapp-list",
       badge: "WHATSAPP ORDER",
       title: "Send Your List",
-      subtitle: "Message 03277004471 for quick food or mart delivery",
+      subtitle: `Message ${whatsappDisplay} for quick food or mart delivery`,
       bg: "from-emerald-700 to-emerald-900",
       actionLabel: "Chat Now",
-      href: "https://wa.me/923277004471?text=Assalam-o-Alaikum%20Dadu%20Food!%20I%20would%20like%20to%20order%3A%20",
+      href: `https://wa.me/${whatsappNumber}?text=Assalam-o-Alaikum%20Dadu%20Food!%20I%20would%20like%20to%20order%3A%20`,
     },
   ];
 
@@ -123,7 +144,7 @@ export default function BannerCarousel({
                 <button
                   type="button"
                   onClick={() => onOpenCart?.()}
-                  className="min-h-[48px] px-5 py-2.5 rounded-full bg-[#D70F64] hover:bg-[#B80C54] text-white text-sm font-black flex items-center justify-center gap-2.5 shadow-md transition-transform active:scale-[0.98] cursor-pointer"
+                  className="min-h-[48px] px-5 py-2.5 rounded-full btn-pink text-white text-sm font-black flex items-center justify-center gap-2.5 shadow-md transition-transform active:scale-[0.98] cursor-pointer"
                 >
                   <ShoppingCart className="w-5 h-5" />
                   <span className="text-left leading-tight">
@@ -134,7 +155,7 @@ export default function BannerCarousel({
                 <button
                   type="button"
                   onClick={() => onOpenCart?.()}
-                  className="min-h-[48px] px-6 py-2.5 rounded-full bg-[#D70F64] hover:bg-[#B80C54] text-white text-sm font-black flex items-center justify-center gap-2 shadow-md transition-transform active:scale-[0.98] cursor-pointer"
+                  className="min-h-[48px] px-6 py-2.5 rounded-full btn-pink text-white text-sm font-black flex items-center justify-center gap-2 shadow-md transition-transform active:scale-[0.98] cursor-pointer"
                 >
                   <span>VIEW CART</span>
                   <ArrowRight className="w-4 h-4" />
@@ -145,14 +166,14 @@ export default function BannerCarousel({
                 <button
                   type="button"
                   onClick={handleBrowseMenu}
-                  className="min-h-[44px] px-5 py-2.5 rounded-xl bg-[#D70F64] hover:bg-[#B80C54] text-white text-sm font-bold flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-[0.98] cursor-pointer"
+                  className="min-h-[44px] px-5 py-2.5 rounded-xl btn-pink text-white text-sm font-bold flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-[0.98] cursor-pointer"
                 >
                   <span>Order Food Now</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
 
                 <a
-                  href="https://wa.me/923277004471?text=Assalam-o-Alaikum%20Dadu%20Food!%20I%20would%20like%20to%20order%3A%20"
+                  href={`https://wa.me/${whatsappNumber}?text=Assalam-o-Alaikum%20Dadu%20Food!%20I%20would%20like%20to%20order%3A%20`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="min-h-[44px] px-4 py-2.5 rounded-xl bg-white/12 hover:bg-white/20 text-white border border-white/25 backdrop-blur-sm text-sm font-bold flex items-center justify-center gap-2 transition-colors"
@@ -167,7 +188,14 @@ export default function BannerCarousel({
       </div>
 
       {/* Foodpanda-Style Horizontal Promo Carousel */}
-      <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none snap-x touch-pan-both overscroll-x-contain">
+      <div
+        ref={carouselRef}
+        onMouseEnter={() => { pausedRef.current = true; }}
+        onMouseLeave={() => { pausedRef.current = false; }}
+        onTouchStart={() => { lastInteractRef.current = Date.now(); }}
+        onPointerDown={() => { lastInteractRef.current = Date.now(); }}
+        className="flex gap-3 overflow-x-auto pb-1 scrollbar-none snap-x touch-pan-both overscroll-x-contain"
+      >
         {promoCards.map((card, idx) => {
           const inner = (
             <div

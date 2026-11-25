@@ -178,7 +178,7 @@ function BannerLiveChatButton({
     <button
       type="button"
       onClick={onClick}
-      className="bg-[#D70F64] hover:bg-[#B80C54] text-white px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider text-center transition cursor-pointer shadow-2xs active:scale-95 flex items-center gap-1.5 relative"
+      className="btn-pink text-white min-h-[36px] px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider text-center transition cursor-pointer active:scale-95 flex items-center gap-1.5 relative"
     >
       <span>💬 Live Chat</span>
       {unreadCount > 0 && (
@@ -4526,6 +4526,7 @@ export default function App() {
                   cartCount={cartCountTotal}
                   onOpenCart={() => setIsCartOpen(true)}
                   freeDeliveryAbove={deliverySettings?.freeDeliveryAboveAmount ?? 1000}
+                  whatsappNumber={deliverySettings?.whatsappNumber || "923277004471"}
                 />
 
                 {/* Floating Promo Banner with Live Countdown */}
@@ -4594,7 +4595,7 @@ export default function App() {
                         {pastOrders.map((past) => (
                           <div
                             key={`reorder-${past.id}`}
-                            className="shrink-0 w-[230px] bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl p-3 flex flex-col justify-between gap-2 shadow-2xs"
+                            className="shrink-0 w-[230px] bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl p-3 flex flex-col justify-between gap-2 shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all"
                           >
                             <div>
                               <div className="flex items-center justify-between gap-1">
@@ -4702,7 +4703,7 @@ export default function App() {
                                 onClick={() => handleRestaurantClick(vendor)}
                                 className={`w-[106px] min-h-[108px] rounded-2xl flex flex-col items-center justify-between p-1.5 transition-colors shrink-0 cursor-pointer border overflow-hidden ${
                                   selectedRestaurant === vendor
-                                    ? "bg-[#D70F64] text-white border-[#D70F64] shadow-xs"
+                                    ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
                                     : "bg-[#F9F9FB] dark:bg-[#1D1D26] text-[#111118] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50"
                                 }`}
                                 title={`${vendor} · ${openStatus.label}`}
@@ -4984,7 +4985,7 @@ export default function App() {
                             onClick={() => setQuickFilter(chip.id as typeof quickFilter)}
                             className={`shrink-0 min-h-[44px] px-4 rounded-xl text-xs font-extrabold tracking-tight transition-colors cursor-pointer border ${
                               active
-                                ? "bg-[#D70F64] text-white border-[#D70F64] shadow-xs"
+                                ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
                                 : "bg-white dark:bg-[#14141A] text-[#111118] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/60 hover:text-[#D70F64] dark:hover:text-[#FF4D94]"
                             }`}
                           >
@@ -5148,7 +5149,7 @@ export default function App() {
                                         </span>
                                       ) : (
                                         <span className="inline-flex items-center bg-black/55 px-1.5 py-0.5 rounded-md">
-                                          {vendorAllDishes.length} menu items
+                                          {vendorAllDishes.length} dishes available
                                         </span>
                                       )}
                                       <span className="inline-flex items-center">
@@ -5372,31 +5373,7 @@ export default function App() {
 
       {commonModals}
 
-      {/* Floating Bottom Cart for mobile screens (compact <=56px, positioned cleanly above BottomNavBar) */}
-      {cartCountTotal > 0 && selectedRestaurant === "All Restaurants" && (
-        <div className="fixed bottom-[68px] left-3.5 right-3.5 z-40 md:hidden bg-[#14141A]/95 border border-[#272733] px-3.5 py-2 rounded-2xl shadow-xl flex items-center justify-between gap-3 backdrop-blur-md">
-          <div className="flex items-center gap-2.5">
-            <div className="bg-[#D70F64] text-white px-2.5 rounded-lg font-extrabold text-xs h-8 flex items-center justify-center min-w-[30px] tabular-nums">
-              {cartCountTotal}
-            </div>
-            <div className="text-left">
-              <span className="text-[10px] text-[#A3A3B5] font-bold uppercase tracking-wider block leading-none">
-                Cart Total
-              </span>
-              <span className="text-white font-extrabold text-sm font-mono mt-1 block leading-none tabular-nums">
-                Rs. {cartPriceTotal}
-              </span>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => setIsCartOpen(true)}
-            className="min-h-[44px] bg-[#D70F64] hover:bg-[#B80C54] text-white font-extrabold text-xs uppercase tracking-wider px-4 rounded-xl transition-colors active:scale-95 flex items-center gap-1.5 shrink-0 cursor-pointer"
-          >
-            View Cart
-          </button>
-        </div>
-      )}
+      {/* Floating View Cart bar lives in BottomNavBar (single source — do not add a second one here) */}
 
       {/* Footer with Company, Legal, Partner & Contact Links + Consistent Business Facts */}
       <footer className="max-w-7xl mx-auto w-full px-3.5 sm:px-4 mt-10 pt-8 pb-24 md:pb-10 border-t border-[#E6E6EE] dark:border-[#272733] text-xs text-[#5A5A6B] dark:text-[#A3A3B5]">

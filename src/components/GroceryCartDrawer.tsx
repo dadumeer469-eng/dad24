@@ -200,10 +200,11 @@ export default function GroceryCartDrawer({
 
   // Delivery configuration calculations (free threshold defaults to Rs. 1,000, never Rs. 0 free-for-all bug)
   const deliveryRequired = totalGroceryPrice > 0;
-  const freeThreshold = (deliveryConfig?.freeDeliveryAboveAmount || 0) >= 500 ? deliveryConfig.freeDeliveryAboveAmount : 1000;
+  const doubleFeeBelow = Number(systemSettings?.doubleFeeBelowAmount ?? 500);
+  const freeThreshold = Number(deliveryConfig?.freeDeliveryAboveAmount || 1000);
   const isFreeDelivery = totalGroceryPrice >= freeThreshold;
   const baseDeliveryFee = (deliveryConfig?.baseDeliveryFee || 0) > 0 ? deliveryConfig.baseDeliveryFee : 50;
-  const isDoubleFee = totalGroceryPrice < 500;
+  const isDoubleFee = doubleFeeBelow > 0 && totalGroceryPrice < doubleFeeBelow;
   const deliveryFeeRate = isDoubleFee ? baseDeliveryFee * 2 : baseDeliveryFee;
   const finalDeliveryFee = !deliveryRequired
     ? 0
@@ -451,7 +452,7 @@ export default function GroceryCartDrawer({
     <div className="fixed inset-0 z-50 overflow-hidden font-sans">
       <div className="absolute inset-0 bg-black/80 transition-opacity" onClick={onClose} />
 
-      <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
+      <div className="absolute inset-y-0 right-0 max-w-full flex sm:pl-10">
         <div className="w-screen max-w-md bg-zinc-950 text-zinc-100 border-l border-zinc-900 shadow-2xl flex flex-col h-full animate-slide-in">
           
           {/* Header */}
@@ -526,14 +527,14 @@ export default function GroceryCartDrawer({
                     <div className="flex items-center gap-2 border border-zinc-800 p-1 rounded-xl bg-zinc-950">
                       <button
                         onClick={() => onUpdateQuantity(item.productId, item.quantity - 1)}
-                        className="w-5 h-5 rounded-md bg-zinc-900 hover:bg-zinc-850 text-zinc-400 font-bold flex items-center justify-center text-xs active:scale-90"
+                        className="w-9 h-9 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 font-bold flex items-center justify-center text-sm active:scale-90"
                       >
                         -
                       </button>
                       <span className="text-[11px] font-mono font-black text-white px-0.5">{item.quantity}</span>
                       <button
                         onClick={() => onUpdateQuantity(item.productId, item.quantity + 1)}
-                        className="w-5 h-5 rounded-md bg-orange-600/80 hover:bg-orange-600 text-white font-bold flex items-center justify-center text-xs active:scale-90"
+                        className="w-9 h-9 rounded-lg btn-pink text-white font-bold flex items-center justify-center text-sm active:scale-90"
                       >
                         +
                       </button>
@@ -1091,7 +1092,7 @@ export default function GroceryCartDrawer({
                       }}
                       className={`min-h-[44px] py-2 rounded-xl text-xs font-extrabold border transition cursor-pointer ${
                         paymentMethod === m
-                          ? "bg-[#D70F64] border-[#D70F64] text-white shadow-sm"
+                          ? "btn-pink border-[#D70F64] text-white shadow-sm"
                           : "bg-zinc-900 border-zinc-800 text-zinc-300"
                       }`}
                     >
@@ -1120,7 +1121,7 @@ export default function GroceryCartDrawer({
               <button
                 onClick={handleCheckoutSubmit}
                 disabled={submitting}
-                className="w-full min-h-[48px] py-3.5 bg-[#D70F64] hover:bg-[#B80C54] disabled:opacity-60 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl transition active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer"
+                className="w-full min-h-[48px] py-3.5 btn-pink disabled:opacity-60 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl transition active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 {submitting ? (
                   <>Placing Grocery Order...</>

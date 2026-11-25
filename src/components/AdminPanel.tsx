@@ -1186,7 +1186,7 @@ export default function AdminPanel({
 
   // Grocery settings inputs
   const [gBaseDeliveryFee, setGBaseDeliveryFee] = useState(
-    groceryDeliveryConfig?.baseDeliveryFee || 40,
+    groceryDeliveryConfig?.baseDeliveryFee || 50,
   );
   const [gFreeDeliveryAbove, setGFreeDeliveryAbove] = useState(
     groceryDeliveryConfig?.freeDeliveryAboveAmount || 1000,
@@ -1504,6 +1504,11 @@ export default function AdminPanel({
   const handleUnlockSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!unlockingUser) return;
+    // Owner/admin accounts must NEVER be unlocked/approved from here.
+    if (unlockingUser.phone === "03277004471" || unlockingUser.role === "admin") {
+      alert("Owner/admin accounts cannot be unlocked here.");
+      return;
+    }
     if (!unlockArea.trim() || !unlockStreet.trim()) {
       alert("Area/Mohalla and Street/Gali fields are required!");
       return;
@@ -1884,7 +1889,7 @@ export default function AdminPanel({
       await setDoc(doc(tempDb, "users", createdUid), newRiderProfile);
 
       alert(
-        `Success! Rider "${name}" has been successfully registered with username/phone: "${cleanPhone}" and password: "${password}"!`,
+        `Success! Rider "${name}" has been successfully registered with username/phone: "${cleanPhone}".`,
       );
 
       // Clear states
@@ -1930,17 +1935,15 @@ export default function AdminPanel({
       alert("Password must be at least 6 characters long!");
       return;
     }
-    try {
-      await updateDoc(doc(db, "users", riderUid), {
-        password: newPass
-      });
-      setEditingRiderPasswordId(null);
-      setNewPasswordInputValue("");
-      alert("Rider password updated successfully!");
-    } catch (err) {
-      console.error("Failed to update rider password:", err);
-      alert("Error: Database permission denied or insufficient administrative credentials.");
-    }
+    // NOTE: a rider's login password lives in Firebase Auth and cannot be changed
+    // from the admin panel (that needs the Firebase Console / Admin SDK). Writing it
+    // to Firestore would NOT change the login and would store it in plaintext, so we
+    // deliberately do not save it here.
+    setEditingRiderPasswordId(null);
+    setNewPasswordInputValue("");
+    alert(
+      "Rider login password is managed by Firebase Auth and cannot be changed from here. Please change it in Firebase Console → Authentication → Users, or ask the rider to reset it. Nothing was saved.",
+    );
   };
 
   const handleSettleRider = async (riderUid: string, name: string) => {
@@ -2413,6 +2416,14 @@ export default function AdminPanel({
 
   // Clear all sales/orders history
   const handleClearAllOrderHistory = async () => {
+    // Typed confirmation: one accidental confirm must not wipe every order.
+    const typed = window.prompt(
+      "This will PERMANENTLY delete ALL order history. To confirm, type DELETE exactly:",
+    );
+    if (typed !== "DELETE") {
+      if (typed !== null) alert("Cancelled — type DELETE exactly to confirm.");
+      return;
+    }
     setConfirmDialog({
       title: "Clear All Sales & Order History",
       message:
@@ -2529,6 +2540,11 @@ export default function AdminPanel({
         "Are you sure you want to delete this grocery category? All products in it will be orphaned!",
       onConfirm: async () => {
         try {
+          // Delete the category's products too — otherwise they linger orphaned in "All"/search.
+          const prods = await getDocs(
+            query(collection(db, "groceryProducts"), where("categoryId", "==", catId)),
+          );
+          await Promise.all(prods.docs.map((d) => deleteDoc(d.ref)));
           await deleteDoc(doc(db, "groceryCategories", catId));
         } catch (err) {
           console.error(err);
@@ -9264,12 +9280,14 @@ export default function AdminPanel({
                                 📞 Call Karein
                               </a>
 
+                              {u.phone !== "03277004471" && u.role !== "admin" && (
                               <button
                                 onClick={() => setUnlockingUser(u)}
                                 className="bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-3 rounded-2xl font-bold text-[11px] uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-1"
                               >
                                 ✅ Unlock
                               </button>
+                              )}
 
                               <button
                                 onClick={async () => {
@@ -9459,7 +9477,7 @@ export default function AdminPanel({
                                 Edit Addr
                               </button>
                               
-                              {u.status === "locked" && (
+                              {u.status === "locked" && u.phone !== "03277004471" && u.role !== "admin" && (
                                 <button
                                   type="button"
                                   onClick={() => setUnlockingUser(u)}

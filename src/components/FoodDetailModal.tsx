@@ -22,6 +22,7 @@ export default function FoodDetailModal({
   const [selectedFlavorObj, setSelectedFlavorObj] = useState<{name: string, price: number, imageUrl?: string} | null>(null);
   const [selectedAddOns, setSelectedAddOns] = useState<{name: string, price: number}[]>([]);
   const [specialInstructions, setSpecialInstructions] = useState("");
+  const [notAvailable, setNotAvailable] = useState<"refund" | "replace" | "call">("refund");
   const [sizeError, setSizeError] = useState(false);
   const [flavorError, setFlavorError] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -85,7 +86,10 @@ export default function FoodDetailModal({
           size: selectedSizeObj ? selectedSizeObj.name : undefined, 
           flavor: selectedFlavorObj ? selectedFlavorObj.name : undefined,
           addOns: selectedAddOns.length > 0 ? selectedAddOns : undefined,
-          specialInstructions: specialInstructions.trim() ? specialInstructions.trim() : undefined
+          specialInstructions: [
+            specialInstructions.trim() || "",
+            `If item not available: ${notAvailable === "refund" ? "Refund" : notAvailable === "replace" ? "Replace with similar" : "Call me"}`,
+          ].filter(Boolean).join(" | ") || undefined
         }
       );
       
@@ -236,7 +240,7 @@ export default function FoodDetailModal({
                   <button onClick={() => setShowConfirmation(false)} className="flex-1 py-4 sm:py-4.5 rounded-2xl text-sm font-black uppercase tracking-wider border-2 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-white hover:border-zinc-300 active:scale-[0.98] transition-all">
                      Change Selection
                   </button>
-                  <button onClick={handleAdd} className="flex-[2] py-4 sm:py-4.5 rounded-2xl text-sm font-black uppercase tracking-wider bg-[#D70F64] text-white hover:bg-[#B80C54] shadow-[0_8px_25px_-8px_rgba(215,15,100,0.5)] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                  <button onClick={handleAdd} className="flex-[2] py-4 sm:py-4.5 rounded-2xl text-sm font-black uppercase tracking-wider btn-pink text-white shadow-[0_8px_25px_-8px_rgba(215,15,100,0.5)] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
                      Confirm & Add to Cart <span className="text-lg leading-none">🛒</span>
                   </button>
                 </div>
@@ -318,20 +322,25 @@ export default function FoodDetailModal({
                   <div className="mt-6 border-t border-zinc-100 dark:border-zinc-800 pt-5">
                     <div className="flex justify-between items-start mb-1">
                       <h4 className="text-lg font-black text-zinc-900 dark:text-zinc-100">Choose Your {dish.name} Flavor</h4>
-                      <span className="bg-black dark:bg-zinc-100 text-white dark:text-zinc-900 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest mt-1">Required</span>
+                      {selectedFlavorObj ? (
+                        <span className="bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest mt-1">Completed</span>
+                      ) : (
+                        <span className="bg-[#D70F64] text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest mt-1">Required</span>
+                      )}
                     </div>
                     <p className="text-zinc-500 dark:text-zinc-400 text-sm mb-4">Select one</p>
                     <div className={`flex flex-col ${flavorError ? "p-1 border border-red-500 rounded-2xl bg-red-50/50 dark:bg-red-950/30" : ""}`}>
                       {dish.flavors.map((flavorObj, idx) => {
                         const isSelected = selectedFlavorObj === flavorObj;
                         return (
-                          <div 
+                          <button
+                            type="button"
                             key={`${flavorObj.name}-${idx}`}
                             onClick={() => {
                               setSelectedFlavorObj(flavorObj);
                               setFlavorError(false);
                             }}
-                            className={`flex items-center justify-between py-4 cursor-pointer transition-colors ${idx !== dish.flavors!.length - 1 ? 'border-b border-zinc-100 dark:border-zinc-800' : ''} ${isSelected ? 'bg-zinc-50 dark:bg-zinc-800/60' : ''}`}
+                            className={`w-full text-left flex items-center justify-between py-4 cursor-pointer transition-colors ${idx !== dish.flavors!.length - 1 ? 'border-b border-zinc-100 dark:border-zinc-800' : ''} ${isSelected ? 'bg-zinc-50 dark:bg-zinc-800/60' : ''}`}
                           >
                             <div className="flex flex-col px-2">
                               <span className="text-base font-black text-zinc-900 dark:text-zinc-100">{flavorObj.name}</span>
@@ -356,7 +365,7 @@ export default function FoodDetailModal({
                                 {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-[#D70F64]" />}
                               </div>
                             </div>
-                          </div>
+                          </button>
                         );
                       })}
                     </div>
@@ -409,7 +418,7 @@ export default function FoodDetailModal({
                                       }
                                     }
                                   }}
-                                  className="w-8 h-8 flex items-center justify-center text-zinc-600 dark:text-zinc-300 hover:text-black dark:hover:text-white rounded-l-full active:bg-zinc-200 dark:active:bg-zinc-700"
+                                  className="w-11 h-11 flex items-center justify-center text-zinc-600 dark:text-zinc-300 hover:text-black dark:hover:text-white rounded-l-full active:bg-zinc-200 dark:active:bg-zinc-700"
                                 >
                                   <Minus className="w-3.5 h-3.5" />
                                 </button>
@@ -421,7 +430,7 @@ export default function FoodDetailModal({
                                     e.stopPropagation();
                                     setSelectedAddOns([...selectedAddOns, addOn]);
                                   }}
-                                  className="w-8 h-8 flex items-center justify-center text-[#D70F64] rounded-r-full active:bg-zinc-200 dark:active:bg-zinc-700"
+                                  className="w-11 h-11 flex items-center justify-center text-[#D70F64] rounded-r-full active:bg-zinc-200 dark:active:bg-zinc-700"
                                 >
                                   <Plus className="w-3.5 h-3.5" />
                                 </button>
@@ -443,6 +452,20 @@ export default function FoodDetailModal({
                     placeholder="e.g. No mayo, extra spicy..."
                     className="w-full p-3 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-xl text-sm outline-none focus:border-[#D70F64] resize-none h-20 placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
                   />
+                </div>
+
+                {/* If item not available */}
+                <div className="mt-4">
+                  <h4 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 mb-3">If item not available</h4>
+                  <select
+                    value={notAvailable}
+                    onChange={(e) => setNotAvailable(e.target.value as "refund" | "replace" | "call")}
+                    className="w-full min-h-[44px] p-3 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-xl text-sm outline-none focus:border-[#D70F64]"
+                  >
+                    <option value="refund">Refund my money</option>
+                    <option value="replace">Replace with a similar item</option>
+                    <option value="call">Call me to decide</option>
+                  </select>
                 </div>
               </div>
             )}
@@ -476,7 +499,7 @@ export default function FoodDetailModal({
                     ? 'bg-zinc-200 text-zinc-500 shadow-none hover:bg-zinc-300'
                     : isService 
                       ? 'bg-amber-500 text-neutral-950 hover:bg-amber-600 shadow-amber-500/20 active:scale-[0.98]' 
-                      : 'bg-[#D70F64] text-white hover:bg-[#B80C54] shadow-[#D70F64]/20 active:scale-[0.98]'
+                      : "btn-pink text-white shadow-[#D70F64]/20 active:scale-[0.98]"
               }`}
             >
               <span>{isService ? "Book Visitation" : "Add to cart"}</span>
