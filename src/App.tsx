@@ -91,7 +91,6 @@ import {
   AlertCircle,
   MessageSquare,
   BadgeAlert,
-  Sparkles,
   CheckSquare,
   Wrench,
   HeartHandshake,
@@ -3675,7 +3674,7 @@ export default function App() {
       {toastNotification && (
         <div className="fixed bottom-6 right-6 z-50 p-4 max-w-sm bg-zinc-900 border-2 border-[#D70F64]/40 text-zinc-100 rounded-2xl shadow-2xl flex items-start gap-3 animate-slide-in">
           <div className="bg-[#D70F64] text-white p-2.5 rounded-xl shrink-0">
-            <Sparkles className="w-5 h-5 animate-pulse" />
+            <MessageSquare className="w-5 h-5" />
           </div>
           <div>
             <h5 className="font-extrabold text-xs text-zinc-100 uppercase tracking-wider">

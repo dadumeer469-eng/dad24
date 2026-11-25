@@ -328,6 +328,7 @@ export interface GroceryDeliveryConfig {
   baseDeliveryFee: number;
   freeDeliveryAboveAmount: number;
   allowMixedCart: boolean;
+  medicineDeliveryFee?: number; // separate delivery fee for medicine orders (default 30)
 }
 
 export interface Device {
