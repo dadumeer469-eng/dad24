@@ -25,7 +25,6 @@ export default function FoodDetailModal({
   const [notAvailable, setNotAvailable] = useState<"refund" | "replace" | "call">("refund");
   const [sizeError, setSizeError] = useState(false);
   const [flavorError, setFlavorError] = useState(false);
-  const [showConfirmation, setShowConfirmation] = useState(false);
   const [showToast, setShowToast] = useState(false);
 
   React.useEffect(() => {
@@ -37,7 +36,6 @@ export default function FoodDetailModal({
       setSpecialInstructions("");
       setSizeError(false);
       setFlavorError(false);
-      setShowConfirmation(false);
       setShowToast(false);
     }
   }, [dish]);
@@ -66,17 +64,6 @@ export default function FoodDetailModal({
         }
         if (hasError) return;
 
-        const hasCustomization = (dish.sizes && dish.sizes.length > 0) || 
-                                 (dish.flavors && dish.flavors.length > 0) || 
-                                 (dish.addOns && dish.addOns.length > 0);
-
-        // Bypass the confirmation screen as requested by the user
-        // if (hasCustomization) {
-        //   if (!showConfirmation) {
-        //     setShowConfirmation(true);
-        //     return;
-        //   }
-        // }
       }
 
       onAddToCart(
@@ -133,119 +120,6 @@ export default function FoodDetailModal({
             <X className="w-5 h-5" />
           </button>
 
-          {/* Conditional Content */}
-          {showConfirmation ? (
-             <div className="flex flex-col bg-white dark:bg-zinc-900 overflow-hidden w-full">
-                 <div className="p-6 sm:p-8 bg-white dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800 shrink-0 text-center flex flex-col items-center justify-center relative">
-                  <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mb-4">
-                     <span className="text-2xl">📋</span>
-                  </div>
-                  <span className="text-[#D70F64] font-black uppercase tracking-widest text-[10px] mb-2 inline-block bg-[#D70F64]/5 px-3 py-1 rounded-full">Order Summary</span>
-                  <h2 className="text-zinc-900 dark:text-zinc-100 font-black text-2xl sm:text-3xl tracking-tight leading-tight px-4">{dish.name}</h2>
-                </div>
-
-                <div className="p-5 sm:p-7 overflow-y-auto scrollbar-none flex-grow bg-zinc-50 dark:bg-zinc-950 space-y-6">
-                   
-                   <div>
-                      <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                        <span className="w-5 h-px bg-zinc-300 dark:bg-zinc-700"></span>
-                        Your Selections
-                      </h4>
-                      <div className="space-y-2.5">
-                        {selectedSizeObj && (
-                           <div className="flex justify-between items-center bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] transition-all hover:shadow-md">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-lg">📏</div>
-                                <span className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Size: {selectedSizeObj.name}</span>
-                              </div>
-                              <span className="text-sm font-black text-[#D70F64]">Rs. {selectedSizeObj.price}</span>
-                           </div>
-                        )}
-                        {selectedFlavorObj && (
-                           <div className="flex justify-between items-center bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] transition-all hover:shadow-md">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-lg">🌶️</div>
-                                <span className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Flavor: {selectedFlavorObj.name}</span>
-                              </div>
-                              <span className="text-sm font-black text-[#D70F64]">{selectedFlavorObj.price > 0 ? `+ Rs. ${selectedFlavorObj.price}` : "Free"}</span>
-                           </div>
-                        )}
-                        {selectedAddOns.map((ad, idx) => (
-                           <div key={idx} className="flex justify-between items-center bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] transition-all hover:shadow-md">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-lg">➕</div>
-                                <span className="text-sm font-bold text-zinc-800 dark:text-zinc-200">{ad.name}</span>
-                              </div>
-                              <span className="text-sm font-black text-[#D70F64]">+ Rs. {ad.price}</span>
-                           </div>
-                        ))}
-                      </div>
-                   </div>
-
-                   <div>
-                      <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                        <span className="w-5 h-px bg-zinc-300 dark:bg-zinc-700"></span>
-                        Price Breakdown
-                      </h4>
-                      <div className="bg-white dark:bg-zinc-900 p-5 rounded-[24px] border border-zinc-100 dark:border-zinc-800 shadow-[0_4px_20px_-8px_rgba(0,0,0,0.08)] space-y-3.5">
-                         <div className="flex justify-between items-center">
-                            <span className="text-sm font-bold text-zinc-500 dark:text-zinc-400">Base Price</span>
-                            <span className="text-sm font-black text-zinc-800 dark:text-zinc-200">Rs. {basePrice.toFixed(2)}</span>
-                         </div>
-                         {selectedSizeObj && selectedSizeObj.price !== basePrice && (
-                            <div className="flex justify-between items-center">
-                               <span className="text-sm font-bold text-zinc-500 dark:text-zinc-400">Size Update</span>
-                               <span className="text-sm font-black text-zinc-800 dark:text-zinc-200">Rs. {selectedSizeObj.price.toFixed(2)}</span>
-                            </div>
-                         )}
-                         {selectedFlavorObj && selectedFlavorObj.price > 0 && (
-                            <div className="flex justify-between items-center">
-                               <span className="text-sm font-bold text-zinc-500 dark:text-zinc-400">Flavor Extra</span>
-                               <span className="text-sm font-black text-zinc-800 dark:text-zinc-200">+ Rs. {selectedFlavorObj.price.toFixed(2)}</span>
-                            </div>
-                         )}
-                         {selectedAddOns.length > 0 && (
-                            <div className="flex justify-between items-center">
-                               <span className="text-sm font-bold text-zinc-500 dark:text-zinc-400">Add-ons</span>
-                               <span className="text-sm font-black text-zinc-800 dark:text-zinc-200">+ Rs. {addOnsTotal.toFixed(2)}</span>
-                            </div>
-                         )}
-                         <div className="flex justify-between items-center">
-                            <span className="text-sm font-bold text-zinc-500 dark:text-zinc-400">Quantity</span>
-                            <span className="text-sm font-black text-zinc-800 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 px-2.5 py-0.5 rounded-md">x {quantity}</span>
-                         </div>
-                         <div className="h-px w-full bg-zinc-200/60 dark:bg-zinc-800 my-2" />
-                         <div className="flex justify-between items-center pt-1">
-                            <span className="text-base font-black text-zinc-900 dark:text-zinc-100">Total Amount</span>
-                            <span className="text-2xl font-black text-[#D70F64]">Rs. {totalPrice.toFixed(2)}</span>
-                         </div>
-                      </div>
-                   </div>
-
-                   {specialInstructions.trim() && (
-                      <div>
-                         <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                           <span className="w-5 h-px bg-zinc-300 dark:bg-zinc-700"></span>
-                           Instructions
-                         </h4>
-                         <div className="bg-pink-50/50 dark:bg-pink-950/30 p-4 rounded-2xl border border-orange-100/50 dark:border-pink-900/40 relative overflow-hidden">
-                           <div className="absolute top-0 left-0 w-1 h-full bg-orange-400" />
-                           <p className="text-sm font-bold text-zinc-700 dark:text-zinc-300 italic pl-2">"{specialInstructions}"</p>
-                         </div>
-                      </div>
-                   )}
-                </div>
-
-                <div className="p-4 sm:p-6 bg-white dark:bg-zinc-900 border-t border-zinc-100 dark:border-zinc-800 flex flex-col sm:flex-row gap-3 sticky bottom-0 shadow-[0_-10px_30px_-10px_rgba(0,0,0,0.05)]">
-                  <button onClick={() => setShowConfirmation(false)} className="flex-1 py-4 sm:py-4.5 rounded-2xl text-sm font-black uppercase tracking-wider border-2 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-white hover:border-zinc-300 active:scale-[0.98] transition-all">
-                     Change Selection
-                  </button>
-                  <button onClick={handleAdd} className="flex-[2] py-4 sm:py-4.5 rounded-2xl text-sm font-black uppercase tracking-wider btn-pink text-white shadow-[0_8px_25px_-8px_rgba(215,15,100,0.5)] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
-                     Confirm & Add to Cart <span className="text-lg leading-none">🛒</span>
-                  </button>
-                </div>
-             </div>
-          ) : (
             <>
               {/* Header Image */}
               <div className="h-48 sm:h-64 relative shrink-0 bg-zinc-100 dark:bg-zinc-800">
@@ -507,7 +381,6 @@ export default function FoodDetailModal({
             </button>
           </div>
         </>
-        )}
         </motion.div>
         
         {/* Toast Notification */}

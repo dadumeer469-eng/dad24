@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import OrderReceiptModal from "./OrderReceiptModal";
 import { 
-  collection, query, where, onSnapshot, doc, updateDoc, Timestamp, addDoc
+  collection, query, where, onSnapshot, doc, updateDoc, Timestamp, addDoc, serverTimestamp
 } from "firebase/firestore";
 import { db, handleFirestoreError } from "../firebase";
 import { Order, UserProfile } from "../types";
@@ -40,7 +40,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
       // Sync to Firestore so the admin can see who is actually on duty.
       updateDoc(doc(db, "users", currentUser.uid), {
         isOnline: next,
-        lastSeenAt: Timestamp.now(),
+        lastSeenAt: serverTimestamp(),
       }).catch((e) => console.error("Failed to sync rider online status", e));
       return next;
     });

@@ -14,7 +14,6 @@ import {
   GroceryCategory,
   GroceryProduct,
   GroceryDeliveryConfig,
-  Banner,
   Voucher,
   getUserCoins,
 } from "../types";
@@ -596,10 +595,8 @@ export default function AdminPanel({
     | "orders"
     | "riders"
     | "grocery"
-    | "services"
     | "users"
     | "seo"
-    | "banners"
     | "food_categories"
     | "loyalty"
     | "vouchers"
@@ -616,7 +613,6 @@ export default function AdminPanel({
   const [showRestSettledHistory, setShowRestSettledHistory] = useState<boolean>(false);
 
   const [allUsersList, setAllUsersList] = useState<UserProfile[]>([]);
-  const [bannersList, setBannersList] = useState<Banner[]>([]);
   const [vouchersList, setVouchersList] = useState<Voucher[]>([]);
   const [inspectingVoucherUser, setInspectingVoucherUser] = useState<UserProfile | null>(null);
   const [userSearchTerm, setUserSearchTerm] = useState("");
@@ -624,14 +620,6 @@ export default function AdminPanel({
   const [receiptModalOrder, setReceiptModalOrder] = useState<Order | null>(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [isAiMenuGeneratorOpen, setIsAiMenuGeneratorOpen] = useState(false);
-
-  useEffect(() => {
-    const q = query(collection(db, "promotional_banners"), orderBy("createdAt", "desc"));
-    const unsub = onSnapshot(q, (snap) => {
-      setBannersList(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Banner)));
-    });
-    return () => unsub();
-  }, []);
 
   // Realtime subscription to vouchers
   useEffect(() => {
@@ -3540,14 +3528,6 @@ export default function AdminPanel({
               <ShoppingBasket className="w-3.5 h-3.5" /> Grocery
             </button>
             <button
-              onClick={() => { setActiveSubTab("services"); setNewItemType("service"); }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
-                activeSubTab === "services" ? "bg-[#E21B70] border-[#E21B70] text-white" : "bg-slate-50 border-slate-200 text-slate-700"
-              }`}
-            >
-              <Wrench className="w-3.5 h-3.5" /> Services
-            </button>
-            <button
               onClick={() => setActiveSubTab("riders")}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
                 activeSubTab === "riders" ? "bg-[#E21B70] border-[#E21B70] text-white" : "bg-slate-50 border-slate-200 text-slate-700"
@@ -3564,14 +3544,6 @@ export default function AdminPanel({
               <Users className="w-3.5 h-3.5" /> Users ({allUsersList.length})
             </button>
 
-            <button
-              onClick={() => setActiveSubTab("banners")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
-                activeSubTab === "banners" ? "bg-[#E21B70] border-[#E21B70] text-white" : "bg-slate-50 border-slate-200 text-slate-700"
-              }`}
-            >
-              <ImageIcon className="w-3.5 h-3.5" /> Banners
-            </button>
             <button
               onClick={() => setActiveSubTab("vouchers")}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
@@ -3750,21 +3722,6 @@ export default function AdminPanel({
                     <ShoppingBasket className="w-3.5 h-3.5 shrink-0" />
                     Grocery Store
                   </button>
-
-                  <button
-                    onClick={() => {
-                      setActiveSubTab("services");
-                      setNewItemType("service");
-                    }}
-                    className={`w-full font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
-                      activeSubTab === "services"
-                        ? "bg-[#E21B70] border-[#E21B70] text-white shadow-sm"
-                        : "bg-transparent border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                    }`}
-                  >
-                    <Wrench className="w-3.5 h-3.5 shrink-0" />
-                    Home Services
-                  </button>
                 </div>
               </div>
 
@@ -3815,17 +3772,6 @@ export default function AdminPanel({
                   ⚙️ System & Marketing
                 </span>
                 <div className="space-y-0.5">
-                  <button
-                    onClick={() => setActiveSubTab("banners")}
-                    className={`w-full font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
-                      activeSubTab === "banners"
-                        ? "bg-[#E21B70] border-[#E21B70] text-white shadow-sm"
-                        : "bg-transparent border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                    }`}
-                  >
-                    <ImageIcon className="w-3.5 h-3.5 shrink-0" />
-                    Promotional Banners
-                  </button>
 
                   <button
                     onClick={() => setActiveSubTab("vouchers")}
@@ -6006,450 +5952,6 @@ export default function AdminPanel({
             </div>
           )}
 
-          {/* TAB 2.5: Manage Services Directory */}
-          {activeSubTab === "services" && (
-            <div className="space-y-8 animate-fade-in">
-              <div className="flex items-center justify-between bg-white/80  border border-slate-200 p-4 rounded-2xl shadow-xl">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                    <Settings className="w-5 h-5 text-blue-500" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-black text-slate-900 tracking-wide uppercase">
-                      Managing Services
-                    </h3>
-                    <p className="text-[11px] text-slate-600 font-medium">
-                      Home Services & Repair directory
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <form
-                onSubmit={handleAddNewItem}
-                className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm space-y-5 relative"
-              >
-                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-blue-500/10 to-transparent" />
-                <h4 className="font-black text-sm text-slate-900 flex items-center gap-2 pb-3 border-b border-slate-200/50 uppercase tracking-wide">
-                  <Plus className="w-4 h-4 text-blue-500" />
-                  Register New Home Service Product
-                </h4>
-
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-5 text-xs">
-                  <div className="md:col-span-3 space-y-1.5">
-                    <label className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">
-                      Title Name
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={newItemName}
-                      onChange={(e) => setNewItemName(e.target.value)}
-                      placeholder="e.g. AC Repair"
-                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl text-slate-900 outline-none text-slate-900 focus:border-blue-500 transition focus:ring-1 focus:ring-blue-500/10"
-                    />
-                  </div>
-
-                  <div className="md:col-span-2 space-y-1.5">
-                    <label className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">
-                      Base Price (Rs.)
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      value={newItemPrice}
-                      onChange={(e) => setNewItemPrice(Number(e.target.value))}
-                      placeholder="e.g. 500"
-                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl text-slate-900 outline-none text-slate-900 focus:border-blue-500 transition focus:ring-1 focus:ring-blue-500/10"
-                    />
-                  </div>
-
-                  <div className="md:col-span-2 space-y-1.5">
-                    <label className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">
-                      Discount Price (Rs.)
-                    </label>
-                    <input
-                      type="number"
-                      value={newItemDiscountPrice || ""}
-                      onChange={(e) =>
-                        setNewItemDiscountPrice(Number(e.target.value))
-                      }
-                      placeholder="Optional"
-                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl text-slate-900 outline-none text-slate-900 focus:border-blue-500 transition focus:ring-1 focus:ring-blue-500/10"
-                    />
-                  </div>
-
-                  <div className="md:col-span-2 space-y-1.5">
-                    <label className="text-emerald-500 font-bold uppercase tracking-widest text-[9px]">
-                      Commission (Rs.)
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={newItemCommission}
-                      onChange={(e) =>
-                        setNewItemCommission(Number(e.target.value))
-                      }
-                      placeholder="Commission"
-                      className="w-full p-3 bg-white border border-slate-200 border border-emerald-900 rounded-xl text-slate-900 outline-none text-slate-900 focus:border-emerald-500 transition focus:ring-1 focus:ring-emerald-500/10 font-bold"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">
-                      Open Time
-                    </label>
-                    <input
-                      type="time"
-                      value={newItemOpeningTime}
-                      onChange={(e) => setNewItemOpeningTime(e.target.value)}
-                      className="w-full p-3 bg-white border border-slate-200 rounded-xl text-slate-900 outline-none text-slate-900 focus:border-blue-500 transition"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">
-                      Close Time
-                    </label>
-                    <input
-                      type="time"
-                      value={newItemClosingTime}
-                      onChange={(e) => setNewItemClosingTime(e.target.value)}
-                      className="w-full p-3 bg-white border border-slate-200 rounded-xl text-slate-900 outline-none text-slate-900 focus:border-blue-500 transition"
-                    />
-                  </div>
-
-                  <div className="md:col-span-3 space-y-1.5">
-                    <label className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">
-                      Description Information
-                    </label>
-                    <input
-                      type="text"
-                      value={newItemDescription}
-                      onChange={(e) => setNewItemDescription(e.target.value)}
-                      placeholder="Brief descriptive labels shown to customers"
-                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl text-slate-900 outline-none text-slate-900 focus:border-blue-500 transition focus:ring-1 focus:ring-blue-500/10"
-                    />
-                  </div>
-
-                  <div className="md:col-span-4 space-y-1.5">
-                    <ProductImageSelector
-                      imageUrl={newItemImageUrl}
-                      onChange={setNewItemImageUrl}
-                      label="Product Picture / Illustration"
-                      accentColorClass="blue"
-                      placeholder="Blank for auto high quality illustration, or paste URL"
-                    />
-                  </div>
-
-                  <div className="md:col-span-4 space-y-1.5">
-                    <label className="text-blue-500 font-bold uppercase tracking-widest text-[9px]">
-                      Service Provider / Partner Name
-                    </label>
-                    <div className="relative">
-                      <select
-                        value={newItemRestaurantName}
-                        onChange={(e) =>
-                          setNewItemRestaurantName(e.target.value)
-                        }
-                        className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl text-slate-900 outline-none appearance-none focus:border-blue-500 transition focus:ring-1 focus:ring-blue-500/10"
-                      >
-                        <option value="">
-                          Default (Auto-selects based on category)
-                        </option>
-                        {uniqueRestaurants.map((rest) => (
-                          <option key={rest} value={rest}>
-                            {rest}
-                          </option>
-                        ))}
-                      </select>
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
-                        <svg
-                          width="14"
-                          height="14"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 9l-7 7-7-7"
-                          />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="md:col-span-4 space-y-1.5">
-                    <label className="text-blue-500 font-bold uppercase tracking-widest text-[9px]">
-                      Service Duration / Timing
-                    </label>
-                    <input
-                      type="text"
-                      value={newItemServiceDuration}
-                      onChange={(e) =>
-                        setNewItemServiceDuration(e.target.value)
-                      }
-                      placeholder="e.g. Expected arrival within 1 hour"
-                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-xl text-slate-900 outline-none text-slate-900 focus:border-blue-500 transition focus:ring-1 focus:ring-blue-500/10"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end pt-2">
-                  <button
-                    type="submit"
-                    className="bg-[#E21B70] hover:bg-[#C2145E] transition-all font-black text-xs tracking-widest text-white uppercase py-3.5 px-6 rounded-2xl flex items-center gap-1.5 cursor-pointer shadow-lg shadow-pink-500/15 hover:scale-[1.02] active:scale-95"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Dispatch Service to Database
-                  </button>
-                </div>
-              </form>
-
-              {/* Items Table List */}
-              <div className="bg-white/80  border border-slate-200 rounded-[24px] overflow-hidden shadow-sm relative">
-                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-blue-500/10 to-transparent" />
-                <div className="p-5 border-b border-slate-200/50 bg-slate-100/15">
-                  <h4 className="font-black text-sm text-slate-900 uppercase tracking-wide">
-                    Operational Services Directory
-                  </h4>
-                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                    Enable availability controls and edit prices instantly
-                  </span>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs text-left text-slate-600 font-medium">
-                    <thead className="bg-white border border-slate-200/70 text-slate-500 uppercase font-black tracking-widest text-[9px] border-b border-slate-200/40">
-                      <tr>
-                        <th className="p-4.5">Service Name</th>
-                        <th className="p-4.5">Price (Rs.)</th>
-                        <th className="p-4.5 text-center">ON/OFF Toggle</th>
-                        <th className="p-4.5 text-center">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200/40">
-                      {dishes
-                        .filter((dish) => dish.type === "service")
-                        .map((dish) => (
-                          <tr
-                            key={dish.id}
-                            className="hover:bg-slate-100/20 transition-colors"
-                          >
-                            <td className="p-4 font-bold text-gray-200">
-                              <div className="flex items-center gap-3">
-                                {dish.imageUrl ? (
-                                  <img
-                                    src={dish.imageUrl}
-                                    alt={dish.name}
-                                    className="w-8 h-8 rounded-lg object-cover bg-white border border-slate-200 shrink-0"
-                                    referrerPolicy="no-referrer"
-                                  />
-                                ) : (
-                                  <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
-                                    <span className="text-[7px] text-slate-500 font-black uppercase text-center leading-tight">No<br/>Img</span>
-                                  </div>
-                                )}
-                                <div className="truncate max-w-xs">
-                                  <div>{dish.name}</div>
-                                  <div className="text-[10px] text-slate-500 font-medium font-sans mt-0.5">
-                                    🏪 Provider:{" "}
-                                    <span className="text-blue-500 font-bold">
-                                      {dish.restaurantName ||
-                                        "Dadu Home Services"}
-                                    </span>
-                                  </div>
-                                  {dish.serviceDuration && (
-                                    <div className="text-[10px] text-slate-500 font-medium font-sans mt-0.5">
-                                      ⏱️ Duration:{" "}
-                                      <span className="text-blue-500 font-bold">
-                                        {dish.serviceDuration}
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="p-4">
-                              {editingPriceDishId === dish.id ? (
-                                <div className="flex flex-col gap-1.5 min-w-[200px]">
-                                  <div className="mb-2">
-                                    <ProductImageSelector
-                                      imageUrl={editingImageUrl}
-                                      onChange={setEditingImageUrl}
-                                      label="Update Image"
-                                      accentColorClass="blue"
-                                    />
-                                  </div>
-                                  <input
-                                    type="text"
-                                    value={editingNameInput}
-                                    onChange={(e) =>
-                                      setEditingNameInput(e.target.value)
-                                    }
-                                    className="w-full p-2 bg-white border border-slate-200 text-slate-900 text-xs border border-slate-300 focus:border-blue-500 outline-none rounded"
-                                    placeholder="Service Name"
-                                  />
-                                  <input
-                                    type="number"
-                                    value={editingPriceInput}
-                                    onChange={(e) =>
-                                      setEditingPriceInput(
-                                        Number(e.target.value),
-                                      )
-                                    }
-                                    className="w-full p-2 bg-white border border-slate-200 text-slate-900 text-xs border border-slate-300 focus:border-blue-500 outline-none rounded"
-                                    placeholder="New Price"
-                                  />
-                                  <input
-                                    type="number"
-                                    value={editingDiscountPriceInput}
-                                    onChange={(e) =>
-                                      setEditingDiscountPriceInput(
-                                        Number(e.target.value),
-                                      )
-                                    }
-                                    className="w-full p-2 bg-white border border-slate-200 text-slate-900 text-xs border border-slate-300 focus:border-blue-500 outline-none rounded"
-                                    placeholder="Discount"
-                                  />
-                                  <input
-                                    type="number"
-                                    value={editingCommissionInput}
-                                    onChange={(e) =>
-                                      setEditingCommissionInput(
-                                        Number(e.target.value),
-                                      )
-                                    }
-                                    className="w-full p-2 bg-white border border-slate-200 text-slate-900 text-[10px] border border-emerald-900 focus:border-emerald-500 outline-none rounded"
-                                    placeholder="Comm."
-                                  />
-                                  <div className="flex gap-2">
-                                    <input
-                                      type="time"
-                                      value={editingOpeningTime}
-                                      onChange={(e) =>
-                                        setEditingOpeningTime(e.target.value)
-                                      }
-                                      className="w-full p-2 bg-white border border-slate-200 text-slate-900 text-[10px] border border-slate-300 focus:border-blue-500 outline-none rounded"
-                                    />
-                                    <input
-                                      type="time"
-                                      value={editingClosingTime}
-                                      onChange={(e) =>
-                                        setEditingClosingTime(e.target.value)
-                                      }
-                                      className="w-full p-2 bg-white border border-slate-200 text-slate-900 text-[10px] border border-slate-300 focus:border-blue-500 outline-none rounded"
-                                    />
-                                  </div>
-                                  <div className="flex gap-2">
-                                    <button
-                                      onClick={() =>
-                                        setEditingPriceDishId(null)
-                                      }
-                                      className="px-2 py-0.5 bg-slate-200 text-slate-700 rounded text-[9px] font-bold cursor-pointer"
-                                    >
-                                      Cancel
-                                    </button>
-                                    <button
-                                      onClick={() =>
-                                        handleSavePriceChange(dish)
-                                      }
-                                      className="px-2 py-0.5 bg-blue-500 text-black rounded text-[9px] font-black cursor-pointer shadow-xs animate-pulse-subtle"
-                                    >
-                                      Save
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="flex flex-col gap-0.5">
-                                  {dish.discountPrice &&
-                                  dish.discountPrice < dish.price ? (
-                                    <>
-                                      <span className="font-extrabold text-emerald-400 text-xs">
-                                        Rs. {dish.discountPrice}
-                                      </span>
-                                      <span className="font-bold text-slate-500 text-[10px] line-through">
-                                        Rs. {dish.price}
-                                      </span>
-                                    </>
-                                  ) : (
-                                    <span className="font-extrabold text-slate-900">
-                                      Rs. {dish.price}
-                                    </span>
-                                  )}
-                                  <span className="text-[10px] text-emerald-400 font-bold block mt-0.5">
-                                    Comm: Rs. {dish.commission || 0}
-                                  </span>
-                                  {(dish.openingTime || dish.closingTime) && (
-                                    <span className="text-[10px] text-[#E21B70] font-bold block mt-0.5">
-                                      Time: {dish.openingTime || "Open"} - {dish.closingTime || "Close"}
-                                    </span>
-                                  )}
-                                  <span className="hidden">
-                                  </span>
-                                  <button
-                                    onClick={() => {
-                                      setEditingPriceDishId(dish.id);
-                                      setEditingNameInput(dish.name);
-                                      setEditingImageUrl(dish.imageUrl || "");
-                                      setEditingPriceInput(dish.price);
-                                      setEditingDiscountPriceInput(
-                                        dish.discountPrice || 0,
-                                      );
-                                      setEditingCommissionInput(
-                                        dish.commission || 0,
-                                      );
-                                      setEditingOpeningTime(dish.openingTime || "");
-                                      setEditingClosingTime(dish.closingTime || "");
-                                      setEditingIsBestseller(dish.isBestseller || false);
-                                    }}
-                                    className="text-[10px] text-blue-500 hover:underline cursor-pointer text-left mt-1 font-bold"
-                                  >
-                                    Edit Name, Price & Comm
-                                  </button>
-                                </div>
-                              )}
-                            </td>
-                            <td className="p-4 text-center">
-                              <button
-                                onClick={() => handleToggleAvailability(dish)}
-                                className="inline-flex justify-center transition cursor-pointer"
-                              >
-                                {dish.isAvailable ? (
-                                  <div className="flex items-center gap-1.5 text-emerald-400">
-                                    <ToggleRight className="w-7 h-7 stroke-[1.5]" />
-                                    <span className="text-[10px] uppercase font-bold tracking-wide">
-                                      Available
-                                    </span>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center gap-1.5 text-slate-500">
-                                    <ToggleLeft className="w-7 h-7 stroke-[1.5]" />
-                                    <span className="text-[10px] uppercase font-bold tracking-wide text-slate-500">
-                                      Sold Out
-                                    </span>
-                                  </div>
-                                )}
-                              </button>
-                            </td>
-                            <td className="p-4 text-center">
-                              <button
-                                onClick={() => handleDeleteItem(dish.id)}
-                                className="p-2 text-slate-500 hover:text-red-500 hover:bg-pink-950/20 rounded-xl transition cursor-pointer"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* TAB 3: Live Orders Manager */}
           {activeSubTab === "orders" && (
             <div className="space-y-8 animate-fade-in">
@@ -7043,56 +6545,6 @@ export default function AdminPanel({
                                     className="bg-emerald-950/40 border border-emerald-500/40 text-emerald-400 px-4 py-2 rounded-xl hover:bg-emerald-950/60 transition cursor-pointer text-[10.5px] font-black uppercase tracking-wider hover:scale-[1.02] active:scale-95 shadow-md shadow-emerald-500/5"
                                   >
                                     ✅ Delivered Done
-                                  </button>
-                                </>
-                              )}
-
-                              {/* SERVICES SPECIFIC MONITOR BUTTONS (No Kitchen, No Cooking!) */}
-                              {isSvc && (
-                                <>
-                                  <button
-                                    onClick={() =>
-                                      handleUpdateOrderStatus(
-                                        order.id,
-                                        "confirmed",
-                                      )
-                                    }
-                                    className="bg-slate-100 border border-slate-200 hover:border-slate-200 text-gray-300 px-3.5 py-2 rounded-xl transition cursor-pointer text-[10px] font-black uppercase tracking-wider hover:scale-[1.02] active:scale-95"
-                                  >
-                                    🤝 Confirm Booking
-                                  </button>
-                                  <button
-                                    onClick={() =>
-                                      handleUpdateOrderStatus(
-                                        order.id,
-                                        "diagnostic_on_way",
-                                      )
-                                    }
-                                    className="bg-sky-950/20 border border-sky-900/40 text-sky-400 px-3.5 py-2 rounded-xl hover:bg-sky-950/50 transition cursor-pointer text-[10px] font-black uppercase tracking-wider hover:scale-[1.02] active:scale-95"
-                                  >
-                                    🛵 Mechanic Out
-                                  </button>
-                                  <button
-                                    onClick={() =>
-                                      handleUpdateOrderStatus(
-                                        order.id,
-                                        "diagnostic_underway",
-                                      )
-                                    }
-                                    className="bg-yellow-950/20 border border-yellow-900/40 text-yellow-500 px-3.5 py-2 rounded-xl hover:bg-yellow-950/50 transition cursor-pointer text-[10px] font-black uppercase tracking-wider hover:scale-[1.02] active:scale-95"
-                                  >
-                                    🛠️ Underway
-                                  </button>
-                                  <button
-                                    onClick={() =>
-                                      handleUpdateOrderStatus(
-                                        order.id,
-                                        "completed",
-                                      )
-                                    }
-                                    className="bg-emerald-950/40 border border-emerald-500/40 text-emerald-400 px-4 py-2 rounded-xl hover:bg-emerald-950/60 transition cursor-pointer text-[10.5px] font-black uppercase tracking-wider hover:scale-[1.02] active:scale-95 shadow-md shadow-emerald-500/5"
-                                  >
-                                    ✅ Job Completed
                                   </button>
                                 </>
                               )}
@@ -9339,21 +8791,35 @@ export default function AdminPanel({
                                   ❌ Block
                                 </button>
 
+                              {u.phone !== "03277004471" && u.role !== "admin" && (
                                 <button
                                   onClick={async () => {
-                                    if (confirm(`Are you sure you want to delete user ${u.phone}? This will NOT blacklist them, allowing them to register fresh.`)) {
+                                    if (confirm(`Are you sure you want to BLOCK user ${u.phone}? They will be blacklisted and cannot register fresh.`)) {
                                       try {
-                                        await deleteDoc(doc(db, "users", u.uid));
-                                        alert("🗑️ User deleted successfully.");
+                                        await updateDoc(doc(db, "users", u.uid), {
+                                          status: "blocked",
+                                          isBlacklisted: true,
+                                          blockReason: "Access revoked by admin.",
+                                          needsUnblockAlert: false,
+                                          unblockAlertMessage: "",
+                                        });
+                                        await setDoc(doc(db, "blacklist", u.uid), {
+                                          phone: u.phone,
+                                          blockedAt: new Date(),
+                                          blockedBy: adminUsername || "admin",
+                                          reason: "Access revoked by admin",
+                                        });
+                                        alert(`❌ User ${u.phone} blocked and blacklisted.`);
                                       } catch (err) {
-                                        alert("Failed to delete user: " + err);
+                                        alert("Failed to block user: " + err);
                                       }
                                     }
                                   }}
                                   className="col-span-2 bg-zinc-700 hover:bg-zinc-650 text-zinc-200 py-2 px-3 rounded-2xl font-bold text-[10px] uppercase tracking-wider transition active:scale-95 flex items-center justify-center gap-1 border border-zinc-600"
                                 >
-                                  🗑️ Delete Karein
+                                  🚫 Revoke Karein
                                 </button>
+                              )}
                               </div>
                             </div>
                           );
@@ -9572,12 +9038,25 @@ export default function AdminPanel({
                                 onClick={() => {
                                   setConfirmDialog({
                                     title: "Revoke Access",
-                                    message: `Are you sure you want to PERMANENTLY delete user "${u.name || "Dadu User"}"?`,
+                                    message: `Are you sure you want to BLOCK user "${u.name || "Dadu User"}" (${u.phone})? They will be blacklisted and cannot re-register. (A plain delete would let them sign in again and reappear.)`,
                                     onConfirm: async () => {
                                       try {
-                                        await deleteDoc(doc(db, "users", u.uid));
+                                        await updateDoc(doc(db, "users", u.uid), {
+                                          status: "blocked",
+                                          isBlacklisted: true,
+                                          blockReason: "Access revoked by admin.",
+                                          needsUnblockAlert: false,
+                                          unblockAlertMessage: "",
+                                        });
+                                        await setDoc(doc(db, "blacklist", u.uid), {
+                                          phone: u.phone,
+                                          blockedAt: new Date(),
+                                          blockedBy: adminUsername || "admin",
+                                          reason: "Access revoked by admin",
+                                        });
+                                        alert(`❌ User ${u.phone} blocked and blacklisted.`);
                                       } catch (err) {
-                                        console.error("Failed to delete user profile", err);
+                                        console.error("Failed to block user", err);
                                         alert("Error: Database permission denied.");
                                       }
                                     },
@@ -9589,7 +9068,7 @@ export default function AdminPanel({
                                     : "bg-pink-950/30 text-pink-400 hover:bg-pink-900/30 cursor-pointer"
                                 }`}
                               >
-                                {isSpecialAdmin ? "Locked" : "Delete"}
+                                {isSpecialAdmin ? "Locked" : "Revoke"}
                               </button>
                             </div>
                           </div>
@@ -9715,7 +9194,7 @@ export default function AdminPanel({
                                     >
                                       Edit Addr
                                     </button>
-                                    {u.status === "locked" && (
+                                    {u.status === "locked" && u.phone !== "03277004471" && u.role !== "admin" && (
                                       <button
                                         type="button"
                                         onClick={() => setUnlockingUser(u)}
@@ -9783,12 +9262,25 @@ export default function AdminPanel({
                                       onClick={() => {
                                         setConfirmDialog({
                                           title: "Revoke Access",
-                                          message: `Are you sure you want to PERMANENTLY delete user "${u.name || "Dadu User"}"?`,
+                                          message: `Are you sure you want to BLOCK user "${u.name || "Dadu User"}" (${u.phone})? They will be blacklisted and cannot re-register. (A plain delete would let them sign in again and reappear.)`,
                                           onConfirm: async () => {
                                             try {
-                                              await deleteDoc(doc(db, "users", u.uid));
+                                              await updateDoc(doc(db, "users", u.uid), {
+                                                status: "blocked",
+                                                isBlacklisted: true,
+                                                blockReason: "Access revoked by admin.",
+                                                needsUnblockAlert: false,
+                                                unblockAlertMessage: "",
+                                              });
+                                              await setDoc(doc(db, "blacklist", u.uid), {
+                                                phone: u.phone,
+                                                blockedAt: new Date(),
+                                                blockedBy: adminUsername || "admin",
+                                                reason: "Access revoked by admin",
+                                              });
+                                              alert(`❌ User ${u.phone} blocked and blacklisted.`);
                                             } catch (err) {
-                                              console.error("Failed to delete user profile", err);
+                                              console.error("Failed to block user", err);
                                               alert("Error: Database permission denied.");
                                             }
                                           },
@@ -9800,7 +9292,7 @@ export default function AdminPanel({
                                           : "bg-pink-950/30 text-pink-400 hover:bg-pink-900/30 cursor-pointer"
                                       }`}
                                     >
-                                      {isSpecialAdmin ? "Locked" : "Delete"}
+                                      {isSpecialAdmin ? "Locked" : "Revoke"}
                                     </button>
                                   </td>
                                 </tr>
@@ -10284,265 +9776,6 @@ export default function AdminPanel({
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeSubTab === "banners" && (
-            <div className="space-y-6 lg:space-y-8 animate-fade-in text-left">
-              <div className="bg-white/90 border border-slate-200 rounded-3xl p-6 relative overflow-hidden">
-                <div className="absolute right-0 top-0 w-80 h-80 bg-pink-500/5 rounded-full blur-[100px] pointer-events-none" />
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-2 text-pink-500">
-                      <ImageIcon className="w-5 h-5" />
-                      <span className="text-[10px] font-black uppercase tracking-widest bg-pink-500/10 px-2 py-0.5 rounded-full">
-                        Smart Carousel
-                      </span>
-                    </div>
-                    <h2 className="text-xl font-black text-slate-900 mt-1">
-                      High-Performance Banners
-                    </h2>
-                    <p className="text-xs text-slate-500 font-medium mt-1">
-                      Manage banners and break the 12-hour local cache globally.
-                    </p>
-                  </div>
-                  <div className="flex gap-2 shrink-0">
-                    <button
-                      onClick={async () => {
-                        try {
-                          const existingStatuses = deliverySettings?.restaurantStatuses || {};
-                          const newSettings = {
-                            ...deliverySettings,
-                            bannerVersion: Date.now(),
-                            restaurantStatus: deliverySettings?.restaurantStatus || {
-                              isTemporarilyUnavailable: false,
-                              openingTime: "09:00",
-                              closingTime: "23:00"
-                            },
-                            restaurantStatuses: existingStatuses,
-                          };
-                          await setDoc(doc(db, "settings", "delivery_config"), cleanObject(newSettings));
-                          alert("Global Banner Cache broken successfully!");
-                        } catch (err: any) {
-                          alert(handleFirestoreError(err));
-                        }
-                      }}
-                      className="bg-red-500 hover:bg-red-600 text-white font-black text-[10px] uppercase tracking-widest py-3 px-5 rounded-xl transition cursor-pointer shrink-0"
-                    >
-                      Force Update Banners (Break Cache)
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white border border-slate-200 rounded-[24px] p-5 lg:p-7 shadow-sm relative">
-                <h3 className="text-sm font-black text-slate-900 mb-4">Add New Banner</h3>
-                <form 
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    const form = e.target as HTMLFormElement;
-                    const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
-                    const originalText = submitBtn.innerText;
-                    
-                    const imageUrlInput = form.elements.namedItem("imageUrl") as HTMLInputElement;
-                    const imageUrl = imageUrlInput.value.trim();
-                    const restaurantName = (form.elements.namedItem("restaurantName") as HTMLSelectElement).value;
-                    const detail = (form.elements.namedItem("detail") as HTMLInputElement).value;
-                    const isActive = (form.elements.namedItem("isActive") as HTMLInputElement).checked;
-                    
-                    if (!imageUrl) {
-                      alert("Please select an image file or enter an Image URL.");
-                      return;
-                    }
-
-                    // Flexible validation for http/https or data:image
-                    const isValidUrl = imageUrl.startsWith("data:image/") || 
-                                       imageUrl.startsWith("http://") || 
-                                       imageUrl.startsWith("https://");
-                    
-                    if (!isValidUrl) {
-                      alert("Please enter a valid Image URL (e.g. starting with https:// or data:image/).");
-                      return;
-                    }
-
-                    submitBtn.disabled = true;
-                    submitBtn.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>';
-
-                    try {
-                      // Compress image if needed to stay well under Firestore's 1MB document limit
-                      const finalImageUrl = await compressImageToLowRes(imageUrl, 1200, 600, 0.75);
-
-                      await addDoc(collection(db, "promotional_banners"), {
-                        imageUrl: finalImageUrl,
-                        restaurantName: restaurantName || null,
-                        detail: detail || null,
-                        isActive,
-                        createdAt: Date.now()
-                      });
-                      form.reset();
-                      alert("Banner added successfully!");
-                    } catch (err: any) {
-                      alert(handleFirestoreError(err));
-                    } finally {
-                      submitBtn.disabled = false;
-                      submitBtn.innerText = originalText;
-                    }
-                  }}
-                  className="space-y-4"
-                >
-                  <div>
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">
-                      Banner Image (Upload File OR Paste URL)
-                    </label>
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <input
-                        id="bannerImageUrlInput"
-                        name="imageUrl"
-                        type="text"
-                        required
-                        placeholder="https://... or select photo below"
-                        className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs outline-none text-slate-900 focus:border-pink-500/60 transition"
-                      />
-                      <label className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs py-3 px-4 rounded-2xl border border-slate-300 flex items-center justify-center gap-2 cursor-pointer shrink-0 transition">
-                        <Upload className="w-4 h-4 text-pink-500" />
-                        <span>Choose Photo</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
-                            if (file.size > 10 * 1024 * 1024) {
-                              alert("File size too large. Please select an image under 10MB.");
-                              return;
-                            }
-                            const inputEl = document.getElementById("bannerImageUrlInput") as HTMLInputElement;
-                            if (inputEl) {
-                              inputEl.placeholder = "Compressing photo...";
-                            }
-                            try {
-                              const compressed = await compressImageFile(file, 1200, 600, 0.75);
-                              if (inputEl) {
-                                inputEl.value = compressed;
-                                inputEl.placeholder = "https://... or select photo below";
-                              }
-                            } catch (err) {
-                              console.error("Error compressing image", err);
-                              alert("Failed to process image file.");
-                            }
-                          }}
-                        />
-                      </label>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">
-                      Display Text / Detail (Optional)
-                    </label>
-                    <input
-                      name="detail"
-                      type="text"
-                      placeholder="e.g. 50% OFF THIS WEEKEND"
-                      className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs outline-none text-slate-900 focus:border-pink-500/60 transition"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1.5">
-                      Redirect Link / Target Restaurant (Optional)
-                    </label>
-                    <select
-                      name="restaurantName"
-                      className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs outline-none text-slate-900 focus:border-pink-500/60 transition"
-                    >
-                      <option value="">No link (View Only)</option>
-                      {uniqueRestaurants.map(r => (
-                        <option key={r} value={r}>{r}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex items-center gap-3 py-2">
-                    <input 
-                      type="checkbox" 
-                      name="isActive" 
-                      id="isActiveNewBanner" 
-                      defaultChecked
-                      className="w-4 h-4 text-pink-500 border-slate-300 rounded focus:ring-pink-500"
-                    />
-                    <label htmlFor="isActiveNewBanner" className="text-xs font-bold text-slate-700">
-                      Set as Active immediately
-                    </label>
-                  </div>
-                  <button type="submit" className="bg-pink-500 hover:bg-pink-600 disabled:opacity-70 text-white font-black text-[10px] uppercase tracking-widest py-3 px-6 rounded-xl transition cursor-pointer min-w-[120px]">
-                    Save Banner
-                  </button>
-                </form>
-              </div>
-
-              <div className="bg-white border border-slate-200 rounded-[24px] p-5 lg:p-7 shadow-sm relative overflow-hidden">
-                <h3 className="text-sm font-black text-slate-900 mb-4">Active Banners ({bannersList.length})</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {bannersList.map(banner => (
-                    <div key={banner.id} className={`border ${banner.isActive ? 'border-pink-200/50 bg-pink-50/30' : 'border-slate-200 bg-slate-50 opacity-75'} rounded-2xl p-3 relative group transition-all`}>
-                      <button
-                        onClick={() => {
-                          setConfirmDialog({
-                            title: "Delete Banner",
-                            message: "Are you sure you want to permanently delete this banner?",
-                            onConfirm: async () => {
-                              try {
-                                await deleteDoc(doc(db, "promotional_banners", banner.id));
-                              } catch (err: any) {
-                                alert(handleFirestoreError(err));
-                              }
-                            }
-                          });
-                        }}
-                        className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 shadow-md text-white w-7 h-7 rounded-full flex items-center justify-center transition z-10 cursor-pointer"
-                        title="Delete Banner"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                      <div className="w-full aspect-[21/9] rounded-xl mb-3 overflow-hidden bg-slate-100 relative">
-                        <img 
-                          src={banner.imageUrl} 
-                          className={`w-full h-full object-cover transition-transform ${!banner.isActive && 'grayscale'}`} 
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = "https://placehold.co/800x400/f8fafc/94a3b8?text=Image+Load+Error";
-                          }}
-                        />
-                      </div>
-                      <div className="text-[10px] font-black text-slate-600 truncate mb-1">
-                        {banner.restaurantName ? `🔗 ${banner.restaurantName}` : 'No Link'}
-                      </div>
-                      {banner.detail && (
-                        <div className="text-[10px] font-bold text-pink-500 truncate mb-2">
-                          {banner.detail}
-                        </div>
-                      )}
-                      <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                        <span className="text-[9px] font-bold text-slate-400">
-                          {new Date(banner.createdAt).toLocaleDateString()}
-                        </span>
-                        <button
-                          onClick={async () => {
-                            try {
-                              await updateDoc(doc(db, "promotional_banners", banner.id), {
-                                isActive: !banner.isActive
-                              });
-                            } catch (err: any) {
-                              alert(handleFirestoreError(err));
-                            }
-                          }}
-                          className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider cursor-pointer transition-colors ${banner.isActive ? "bg-green-100 hover:bg-green-200 text-green-700" : "bg-slate-200 hover:bg-slate-300 text-slate-600"}`}
-                        >
-                          {banner.isActive ? "🟢 Active" : "⚫ Hidden"}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
                 </div>
               </div>
             </div>
