@@ -3041,6 +3041,18 @@ export default function App() {
     });
   }, [catalogDishes, isDealActive, dealConfig, checkIsRestaurantClosed]);
 
+  // Popular dishes for the cart "Popular with your order" upsell: real
+  // bestsellers first, then any available food dish (max 6, never services).
+  const popularDishesForCart = React.useMemo(() => {
+    const available = finalDishes.filter(
+      (d) => d.type === "food" && d.isAvailable !== false,
+    );
+    const bestsellers = available.filter((d) => d.isBestseller);
+    const picks = [...bestsellers, ...available.filter((d) => !d.isBestseller)];
+    const seen = new Set<string>();
+    return picks.filter((d) => (seen.has(d.id) ? false : (seen.add(d.id), true))).slice(0, 6);
+  }, [finalDishes]);
+
   // --- RESTAURANT AVAILABILITY CHECK ---
   const uniqueRestaurants = React.useMemo(() => {
     const list = Array.from(
@@ -3222,6 +3234,8 @@ export default function App() {
             deliveryFee={computedDeliveryFee}
             onPlaceOrder={handlePlaceOrderSubmit}
             onAddDrink={handleAddExclusiveDrink}
+            popularDishes={popularDishesForCart}
+            onAddPopularDish={handleAddToCart}
             userCoords={globalCoords}
             systemSettings={deliverySettings}
             allVouchers={vouchers}
@@ -4507,11 +4521,11 @@ export default function App() {
                       <img
                         src="/images/home/rider-scooter.jpg"
                         alt="Dadu Food rider delivering fast on a pink scooter"
-                        className="absolute right-0 top-0 h-full w-[56%] sm:w-[48%] object-cover object-center animate-float-soft"
+                        className="absolute right-0 top-0 h-full w-[56%] sm:w-[48%] lg:w-[38%] object-contain"
                         loading="eager"
                         decoding="async"
                       />
-                      <div className="absolute inset-y-0 right-0 w-[56%] sm:w-[48%] bg-gradient-to-r from-[#E21B70] via-[#E21B70]/25 to-transparent pointer-events-none" aria-hidden="true" />
+                      <div className="absolute inset-y-0 right-0 w-[56%] sm:w-[48%] lg:w-[26%] bg-gradient-to-r from-[#E21B70] via-[#E21B70]/20 to-transparent pointer-events-none" aria-hidden="true" />
                       <div className="relative z-10 px-4 sm:px-6 pt-5 sm:pt-7 pb-4 max-w-[62%] sm:max-w-[58%] animate-slide-in-left">
                         <h2 className="text-[27px] sm:text-4xl font-black italic leading-[1.05] text-white tracking-tight drop-shadow-[0_2px_6px_rgba(0,0,0,0.25)]">
                           DADU FOOD - <span className="text-[#FFD500]">FAST</span>
@@ -4760,7 +4774,7 @@ export default function App() {
                   foodCategories={normalizedFoodCategories}
                   heroBgUrl={heroBgUrl}
                 >
-                <div className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-3 mb-2">
+                <div className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-2 mb-1">
                   <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-3.5 border border-[#E6E6EE] dark:border-[#272733] shadow-xs">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2.5">
@@ -4787,7 +4801,7 @@ export default function App() {
                       )}
                     </div>
 
-                    <div className="flex items-stretch gap-2.5 overflow-x-auto pb-1 scrollbar-none touch-pan-both overscroll-x-contain">
+                    <div className="flex items-stretch gap-2.5 overflow-x-auto pb-1 pr-3 scrollbar-none touch-pan-both overscroll-x-contain">
                       <button
                         type="button"
                         onClick={() => setSelectedRestaurant("All Restaurants")}
@@ -4823,7 +4837,7 @@ export default function App() {
                                 key={vendor}
                                 type="button"
                                 onClick={() => handleRestaurantClick(vendor)}
-                                className={`w-[106px] min-h-[108px] rounded-2xl flex flex-col items-center justify-between p-1.5 transition-colors shrink-0 cursor-pointer border overflow-hidden ${
+                                className={`w-[106px] min-h-[116px] rounded-2xl flex flex-col items-center justify-between p-1.5 transition-colors shrink-0 cursor-pointer border overflow-hidden ${
                                   selectedRestaurant === vendor
                                     ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
                                     : "bg-[#F9F9FB] dark:bg-[#1D1D26] text-[#111118] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50"
@@ -4851,7 +4865,7 @@ export default function App() {
                                     {openStatus.isOpen ? "Open" : "Closed"}
                                   </span>
                                 </div>
-                                <span className={`text-[11px] font-bold text-center truncate w-full px-0.5 mt-1 ${selectedRestaurant === vendor ? "text-white" : "text-[#111118] dark:text-[#F5F5F8]"}`}>
+                                <span className={`text-[11px] font-bold text-center line-clamp-2 leading-tight w-full px-0.5 mt-1 ${selectedRestaurant === vendor ? "text-white" : "text-[#111118] dark:text-[#F5F5F8]"}`}>
                                   {vendor}
                                 </span>
                               </button>
@@ -4875,7 +4889,7 @@ export default function App() {
                 if (!currentUser || activeUserOrders.length === 0) return null;
 
                 return (
-                  <div className="max-w-7xl mx-auto px-3 sm:px-4 mt-4 sm:mt-6 flex overflow-x-auto gap-3 sm:gap-4 pb-2 scrollbar-none snap-x touch-pan-both overscroll-x-contain">
+                  <div className="max-w-7xl mx-auto px-3 sm:px-4 mt-3 sm:mt-4 flex overflow-x-auto gap-3 sm:gap-4 pb-2 pr-3 scrollbar-none snap-x touch-pan-both overscroll-x-contain">
                     {activeUserOrders.map((activeOrderForBanner) => {
                       const getStepProgress = (status: string) => {
                         switch (status) {
@@ -5083,13 +5097,13 @@ export default function App() {
               })()}
 
               {/* Catalog Listing */}
-              <main id="catalog-section" className="max-w-7xl mx-auto px-3.5 sm:px-4 py-5">
+              <main id="catalog-section" className="max-w-7xl mx-auto px-3.5 sm:px-4 py-3">
                 <div className="flex flex-col md:flex-row gap-6">
                   {/* Left Column: Menu Cards Catalog grid */}
-                  <div className="flex-1 space-y-5 min-w-0">
+                  <div className="flex-1 space-y-4 min-w-0">
 
                     {/* 1-Tap Quick Filter Chips Bar (44px+ touch targets) */}
-                    <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1 touch-pan-both">
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1 pr-4 touch-pan-both">
                       {[
                         { id: "all", label: "🍽️ All Kitchens" },
                         { id: "top_rated", label: "🔥 Featured" },
@@ -5297,7 +5311,7 @@ export default function App() {
                                     </div>
                                   </div>
                                 </div>
-                                <div className="p-3 bg-white dark:bg-[#14141A] flex items-center gap-2.5 overflow-x-auto scrollbar-none border-t border-[#E6E6EE] dark:border-[#272733] touch-pan-both overscroll-x-contain">
+                                <div className="p-3 bg-white dark:bg-[#14141A] flex items-center gap-2.5 overflow-x-auto scrollbar-none border-t border-[#E6E6EE] dark:border-[#272733] touch-pan-both overscroll-x-contain pr-3">
                                   {vendorDishes.map((d) => (
                                     <div
                                       key={d.id}
