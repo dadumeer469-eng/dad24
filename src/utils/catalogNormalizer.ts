@@ -53,7 +53,7 @@ const SPELLING_RULES: Array<[RegExp, string]> = [
 
 export function fixSpelling(text: string | undefined | null): string {
   if (!text) return "";
-  let out = String(text);
+  let out = String(text).replace(/[\u200B-\u200D\uFEFF]/g, "");
   for (const [pattern, replacement] of SPELLING_RULES) {
     out = out.replace(pattern, replacement);
   }
@@ -65,12 +65,20 @@ export function stripEmbeddedPrice(name: string): string {
   let cleaned = fixSpelling(name);
   cleaned = cleaned
     .replace(/\(\s*(?:rs\.?|pkr)?\s*\d[\d,]*(?:\s*\/\s*kg|\s*per\s*kg)?\s*\)/gi, "")
-    .replace(/[-–:|]\s*(?:rs\.?|pkr)?\s*\d[\d,]*(?:\s*\/\s*kg|\s*per\s*kg)?\b/gi, "")
-    .replace(/\b(?:rs\.?|pkr)\s*\d[\d,]*(?:\s*\/\s*kg|\s*per\s*kg)?\b/gi, "")
+    .replace(/[-–:|]\s*(?:rs\.?|pkr)?\s*\d[\d,]*(?:\s*\/\s*kg|\s*per\s*kg)?(?:,)?/gi, "")
+    .replace(/\b(?:rs\.?|pkr)\s*\d[\d,]*(?:\s*\/\s*kg|\s*per\s*kg)?(?:,)?/gi, "")
     .replace(/\b\d[\d,]*\s*(?:\/\s*kg|per\s*kg)\b/gi, "")
     .replace(/\s{2,}/g, " ")
     .replace(/[\s\-–:|,]+$/, "")
     .trim();
+
+  // Close unclosed opening parenthesis (e.g. "Chicken Biryani Single Plate (with Raita & Salad")
+  const openParens = (cleaned.match(/\(/g) || []).length;
+  const closeParens = (cleaned.match(/\)/g) || []).length;
+  if (openParens > closeParens) {
+    cleaned = `${cleaned}${")".repeat(openParens - closeParens)}`;
+  }
+
   return cleaned || fixSpelling(name);
 }
 
@@ -103,6 +111,17 @@ export function isBlockedTrademarkItem(dish: Partial<Dish>): boolean {
     /\b(home\s+electrician|ac\s+service\s*&\s*gas|inverter\s+ac\s+diagnostic|plumber\s+repair|emergency\s+plumber)\b/i.test(
       combined
     )
+  ) {
+    return true;
+  }
+  // Remove implausible luxury items and stray imported menu section headings
+  const nameOnly = fixSpelling(dish.name || "").toLowerCase();
+  if (
+    nameOnly.includes("belgian dark chocolate mousse") ||
+    nameOnly.includes("san pellegrino") ||
+    /\bwagyu\b/i.test(nameOnly) ||
+    nameOnly.includes("chef's signature steaks") ||
+    nameOnly === "signature steaks & mains"
   ) {
     return true;
   }
@@ -169,41 +188,52 @@ export function normalizeCategoryName(cat: string | undefined | null): string {
 }
 
 export function recategorizeDish(dish: Dish): string {
-  const nameLower = `${dish.name || ""} ${dish.description || ""}`.toLowerCase();
-  const baseCat = normalizeCategoryName(dish.category);
+  const nameOnly = fixSpelling(dish.name || "").toLowerCase();
+  const baseCatRaw = normalizeCategoryName(dish.category);
+  const baseCat = baseCatRaw.toLowerCase() === "all" ? "Specials" : baseCatRaw;
 
-  if (/\b(pasta|alfredo|penne|spaghetti|macaroni|chowmein|noodles)\b/i.test(nameLower) && !/\bpizza\b/i.test(nameLower)) {
-    return "Pasta";
-  }
-  if (/\b(lasagna|lazania|lazina)\b/i.test(nameLower)) {
-    return "Lasagna";
-  }
-  if (/\b(sandwich|club\s+sandwich)\b/i.test(nameLower)) {
-    return "Sandwich";
-  }
-  if (/\b(salad|russian\s+salad|fresh\s+salad|kachumber)\b/i.test(nameLower) && !/\b(burger|roll|wrap|fries)\b/i.test(nameLower)) {
-    return "Salads";
-  }
-  if (/\b(steak|t-bone|ribeye|sirloin)\b/i.test(nameLower)) {
+  // Check Steaks BEFORE Sandwich & Tea so "Grilled Tenderloin Steak Sandwich" and "Prime Ribeye Steak" move to Steaks & Grill
+  if (/\b(steak|t-bone|ribeye|sirloin|tenderloin)\b/i.test(nameOnly)) {
     return "Steaks & Grill";
   }
-  if (/\b(cheesecake|cake|brownie|gulab\s+jamun|kheer|ice\s+cream|custard|halwa|pastry)\b/i.test(nameLower) && !/\b(shake|milkshake)\b/i.test(nameLower)) {
+  if (/\b(pasta|alfredo|penne|spaghetti|macaroni|chowmein|noodles)\b/i.test(nameOnly) && !/\bpizza\b/i.test(nameOnly)) {
+    return "Pasta";
+  }
+  if (/\b(lasagna|lazania|lazina)\b/i.test(nameOnly)) {
+    return "Lasagna";
+  }
+  if (/\b(sandwich|club\s+sandwich)\b/i.test(nameOnly)) {
+    return "Sandwich";
+  }
+  if (/\b(salad|russian\s+salad|fresh\s+salad|kachumber)\b/i.test(nameOnly) && !/\b(burger|roll|wrap|fries|biryani)\b/i.test(nameOnly)) {
+    return "Salads";
+  }
+  if (/\b(cheesecake|cake|brownie|gulab\s+jamun|kheer|ice\s+cream|custard|halwa|pastry)\b/i.test(nameOnly) && !/\b(shake|milkshake)\b/i.test(nameOnly)) {
     return "Desserts";
   }
-  if (/\b(chai|doodh\s+patti|green\s+tea|kehwa|kahwa|karak\s+tea|black\s+tea|masala\s+tea|tea)\b/i.test(nameLower) && !/\bsteak\b/i.test(nameLower)) {
+  if (/\b(chai|doodh\s+patti|green\s+tea|kehwa|kahwa|karak\s+tea|black\s+tea|masala\s+tea|iced\s+tea|tea)\b/i.test(nameOnly)) {
     return "Tea & Chai";
   }
-  if (/\b(biryani|karahi|handi|nihari|pulao|haleem|qorma|korma|daal|dal|palak|saag|paye|sindhi|mutton|makhni|naan|roti)\b/i.test(nameLower) && baseCat !== "BBQ & Grill") {
+  if (/\b(biryani|karahi|handi|nihari|pulao|haleem|qorma|korma|daal|dal|palak|saag|paye|sindhi|mutton|makhni|naan|roti|chapati)\b/i.test(nameOnly) && baseCat !== "BBQ & Grill") {
     return "Desi Food";
   }
-  if (/\bparatha\b/i.test(nameLower) && !/\broll\b/i.test(nameLower)) {
+  if (/\bparatha\b/i.test(nameOnly) && !/\broll\b/i.test(nameOnly)) {
     return "Paratha";
   }
-  if (/\b(roll|shawarma|wrap|tortilla)\b/i.test(nameLower)) {
+  if (/\b(roll|shawarma|wrap|tortilla)\b/i.test(nameOnly)) {
     return "Rolls & Wraps";
   }
-  if (/\b(broast|brost|crispy\s+chicken|fried\s+chicken|wings|nuggets)\b/i.test(nameLower)) {
+  if (/\b(broast|brost|crispy\s+chicken|fried\s+chicken|wings|nuggets)\b/i.test(nameOnly)) {
     return "Broast";
+  }
+  if (/\b(burger|zinger)\b/i.test(nameOnly)) {
+    return "Burgers";
+  }
+  if (/\bpizza\b/i.test(nameOnly)) {
+    return "Pizza";
+  }
+  if (/\bfries\b/i.test(nameOnly)) {
+    return "Fries";
   }
 
   return baseCat;
@@ -241,20 +271,22 @@ const KNOWN_BAD_PHOTO_SNIPPETS = [
   "photo-1513104890138-7c749659a591",
   "photo-1593560708920-61dd98c46a4e",
   "photo-1544025162-d76694265947",
+  "photo-1594212691516-436ad271c591",
+  "photo-1601050690597-df056fb4ce78",
 ];
 
 function pickFallbackPhotoByName(name: string): string {
   if (name.includes("mountain dew") || name.includes("dew")) return DISH_IMAGE_MAP.mountainDew;
   if (name.includes("7up") || name.includes("7 up") || name.includes("sprite")) return DISH_IMAGE_MAP.sevenUp;
   if (name.includes("pepsi") || name.includes("coke") || name.includes("cola")) return DISH_IMAGE_MAP.cola;
+  if (name.includes("steak") || name.includes("ribeye") || name.includes("tenderloin")) return DISH_IMAGE_MAP.steak;
   if (name.includes("green tea") || name.includes("kehwa") || name.includes("kahwa")) return DISH_IMAGE_MAP.greenTea;
   if (name.includes("chai") || name.includes("tea")) return DISH_IMAGE_MAP.chai;
   if (name.includes("paratha")) return DISH_IMAGE_MAP.paratha;
-  if (name.includes("naan") || name.includes("roti")) return DISH_IMAGE_MAP.naan;
+  if (name.includes("naan") || name.includes("roti") || name.includes("chapati")) return DISH_IMAGE_MAP.naan;
   if (name.includes("biryani") || name.includes("pulao")) return DISH_IMAGE_MAP.biryani;
   if (name.includes("karahi") || name.includes("handi") || name.includes("nihari") || name.includes("desi")) return DISH_IMAGE_MAP.karahi;
   if (name.includes("tikka") || name.includes("kabab") || name.includes("seekh") || name.includes("bbq") || name.includes("malai boti")) return DISH_IMAGE_MAP.bbq;
-  if (name.includes("steak")) return DISH_IMAGE_MAP.steak;
   if (name.includes("lasagna")) return DISH_IMAGE_MAP.lasagna;
   if (name.includes("pasta") || name.includes("alfredo") || name.includes("chowmein")) return DISH_IMAGE_MAP.pasta;
   if (name.includes("sandwich")) return DISH_IMAGE_MAP.sandwich;
@@ -289,6 +321,21 @@ export function resolveAccurateDishImage(dish: Partial<Dish>): string {
   }
   if (img.includes("photo-1544025162-d76694265947")) {
     return DISH_IMAGE_MAP.bbq;
+  }
+  // Fix broken/404 Grilled Jalapeno Burger photo and chai photos wrongly assigned to Steaks
+  if (
+    img.includes("photo-1594212691516-436ad271c591") ||
+    img.includes("photo-1601050690597-df056fb4ce78")
+  ) {
+    return pickFallbackPhotoByName(name);
+  }
+  if (
+    img.includes("photo-1576092768241-dec231879fc3") &&
+    dish.category !== "Tea & Chai" &&
+    !name.includes("chai") &&
+    !name.includes("tea")
+  ) {
+    return pickFallbackPhotoByName(name);
   }
 
   const isPizza = name.includes("pizza");
@@ -328,8 +375,49 @@ export function isDishVeg(dish: Partial<Dish>): boolean {
   return Boolean(dish.isVeg);
 }
 
+export function fixDishDescription(name: string, category: string, rawDesc: string): string {
+  const n = name.toLowerCase();
+  const d = rawDesc.toLowerCase();
+
+  // Fix Chicken Biryani wrongly carrying a Raita dip description
+  if (n.includes("biryani") && (d.includes("yogurt dip") || d.includes("creamy yogurt") || d.includes("raita dip") || !rawDesc)) {
+    return "Fragrant long-grain basmati rice layered with spiced tender chicken, saffron, and traditional spices, served hot with fresh mint raita and salad.";
+  }
+
+  // Fix Sada Roti / Chapati wrongly carrying a Roghni Naan description
+  if ((n.includes("sada roti") || n.includes("chapati")) && (d.includes("sesame") || d.includes("pure butter") || d.includes("roghni") || d.includes("naan") || !rawDesc)) {
+    return "Soft, freshly baked plain whole-wheat chapati (sada roti), made hot to order.";
+  }
+
+  // Fix Steaks wrongly carrying a Karak Chai description
+  if (n.includes("tenderloin") && n.includes("steak") && (d.includes("karak") || d.includes("cardamom") || d.includes("tea") || d.includes("chai") || !rawDesc)) {
+    return "Flame-grilled beef tenderloin steak layered in toasted artisanal bread with melted cheese, caramelized onions, and signature peppercorn sauce.";
+  }
+  if ((n.includes("ribeye") || n.includes("steak")) && (d.includes("karak") || d.includes("cardamom") || d.includes("tea") || d.includes("chai") || !rawDesc)) {
+    return "Juicy char-grilled steak seasoned with crushed black pepper and herbs, served hot with garlic herb butter and crispy sides.";
+  }
+
+  // Fix Smoked Berry Iced Tea wrongly carrying a hot Karak Chai description
+  if (n.includes("iced tea") && (d.includes("steaming") || d.includes("hot") || d.includes("karak") || d.includes("milk") || !rawDesc)) {
+    return "Chilled, refreshing iced tea infused with smoky berry notes and citrus, served cold over ice.";
+  }
+
+  if (category === "Tea & Chai" && !rawDesc) {
+    return "Freshly brewed hot tea prepared to order.";
+  }
+
+  return rawDesc;
+}
+
 export function normalizePrice(dish: Dish, normalizedCat: string): number {
+  const nameLower = (dish.name || "").toLowerCase();
   const price = Number(dish.price) || 0;
+
+  // Fix mispriced Sada Roti / Chapati (Rs. 250 -> Rs. 30 per piece)
+  if ((nameLower.includes("sada roti") || nameLower.includes("chapati")) && price >= 100) {
+    return 30;
+  }
+
   if (price <= 0) {
     if (normalizedCat === "Tea & Chai") return 80;
     if (normalizedCat === "Pizza") return 690;
@@ -349,9 +437,10 @@ export const SUPPLEMENTAL_DADU_DISHES: Dish[] = [];
 
 export function normalizeDish(raw: Dish): Dish {
   const cleanName = stripEmbeddedPrice(raw.name || "Fresh Dish");
-  const cleanDesc = fixSpelling(raw.description || "");
+  const rawDescClean = fixSpelling(raw.description || "");
   const cleanRestaurant = fixSpelling(raw.restaurantName || "Dadu Kitchen");
-  const recat = recategorizeDish({ ...raw, name: cleanName, description: cleanDesc });
+  const recat = recategorizeDish({ ...raw, name: cleanName, description: rawDescClean });
+  const cleanDesc = fixDishDescription(cleanName, recat, rawDescClean);
   const price = normalizePrice({ ...raw, name: cleanName }, recat);
   const discountPrice =
     raw.discountPrice && raw.discountPrice > 0 && raw.discountPrice < price
@@ -713,3 +802,67 @@ export function sanitizeBanner(banner: Banner): Banner | null {
     detail,
   };
 }
+
+// ============================================================================
+// PROTECTED ACCOUNTS & DEMO DATA CLEANUP HELPERS
+// ============================================================================
+const PROTECTED_PHONES = new Set([
+  "03277004471",
+  "923277004471",
+  "3277004471",
+  "03277004427",
+  "923277004427",
+  "3277004427",
+]);
+
+export function normalizePhoneDigits(phone?: string | null): string {
+  return String(phone || "").replace(/\D/g, "");
+}
+
+/**
+ * STRICT PROTECTION GUARD:
+ * NEVER delete or modify:
+ * 1) Owner account: phone 03277004471, name "meer", role admin
+ * 2) Pending user: Raza Khan, phone 03277004427 (must remain pending)
+ */
+export function isProtectedUserAccount(user: {
+  phone?: string;
+  name?: string;
+  role?: string;
+  email?: string;
+}): boolean {
+  const digits = normalizePhoneDigits(user?.phone);
+  if (digits && PROTECTED_PHONES.has(digits)) return true;
+  if (digits.endsWith("3277004471") || digits.endsWith("3277004427")) return true;
+  const nameLower = (user?.name || "").trim().toLowerCase();
+  if (nameLower === "raza khan") return true;
+  if (nameLower === "meer" && user?.role === "admin") return true;
+  if (user?.role === "admin") return true;
+  return false;
+}
+
+export function isDemoOrderRecord(order: Partial<Order> & { id?: string }): boolean {
+  const idStr = String(order?.id || "").toUpperCase();
+  const nameStr = String(order?.userName || order?.name || "").toLowerCase();
+  const riderStr = String(order?.riderName || "").toLowerCase();
+  if (idStr.includes("DADU-ORDER_17") || idStr === "ORDER" || idStr.startsWith("DEMO")) return true;
+  if (riderStr.includes("create name meer") || riderStr === "hero: meer") return true;
+  if (nameStr.includes("demo") || nameStr.includes("test user") || nameStr === "test") return true;
+  return false;
+}
+
+export function isDemoUserRecord(user: {
+  phone?: string;
+  name?: string;
+  role?: string;
+  email?: string;
+}): boolean {
+  if (isProtectedUserAccount(user)) return false;
+  const nameLower = (user?.name || "").trim().toLowerCase();
+  const phoneDigits = normalizePhoneDigits(user?.phone);
+  if (nameLower.includes("create name meer")) return true;
+  if (nameLower.includes("demo") || nameLower.includes("test") || nameLower.includes("dummy")) return true;
+  if (phoneDigits === "03001234567" || phoneDigits === "03000000000" || phoneDigits === "03111111111") return true;
+  return false;
+}
+

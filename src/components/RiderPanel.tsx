@@ -14,6 +14,8 @@ import {
 import OrderChat from "./OrderChat";
 import { useRiderLocationTracker } from "../lib/riderLocationTracker";
 import { formatOrderId } from "../utils/catalogNormalizer";
+import { AdvancedMarker, Map as GoogleMap } from "@vis.gl/react-google-maps";
+import GoogleMapsProvider from "./GoogleMapsProvider";
 
 interface RiderPanelProps {
   currentUser: UserProfile;
@@ -1117,18 +1119,32 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                          </span>
 
                          <div className="relative w-full h-48 sm:h-56 rounded-xl overflow-hidden border border-zinc-800 bg-zinc-900 shadow-inner">
-                           <iframe
-                             title="Customer Pinpoint Location"
-                             width="100%"
-                             height="100%"
-                             frameBorder="0"
-                             scrolling="no"
-                             marginHeight={0}
-                             marginWidth={0}
-                             src={`https://www.openstreetmap.org/export/embed.html?bbox=${riderActiveOrder.userCoords.longitude - 0.003}%2C${riderActiveOrder.userCoords.latitude - 0.003}%2C${riderActiveOrder.userCoords.longitude + 0.003}%2C${riderActiveOrder.userCoords.latitude + 0.003}&layer=mapnik&marker=${riderActiveOrder.userCoords.latitude}%2C${riderActiveOrder.userCoords.longitude}`}
-                             style={{ filter: "invert(90%) hue-rotate(180deg) brightness(95%) contrast(90%)" }}
-                             className="w-full h-full rounded-xl"
-                           ></iframe>
+                           <GoogleMapsProvider>
+                             <GoogleMap
+                               key={`rider-dest-map-${riderActiveOrder.id}`}
+                               defaultCenter={{
+                                 lat: riderActiveOrder.userCoords.latitude,
+                                 lng: riderActiveOrder.userCoords.longitude,
+                               }}
+                               defaultZoom={16}
+                               mapId="DEMO_MAP_ID"
+                               gestureHandling="greedy"
+                               disableDefaultUI
+                               internalUsageAttributionIds={["gmp_mcp_codeassist_v1_aistudio"]}
+                               style={{ width: "100%", height: "100%" }}
+                             >
+                               <AdvancedMarker
+                                 position={{
+                                   lat: riderActiveOrder.userCoords.latitude,
+                                   lng: riderActiveOrder.userCoords.longitude,
+                                 }}
+                               >
+                                 <div className="w-8 h-8 bg-[#E21B70] border-2 border-white rounded-full flex items-center justify-center shadow-lg text-white">
+                                   <MapPin className="w-4 h-4" />
+                                 </div>
+                               </AdvancedMarker>
+                             </GoogleMap>
+                           </GoogleMapsProvider>
                            <div className="absolute bottom-2.5 right-2.5 bg-zinc-950/90 border border-zinc-850 py-1 px-2.5 rounded-lg text-[8px] sm:text-[9px] font-black tracking-wider text-emerald-400 shadow flex items-center gap-1.5 pointer-events-none backdrop-blur-md">
                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                              CUSTOMER DOORSTEP

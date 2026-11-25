@@ -37,6 +37,15 @@ async function startServer() {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
+  // Expose public browser Google Maps API key from runtime environment
+  app.get("/api/maps-config", (_req, res) => {
+    const apiKey =
+      process.env.VITE_GOOGLE_MAPS_API_KEY ||
+      process.env.GOOGLE_MAPS_API_KEY ||
+      "";
+    res.json({ apiKey });
+  });
+
   // 🔍 Google & Web Food Image Search API Route
   app.post(["/api/ai/search-food-image", "/api/ai/generate-food-image"], async (req, res) => {
     const {

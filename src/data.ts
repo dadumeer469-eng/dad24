@@ -212,25 +212,12 @@ export const DEFAULT_FOOD_CATEGORIES = [
   },
 ];
 
-// Honest empty defaults: never fabricate fake grocery inventory when Firestore has none.
-export const DEFAULT_GROCERY_CATEGORIES: Array<{
-  id: string;
-  name: string;
-  icon: string;
-  position: number;
-  isAvailable: boolean;
-}> = [];
-
-export const DEFAULT_GROCERY_PRODUCTS: Array<{
-  id: string;
-  name: string;
-  price: number;
-  unit: string;
-  imageUrl: string;
-  categoryId: string;
-  isAvailable: boolean;
-  stock: number;
-}> = [];
+export {
+  OWNER_GROCERY_CATEGORIES,
+  OWNER_GROCERY_PRODUCTS,
+  OWNER_GROCERY_CATEGORIES as DEFAULT_GROCERY_CATEGORIES,
+  OWNER_GROCERY_PRODUCTS as DEFAULT_GROCERY_PRODUCTS,
+} from "./data/ownerGroceryCatalog";
 
 export function getDefaultRestaurantImage(vendorName?: string): string {
   if (!vendorName) return "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=600";

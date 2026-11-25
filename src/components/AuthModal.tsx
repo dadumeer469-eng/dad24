@@ -82,6 +82,9 @@ export default function AuthModal({
       }
       window.daduRecaptchaVerifier = null;
     }
+    if (recaptchaContainerRef.current) {
+      recaptchaContainerRef.current.innerHTML = "";
+    }
     const verifier = new RecaptchaVerifier(auth, "dadu-recaptcha-container", {
       size: "invisible",
     });
@@ -110,6 +113,14 @@ export default function AuthModal({
       setResendCooldown(60);
       setInfoMsg(`6-digit SMS verification code sent to ${cleanPhone}.`);
     } catch (err: any) {
+      if (window.daduRecaptchaVerifier) {
+        try {
+          window.daduRecaptchaVerifier.clear();
+        } catch {
+          // ignore
+        }
+        window.daduRecaptchaVerifier = null;
+      }
       const code = err?.code || "";
       if (code === "auth/operation-not-allowed") {
         setError(
@@ -123,6 +134,14 @@ export default function AuthModal({
         setError("Too many OTP attempts. Please wait a few minutes and try again.");
       } else if (code === "auth/invalid-phone-number") {
         setError("Invalid phone number format. Use 03XXXXXXXXX.");
+      } else if (code === "auth/captcha-check-failed") {
+        setError("reCAPTCHA verification failed. Please tap Send OTP again.");
+      } else if (code === "auth/billing-not-enabled" || code === "auth/quota-exceeded") {
+        setError(
+          "Firebase SMS quota/billing is not enabled on this project yet. Enable Firebase Blaze billing or test phone numbers in Firebase Console."
+        );
+      } else if (code === "auth/network-request-failed") {
+        setError("Network error while sending SMS OTP. Please check your connection and try again.");
       } else {
         setError(err?.message || "Could not send SMS OTP. Please verify Firebase Phone Auth setup.");
       }

@@ -94,6 +94,7 @@ export interface Order {
   deliveryFee: number;
   grandTotal: number;
   status: 
+    | "payment_verification_pending"
     | "placed" | "pending" | "accepted" | "confirmed" | "preparing" | "out_for_delivery" | "delivered" | "cancelled" // Food statuses
     | "booked" | "diagnostic_on_way" | "diagnostic_underway" | "completed"; // Service statuses
   riderName?: string; // or technician name
@@ -104,7 +105,14 @@ export interface Order {
   eta?: string; // e.g. "1 Hour", "25 mins"
   serviceTiming?: string;
   createdAt: any; // Firestore Timestamp
-  paymentMethod: "COD" | "JazzCash" | "Easypaisa" | "Card" | "Pay on Appointment" | "cod";
+  paymentMethod: "COD" | "Easypaisa" | "Pay on Appointment" | "cod";
+  paymentReceiptUrl?: string;
+  paymentVerified?: boolean;
+  paymentRejected?: boolean;
+  paymentRejectionReason?: string;
+  paymentVerifiedAt?: any;
+  paymentAccountTitle?: string;
+  paymentAccountNumber?: string;
   riderTip?: number;
   isScheduled?: boolean;
   scheduledTime?: string;
@@ -226,7 +234,8 @@ export interface GroceryProduct {
   imageUrl: string;
   price: number;
   discountPrice?: number;
-  unit: "kg" | "litre" | "piece" | "pack";
+  unit: string;
+  packSize?: string;
   stock: number; // custom number or boolean representation
   categoryId: string;
   isAvailable: boolean;

@@ -59,7 +59,7 @@ export default function BannerCarousel({
             <span className="text-white/40" aria-hidden="true">·</span>
             <span className="inline-flex items-center gap-1 tabular-nums">
               <Truck className="w-3.5 h-3.5 text-[#FF4D94]" />
-              Rs. {deliveryFee} fee · Free Rs. 1,000+
+              <span>{`Rs. ${deliveryFee} fee · Free Rs. 1,000+`}</span>
             </span>
           </div>
 

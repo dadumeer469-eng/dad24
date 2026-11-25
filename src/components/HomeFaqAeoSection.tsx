@@ -31,10 +31,10 @@ export const HomeFaqAeoSection: React.FC<HomeFaqAeoSectionProps> = ({ language =
               <Truck className="w-4 h-4" /> Delivery Fee Policy
             </div>
             <p className="text-sm font-bold text-[#14141A] dark:text-white tabular-nums">
-              Rs. {DADU_FOOD_BUSINESS.standardDeliveryFee} standard
+              {`Rs. ${DADU_FOOD_BUSINESS.standardDeliveryFee} standard`}
             </p>
             <p className="text-xs text-[#5A5A6B] dark:text-[#A1A1B2] mt-0.5">
-              Doubled (Rs. {DADU_FOOD_BUSINESS.standardDeliveryFee * 2}) below Rs. {DADU_FOOD_BUSINESS.smallOrderThreshold} · Free above Rs. {DADU_FOOD_BUSINESS.freeDeliveryThreshold.toLocaleString()}
+              {`Doubled (Rs. ${DADU_FOOD_BUSINESS.standardDeliveryFee * 2}) below Rs. ${DADU_FOOD_BUSINESS.smallOrderThreshold} · Free above Rs. ${DADU_FOOD_BUSINESS.freeDeliveryThreshold.toLocaleString()}`}
             </p>
           </div>
 
@@ -54,7 +54,7 @@ export const HomeFaqAeoSection: React.FC<HomeFaqAeoSectionProps> = ({ language =
             </div>
             <p className="text-sm font-bold text-[#14141A] dark:text-white">{DADU_FOOD_BUSINESS.address}</p>
             <p className="text-xs text-[#5A5A6B] dark:text-[#A1A1B2] mt-0.5">
-              Serving {DADU_FOOD_BUSINESS.deliveryAreas.slice(0, 5).join(", ")} &amp; all Dadu City.
+              {`Serving ${DADU_FOOD_BUSINESS.deliveryAreas.slice(0, 5).join(", ")} & all Dadu City.`}
             </p>
           </div>
 

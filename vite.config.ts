@@ -17,12 +17,16 @@ export default defineConfig(() => {
       'VITE_FIREBASE_STORAGE_BUCKET',
       'VITE_FIREBASE_MESSAGING_SENDER_ID',
       'VITE_FIREBASE_APP_ID',
-      'VITE_FIREBASE_DATABASE_ID'
+      'VITE_FIREBASE_DATABASE_ID',
+      'VITE_GOOGLE_MAPS_API_KEY'
     ];
     for (const key of keys) {
       if (process.env[key]) {
         envContent += `${key}=${process.env[key]}\n`;
       }
+    }
+    if (!process.env.VITE_GOOGLE_MAPS_API_KEY && process.env.GOOGLE_MAPS_API_KEY) {
+      envContent += `VITE_GOOGLE_MAPS_API_KEY=${process.env.GOOGLE_MAPS_API_KEY}\n`;
     }
     if (envContent) {
       fs.writeFileSync(envPath, envContent, 'utf-8');
@@ -32,8 +36,18 @@ export default defineConfig(() => {
     }
   }
 
+  const mapsApiKey =
+    process.env.VITE_GOOGLE_MAPS_API_KEY ||
+    process.env.GOOGLE_MAPS_API_KEY ||
+    '';
+
   return {
     plugins: [react(), tailwindcss()],
+    define: mapsApiKey
+      ? {
+          'import.meta.env.VITE_GOOGLE_MAPS_API_KEY': JSON.stringify(mapsApiKey),
+        }
+      : undefined,
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
