@@ -197,7 +197,10 @@ export function syncPageSeo(params: {
 }) {
   if (typeof document === "undefined") return;
 
-  const origin = window.location.origin;
+  // Canonical domain: always dadufood.store, even when the visitor is on
+  // dadufood.vercel.app. Otherwise Google sees two versions and picks the
+  // Vercel URL as canonical, and the .store homepage never gets indexed.
+  const origin = "https://dadufood.store";
   let title = "Food Delivery in Dadu | Dadu Food — 20–35 Min, Rs 50, COD & Easypaisa";
   let description =
     "Food delivery in Dadu, Sindh — biryani, pizza, zinger burgers, karahi & groceries delivered in 20–35 min for Rs 50. Cash on Delivery & Easypaisa. Call 03277004471.";
