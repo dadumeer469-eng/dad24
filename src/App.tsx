@@ -105,6 +105,8 @@ import {
   LogOut,
   Home,
   ArrowLeft,
+  ArrowRight,
+  Phone,
   Plus,
   Minus,
   Star,
@@ -2508,15 +2510,20 @@ export default function App() {
 
     const feeCalc =
       details.orderType === "food"
-        ? calculateDeliveryFee(itemsTotal, parsedDeliveryFee, deliverySettings)
+        ? calculateDeliveryFee(
+            itemsTotal,
+            parsedDeliveryFee,
+            deliverySettings?.freeDeliveryAboveAmount ?? 1000,
+            deliverySettings?.doubleFeeBelowAmount ?? 500,
+          )
         : { fee: 0, isFree: true, isSmallOrderDoubled: false, reason: "Service booking" };
-    // Delivery speed adjustment (matches CartDrawer display): Saver -Rs 20, Priority +Rs 30
+    // Delivery speed adjustment (admin-controlled, matches CartDrawer display)
     const speedFeeAdjustment =
       details.orderType === "food"
         ? details.deliverySpeed === "saver"
-          ? -20
+          ? -(deliverySettings?.saverDiscount ?? 20)
           : details.deliverySpeed === "priority"
-            ? 30
+            ? (deliverySettings?.priorityFee ?? 30)
             : 0
         : 0;
     const finalFee = Math.max(
@@ -3774,7 +3781,7 @@ export default function App() {
             </div>
             
             <a
-              href={`https://wa.me/923277004471?text=${encodeURIComponent(contactText)}`}
+              href={`https://wa.me/${deliverySettings?.whatsappNumber || "923277004471"}?text=${encodeURIComponent(contactText)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full bg-[#25D366] hover:bg-[#20ba5a] text-white font-black py-4.5 px-4 rounded-2xl transition-all flex items-center justify-center gap-2.5 cursor-pointer text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/10"
@@ -4159,7 +4166,7 @@ export default function App() {
 
       {/* Dynamic Floating WhatsApp Helpline Button (Bottom corner) */}
       <a
-        href="https://wa.me/923277004471"
+        href={`https://wa.me/${deliverySettings?.whatsappNumber || "923277004471"}`}
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-32 left-4 z-40 bg-[#25D366] text-white p-2 rounded-full shadow-lg hover:scale-110 transition-transform cursor-pointer flex items-center justify-center border border-white/20"
@@ -4279,7 +4286,7 @@ export default function App() {
 
             <div className="flex flex-col gap-3.5 w-full">
               <a
-                href="https://wa.me/923277004471"
+                href={`https://wa.me/${deliverySettings?.whatsappNumber || "923277004471"}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full bg-[#25D366] hover:bg-[#20ba5a] text-white font-black py-3.5 px-4 rounded-2xl shadow-lg hover:scale-[1.01] transition-all flex items-center justify-center gap-2 cursor-pointer text-xs uppercase tracking-wider"
@@ -4361,20 +4368,35 @@ export default function App() {
                   transition={{ duration: 0.2, ease: "easeOut" }}
                 >
               <>
-                {/* Foodpanda 4 Service Tiles Grid (2x2 Mobile / 4-col Desktop) — sits on a slim professional banner */}
+                {/* Dadu Food hero banner — Foodpanda-style, richer: headline + rider + 4 service tiles */}
                 <section className="max-w-7xl mx-auto px-3.5 sm:px-4 pt-3.5 pb-1">
-                  <div className="rounded-3xl bg-gradient-to-r from-[#D70F64] via-[#E21B70] to-[#B80C54] p-2.5 sm:p-3 shadow-sm relative overflow-hidden">
-                    <div className="absolute -right-6 -top-10 w-28 h-28 rounded-full bg-white/10 pointer-events-none" />
-                    <div className="absolute -left-4 -bottom-12 w-24 h-24 rounded-full bg-white/10 pointer-events-none" />
-                    <div className="relative flex items-center justify-between gap-2 px-1.5 pb-2 pt-0.5">
-                      <span className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-white">
-                        Dadu Food • Fast Delivery
-                      </span>
-                      <span className="text-[11px] font-bold text-white/90 whitespace-nowrap">
-                        25–35 min • COD &amp; Easypaisa
-                      </span>
+                  <div className="rounded-[28px] bg-gradient-to-br from-[#FF2B85] via-[#E21B70] to-[#B80C54] shadow-md relative overflow-hidden">
+                    {/* Headline + rider row */}
+                    <div className="relative min-h-[185px] sm:min-h-[220px]">
+                      <img
+                        src="/images/home/rider-scooter.jpg"
+                        alt="Dadu Food rider delivering fast on a pink scooter"
+                        className="absolute right-0 top-0 h-full w-[56%] sm:w-[48%] object-cover object-center"
+                        loading="eager"
+                        decoding="async"
+                      />
+                      <div className="absolute inset-y-0 right-0 w-[56%] sm:w-[48%] bg-gradient-to-r from-[#E21B70] via-[#E21B70]/25 to-transparent pointer-events-none" aria-hidden="true" />
+                      <div className="relative z-10 px-4 sm:px-6 pt-5 sm:pt-7 pb-4 max-w-[62%] sm:max-w-[58%]">
+                        <h2 className="text-[27px] sm:text-4xl font-black italic leading-[1.05] text-white tracking-tight drop-shadow-[0_2px_6px_rgba(0,0,0,0.25)]">
+                          DADU FOOD - <span className="text-[#FFD500]">FAST</span>
+                          <br />
+                          <span className="relative inline-block">
+                            DELIVERY
+                            <span className="absolute left-0 -bottom-1 h-[5px] w-full bg-[#FFD500] rounded-full -rotate-1" />
+                          </span>
+                        </h2>
+                        <p className="mt-3 flex items-center gap-1.5 text-[12px] sm:text-sm font-bold text-white/95">
+                          <Clock className="w-4 h-4 shrink-0" />
+                          25–35 min • COD &amp; Easypaisa
+                        </p>
+                      </div>
                     </div>
-                    <div className="relative grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+                    <div className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 p-2.5 sm:p-3 pt-1">
                     <button
                       type="button"
                       onClick={() => {
@@ -4383,37 +4405,55 @@ export default function App() {
                         setActiveCategory("All");
                         document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth" });
                       }}
-                      className="min-h-[82px] text-left p-3.5 rounded-2xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2"
+                      className="min-h-[108px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2"
                     >
-                      <div className="min-w-0">
-                        <span className="block text-sm font-black text-[#14141A] dark:text-white leading-tight">
-                          Food Delivery
-                        </span>
-                        <span className="block text-[11px] font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-1">
-                          Hot meals in Dadu
+                      <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
+                        <div>
+                          <span className="block text-[15px] font-black text-[#14141A] dark:text-white leading-tight">
+                            Food<br />Delivery
+                          </span>
+                          <span className="block text-[11px] font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-1 leading-snug">
+                            Hot meals in Dadu
+                          </span>
+                        </div>
+                        <span className="mt-2 inline-flex w-7 h-7 rounded-full bg-[#E21B70] text-white items-center justify-center shrink-0">
+                          <ArrowRight className="w-4 h-4" />
                         </span>
                       </div>
-                      <span className="w-11 h-11 rounded-2xl bg-[#FFF0F5] dark:bg-[#2A101C] flex items-center justify-center text-2xl shrink-0">
-                        🍔
-                      </span>
+                      <img
+                        src="/images/home/burger-3d.jpg"
+                        alt="Crispy burger"
+                        className="w-[72px] h-[72px] sm:w-20 sm:h-20 rounded-2xl object-cover shrink-0"
+                        loading="lazy"
+                        decoding="async"
+                      />
                     </button>
 
                     <button
                       type="button"
                       onClick={handleGoToGroceryHome}
-                      className="min-h-[82px] text-left p-3.5 rounded-2xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2"
+                      className="min-h-[108px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2"
                     >
-                      <div className="min-w-0">
-                        <span className="block text-sm font-black text-[#14141A] dark:text-white leading-tight">
-                          Dadu Mart
-                        </span>
-                        <span className="block text-[11px] font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-1">
-                          100 groceries &amp; rashan
+                      <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
+                        <div>
+                          <span className="block text-[15px] font-black text-[#14141A] dark:text-white leading-tight">
+                            Dadu<br />Mart
+                          </span>
+                          <span className="block text-[11px] font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-1 leading-snug">
+                            100 groceries &amp; rashan
+                          </span>
+                        </div>
+                        <span className="mt-2 inline-flex w-7 h-7 rounded-full bg-[#E21B70] text-white items-center justify-center shrink-0">
+                          <ArrowRight className="w-4 h-4" />
                         </span>
                       </div>
-                      <span className="w-11 h-11 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center text-2xl shrink-0">
-                        🛒
-                      </span>
+                      <img
+                        src="/images/home/grocery-cart-3d.jpg"
+                        alt="Grocery cart full of fresh groceries"
+                        className="w-[72px] h-[72px] sm:w-20 sm:h-20 rounded-2xl object-cover shrink-0"
+                        loading="lazy"
+                        decoding="async"
+                      />
                     </button>
 
                     <button
@@ -4423,37 +4463,51 @@ export default function App() {
                         setQuickFilter("under_300");
                         document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth" });
                       }}
-                      className="min-h-[82px] text-left p-3.5 rounded-2xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2"
+                      className="min-h-[108px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2"
                     >
-                      <div className="min-w-0">
-                        <span className="block text-sm font-black text-[#14141A] dark:text-white leading-tight">
-                          Budget Deals
-                        </span>
-                        <span className="block text-[11px] font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-1">
-                          Under Rs. 300 picks
+                      <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
+                        <div>
+                          <span className="block text-[15px] font-black text-[#14141A] dark:text-white leading-tight">
+                            Budget<br />Deals
+                          </span>
+                          <span className="block text-[11px] font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-1 leading-snug">
+                            Under Rs. 300 picks
+                          </span>
+                        </div>
+                        <span className="mt-2 inline-flex w-7 h-7 rounded-full bg-[#E21B70] text-white items-center justify-center shrink-0">
+                          <ArrowRight className="w-4 h-4" />
                         </span>
                       </div>
-                      <span className="w-11 h-11 rounded-2xl bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center text-2xl shrink-0">
-                        ⚡
-                      </span>
+                      <img
+                        src="/images/home/price-tag-3d.jpg"
+                        alt="Discount price tag"
+                        className="w-[72px] h-[72px] sm:w-20 sm:h-20 rounded-2xl object-cover shrink-0"
+                        loading="lazy"
+                        decoding="async"
+                      />
                     </button>
 
                     <a
-                      href="https://wa.me/923277004471?text=Assalam-o-Alaikum%20Dadu%20Food!%20Mera%20WhatsApp%20order%20list%20ye%20hai:"
+                      href={`https://wa.me/${deliverySettings?.whatsappNumber || "923277004471"}?text=Assalam-o-Alaikum%20Dadu%20Food!%20Mera%20WhatsApp%20order%20list%20ye%20hai:`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="min-h-[82px] text-left p-3.5 rounded-2xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#25D366]/60 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2"
+                      className="min-h-[108px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#25D366]/60 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2"
                     >
-                      <div className="min-w-0">
-                        <span className="block text-sm font-black text-[#14141A] dark:text-white leading-tight">
-                          WhatsApp List
-                        </span>
-                        <span className="block text-[11px] font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-1">
-                          Send list directly
+                      <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
+                        <div>
+                          <span className="block text-[15px] font-black text-[#14141A] dark:text-white leading-tight">
+                            WhatsApp<br />List
+                          </span>
+                          <span className="block text-[11px] font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-1 leading-snug">
+                            Send list directly
+                          </span>
+                        </div>
+                        <span className="mt-2 inline-flex w-7 h-7 rounded-full bg-[#E21B70] text-white items-center justify-center shrink-0">
+                          <ArrowRight className="w-4 h-4" />
                         </span>
                       </div>
-                      <span className="w-11 h-11 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center text-2xl shrink-0">
-                        💬
+                      <span className="w-[72px] h-[72px] sm:w-20 sm:h-20 rounded-2xl bg-[#25D366] flex items-center justify-center shrink-0">
+                        <Phone className="w-8 h-8 text-white" />
                       </span>
                     </a>
                     </div>
@@ -4465,6 +4519,10 @@ export default function App() {
                   bannerVersion={deliverySettings.bannerVersion}
                   deliveryFee={deliverySettings?.deliveryFee || 50}
                   onOpenGrocery={handleGoToGroceryHome}
+                  cartTotal={cartPriceTotal}
+                  cartCount={cartCountTotal}
+                  onOpenCart={() => setIsCartOpen(true)}
+                  freeDeliveryAbove={deliverySettings?.freeDeliveryAboveAmount ?? 1000}
                 />
 
                 {/* Floating Promo Banner with Live Countdown */}
@@ -5416,7 +5474,7 @@ export default function App() {
             <p>
               Helpline:{" "}
               <a
-                href="https://wa.me/923277004471"
+                href={`https://wa.me/${deliverySettings?.whatsappNumber || "923277004471"}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[#D70F64] dark:text-[#FF4D94] hover:underline font-bold"
