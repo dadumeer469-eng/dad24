@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { UserProfile, AppNotification, Order } from "../types";
-import { Search, ShoppingBag, User, LogOut, Bell, ShieldAlert, BadgeCheck, History, Heart, RotateCcw, Sun, Moon, X, Settings, MapPin, ChevronDown, Mic, Menu } from "lucide-react";
-import daduLogo from "../assets/images/dadu_food_logo_new_1782333467889.jpg";
+import { Search, ShoppingCart, User, LogOut, Bell, ShieldAlert, BadgeCheck, History, Heart, RotateCcw, Sun, Moon, X, Settings, MapPin, ChevronDown, Mic } from "lucide-react";
 import { formatOrderId } from "../utils/catalogNormalizer";
 
 interface FoodpandaHeaderProps {
@@ -165,16 +164,26 @@ export default function FoodpandaHeader({
               className="min-h-[44px] flex items-center gap-2 shrink-0 cursor-pointer group select-none text-left"
               title="Dadu Food Home"
             >
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white border-2 border-white/30 overflow-hidden flex items-center justify-center group-hover:scale-105 active:scale-95 shadow-xs transition-transform relative shrink-0">
-                <img
-                  src={daduLogo}
-                  alt="Dadu Food Logo"
-                  className="w-full h-full object-cover scale-110"
-                  referrerPolicy="no-referrer"
-                />
-              </div>
-              <span className="hidden sm:inline text-lg sm:text-xl font-black tracking-tight text-white">
-                DADU<span className="text-pink-100">FOOD</span>
+              <span className="flex flex-col items-center leading-none shrink-0 group-hover:scale-105 active:scale-95 transition-transform">
+                <svg
+                  viewBox="0 0 24 24"
+                  className="w-5 h-5 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M4 18h16" />
+                  <path d="M5 18a7 7 0 0 1 14 0" />
+                  <path d="M12 11V9" />
+                  <circle cx="12" cy="7.5" r="1.2" fill="currentColor" stroke="none" />
+                </svg>
+                <span className="text-[16px] font-black tracking-tight text-white leading-none mt-1">DADU</span>
+                <span className="text-[8px] font-bold text-white/90 tracking-wide leading-none mt-0.5">
+                  Food &amp; Grocery
+                </span>
               </span>
             </button>
 
@@ -182,15 +191,15 @@ export default function FoodpandaHeader({
             <button
               type="button"
               onClick={() => onOpenLocation?.()}
-              className="min-h-[44px] flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/12 hover:bg-white/20 active:scale-[0.98] transition-all text-left min-w-0 max-w-[210px] sm:max-w-[230px] cursor-pointer"
+              className="min-h-[44px] flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/15 hover:bg-white/25 active:scale-[0.98] transition-all text-left min-w-0 max-w-[210px] sm:max-w-[240px] cursor-pointer"
               title="Change delivery location"
             >
               <MapPin className="w-4 h-4 text-white shrink-0" />
               <div className="min-w-0 flex-1">
-                <span className="block text-[9.5px] font-bold uppercase tracking-wider text-pink-100 leading-none">
+                <span className="block text-[10px] font-semibold text-white/90 leading-none">
                   {hasLocation ? "Delivering to" : "Location required"}
                 </span>
-                <span className="flex items-center gap-1 text-xs font-extrabold text-white truncate mt-0.5">
+                <span className="flex items-center gap-1 text-sm font-extrabold text-white truncate mt-0.5">
                   <span className="truncate">{resolvedLocationText}</span>
                   <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-85" />
                 </span>
@@ -369,21 +378,21 @@ export default function FoodpandaHeader({
               )}
             </div>
 
-            {/* Cart Button */}
+            {/* Cart Button (design: pink circle, white cart icon, count badge) */}
             <button
               type="button"
               onClick={activeModule === "grocery" ? onOpenGroceryCart : onOpenCart}
               aria-label="Open Cart"
-              className="min-h-[44px] flex items-center gap-1.5 transition py-2 px-3 sm:px-3.5 rounded-full text-xs font-extrabold shadow-xs cursor-pointer shrink-0 bg-white text-[#D70F64] hover:bg-pink-50 active:scale-[0.98]"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center bg-white/15 hover:bg-white/25 text-white rounded-full transition cursor-pointer relative shrink-0"
             >
-              {isLocked ? <span className="text-sm">🔒</span> : <ShoppingBag className="w-4 h-4" />}
-              <span className="hidden md:inline">{activeModule === "grocery" ? "Basket" : "Cart"}</span>
-              <span className="bg-[#D70F64] text-white px-1.5 py-0.5 rounded-full text-[11px] font-bold tabular-nums min-w-[20px] text-center">
-                {activeModule === "grocery" ? groceryCartCount : cartCount}
-              </span>
-              {activeModule !== "grocery" && cartTotal > 0 && (
-                <span className="hidden leading-none lg:inline ml-0.5 border-l border-[#D70F64]/25 pl-1.5 font-mono tabular-nums">
-                  Rs. {cartTotal}
+              {isLocked ? (
+                <span className="text-sm">🔒</span>
+              ) : (
+                <ShoppingCart className="w-5 h-5 text-white" />
+              )}
+              {(activeModule === "grocery" ? groceryCartCount : cartCount) > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 bg-white text-[#D70F64] text-[10px] font-black min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center tabular-nums shadow-xs">
+                  {activeModule === "grocery" ? groceryCartCount : cartCount}
                 </span>
               )}
             </button>
