@@ -224,7 +224,7 @@ export default function GroceryModule({
         key={p.id}
         className="bg-[#FFF0F5] dark:bg-[#2A101B] border border-[#F9A8C9]/40 dark:border-[#D70F64]/25 rounded-2xl overflow-hidden shadow-xs hover:shadow-md hover:border-[#D70F64]/50 transition-all duration-200 flex flex-col relative group"
       >
-        <div className="relative h-24 sm:h-32 md:h-36 bg-[#FFF0F5] dark:bg-[#2A101B] shrink-0 select-none overflow-hidden">
+        <div className="relative h-[104px] sm:h-32 md:h-36 bg-[#FFF0F5] dark:bg-[#2A101B] shrink-0 select-none overflow-hidden">
           <GroceryProductImage product={p} categoryName={categoryNameMap[p.categoryId] || "Grocery"} />
           {isOutOfStock ? (
             <div className="absolute bottom-2 left-2 z-10 bg-zinc-900/90 text-white font-bold text-[10px] uppercase tracking-wider py-0.5 px-2 rounded-full border border-white/15">
@@ -238,7 +238,11 @@ export default function GroceryModule({
             <div className="absolute bottom-2 left-2 z-10 bg-[#16A34A] text-white font-bold text-[10px] py-0.5 px-2 rounded-full shadow-sm">
               Best Seller
             </div>
-          ) : null}
+          ) : (
+            <div className="absolute bottom-2 left-2 z-10 bg-[#16A34A] text-white font-bold text-[10px] py-0.5 px-2 rounded-full shadow-sm">
+              Fresh
+            </div>
+          )}
           <button
             type="button"
             onClick={(e) => {
@@ -246,9 +250,13 @@ export default function GroceryModule({
               toggleFav(p.id);
             }}
             aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
-            className="absolute top-2 right-2 z-10 w-8 h-8 rounded-full bg-white/95 shadow-sm flex items-center justify-center cursor-pointer active:scale-90 transition"
+            className="absolute top-2 right-2 z-10 w-8 h-8 flex items-center justify-center cursor-pointer active:scale-90 transition"
           >
-            <Heart className={`w-4 h-4 ${isFav ? "fill-[#D70F64] text-[#D70F64]" : "text-[#D70F64]"}`} />
+            <Heart
+              className={`w-5 h-5 drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)] ${
+                isFav ? "fill-[#D70F64] text-[#D70F64]" : "text-[#D70F64]"
+              }`}
+            />
           </button>
         </div>
 
@@ -322,12 +330,12 @@ export default function GroceryModule({
           <img
             src="/images/home/grocery-basket.jpg"
             alt="Fresh groceries in a Dadu Food basket"
-            className="absolute right-0 top-0 h-full w-[48%] sm:w-[42%] object-cover object-center"
+            className="absolute inset-0 w-full h-full object-cover object-center"
             loading="lazy"
             decoding="async"
           />
           <div
-            className="absolute inset-0 bg-gradient-to-r from-[#1A0A12] via-[#3A0A22]/90 to-[#D70F64]/20"
+            className="absolute inset-0 bg-gradient-to-r from-[#1A0A12]/95 via-[#1A0A12]/60 to-transparent"
             aria-hidden="true"
           />
           <div className="relative z-10 p-5 sm:p-7 max-w-[56%] sm:max-w-[58%]">

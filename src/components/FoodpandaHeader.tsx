@@ -114,18 +114,18 @@ export default function FoodpandaHeader({
 
   // Food / Groceries segmented switch (Foodpanda-style, with grocery basket badge)
   const moduleSwitch = (
-    <div className="bg-white rounded-full p-1 flex shadow-lg shadow-[#D70F64]/20">
+    <div className="bg-white rounded-full p-1 flex shadow-lg shadow-[#D70F64]/20 glossy-sheen">
       <button
         type="button"
         onClick={() => switchModule("food")}
-        className={`flex-1 min-h-[40px] rounded-full text-[13px] sm:text-sm font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${activeModule === "food" ? "bg-gradient-to-r from-[#FF2B85] via-[#E21B70] to-[#D70F64] text-white shadow-md shadow-[#D70F64]/40" : "text-[#14141A]"}`}
+        className={`flex-1 min-h-[40px] rounded-full text-[13px] sm:text-sm font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${activeModule === "food" ? "bg-gradient-to-r from-[#FF2B85] via-[#E21B70] to-[#D70F64] text-white glossy-edge" : "text-[#14141A]"}`}
       >
         🍔 FOOD DELIVERY
       </button>
       <button
         type="button"
         onClick={() => switchModule("grocery")}
-        className={`flex-1 min-h-[40px] rounded-full text-[13px] sm:text-sm font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${activeModule === "grocery" ? "bg-gradient-to-r from-[#FF2B85] via-[#E21B70] to-[#D70F64] text-white shadow-md shadow-[#D70F64]/40" : "text-[#14141A]"}`}
+        className={`flex-1 min-h-[40px] rounded-full text-[13px] sm:text-sm font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${activeModule === "grocery" ? "bg-gradient-to-r from-[#FF2B85] via-[#E21B70] to-[#D70F64] text-white glossy-edge" : "text-[#14141A]"}`}
       >
         🛒 GROCERIES
         {groceryCartCount > 0 && (
@@ -147,7 +147,8 @@ export default function FoodpandaHeader({
     <>
       {/* Foodpanda Signature Pink Header */}
       <header className="relative z-40 bg-gradient-to-b from-[#FF2B85] via-[#E21B70] to-[#D70F64] text-white shadow-[0_4px_20px_rgba(215,15,100,0.35)]">
-        <div className="max-w-7xl mx-auto px-3.5 sm:px-4 h-[60px] flex items-center justify-between gap-2 sm:gap-3.5">
+        <div className="absolute inset-0 bg-gradient-to-b from-white/25 via-white/5 to-transparent pointer-events-none" aria-hidden="true" />
+        <div className="relative max-w-7xl mx-auto px-3.5 sm:px-4 h-[60px] flex items-center justify-between gap-2 sm:gap-3.5">
           {/* Logo + Mobile Location Trigger */}
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 sm:flex-initial">
             <button
@@ -167,7 +168,7 @@ export default function FoodpandaHeader({
               <span className="flex flex-col items-center leading-none shrink-0 group-hover:scale-105 active:scale-95 transition-transform">
                 <svg
                   viewBox="0 0 24 24"
-                  className="w-5 h-5 text-white"
+                  className="w-6 h-6 text-white"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2"
@@ -175,12 +176,12 @@ export default function FoodpandaHeader({
                   strokeLinejoin="round"
                   aria-hidden="true"
                 >
-                  <path d="M4 18h16" />
-                  <path d="M5 18a7 7 0 0 1 14 0" />
-                  <path d="M12 11V9" />
+                  <path d="M3 18h18" />
+                  <path d="M4.5 18a7.5 7.5 0 0 1 15 0" />
+                  <path d="M12 10.5V9" />
                   <circle cx="12" cy="7.5" r="1.2" fill="currentColor" stroke="none" />
                 </svg>
-                <span className="text-[16px] font-black tracking-tight text-white leading-none mt-1">DADU</span>
+                <span className="text-[18px] font-black tracking-tight text-white leading-none mt-0.5">DADU</span>
                 <span className="text-[8px] font-bold text-white/90 tracking-wide leading-none mt-0.5">
                   Food &amp; Grocery
                 </span>
@@ -191,17 +192,17 @@ export default function FoodpandaHeader({
             <button
               type="button"
               onClick={() => onOpenLocation?.()}
-              className="min-h-[44px] flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/15 hover:bg-white/25 active:scale-[0.98] transition-all text-left min-w-0 max-w-[210px] sm:max-w-[240px] cursor-pointer"
+              className="min-h-[44px] flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/20 hover:bg-white/25 active:scale-[0.98] transition-all text-left min-w-0 max-w-[210px] sm:max-w-[240px] cursor-pointer glossy-sheen glossy-edge"
               title="Change delivery location"
             >
-              <MapPin className="w-4 h-4 text-white shrink-0" />
+              <MapPin className="w-5 h-5 text-white shrink-0" />
               <div className="min-w-0 flex-1">
-                <span className="block text-[10px] font-semibold text-white/90 leading-none">
+                <span className="block text-[11px] font-semibold text-white/90 leading-none">
                   {hasLocation ? "Delivering to" : "Location required"}
                 </span>
-                <span className="flex items-center gap-1 text-sm font-extrabold text-white truncate mt-0.5">
+                <span className="flex items-center gap-1 text-[15px] font-extrabold text-white truncate mt-0.5">
                   <span className="truncate">{resolvedLocationText}</span>
-                  <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-85" />
+                  <ChevronDown className="w-4 h-4 shrink-0 opacity-85" />
                 </span>
               </div>
             </button>
@@ -254,11 +255,11 @@ export default function FoodpandaHeader({
                 onClick={onToggleTheme}
                 aria-label={theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"}
                 title={theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"}
-                className="min-h-[44px] min-w-[44px] flex items-center justify-center gap-1.5 px-2.5 bg-white/15 hover:bg-white/25 text-white rounded-full transition cursor-pointer text-xs font-bold shrink-0"
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center gap-1.5 px-2.5 bg-white/15 hover:bg-white/25 text-white rounded-full transition cursor-pointer text-xs font-bold shrink-0 glossy-sheen glossy-edge"
               >
                 {theme === "light" ? (
                   <>
-                    <Moon className="w-4 h-4 text-white shrink-0" />
+                    <Moon className="w-5 h-5 text-white shrink-0" />
                     <span className="hidden xl:inline">Dark</span>
                   </>
                 ) : (
@@ -279,9 +280,9 @@ export default function FoodpandaHeader({
                   setShowNotifications(!showNotifications);
                   setShowUserMenu(false);
                 }}
-                className="min-h-[44px] min-w-[44px] flex items-center justify-center bg-white/15 hover:bg-white/25 text-white rounded-full transition cursor-pointer relative"
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center bg-white/15 hover:bg-white/25 text-white rounded-full transition cursor-pointer relative glossy-sheen glossy-edge"
               >
-                <Bell className="w-4 h-4 text-white" />
+                <Bell className="w-5 h-5 text-white" />
                 {unreadNotifications.length > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 bg-white text-[#D70F64] text-[10px] font-black min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center tabular-nums shadow-xs">
                     {unreadNotifications.length}
@@ -383,7 +384,7 @@ export default function FoodpandaHeader({
               type="button"
               onClick={activeModule === "grocery" ? onOpenGroceryCart : onOpenCart}
               aria-label="Open Cart"
-              className="min-h-[44px] min-w-[44px] flex items-center justify-center bg-white/15 hover:bg-white/25 text-white rounded-full transition cursor-pointer relative shrink-0"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center bg-white/15 hover:bg-white/25 text-white rounded-full transition cursor-pointer relative shrink-0 glossy-sheen glossy-edge"
             >
               {isLocked ? (
                 <span className="text-sm">🔒</span>
@@ -674,6 +675,7 @@ export default function FoodpandaHeader({
 
       {/* Mobile Foodpanda Pink Sticky Pill Search Bar */}
       <div className="sticky top-0 z-30 bg-gradient-to-b from-[#FF2B85] via-[#E21B70] to-[#D70F64] block sm:hidden px-3.5 pb-3 pt-0.5 shadow-sm">
+        <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-white/5 to-transparent pointer-events-none" aria-hidden="true" />
         <div className="relative flex items-center">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#D70F64] pointer-events-none" />
           <input
@@ -686,7 +688,7 @@ export default function FoodpandaHeader({
                 ? "Search 100 Dadu Mart groceries..."
                 : "Search shops, dishes & groceries"
             }
-            className="w-full min-h-[44px] pl-10 pr-10 py-2.5 bg-white text-[#14141A] placeholder-[#6E6E80] rounded-full text-sm outline-none shadow-xs focus:ring-2 focus:ring-white/60 transition-all font-medium"
+            className="w-full min-h-[44px] pl-10 pr-10 py-2.5 bg-white text-[#14141A] placeholder-[#6E6E80] rounded-full text-sm outline-none shadow-xs focus:ring-2 focus:ring-white/60 transition-all font-medium glossy-sheen"
           />
           {voiceSupported && (
             <button
