@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { MapPin, Navigation, Edit3, CheckCircle2 } from "lucide-react";
+import { MapPin, Navigation, Edit3, CheckCircle2, Map } from "lucide-react";
 
 interface LocationPermissionModalProps {
   onAllow: () => void;
   onLater?: () => void;
   onManualAddressSave?: (address: string) => void;
+  onPickOnMap?: () => void;
   requireForOrder?: boolean;
   initialAddress?: string;
 }
@@ -13,6 +14,7 @@ export default function LocationPermissionModal({
   onAllow,
   onLater,
   onManualAddressSave,
+  onPickOnMap,
   requireForOrder = false,
   initialAddress = "",
 }: LocationPermissionModalProps) {
@@ -68,14 +70,26 @@ export default function LocationPermissionModal({
           </button>
 
           {onManualAddressSave && !showManualInput && (
-            <button
-              type="button"
-              onClick={() => setShowManualInput(true)}
-              className="w-full min-h-[44px] bg-[#F7F7FA] dark:bg-[#1B1B23] hover:bg-[#EFEFF5] dark:hover:bg-[#252530] border border-[#E6E6EE] dark:border-[#272733] text-[#14141A] dark:text-[#F5F5F8] font-bold py-3 px-4 rounded-2xl text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-            >
-              <Edit3 className="w-3.5 h-3.5 text-[#D70F64]" />
-              <span>Enter Manual Dadu Address Instead</span>
-            </button>
+            <div className={onPickOnMap ? "grid grid-cols-2 gap-2.5" : ""}>
+              {onPickOnMap && (
+                <button
+                  type="button"
+                  onClick={onPickOnMap}
+                  className="w-full min-h-[44px] bg-[#FFF0F5] dark:bg-[#2A101B] hover:bg-[#FFE4EF] dark:hover:bg-[#3A1424] border border-[#D70F64]/25 text-[#14141A] dark:text-[#F5F5F8] font-bold py-3 px-3 rounded-2xl text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Map className="w-4 h-4 text-[#D70F64]" />
+                  <span>Pick on Map</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowManualInput(true)}
+                className="w-full min-h-[44px] bg-[#F7F7FA] dark:bg-[#1B1B23] hover:bg-[#EFEFF5] dark:hover:bg-[#252530] border border-[#E6E6EE] dark:border-[#272733] text-[#14141A] dark:text-[#F5F5F8] font-bold py-3 px-3 rounded-2xl text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Edit3 className="w-3.5 h-3.5 text-[#D70F64]" />
+                <span>{onPickOnMap ? "Type Address" : "Enter Manual Dadu Address Instead"}</span>
+              </button>
+            </div>
           )}
 
           {showManualInput && onManualAddressSave && (
