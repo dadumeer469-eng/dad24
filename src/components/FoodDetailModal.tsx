@@ -98,14 +98,14 @@ export default function FoodDetailModal({
         onClick={(e) => {
           if (e.target === e.currentTarget) onClose();
         }}
-        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-6"
+        className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 pb-[76px] sm:p-6"
       >
         <motion.div
           initial={{ y: "100%", opacity: 0.8 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: "100%", opacity: 0.8 }}
           transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-          className="bg-white dark:bg-zinc-900 border-t sm:border border-zinc-100 dark:border-zinc-800 rounded-t-3xl sm:rounded-[32px] max-w-lg w-full overflow-hidden shadow-2xl relative max-h-[92vh] sm:max-h-[90vh] flex flex-col"
+          className="bg-white dark:bg-zinc-900 border-t sm:border border-zinc-100 dark:border-zinc-800 rounded-t-3xl sm:rounded-[32px] max-w-lg w-full overflow-hidden shadow-2xl relative max-h-[calc(92dvh-76px)] sm:max-h-[90dvh] flex flex-col"
         >
           {/* Mobile Bottom-Sheet Drag Handle */}
           <div className="sm:hidden absolute top-2.5 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full bg-white/80 z-20 pointer-events-none shadow-xs" />
