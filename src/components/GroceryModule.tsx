@@ -42,7 +42,8 @@ function GroceryProductImage({
   const packLabel = product.unit && product.unit !== "—" ? product.unit : "Pack";
 
   if (!product.imageUrl || imgFailed) {
-    return (
+  
+  return (
       <div
         className={`w-full h-full bg-gradient-to-br ${visual.accentBg} bg-[#FFF5F8] dark:bg-[#191922] flex flex-col items-center justify-center p-3 text-center relative overflow-hidden select-none`}
       >
@@ -144,6 +145,121 @@ export default function GroceryModule({
     return item ? item.quantity : 0;
   };
 
+  // Grouped category view for "All": each category gets its own section (no mixed list).
+  const isGroupedView = selectedCategoryId === "All" && !(searchQuery || "").trim();
+  const groupedSections = useMemo(() => {
+    if (!isGroupedView) return [] as { id: string; name: string; emoji?: string; count: number; items: GroceryProduct[] }[];
+    return activeCategories
+      .map((cat) => {
+        const items = products.filter((p) => p.categoryId === cat.id);
+        return {
+          id: cat.id,
+          name: cat.name,
+          emoji: GROCERY_CATEGORY_VISUALS[cat.id]?.emoji,
+          count: items.length,
+          items: items.slice(0, 8),
+        };
+      })
+      .filter((s) => s.count > 0);
+  }, [isGroupedView, activeCategories, products]);
+
+  const renderProductCard = (p: GroceryProduct) => {
+                  const qty = getProductQuantityInCart(p.id);
+                  const isOutOfStock = !p.isAvailable || p.stock <= 0;
+                  const hasDiscount = p.discountPrice && p.discountPrice < p.price;
+                  const displayPrice = hasDiscount ? p.discountPrice : p.price;
+                  const packLabel = p.unit && p.unit !== "—" ? p.unit : "Standard Pack";
+
+                  return (
+                    <div
+                      key={p.id}
+                      className="bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl overflow-hidden shadow-xs hover:shadow-md hover:border-[#D70F64]/40 transition-all duration-200 flex flex-col relative group"
+                    >
+                      {isOutOfStock ? (
+                        <div className="absolute top-2.5 left-2.5 z-10 bg-zinc-900/90 text-white font-bold text-[10px] uppercase tracking-wider py-0.5 px-2 rounded-md border border-white/15">
+                          Out of Stock
+                        </div>
+                      ) : hasDiscount ? (
+                        <div className="absolute top-2.5 left-2.5 z-10 bg-[#D70F64] text-white font-bold text-[10px] uppercase tracking-wider py-0.5 px-2 rounded-md">
+                          {`${Math.round(((p.price - p.discountPrice!) / p.price) * 100)}% OFF`}
+                        </div>
+                      ) : null}
+
+                      <div className="relative h-32 sm:h-40 bg-[#FFF5F8] dark:bg-[#1B1B23] shrink-0 select-none overflow-hidden">
+                        <GroceryProductImage
+                          product={p}
+                          categoryName={categoryNameMap[p.categoryId] || "Grocery"}
+                        />
+                      </div>
+
+                      <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between space-y-3">
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold text-[#D70F64] dark:text-[#FF4D94] uppercase tracking-wider block">
+                            {packLabel}
+                          </span>
+                          <h4 className="font-bold text-[#14141A] dark:text-[#F5F5F8] text-xs sm:text-sm leading-snug line-clamp-2">
+                            {p.name}
+                          </h4>
+                        </div>
+
+                        <div className="space-y-2.5 pt-2 border-t border-[#EFEFF5] dark:border-[#23232E]">
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="text-sm font-extrabold text-[#14141A] dark:text-white font-mono tabular-nums">
+                              {`Rs. ${displayPrice}`}
+                            </span>
+                            {hasDiscount && (
+                              <span className="text-xs text-[#717185] line-through font-mono tabular-nums">
+                                {`Rs. ${p.price}`}
+                              </span>
+                            )}
+                          </div>
+
+                          {isOutOfStock ? (
+                            <button
+                              type="button"
+                              disabled
+                              className="w-full min-h-[44px] bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 text-xs font-bold uppercase tracking-wider rounded-xl flex items-center justify-center cursor-not-allowed"
+                            >
+                              Out of Stock
+                            </button>
+                          ) : qty > 0 ? (
+                            <div className="flex items-center justify-between bg-[#FFF0F5] dark:bg-[#2A101B] border border-[#D70F64]/30 p-1 rounded-xl">
+                              <button
+                                type="button"
+                                onClick={() => onUpdateCartQuantity(p.id, qty - 1)}
+                                aria-label="Decrease quantity"
+                                className="w-11 h-11 rounded-lg bg-white dark:bg-[#14141A] text-[#14141A] dark:text-white font-bold flex items-center justify-center cursor-pointer active:scale-95"
+                              >
+                                <Minus className="w-4 h-4" />
+                              </button>
+                              <span className="text-xs font-extrabold text-[#D70F64] dark:text-[#FF4D94] font-mono tabular-nums px-2">
+                                {qty}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => onUpdateCartQuantity(p.id, qty + 1)}
+                                aria-label="Increase quantity"
+                                className="w-9 h-9 rounded-lg btn-pink text-white font-bold flex items-center justify-center cursor-pointer active:scale-95"
+                              >
+                                <Plus className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => onAddToCart(p)}
+                              className="w-full min-h-[44px] btn-pink text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98]"
+                            >
+                              <Plus className="w-4 h-4" />
+                              <span>Add</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+  };
+
   return (
     <div className="bg-[#F7F7FA] dark:bg-[#0B0B0F] text-[#14141A] dark:text-[#F5F5F8] min-h-screen py-4 sm:py-6 transition-colors duration-200 animate-slide-screen">
       <div className="max-w-7xl mx-auto px-3.5 sm:px-4 space-y-5 sm:space-y-6">
@@ -187,7 +303,7 @@ export default function GroceryModule({
                 }}
                 className={`min-h-[44px] px-4 py-2 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer border flex items-center gap-1.5 ${
                   selectedCategoryId === "All"
-                    ? "bg-[#D70F64] text-white border-[#D70F64] shadow-xs"
+                    ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
                     : "bg-white dark:bg-[#14141A] text-[#14141A] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50"
                 }`}
               >
@@ -208,7 +324,7 @@ export default function GroceryModule({
                     }}
                     className={`min-h-[44px] px-3.5 py-2 rounded-full text-xs font-bold transition-all shrink-0 cursor-pointer border flex items-center gap-2 ${
                       selectedCategoryId === cat.id
-                        ? "bg-[#D70F64] text-white border-[#D70F64] shadow-xs"
+                        ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
                         : "bg-white dark:bg-[#14141A] text-[#14141A] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50"
                     }`}
                   >
@@ -281,124 +397,58 @@ export default function GroceryModule({
                 <p className="text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A1A1B2] max-w-md leading-relaxed">
                   Try another category or search for the item you need.
                 </p>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
-                {visibleItems.map((p) => {
-                  const qty = getProductQuantityInCart(p.id);
-                  const isOutOfStock = !p.isAvailable || p.stock <= 0;
-                  const hasDiscount = p.discountPrice && p.discountPrice < p.price;
-                  const displayPrice = hasDiscount ? p.discountPrice : p.price;
-                  const packLabel = p.unit && p.unit !== "—" ? p.unit : "Standard Pack";
-
-                  return (
-                    <div
-                      key={p.id}
-                      className="bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl overflow-hidden shadow-xs hover:shadow-md hover:border-[#D70F64]/40 transition-all duration-200 flex flex-col relative group"
-                    >
-                      {isOutOfStock ? (
-                        <div className="absolute top-2.5 left-2.5 z-10 bg-zinc-900/90 text-white font-bold text-[10px] uppercase tracking-wider py-0.5 px-2 rounded-md border border-white/15">
-                          Out of Stock
-                        </div>
-                      ) : hasDiscount ? (
-                        <div className="absolute top-2.5 left-2.5 z-10 bg-[#D70F64] text-white font-bold text-[10px] uppercase tracking-wider py-0.5 px-2 rounded-md">
-                          {`${Math.round(((p.price - p.discountPrice!) / p.price) * 100)}% OFF`}
-                        </div>
-                      ) : null}
-
-                      <div className="relative h-32 sm:h-40 bg-[#FFF5F8] dark:bg-[#1B1B23] shrink-0 select-none overflow-hidden">
-                        <GroceryProductImage
-                          product={p}
-                          categoryName={categoryNameMap[p.categoryId] || "Grocery"}
-                        />
-                      </div>
-
-                      <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between space-y-3">
-                        <div className="space-y-1">
-                          <span className="text-[10px] font-bold text-[#D70F64] dark:text-[#FF4D94] uppercase tracking-wider block">
-                            {packLabel}
-                          </span>
-                          <h4 className="font-bold text-[#14141A] dark:text-[#F5F5F8] text-xs sm:text-sm leading-snug line-clamp-2">
-                            {p.name}
-                          </h4>
-                        </div>
-
-                        <div className="space-y-2.5 pt-2 border-t border-[#EFEFF5] dark:border-[#23232E]">
-                          <div className="flex items-baseline gap-1.5">
-                            <span className="text-sm font-extrabold text-[#14141A] dark:text-white font-mono tabular-nums">
-                              {`Rs. ${displayPrice}`}
-                            </span>
-                            {hasDiscount && (
-                              <span className="text-xs text-[#717185] line-through font-mono tabular-nums">
-                                {`Rs. ${p.price}`}
-                              </span>
-                            )}
-                          </div>
-
-                          {isOutOfStock ? (
-                            <button
-                              type="button"
-                              disabled
-                              className="w-full min-h-[44px] bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 text-xs font-bold uppercase tracking-wider rounded-xl flex items-center justify-center cursor-not-allowed"
-                            >
-                              Out of Stock
-                            </button>
-                          ) : qty > 0 ? (
-                            <div className="flex items-center justify-between bg-[#FFF0F5] dark:bg-[#2A101B] border border-[#D70F64]/30 p-1 rounded-xl">
-                              <button
-                                type="button"
-                                onClick={() => onUpdateCartQuantity(p.id, qty - 1)}
-                                aria-label="Decrease quantity"
-                                className="w-9 h-9 rounded-lg bg-white dark:bg-[#14141A] text-[#14141A] dark:text-white font-bold flex items-center justify-center cursor-pointer active:scale-95"
-                              >
-                                <Minus className="w-4 h-4" />
-                              </button>
-                              <span className="text-xs font-extrabold text-[#D70F64] dark:text-[#FF4D94] font-mono tabular-nums px-2">
-                                {qty}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => onUpdateCartQuantity(p.id, qty + 1)}
-                                aria-label="Increase quantity"
-                                className="w-9 h-9 rounded-lg bg-[#D70F64] hover:bg-[#B80C54] text-white font-bold flex items-center justify-center cursor-pointer active:scale-95"
-                              >
-                                <Plus className="w-4 h-4" />
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => onAddToCart(p)}
-                              className="w-full min-h-[44px] bg-[#D70F64] hover:bg-[#B80C54] text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.98]"
-                            >
-                              <Plus className="w-4 h-4" />
-                              <span>Add</span>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
               </div>
-
-              {hasMore && (
-                <div className="flex flex-col items-center gap-2">
-                  <div ref={observerTargetRef} className="h-2 w-full" />
-                  <button
-                    type="button"
-                    onClick={() => setShowAllInCategory(true)}
-                    className="min-h-[44px] px-6 py-2.5 rounded-xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64] text-xs font-bold text-[#14141A] dark:text-white flex items-center gap-1.5 cursor-pointer transition"
-                  >
-                    <span>{`Show All ${filteredProducts.length} Items`}</span>
-                    <ChevronDown className="w-4 h-4 text-[#D70F64]" />
-                  </button>
-                </div>
-              )}
-
             </div>
-          )}
+          ) : isGroupedView ? (
+              <div className="space-y-7">
+                {groupedSections.map((section) => (
+                  <section key={section.id}>
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <h4 className="text-sm sm:text-base font-extrabold text-[#14141A] dark:text-[#F5F5F8] flex items-center gap-2">
+                        {section.emoji ? <span className="text-base leading-none">{section.emoji}</span> : null}
+                        <span>{section.name}</span>
+                        <span className="text-xs text-[#5A5A6B] dark:text-[#A1A1B2] font-semibold tabular-nums">
+                          {`(${section.count} ${section.count === 1 ? "item" : "items"})`}
+                        </span>
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedCategoryId(section.id);
+                          setShowAllInCategory(true);
+                        }}
+                        className="text-xs font-bold text-[#D70F64] dark:text-[#FF4D94] hover:underline shrink-0 cursor-pointer min-h-[36px] px-2"
+                      >
+                        See all →
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
+                      {section.items.map((p) => renderProductCard(p))}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
+                  {visibleItems.map((p) => renderProductCard(p))}
+                </div>
+
+                {hasMore && (
+                  <div className="flex flex-col items-center gap-2">
+                    <div ref={observerTargetRef} className="h-2 w-full" />
+                    <button
+                      type="button"
+                      onClick={() => setShowAllInCategory(true)}
+                      className="min-h-[44px] px-6 py-2.5 rounded-xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64] text-xs font-bold text-[#14141A] dark:text-white flex items-center gap-1.5 cursor-pointer transition"
+                    >
+                      <span>{`Show All ${filteredProducts.length} Items`}</span>
+                      <ChevronDown className="w-4 h-4 text-[#D70F64]" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
         </div>
       </div>
     </div>

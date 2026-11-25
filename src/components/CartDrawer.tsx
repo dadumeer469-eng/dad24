@@ -1494,7 +1494,7 @@ export default function CartDrawer({
             <button
               onClick={handleSubmitOrder}
               disabled={submitting}
-              className="w-full min-h-[48px] bg-[#D70F64] hover:bg-[#B80C54] text-white py-3.5 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75 active:scale-[0.98]"
+              className="w-full min-h-[48px] btn-pink text-white py-3.5 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75 active:scale-[0.98]"
             >
               {submitting ? (
                 <>Placing Order...</>

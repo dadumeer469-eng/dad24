@@ -37,6 +37,11 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
     setIsOnline((prev) => {
       const next = !prev;
       localStorage.setItem(`rider_online_${currentUser.uid}`, String(next));
+      // Sync to Firestore so the admin can see who is actually on duty.
+      updateDoc(doc(db, "users", currentUser.uid), {
+        isOnline: next,
+        lastSeenAt: Timestamp.now(),
+      }).catch((e) => console.error("Failed to sync rider online status", e));
       return next;
     });
   };

@@ -80,7 +80,7 @@ export default function BottomNavBar({
           <button
             type="button"
             onClick={activeModule === "grocery" ? onOpenGroceryCart : onOpenCart}
-            className="w-full min-h-[48px] bg-[#D70F64] hover:bg-[#B80C54] text-white px-4 py-2.5 rounded-2xl shadow-lg flex items-center justify-between gap-2 cursor-pointer active:scale-[0.99] transition-transform"
+            className="w-full min-h-[48px] btn-pink text-white px-4 py-2.5 rounded-2xl shadow-lg flex items-center justify-between gap-2 cursor-pointer active:scale-[0.99] transition-transform"
           >
             <div className="flex items-center gap-2.5">
               <span className="bg-white/20 px-2 py-0.5 rounded-lg text-xs font-black tabular-nums flex items-center gap-1">
@@ -179,7 +179,7 @@ export default function BottomNavBar({
           >
             <User className="w-5 h-5 stroke-[2.2]" />
             <span className="text-[10.5px] leading-none font-bold">
-              {user ? "Account" : "Account"}
+              {user ? (user.name?.split(" ")[0] || "Account") : "Account"}
             </span>
           </button>
         </div>
