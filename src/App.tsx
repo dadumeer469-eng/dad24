@@ -1418,6 +1418,14 @@ export default function App() {
       } catch (err) {
         if (cancelled) return;
         console.warn("Grocery products notice:", handleFirestoreError(err));
+        // Offline fallback: if Firestore can't be read (e.g. daily read quota
+        // exhausted), show the built-in 100-item catalog so grocery never looks
+        // empty. A successful fetch later replaces this with live data.
+        setGroceryProducts((prev) => {
+          const fallback = prev.length > 0 ? prev : [...OWNER_GROCERY_PRODUCTS];
+          setCachedData("dadu_cached_grocery_products", fallback);
+          return fallback;
+        });
         setIsLoadingGrocery(false);
       }
     };
@@ -4436,58 +4444,6 @@ export default function App() {
           </div>
         ) : (
           <div className="flex-1">
-          {/* Module Switcher Tabs - Unified Crimson Rose */}
-          {!isAuthOpen && (
-            <div className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-4">
-              <div className="bg-[#EFEFF5] dark:bg-[#14141A] p-1 rounded-2xl flex gap-1.5 border border-[#E6E6EE] dark:border-[#272733] relative overflow-hidden max-w-sm sm:max-w-md mx-auto select-none">
-                <button
-                  type="button"
-                  onClick={handleGoToFoodHome}
-                  className={`relative flex-1 min-h-[44px] py-2.5 text-xs font-extrabold uppercase tracking-wider rounded-xl transition-colors duration-200 flex items-center justify-center gap-1.5 cursor-pointer z-10 ${
-                    activeModule === "food"
-                      ? "text-white"
-                      : "text-[#5A5A6B] dark:text-[#A3A3B5] hover:text-[#111118] dark:hover:text-[#F5F5F8]"
-                  }`}
-                >
-                  {activeModule === "food" && (
-                    <motion.div
-                      layoutId="activeModulePill"
-                      className="absolute inset-0 bg-[#D70F64] rounded-xl shadow-xs"
-                      transition={{ type: "spring", stiffness: 450, damping: 32 }}
-                    />
-                  )}
-                  <span className="relative z-10 text-sm" aria-hidden="true">🍔</span>
-                  <span className="relative z-10">Food Delivery</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleGoToGroceryHome}
-                  className={`relative flex-1 min-h-[44px] py-2.5 text-xs font-extrabold uppercase tracking-wider rounded-xl transition-colors duration-200 flex items-center justify-center gap-1.5 cursor-pointer z-10 ${
-                    activeModule === "grocery"
-                      ? "text-white"
-                      : "text-[#5A5A6B] dark:text-[#A3A3B5] hover:text-[#111118] dark:hover:text-[#F5F5F8]"
-                  }`}
-                >
-                  {activeModule === "grocery" && (
-                    <motion.div
-                      layoutId="activeModulePill"
-                      className="absolute inset-0 bg-[#D70F64] rounded-xl shadow-xs"
-                      transition={{ type: "spring", stiffness: 450, damping: 32 }}
-                    />
-                  )}
-                  <span className="relative z-10 text-sm" aria-hidden="true">🛒</span>
-                  <span className="relative z-10">Groceries</span>
-                  {groceryCartItems.length > 0 && (
-                    <span className="relative z-10 bg-white text-[#D70F64] font-mono text-[10px] font-extrabold min-w-[20px] h-5 px-1 rounded-full flex items-center justify-center leading-none shrink-0 tabular-nums">
-                      {groceryCartItems.reduce((acc, i) => acc + i.quantity, 0)}
-                    </span>
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
-
           <Suspense fallback={<div className="p-10 text-center text-sm text-[#5A5A6B] dark:text-[#A3A3B5]">Loading…</div>}>
             <AnimatePresence mode="wait">
               {activeModule === "food" ? (
@@ -4536,11 +4492,11 @@ export default function App() {
                         setActiveCategory("All");
                         document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth" });
                       }}
-                      className="min-h-[124px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50 shadow-lg shadow-[#D70F64]/15 transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "60ms" }}
+                      className="min-h-[124px] text-left p-3 rounded-3xl bg-gradient-to-br from-white via-white to-[#FFF0F5] dark:from-[#1C1C26] dark:via-[#14141A] dark:to-[#1C1C26] border border-white dark:border-[#272733] hover:border-[#D70F64]/50 shadow-[0_12px_28px_rgba(215,15,100,0.30),inset_0_1px_0_rgba(255,255,255,0.9)] transition-all cursor-pointer active:scale-[0.98] hover:-translate-y-0.5 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "60ms" }}
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
-                          <span className="block text-[15px] font-black text-[#14141A] dark:text-white leading-tight">
+                          <span className="block text-sm sm:text-[15px] font-black text-[#14141A] dark:text-white leading-tight">
                             Food<br />Delivery
                           </span>
                           <span className="block text-[11px] font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-1 leading-snug">
@@ -4554,7 +4510,7 @@ export default function App() {
                       <img
                         src="/images/home/burger-3d.jpg"
                         alt="Crispy burger"
-                        className="w-[96px] h-[96px] sm:w-[104px] sm:h-[104px] rounded-2xl object-cover shrink-0"
+                        className="w-[68px] h-[68px] sm:w-[96px] sm:h-[96px] rounded-2xl object-cover shrink-0 animate-float-soft" style={{ animationDelay: "0s" }}
                         loading="lazy"
                         decoding="async"
                       />
@@ -4563,11 +4519,11 @@ export default function App() {
                     <button
                       type="button"
                       onClick={handleGoToGroceryHome}
-                      className="min-h-[124px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50 shadow-lg shadow-[#D70F64]/15 transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "120ms" }}
+                      className="min-h-[124px] text-left p-3 rounded-3xl bg-gradient-to-br from-white via-white to-[#FFF0F5] dark:from-[#1C1C26] dark:via-[#14141A] dark:to-[#1C1C26] border border-white dark:border-[#272733] hover:border-[#D70F64]/50 shadow-[0_12px_28px_rgba(215,15,100,0.30),inset_0_1px_0_rgba(255,255,255,0.9)] transition-all cursor-pointer active:scale-[0.98] hover:-translate-y-0.5 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "120ms" }}
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
-                          <span className="block text-[15px] font-black text-[#14141A] dark:text-white leading-tight">
+                          <span className="block text-sm sm:text-[15px] font-black text-[#14141A] dark:text-white leading-tight">
                             Dadu<br />Mart
                           </span>
                           <span className="block text-[11px] font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-1 leading-snug">
@@ -4581,7 +4537,7 @@ export default function App() {
                       <img
                         src="/images/home/grocery-cart-3d.jpg"
                         alt="Grocery cart full of fresh groceries"
-                        className="w-[96px] h-[96px] sm:w-[104px] sm:h-[104px] rounded-2xl object-cover shrink-0"
+                        className="w-[68px] h-[68px] sm:w-[96px] sm:h-[96px] rounded-2xl object-cover shrink-0 animate-float-soft" style={{ animationDelay: "0.5s" }}
                         loading="lazy"
                         decoding="async"
                       />
@@ -4594,11 +4550,11 @@ export default function App() {
                         setQuickFilter("under_300");
                         document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth" });
                       }}
-                      className="min-h-[124px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50 shadow-lg shadow-[#D70F64]/15 transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "180ms" }}
+                      className="min-h-[124px] text-left p-3 rounded-3xl bg-gradient-to-br from-white via-white to-[#FFF0F5] dark:from-[#1C1C26] dark:via-[#14141A] dark:to-[#1C1C26] border border-white dark:border-[#272733] hover:border-[#D70F64]/50 shadow-[0_12px_28px_rgba(215,15,100,0.30),inset_0_1px_0_rgba(255,255,255,0.9)] transition-all cursor-pointer active:scale-[0.98] hover:-translate-y-0.5 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "180ms" }}
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
-                          <span className="block text-[15px] font-black text-[#14141A] dark:text-white leading-tight">
+                          <span className="block text-sm sm:text-[15px] font-black text-[#14141A] dark:text-white leading-tight">
                             Budget<br />Deals
                           </span>
                           <span className="block text-[11px] font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-1 leading-snug">
@@ -4612,7 +4568,7 @@ export default function App() {
                       <img
                         src="/images/home/price-tag-3d.jpg"
                         alt="Discount price tag"
-                        className="w-[96px] h-[96px] sm:w-[104px] sm:h-[104px] rounded-2xl object-cover shrink-0"
+                        className="w-[68px] h-[68px] sm:w-[96px] sm:h-[96px] rounded-2xl object-cover shrink-0 animate-float-soft" style={{ animationDelay: "1s" }}
                         loading="lazy"
                         decoding="async"
                       />
@@ -4622,11 +4578,11 @@ export default function App() {
                       href={`https://wa.me/${deliverySettings?.whatsappNumber || "923277004471"}?text=Assalam-o-Alaikum%20Dadu%20Food!%20Mera%20WhatsApp%20order%20list%20ye%20hai:`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="min-h-[124px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#25D366]/60 shadow-lg shadow-[#D70F64]/15 transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "240ms" }}
+                      className="min-h-[124px] text-left p-3 rounded-3xl bg-gradient-to-br from-white via-white to-[#FFF0F5] dark:from-[#1C1C26] dark:via-[#14141A] dark:to-[#1C1C26] border border-white dark:border-[#272733] hover:border-[#25D366]/60 shadow-[0_12px_28px_rgba(215,15,100,0.30),inset_0_1px_0_rgba(255,255,255,0.9)] transition-all cursor-pointer active:scale-[0.98] hover:-translate-y-0.5 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "240ms" }}
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
-                          <span className="block text-[15px] font-black text-[#14141A] dark:text-white leading-tight">
+                          <span className="block text-sm sm:text-[15px] font-black text-[#14141A] dark:text-white leading-tight">
                             WhatsApp<br />List
                           </span>
                           <span className="block text-[11px] font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-1 leading-snug">
@@ -4640,7 +4596,7 @@ export default function App() {
                       <img
                         src="/images/home/whatsapp-logo.jpg"
                         alt="WhatsApp"
-                        className="w-[96px] h-[96px] sm:w-[104px] sm:h-[104px] rounded-2xl object-cover shrink-0"
+                        className="w-[68px] h-[68px] sm:w-[96px] sm:h-[96px] rounded-2xl object-cover shrink-0 animate-float-soft" style={{ animationDelay: "1.5s" }}
                         loading="lazy"
                         decoding="async"
                       />
