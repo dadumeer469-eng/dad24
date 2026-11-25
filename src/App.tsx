@@ -4030,7 +4030,7 @@ export default function App() {
 
 
   return (
-    <div className="min-h-screen bg-[#E21B70]/30 dark:bg-[#0B0B0F] text-[#111118] dark:text-[#F5F5F8] relative pb-28 md:pb-12 flex flex-col font-sans overflow-x-clip">
+    <div className="min-h-screen bg-[#E21B70]/25 glossy-sheen dark:bg-[#0B0B0F] text-[#111118] dark:text-[#F5F5F8] relative pb-28 md:pb-12 flex flex-col font-sans overflow-x-clip">
 
       {/* Welcome Intro Splash Animation Screen with Site Logo */}
       <AnimatePresence mode="wait">
