@@ -4404,7 +4404,7 @@ export default function App() {
                         setActiveCategory("All");
                         document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth" });
                       }}
-                      className="min-h-[124px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "60ms" }}
+                      className="min-h-[124px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50 shadow-lg shadow-[#D70F64]/15 transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "60ms" }}
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
@@ -4415,7 +4415,7 @@ export default function App() {
                             Hot meals in Dadu
                           </span>
                         </div>
-                        <span className="mt-2 inline-flex w-7 h-7 rounded-full bg-[#E21B70] text-white items-center justify-center shrink-0">
+                        <span className="mt-2 inline-flex w-7 h-7 rounded-full bg-gradient-to-br from-[#FF2B85] to-[#D70F64] text-white items-center justify-center shrink-0 shadow-md shadow-[#D70F64]/40">
                           <ArrowRight className="w-4 h-4" />
                         </span>
                       </div>
@@ -4431,7 +4431,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={handleGoToGroceryHome}
-                      className="min-h-[124px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "120ms" }}
+                      className="min-h-[124px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50 shadow-lg shadow-[#D70F64]/15 transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "120ms" }}
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
@@ -4442,7 +4442,7 @@ export default function App() {
                             100 groceries &amp; rashan
                           </span>
                         </div>
-                        <span className="mt-2 inline-flex w-7 h-7 rounded-full bg-[#E21B70] text-white items-center justify-center shrink-0">
+                        <span className="mt-2 inline-flex w-7 h-7 rounded-full bg-gradient-to-br from-[#FF2B85] to-[#D70F64] text-white items-center justify-center shrink-0 shadow-md shadow-[#D70F64]/40">
                           <ArrowRight className="w-4 h-4" />
                         </span>
                       </div>
@@ -4462,7 +4462,7 @@ export default function App() {
                         setQuickFilter("under_300");
                         document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth" });
                       }}
-                      className="min-h-[124px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "180ms" }}
+                      className="min-h-[124px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50 shadow-lg shadow-[#D70F64]/15 transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "180ms" }}
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
@@ -4473,7 +4473,7 @@ export default function App() {
                             Under Rs. 300 picks
                           </span>
                         </div>
-                        <span className="mt-2 inline-flex w-7 h-7 rounded-full bg-[#E21B70] text-white items-center justify-center shrink-0">
+                        <span className="mt-2 inline-flex w-7 h-7 rounded-full bg-gradient-to-br from-[#FF2B85] to-[#D70F64] text-white items-center justify-center shrink-0 shadow-md shadow-[#D70F64]/40">
                           <ArrowRight className="w-4 h-4" />
                         </span>
                       </div>
@@ -4490,7 +4490,7 @@ export default function App() {
                       href={`https://wa.me/${deliverySettings?.whatsappNumber || "923277004471"}?text=Assalam-o-Alaikum%20Dadu%20Food!%20Mera%20WhatsApp%20order%20list%20ye%20hai:`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="min-h-[124px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#25D366]/60 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "240ms" }}
+                      className="min-h-[124px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#25D366]/60 shadow-lg shadow-[#D70F64]/15 transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "240ms" }}
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
@@ -4501,7 +4501,7 @@ export default function App() {
                             Send list directly
                           </span>
                         </div>
-                        <span className="mt-2 inline-flex w-7 h-7 rounded-full bg-[#E21B70] text-white items-center justify-center shrink-0">
+                        <span className="mt-2 inline-flex w-7 h-7 rounded-full bg-gradient-to-br from-[#FF2B85] to-[#D70F64] text-white items-center justify-center shrink-0 shadow-md shadow-[#D70F64]/40">
                           <ArrowRight className="w-4 h-4" />
                         </span>
                       </div>

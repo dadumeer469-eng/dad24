@@ -114,18 +114,18 @@ export default function FoodpandaHeader({
 
   // Food / Groceries segmented switch (Foodpanda-style, with grocery basket badge)
   const moduleSwitch = (
-    <div className="bg-white rounded-full p-1 flex shadow-sm">
+    <div className="bg-white rounded-full p-1 flex shadow-lg shadow-[#D70F64]/20">
       <button
         type="button"
         onClick={() => switchModule("food")}
-        className={`flex-1 min-h-[40px] rounded-full text-[13px] sm:text-sm font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${activeModule === "food" ? "bg-gradient-to-r from-[#D70F64] to-[#E21B70] text-white shadow-sm" : "text-[#14141A]"}`}
+        className={`flex-1 min-h-[40px] rounded-full text-[13px] sm:text-sm font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${activeModule === "food" ? "bg-gradient-to-r from-[#FF2B85] via-[#E21B70] to-[#D70F64] text-white shadow-md shadow-[#D70F64]/40" : "text-[#14141A]"}`}
       >
         🍔 FOOD DELIVERY
       </button>
       <button
         type="button"
         onClick={() => switchModule("grocery")}
-        className={`flex-1 min-h-[40px] rounded-full text-[13px] sm:text-sm font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${activeModule === "grocery" ? "bg-gradient-to-r from-[#D70F64] to-[#E21B70] text-white shadow-sm" : "text-[#14141A]"}`}
+        className={`flex-1 min-h-[40px] rounded-full text-[13px] sm:text-sm font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${activeModule === "grocery" ? "bg-gradient-to-r from-[#FF2B85] via-[#E21B70] to-[#D70F64] text-white shadow-md shadow-[#D70F64]/40" : "text-[#14141A]"}`}
       >
         🛒 GROCERIES
         {groceryCartCount > 0 && (
