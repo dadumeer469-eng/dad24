@@ -271,6 +271,14 @@
   filter: brightness(1.05);
 }
 
+/* Glossy 3D shine (design: shiny/glossy like the mockup — bright top sheen + inset highlight) */
+.glossy-sheen {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.14) 38%, rgba(255, 255, 255, 0.03) 62%, rgba(0, 0, 0, 0.05) 100%);
+}
+.glossy-edge {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 -2px 4px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(215, 15, 100, 0.28);
+}
+
 .animate-float-soft {
   animation: float-soft 3.2s ease-in-out infinite;
   will-change: transform;
