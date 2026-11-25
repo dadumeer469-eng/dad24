@@ -4326,7 +4326,7 @@ export default function App() {
         href={`https://wa.me/${deliverySettings?.whatsappNumber || "923277004471"}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-32 left-4 z-40 bg-[#25D366] text-white p-2 rounded-full shadow-lg hover:scale-110 transition-transform cursor-pointer flex items-center justify-center border border-white/20"
+        className="fixed bottom-32 right-4 z-40 bg-[#25D366] text-white p-2 rounded-full shadow-lg hover:scale-110 transition-transform cursor-pointer flex items-center justify-center border border-white/20"
         title="WhatsApp live support helpline"
       >
         <svg viewBox="0 0 24 24" className="w-6 h-6 fill-current text-white">
