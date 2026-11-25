@@ -1,7 +1,8 @@
 import React from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, User, History, Heart, Sun, Moon, ShieldAlert, LogOut, BadgeCheck, RotateCcw } from "lucide-react";
+import { X, History, Heart, Sun, Moon, ShieldAlert, LogOut, BadgeCheck, RotateCcw, Settings } from "lucide-react";
 import { UserProfile, Order } from "../types";
+import { formatOrderId } from "../utils/catalogNormalizer";
 
 interface MobileAccountDrawerProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ interface MobileAccountDrawerProps {
   onLogout: () => void;
   theme: "light" | "dark";
   onToggleTheme?: () => void;
+  onOpenSettings?: () => void;
 }
 
 export default function MobileAccountDrawer({
@@ -35,6 +37,7 @@ export default function MobileAccountDrawer({
   onLogout,
   theme,
   onToggleTheme,
+  onOpenSettings,
 }: MobileAccountDrawerProps) {
   if (!user) return null;
 
@@ -141,7 +144,7 @@ export default function MobileAccountDrawer({
                       >
                         <div className="flex justify-between items-center mb-1">
                           <span className="font-mono text-xs font-black text-zinc-800 dark:text-zinc-200">
-                            #{o.id.substring(0, 5)}
+                            {formatOrderId(o.id)}
                           </span>
                           <span className="text-[8px] font-black uppercase text-[#D70F64] bg-[#D70F64]/10 px-2 py-0.5 rounded border border-[#D70F64]/20">
                             Track 🛵
@@ -171,7 +174,7 @@ export default function MobileAccountDrawer({
                         <div>
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-zinc-800 dark:text-zinc-200 font-extrabold text-[11px]">
-                              #{o.id.substring(0, 5)}
+                              {formatOrderId(o.id)}
                             </span>
                             <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded leading-none border ${
                               o.status === "delivered" || o.status === "completed"
@@ -241,18 +244,32 @@ export default function MobileAccountDrawer({
                   <span className="text-xs font-extrabold">Order History</span>
                 </button>
 
+                {/* My Profile & Settings button */}
+                {onOpenSettings && (
+                  <button
+                    onClick={() => {
+                      onClose();
+                      onOpenSettings();
+                    }}
+                    className="p-3.5 rounded-2xl text-zinc-800 dark:text-zinc-100 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition flex items-center justify-center gap-2 cursor-pointer col-span-2"
+                  >
+                    <Settings className="w-4 h-4 text-[#D70F64] shrink-0" />
+                    <span className="text-xs font-extrabold">My Profile, Addresses, Payments &amp; Language</span>
+                  </button>
+                )}
+
                 {/* Light/Dark Mode toggle */}
                 <button
                   onClick={() => {
                     if (onToggleTheme) onToggleTheme();
                   }}
-                  className="p-3.5 rounded-2xl text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-100 dark:border-zinc-850 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition flex flex-col items-center justify-center gap-2 cursor-pointer col-span-2"
+                  className="p-3.5 rounded-2xl text-zinc-800 dark:text-zinc-100 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition flex flex-col items-center justify-center gap-2 cursor-pointer col-span-2"
                 >
                   <div className="flex items-center gap-2.5">
                     {theme === "light" ? (
                       <Moon className="w-5 h-5 text-zinc-700 shrink-0" />
                     ) : (
-                      <Sun className="w-5 h-5 text-amber-500 shrink-0" />
+                      <Sun className="w-5 h-5 text-amber-400 shrink-0" />
                     )}
                     <span className="text-xs font-extrabold capitalize">
                       {theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"}
@@ -260,16 +277,16 @@ export default function MobileAccountDrawer({
                   </div>
                 </button>
 
-                {/* Admin Console (if role === "admin") */}
-                {user.role === "admin" && (
+                {/* Admin Console (if role === "admin" || "staff") */}
+                {(user.role === "admin" || user.role === "staff") && (
                   <button
                     onClick={() => {
                       onClose();
                       onOpenAdmin();
                     }}
-                    className="w-full font-bold text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3.5 py-3 hover:bg-amber-100 rounded-2xl transition flex items-center justify-center gap-2 cursor-pointer col-span-2 shadow-2xs dark:bg-amber-950/20 dark:border-amber-900/40 dark:text-amber-400"
+                    className="w-full font-bold text-xs text-[#D70F64] bg-[#D70F64]/10 border border-[#D70F64]/30 px-3.5 py-3 hover:bg-[#D70F64]/20 rounded-2xl transition flex items-center justify-center gap-2 cursor-pointer col-span-2 shadow-2xs"
                   >
-                    <ShieldAlert className="w-4 h-4 text-amber-700 dark:text-amber-400 shrink-0" />
+                    <ShieldAlert className="w-4 h-4 text-[#D70F64] shrink-0" />
                     <span>Open Admin Console</span>
                   </button>
                 )}

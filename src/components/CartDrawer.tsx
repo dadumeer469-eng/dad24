@@ -6,6 +6,7 @@ import { LazyImage } from "./LazyImage";
 import UserVouchersModal from "./UserVouchersModal";
 import { doc, setDoc } from "firebase/firestore";
 import { db, handleFirestoreError } from "../firebase";
+import { getSavedAddresses, saveRecentAddress, SavedAddressEntry } from "../utils/savedAddresses";
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -24,6 +25,9 @@ interface CartDrawerProps {
     orderType: "food" | "service";
     userCoords?: { latitude: number; longitude: number };
     coinsUsed?: number;
+    riderTip?: number;
+    isScheduled?: boolean;
+    scheduledTime?: string;
     voucher?: { code: string; discountAmount: number };
   }) => Promise<void>;
   onAddDrink: (drink: any) => void;
@@ -55,21 +59,56 @@ export default function CartDrawer({
   const [isVouchersModalOpen, setIsVouchersModalOpen] = useState(false);
   const [isBenefitsOpen, setIsBenefitsOpen] = useState(false);
 
-  // Customer Name & Address editing states
+  // Customer Name, Phone, Payment, Schedule, Tip & Address states
   const [nameInput, setNameInput] = useState(currentUser?.name || "");
+  const [phoneInput, setPhoneInput] = useState(currentUser?.phone || "");
+  const [paymentMethod, setPaymentMethod] = useState<"COD" | "JazzCash" | "Easypaisa" | "Card">(
+    () => (localStorage.getItem("dadu_preferred_payment") as any) || "COD"
+  );
+  const [riderTip, setRiderTip] = useState<number>(0);
+  const [isScheduled, setIsScheduled] = useState<boolean>(false);
+  const [scheduledTime, setScheduledTime] = useState<string>("Today, +1 Hour");
+  const [locationTimedOut, setLocationTimedOut] = useState<boolean>(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [isEditingAddress, setIsEditingAddress] = useState(!currentUser?.address);
   const [addressInput, setAddressInput] = useState(currentUser?.address || "");
   const [isSavingAddress, setIsSavingAddress] = useState(false);
   const [addressSaveSuccess, setAddressSaveSuccess] = useState(false);
   const [addressError, setAddressError] = useState<string | null>(null);
+  const [addressLabel, setAddressLabel] = useState<SavedAddressEntry["label"]>("Ghar");
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddressEntry[]>([]);
+
+  // Geolocation timeout fallback (never stay stuck on "Locating...")
+  React.useEffect(() => {
+    if (!isOpen || userCoords) {
+      setLocationTimedOut(false);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setLocationTimedOut(true);
+    }, 3500);
+    return () => clearTimeout(timer);
+  }, [isOpen, userCoords]);
 
   React.useEffect(() => {
     if (currentUser?.name && !nameInput) {
       setNameInput(currentUser.name);
     }
+    if (currentUser?.phone && !phoneInput) {
+      setPhoneInput(currentUser.phone);
+    }
     if (currentUser?.address && !addressInput) {
       setAddressInput(currentUser.address);
+    }
+    if (currentUser?.uid) {
+      const stored = getSavedAddresses(currentUser.uid);
+      if (stored.length === 0 && currentUser.address) {
+        setSavedAddresses(saveRecentAddress(currentUser.uid, currentUser.address, "Ghar"));
+      } else {
+        setSavedAddresses(stored);
+      }
+    } else {
+      setSavedAddresses([]);
     }
   }, [currentUser]);
 
@@ -78,6 +117,39 @@ export default function CartDrawer({
     setIsEditingAddress(true);
     setAddressError(null);
     setAddressSaveSuccess(false);
+  };
+
+  const handleQuickSelectSavedAddress = async (entry: SavedAddressEntry) => {
+    if (!currentUser) return;
+    setAddressInput(entry.address);
+    setAddressLabel(entry.label);
+    setAddressError(null);
+    if (currentUser.address?.trim().toLowerCase() === entry.address.trim().toLowerCase()) {
+      setIsEditingAddress(false);
+      return;
+    }
+    try {
+      setIsSavingAddress(true);
+      const updatedData: any = {
+        address: entry.address,
+        savedLocation: {
+          area: entry.address.split(",")[0]?.trim() || entry.address,
+          street: entry.address,
+          lat: currentUser.savedLocation?.lat || 26.7341,
+          lng: currentUser.savedLocation?.lng || 67.7795,
+        }
+      };
+      await setDoc(doc(db, "users", currentUser.uid), updatedData, { merge: true });
+      setSavedAddresses(saveRecentAddress(currentUser.uid, entry.address, entry.label));
+      setIsEditingAddress(false);
+      setAddressSaveSuccess(true);
+      setTimeout(() => setAddressSaveSuccess(false), 3000);
+    } catch (err: any) {
+      console.error("Failed to switch saved address:", err);
+      setAddressError(handleFirestoreError(err) || "Failed to update address.");
+    } finally {
+      setIsSavingAddress(false);
+    }
   };
 
   const handleSaveAddress = async () => {
@@ -107,6 +179,7 @@ export default function CartDrawer({
       };
 
       await setDoc(doc(db, "users", currentUser.uid), updatedData, { merge: true });
+      setSavedAddresses(saveRecentAddress(currentUser.uid, trimmed, addressLabel));
       setIsEditingAddress(false);
       setAddressSaveSuccess(true);
       setTimeout(() => setAddressSaveSuccess(false), 3500);
@@ -136,14 +209,24 @@ export default function CartDrawer({
   const hasFood = cartItems.some((item) => item.type === "food");
   const hasService = cartItems.some((item) => item.type === "service");
 
-  // Determine delivery charge: Rs. 0 for pure diagnostic home services, custom delivery charge for food!
-  // If order total (items price) is below 500, double the delivery fee!
-  // Delivery Fee calculation
+  // Consistent Delivery Fee Policy:
+  // - Pure home service: Rs. 0 delivery fee
+  // - Food >= Rs. 1,000: FREE delivery
+  // - Food < Rs. 500: Doubled delivery fee (2x standard)
+  // - Food Rs. 500 - Rs. 999: Standard delivery fee
+  const isFreeFoodDelivery = hasFood && totalFoodItemsPrice >= 1000;
   const isDoubleFee = hasFood && totalFoodItemsPrice < 500;
-  const finalDeliveryFee = hasFood ? (isDoubleFee ? deliveryFee * 2 : deliveryFee) : 0;
-  
-  // Base total before any discounts
-  const baseOrderTotal = totalFoodItemsPrice + finalDeliveryFee;
+  const standardFee = deliveryFee > 0 ? deliveryFee : 50;
+  const finalDeliveryFee = !hasFood
+    ? 0
+    : isFreeFoodDelivery
+    ? 0
+    : isDoubleFee
+    ? standardFee * 2
+    : standardFee;
+
+  // Base total before any discounts (items + delivery + optional rider tip)
+  const baseOrderTotal = totalFoodItemsPrice + finalDeliveryFee + riderTip;
 
   // Voucher discount
   let voucherDiscount = 0;
@@ -165,7 +248,7 @@ export default function CartDrawer({
   const coinsDeducted = (useCoins && !appliedVoucher) ? maxCoinsUsable : 0;
   const totalBenefitDiscount = appliedVoucher ? voucherDiscount : coinsDeducted;
 
-  let grandTotal = Math.max(0, baseOrderTotal - totalBenefitDiscount);
+  let grandTotal = Math.max(0, totalFoodItemsPrice + finalDeliveryFee + riderTip - totalBenefitDiscount);
 
   // Real-time Order Reward Calculation (from Admin Loyalty Settings)
   const loyaltyEarnVal = systemSettings?.loyaltyEarnCoins ?? 15;
@@ -288,8 +371,14 @@ export default function CartDrawer({
     setSubmitting(true);
 
     const finalName = trimmedName;
-    const finalPhone = currentUser.phone || "03000000000";
-    
+    const cleanPhoneInput = (phoneInput || currentUser.phone || "").replace(/\D/g, "");
+    if (!/^03\d{9}$/.test(cleanPhoneInput)) {
+      setCheckoutError("Please enter a valid 11-digit mobile number (03XXXXXXXXX) for rider contact.");
+      setSubmitting(false);
+      return;
+    }
+    const finalPhone = cleanPhoneInput;
+
     // Auto-save address if updated
     if (currentAddr !== currentUser.address) {
       const parts = currentAddr.split(",");
@@ -311,33 +400,34 @@ export default function CartDrawer({
     const finalArea = parts[0]?.trim() || currentAddr;
     const finalStreet = parts.slice(1).join(",")?.trim() || "Dadu";
 
-    // Determine type
     const orderTypeValue = hasService && !hasFood ? "service" : "food";
-    const paymentMethodValue = orderTypeValue === "service" ? "Pay on Appointment" : "COD";
+    const paymentMethodValue = orderTypeValue === "service" && paymentMethod === "COD" ? "Pay on Appointment" : paymentMethod;
 
     let activeCoords = userCoords;
     if (!activeCoords && currentUser?.savedLocation?.lat && currentUser?.savedLocation?.lng) {
       activeCoords = { latitude: currentUser.savedLocation.lat, longitude: currentUser.savedLocation.lng };
     }
 
-    if (typeof navigator !== "undefined" && navigator.geolocation) {
+    // Fast non-blocking geolocation attempt (max 2.5s) with immediate Dadu City fallback
+    if (!activeCoords && typeof navigator !== "undefined" && navigator.geolocation) {
       try {
         const coords = await new Promise<{ latitude: number; longitude: number }>((resolve, reject) => {
+          const fallbackTimer = setTimeout(() => reject(new Error("GPS timeout")), 2500);
           navigator.geolocation.getCurrentPosition(
-            (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-            () => {
-              navigator.geolocation.getCurrentPosition(
-                (pos2) => resolve({ latitude: pos2.coords.latitude, longitude: pos2.coords.longitude }),
-                (err2) => reject(err2),
-                { enableHighAccuracy: false, timeout: 3000 }
-              );
+            (pos) => {
+              clearTimeout(fallbackTimer);
+              resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
             },
-            { enableHighAccuracy: true, timeout: 3000, maximumAge: 30000 }
+            (err) => {
+              clearTimeout(fallbackTimer);
+              reject(err);
+            },
+            { enableHighAccuracy: false, timeout: 2400, maximumAge: 60000 }
           );
         });
         activeCoords = coords;
-      } catch (err) {
-        console.warn("Could not fetch fresh GPS location, using fallback coordinates", err);
+      } catch {
+        // Proceed smoothly with manual address + Dadu City coordinates
       }
     }
 
@@ -360,6 +450,9 @@ export default function CartDrawer({
         orderType: orderTypeValue,
         userCoords: activeCoords || undefined,
         coinsUsed: useCoins ? coinsDeducted : undefined,
+        riderTip: riderTip > 0 ? riderTip : undefined,
+        isScheduled: isScheduled || undefined,
+        scheduledTime: isScheduled ? scheduledTime : undefined,
         voucher: appliedVoucher ? {
           code: appliedVoucher.code,
           discountAmount: voucherDiscount,
@@ -593,6 +686,23 @@ export default function CartDrawer({
 
                       {isEditingAddress ? (
                         <div className="space-y-2 pt-1 animate-fadeIn">
+                          {/* Quick Address Tag Selector */}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {(["Ghar", "Dukan / Office", "Hostel", "Other"] as SavedAddressEntry["label"][]).map((tag) => (
+                              <button
+                                key={tag}
+                                type="button"
+                                onClick={() => setAddressLabel(tag)}
+                                className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition cursor-pointer border ${
+                                  addressLabel === tag
+                                    ? "bg-[#D70F64] text-white border-[#D70F64]"
+                                    : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
+                                }`}
+                              >
+                                {tag === "Ghar" ? "🏠 Ghar" : tag === "Dukan / Office" ? "🏪 Dukan / Office" : tag === "Hostel" ? "🎓 Hostel" : "📍 Other"}
+                              </button>
+                            ))}
+                          </div>
                           <textarea
                             value={addressInput}
                             onChange={(e) => {
@@ -655,6 +765,48 @@ export default function CartDrawer({
                           </button>
                         </div>
                       )}
+
+                      {/* 1-Tap Saved Recent Addresses */}
+                      {savedAddresses.length > 0 && (
+                        <div className="pt-1.5 space-y-1.5 border-t border-zinc-800/80">
+                          <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-zinc-500 block">
+                            1-Tap Saved Addresses
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {savedAddresses.map((entry, idx) => {
+                              const isActive =
+                                (currentUser.address || "").trim().toLowerCase() ===
+                                entry.address.trim().toLowerCase();
+                              const icon =
+                                entry.label === "Ghar"
+                                  ? "🏠"
+                                  : entry.label === "Dukan / Office"
+                                    ? "🏪"
+                                    : entry.label === "Hostel"
+                                      ? "🎓"
+                                      : "📍";
+                              return (
+                                <button
+                                  key={`${entry.label}-${idx}`}
+                                  type="button"
+                                  disabled={isSavingAddress}
+                                  onClick={() => handleQuickSelectSavedAddress(entry)}
+                                  title={entry.address}
+                                  className={`max-w-full text-left px-2.5 py-1.5 rounded-xl text-[10.5px] font-bold transition cursor-pointer flex items-center gap-1.5 border ${
+                                    isActive
+                                      ? "bg-[#D70F64]/15 border-[#D70F64]/60 text-pink-200"
+                                      : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-zinc-600"
+                                  }`}
+                                >
+                                  <span>{icon}</span>
+                                  <span className="font-black text-white shrink-0">{entry.label}:</span>
+                                  <span className="truncate max-w-[140px] text-zinc-400">{entry.address}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -692,9 +844,141 @@ export default function CartDrawer({
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-zinc-950 border border-zinc-800 p-4 rounded-xl flex flex-col items-center text-center gap-2">
-                    <MapPin className="w-6 h-6 text-zinc-500 animate-pulse" />
-                    <p className="text-zinc-400 text-xs font-bold">Detecting your exact location...</p>
+                  <div className="bg-zinc-950 border border-zinc-800 p-3.5 rounded-xl flex flex-col items-center text-center gap-2">
+                    <MapPin className={`w-5 h-5 ${locationTimedOut ? "text-[#D70F64]" : "text-zinc-400 animate-pulse"}`} />
+                    <p className="text-zinc-200 text-xs font-bold">
+                      {locationTimedOut
+                        ? "GPS unavailable — proceed smoothly with your manual Dadu address!"
+                        : "Checking optional GPS signal..."}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleStartEditAddress}
+                      className="text-[11px] font-black text-[#D70F64] hover:underline cursor-pointer"
+                    >
+                      Enter / Edit Delivery Address Manually
+                    </button>
+                  </div>
+                )}
+
+                {/* Editable Contact Phone Number */}
+                <div className="bg-zinc-950 border border-zinc-800 p-3.5 rounded-xl space-y-2">
+                  <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                    <Phone className="w-3.5 h-3.5 text-[#D70F64]" /> Contact Phone Number *
+                  </label>
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    value={phoneInput}
+                    onChange={(e) => setPhoneInput(e.target.value.replace(/\D/g, "").slice(0, 11))}
+                    placeholder="03XX-XXXXXXX"
+                    className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-100 text-xs font-bold focus:outline-none focus:border-[#D70F64]"
+                  />
+                </div>
+
+                {/* Payment Method Selector */}
+                <div className="bg-zinc-950 border border-zinc-800 p-3.5 rounded-xl space-y-2">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-400 block">
+                    Payment Method
+                  </span>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(["COD", "JazzCash", "Easypaisa", "Card"] as const).map((method) => (
+                      <button
+                        key={method}
+                        type="button"
+                        onClick={() => {
+                          setPaymentMethod(method);
+                          localStorage.setItem("dadu_preferred_payment", method);
+                        }}
+                        className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition cursor-pointer ${
+                          paymentMethod === method
+                            ? "bg-[#D70F64] border-[#D70F64] text-white"
+                            : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-zinc-600"
+                        }`}
+                      >
+                        {method === "COD" ? "Cash (COD)" : method}
+                      </button>
+                    ))}
+                  </div>
+                  {(paymentMethod === "JazzCash" || paymentMethod === "Easypaisa") && (
+                    <p className="text-[10px] text-zinc-400">
+                      Send {paymentMethod} to Dadu Food account <strong className="text-zinc-200">03277004471</strong> or pay on delivery confirmation.
+                    </p>
+                  )}
+                </div>
+
+                {/* Delivery Timing: Deliver Now vs Scheduled Pre-Order */}
+                <div className="bg-zinc-950 border border-zinc-800 p-3.5 rounded-xl space-y-2">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-400 block">
+                    Delivery Timing
+                  </span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsScheduled(false)}
+                      className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition cursor-pointer ${
+                        !isScheduled
+                          ? "bg-[#D70F64] border-[#D70F64] text-white"
+                          : "bg-zinc-900 border-zinc-800 text-zinc-300"
+                      }`}
+                    >
+                      Deliver Now (ASAP)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsScheduled(true)}
+                      className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition cursor-pointer ${
+                        isScheduled
+                          ? "bg-[#D70F64] border-[#D70F64] text-white"
+                          : "bg-zinc-900 border-zinc-800 text-zinc-300"
+                      }`}
+                    >
+                      Schedule Pre-Order
+                    </button>
+                  </div>
+                  {isScheduled && (
+                    <select
+                      value={scheduledTime}
+                      onChange={(e) => setScheduledTime(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-100 text-xs font-bold"
+                    >
+                      <option value="Today, +45 Mins">Today, in 45 Minutes</option>
+                      <option value="Today, +1 Hour">Today, in 1 Hour</option>
+                      <option value="Today, +2 Hours">Today, in 2 Hours</option>
+                      <option value="Tonight, 8:00 PM">Tonight, 8:00 PM (Dinner)</option>
+                      <option value="Tonight, 9:30 PM">Tonight, 9:30 PM</option>
+                      <option value="Tomorrow, 1:00 PM">Tomorrow, 1:00 PM (Lunch)</option>
+                    </select>
+                  )}
+                </div>
+
+                {/* Optional Rider Tip */}
+                {hasFood && (
+                  <div className="bg-zinc-950 border border-zinc-800 p-3.5 rounded-xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-400">
+                        Rider Tip (100% goes to rider)
+                      </span>
+                      <span className="text-[11px] font-black text-[#D70F64]">
+                        {riderTip > 0 ? `Rs. ${riderTip}` : "Optional"}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {[0, 30, 50, 100].map((amt) => (
+                        <button
+                          key={amt}
+                          type="button"
+                          onClick={() => setRiderTip(amt)}
+                          className={`py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer ${
+                            riderTip === amt
+                              ? "bg-[#D70F64] border-[#D70F64] text-white"
+                              : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-zinc-600"
+                          }`}
+                        >
+                          {amt === 0 ? "None" : `Rs. ${amt}`}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -729,6 +1013,58 @@ export default function CartDrawer({
                 </div>
               </div>
             )}
+
+            {/* 1-TAP AUTO-APPLY BEST VOUCHER BANNER */}
+            {!appliedVoucher && (() => {
+              const eligibleFoodVouchers = allVouchers
+                .filter((v) => {
+                  const elig = canUserUseVoucher(v, currentUser?.uid);
+                  if (!elig.allowed) return false;
+                  if (v.applicableType === "grocery_only") return false;
+                  if (v.applicableType === "restaurant" && v.applicableRestaurant) {
+                    const matchRest = cartItems.some(
+                      (i) => i.restaurantName?.toLowerCase() === v.applicableRestaurant?.toLowerCase()
+                    );
+                    if (!matchRest) return false;
+                  }
+                  if (v.minOrderAmount && totalFoodItemsPrice < v.minOrderAmount) return false;
+                  return calculateVoucherDiscount(v, totalFoodItemsPrice) > 0;
+                })
+                .sort(
+                  (a, b) =>
+                    calculateVoucherDiscount(b, totalFoodItemsPrice) -
+                    calculateVoucherDiscount(a, totalFoodItemsPrice)
+                );
+
+              const bestVoucher = eligibleFoodVouchers[0];
+              if (!bestVoucher) return null;
+              const bestSave = calculateVoucherDiscount(bestVoucher, totalFoodItemsPrice);
+
+              return (
+                <div className="bg-gradient-to-r from-[#D70F64]/20 via-pink-600/15 to-amber-500/15 border border-[#D70F64]/40 rounded-2xl p-2.5 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded-xl bg-[#D70F64] text-white flex items-center justify-center shrink-0 shadow-sm">
+                      <Ticket className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-black text-white truncate">
+                        Save Rs. {bestSave} with <span className="font-mono text-pink-300">{bestVoucher.code}</span>
+                      </p>
+                      <p className="text-[9.5px] text-zinc-300 truncate">
+                        {bestVoucher.successMessage || "Instant promo discount available!"}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyVoucher(bestVoucher)}
+                    className="bg-[#D70F64] hover:bg-[#b00c50] text-white text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-xl shrink-0 shadow-md shadow-[#D70F64]/25 cursor-pointer transition active:scale-95"
+                  >
+                    1-Tap Apply
+                  </button>
+                </div>
+              );
+            })()}
 
             {/* BENEFIT / OFFERS & DISCOUNTS COLLAPSIBLE BOX */}
             <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden transition-all duration-200">
@@ -974,14 +1310,22 @@ export default function CartDrawer({
                 <span>Delivery / Service Fee:</span>
                 <span className="text-zinc-100 font-extrabold">
                   {finalDeliveryFee === 0 ? (
-                    <span className="text-emerald-500 font-black">FREE (Home Service Booking)</span>
+                    <span className="text-emerald-400 font-black">
+                      {isFreeFoodDelivery ? "FREE (Order ≥ Rs. 1,000)" : "FREE (Home Service Booking)"}
+                    </span>
                   ) : (
                     <span className="font-mono">Rs. {finalDeliveryFee}</span>
                   )}
                 </span>
               </div>
-              <div className="flex justify-between text-zinc-100 text-sm font-black border-t border-zinc-855 pt-2.5">
-                <span>Grand Total:</span>
+              {riderTip > 0 && (
+                <div className="flex justify-between">
+                  <span>Rider Tip:</span>
+                  <span className="text-zinc-100 font-extrabold font-mono">Rs. {riderTip}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-zinc-100 text-sm font-black border-t border-zinc-800 pt-2.5">
+                <span>Grand Total ({paymentMethod}):</span>
                 <span className="text-[#D70F64] text-base font-bold font-mono">Rs. {grandTotal}</span>
               </div>
             </div>
@@ -996,24 +1340,24 @@ export default function CartDrawer({
             <button
               onClick={handleSubmitOrder}
               disabled={submitting}
-              className={`w-full ${!userCoords ? 'bg-pink-600 hover:bg-orange-700' : 'bg-[#D70F64] hover:bg-[#b00c50]'} text-white py-3 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75`}
+              className="w-full bg-[#D70F64] hover:bg-[#b00c50] text-white py-3.5 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75"
             >
               {submitting ? (
-                <>Loading...</>
-              ) : !userCoords ? (
-                <>
-                  <MapPin className="w-4 h-4" />
-                  Locating...
-                </>
+                <>Placing Order...</>
               ) : hasService && !hasFood ? (
                 <>
                   <ShieldCheck className="w-4 h-4" />
-                  Book Service (Pay on Visit)
+                  Book Service ({paymentMethod})
+                </>
+              ) : isScheduled ? (
+                <>
+                  <ShieldCheck className="w-4 h-4" />
+                  Schedule Order • Rs. {grandTotal}
                 </>
               ) : (
                 <>
                   <ShieldCheck className="w-4 h-4" />
-                  Order Lagao!
+                  Place Order • Rs. {grandTotal}
                 </>
               )}
             </button>

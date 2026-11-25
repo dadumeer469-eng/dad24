@@ -4,6 +4,7 @@ import { db, analytics } from "../firebase";
 import { logEvent } from "firebase/analytics";
 import { Banner } from "../types";
 import { LazyImage } from "./LazyImage";
+import { sanitizeBanner } from "../utils/catalogNormalizer";
 
 interface BannerCarouselProps {
   bannerVersion?: number;
@@ -48,13 +49,13 @@ const BannerImage: React.FC<{ banner: Banner; onClick: () => void }> = ({ banner
         referrerPolicy="no-referrer"
       />
       
-      {/* Dark subtle gradient overlay at bottom for better readability */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
+      {/* Dark high-contrast gradient overlay at bottom for crisp readability */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none" />
 
       {/* Stylish Detail Text Overlay */}
       {banner.detail && (
         <div className="absolute bottom-4 left-4 right-16 z-10 pointer-events-none">
-          <span className="inline-block bg-black/65 backdrop-blur-md text-white text-xs md:text-sm font-black px-3.5 py-1.5 md:px-4 md:py-2 rounded-full shadow-lg border border-white/15 tracking-wide">
+          <span className="inline-block bg-zinc-950/85 backdrop-blur-md text-white text-xs md:text-sm font-black px-3.5 py-1.5 md:px-4 md:py-2 rounded-full shadow-lg border border-white/20 tracking-wide">
             {banner.detail}
           </span>
         </div>
@@ -63,13 +64,19 @@ const BannerImage: React.FC<{ banner: Banner; onClick: () => void }> = ({ banner
   );
 };
 
+const sanitizeList = (list: Banner[]): Banner[] =>
+  list
+    .map((b) => sanitizeBanner(b))
+    .filter((b): b is Banner => Boolean(b));
+
 const getInitialBanners = (): Banner[] => {
   try {
     const saved = localStorage.getItem("dadu_cached_banners");
     if (saved) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        const clean = sanitizeList(parsed);
+        if (clean.length > 0) return clean;
       }
     }
   } catch (e) {
@@ -122,11 +129,11 @@ export default function BannerCarousel({ onBannerClick }: BannerCarouselProps) {
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const fetchedBanners = snapshot.docs.map(
-          (docSnap) => ({ id: docSnap.id, ...docSnap.data() } as Banner)
+        const fetchedBanners = sanitizeList(
+          snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() } as Banner))
         );
         fetchedBanners.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-        
+
         if (fetchedBanners.length > 0) {
           setBanners(fetchedBanners);
           preloadBannerImages(fetchedBanners);

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import OrderChat from "./OrderChat";
 import { useRiderLocationTracker } from "../lib/riderLocationTracker";
+import { formatOrderId } from "../utils/catalogNormalizer";
 
 interface RiderPanelProps {
   currentUser: UserProfile;
@@ -804,7 +805,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                               : "Active Run"}
                           </span>
                           <span className="text-[10px] text-zinc-400 font-mono font-bold">
-                            dadu-{riderActiveOrder.id.substring(0, 8)}
+                            {formatOrderId(riderActiveOrder.id)}
                           </span>
                         </div>
                         <p className="text-[11px] text-zinc-400 font-semibold">
@@ -1400,7 +1401,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                                 )}
                               </div>
                               <h4 className="font-extrabold text-xs sm:text-sm mt-2 text-zinc-200">
-                                Dadu Order: <span className="font-mono text-xs text-[#D70F64]">dadu-{order.id.substring(0, 6)}</span>
+                                Dadu Order: <span className="font-mono text-xs text-[#D70F64]">{formatOrderId(order.id)}</span>
                               </h4>
                             </div>
                             <span className="text-[10px] text-zinc-500 font-mono font-bold mt-1 sm:mt-0">
@@ -1700,7 +1701,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                                 {/* metadata */}
                                 <div className="flex justify-between items-start border-b border-zinc-850 pb-2.5 gap-2 text-xs">
                                   <div>
-                                    <span className="text-[#D70F64] font-black uppercase text-[9px] tracking-wider block">ID: dadu-{order.id.substring(0, 8)}</span>
+                                    <span className="text-[#D70F64] font-black uppercase text-[9px] tracking-wider block">ID: {formatOrderId(order.id)}</span>
                                     <h5 className="font-extrabold text-zinc-200 mt-1">Buyer: {order.userName}</h5>
                                   </div>
                                   <div className="text-right font-mono">
@@ -2081,7 +2082,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                         <div className="flex justify-between items-start gap-2">
                           <div>
                             <span className="text-[11px] font-black text-zinc-200 block">{order.userName || "Customer"}</span>
-                            <span className="text-[9px] text-zinc-500 font-mono">ID: dadu-{order.id.substring(0, 8)}</span>
+                            <span className="text-[9px] text-zinc-500 font-mono">ID: {formatOrderId(order.id)}</span>
                           </div>
                           <div className="flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 text-amber-400 font-black text-xs">
                             ⭐ {order.rating}

@@ -5,6 +5,7 @@ import { LazyImage } from "./LazyImage";
 import UserVouchersModal from "./UserVouchersModal";
 import { doc, setDoc } from "firebase/firestore";
 import { db, handleFirestoreError } from "../firebase";
+import { getSavedAddresses, saveRecentAddress, SavedAddressEntry } from "../utils/savedAddresses";
 
 interface GroceryCartDrawerProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ interface GroceryCartDrawerProps {
     totalPrice: number;
     deliveryFee: number;
     grandTotal: number;
+    paymentMethod?: "COD" | "JazzCash" | "Easypaisa" | "Card";
     userCoords?: { latitude: number; longitude: number };
     coinsUsed?: number;
     voucher?: { code: string; discountAmount: number };
@@ -55,21 +57,40 @@ export default function GroceryCartDrawer({
   const [isVouchersModalOpen, setIsVouchersModalOpen] = useState(false);
   const [isBenefitsOpen, setIsBenefitsOpen] = useState(false);
 
-  // Customer Name & Address editing states
+  // Customer Name, Phone, Payment & Address editing states
   const [nameInput, setNameInput] = useState(currentUser?.name || "");
+  const [phoneInput, setPhoneInput] = useState(currentUser?.phone || "");
+  const [paymentMethod, setPaymentMethod] = useState<"COD" | "JazzCash" | "Easypaisa" | "Card">(
+    () => (localStorage.getItem("dadu_preferred_payment") as any) || "COD"
+  );
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [isEditingAddress, setIsEditingAddress] = useState(!currentUser?.address);
   const [addressInput, setAddressInput] = useState(currentUser?.address || "");
   const [isSavingAddress, setIsSavingAddress] = useState(false);
   const [addressSaveSuccess, setAddressSaveSuccess] = useState(false);
   const [addressError, setAddressError] = useState<string | null>(null);
+  const [addressLabel, setAddressLabel] = useState<SavedAddressEntry["label"]>("Ghar");
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddressEntry[]>([]);
 
   React.useEffect(() => {
     if (currentUser?.name && !nameInput) {
       setNameInput(currentUser.name);
     }
+    if (currentUser?.phone && !phoneInput) {
+      setPhoneInput(currentUser.phone);
+    }
     if (currentUser?.address && !addressInput) {
       setAddressInput(currentUser.address);
+    }
+    if (currentUser?.uid) {
+      const stored = getSavedAddresses(currentUser.uid);
+      if (stored.length === 0 && currentUser.address) {
+        setSavedAddresses(saveRecentAddress(currentUser.uid, currentUser.address, "Ghar"));
+      } else {
+        setSavedAddresses(stored);
+      }
+    } else {
+      setSavedAddresses([]);
     }
   }, [currentUser]);
 
@@ -78,6 +99,39 @@ export default function GroceryCartDrawer({
     setIsEditingAddress(true);
     setAddressError(null);
     setAddressSaveSuccess(false);
+  };
+
+  const handleQuickSelectSavedAddress = async (entry: SavedAddressEntry) => {
+    if (!currentUser) return;
+    setAddressInput(entry.address);
+    setAddressLabel(entry.label);
+    setAddressError(null);
+    if (currentUser.address?.trim().toLowerCase() === entry.address.trim().toLowerCase()) {
+      setIsEditingAddress(false);
+      return;
+    }
+    try {
+      setIsSavingAddress(true);
+      const updatedData: any = {
+        address: entry.address,
+        savedLocation: {
+          area: entry.address.split(",")[0]?.trim() || entry.address,
+          street: entry.address,
+          lat: currentUser.savedLocation?.lat || 26.7341,
+          lng: currentUser.savedLocation?.lng || 67.7795,
+        }
+      };
+      await setDoc(doc(db, "users", currentUser.uid), updatedData, { merge: true });
+      setSavedAddresses(saveRecentAddress(currentUser.uid, entry.address, entry.label));
+      setIsEditingAddress(false);
+      setAddressSaveSuccess(true);
+      setTimeout(() => setAddressSaveSuccess(false), 3000);
+    } catch (err: any) {
+      console.error("Failed to switch saved address:", err);
+      setAddressError(handleFirestoreError(err) || "Failed to update address.");
+    } finally {
+      setIsSavingAddress(false);
+    }
   };
 
   const handleSaveAddress = async () => {
@@ -107,6 +161,7 @@ export default function GroceryCartDrawer({
       };
 
       await setDoc(doc(db, "users", currentUser.uid), updatedData, { merge: true });
+      setSavedAddresses(saveRecentAddress(currentUser.uid, trimmed, addressLabel));
       setIsEditingAddress(false);
       setAddressSaveSuccess(true);
       setTimeout(() => setAddressSaveSuccess(false), 3500);
@@ -137,11 +192,11 @@ export default function GroceryCartDrawer({
     0
   );
 
-  // Delivery configuration calculations
+  // Delivery configuration calculations (free threshold defaults to Rs. 1,000, never Rs. 0 free-for-all bug)
   const deliveryRequired = totalGroceryPrice > 0;
-  const isFreeDelivery = totalGroceryPrice >= (deliveryConfig?.freeDeliveryAboveAmount || 1000);
-  const baseDeliveryFee = deliveryConfig?.baseDeliveryFee || 40;
-  // If grocery total is below 500, double the base delivery fee!
+  const freeThreshold = (deliveryConfig?.freeDeliveryAboveAmount || 0) >= 500 ? deliveryConfig.freeDeliveryAboveAmount : 1000;
+  const isFreeDelivery = totalGroceryPrice >= freeThreshold;
+  const baseDeliveryFee = (deliveryConfig?.baseDeliveryFee || 0) > 0 ? deliveryConfig.baseDeliveryFee : 50;
   const isDoubleFee = totalGroceryPrice < 500;
   const deliveryFeeRate = isDoubleFee ? baseDeliveryFee * 2 : baseDeliveryFee;
   const finalDeliveryFee = !deliveryRequired
@@ -150,10 +205,10 @@ export default function GroceryCartDrawer({
     ? 0
     : deliveryFeeRate;
 
-  const taxesAmount = Math.round(totalGroceryPrice * 0.02); // 2% GST
+  const taxesAmount = 0; // Transparent pricing: total = items + delivery fee - discount
   
   // Base Grocery Total before benefits
-  const baseOrderTotal = totalGroceryPrice + finalDeliveryFee + taxesAmount;
+  const baseOrderTotal = totalGroceryPrice + finalDeliveryFee;
 
   // Voucher Discount
   let voucherDiscount = 0;
@@ -286,7 +341,13 @@ export default function GroceryCartDrawer({
     setSubmitting(true);
 
     const finalName = trimmedName;
-    const finalPhone = currentUser.phone || "03000000000";
+    const cleanPhone = (phoneInput || currentUser.phone || "").replace(/\D/g, "");
+    if (!/^03\d{9}$/.test(cleanPhone)) {
+      setCheckoutError("Please enter a valid 11-digit mobile number (03XXXXXXXXX).");
+      setSubmitting(false);
+      return;
+    }
+    const finalPhone = cleanPhone;
 
     // Auto-save address if updated
     if (currentAddr !== currentUser.address) {
@@ -314,24 +375,25 @@ export default function GroceryCartDrawer({
       activeCoords = { latitude: currentUser.savedLocation.lat, longitude: currentUser.savedLocation.lng };
     }
 
-    if (typeof navigator !== "undefined" && navigator.geolocation) {
+    if (!activeCoords && typeof navigator !== "undefined" && navigator.geolocation) {
       try {
         const coords = await new Promise<{ latitude: number; longitude: number }>((resolve, reject) => {
+          const timer = setTimeout(() => reject(new Error("GPS timeout")), 2500);
           navigator.geolocation.getCurrentPosition(
-            (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-            () => {
-              navigator.geolocation.getCurrentPosition(
-                (pos2) => resolve({ latitude: pos2.coords.latitude, longitude: pos2.coords.longitude }),
-                (err2) => reject(err2),
-                { enableHighAccuracy: false, timeout: 3000 }
-              );
+            (pos) => {
+              clearTimeout(timer);
+              resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
             },
-            { enableHighAccuracy: true, timeout: 3000, maximumAge: 30000 }
+            (err) => {
+              clearTimeout(timer);
+              reject(err);
+            },
+            { enableHighAccuracy: false, timeout: 2400, maximumAge: 60000 }
           );
         });
         activeCoords = coords;
-      } catch (err) {
-        console.warn("Could not fetch fresh GPS location, using fallback coordinates", err);
+      } catch {
+        // Use fallback Dadu coordinates seamlessly
       }
     }
 
@@ -354,6 +416,7 @@ export default function GroceryCartDrawer({
         totalPrice: totalGroceryPrice,
         deliveryFee: finalDeliveryFee,
         grandTotal: grandTotal,
+        paymentMethod,
         userCoords: activeCoords || undefined,
         coinsUsed: useCoins ? coinsDeducted : undefined,
         voucher: appliedVoucher ? {
@@ -515,6 +578,23 @@ export default function GroceryCartDrawer({
 
                       {isEditingAddress ? (
                         <div className="space-y-2 pt-1 animate-fadeIn">
+                          {/* Quick Address Tag Selector */}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {(["Ghar", "Dukan / Office", "Hostel", "Other"] as SavedAddressEntry["label"][]).map((tag) => (
+                              <button
+                                key={tag}
+                                type="button"
+                                onClick={() => setAddressLabel(tag)}
+                                className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition cursor-pointer border ${
+                                  addressLabel === tag
+                                    ? "bg-orange-600 text-white border-orange-500"
+                                    : "bg-zinc-950 text-zinc-400 border-zinc-800 hover:text-white"
+                                }`}
+                              >
+                                {tag === "Ghar" ? "🏠 Ghar" : tag === "Dukan / Office" ? "🏪 Dukan / Office" : tag === "Hostel" ? "🎓 Hostel" : "📍 Other"}
+                              </button>
+                            ))}
+                          </div>
                           <textarea
                             value={addressInput}
                             onChange={(e) => {
@@ -577,6 +657,48 @@ export default function GroceryCartDrawer({
                           </button>
                         </div>
                       )}
+
+                      {/* 1-Tap Saved Recent Addresses */}
+                      {savedAddresses.length > 0 && (
+                        <div className="pt-1.5 space-y-1.5 border-t border-zinc-800/80">
+                          <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-zinc-500 block">
+                            1-Tap Saved Addresses
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {savedAddresses.map((entry, idx) => {
+                              const isActive =
+                                (currentUser.address || "").trim().toLowerCase() ===
+                                entry.address.trim().toLowerCase();
+                              const icon =
+                                entry.label === "Ghar"
+                                  ? "🏠"
+                                  : entry.label === "Dukan / Office"
+                                    ? "🏪"
+                                    : entry.label === "Hostel"
+                                      ? "🎓"
+                                      : "📍";
+                              return (
+                                <button
+                                  key={`${entry.label}-${idx}`}
+                                  type="button"
+                                  disabled={isSavingAddress}
+                                  onClick={() => handleQuickSelectSavedAddress(entry)}
+                                  title={entry.address}
+                                  className={`max-w-full text-left px-2.5 py-1.5 rounded-xl text-[10.5px] font-bold transition cursor-pointer flex items-center gap-1.5 border ${
+                                    isActive
+                                      ? "bg-orange-500/15 border-orange-500/60 text-orange-200"
+                                      : "bg-zinc-950 border-zinc-800 text-zinc-300 hover:border-zinc-600"
+                                  }`}
+                                >
+                                  <span>{icon}</span>
+                                  <span className="font-black text-white shrink-0">{entry.label}:</span>
+                                  <span className="truncate max-w-[140px] text-zinc-400">{entry.address}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -587,6 +709,52 @@ export default function GroceryCartDrawer({
           {/* Pricing & Checkout Panel */}
           {cartItems.length > 0 && (
             <div className="p-5 border-t border-zinc-900 bg-zinc-900/60 space-y-4">
+            {/* 1-TAP AUTO-APPLY BEST GROCERY VOUCHER BANNER */}
+            {!appliedVoucher && (() => {
+              const eligibleGroceryVouchers = allVouchers
+                .filter((v) => {
+                  const elig = canUserUseVoucher(v, currentUser?.uid);
+                  if (!elig.allowed) return false;
+                  if (v.applicableType === "food_only" || v.applicableType === "restaurant") return false;
+                  if (v.minOrderAmount && totalGroceryPrice < v.minOrderAmount) return false;
+                  return calculateVoucherDiscount(v, totalGroceryPrice) > 0;
+                })
+                .sort(
+                  (a, b) =>
+                    calculateVoucherDiscount(b, totalGroceryPrice) -
+                    calculateVoucherDiscount(a, totalGroceryPrice)
+                );
+
+              const bestVoucher = eligibleGroceryVouchers[0];
+              if (!bestVoucher) return null;
+              const bestSave = calculateVoucherDiscount(bestVoucher, totalGroceryPrice);
+
+              return (
+                <div className="bg-gradient-to-r from-orange-500/20 via-amber-500/15 to-emerald-500/15 border border-orange-500/40 rounded-2xl p-2.5 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded-xl bg-orange-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                      <Ticket className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-black text-white truncate">
+                        Save Rs. {bestSave} with <span className="font-mono text-orange-300">{bestVoucher.code}</span>
+                      </p>
+                      <p className="text-[9.5px] text-zinc-300 truncate">
+                        {bestVoucher.successMessage || "Instant grocery discount available!"}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyVoucher(bestVoucher)}
+                    className="bg-orange-600 hover:bg-orange-700 text-white text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-xl shrink-0 shadow-md shadow-orange-600/25 cursor-pointer transition active:scale-95"
+                  >
+                    1-Tap Apply
+                  </button>
+                </div>
+              );
+            })()}
+
             {/* BENEFIT / OFFERS & DISCOUNTS COLLAPSIBLE BOX */}
             <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden transition-all duration-200">
               {/* Box Click Trigger */}
@@ -829,18 +997,12 @@ export default function GroceryCartDrawer({
                   </div>
                 )}
                 
-                {/* GST Tax representation */}
+                {/* Delivery fee checkout representation */}
                 <div className="flex justify-between text-zinc-400 font-semibold">
-                  <span>GST/Standard Retail Tax (2%)</span>
-                  <span>Rs. {taxesAmount}</span>
-                </div>
-
-                {/* Delivery fee checkout representation using only grocery settings! */}
-                <div className="flex justify-between text-zinc-400 font-semibold">
-                  <span>Grocery Shipping Fee</span>
+                  <span>Grocery Delivery Fee</span>
                   <span>
                     {isFreeDelivery ? (
-                      <span className="text-emerald-500 font-black uppercase">FREE SHIPPING</span>
+                      <span className="text-emerald-400 font-black uppercase">FREE (≥ Rs. {freeThreshold})</span>
                     ) : (
                       `Rs. ${finalDeliveryFee}`
                     )}
@@ -854,64 +1016,48 @@ export default function GroceryCartDrawer({
                   </div>
                 )}
 
-                {/* Free Delivery Promo Bar */}
                 {!isFreeDelivery && (
-                  <div className="text-[9.5px] bg-orange-650/15 text-orange-400 border border-orange-500/20 p-2 rounded-lg font-bold uppercase tracking-wide text-center">
-                    💡 Spend Rs. {deliveryConfig?.freeDeliveryAboveAmount - totalGroceryPrice} more to claim FREE SHIPPING!
+                  <div className="text-[10px] bg-[#D70F64]/15 text-pink-300 border border-[#D70F64]/30 p-2 rounded-lg font-bold text-center">
+                    Add Rs. {Math.max(0, freeThreshold - totalGroceryPrice)} more to get FREE delivery!
                   </div>
                 )}
 
-                <div className="border-t border-zinc-805 my-2.5 pt-2 flex justify-between text-white font-black text-sm">
+                <div className="border-t border-zinc-800 my-2.5 pt-2 flex justify-between text-white font-black text-sm">
                   <span>TOTAL BILLING</span>
-                  <span className="font-mono text-orange-500">Rs. {grandTotal}</span>
+                  <span className="font-mono text-[#D70F64]">Rs. {grandTotal}</span>
                 </div>
               </div>
 
-              {/* Secure checkout info indicator */}
-              <div className="bg-zinc-950 p-3 rounded-xl border border-zinc-850 flex items-start gap-2.5">
-                <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                <div className="text-[9.5px] leading-snug">
-                  <span className="font-black text-white block uppercase tracking-wider">CASH ON DELIVERY (COD) EXPRESS</span>
-                  <p className="text-zinc-500 font-semibold mt-0.5">Pay only when products get delivered safely within minutes. Fast packing & premium quality guarantee.</p>
+              {/* Phone + Payment Method */}
+              <div className="bg-zinc-950 p-3 rounded-xl border border-zinc-800 space-y-2.5">
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-zinc-400 block mb-1">Contact Phone (03XXXXXXXXX)</label>
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    value={phoneInput}
+                    onChange={(e) => setPhoneInput(e.target.value.replace(/\D/g, "").slice(0, 11))}
+                    placeholder="03XX-XXXXXXX"
+                    className="w-full px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-100 text-xs font-bold"
+                  />
+                </div>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {(["COD", "JazzCash", "Easypaisa", "Card"] as const).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setPaymentMethod(m)}
+                      className={`py-1.5 rounded-lg text-[10px] font-bold border transition cursor-pointer ${
+                        paymentMethod === m
+                          ? "bg-[#D70F64] border-[#D70F64] text-white"
+                          : "bg-zinc-900 border-zinc-800 text-zinc-300"
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  ))}
                 </div>
               </div>
-
-              {!userCoords && (
-                <div className="bg-pink-500/10 border border-red-500/20 rounded-xl p-3 text-center flex flex-col items-center justify-center gap-2">
-                  <span className="text-pink-400 text-xs font-bold uppercase tracking-tight flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5" /> Location Access Required
-                  </span>
-                  <span className="text-pink-300/70 text-[10px] leading-tight max-w-[250px]">
-                    Please allow GPS location access to place your order. This ensures accurate and fast delivery to your exact doorstep.
-                  </span>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        const coords = await new Promise<{ latitude: number, longitude: number }>((resolve, reject) => {
-                          navigator.geolocation.getCurrentPosition(
-                            (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-                            (err) => {
-                              navigator.geolocation.getCurrentPosition(
-                                (pos2) => resolve({ latitude: pos2.coords.latitude, longitude: pos2.coords.longitude }),
-                                (err2) => reject(err2),
-                                { enableHighAccuracy: false, timeout: 3000 }
-                              );
-                            },
-                            { enableHighAccuracy: true, timeout: 4000 }
-                          );
-                        });
-                        alert("📍 GPS pinpoint successfully attached! Your rider will receive turn-by-turn directions.");
-                      } catch (err: any) {
-                        alert("📍 Default location saved! Your delivery address will be used.");
-                      }
-                    }}
-                    className="mt-1 bg-red-500 hover:bg-pink-600 text-white font-bold text-[10px] uppercase tracking-wider py-2 px-5 rounded-lg transition-colors cursor-pointer"
-                  >
-                    Allow Location Access
-                  </button>
-                </div>
-              )}
 
               {checkoutError && (
                 <div className="p-3 bg-rose-500/15 border border-rose-500/30 rounded-xl text-xs text-rose-300 font-bold flex items-center gap-2">
@@ -923,17 +1069,12 @@ export default function GroceryCartDrawer({
               <button
                 onClick={handleCheckoutSubmit}
                 disabled={submitting}
-                className="w-full py-3.5 bg-orange-600 hover:bg-orange-700 disabled:bg-orange-850 text-white font-black text-xs uppercase tracking-widest rounded-2-xl shadow-xl shadow-orange-600/10 transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+                className="w-full py-3.5 bg-[#D70F64] hover:bg-[#b00c50] disabled:opacity-60 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 {submitting ? (
-                  <>Packing Shipment...</>
-                ) : !userCoords ? (
-                  <>
-                    <MapPin className="w-4 h-4" />
-                    Grant Location to Place Order
-                  </>
+                  <>Placing Grocery Order...</>
                 ) : (
-                  <>Place Express Grocery Order (COD) 🛒</>
+                  <>Place Grocery Order ({paymentMethod}) • Rs. {grandTotal}</>
                 )}
               </button>
             </div>

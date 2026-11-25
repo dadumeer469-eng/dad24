@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { UserProfile, AppNotification, Order } from "../types";
-import { Search, ShoppingBag, User, LogOut, Phone, Bell, ShieldAlert, BadgeCheck, Download, History, Heart, RotateCcw, Sun, Moon, X } from "lucide-react";
+import { Search, ShoppingBag, User, LogOut, Bell, ShieldAlert, BadgeCheck, History, Heart, RotateCcw, Sun, Moon, X, Settings } from "lucide-react";
 import daduLogo from "../assets/images/dadu_food_logo_new_1782333467889.jpg";
+import { formatOrderId } from "../utils/catalogNormalizer";
 
 interface FoodpandaHeaderProps {
   user: UserProfile | null;
@@ -35,6 +36,7 @@ interface FoodpandaHeaderProps {
   onReorder?: (order: Order) => void;
   theme?: "light" | "dark";
   onToggleTheme?: () => void;
+  onOpenSettings?: () => void;
 }
 
 export default function FoodpandaHeader({
@@ -69,6 +71,7 @@ export default function FoodpandaHeader({
   onReorder,
   theme = "light",
   onToggleTheme,
+  onOpenSettings,
 }: FoodpandaHeaderProps) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -153,7 +156,30 @@ export default function FoodpandaHeader({
         </div>
 
         {/* Action Widgets Grid */}
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
+
+          {/* Visible Dark / Light Mode Toggle in Header */}
+          {onToggleTheme && (
+            <button
+              type="button"
+              onClick={onToggleTheme}
+              aria-label={theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"}
+              title={theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"}
+              className="flex items-center gap-1.5 px-2.5 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-100 rounded-xl transition cursor-pointer text-xs font-bold shrink-0"
+            >
+              {theme === "light" ? (
+                <>
+                  <Moon className="w-4 h-4 text-zinc-700 shrink-0" />
+                  <span className="hidden xl:inline">Dark</span>
+                </>
+              ) : (
+                <>
+                  <Sun className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span className="hidden xl:inline text-zinc-100">Light</span>
+                </>
+              )}
+            </button>
+          )}
           
           {/* In-App Notifications Center Dropdown */}
           <div className="relative">
@@ -266,11 +292,7 @@ export default function FoodpandaHeader({
           {/* Dynamic Checkout Cart Trigger */}
           <button
             onClick={activeModule === "grocery" ? onOpenGroceryCart : onOpenCart}
-            className={`flex items-center gap-1.5 transition py-2 px-3.5 rounded-xl text-xs font-black shadow-md cursor-pointer shrink-0 ${
-              activeModule === "grocery"
-                ? "bg-pink-600 hover:bg-orange-700 text-white shadow-orange-500/10"
-                : "bg-[#d70f64] hover:bg-[#b00c50] text-white"
-            }`}
+            className="flex items-center gap-1.5 transition py-2 px-3.5 rounded-xl text-xs font-black shadow-md cursor-pointer shrink-0 bg-[#d70f64] hover:bg-[#b00c50] text-white"
           >
             {isLocked ? <span className="text-sm">🔒</span> : <ShoppingBag className="w-4 h-4" />}
             <span className="hidden md:inline">{activeModule === "grocery" ? "Basket" : "Cart"}</span>
@@ -313,7 +335,7 @@ export default function FoodpandaHeader({
               <div className="absolute right-0 mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-100 rounded-2xl shadow-xl w-56 max-sm:fixed max-sm:top-16 max-sm:left-4 max-sm:right-4 max-sm:w-auto overflow-hidden z-50 animate-fade-in">
                 <div className="p-3.5 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 flex flex-col items-start">
                   <span className="font-bold text-xs text-zinc-900 dark:text-white uppercase tracking-wider text-[10px]">Guest Options</span>
-                  <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium mt-1">Sign in to order food, books and services</span>
+                  <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium mt-1">Sign in to order food, groceries and home services</span>
                 </div>
 
                 <div className="p-1 bg-white dark:bg-zinc-900">
@@ -389,8 +411,8 @@ export default function FoodpandaHeader({
                           }}
                           className="shrink-0 min-w-[130px] p-1.5 rounded-xl bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition text-[10.5px] font-bold flex items-center justify-between border border-zinc-200 dark:border-zinc-800 cursor-pointer text-zinc-700 dark:text-zinc-300"
                         >
-                          <span className="truncate max-w-[70px] text-zinc-800 dark:text-zinc-200 font-mono">
-                            #{o.id.substring(0, 5)}
+                          <span className="truncate max-w-[90px] text-zinc-800 dark:text-zinc-200 font-mono">
+                            {formatOrderId(o.id)}
                           </span>
                           <span className="text-[8px] font-black uppercase text-[#d70f64] bg-[#d70f64]/10 px-1.5 py-0.5 rounded leading-none shrink-0 border border-[#d70f64]/20">
                             {o.status === "out_for_delivery" ? "Transit 🛵" : o.status === "preparing" ? "Kitchen 🍳" : o.status === "accepted" ? "Cook 🍳" : "Placed"}
@@ -420,7 +442,7 @@ export default function FoodpandaHeader({
                           >
                             <div className="flex items-center justify-between">
                               <span className="text-zinc-700 dark:text-zinc-300 font-extrabold text-[10px]">
-                                #{o.id.substring(0, 5)}
+                                {formatOrderId(o.id)}
                               </span>
                               <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded leading-none shrink-0 border ${
                                 o.status === "delivered" || o.status === "completed"
@@ -486,27 +508,38 @@ export default function FoodpandaHeader({
 
                   <button
                     onClick={() => {
+                      setShowUserMenu(false);
+                      if (onOpenSettings) onOpenSettings();
+                    }}
+                    className="flex-1 min-w-[100px] font-bold text-xs text-zinc-800 dark:text-zinc-100 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-2.5 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Settings className="w-3.5 h-3.5 text-[#d70f64] shrink-0" />
+                    <span>My Settings</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
                       if (onToggleTheme) onToggleTheme();
                     }}
-                    className="flex-1 min-w-[100px] font-bold text-xs text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-100 dark:border-zinc-750 px-2.5 py-2 hover:bg-zinc-100 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="flex-1 min-w-[100px] font-bold text-xs text-zinc-800 dark:text-zinc-100 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-2.5 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     {theme === "light" ? (
-                      <Moon className="w-3.5 h-3.5 text-zinc-700 dark:text-zinc-300 shrink-0" />
+                      <Moon className="w-3.5 h-3.5 text-zinc-700 shrink-0" />
                     ) : (
-                      <Sun className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                      <Sun className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                     )}
                     <span>{theme === "light" ? "Dark" : "Light"}</span>
                   </button>
 
-                  {user.role === "admin" && (
+                  {(user.role === "admin" || user.role === "staff") && (
                     <button
                       onClick={() => {
                         setShowUserMenu(false);
                         onOpenAdmin();
                       }}
-                      className="w-full font-bold text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 px-2.5 py-2 hover:bg-amber-100 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="w-full font-bold text-xs text-[#d70f64] bg-[#d70f64]/10 border border-[#d70f64]/30 px-2.5 py-2 hover:bg-[#d70f64]/20 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
                     >
-                      <ShieldAlert className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      <ShieldAlert className="w-3.5 h-3.5 text-[#d70f64] shrink-0" />
                       <span>Admin Console</span>
                     </button>
                   )}
@@ -516,7 +549,7 @@ export default function FoodpandaHeader({
                       setShowUserMenu(false);
                       onLogout();
                     }}
-                    className="w-full text-xs font-bold text-red-600 bg-red-50 dark:bg-red-950/30 border border-red-200/50 px-2.5 py-2 hover:bg-red-100 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="w-full text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 px-2.5 py-2 hover:bg-red-100 dark:hover:bg-red-950/60 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <LogOut className="w-3.5 h-3.5 shrink-0" />
                     <span>Sign Out</span>

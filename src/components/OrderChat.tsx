@@ -208,7 +208,7 @@ export default function OrderChat({
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] text-pink-100 uppercase tracking-widest font-black block leading-none truncate">
-                  {recipientRole === "rider" ? "foodpanda Rider" : "Customer"}
+                  {recipientRole === "rider" ? "Dadu Food Rider" : "Customer"}
                 </span>
                 <span className="text-[9px] bg-white/25 text-white px-1.5 py-0.5 rounded-full font-bold flex items-center gap-1 shrink-0">
                   <Bell className="w-2.5 h-2.5 text-amber-300" /> Live

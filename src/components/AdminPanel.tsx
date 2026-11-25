@@ -36,6 +36,8 @@ import {
 } from "firebase/firestore";
 import { db, firebaseConfig, databaseId, cleanObject, storage, handleFirestoreError, app } from "../firebase";
 import { compressImageToLowRes, compressImageFile } from "../utils/imageCompressor";
+import { formatOrderId } from "../utils/catalogNormalizer";
+import { DADU_FOOD_BUSINESS } from "../utils/seoManager";
 import { getDatabase, ref, set as setRtdb, onValue, off } from "firebase/database";
 import { initializeApp, deleteApp } from "firebase/app";
 import {
@@ -757,10 +759,10 @@ export default function AdminPanel({
   const [dealItems, setDealItems] = useState<string[]>([]);
   const [dealText, setDealText] = useState("");
 
-  // SEO States
-  const [seoTitle, setSeoTitle] = useState("");
-  const [seoDescription, setSeoDescription] = useState("");
-  const [seoKeywords, setSeoKeywords] = useState("");
+  // SEO States (real Dadu Food defaults)
+  const [seoTitle, setSeoTitle] = useState("Best Online Food Delivery in Dadu | Dadu Food");
+  const [seoDescription, setSeoDescription] = useState(DADU_FOOD_BUSINESS.tagline);
+  const [seoKeywords, setSeoKeywords] = useState("Dadu Food, online food delivery Dadu, Dadu restaurants, pizza Dadu, biryani Dadu, fast food Dadu, grocery delivery Dadu, Tasty Bites Dadu, S M Bilal Dadu");
   const [heroBgUrl, setHeroBgUrl] = useState("");
   const [partnerShopsBgUrl, setPartnerShopsBgUrl] = useState("");
 
@@ -877,9 +879,9 @@ export default function AdminPanel({
       (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
-          setSeoTitle(data.title || "");
-          setSeoDescription(data.description || "");
-          setSeoKeywords(data.keywords || "");
+          setSeoTitle(data.title || "Best Online Food Delivery in Dadu | Dadu Food");
+          setSeoDescription(data.description || DADU_FOOD_BUSINESS.tagline);
+          setSeoKeywords(data.keywords || "Dadu Food, online food delivery Dadu, Dadu restaurants, pizza Dadu, biryani Dadu, fast food Dadu, grocery delivery Dadu");
         }
       },
     );
@@ -992,17 +994,17 @@ export default function AdminPanel({
         "Cheese Pasta": "Pasta",
         "Red Sauce Pasta": "Pasta",
         "Crispy Pasta": "Pasta",
-        "Alfrido Pasta": "Pasta",
-        "Plan Lazania": "Lazania",
-        "Fajita Lazania": "Lazania",
-        "Malai Boti Lazania": "Lazania",
-        "Crispy Lazania": "Lazania",
-        "Crispy Fries 100gr": "Fries",
-        "Crispy Fries 200gr": "Fries",
+        "Alfredo Pasta": "Pasta",
+        "Plain Lasagna": "Lasagna",
+        "Fajita Lasagna": "Lasagna",
+        "Malai Boti Lasagna": "Lasagna",
+        "Crispy Lasagna": "Lasagna",
+        "Crispy Fries 100g": "Fries",
+        "Crispy Fries 200g": "Fries",
         "Crispy Masala Fries": "Fries",
         "Crispy Pizza Fries": "Fries",
         "Crispy Loaded Fries": "Fries",
-        "Chicken Salad": "Fries",
+        "Chicken Salad": "Salads",
         "Pizza Paratha": "Paratha",
         "Chocolate Paratha": "Paratha",
         "Cheese Paratha": "Paratha",
@@ -2613,7 +2615,7 @@ export default function AdminPanel({
             { name: "Hot N Spicy Pizza", price: 0 },
             { name: "Supreme Pizza", price: 0 },
             { name: "Mexican Pizza", price: 0 },
-            { name: "Vaggi Lover Pizza", price: 0 },
+            { name: "Veggie Lover Pizza", price: 0 },
           ],
           imageUrl: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&q=80",
           isAvailable: true, type: "food", restaurantName
@@ -2628,7 +2630,7 @@ export default function AdminPanel({
             { name: "Peri Peri Pizza", price: 0 },
             { name: "Chilli Chicken Pizza", price: 0 },
             { name: "Garlic Creamy Tikka", price: 0 },
-            { name: "Spicy Runch Pizza", price: 0 },
+            { name: "Spicy Ranch Pizza", price: 0 },
             { name: "BBQ Tikka Pizza", price: 0 },
             { name: "Afghani Feast Pizza", price: 0 },
             { name: "Chilli Garlic Cream", price: 0 },
@@ -2648,7 +2650,7 @@ export default function AdminPanel({
             { name: "Creamy Pizza", price: 0 },
             { name: "Malai Boti", price: 0 },
             { name: "All Cheese", price: 0 },
-            { name: "Kabab Dlight", price: 0 },
+            { name: "Kabab Delight", price: 0 },
             { name: "Mughlai Beast Pizza", price: 0 },
           ],
           imageUrl: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=800&q=80",
@@ -2664,11 +2666,11 @@ export default function AdminPanel({
             { name: "Kababish Pizza", price: 0 },
             { name: "Crown Crust Pizza", price: 0 },
             { name: "Crown Lover Pizza", price: 0 },
-            { name: "Souce Crust Pizza", price: 0 },
+            { name: "Sauce Crust Pizza", price: 0 },
             { name: "Kofta Kabab Pizza", price: 0 },
             { name: "Melt Malai Pizza", price: 0 },
             { name: "Cheese Crust Pizza", price: 0 },
-            { name: "Chees Stick Pizza", price: 0 },
+            { name: "Cheese Stick Pizza", price: 0 },
           ],
           imageUrl: "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?w=800&q=80",
           isAvailable: true, type: "food", restaurantName
@@ -2684,13 +2686,13 @@ export default function AdminPanel({
             { name: "Chicken Single Patty Burger", price: 50 },
             { name: "Zinger Burger", price: 100 },
             { name: "Jumbo Patty Burger", price: 150 },
-            { name: "Tastys Zinger", price: 200 },
+            { name: "Tasty's Zinger", price: 200 },
             { name: "Chicken Double Patty Burger", price: 250 },
             { name: "Mighty Burger", price: 350 },
             { name: "Pizza Burger", price: 350 },
             { name: "Jumbo Double Patty Burger", price: 350 },
             { name: "MAC Burger", price: 350 },
-            { name: "Tastys Signature", price: 550 },
+            { name: "Tasty's Signature", price: 550 },
           ],
           imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&q=80",
           isAvailable: true, type: "food", restaurantName
@@ -2703,7 +2705,7 @@ export default function AdminPanel({
           addOns: burgerAddOns,
           flavors: [
             { name: "Beef Single Patty Burger", price: 0 },
-            { name: "Beef Double Party Burger", price: 200 },
+            { name: "Beef Double Patty Burger", price: 200 },
             { name: "Full Fried Burger", price: 300 },
             { name: "Cheese Beef Burger", price: 300 },
             { name: "Lava Beef Burger", price: 500 },
@@ -2763,7 +2765,7 @@ export default function AdminPanel({
           flavors: [
             { name: "Grilled Paratha Roll", price: 0 },
             { name: "Mayo Roll", price: 0 },
-            { name: "Vaggi Roll", price: 0 },
+            { name: "Veggie Roll", price: 0 },
             { name: "Grilled Cheese Paratha Roll", price: 50 },
             { name: "Zingratha Roll", price: 100 },
             { name: "Twister Roll", price: 150 },
@@ -2785,19 +2787,19 @@ export default function AdminPanel({
           isAvailable: true, type: "food", restaurantName
         },
         {
-          name: "Lazania",
-          description: "Delicious Lazania in multiple flavors.",
+          name: "Lasagna",
+          description: "Delicious Lasagna in multiple flavors.",
           price: 500,
-          category: "Lazania",
+          category: "Lasagna",
           sizes: [
-            { name: "Plan Lazania - Small", price: 500 },
-            { name: "Plan Lazania - Large", price: 600 },
-            { name: "Fajita Lazania - Small", price: 550 },
-            { name: "Fajita Lazania - Large", price: 650 },
-            { name: "Malai Boti Lazania - Small", price: 550 },
-            { name: "Malai Boti Lazania - Large", price: 650 },
-            { name: "Crispy Lazania - Small", price: 600 },
-            { name: "Crispy Lazania - Large", price: 750 },
+            { name: "Plain Lasagna - Small", price: 500 },
+            { name: "Plain Lasagna - Large", price: 600 },
+            { name: "Fajita Lasagna - Small", price: 550 },
+            { name: "Fajita Lasagna - Large", price: 650 },
+            { name: "Malai Boti Lasagna - Small", price: 550 },
+            { name: "Malai Boti Lasagna - Large", price: 650 },
+            { name: "Crispy Lasagna - Small", price: 600 },
+            { name: "Crispy Lasagna - Large", price: 750 },
           ],
           imageUrl: "https://images.unsplash.com/photo-1574894709920-11b28e7367e3?w=800&q=80",
           isAvailable: true, type: "food", restaurantName
@@ -2816,8 +2818,8 @@ export default function AdminPanel({
             { name: "Red Sauce Pasta - Large", price: 600 },
             { name: "Crispy Pasta - Small", price: 600 },
             { name: "Crispy Pasta - Large", price: 750 },
-            { name: "Alfrido Pasta - Small", price: 600 },
-            { name: "Alfrido Pasta - Large", price: 750 },
+            { name: "Alfredo Pasta - Small", price: 600 },
+            { name: "Alfredo Pasta - Large", price: 750 },
           ],
           imageUrl: "https://images.unsplash.com/photo-1621996311239-f9c3eb7b2253?w=800&q=80",
           isAvailable: true, type: "food", restaurantName
@@ -3080,7 +3082,7 @@ export default function AdminPanel({
 
         await addDoc(collection(db, "notifications"), {
           userId: targetOrder.userId,
-          title: `Order Update #${orderId.substring(0, 5)}`,
+          title: `Order Update ${formatOrderId(orderId)}`,
           message: `Your booking status turned to: ${statusText.toUpperCase()}`,
           createdAt: { seconds: Date.now() / 1000 },
           read: false,
@@ -4549,7 +4551,7 @@ export default function AdminPanel({
                       <div className="flex flex-col gap-2 mt-2">
                         <button
                           onClick={handleSaveDeliveryConfig}
-                          className="w-full bg-purple-500 hover:bg-purple-600 transition-all text-black font-black py-3 rounded-xl text-[11px] uppercase tracking-wider cursor-pointer shadow-lg shadow-purple-500/10 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95"
+                          className="w-full bg-[#D70F64] hover:bg-[#b00c50] transition-all text-white font-black py-3 rounded-xl text-[11px] uppercase tracking-wider cursor-pointer shadow-lg shadow-pink-500/15 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95"
                         >
                           <Save className="w-4 h-4 shrink-0" />
                           Save Operating Times
@@ -6035,7 +6037,7 @@ export default function AdminPanel({
                 <div className="flex justify-end pt-2">
                   <button
                     type="submit"
-                    className="bg-blue-500 hover:bg-blue-600 transition-all font-black text-xs tracking-widest text-black uppercase py-3.5 px-6 rounded-2xl flex items-center gap-1.5 cursor-pointer shadow-lg shadow-blue-500/10 hover:scale-[1.02] active:scale-95"
+                    className="bg-[#D70F64] hover:bg-[#b00c50] transition-all font-black text-xs tracking-widest text-white uppercase py-3.5 px-6 rounded-2xl flex items-center gap-1.5 cursor-pointer shadow-lg shadow-pink-500/15 hover:scale-[1.02] active:scale-95"
                   >
                     <Plus className="w-4 h-4" />
                     Dispatch Service to Database
@@ -6532,7 +6534,7 @@ export default function AdminPanel({
                             <div>
                               <div className="flex items-center gap-2.5">
                                 <span className="font-mono text-xs font-black text-slate-900 uppercase bg-slate-100 border border-slate-200 py-1.5 px-3 rounded-lg shadow-inner">
-                                  dadu-{order.id.substring(0, 8)}
+                                  {formatOrderId(order.id)}
                                 </span>
                                 <span
                                   className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${
@@ -7586,7 +7588,7 @@ export default function AdminPanel({
                           <div>
                             <div className="flex items-center gap-2">
                               <span className="font-extrabold text-[#D70F64]">
-                                dadu-{order.id.substring(0, 8)}
+                                {formatOrderId(order.id)}
                               </span>
                               {(() => {
                                 const isCompleted = order.status === "delivered" || order.status === "completed";
@@ -8219,7 +8221,7 @@ export default function AdminPanel({
                           />
                           <button 
                             onClick={handleUpdateFoodCategory}
-                            className="w-full bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold uppercase py-2 rounded-lg transition"
+                            className="w-full bg-[#D70F64] hover:bg-[#b00c50] text-white text-[10px] font-bold uppercase py-2 rounded-lg transition cursor-pointer"
                           >
                             Save Changes
                           </button>
@@ -9547,13 +9549,13 @@ export default function AdminPanel({
                   <div className="flex items-center gap-2">
                     <button
                       onClick={handleMigrateCategories}
-                      className="bg-[#b00c50] hover:bg-[#D70F64] text-slate-900 font-black text-[10px] uppercase tracking-widest py-3 px-5 rounded-xl transition cursor-pointer shrink-0"
+                      className="bg-zinc-900 hover:bg-zinc-800 text-white font-black text-[10px] uppercase tracking-widest py-3 px-5 rounded-xl transition cursor-pointer shrink-0"
                     >
                       Run Category Migration
                     </button>
                     <button
                       onClick={handleSaveSeoConfig}
-                      className="bg-blue-600 hover:bg-blue-500 text-white font-black text-[10px] uppercase tracking-widest py-3 px-5 rounded-xl transition cursor-pointer shrink-0"
+                      className="bg-[#D70F64] hover:bg-[#b00c50] text-white font-black text-[10px] uppercase tracking-widest py-3 px-5 rounded-xl transition cursor-pointer shrink-0"
                     >
                       Save Changes
                     </button>
@@ -9571,8 +9573,8 @@ export default function AdminPanel({
                       type="text"
                       value={seoTitle}
                       onChange={(e) => setSeoTitle(e.target.value)}
-                      placeholder="e.g. Dadu Food - Premium Delivery"
-                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-2xl text-xs sm:text-sm outline-none text-slate-900 focus:border-blue-500/60 transition"
+                      placeholder="Best Online Food Delivery in Dadu | Dadu Food"
+                      className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm outline-none text-slate-900 focus:border-[#D70F64] transition"
                     />
                   </div>
                   <div>
@@ -9582,8 +9584,8 @@ export default function AdminPanel({
                     <textarea
                       value={seoDescription}
                       onChange={(e) => setSeoDescription(e.target.value)}
-                      placeholder="e.g. Order fresh food and groceries..."
-                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-2xl text-xs sm:text-sm outline-none text-slate-900 focus:border-blue-500/60 transition resize-none h-24"
+                      placeholder="Order fresh pizza, burgers, biryani, BBQ, chai, and groceries online in Dadu City with 25-40 min delivery. Helpline: 03277004471."
+                      className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm outline-none text-slate-900 focus:border-[#D70F64] transition resize-none h-24"
                     />
                   </div>
                   <div>
@@ -9594,20 +9596,20 @@ export default function AdminPanel({
                       type="text"
                       value={seoKeywords}
                       onChange={(e) => setSeoKeywords(e.target.value)}
-                      placeholder="e.g. food delivery, groceries, online ordering"
-                      className="w-full p-3 bg-white border border-slate-200 border border-slate-200 rounded-2xl text-xs sm:text-sm outline-none text-slate-900 focus:border-blue-500/60 transition"
+                      placeholder="Dadu Food, online food delivery Dadu, Dadu restaurants, pizza Dadu, biryani Dadu, grocery delivery Dadu"
+                      className="w-full p-3 bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm outline-none text-slate-900 focus:border-[#D70F64] transition"
                     />
                   </div>
                 </div>
               </div>
 
               <div className="bg-white/90 border border-slate-200 rounded-3xl p-6 relative overflow-hidden mt-6">
-                <div className="absolute right-0 top-0 w-80 h-80 bg-purple-500/5 rounded-full blur-[100px] pointer-events-none" />
+                <div className="absolute right-0 top-0 w-80 h-80 bg-[#D70F64]/5 rounded-full blur-[100px] pointer-events-none" />
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <div className="flex items-center gap-2 text-purple-500">
-                      <Grid className="w-5 h-5 text-purple-500" />
-                      <span className="text-[10px] font-black uppercase tracking-widest bg-purple-500/10 px-2 py-0.5 rounded-full">
+                    <div className="flex items-center gap-2 text-[#D70F64]">
+                      <Grid className="w-5 h-5 text-[#D70F64]" />
+                      <span className="text-[10px] font-black uppercase tracking-widest bg-[#D70F64]/10 px-2 py-0.5 rounded-full">
                         UI Configuration
                       </span>
                     </div>
@@ -9621,7 +9623,7 @@ export default function AdminPanel({
                   <div className="flex gap-2 shrink-0">
                     <button
                       onClick={handleSaveUiConfig}
-                      className="bg-purple-600 hover:bg-purple-700 text-white font-black text-[10px] uppercase tracking-widest py-3 px-5 rounded-xl transition cursor-pointer shrink-0"
+                      className="bg-[#D70F64] hover:bg-[#b00c50] text-white font-black text-[10px] uppercase tracking-widest py-3 px-5 rounded-xl transition cursor-pointer shrink-0"
                     >
                       Save Changes
                     </button>
@@ -11132,7 +11134,7 @@ export default function AdminPanel({
                                   <div key={order.id} className="p-3 bg-slate-50/70 hover:bg-slate-50 border border-slate-200/80 rounded-2xl space-y-2.5 transition text-left font-sans">
                                     <div className="flex justify-between items-start gap-2.5">
                                       <div className="flex items-center gap-1.5 truncate">
-                                        <span className="font-black text-[#D70F64] text-[10px]">dadu-{order.id.substring(0,6)}</span>
+                                        <span className="font-black text-[#D70F64] text-[10px]">{formatOrderId(order.id)}</span>
                                         <span className="text-slate-350">|</span>
                                         <span className="text-slate-700 font-sans truncate font-bold text-[10.5px]">{order.userName}</span>
                                       </div>
@@ -11456,7 +11458,7 @@ export default function AdminPanel({
                                 <div key={order.id} className="p-3 bg-slate-50/70 hover:bg-slate-50 border border-slate-200/80 rounded-2xl space-y-2.5 transition text-left font-sans">
                                   <div className="flex justify-between items-start gap-2.5">
                                     <div className="flex items-center gap-1.5 truncate">
-                                      <span className="font-black text-[#D70F64] text-[10px]">dadu-{order.id.substring(0,6)}</span>
+                                      <span className="font-black text-[#D70F64] text-[10px]">{formatOrderId(order.id)}</span>
                                       <span className="text-slate-350">|</span>
                                       <span className="text-slate-700 font-sans truncate font-bold text-[10.5px]">{order.userName}</span>
                                     </div>

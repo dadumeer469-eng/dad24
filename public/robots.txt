@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /api/
 
-Sitemap: https://dadufood.vercel.app/sitemap.xml
+Sitemap: https://dadufood.pk/sitemap.xml

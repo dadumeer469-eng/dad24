@@ -19,6 +19,7 @@ import {
 import { Order } from "../types";
 import { db } from "../firebase";
 import { doc, updateDoc } from "firebase/firestore";
+import { formatOrderId } from "../utils/catalogNormalizer";
 
 interface OrderHistoryDrawerProps {
   isOpen: boolean;
@@ -41,6 +42,23 @@ export default function OrderHistoryDrawer({
   const [ratingStars, setRatingStars] = useState<Record<string, number>>({});
   const [ratingComments, setRatingComments] = useState<Record<string, string>>({});
   const [submittingRating, setSubmittingRating] = useState<Record<string, boolean>>({});
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+
+  const handleCancelOrder = async (order: Order) => {
+    setCancellingId(order.id);
+    try {
+      const colName = order.orderType === "grocery" ? "grocery_orders" : "orders";
+      await updateDoc(doc(db, colName, order.id), {
+        status: "cancelled",
+        cancelledBy: "customer",
+        cancelledAt: new Date(),
+      });
+    } catch (err) {
+      console.error("Failed to cancel order:", err);
+    } finally {
+      setCancellingId(null);
+    }
+  };
 
   const handleRateOrder = async (orderId: string) => {
     const stars = ratingStars[orderId] || 0;
@@ -244,7 +262,7 @@ export default function OrderHistoryDrawer({
                               {order.orderType === "grocery" ? "Grocery" : order.orderType === "service" ? "Service Visit" : "Dadu Food"}
                             </span>
                             <div className="text-xs font-black text-zinc-800 dark:text-zinc-200 flex items-center gap-1 mt-1">
-                              ID: <span className="font-mono text-zinc-500 dark:text-zinc-400 uppercase tracking-tight">dadu-{order.id.slice(-6)}</span>
+                              ID: <span className="font-mono text-zinc-600 dark:text-zinc-300 uppercase tracking-tight">{formatOrderId(order.id)}</span>
                             </div>
                           </div>
                           
@@ -418,7 +436,29 @@ export default function OrderHistoryDrawer({
                             )}
 
                             {/* Prompt and interactions panel */}
-                            <div className="mt-1">
+                            <div className="mt-1 flex flex-col gap-2">
+                              {onTrackOrder && isActive && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    onTrackOrder(order);
+                                    onClose();
+                                  }}
+                                  className="w-full py-2 px-2.5 rounded-xl bg-zinc-900 dark:bg-zinc-800 hover:bg-zinc-800 text-white transition font-black text-[10.5px] uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer"
+                                >
+                                  Live Track Order
+                                </button>
+                              )}
+                              {["placed", "pending", "accepted", "confirmed", "booked"].includes(order.status) && (
+                                <button
+                                  type="button"
+                                  disabled={cancellingId === order.id}
+                                  onClick={() => handleCancelOrder(order)}
+                                  className="w-full py-2 px-2.5 rounded-xl bg-red-50 dark:bg-red-950/40 hover:bg-red-100 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 transition font-black text-[10.5px] uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+                                >
+                                  {cancellingId === order.id ? "Cancelling..." : "Cancel Order"}
+                                </button>
+                              )}
                               <button
                                 onClick={() => {
                                   onReorder(order);

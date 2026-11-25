@@ -24,13 +24,13 @@ const tastyBitesDishes = [
   { name: "Hot N Spicy Pizza", description: "Normal Flavour", category: "Pizza", price: 440, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:440}, {name:"Medium", price:770}, {name:"Large", price:1100}] },
   { name: "Supreme Pizza", description: "Normal Flavour", category: "Pizza", price: 440, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:440}, {name:"Medium", price:770}, {name:"Large", price:1100}] },
   { name: "Mexican Pizza", description: "Normal Flavour", category: "Pizza", price: 440, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:440}, {name:"Medium", price:770}, {name:"Large", price:1100}] },
-  { name: "Vaggi Lover Pizza", description: "Normal Flavour", category: "Pizza", price: 440, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:440}, {name:"Medium", price:770}, {name:"Large", price:1100}] },
+  { name: "Veggie Lover Pizza", description: "Normal Flavour", category: "Pizza", price: 440, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:440}, {name:"Medium", price:770}, {name:"Large", price:1100}] },
 
   // PIZZA - PREMIUM FLAVOUR
   { name: "Peri Peri Pizza", description: "Premium Flavour", category: "Pizza", price: 610, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:610}, {name:"Medium", price:990}, {name:"Large", price:1540}] },
   { name: "Chilli Chicken Pizza", description: "Premium Flavour", category: "Pizza", price: 610, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:610}, {name:"Medium", price:990}, {name:"Large", price:1540}] },
   { name: "Garlic Creamy Tikka", description: "Premium Flavour", category: "Pizza", price: 610, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:610}, {name:"Medium", price:990}, {name:"Large", price:1540}] },
-  { name: "Spicy Runch Pizza", description: "Premium Flavour", category: "Pizza", price: 610, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:610}, {name:"Medium", price:990}, {name:"Large", price:1540}] },
+  { name: "Spicy Ranch Pizza", description: "Premium Flavour", category: "Pizza", price: 610, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:610}, {name:"Medium", price:990}, {name:"Large", price:1540}] },
   { name: "BBQ Tikka Pizza", description: "Premium Flavour", category: "Pizza", price: 610, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:610}, {name:"Medium", price:990}, {name:"Large", price:1540}] },
   { name: "Afghani Feast Pizza", description: "Premium Flavour", category: "Pizza", price: 610, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:610}, {name:"Medium", price:990}, {name:"Large", price:1540}] },
   { name: "Chilli Garlic Cream", description: "Premium Flavour", category: "Pizza", price: 610, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:610}, {name:"Medium", price:990}, {name:"Large", price:1540}] },
@@ -41,35 +41,35 @@ const tastyBitesDishes = [
   { name: "Creamy Pizza", description: "Royale Flavour", category: "Pizza", price: 550, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:550}, {name:"Medium", price:880}, {name:"Large", price:1320}] },
   { name: "Malai Boti", description: "Royale Flavour", category: "Pizza", price: 550, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:550}, {name:"Medium", price:880}, {name:"Large", price:1320}] },
   { name: "All Cheese", description: "Royale Flavour", category: "Pizza", price: 550, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:550}, {name:"Medium", price:880}, {name:"Large", price:1320}] },
-  { name: "Kabab Dlight", description: "Royale Flavour", category: "Pizza", price: 550, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:550}, {name:"Medium", price:880}, {name:"Large", price:1320}] },
+  { name: "Kabab Delight", description: "Royale Flavour", category: "Pizza", price: 550, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:550}, {name:"Medium", price:880}, {name:"Large", price:1320}] },
   { name: "Mughlai Beast Pizza", description: "Royale Flavour", category: "Pizza", price: 550, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:550}, {name:"Medium", price:880}, {name:"Large", price:1320}] },
 
   // PIZZA - CRUST FLAVOUR
   { name: "Kababish Pizza", description: "Crust Flavour", category: "Pizza", price: 990, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Medium", price:990}, {name:"Large", price:1540}] },
   { name: "Crown Crust Pizza", description: "Crust Flavour", category: "Pizza", price: 990, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Medium", price:990}, {name:"Large", price:1540}] },
   { name: "Crown Lover Pizza", description: "Crust Flavour", category: "Pizza", price: 990, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Medium", price:990}, {name:"Large", price:1540}] },
-  { name: "Souce Crust Pizza", description: "Crust Flavour", category: "Pizza", price: 990, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Medium", price:990}, {name:"Large", price:1540}] },
+  { name: "Sauce Crust Pizza", description: "Crust Flavour", category: "Pizza", price: 990, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Medium", price:990}, {name:"Large", price:1540}] },
   { name: "Kofta Kabab Pizza", description: "Crust Flavour", category: "Pizza", price: 990, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Medium", price:990}, {name:"Large", price:1540}] },
   { name: "Melt Malai Pizza", description: "Crust Flavour", category: "Pizza", price: 990, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Medium", price:990}, {name:"Large", price:1540}] },
   { name: "Cheese Crust Pizza", description: "Crust Flavour", category: "Pizza", price: 990, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Medium", price:990}, {name:"Large", price:1540}] },
-  { name: "Chees Stick Pizza", description: "Crust Flavour", category: "Pizza", price: 990, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Medium", price:990}, {name:"Large", price:1540}] },
+  { name: "Cheese Stick Pizza", description: "Crust Flavour", category: "Pizza", price: 990, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Medium", price:990}, {name:"Large", price:1540}] },
 
   // BURGERS
-  { name: "Tastys Zinger", category: "Burgers", price: 500, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, addOns: [{name:"Extra Cheese", price:110}, {name:"Extra Sauce", price:60}] },
+  { name: "Tasty's Zinger", category: "Burgers", price: 500, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, addOns: [{name:"Extra Cheese", price:110}, {name:"Extra Sauce", price:60}] },
   { name: "Zinger Burger", category: "Burgers", price: 390, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, addOns: [{name:"Extra Cheese", price:110}, {name:"Extra Sauce", price:60}] },
   { name: "Chicken Single Patty Burger", category: "Burgers", price: 330, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, addOns: [{name:"Extra Cheese", price:110}, {name:"Extra Sauce", price:60}] },
   { name: "Chicken Double Patty Burger", category: "Burgers", price: 550, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, addOns: [{name:"Extra Cheese", price:110}, {name:"Extra Sauce", price:60}] },
   { name: "Crunch Burger", category: "Burgers", price: 280, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, addOns: [{name:"Extra Cheese", price:110}, {name:"Extra Sauce", price:60}] },
   { name: "Mighty Burger", category: "Burgers", price: 660, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, addOns: [{name:"Extra Cheese", price:110}, {name:"Extra Sauce", price:60}] },
   { name: "Pizza Burger", category: "Burgers", price: 660, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, addOns: [{name:"Extra Cheese", price:110}, {name:"Extra Sauce", price:60}] },
-  { name: "Tastys Signature", category: "Burgers", price: 880, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, addOns: [{name:"Extra Cheese", price:110}, {name:"Extra Sauce", price:60}] },
+  { name: "Tasty's Signature", category: "Burgers", price: 880, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, addOns: [{name:"Extra Cheese", price:110}, {name:"Extra Sauce", price:60}] },
   { name: "Jumbo Patty Burger", category: "Burgers", price: 440, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, addOns: [{name:"Extra Cheese", price:110}, {name:"Extra Sauce", price:60}] },
   { name: "Jumbo Double Patty Burger", category: "Burgers", price: 660, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, addOns: [{name:"Extra Cheese", price:110}, {name:"Extra Sauce", price:60}] },
   { name: "MAC Burger", category: "Burgers", price: 660, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, addOns: [{name:"Extra Cheese", price:110}, {name:"Extra Sauce", price:60}] },
 
   // BEEF BURGERS
   { name: "Beef Single Patty Burger", category: "Burgers", price: 330, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, addOns: [{name:"Extra Cheese", price:110}, {name:"Extra Sauce", price:60}] },
-  { name: "Beef Double Party Burger", category: "Burgers", price: 550, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, addOns: [{name:"Extra Cheese", price:110}, {name:"Extra Sauce", price:60}] },
+  { name: "Beef Double Patty Burger", category: "Burgers", price: 550, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, addOns: [{name:"Extra Cheese", price:110}, {name:"Extra Sauce", price:60}] },
   { name: "Full Fried Burger", category: "Burgers", price: 660, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, addOns: [{name:"Extra Cheese", price:110}, {name:"Extra Sauce", price:60}] },
   { name: "Cheese Beef Burger", category: "Burgers", price: 660, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, addOns: [{name:"Extra Cheese", price:110}, {name:"Extra Sauce", price:60}] },
   { name: "Lava Beef Burger", category: "Burgers", price: 880, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, addOns: [{name:"Extra Cheese", price:110}, {name:"Extra Sauce", price:60}] },
@@ -95,7 +95,7 @@ const tastyBitesDishes = [
   { name: "Grilled Paratha Roll", category: "Rolls & Wraps", price: 220, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true },
   { name: "Grilled Cheese Paratha Roll", category: "Rolls & Wraps", price: 280, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true },
   { name: "Mayo Roll", category: "Rolls & Wraps", price: 220, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true },
-  { name: "Vaggi Roll", category: "Rolls & Wraps", price: 220, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true },
+  { name: "Veggie Roll", category: "Rolls & Wraps", price: 220, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true },
   { name: "Zingratha Roll", category: "Rolls & Wraps", price: 330, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true },
   { name: "Twister Roll", category: "Rolls & Wraps", price: 390, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true },
 
@@ -104,32 +104,32 @@ const tastyBitesDishes = [
   { name: "Burrito Wrap", category: "Rolls & Wraps", price: 550, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true },
   { name: "Grilled Wrap", category: "Rolls & Wraps", price: 550, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true },
 
-  // LAZANIA
-  { name: "Plan Lazania", category: "Lazania", price: 550, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:550}, {name:"Large", price:660}] },
-  { name: "Fajita Lazania", category: "Lazania", price: 610, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:610}, {name:"Large", price:720}] },
-  { name: "Malai Boti Lazania", category: "Lazania", price: 610, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:610}, {name:"Large", price:720}] },
-  { name: "Crispy Lazania", category: "Lazania", price: 660, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:660}, {name:"Large", price:830}] },
+  // LASAGNA
+  { name: "Plain Lasagna", category: "Lasagna", price: 550, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:550}, {name:"Large", price:660}] },
+  { name: "Fajita Lasagna", category: "Lasagna", price: 610, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:610}, {name:"Large", price:720}] },
+  { name: "Malai Boti Lasagna", category: "Lasagna", price: 610, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:610}, {name:"Large", price:720}] },
+  { name: "Crispy Lasagna", category: "Lasagna", price: 660, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:660}, {name:"Large", price:830}] },
 
   // PASTA
   { name: "Creamy Pasta", category: "Pasta", price: 440, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:440}, {name:"Large", price:660}] },
   { name: "Cheese Pasta", category: "Pasta", price: 440, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:440}, {name:"Large", price:660}] },
   { name: "Red Sauce Pasta", category: "Pasta", price: 440, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:440}, {name:"Large", price:660}] },
   { name: "Crispy Pasta", category: "Pasta", price: 660, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:660}, {name:"Large", price:830}] },
-  { name: "Alfrido Pasta", category: "Pasta", price: 660, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:660}, {name:"Large", price:830}] },
+  { name: "Alfredo Pasta", category: "Pasta", price: 660, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true, sizes: [{name:"Small", price:660}, {name:"Large", price:830}] },
 
-  // FRIES
-  { name: "Crispy Fries 100gr", category: "Fries", price: 170, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true },
-  { name: "Crispy Fries 200gr", category: "Fries", price: 280, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true },
+  // FRIES & SALADS
+  { name: "Crispy Fries 100g", category: "Fries", price: 170, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true },
+  { name: "Crispy Fries 200g", category: "Fries", price: 280, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true },
   { name: "Crispy Masala Fries", category: "Fries", price: 390, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true },
   { name: "Crispy Pizza Fries", category: "Fries", price: 610, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true },
   { name: "Crispy Loaded Fries", category: "Fries", price: 720, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true },
-  { name: "Chicken Salad", category: "Fries", price: 550, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true },
+  { name: "Chicken Salad", category: "Salads", price: 550, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true },
 
   // PARATHA
   { name: "Pizza Paratha", category: "Paratha", price: 440, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true },
   { name: "Chocolate Paratha", category: "Paratha", price: 440, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true },
   { name: "Cheese Paratha", category: "Paratha", price: 390, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true },
-  { name: "Plan Paratha", category: "Paratha", price: 110, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true },
+  { name: "Plain Paratha", category: "Paratha", price: 110, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true },
   { name: "Malai Boti Pizza Paratha", category: "Paratha", price: 550, type: "food", restaurantName: "Tasty Bites Dadu", isAvailable: true },
 
   // SANDWICH
@@ -141,7 +141,7 @@ async function seed() {
   const dishesRef = collection(db, "menu");
   
   // also add categories if they don't exist
-  const categories = ["Pizza", "Burgers", "Broast", "Rolls & Wraps", "Lazania", "Pasta", "Fries", "Paratha", "Sandwich"];
+  const categories = ["Pizza", "Burgers", "Broast", "Rolls & Wraps", "Lasagna", "Pasta", "Fries", "Salads", "Paratha", "Sandwich"];
   const categoriesRef = collection(db, "foodCategories");
   
   try {

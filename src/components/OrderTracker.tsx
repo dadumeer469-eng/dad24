@@ -5,6 +5,7 @@ import { doc, updateDoc, collection, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
 import OrderChat from "./OrderChat";
 import FoodDeliveryTracker from "./FoodDeliveryTracker";
+import { formatOrderId } from "../utils/catalogNormalizer";
 
 interface OrderTrackerProps {
   order: Order;
@@ -200,27 +201,21 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
                   </span>
                 </div>
 
-                {/* Rider Info text */}
+                {/* Rider Info text — real data only */}
                 <div>
-                  <span className="text-zinc-500 text-[9px] uppercase font-black tracking-wider block">Your Dadu Food Hero</span>
+                  <span className="text-zinc-400 text-[9px] uppercase font-black tracking-wider block">Assigned Dadu Food Rider</span>
                   <span className="text-sm font-black text-white block mt-0.5">{order.riderName}</span>
-                  
-                  {/* Dadu Food style rating & vehicle information */}
-                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-1.5 text-[10px] text-zinc-400 font-extrabold">
-                    <span className="text-amber-400 flex items-center gap-0.5 bg-amber-500/10 px-1.5 py-0.5 rounded">
-                      ⭐ 4.9 <span className="text-[8.5px] text-zinc-400">(420+ trips)</span>
+                  {order.riderPhone && (
+                    <span className="text-[11px] text-emerald-400 font-mono font-bold block mt-0.5">
+                      {order.riderPhone}
                     </span>
-                    <span className="text-zinc-400 bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-800">
-                      🏍️ LEA-5829 (Hon. 125)
-                    </span>
-                  </div>
+                  )}
                 </div>
               </div>
 
-              {/* Vaccine & safety clearance stamp */}
               <div className="text-right sm:text-left shrink-0">
                 <span className="inline-flex items-center gap-1 text-[9.5px] font-black text-emerald-400 bg-emerald-950/40 border border-emerald-900/40 py-1 px-2 rounded-lg">
-                  🛡️ Sanitized & Vaccinated
+                  Verified Dadu Rider
                 </span>
               </div>
             </div>
@@ -311,15 +306,34 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
   };
 
   const [updatingLocation, setUpdatingLocation] = useState(false);
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const [cancellingOrder, setCancellingOrder] = useState(false);
+
+  const canCancel = ["placed", "pending", "accepted", "confirmed", "booked"].includes(order.status);
+
+  const handleCancelOrder = async () => {
+    setCancellingOrder(true);
+    try {
+      const colName = order.orderType === "grocery" ? "grocery_orders" : "orders";
+      await updateDoc(doc(db, colName, order.id), {
+        status: "cancelled",
+        cancelledBy: "customer",
+        cancelledAt: new Date(),
+      });
+      setConfirmingCancel(false);
+    } catch (err) {
+      console.error("Order cancellation failed:", err);
+    } finally {
+      setCancellingOrder(false);
+    }
+  };
 
   const handleUpdateCurrentLocation = async () => {
     if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser status.");
       return;
     }
     setUpdatingLocation(true);
     try {
-      alert("Fetching high-precision GPS signal... Please accept browser location prompts.");
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
           const coords = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
@@ -327,17 +341,14 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
           await updateDoc(orderRef, {
             userCoords: coords
           });
-          alert("🎯 Success! Precise GPS coordinates updated and synchronized. Your delivery hero can see your exact pinpoint live on the map!");
           setUpdatingLocation(false);
         },
-        (err) => {
-          alert(`GPS Retrieval Fail: ${err.message}. Please try again close to a window.`);
+        () => {
           setUpdatingLocation(false);
         },
-        { enableHighAccuracy: true, timeout: 8000 }
+        { enableHighAccuracy: true, timeout: 6000 }
       );
-    } catch (error: any) {
-      alert("Error: " + error.message);
+    } catch {
       setUpdatingLocation(false);
     }
   };
@@ -354,14 +365,15 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-zinc-800 pb-4">
         <div>
           <span className="text-[10px] font-black uppercase tracking-widest text-[#D70F64] block">
-            {isService ? "🛠️ Active Service Live Track" : "☕ Live Tea & Food Tracker"}
+            {isService ? "Active Service Live Tracker" : "Live Order Tracker"}
           </span>
           <h3 className="font-extrabold text-sm text-zinc-100 mt-1 flex items-center gap-1.5 flex-wrap">
-            Booking ID: <span className="font-mono text-xs text-zinc-400">dadu-{order.id.substring(0, 8)}</span>
+            Order ID: <span className="font-mono text-xs text-zinc-200">{formatOrderId(order.id)}</span>
             {getStatusBadge(order.status)}
           </h3>
           <p className="text-[11px] text-zinc-400 mt-1 font-semibold">
-            Date Placed: {order.createdAt?.seconds ? new Date(order.createdAt.seconds * 1000).toLocaleTimeString() : "Just Now"}
+            Placed: {order.createdAt?.seconds ? new Date(order.createdAt.seconds * 1000).toLocaleTimeString() : "Just Now"}
+            {order.isScheduled && order.scheduledTime ? ` • Scheduled: ${order.scheduledTime}` : ""}
           </p>
         </div>
 
@@ -481,15 +493,54 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
           </div>
           <div>
             <span className="text-zinc-500 block font-semibold">Payment Mode:</span>
-            <span className={`font-extrabold uppercase ${isService ? "text-amber-500" : "text-[#D70F64]"}`}>
-              {isService ? "Pay on Visit" : "Cash on Delivery"}
+            <span className="font-extrabold uppercase text-[#D70F64]">
+              {order.paymentMethod || (isService ? "Pay on Visit" : "Cash on Delivery")}
             </span>
           </div>
           <div>
-            <span className="text-zinc-500 block font-semibold">Cart Items Total:</span>
-            <span className="text-zinc-100 font-extrabold">Rs. {order.grandTotal}</span>
+            <span className="text-zinc-500 block font-semibold">Grand Total:</span>
+            <span className="text-zinc-100 font-extrabold">
+              Rs. {order.grandTotal}
+              {order.riderTip ? ` (incl. Rs. ${order.riderTip} tip)` : ""}
+            </span>
           </div>
         </div>
+
+        {/* Customer Order Cancellation (before kitchen prepares / dispatches) */}
+        {canCancel && (
+          <div className="pt-3 border-t border-zinc-800">
+            {confirmingCancel ? (
+              <div className="bg-red-950/40 border border-red-900/50 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <span className="text-xs font-bold text-red-200">Cancel order {formatOrderId(order.id)}?</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingCancel(false)}
+                    className="px-3 py-1.5 rounded-lg bg-zinc-800 text-zinc-200 text-xs font-bold cursor-pointer"
+                  >
+                    Keep Order
+                  </button>
+                  <button
+                    type="button"
+                    disabled={cancellingOrder}
+                    onClick={handleCancelOrder}
+                    className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold cursor-pointer disabled:opacity-60"
+                  >
+                    {cancellingOrder ? "Cancelling..." : "Confirm Cancel"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmingCancel(true)}
+                className="w-full py-2 rounded-xl border border-red-500/40 bg-red-500/10 hover:bg-red-500/20 text-red-300 font-bold text-xs transition cursor-pointer"
+              >
+                Cancel This Order
+              </button>
+            )}
+          </div>
+        )}
 
         {isService && (
           <div className="border-t border-zinc-800 pt-2 flex items-center gap-1.5 text-[10px] text-zinc-500 font-semibold">
@@ -511,9 +562,9 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
                 longitude: 67.7744,
               }
             }
-            riderName={order.riderName || "Fateh Muhammad"}
+            riderName={order.riderName || "Assigning Rider"}
             riderPhone={order.riderPhone}
-            restaurantName={order.restaurantName || "Dadu Central Kitchen"}
+            restaurantName={order.restaurantName || "Dadu Food Kitchen"}
             items={order.items}
             grandTotal={order.grandTotal}
             currentUser={currentUser}

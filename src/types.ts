@@ -25,8 +25,16 @@ export interface UserProfile {
   uid: string;
   name: string;
   phone: string;
+  email?: string;
   address: string;
-  role: "admin" | "buyer" | "rider" | "customer";
+  role: "admin" | "staff" | "buyer" | "rider" | "customer";
+  preferredPayment?: string;
+  language?: "en" | "ur";
+  notificationPrefs?: {
+    orderChimes: boolean;
+    smsUpdates: boolean;
+    promoAlerts: boolean;
+  };
   status?: "locked" | "verified" | "blocked";
   isBlacklisted?: boolean;
   unlockedAt?: any;
@@ -96,7 +104,12 @@ export interface Order {
   eta?: string; // e.g. "1 Hour", "25 mins"
   serviceTiming?: string;
   createdAt: any; // Firestore Timestamp
-  paymentMethod: "COD" | "Pay on Appointment" | "cod";
+  paymentMethod: "COD" | "JazzCash" | "Easypaisa" | "Card" | "Pay on Appointment" | "cod";
+  riderTip?: number;
+  isScheduled?: boolean;
+  scheduledTime?: string;
+  cancelledBy?: string;
+  cancelledAt?: any;
   orderType: "food" | "service" | "grocery";
   deviceId?: string;
   userCoords?: { latitude: number; longitude: number };
@@ -241,7 +254,12 @@ export interface GroceryOrder {
   grandTotal: number;
   status: "placed" | "accepted" | "out_for_delivery" | "delivered" | "cancelled";
   createdAt: any;
-  paymentMethod: "COD";
+  paymentMethod: "COD" | "JazzCash" | "Easypaisa" | "Card";
+  riderTip?: number;
+  isScheduled?: boolean;
+  scheduledTime?: string;
+  cancelledBy?: string;
+  cancelledAt?: any;
   orderType: "grocery";
   deviceId?: string;
   riderId?: string;

@@ -56,9 +56,28 @@ import BottomNavBar from "./components/BottomNavBar";
 import MobileAccountDrawer from "./components/MobileAccountDrawer";
 import { LazyImage } from "./components/LazyImage";
 import DaduLogoLoader from "./components/DaduLogoLoader";
+import NetworkStatusBanner from "./components/NetworkStatusBanner";
+import { CustomerSettingsModal } from "./components/CustomerSettingsModal";
+import { InfoPagesView } from "./components/InfoPagesView";
+import { HomeFaqAeoSection } from "./components/HomeFaqAeoSection";
 import useLazyBatchLoad from "./hooks/useLazyBatchLoad";
 import daduLogo from "./assets/images/dadu_food_logo_new_1782333467889.jpg";
 import { logMemoryUsage, useMemoryMonitor } from "./utils/memoryLogger";
+import {
+  normalizeCatalog,
+  normalizeFoodCategories,
+  matchesFoodSearch,
+  getShopProfile,
+  generateUniqueOrderId,
+  formatOrderId,
+  calculateDeliveryFee,
+} from "./utils/catalogNormalizer";
+import {
+  syncPageSeo,
+  slugifyShop,
+  DADU_FOOD_BUSINESS,
+  InfoPageSlug,
+} from "./utils/seoManager";
 
 // Icons & Motion
 import {
@@ -363,6 +382,11 @@ export default function App() {
   };
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [quickFilter, setQuickFilter] = useState<
+    "all" | "top_rated" | "under_300" | "fast_food" | "desi" | "pizza" | "chai_sweets"
+  >("all");
+  const prevOrderStatusesRef = useRef<Record<string, string>>({});
+  const prevUnreadCountRef = useRef<number>(0);
   const [cartItems, setCartItems] = useState<OrderItem[]>([]);
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [activeTrackingOrder, setActiveTrackingOrder] = useState<Order | null>(
@@ -377,19 +401,65 @@ export default function App() {
   const [activeDetailDish, setActiveDetailDish] = useState<Dish | null>(null);
   const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
   const [isDirectChatOpen, setIsDirectChatOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isSignOutConfirmOpen, setIsSignOutConfirmOpen] = useState(false);
+  const [activeInfoPage, setActiveInfoPage] = useState<InfoPageSlug | null>(() => {
+    if (typeof window === "undefined") return null;
+    const p = window.location.pathname.replace(/^\/+|\/+$/g, "");
+    const validSlugs: InfoPageSlug[] = [
+      "about",
+      "terms",
+      "privacy-policy",
+      "refund-policy",
+      "contact",
+      "partner-with-us",
+      "become-a-rider",
+    ];
+    return validSlugs.includes(p as InfoPageSlug) ? (p as InfoPageSlug) : null;
+  });
+  const [language, setLanguage] = useState<"en" | "ur">(() => {
+    const saved = typeof window !== "undefined" ? localStorage.getItem("dadu_language") : null;
+    return saved === "ur" ? "ur" : "en";
+  });
+  const [adminSeoOverride, setAdminSeoOverride] = useState<
+    { siteTitle?: string; siteDescription?: string } | undefined
+  >(undefined);
+
+  const handleLanguageChange = (lang: "en" | "ur") => {
+    setLanguage(lang);
+    localStorage.setItem("dadu_language", lang);
+  };
+
+  const navigateToInfoPage = (slug: InfoPageSlug | null) => {
+    setActiveInfoPage(slug);
+    setSelectedRestaurant("All Restaurants");
+    if (typeof window !== "undefined") {
+      const targetUrl = slug ? `/${slug}` : "/";
+      if (window.location.pathname !== targetUrl) {
+        window.history.pushState({ infoPage: slug }, "", targetUrl);
+      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
 
   // Navigation Home Resetters
   const handleGoToFoodHome = () => {
+    setActiveInfoPage(null);
     setActiveModule("food");
     setSelectedRestaurant("All Restaurants");
     setInitialRestaurantCategory(undefined);
     setActiveCategory("All");
+    setQuickFilter("all");
     setSearchQuery("");
     setShowFavoritesOnly(false);
+    if (typeof window !== "undefined" && window.location.pathname !== "/") {
+      window.history.pushState({ page: "home" }, "", "/");
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleGoToGroceryHome = () => {
+    setActiveInfoPage(null);
     setActiveModule("grocery");
     setSearchQuery("");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -658,28 +728,25 @@ export default function App() {
         }
 
         if (userData) {
-          const isAdmin = userData.role === "admin" || savedPhone === "03277004471";
-          const finalProfile = (isAdmin && userData.role !== "admin")
-            ? ({ uid: userUid, ...userData, role: "admin" } as UserProfile)
-            : ({ uid: userUid, ...userData } as UserProfile);
-          if (isAdmin && userData.role !== "admin") {
-            setDoc(doc(db, "users", userUid), { role: "admin" }, { merge: true }).catch(console.warn);
-          }
+          const finalProfile = { uid: userUid, ...userData } as UserProfile;
           setCurrentUser(finalProfile);
           setCachedData("dadu_cached_user", finalProfile);
+          if (finalProfile.role !== "admin" && finalProfile.role !== "staff") {
+            setIsAdminConsoleOpen(false);
+          }
         } else {
-          // Fallback guest with saved phone
-          const isAdmin = savedPhone === "03277004471";
+          // Unverified / missing Firestore profile defaults strictly to standard buyer role
           const fallback: UserProfile = {
             uid: savedPhone,
-            name: isAdmin ? "meerali120" : "Dadu Guest",
+            name: "Dadu Guest",
             phone: savedPhone,
             address: "",
-            role: isAdmin ? "admin" : "buyer",
+            role: "buyer",
             ordersCount: 0,
           };
           setCurrentUser(fallback);
           setCachedData("dadu_cached_user", fallback);
+          setIsAdminConsoleOpen(false);
         }
 
         // Live listen to profile changes using the correct userUid
@@ -688,6 +755,9 @@ export default function App() {
               const liveProfile = { uid: userUid, ...docSnap.data() } as UserProfile;
               setCurrentUser(liveProfile);
               setCachedData("dadu_cached_user", liveProfile);
+              if (liveProfile.role !== "admin" && liveProfile.role !== "staff") {
+                setIsAdminConsoleOpen(false);
+              }
            }
         });
       } else {
@@ -1020,8 +1090,9 @@ export default function App() {
           list.push({ id: doc.id, ...doc.data() } as GroceryCategory);
         });
         list.sort((a, b) => (a.position || 0) - (b.position || 0));
-        setGroceryCategories(list);
-        setCachedData("dadu_cached_grocery_categories", list);
+        const finalCats = list.length > 0 ? list : (DEFAULT_GROCERY_CATEGORIES as unknown as GroceryCategory[]);
+        setGroceryCategories(finalCats);
+        setCachedData("dadu_cached_grocery_categories", finalCats);
         setIsLoadingGrocery(false);
       },
       (err) => {
@@ -1046,10 +1117,11 @@ export default function App() {
         snapshot.forEach((doc) => {
           list.push({ id: doc.id, ...doc.data() } as GroceryProduct);
         });
-        setGroceryProducts(list);
-        setCachedData("dadu_cached_grocery_products", list);
+        const finalProducts = list.length > 0 ? list : (DEFAULT_GROCERY_PRODUCTS as unknown as GroceryProduct[]);
+        setGroceryProducts(finalProducts);
+        setCachedData("dadu_cached_grocery_products", finalProducts);
         setIsLoadingGrocery(false);
-        preloadImages(list.slice(0, 20).map((p) => p.imageUrl));
+        preloadImages(finalProducts.slice(0, 20).map((p) => p.imageUrl));
       },
       (err) => {
         console.warn("Grocery products notice:", handleFirestoreError(err));
@@ -1163,28 +1235,17 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // 3e. Load SEO config and update document head
+  // 3e. Load SEO config from Admin panel and pass into unified SEO manager
   useEffect(() => {
     const unsubscribe = onSnapshot(
       doc(db, "settings", "seo_config"),
       (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
-
-          if (data.title) {
-            document.title = data.title;
-          }
-
-          if (data.description) {
-            let descMeta = document.querySelector('meta[name="description"]');
-            if (!descMeta) {
-              descMeta = document.createElement("meta");
-              descMeta.setAttribute("name", "description");
-              document.head.appendChild(descMeta);
-            }
-            descMeta.setAttribute("content", data.description);
-          }
-
+          setAdminSeoOverride({
+            siteTitle: data.title || undefined,
+            siteDescription: data.description || undefined,
+          });
           if (data.keywords) {
             let keywordsMeta = document.querySelector('meta[name="keywords"]');
             if (!keywordsMeta) {
@@ -1292,6 +1353,62 @@ export default function App() {
         );
         setOrders(list);
 
+        // Detect live status transitions for buyer orders and play status chime!
+        if (currentUser.role !== "admin") {
+          const prevMap = prevOrderStatusesRef.current;
+          const hadInitialSnapshot = Object.keys(prevMap).length > 0;
+
+          if (hadInitialSnapshot) {
+            for (const o of list) {
+              const oldStatus = prevMap[o.id];
+              if (oldStatus && oldStatus !== o.status) {
+                const statusToastMap: Record<string, { title: string; message: string }> = {
+                  accepted: {
+                    title: "✅ Order Accept Ho Gaya!",
+                    message: `Aapka order #${o.id.substring(0, 5)} confirm ho gaya hai.`,
+                  },
+                  confirmed: {
+                    title: "✅ Order Confirm Ho Gaya!",
+                    message: `Restaurant ne aapka order #${o.id.substring(0, 5)} accept kar liya hai.`,
+                  },
+                  preparing: {
+                    title: "🍳 Khana Tayar Ho Raha Hai!",
+                    message: `Chef aapka order #${o.id.substring(0, 5)} fresh tayar kar raha hai.`,
+                  },
+                  out_for_delivery: {
+                    title: "🛵 Rider Raste Me Hai!",
+                    message: `${o.riderName ? `${o.riderName} aapka` : "Rider aapka"} order #${o.id.substring(0, 5)} le kar nikal chuka hai!`,
+                  },
+                  delivered: {
+                    title: "🎉 Order Deliver Ho Gaya!",
+                    message: `Order #${o.id.substring(0, 5)} pohanch chuka hai. Enjoy your meal!`,
+                  },
+                  completed: {
+                    title: "🎉 Order Mukammal Ho Gaya!",
+                    message: `Order #${o.id.substring(0, 5)} complete ho gaya hai. Shukriya!`,
+                  },
+                };
+
+                const info = statusToastMap[o.status];
+                if (info) {
+                  setToastNotification(info);
+                  playChimeSound();
+                  setTimeout(() => {
+                    setToastNotification(null);
+                  }, 5500);
+                  break;
+                }
+              }
+            }
+          }
+
+          const nextMap: Record<string, string> = {};
+          for (const o of list) {
+            nextMap[o.id] = o.status;
+          }
+          prevOrderStatusesRef.current = nextMap;
+        }
+
         // If buyer has active orders, update our live tracker automatically!
         if (currentUser.role !== "admin" && list.length > 0) {
           // Find latest non-completed order to show
@@ -1340,7 +1457,7 @@ export default function App() {
 
         // If there's a new unread notification, trigger sliding banner & audio chime!
         const currentUnread = list.filter((n) => !n.read);
-        const oldUnreadCount = notifications.filter((n) => !n.read).length;
+        const oldUnreadCount = prevUnreadCountRef.current;
 
         if (currentUnread.length > oldUnreadCount && currentUnread[0]) {
           setToastNotification({
@@ -1355,6 +1472,7 @@ export default function App() {
           }, 5000);
         }
 
+        prevUnreadCountRef.current = currentUnread.length;
         setNotifications(list);
       },
       (err) => {
@@ -1371,16 +1489,30 @@ export default function App() {
     };
   }, [currentUser]);
 
-  // Handle Log Outs
-  const handleLogout = async () => {
+  // Handle Log Outs (warn before wiping active cart)
+  const performLogout = async (clearCart: boolean) => {
+    try {
+      await signOut(auth).catch(() => {});
+    } catch {}
     localStorage.removeItem("dadu_user_phone");
     localStorage.removeItem("dadu_cached_user");
-    // Trigger custom event so initializeUser updates
     window.dispatchEvent(new StorageEvent("storage", { key: "dadu_user_phone" }));
     setCurrentUser(null);
-    setCartItems([]);
+    if (clearCart) {
+      setCartItems([]);
+      setGroceryCartItems([]);
+    }
     setActiveTrackingOrder(null);
     setIsAdminConsoleOpen(false);
+    setIsSignOutConfirmOpen(false);
+  };
+
+  const handleLogout = async () => {
+    if (cartItems.length > 0 || groceryCartItems.length > 0) {
+      setIsSignOutConfirmOpen(true);
+      return;
+    }
+    await performLogout(false);
   };
 
   // Helper to determine current screen key for routing history stack
@@ -1492,7 +1624,11 @@ export default function App() {
         return;
       }
 
-      // Priority 2: If inside a Restaurant or Category page or Search query, navigate back to main Restaurant List / Homepage
+      // Priority 2: If inside an Info Page, Restaurant, Category, or Search query, navigate back to Homepage
+      if (activeInfoPage) {
+        setActiveInfoPage(null);
+        return;
+      }
       if (selectedRestaurant !== "All Restaurants") {
         setSelectedRestaurant("All Restaurants");
         return;
@@ -1874,12 +2010,13 @@ export default function App() {
     totalPrice: number;
     deliveryFee: number;
     grandTotal: number;
+    paymentMethod?: "COD" | "JazzCash" | "Easypaisa" | "Card";
     userCoords?: { latitude: number; longitude: number };
     voucher?: { code: string; discountAmount: number };
     coinsUsed?: number;
   }) => {
     if (currentUser?.status === 'locked' || currentUser?.status === 'blocked') {
-      alert("Verification pending or blocked. Cannot place order.");
+      setToastNotification({ title: "Account Restricted", message: "Verification pending or account blocked. Cannot place order." });
       return;
     }
 
@@ -1889,17 +2026,17 @@ export default function App() {
       if (vSnap.exists()) {
         const vData = vSnap.data();
         if (!vData.isActive || vData.currentUses >= vData.maxUses) {
-          alert("Sorry, the applied voucher is no longer valid or has reached its usage limit.");
+          setToastNotification({ title: "Voucher Unavailable", message: "The applied voucher is no longer valid or reached its usage limit." });
           return;
         }
       } else {
-        alert("Invalid voucher code.");
+        setToastNotification({ title: "Invalid Voucher", message: "Invalid voucher code." });
         return;
       }
     }
 
     try {
-      const generatedOrderId = `gorder_${Date.now()}`;
+      const generatedOrderId = generateUniqueOrderId("DG");
 
       // Adapt items array representation
       const adaptedItems = details.items.map((item) => ({
@@ -1916,6 +2053,15 @@ export default function App() {
         0,
       );
 
+      // Enforce exact total = items + deliveryFee - voucher - coins
+      const computedGrandTotal = Math.max(
+        0,
+        details.totalPrice +
+          details.deliveryFee -
+          (details.voucher?.discountAmount || 0) -
+          (details.coinsUsed || 0),
+      );
+
       const orderDoc = {
         id: generatedOrderId,
         userId: currentUser?.uid || "guest",
@@ -1929,8 +2075,8 @@ export default function App() {
         items: adaptedItems,
         totalPrice: details.totalPrice,
         deliveryFee: details.deliveryFee,
-        grandTotal: details.grandTotal,
-        paymentMethod: "cod",
+        grandTotal: computedGrandTotal,
+        paymentMethod: details.paymentMethod || "COD",
         status: "pending",
         orderType: "grocery",
         deviceId: deviceId,
@@ -2044,13 +2190,15 @@ export default function App() {
     userCoords?: { latitude: number; longitude: number };
     voucher?: { code: string; discountAmount: number };
     coinsUsed?: number;
+    riderTip?: number;
+    isScheduled?: boolean;
+    scheduledTime?: string;
   }) => {
     if (currentUser?.status === 'locked' || currentUser?.status === 'blocked') {
       setIsVerificationModalOpen(true);
       return;
     }
     if (!currentUser) {
-      alert("Please Sign In or Register to submit your order!");
       setIsAuthOpen(true);
       return;
     }
@@ -2061,7 +2209,7 @@ export default function App() {
       );
       if (matchedVoucher) {
         if (!matchedVoucher.isActive || (matchedVoucher.maxUses && matchedVoucher.currentUses >= matchedVoucher.maxUses)) {
-          alert("Sorry, the applied voucher is no longer valid or has reached its usage limit.");
+          setToastNotification({ title: "Voucher Unavailable", message: "The applied voucher is no longer valid or reached its usage limit." });
           return;
         }
       }
@@ -2075,40 +2223,38 @@ export default function App() {
     const firstCartItem = cartItems[0];
     const itemRestaurant = firstCartItem?.restaurantName || "Dadu Fast Food & Kitchen";
     const specificStatus = deliverySettings?.restaurantStatuses?.[itemRestaurant];
-    
-    let effectiveMinOrder = deliverySettings.minOrderAmount || 0;
-    if (specificStatus && specificStatus.minOrder !== undefined) {
-      effectiveMinOrder = specificStatus.minOrder;
-    }
+    const shopProfile = getShopProfile(itemRestaurant, deliverySettings);
+
+    const effectiveMinOrder = shopProfile.minOrder;
 
     if (
       details.orderType === "food" &&
       effectiveMinOrder > 0 &&
       itemsTotal < effectiveMinOrder
     ) {
-      alert(
-        `Minimum order amount for ${itemRestaurant} is Rs. ${effectiveMinOrder}. Your current total is Rs. ${itemsTotal}. Please add more items.`,
-      );
+      setToastNotification({
+        title: "Minimum Order Not Met",
+        message: `Minimum order for ${itemRestaurant} is Rs. ${effectiveMinOrder}. Your items total is Rs. ${itemsTotal}.`,
+      });
       return;
     }
 
-    let parsedDeliveryFee = deliverySettings.deliveryFee;
+    let parsedDeliveryFee = deliverySettings.deliveryFee || 50;
     if (specificStatus && specificStatus.deliveryCharge) {
-       const match = specificStatus.deliveryCharge.match(/\d+/);
-       if (match) {
-         parsedDeliveryFee = parseInt(match[0], 10);
-       }
+      const match = specificStatus.deliveryCharge.match(/\d+/);
+      if (match) {
+        parsedDeliveryFee = parseInt(match[0], 10);
+      }
     }
 
-    const baseFee =
-      details.orderType === "food" ? parsedDeliveryFee : 0;
-    
-    // We only apply the 2x multiplier rule if there is no specific restaurant delivery fee set, or depending on business rules.
-    // Assuming we want to
-    const finalFee =
-      details.orderType === "food" && itemsTotal < 500 && (!specificStatus || !specificStatus.deliveryCharge) ? baseFee * 2 : baseFee;
-    
-    let finalGrandTotal = itemsTotal + finalFee;
+    const feeCalc =
+      details.orderType === "food"
+        ? calculateDeliveryFee(itemsTotal, parsedDeliveryFee, deliverySettings)
+        : { fee: 0, isFree: true, isSmallOrderDoubled: false, reason: "Service booking" };
+    const finalFee = isRiderRangeExceeded ? feeCalc.fee * 2 : feeCalc.fee;
+    const riderTip = Math.max(0, Number(details.riderTip || 0));
+
+    let finalGrandTotal = itemsTotal + finalFee + riderTip;
     if (details.voucher) {
       finalGrandTotal = Math.max(0, finalGrandTotal - details.voucher.discountAmount);
     }
@@ -2132,7 +2278,7 @@ export default function App() {
       0,
     );
 
-    const uniqueOrderId = `order_${Date.now()}`;
+    const uniqueOrderId = generateUniqueOrderId("DF");
     const orderModel: Order = {
       id: uniqueOrderId,
       userId: currentUser.uid,
@@ -2146,13 +2292,16 @@ export default function App() {
       items: itemsWithCommission,
       totalPrice: itemsTotal,
       deliveryFee: finalFee,
+      riderTip: riderTip > 0 ? riderTip : undefined,
+      isScheduled: details.isScheduled || undefined,
+      scheduledTime: details.isScheduled ? details.scheduledTime : undefined,
       grandTotal: finalGrandTotal,
       status: details.orderType === "service" ? "booked" : "placed",
-      paymentMethod: details.paymentMethod as any,
+      paymentMethod: (details.paymentMethod || "COD") as any,
       orderType: details.orderType,
       deviceId: deviceId,
       serviceTiming: computedServiceTiming,
-      createdAt: { seconds: Date.now() / 1000 },
+      createdAt: { seconds: Math.floor(Date.now() / 1000) },
       userCoords: details.userCoords || undefined,
       totalCommission,
       voucher: details.voucher,
@@ -2365,8 +2514,16 @@ export default function App() {
 
     return false;
   }, [deliverySettings]);
+  // Clean, normalized catalog (removes foodpanda/KFC, fixes spelling/prices/photos/categories, adds Desi/Chai/Home Services)
+  const catalogDishes = React.useMemo(() => normalizeCatalog(dishes), [dishes]);
+
+  const normalizedFoodCategories = React.useMemo(
+    () => normalizeFoodCategories(foodCategories, catalogDishes) as FoodCategory[],
+    [foodCategories, catalogDishes],
+  );
+
   const finalDishes = React.useMemo(() => {
-    return dishes.map((dish) => {
+    return catalogDishes.map((dish) => {
       let isAvailable = dish.isAvailable;
       
       const rName =
@@ -2412,13 +2569,13 @@ export default function App() {
       }
       return { ...dish, ...overrides };
     });
-  }, [dishes, isDealActive, dealConfig, checkIsRestaurantClosed]);
+  }, [catalogDishes, isDealActive, dealConfig, checkIsRestaurantClosed]);
 
   // --- RESTAURANT AVAILABILITY CHECK ---
   const uniqueRestaurants = React.useMemo(() => {
     const list = Array.from(
       new Set(
-        dishes
+        catalogDishes
           .map(
             (d) =>
               d.restaurantName?.trim() ||
@@ -2451,9 +2608,65 @@ export default function App() {
       return a.localeCompare(b);
     });
     return list;
-  }, [dishes, checkIsRestaurantClosed, globalCoords, deliverySettings]);
+  }, [catalogDishes, checkIsRestaurantClosed, globalCoords, deliverySettings]);
+
+  // Resolve deep-linked /shop/:slug routes once restaurants are known
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const match = window.location.pathname.match(/^\/shop\/([^/]+)/);
+    if (match && match[1] && uniqueRestaurants.length > 0 && selectedRestaurant === "All Restaurants") {
+      const matchedShop = uniqueRestaurants.find((r) => slugifyShop(r) === match[1]);
+      if (matchedShop) {
+        setSelectedRestaurant(matchedShop);
+      }
+    }
+  }, [uniqueRestaurants]);
+
+  // Keep dynamic SEO title, meta tags, canonical URL, and JSON-LD synced on every view
+  useEffect(() => {
+    if (activeInfoPage) {
+      syncPageSeo({
+        pageType: "info",
+        infoSlug: activeInfoPage,
+        deliverySettings,
+        adminSeoOverride,
+      });
+      return;
+    }
+    if (selectedRestaurant !== "All Restaurants") {
+      const shopDishes = finalDishes.filter(
+        (d) =>
+          (d.restaurantName?.trim() ||
+            (d.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen")) ===
+          selectedRestaurant,
+      );
+      const shopPath = `/shop/${slugifyShop(selectedRestaurant)}`;
+      if (typeof window !== "undefined" && window.location.pathname !== shopPath) {
+        window.history.replaceState({ shop: selectedRestaurant }, "", shopPath);
+      }
+      syncPageSeo({
+        pageType: "shop",
+        shopName: selectedRestaurant,
+        shopDishes,
+        deliverySettings,
+        adminSeoOverride,
+      });
+      return;
+    }
+    if (typeof window !== "undefined" && window.location.pathname.startsWith("/shop/")) {
+      window.history.replaceState({ page: "home" }, "", "/");
+    }
+    syncPageSeo({
+      pageType: "home",
+      deliverySettings,
+      adminSeoOverride,
+    });
+  }, [activeInfoPage, selectedRestaurant, finalDishes, deliverySettings, adminSeoOverride]);
 
   const filteredDishes = React.useMemo(() => {
+    const q = (searchQuery || "").trim();
+    const seenKeys = new Set<string>();
+
     return finalDishes.filter((dish) => {
       // Hide checkout-exclusive soft drinks from main browsing screen & panels
       const isExclusiveDrink =
@@ -2462,30 +2675,49 @@ export default function App() {
         dish.category === "Beverages";
       if (isExclusiveDrink) return false;
 
+      // When searching, search across ALL categories so "biryani" works even when Pizza is selected
       const matchesCategory =
-        activeCategory === "All" || dish.category === activeCategory;
+        q.length > 0 || activeCategory === "All" || dish.category === activeCategory;
       const rName =
         dish.restaurantName ||
         (dish.type === "service"
           ? "Dadu Home Services"
           : "Dadu Fast Food & Kitchen");
       const matchesRestaurant =
-        selectedRestaurant === "All Restaurants" || rName === selectedRestaurant;
+        q.length > 0 || selectedRestaurant === "All Restaurants" || rName === selectedRestaurant;
       const matchesFavorites =
         !showFavoritesOnly || favoriteDishIds.includes(dish.id);
-      const q = (searchQuery || "").trim().toLowerCase();
-      const matchesSearch =
-        !q ||
-        (dish.name || "").toLowerCase().includes(q) ||
-        (dish.description || "").toLowerCase().includes(q) ||
-        (rName || "").toLowerCase().includes(q) ||
-        (dish.category || "").toLowerCase().includes(q);
+      const matchesSearch = !q || matchesFoodSearch(dish, q);
 
-      return (
-        matchesCategory && matchesRestaurant && matchesSearch && matchesFavorites
-      );
+      const effectivePrice = dish.discountPrice && dish.discountPrice > 0 ? dish.discountPrice : dish.price;
+      const textBlob = `${dish.name || ""} ${dish.category || ""} ${dish.description || ""}`.toLowerCase();
+      const restProfile = getShopProfile(rName, deliverySettings);
+
+      let matchesQuickFilter = true;
+      if (quickFilter === "top_rated") {
+        matchesQuickFilter = Boolean(dish.isFeatured || Number(restProfile.rating) >= 4.6);
+      } else if (quickFilter === "under_300") {
+        matchesQuickFilter = effectivePrice <= 300 && dish.type !== "service";
+      } else if (quickFilter === "fast_food") {
+        matchesQuickFilter = /burger|zinger|broast|fries|roll|shawarma|sandwich|wrap|wings|nuggets/.test(textBlob);
+      } else if (quickFilter === "desi") {
+        matchesQuickFilter = /biryani|karahi|handi|tikka|bbq|kabab|kebab|pulao|nihari|haleem|paratha|naan|rice|desi/.test(textBlob);
+      } else if (quickFilter === "pizza") {
+        matchesQuickFilter = /pizza|pasta|lasagna|calzone/.test(textBlob);
+      } else if (quickFilter === "chai_sweets") {
+        matchesQuickFilter = /\b(tea|chai|coffee|shake|sweet|cake|dessert|ice cream|bakery|halwa|gulab|kheer)\b/.test(textBlob);
+      }
+
+      if (!(matchesCategory && matchesRestaurant && matchesSearch && matchesFavorites && matchesQuickFilter)) {
+        return false;
+      }
+
+      const dedupeKey = `${rName.toLowerCase()}::${(dish.name || "").toLowerCase().trim()}`;
+      if (seenKeys.has(dedupeKey)) return false;
+      seenKeys.add(dedupeKey);
+      return true;
     });
-  }, [finalDishes, activeCategory, selectedRestaurant, showFavoritesOnly, favoriteDishIds, searchQuery]);
+  }, [finalDishes, activeCategory, selectedRestaurant, showFavoritesOnly, favoriteDishIds, searchQuery, quickFilter, deliverySettings]);
 
   const cartCountTotal = cartItems.reduce(
     (acc, item) => acc + item.quantity,
@@ -2584,11 +2816,86 @@ export default function App() {
         showFavoritesOnly={showFavoritesOnly}
         onToggleFavorites={() => setShowFavoritesOnly(!showFavoritesOnly)}
         onOpenHistory={() => setIsHistoryDrawerOpen(true)}
-        onOpenAdmin={() => setIsAdminConsoleOpen(true)}
+        onOpenSettings={() => setIsSettingsModalOpen(true)}
+        onOpenAdmin={() => {
+          if (currentUser?.role === "admin" || currentUser?.role === "staff") {
+            setIsAdminConsoleOpen(true);
+          }
+        }}
         onLogout={handleLogout}
         theme={theme}
         onToggleTheme={handleToggleTheme}
       />
+
+      <CustomerSettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        user={currentUser}
+        onUserUpdated={(updated) => {
+          setCurrentUser(updated);
+          setCachedData("dadu_cached_user", updated);
+        }}
+        language={language}
+        onLanguageChange={handleLanguageChange}
+      />
+
+      {/* Sign-out Cart Protection Dialog */}
+      <AnimatePresence>
+        {isSignOutConfirmOpen && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+            <div
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+              onClick={() => setIsSignOutConfirmOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-sm bg-white dark:bg-zinc-900 rounded-3xl p-6 border border-zinc-200 dark:border-zinc-800 shadow-2xl space-y-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-[#D70F64]/10 text-[#D70F64] flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-zinc-900 dark:text-white">
+                    Items in Your Cart
+                  </h3>
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                    You have {cartCountTotal + groceryCartItems.reduce((a, b) => a + b.quantity, 0)} item(s) waiting in your cart.
+                  </p>
+                </div>
+              </div>
+              <p className="text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed">
+                Choose whether to keep your cart items on this device or clear them before signing out.
+              </p>
+              <div className="flex flex-col gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => performLogout(false)}
+                  className="w-full py-2.5 px-4 rounded-xl bg-[#D70F64] hover:bg-[#b00c50] text-white text-xs font-black uppercase tracking-wider cursor-pointer transition"
+                >
+                  Keep Cart & Sign Out
+                </button>
+                <button
+                  type="button"
+                  onClick={() => performLogout(true)}
+                  className="w-full py-2.5 px-4 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 text-xs font-bold uppercase tracking-wider cursor-pointer transition"
+                >
+                  Clear Cart & Sign Out
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsSignOutConfirmOpen(false)}
+                  className="w-full py-2 px-4 rounded-xl text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white text-xs font-bold cursor-pointer transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <BottomNavBar
         activeModule={activeModule}
@@ -2628,7 +2935,7 @@ export default function App() {
               </div>
               <div className="p-6 sm:p-8 space-y-6">
                 <p className="text-zinc-300 font-medium leading-relaxed">
-                  Aapka number verify ho raha hai! Hum aapko jald hi call karenge. Verification ke baad aap order kar sakenge!
+                  Aapka account review mein hai. Kisi bhi madad ke liye 03277004471 par rabta karein.
                 </p>
                 <button
                   onClick={() => setIsVerificationModalOpen(false)}
@@ -2645,175 +2952,149 @@ export default function App() {
       <AuthModal
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
-        onAuthSuccess={async (phone, isStaffMode, password) => {
-          if (isStaffMode) {
-            // Admin Logic
-            if (phone === "03277004471" && password === "meerali120") {
-               const profileRef = doc(db, "users", phone);
-
-;
-;
-
-
-
-
-
-
-               const profileSnap = await getDoc(profileRef);
-               if (!profileSnap.exists()) {
-                  await setDoc(profileRef, {
-                     uid: phone,
-                     name: "meerali120",
-                     phone: phone,
-                     address: "",
-                     role: "admin",
-                     status: "verified",
-                     ordersCount: 0,
-                     totalOrders: 0,
-                     isBlacklisted: false,
-                     createdAt: new Date(),
-                  });
-               } else {
-                  if (profileSnap.data().role !== "admin") {
-                     await setDoc(profileRef, { role: "admin" }, { merge: true });
-                  }
-               }
-               localStorage.setItem("dadu_user_phone", phone);
-               window.dispatchEvent(new StorageEvent("storage", { key: "dadu_user_phone" }));
-               setIsAdminConsoleOpen(true);
-               setIsAuthOpen(false);
-               return;
+        onAuthSuccess={async (phone, isStaffMode, password, verifiedFirebaseUid) => {
+          const sanitizePhone = (phoneStr: string) => {
+            let cleaned = phoneStr.replace(/\D/g, "");
+            if (cleaned.startsWith("92")) {
+              cleaned = "0" + cleaned.substring(2);
             }
+            return cleaned;
+          };
 
-            // Rider Logic
-            const sanitizePhone = (phoneStr: string) => {
-              let cleaned = phoneStr.replace(/\D/g, "");
-              if (cleaned.startsWith("92")) {
-                cleaned = "0" + cleaned.substring(2);
-              }
-              return cleaned;
-            };
-
+          if (isStaffMode) {
+            if (!password || !password.trim()) {
+              throw new Error("Please enter your staff password.");
+            }
+            const isEmail = phone.includes("@");
             const isUsername =
-              /[a-zA-Z]/.test(phone) ||
-              (phone.length > 0 &&
-                phone.length < 10 &&
-                !/^\d+$/.test(phone));
-            const cleanPhone = isUsername
-              ? phone.toLowerCase()
-              : sanitizePhone(phone);
+              !isEmail &&
+              (/[a-zA-Z]/.test(phone) ||
+                (phone.length > 0 && phone.length < 10 && !/^\d+$/.test(phone)));
+            const cleanId = isEmail
+              ? phone.trim().toLowerCase()
+              : isUsername
+                ? phone.trim().toLowerCase()
+                : sanitizePhone(phone);
 
-            // Find the rider in database
-            let riderData: any = null;
-            let riderUid: string = "";
+            // Look up staff / admin / rider account in Firestore
+            let staffData: any = null;
+            let staffDocId = "";
 
-            const directRef = doc(db, "users", cleanPhone);
-            const directSnap = await getDoc(directRef);
-            if (directSnap.exists() && directSnap.data().role === "rider") {
-              riderData = directSnap.data();
-              riderUid = cleanPhone;
+            if (!isEmail) {
+              const directSnap = await getDoc(doc(db, "users", cleanId));
+              if (directSnap.exists()) {
+                staffData = directSnap.data();
+                staffDocId = directSnap.id;
+              } else {
+                const q = query(collection(db, "users"), where("phone", "==", cleanId));
+                const qSnap = await getDocs(q);
+                if (!qSnap.empty) {
+                  staffData = qSnap.docs[0].data();
+                  staffDocId = qSnap.docs[0].id;
+                }
+              }
             } else {
-              const q = query(
-                collection(db, "users"),
-                where("phone", "==", cleanPhone),
-                where("role", "==", "rider")
-              );
+              const q = query(collection(db, "users"), where("email", "==", cleanId));
               const qSnap = await getDocs(q);
               if (!qSnap.empty) {
-                riderData = qSnap.docs[0].data();
-                riderUid = qSnap.docs[0].id;
+                staffData = qSnap.docs[0].data();
+                staffDocId = qSnap.docs[0].id;
               }
             }
 
-            if (riderData) {
-              // Try passcode validation first (general/fallback or database field password)
-              if (password === "1234" || password === "786786" || (riderData.password && password === riderData.password)) {
-                localStorage.setItem("dadu_user_phone", cleanPhone);
-                window.dispatchEvent(new StorageEvent("storage", { key: "dadu_user_phone" }));
-                setIsAuthOpen(false);
-                return;
-              }
+            if (!staffData || !["admin", "staff", "rider"].includes(staffData.role)) {
+              throw new Error("No authorized staff, admin, or rider account found with these credentials.");
+            }
 
-              // Otherwise try Firebase Auth with email and password
-              try {
-                const computedEmail = `${cleanPhone}@dadu247.com`;
-                await signInWithEmailAndPassword(auth, computedEmail, password);
-                localStorage.setItem("dadu_user_phone", cleanPhone);
-                window.dispatchEvent(new StorageEvent("storage", { key: "dadu_user_phone" }));
-                setIsAuthOpen(false);
-                return;
-              } catch (authErr: any) {
-                console.error("Rider Auth Login Error:", authErr);
-                throw new Error("Aapka password ya passcode durust nahi hai.");
+            // Authenticate via Firebase Auth Email/Password (or stored staff password field in Firestore)
+            const authEmail = staffData.email || (isEmail ? cleanId : `${cleanId}@dadu247.com`);
+            let authenticated = false;
+            try {
+              await signInWithEmailAndPassword(auth, authEmail, password);
+              authenticated = true;
+            } catch {
+              if (staffData.password && typeof staffData.password === "string" && staffData.password === password) {
+                authenticated = true;
               }
             }
-            throw new Error("Is number ya username se koi Rider registered nahi hai.");
+
+            if (!authenticated) {
+              throw new Error("Invalid staff credentials. Please check your password and try again.");
+            }
+
+            localStorage.setItem("dadu_user_phone", staffDocId);
+            window.dispatchEvent(new StorageEvent("storage", { key: "dadu_user_phone" }));
+            if (staffData.role === "admin" || staffData.role === "staff") {
+              setIsAdminConsoleOpen(true);
+            }
+            setIsAuthOpen(false);
+            return;
           }
 
-          const blacklistRef = doc(db, "blacklist", phone);
+          // Customer Phone OTP verification required before creating any session
+          if (!verifiedFirebaseUid) {
+            throw new Error("SMS OTP verification is required before signing in.");
+          }
+
+          const cleanPhone = sanitizePhone(phone);
+          const blacklistRef = doc(db, "blacklist", cleanPhone);
           const blacklistSnap = await getDoc(blacklistRef);
           if (blacklistSnap.exists()) {
-            throw new Error("Yeh number register nahi ho sakta.");
+            throw new Error("This phone number cannot be registered.");
           }
 
-          const profileRef = doc(db, "users", phone);
+          const profileRef = doc(db, "users", cleanPhone);
           const profileSnap = await getDoc(profileRef);
 
           if (profileSnap.exists()) {
             const data = profileSnap.data();
-            if (data.status === 'blocked' || data.isBlacklisted) {
-              throw new Error("Yeh number register nahi ho sakta.");
+            if (data.status === "blocked" || data.isBlacklisted) {
+              throw new Error("This account has been restricted. Contact support at 03277004471.");
             }
-            if (data.role === 'admin' || data.role === 'rider') {
-              throw new Error("Staff members must login via Staff Mode with a passcode.");
+            if (data.role === "admin" || data.role === "staff" || data.role === "rider") {
+              throw new Error("Staff and riders must sign in using Staff Login.");
             }
-            
-            if (globalCoords) {
-              try {
-                await setDoc(profileRef, {
-                  savedLocation: {
-                    lat: globalCoords.latitude,
-                    lng: globalCoords.longitude,
-                    area: data.savedLocation?.area || "",
-                    street: data.savedLocation?.street || ""
-                  }
-                }, { merge: true });
-              } catch (e) {
-                console.warn("Could not update GPS location", e);
-              }
-            }
-          } else if (phone === "03277004471") {
-            throw new Error("Staff members must login via Staff Mode with a passcode.");
-          }
 
-          localStorage.setItem("dadu_user_phone", phone);
-          window.dispatchEvent(new StorageEvent("storage", { key: "dadu_user_phone" }));
-          
-          if (!profileSnap.exists()) {
+            const patch: Record<string, any> = {
+              status: "verified",
+              firebaseUid: verifiedFirebaseUid,
+            };
+            if (globalCoords) {
+              patch.savedLocation = {
+                lat: globalCoords.latitude,
+                lng: globalCoords.longitude,
+                area: data.savedLocation?.area || "",
+                street: data.savedLocation?.street || "",
+              };
+            }
+            await setDoc(profileRef, patch, { merge: true }).catch(() => {});
+          } else {
             const newProfile: any = {
-              uid: phone,
+              uid: cleanPhone,
+              firebaseUid: verifiedFirebaseUid,
               name: "",
-              phone: phone,
+              phone: cleanPhone,
               address: "",
               role: "buyer",
-              status: "locked",
+              status: "verified",
               ordersCount: 0,
               totalOrders: 0,
               isBlacklisted: false,
               createdAt: new Date(),
             };
             if (globalCoords) {
-              newProfile.savedLocation = { lat: globalCoords.latitude, lng: globalCoords.longitude, area: "", street: "" };
+              newProfile.savedLocation = {
+                lat: globalCoords.latitude,
+                lng: globalCoords.longitude,
+                area: "",
+                street: "",
+              };
             }
             await setDoc(profileRef, newProfile);
-            setIsAuthOpen(false);
-            
-            // Show verification popup for new users
-            setTimeout(() => {
-              setIsVerificationModalOpen(true);
-            }, 300);
-            return;
           }
+
+          localStorage.setItem("dadu_user_phone", cleanPhone);
+          window.dispatchEvent(new StorageEvent("storage", { key: "dadu_user_phone" }));
           setIsAuthOpen(false);
         }}
       />
@@ -3240,7 +3521,7 @@ export default function App() {
     );
   }
 
-  const isUserAdmin = currentUser?.role === "admin";
+  const isUserAdmin = currentUser?.role === "admin" || currentUser?.role === "staff";
   const isMaintenanceActive = deliverySettings?.isMaintenanceMode === true;
 
 
@@ -3688,6 +3969,9 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      {/* Offline & Slow-Internet Smart Shield Banner */}
+      <NetworkStatusBanner />
+
       {/* Dynamic Floating WhatsApp Helpline Button (Bottom corner) */}
       <a
         href="https://wa.me/923277004471"
@@ -3710,7 +3994,12 @@ export default function App() {
           onOpenCart={() => setIsCartOpen(true)}
           cartCount={cartCountTotal}
           cartTotal={cartPriceTotal}
-          onOpenAdmin={() => setIsAdminConsoleOpen(true)}
+          onOpenAdmin={() => {
+            if (isUserAdmin) {
+              setIsAdminConsoleOpen(true);
+            }
+          }}
+          onOpenSettings={() => setIsSettingsModalOpen(true)}
           onOpenHistory={() => setIsHistoryDrawerOpen(true)}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
@@ -3756,8 +4045,16 @@ export default function App() {
         </div>
       )}
 
-      {!isAdminConsoleOpen ? (
-        isMaintenanceActive && !isUserAdmin ? (
+      {!(isAdminConsoleOpen && isUserAdmin) ? (
+        activeInfoPage ? (
+          <main className="flex-1 relative z-10">
+            <InfoPagesView
+              page={activeInfoPage}
+              onBack={() => navigateToInfoPage(null)}
+              onNavigate={(slug) => navigateToInfoPage(slug)}
+            />
+          </main>
+        ) : isMaintenanceActive && !isUserAdmin ? (
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center z-10 max-w-lg mx-auto my-auto min-h-[70vh] gap-6 relative animate-fade-in">
             <div className="w-16 h-16 bg-rose-50 dark:bg-rose-950/30 rounded-2xl flex items-center justify-center border border-rose-100 dark:border-rose-900 animate-bounce shadow-md">
               <Wrench className="w-8 h-8 text-[#d70f64]" />
@@ -3868,6 +4165,33 @@ export default function App() {
                   transition={{ duration: 0.24, ease: [0.25, 0.1, 0.25, 1.0] }}
                 >
               <>
+                {/* Semantic H1 & Speakable Summary + Delivery Fee Transparency Strip */}
+                <section className="max-w-7xl mx-auto px-4 pt-5 pb-1">
+                  <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-4 sm:px-6 py-4 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                    <div>
+                      <h1 className="text-xl sm:text-2xl font-black tracking-tight text-zinc-900 dark:text-white">
+                        {language === "ur"
+                          ? "Dadu City ka Behtareen Online Food Delivery"
+                          : "Best Online Food Delivery in Dadu"}
+                      </h1>
+                      <p className="speakable-summary text-xs sm:text-sm text-zinc-600 dark:text-zinc-300 mt-1">
+                        {DADU_FOOD_BUSINESS.tagline}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold shrink-0">
+                      <span className="px-2.5 py-1 rounded-lg bg-[#D70F64]/10 text-[#D70F64] dark:bg-[#D70F64]/20 dark:text-pink-300">
+                        Delivery Rs. {deliverySettings?.deliveryFee || 50}
+                      </span>
+                      <span className="px-2.5 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200">
+                        2x below Rs. 500
+                      </span>
+                      <span className="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300">
+                        FREE Rs. 1,000+
+                      </span>
+                    </div>
+                  </div>
+                </section>
+
                 <BannerCarousel 
                   bannerVersion={deliverySettings.bannerVersion} 
                   onBannerClick={(actionLink) => {
@@ -3885,7 +4209,7 @@ export default function App() {
                   setActiveCategory={setActiveCategory}
                   dealConfig={dealConfig}
                   dealTimeLeft={dealTimeLeft}
-                  foodCategories={foodCategories}
+                  foodCategories={normalizedFoodCategories}
                   heroBgUrl={heroBgUrl}
                 >
                 <div className="max-w-7xl mx-auto px-4 mt-6 mb-2">
@@ -4112,7 +4436,7 @@ export default function App() {
                                 <h4 className="text-xs sm:text-sm font-black text-zinc-800 mt-0.5 leading-normal truncate">
                                   {isService ? "Service" : "Order"}{" "}
                                   <span className="font-mono text-zinc-500 font-bold">
-                                    #{activeOrderForBanner.id.substring(0, 5)}
+                                    {formatOrderId(activeOrderForBanner.id)}
                                   </span>{" "}
                                   •{" "}
                                   <span className="text-[#d70f64] uppercase font-bold">
@@ -4127,10 +4451,23 @@ export default function App() {
                                             : "Accepted"}
                                   </span>
                                 </h4>
+                                <span className="text-[10px] text-zinc-600 font-bold block mt-0.5 truncate">
+                                  {activeOrderForBanner.status === "out_for_delivery"
+                                    ? "🛵 Rider aapka order pick kar chuka hai aur raste me hai!"
+                                    : activeOrderForBanner.status === "preparing"
+                                      ? "🍳 Chef aapka khana fresh tayar kar raha hai"
+                                      : activeOrderForBanner.status === "accepted" || activeOrderForBanner.status === "confirmed"
+                                        ? "✅ Restaurant ne order confirm kar diya hai"
+                                        : activeOrderForBanner.status === "diagnostic_on_way"
+                                          ? "🏍️ Technician aapke ghar ki taraf aa raha hai"
+                                          : activeOrderForBanner.status === "diagnostic_underway"
+                                            ? "🛠️ Technician kaam kar raha hai"
+                                            : "⏳ Order receive ho gaya, jald confirm hoga"}
+                                </span>
                                 {activeOrderForBanner.riderName ? (
                                   <div className="flex items-center gap-1 mt-0.5">
                                     <span className="text-[9.5px] text-zinc-500 font-extrabold truncate">
-                                      Hero:{" "}
+                                      Rider:{" "}
                                       <span className="text-[#d70f64] font-black">
                                         {activeOrderForBanner.riderName}
                                       </span>
@@ -4138,7 +4475,7 @@ export default function App() {
                                   </div>
                                 ) : (
                                   <span className="text-[9.5px] text-zinc-400 font-bold block mt-0.5 truncate">
-                                    ⏳ Assigning driver...
+                                    ⏳ Assigning rider...
                                   </span>
                                 )}
                               </div>
@@ -4239,69 +4576,86 @@ export default function App() {
               <main className="max-w-7xl mx-auto px-4 py-6">
                 <div className="flex flex-col md:flex-row gap-6">
                   {/* Left Column: Menu Cards Catalog grid */}
-                  <div className="flex-1 space-y-6">
+                  <div className="flex-1 space-y-5">
 
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-extrabold tracking-wider text-zinc-750 uppercase border-b border-red-100 pb-2">
-                        {selectedRestaurant === "All Restaurants"
-                          ? activeCategory
-                          : selectedRestaurant}{" "}
-                        Delicacies ({filteredDishes.length})
-                      </h3>
-                      {searchQuery && (
-                        <span className="text-xs text-zinc-500 font-bold">
-                          Matching "{searchQuery}"
-                        </span>
-                      )}
+                    {/* 1-Tap Quick Filter Chips Bar */}
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
+                      {[
+                        { id: "all", label: "🍽️ Sab Restaurants" },
+                        { id: "top_rated", label: "🔥 Top Rated" },
+                        { id: "under_300", label: "⚡ Under Rs. 300" },
+                        { id: "fast_food", label: "🍔 Burgers & Fast Food" },
+                        { id: "desi", label: "🍛 Biryani & Karahi" },
+                        { id: "pizza", label: "🍕 Pizzas & Pasta" },
+                        { id: "chai_sweets", label: "🥤 Chai & Sweets" },
+                      ].map((chip) => {
+                        const active = quickFilter === chip.id;
+                        return (
+                          <button
+                            key={chip.id}
+                            type="button"
+                            onClick={() => setQuickFilter(chip.id as typeof quickFilter)}
+                            className={`shrink-0 px-3.5 py-2 rounded-xl text-xs font-black tracking-tight transition cursor-pointer border shadow-2xs ${
+                              active
+                                ? "bg-[#d70f64] text-white border-[#d70f64] shadow-md shadow-pink-500/20"
+                                : "bg-white text-zinc-700 border-zinc-200 hover:border-[#d70f64]/50 hover:text-[#d70f64]"
+                            }`}
+                          >
+                            {chip.label}
+                          </button>
+                        );
+                      })}
                     </div>
 
-                    {selectedRestaurant === "All Restaurants" && activeCategory === "All" && !searchQuery ? (
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <h3 className="text-sm font-extrabold tracking-wider text-zinc-750 uppercase border-b border-red-100 pb-2">
+                        {quickFilter !== "all"
+                          ? quickFilter === "top_rated"
+                            ? "🔥 Top Rated Picks"
+                            : quickFilter === "under_300"
+                              ? "⚡ Budget Deals (Under Rs. 300)"
+                              : quickFilter === "fast_food"
+                                ? "🍔 Burgers & Fast Food"
+                                : quickFilter === "desi"
+                                  ? "🍛 Biryani & Karahi"
+                                  : quickFilter === "pizza"
+                                    ? "🍕 Pizzas & Pasta"
+                                    : "🥤 Chai & Sweets"
+                          : selectedRestaurant === "All Restaurants"
+                            ? activeCategory
+                            : selectedRestaurant}{" "}
+                        Delicacies ({filteredDishes.length})
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        {quickFilter !== "all" && (
+                          <button
+                            type="button"
+                            onClick={() => setQuickFilter("all")}
+                            className="text-[11px] font-black text-[#d70f64] hover:underline cursor-pointer"
+                          >
+                            Clear Filter ✕
+                          </button>
+                        )}
+                        {searchQuery && (
+                          <span className="text-xs text-zinc-500 font-bold">
+                            Matching "{searchQuery}"
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {selectedRestaurant === "All Restaurants" && activeCategory === "All" && !searchQuery && quickFilter === "all" && !showFavoritesOnly ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                        {(() => {
-                          const uniqueRestaurantsList = Array.from(
-                            new Set(
-                              dishes
-                                .map(
-                                  (d) =>
-                                    d.restaurantName?.trim() ||
-                                    (d.type === "service"
-                                      ? "Dadu Home Services"
-                                      : "Dadu Fast Food & Kitchen"),
-                                )
-                                .filter(Boolean),
-                            ),
-                          ) as string[];
-                          
-                          uniqueRestaurantsList.sort((a, b) => {
-                            const aClosed = checkIsRestaurantClosed(a) ? 1 : 0;
-                            const bClosed = checkIsRestaurantClosed(b) ? 1 : 0;
-                            if (aClosed !== bClosed) return aClosed - bClosed;
-                            
-                            const refCoords = globalCoords || (
-                              deliverySettings?.baseLocationCoords?.lat && deliverySettings?.baseLocationCoords?.lng
-                                ? { latitude: deliverySettings.baseLocationCoords.lat, longitude: deliverySettings.baseLocationCoords.lng }
-                                : { latitude: 26.7323, longitude: 67.7744 }
+                        {uniqueRestaurants.map((vendor) => {
+                            const vendorAllDishes = catalogDishes.filter(
+                              (d) =>
+                                (d.restaurantName?.trim() ||
+                                  (d.type === "service"
+                                    ? "Dadu Home Services"
+                                    : "Dadu Fast Food & Kitchen")) ===
+                                  vendor && d.isAvailable !== false,
                             );
-
-                            const aCoords = deliverySettings?.restaurantStatuses?.[a]?.coords;
-                            const bCoords = deliverySettings?.restaurantStatuses?.[b]?.coords;
-                            const aDist = aCoords?.lat && aCoords?.lng ? calculateDistanceKm(refCoords.latitude, refCoords.longitude, aCoords.lat, aCoords.lng) : Infinity;
-                            const bDist = bCoords?.lat && bCoords?.lng ? calculateDistanceKm(refCoords.latitude, refCoords.longitude, bCoords.lat, bCoords.lng) : Infinity;
-                            if (aDist !== bDist) return aDist - bDist;
-
-                            return a.localeCompare(b);
-                          });
-
-                          return uniqueRestaurantsList.map((vendor) => {
-                            const vendorDishes = dishes
-                              .filter(
-                                (d) =>
-                                  (d.restaurantName?.trim() ||
-                                    (d.type === "service"
-                                      ? "Dadu Home Services"
-                                      : "Dadu Fast Food & Kitchen")) ===
-                                    vendor && d.isAvailable !== false,
-                              )
+                            const vendorDishes = [...vendorAllDishes]
                               .sort((a, b) => {
                                 if (a.isFeatured !== b.isFeatured) {
                                   return (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
@@ -4314,6 +4668,8 @@ export default function App() {
                                 return String(b.id).localeCompare(String(a.id));
                               })
                               .slice(0, 8);
+
+                            const shopProfile = getShopProfile(vendor, deliverySettings, vendorAllDishes);
 
                             const vendorImageUrl =
                               deliverySettings?.restaurantStatuses?.[vendor]?.imageUrl ||
@@ -4331,81 +4687,67 @@ export default function App() {
                             );
                             const distanceDisplay = vendorCoords?.lat && vendorCoords?.lng
                               ? calculateDistanceKm(refCoords.latitude, refCoords.longitude, vendorCoords.lat, vendorCoords.lng).toFixed(1) + " km away"
-                              : "Nearby";
+                              : "Dadu City";
+
+                            const feeDisplay = isRiderRangeExceeded
+                              ? `Rs. ${shopProfile.deliveryFee * 2}`
+                              : `Rs. ${shopProfile.deliveryFee}`;
 
                             return (
-                              <div
+                              <article
                                 key={vendor}
                                 onClick={() => handleRestaurantClick(vendor)}
-                                className={`bg-white border border-zinc-200/80 rounded-3xl overflow-hidden shadow-xs hover:shadow-md transition-all cursor-pointer group flex flex-col ${isClosed ? "opacity-70 grayscale-[20%]" : ""}`}
+                                className={`bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-3xl overflow-hidden shadow-xs hover:shadow-md transition-all cursor-pointer group flex flex-col ${isClosed ? "opacity-70 grayscale-[20%]" : ""}`}
                               >
-                                <div className="h-40 bg-zinc-100 relative overflow-hidden shrink-0">
+                                <div className="h-44 bg-zinc-100 dark:bg-zinc-800 relative overflow-hidden shrink-0">
                                   {vendorImageUrl ? (
                                     <LazyImage
                                       src={vendorImageUrl}
-                                      alt={vendor}
+                                      alt={`${vendor} restaurant in Dadu`}
                                       className="w-full h-full"
                                       imgClassName="object-cover group-hover:scale-105 transition duration-500"
                                     />
                                   ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-red-50 text-5xl">
-                                      {vendor.includes("Services")
-                                        ? "🛠️"
-                                        : "🍔"}
+                                    <div className="w-full h-full flex items-center justify-center bg-pink-50 text-5xl">
+                                      {vendor.includes("Services") ? "🛠️" : "🍔"}
                                     </div>
                                   )}
-                                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent"></div>
                                   
                                   {/* Distance Badge Top Left */}
-                                  <div className="absolute top-3 left-3 bg-zinc-950/80 text-white border border-white/20 px-2.5 py-1 rounded-xl text-[11px] font-black shadow-lg backdrop-blur-md flex items-center gap-1">
+                                  <div className="absolute top-3 left-3 bg-zinc-950/85 text-white border border-white/20 px-2.5 py-1 rounded-xl text-[11px] font-black shadow-lg backdrop-blur-md flex items-center gap-1">
                                     <Compass className="w-3.5 h-3.5 text-pink-400" />
                                     <span>{distanceDisplay}</span>
                                   </div>
 
-                                  <div className="absolute bottom-3 left-4 text-white">
-                                    <h3 className="font-black text-xl tracking-tight shadow-sm leading-none mb-1.5">
+                                  <div className="absolute bottom-3 left-4 right-4 text-white">
+                                    <h3 className="font-black text-lg sm:text-xl tracking-tight shadow-sm leading-tight mb-1">
                                       {vendor}
                                     </h3>
-                                    <p className="text-[11px] font-bold text-white/90 flex items-center gap-2">
-                                      <span className="flex items-center bg-white/20 px-1.5 py-0.5 rounded-md backdrop-blur-md">
-                                        <Star className="w-3 h-3 text-amber-400 mr-1 fill-current" />{" "}
-                                        {deliverySettings?.restaurantStatuses?.[
-                                          vendor
-                                        ]?.rating || "4.5"}
-                                      </span>
-                                      <span>•</span>
-                                      <span className="flex items-center">
-                                        <Clock className="w-3 h-3 mr-1" /> 20-30
-                                        min
-                                      </span>
-                                      <span>•</span>
-                                      <span className="flex items-center">
-                                        <MapPin className="w-3 h-3 mr-1" />{" "}
-                                        {(() => {
-                                          let chargeStr = deliverySettings?.restaurantStatuses?.[vendor]?.deliveryCharge;
-                                          if (!chargeStr) {
-                                            const fee = deliverySettings?.deliveryFee || 50;
-                                            chargeStr = `Rs. ${fee}`;
-                                          }
-                                          if (isRiderRangeExceeded) {
-                                            const match = chargeStr.match(/\d+/);
-                                            if (match) {
-                                              return chargeStr.replace(match[0], String(parseInt(match[0], 10) * 2));
-                                            }
-                                          }
-                                          return chargeStr;
-                                        })()}
-                                      </span>
+                                    <p className="text-[11px] text-zinc-200 line-clamp-1 mb-1.5">
+                                      {shopProfile.oneLineDescription}
                                     </p>
+                                    <div className="text-[11px] font-bold text-white flex flex-wrap items-center gap-2">
+                                      <span className="flex items-center bg-black/55 px-1.5 py-0.5 rounded-md backdrop-blur-md">
+                                        <Star className="w-3 h-3 text-amber-400 mr-1 fill-current" />{" "}
+                                        {shopProfile.rating} ({shopProfile.reviewCount})
+                                      </span>
+                                      <span className="flex items-center">
+                                        <Clock className="w-3 h-3 mr-1" /> {shopProfile.deliveryTime}
+                                      </span>
+                                      <span className="flex items-center">
+                                        <MapPin className="w-3 h-3 mr-1" /> {feeDisplay} • Min Rs. {shopProfile.minOrder}
+                                      </span>
+                                    </div>
                                   </div>
                                   {isClosed && (
-                                    <div className="absolute top-3 right-3 bg-white/90 text-pink-600 px-2 py-1 rounded-lg text-xs font-black shadow-sm flex items-center gap-1">
+                                    <div className="absolute top-3 right-3 bg-white/95 text-[#D70F64] px-2 py-1 rounded-lg text-xs font-black shadow-sm flex items-center gap-1">
                                       <Clock className="w-3.5 h-3.5" />
                                       Closed
                                     </div>
                                   )}
                                 </div>
-                                <div className="p-3 bg-white flex items-center gap-3 overflow-x-auto scrollbar-none border-t border-zinc-100 touch-pan-both overscroll-x-contain">
+                                <div className="p-3 bg-white dark:bg-zinc-900 flex items-center gap-3 overflow-x-auto scrollbar-none border-t border-zinc-100 dark:border-zinc-800 touch-pan-both overscroll-x-contain">
                                   {vendorDishes.map((d) => (
                                     <div
                                       key={d.id}
@@ -4417,21 +4759,22 @@ export default function App() {
                                         }
                                       }}
                                     >
-                                      <div className="w-full h-20 rounded-xl overflow-hidden bg-zinc-100 border border-zinc-100">
+                                      <div className="w-full h-20 rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-800">
                                         <LazyImage
                                           src={
                                             d.imageUrl ||
                                             "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=400"
                                           }
+                                          alt={`${d.name} at ${vendor} Dadu`}
                                           className="w-full h-full"
                                           imgClassName="object-cover"
                                         />
                                       </div>
-                                      <span className="text-[10px] font-bold text-zinc-700 line-clamp-1">
+                                      <span className="text-[10px] font-bold text-zinc-700 dark:text-zinc-200 line-clamp-1">
                                         {d.name}
                                       </span>
                                       <span className="text-[10px] text-[#d70f64] font-black leading-none">
-                                        Rs. {d.price}
+                                        Rs. {d.discountPrice || d.price}
                                       </span>
                                     </div>
                                   ))}
@@ -4440,18 +4783,17 @@ export default function App() {
                                       e.stopPropagation();
                                       handleRestaurantClick(vendor);
                                     }}
-                                    className="w-16 h-20 flex flex-col items-center justify-center gap-1 shrink-0 bg-red-50/50 rounded-xl text-[#d70f64] hover:bg-red-100 transition border border-red-100/50 cursor-pointer"
+                                    className="w-16 h-20 flex flex-col items-center justify-center gap-1 shrink-0 bg-pink-50 dark:bg-[#D70F64]/15 rounded-xl text-[#d70f64] hover:bg-pink-100 dark:hover:bg-[#D70F64]/25 transition border border-pink-100 dark:border-[#D70F64]/30 cursor-pointer"
                                   >
                                     <ChevronRight className="w-5 h-5" />
                                     <span className="text-[9px] font-black uppercase">
-                                      Menu
+                                      Menu ({vendorAllDishes.length})
                                     </span>
                                   </div>
                                 </div>
-                              </div>
+                              </article>
                             );
-                          });
-                        })()}
+                          })}
                       </div>
                     ) : (
                       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
@@ -4563,10 +4905,9 @@ export default function App() {
                       </div>
                     )}
                   </div>
-
-
                 </div>
               </main>
+              <HomeFaqAeoSection language={language} />
             </>
           </motion.div>
         ) : (
@@ -4606,7 +4947,7 @@ export default function App() {
             dishes={dishes}
             orders={orders}
             onClose={() => setIsAdminConsoleOpen(false)}
-            adminUsername="meerali120"
+            adminUsername={currentUser?.name || currentUser?.phone || "Admin"}
             deliverySettings={deliverySettings}
             foodCategories={foodCategories}
             groceryCategories={groceryCategories}
@@ -4643,20 +4984,96 @@ export default function App() {
         </div>
       )}
 
-      {/* Footer support details */}
-      <footer className="max-w-7xl mx-auto px-4 mt-8 pt-4 pb-20 md:pb-6 border-t border-zinc-200 dark:border-zinc-800 text-center text-[11px] text-zinc-500 dark:text-zinc-400 space-y-1">
-        <p className="font-extrabold text-zinc-600 dark:text-zinc-300">© {new Date().getFullYear()} DADUFOOD Delivery Services. All Rights Reserved.</p>
-        <p className="font-medium">
-          Support Helpline:{" "}
-          <a
-            href="https://wa.me/923277004471"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-emerald-500 dark:text-emerald-400 hover:underline font-bold"
-          >
-            03277004471 (WhatsApp Support)
-          </a>
-        </p>
+      {/* Footer with Company, Legal, Partner & Contact Links + Consistent Business Facts */}
+      <footer className="max-w-7xl mx-auto w-full px-4 mt-10 pt-8 pb-24 md:pb-10 border-t border-zinc-200 dark:border-zinc-800 text-xs text-zinc-600 dark:text-zinc-400">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-left mb-6">
+          <div className="space-y-2">
+            <h3 className="font-black text-sm text-zinc-900 dark:text-white tracking-tight">
+              DADU FOOD
+            </h3>
+            <p className="text-[11px] leading-relaxed text-zinc-600 dark:text-zinc-400">
+              {DADU_FOOD_BUSINESS.tagline}
+            </p>
+          </div>
+          <div className="space-y-2">
+            <h4 className="font-black text-[11px] uppercase tracking-wider text-zinc-900 dark:text-zinc-200">
+              Company & Legal
+            </h4>
+            <ul className="space-y-1.5 text-[11px] font-semibold">
+              <li>
+                <button type="button" onClick={() => navigateToInfoPage("about")} className="hover:text-[#D70F64] transition cursor-pointer">
+                  About Us
+                </button>
+              </li>
+              <li>
+                <button type="button" onClick={() => navigateToInfoPage("contact")} className="hover:text-[#D70F64] transition cursor-pointer">
+                  Contact & Helpline
+                </button>
+              </li>
+              <li>
+                <button type="button" onClick={() => navigateToInfoPage("terms")} className="hover:text-[#D70F64] transition cursor-pointer">
+                  Terms & Conditions
+                </button>
+              </li>
+              <li>
+                <button type="button" onClick={() => navigateToInfoPage("privacy-policy")} className="hover:text-[#D70F64] transition cursor-pointer">
+                  Privacy Policy
+                </button>
+              </li>
+              <li>
+                <button type="button" onClick={() => navigateToInfoPage("refund-policy")} className="hover:text-[#D70F64] transition cursor-pointer">
+                  Refund & Cancellation Policy
+                </button>
+              </li>
+            </ul>
+          </div>
+          <div className="space-y-2">
+            <h4 className="font-black text-[11px] uppercase tracking-wider text-zinc-900 dark:text-zinc-200">
+              Grow With Dadu Food
+            </h4>
+            <ul className="space-y-1.5 text-[11px] font-semibold">
+              <li>
+                <button type="button" onClick={() => navigateToInfoPage("partner-with-us")} className="hover:text-[#D70F64] transition cursor-pointer">
+                  Register Your Restaurant
+                </button>
+              </li>
+              <li>
+                <button type="button" onClick={() => navigateToInfoPage("become-a-rider")} className="hover:text-[#D70F64] transition cursor-pointer">
+                  Become a Delivery Rider
+                </button>
+              </li>
+            </ul>
+          </div>
+          <div className="space-y-1.5 text-[11px]">
+            <h4 className="font-black text-[11px] uppercase tracking-wider text-zinc-900 dark:text-zinc-200 mb-2">
+              Dadu City Support
+            </h4>
+            <p className="font-semibold text-zinc-700 dark:text-zinc-300">
+              {DADU_FOOD_BUSINESS.address}
+            </p>
+            <p>Hours: {DADU_FOOD_BUSINESS.openingHoursDisplay}</p>
+            <p>
+              Helpline:{" "}
+              <a
+                href="https://wa.me/923277004471"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#D70F64] hover:underline font-bold"
+              >
+                {DADU_FOOD_BUSINESS.phoneDisplay} (Call / WhatsApp)
+              </a>
+            </p>
+            <p>Delivery: Rs. 50 • 2x below Rs. 500 • Free Rs. 1,000+</p>
+          </div>
+        </div>
+        <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px]">
+          <p className="font-bold text-zinc-700 dark:text-zinc-300">
+            © {new Date().getFullYear()} Dadu Food Delivery Services. All Rights Reserved.
+          </p>
+          <p className="text-zinc-500 dark:text-zinc-400">
+            Serving Station Road, Makhdoom Bilawal Nagar, Civil Hospital Road & all of Dadu City
+          </p>
+        </div>
       </footer>
 
       {/* Restaurant Opening Animation 3D High-Level */}

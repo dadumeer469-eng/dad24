@@ -197,7 +197,7 @@ async function startServer() {
     try {
       const foundPhotos: string[] = [];
 
-      const serpKey = process.env.SERPAPI_API_KEY || process.env.SERPER_API_KEY || "17d7c3ca57fa8553d099d13f3e1b8acbadf32939d9cdfa8a06efd12841471052";
+      const serpKey = process.env.SERPAPI_API_KEY || process.env.SERPER_API_KEY || "";
 
       // 1. Google Images Search via SerpApi / Serper
       if (serpKey) {
@@ -256,7 +256,7 @@ async function startServer() {
           const wikiSearchTerms = encodeURIComponent(`${cleanQuery} food`);
           const wikiRes = await fetch(
             `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${wikiSearchTerms}&gsrlimit=8&prop=imageinfo&iiprop=url|mime&format=json&origin=*`,
-            { headers: { "User-Agent": "FoodPandaAdmin/1.0 (contact: info@foodpanda.local)" } }
+            { headers: { "User-Agent": "DaduFoodAdmin/1.0 (contact: support@dadufood.pk)" } }
           );
           if (wikiRes.ok) {
             const wikiData: any = await wikiRes.json();

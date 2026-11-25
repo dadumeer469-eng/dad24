@@ -39,18 +39,20 @@ export default function FoodpandaHero({
   children,
 }: FoodpandaHeroProps) {
   const defaultCategories = [
-    { name: "All", emoji: "🍽️", subtitle: "Sab Kuch", color: "from-[#d70f64] to-[#f22c80]" },
-    { name: "Pizza", emoji: "🍕", subtitle: "Hot Pizzas", color: "from-pink-500 to-rose-600" },
-    { name: "Burgers", emoji: "🍔", subtitle: "Zesty Burgers", color: "from-amber-500 to-pink-600" },
-    { name: "Broast", emoji: "🍗", subtitle: "Crispy Broast", color: "from-yellow-500 to-amber-600" },
-    { name: "Rolls & Wraps", emoji: "🌯", subtitle: "Tasty Rolls", color: "from-pink-500 to-pink-600" },
-    { name: "Pasta", emoji: "🍝", subtitle: "Creamy Pasta", color: "from-yellow-600 to-orange-600" },
-    { name: "Lazania", emoji: "🫓", subtitle: "Cheesy Lazania", color: "from-pink-600 to-rose-700" },
-    { name: "Fries", emoji: "🍟", subtitle: "Loaded Fries", color: "from-amber-400 to-yellow-600" },
-    { name: "Paratha", emoji: "🫓", subtitle: "Hot Parathas", color: "from-amber-600 to-orange-700" },
-    { name: "Sandwich", emoji: "🥪", subtitle: "Grilled Sandwiches", color: "from-yellow-500 to-orange-500" },
-    { name: "Specials", emoji: "⭐️", subtitle: "Dadu Premium", color: "from-purple-500 to-indigo-600" },
-    { name: "Home Services", emoji: "🛠️", subtitle: "Expert Repairs", color: "from-sky-500 to-blue-600" }
+    { name: "All", emoji: "🍽️", subtitle: "All Menu" },
+    { name: "Desi Food", emoji: "🍛", subtitle: "Biryani & Karahi" },
+    { name: "Pizza", emoji: "🍕", subtitle: "Hot Pizzas" },
+    { name: "Burgers", emoji: "🍔", subtitle: "Zesty Burgers" },
+    { name: "Broast", emoji: "🍗", subtitle: "Crispy Broast" },
+    { name: "Rolls & Wraps", emoji: "🌯", subtitle: "Tasty Rolls" },
+    { name: "Pasta", emoji: "🍝", subtitle: "Creamy Pasta" },
+    { name: "Lasagna", emoji: "🧀", subtitle: "Cheesy Lasagna" },
+    { name: "Fries", emoji: "🍟", subtitle: "Loaded Fries" },
+    { name: "Paratha", emoji: "🫓", subtitle: "Hot Parathas" },
+    { name: "Sandwich", emoji: "🥪", subtitle: "Grilled Sandwiches" },
+    { name: "Tea & Chai", emoji: "☕", subtitle: "Chai & Kehwa" },
+    { name: "Specials", emoji: "⭐", subtitle: "Dadu Specials" },
+    { name: "Home Services", emoji: "🛠️", subtitle: "Expert Repairs" }
   ];
 
   const displayCategories =
@@ -60,15 +62,13 @@ export default function FoodpandaHero({
 
   return (
     <div className="bg-transparent relative">
-      {/* Prime Billboard Layout removed as requested */}
-
       {/* Ticking Interactive Count Deal Banner */}
       {dealConfig.isActive &&
         (dealTimeLeft.minutes > 0 || dealTimeLeft.seconds > 0) && (
           <div className="max-w-7xl mx-auto px-4 py-2">
-            <div className="bg-white border border-red-100 py-3 px-5 sm:px-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-xs">
-              <div className="flex items-center gap-2 text-xs text-zinc-700 font-medium">
-                <Clock className="w-4 h-4 text-[#d70f64]" />
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 py-3 px-5 sm:px-6 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left shadow-xs">
+              <div className="flex items-center gap-2 text-xs text-zinc-700 dark:text-zinc-200 font-medium">
+                <Clock className="w-4 h-4 text-[#d70f64] shrink-0" />
                 <span className="font-extrabold text-[#d70f64]">
                   Deal of the Hour:
                 </span>
@@ -78,10 +78,10 @@ export default function FoodpandaHero({
                 </span>
               </div>
               <div className="flex items-center gap-2.5">
-                <span className="text-[10px] uppercase tracking-wider font-extrabold text-zinc-400">
+                <span className="text-[10px] uppercase tracking-wider font-extrabold text-zinc-500 dark:text-zinc-400">
                   Deal Closes In
                 </span>
-                <div className="bg-[#d70f64]/10 border border-[#d70f64]/20 text-[#d70f64] font-black text-xs px-3 py-1 rounded-lg">
+                <div className="bg-[#d70f64] text-white font-black text-xs px-3 py-1 rounded-lg">
                   {String(dealTimeLeft.minutes).padStart(2, "0")} :{" "}
                   {String(dealTimeLeft.seconds).padStart(2, "0")}
                 </div>
@@ -92,39 +92,38 @@ export default function FoodpandaHero({
 
       {children}
 
-      {/* Category Horizontal Filter Bar (Spacing tightly adjusted, headers removed) */}
+      {/* Unified Primary Magenta Category Horizontal Filter Bar */}
       <div id="catalog-section" className="max-w-7xl mx-auto px-4 pt-1.5 pb-2">
-        {/* Scroll wrapper */}
-        <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory touch-pan-both overscroll-x-contain">
+        <div className="flex items-center gap-2.5 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory touch-pan-both overscroll-x-contain">
           {displayCategories.map((cat, idx) => {
             const isSelected = activeCategory === cat.name;
             return (
               <motion.button
                 key={cat.id || cat.name}
                 type="button"
-                initial={{ opacity: 0, y: 18 }}
+                initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, delay: idx * 0.04 }}
-                whileHover={{ scale: 1.03 }}
+                transition={{ duration: 0.25, delay: Math.min(idx * 0.03, 0.3) }}
+                whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setActiveCategory(cat.name)}
-                className={`flex items-center gap-3 py-2 px-4.5 rounded-2xl text-xs font-bold shrink-0 transition-colors cursor-pointer border relative overflow-hidden snap-start ${
+                className={`flex items-center gap-2.5 py-2 px-4 rounded-2xl text-xs font-bold shrink-0 transition-colors cursor-pointer border relative overflow-hidden snap-start ${
                   isSelected
-                    ? `bg-gradient-to-r ${cat.color || "from-[#d70f64] to-[#f22c80]"} text-white border-transparent shadow-lg shadow-red-500/15`
-                    : "bg-white text-zinc-700 border-zinc-200/80 hover:bg-zinc-50 hover:border-zinc-300"
+                    ? "bg-[#d70f64] text-white border-[#d70f64] shadow-md shadow-[#d70f64]/20"
+                    : "bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-100 border-zinc-200 dark:border-zinc-800 hover:border-[#d70f64]/50 hover:bg-zinc-50 dark:hover:bg-zinc-800"
                 }`}
               >
                 <div
-                  className={`w-7.5 h-7.5 rounded-xl flex items-center justify-center text-base shadow-inner shrink-0 ${
+                  className={`w-7.5 h-7.5 rounded-xl flex items-center justify-center text-base shrink-0 ${
                     isSelected
                       ? "bg-white/20 text-white"
-                      : "bg-zinc-100 text-zinc-800"
+                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100"
                   } ${cat.imageUrl ? "overflow-hidden" : ""}`}
                 >
                   {cat.imageUrl ? (
                     <LazyImage
                       src={cat.imageUrl}
-                      alt={cat.name}
+                      alt={`${cat.name} dishes in Dadu`}
                       className="w-full h-full"
                       imgClassName="object-cover"
                     />
@@ -137,8 +136,8 @@ export default function FoodpandaHero({
                     {cat.name}
                   </span>
                   <span
-                    className={`block text-[8.5px] font-semibold mt-0.5 leading-none ${
-                      isSelected ? "text-red-100" : "text-zinc-400"
+                    className={`block text-[9px] font-semibold mt-0.5 leading-none ${
+                      isSelected ? "text-white/90" : "text-zinc-500 dark:text-zinc-400"
                     }`}
                   >
                     {cat.subtitle}
@@ -147,7 +146,7 @@ export default function FoodpandaHero({
                 {isSelected && (
                   <motion.div
                     layoutId="activeCategoryBorder"
-                    className="absolute bottom-0 left-0 right-0 h-1 bg-white/40"
+                    className="absolute bottom-0 left-0 right-0 h-1 bg-white/50"
                     transition={{ type: "spring", stiffness: 380, damping: 30 }}
                   />
                 )}
