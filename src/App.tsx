@@ -1,4 +1,5 @@
 import LocationPermissionModal from "./components/LocationPermissionModal";
+import MapLocationPickerModal from "./components/MapLocationPickerModal";
 import React, { useState, useEffect, useRef, Suspense, useCallback } from "react";
 import { DashboardMenuItemCard } from "./components/DashboardMenuItemCard";
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from "firebase/auth";
@@ -542,6 +543,7 @@ export default function App() {
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
   const [locationPromptDismissed, setLocationPromptDismissed] = useState(false);
   const [locationRequiredForOrder, setLocationRequiredForOrder] = useState(false);
+  const [isUserMapPickerOpen, setIsUserMapPickerOpen] = useState(false);
   const [manualAddress, setManualAddress] = useState<{ area: string; street: string } | null>(() => {
     try {
       const saved = localStorage.getItem("dadu_manual_address");
@@ -735,6 +737,20 @@ export default function App() {
       title: "Delivery Address Saved",
       message: `${fullAddress}, Dadu`,
     });
+  };
+
+  // Map pick (manual location option 2): user taps a pin on the free Leaflet
+  // map — save the coords AND the reverse-geocoded address, then close.
+  const handleMapLocationSave = (lat: number, lng: number, formattedAddress?: string) => {
+    saveCoords({ latitude: lat, longitude: lng });
+    const parts = (formattedAddress || "")
+      .split(",")
+      .map((p) => p.trim())
+      .filter((p) => p && !/^(Pakistan|Sindh)$/i.test(p));
+    const street = parts[0] || "";
+    const area = parts.slice(1).join(", ") || "Dadu";
+    handleManualAddressSave(area, street);
+    setIsUserMapPickerOpen(false);
   };
 
   // Continuous real-time geolocation watch to keep globalCoords updated
@@ -5734,9 +5750,18 @@ export default function App() {
               setLocationRequiredForOrder(false);
             }}
             onManualAddressSave={handleManualAddressSave}
+            onPickOnMap={() => setIsUserMapPickerOpen(true)}
             requireForOrder={locationRequiredForOrder}
           />
         )}
+        <MapLocationPickerModal
+          isOpen={isUserMapPickerOpen}
+          onClose={() => setIsUserMapPickerOpen(false)}
+          initialLat={globalCoords?.latitude ?? null}
+          initialLng={globalCoords?.longitude ?? null}
+          onSaveLocation={handleMapLocationSave}
+          title="Apni Location Map Pe Chunein"
+        />
       </AnimatePresence>
     </div>
   );
