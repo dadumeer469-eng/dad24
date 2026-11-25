@@ -2362,6 +2362,23 @@ export default function AdminPanel({
     }
   };
 
+  // Refresh All Users — admin presses this after changing a price or anything else;
+  // it writes a new timestamp to settings/refresh_signal, and every open user page
+  // (listening to that one tiny doc) reloads the latest menu/prices.
+  const handleRefreshAllUsers = async () => {
+    try {
+      await setDoc(
+        doc(db, "settings", "refresh_signal"),
+        { updatedAt: Date.now(), triggeredBy: "admin" },
+        { merge: true },
+      );
+      alert("Done! Har user ke page par naya menu aur prices refresh ho jayenge.");
+    } catch (err) {
+      console.error("Failed to send refresh signal:", err);
+      alert("Refresh signal nahi bheja ja saka. Dobara try karein.");
+    }
+  };
+
   // Save Maintenance Mode Config
   const handleSaveMaintenanceConfig = async () => {
     try {
@@ -7252,6 +7269,13 @@ export default function AdminPanel({
                       <button type="button" onClick={handleSaveDeliveryConfig} className="bg-[#E21B70] text-white font-black px-5 py-3 rounded-xl hover:scale-[1.02] active:scale-95 transition cursor-pointer text-xs uppercase w-full">
                         Save Store Controls
                       </button>
+                      <button type="button" onClick={handleRefreshAllUsers} className="bg-emerald-600 hover:bg-emerald-700 text-white font-black px-5 py-3 rounded-xl hover:scale-[1.02] active:scale-95 transition cursor-pointer text-xs uppercase w-full flex items-center justify-center gap-2">
+                        <RefreshCw className="w-4 h-4 shrink-0" />
+                        Refresh All Users — Naya Menu/Price Sab Ko Bhejo
+                      </button>
+                      <p className="text-[10.5px] text-slate-500 font-semibold leading-relaxed">
+                        Price ya kuch bhi change karne ke baad ye dabayen — har user ke khule hue page par naya menu aur prices turant load ho jayenge.
+                      </p>
                     </div>
 
                     <div className="pt-2">
