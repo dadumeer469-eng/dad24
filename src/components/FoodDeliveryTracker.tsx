@@ -1,12 +1,6 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import {
-  Map as GoogleMap,
-  AdvancedMarker,
-  useMap,
-  useMapsLibrary,
-  useApiLoadingStatus,
-  APILoadingStatus,
-} from "@vis.gl/react-google-maps";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import L from "leaflet";
+import { MapContainer, TileLayer, Marker, Polyline, useMap } from "react-leaflet";
 import { getDatabase, ref, onValue, off } from "firebase/database";
 import { app } from "../firebase";
 import daduLogo from "../assets/images/dadu_food_logo_new_1782333467889.jpg";
@@ -23,13 +17,9 @@ import {
   ChevronUp,
   Maximize2,
   Minimize2,
-  AlertTriangle,
 } from "lucide-react";
 import OrderChat from "./OrderChat";
-import GoogleMapsProvider, {
-  isQuotaOrRateLimitError,
-  notifyMapsQuotaExceeded,
-} from "./GoogleMapsProvider";
+import GoogleMapsProvider from "./GoogleMapsProvider";
 
 interface Coords {
   latitude: number;
@@ -66,6 +56,10 @@ function calculateHaversineDistance(lat1: number, lon1: number, lat2: number, lo
   return R * c;
 }
 
+const OSM_TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+const OSM_ATTRIBUTION =
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+
 function DeliveryRouteLayer({
   origin,
   destination,
@@ -78,18 +72,17 @@ function DeliveryRouteLayer({
   onRouteMetrics: (km: number, mins: number) => void;
 }) {
   const map = useMap();
-  const routesLib = useMapsLibrary("routes");
-  const coreLib = useMapsLibrary("core");
-  const mapsLib = useMapsLibrary("maps");
-  const polylinesRef = useRef<google.maps.Polyline[]>([]);
+  const [routeCoords, setRouteCoords] = useState<Array<[number, number]> | null>(null);
 
   const fitBothMarkers = useCallback(() => {
-    if (!map || !coreLib) return;
-    const bounds = new coreLib.LatLngBounds();
-    bounds.extend(origin);
-    bounds.extend(destination);
-    map.fitBounds(bounds, { top: 64, right: 48, bottom: 90, left: 48 });
-  }, [map, coreLib, origin, destination]);
+    map.fitBounds(
+      [
+        [origin.lat, origin.lng],
+        [destination.lat, destination.lng],
+      ],
+      { padding: [48, 48] }
+    );
+  }, [map, origin.lat, origin.lng, destination.lat, destination.lng]);
 
   useEffect(() => {
     if (recenterSignal > 0) {
@@ -98,23 +91,14 @@ function DeliveryRouteLayer({
   }, [recenterSignal, fitBothMarkers]);
 
   useEffect(() => {
-    if (!map || !mapsLib) return;
-
-    const clearPolylines = () => {
-      polylinesRef.current.forEach((p) => p.setMap(null));
-      polylinesRef.current = [];
-    };
+    let cancelled = false;
 
     const drawFallbackLine = () => {
-      clearPolylines();
-      const line = new mapsLib.Polyline({
-        path: [origin, destination],
-        strokeColor: "#E21B70",
-        strokeOpacity: 0.9,
-        strokeWeight: 5,
-        map,
-      });
-      polylinesRef.current = [line];
+      if (cancelled) return;
+      setRouteCoords([
+        [origin.lat, origin.lng],
+        [destination.lat, destination.lng],
+      ]);
       const fallbackDist = calculateHaversineDistance(
         origin.lat,
         origin.lng,
@@ -128,78 +112,71 @@ function DeliveryRouteLayer({
       fitBothMarkers();
     };
 
-    let cancelled = false;
-
-    if (!routesLib || !(routesLib as any).Route?.computeRoutes) {
-      drawFallbackLine();
-      return () => {
-        cancelled = true;
-        clearPolylines();
-      };
-    }
-
-    const request = {
-      origin,
-      destination,
-      travelMode: "DRIVING",
-      fields: ["path", "distanceMeters", "durationMillis", "viewport"],
-    };
-
-    (routesLib as any).Route.computeRoutes(request)
-      .then(({ routes }: { routes?: any[] }) => {
+    // Free OSRM routing (no key). Falls back to a straight line on any failure.
+    const url =
+      `https://router.project-osrm.org/route/v1/driving/${origin.lng},${origin.lat};` +
+      `${destination.lng},${destination.lat}?overview=full&geometries=geojson`;
+    fetch(url)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
         if (cancelled) return;
-        clearPolylines();
-        const primaryRoute = routes?.[0];
-        if (!primaryRoute) {
+        const route = data?.routes?.[0];
+        const coords = route?.geometry?.coordinates;
+        if (!route || !Array.isArray(coords) || coords.length === 0) {
           drawFallbackLine();
           return;
         }
-
-        const newPolylines: google.maps.Polyline[] =
-          typeof primaryRoute.createPolylines === "function"
-            ? primaryRoute.createPolylines()
-            : [];
-
-        if (newPolylines.length > 0) {
-          newPolylines.forEach((polyline) => {
-            polyline.setOptions({
-              strokeColor: "#E21B70",
-              strokeOpacity: 0.92,
-              strokeWeight: 5,
-            });
-            polyline.setMap(map);
-          });
-          polylinesRef.current = newPolylines;
-        } else {
-          drawFallbackLine();
-          return;
-        }
-
-        if (primaryRoute.viewport) {
-          map.fitBounds(primaryRoute.viewport, { top: 64, right: 48, bottom: 90, left: 48 });
-        } else {
-          fitBothMarkers();
-        }
-
-        const km = parseFloat(((primaryRoute.distanceMeters || 0) / 1000).toFixed(1));
-        const mins = Math.max(3, Math.round((primaryRoute.durationMillis || 0) / 60000));
+        // OSRM returns [lng, lat] pairs; Leaflet wants [lat, lng].
+        setRouteCoords(
+          coords.map((c: number[]) => [c[1], c[0]] as [number, number])
+        );
+        const km = parseFloat(((route.distance || 0) / 1000).toFixed(1));
+        const mins = Math.max(3, Math.round((route.duration || 0) / 60));
         onRouteMetrics(km, mins);
+        fitBothMarkers();
       })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        if (isQuotaOrRateLimitError(err)) {
-          notifyMapsQuotaExceeded();
-        }
-        drawFallbackLine();
+      .catch(() => {
+        if (!cancelled) drawFallbackLine();
       });
 
     return () => {
       cancelled = true;
-      clearPolylines();
     };
-  }, [map, routesLib, mapsLib, origin.lat, origin.lng, destination.lat, destination.lng]);
+  }, [map, origin.lat, origin.lng, destination.lat, destination.lng, fitBothMarkers, onRouteMetrics]);
 
-  return null;
+  if (!routeCoords) return null;
+  return (
+    <Polyline
+      positions={routeCoords}
+      pathOptions={{ color: "#E21B70", weight: 5, opacity: 0.9 }}
+    />
+  );
+}
+
+function makeRiderIcon(isOutForDelivery: boolean) {
+  if (isOutForDelivery) {
+    return L.divIcon({
+      html: `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:48px;height:48px"><div style="position:absolute;width:48px;height:48px;background:rgba(226,27,112,.25);border-radius:9999px;animation:ping 1s cubic-bezier(0,0,.2,1) infinite"></div><div style="position:relative;width:40px;height:40px;background:#E21B70;border-radius:9999px;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1);border:2px solid #fff;overflow:hidden;padding:2px"><img src="${daduLogo}" alt="Rider" style="width:100%;height:100%;object-fit:cover;border-radius:9999px" /></div></div>`,
+      className: "",
+      iconSize: [48, 48],
+      iconAnchor: [24, 24],
+    });
+  }
+  return L.divIcon({
+    html: `<div style="position:relative;display:flex;flex-direction:column;align-items:center"><div style="width:40px;height:40px;background:#E21B70;border-radius:9999px;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1);border:2px solid #fff;overflow:hidden;padding:2px"><img src="${daduLogo}" alt="Store" style="width:100%;height:100%;object-fit:cover;border-radius:9999px" /></div><div style="margin-top:-6px;background:#0f172a;color:#fff;font-size:8px;font-weight:900;padding:2px 6px;border-radius:9999px;border:1px solid #fff;box-shadow:0 1px 2px rgba(0,0,0,.05)">STORE</div></div>`,
+    className: "",
+    iconSize: [40, 58],
+    iconAnchor: [20, 20],
+  });
+}
+
+function makeDestIcon() {
+  return L.divIcon({
+    html: `<div style="width:36px;height:36px;background:#0f172a;color:#fff;border-radius:9999px;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1);border:2px solid #fff"><svg style="width:20px;height:20px;fill:#fff" viewBox="0 0 24 24"><path d="M12 2L2 12h3v8h6v-6h2v6h6v-8h3L12 2z" /></svg></div>`,
+    className: "",
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
+  });
 }
 
 function TrackerMapCanvas({
@@ -215,69 +192,29 @@ function TrackerMapCanvas({
   recenterSignal: number;
   onRouteMetrics: (km: number, mins: number) => void;
 }) {
-  const status = useApiLoadingStatus();
-
-  if (status === APILoadingStatus.FAILED || status === APILoadingStatus.AUTH_FAILURE) {
-    return (
-      <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-slate-100">
-        <AlertTriangle className="w-7 h-7 text-[#E21B70] mb-2" />
-        <p className="text-xs font-bold text-slate-800">
-          Map temporarily unavailable — live order status updates below are active.
-        </p>
-      </div>
-    );
-  }
+  const riderIcon = useMemo(
+    () => makeRiderIcon(isOutForDelivery),
+    [isOutForDelivery]
+  );
+  const destIcon = useMemo(() => makeDestIcon(), []);
 
   return (
-    <GoogleMap
-      mapId="DEMO_MAP_ID"
-      defaultCenter={{
-        lat: (riderPos.lat + destPos.lat) / 2,
-        lng: (riderPos.lng + destPos.lng) / 2,
-      }}
-      defaultZoom={14}
-      gestureHandling="greedy"
-      disableDefaultUI={true}
-      internalUsageAttributionIds={["gmp_mcp_codeassist_v1_aistudio"]}
+    <MapContainer
+      center={[(riderPos.lat + destPos.lat) / 2, (riderPos.lng + destPos.lng) / 2]}
+      zoom={14}
+      zoomControl={false}
       style={{ width: "100%", height: "100%" }}
     >
+      <TileLayer url={OSM_TILE_URL} attribution={OSM_ATTRIBUTION} />
       <DeliveryRouteLayer
         origin={riderPos}
         destination={destPos}
         recenterSignal={recenterSignal}
         onRouteMetrics={onRouteMetrics}
       />
-
-      {/* Rider or Store Marker */}
-      <AdvancedMarker position={riderPos}>
-        {isOutForDelivery ? (
-          <div className="relative flex items-center justify-center">
-            <div className="absolute w-12 h-12 bg-[#E21B70]/25 rounded-full animate-ping" />
-            <div className="w-10 h-10 bg-[#E21B70] text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white overflow-hidden p-0.5">
-              <img src={daduLogo} alt="Rider" className="w-full h-full object-cover rounded-full" />
-            </div>
-          </div>
-        ) : (
-          <div className="relative flex flex-col items-center">
-            <div className="w-10 h-10 bg-[#E21B70] text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white overflow-hidden p-0.5">
-              <img src={daduLogo} alt="Store" className="w-full h-full object-cover rounded-full" />
-            </div>
-            <div className="-mt-1.5 bg-slate-900 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full border border-white shadow-xs">
-              STORE
-            </div>
-          </div>
-        )}
-      </AdvancedMarker>
-
-      {/* Customer Destination Marker */}
-      <AdvancedMarker position={destPos}>
-        <div className="w-9 h-9 bg-slate-900 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white">
-          <svg className="w-5 h-5 fill-current text-white" viewBox="0 0 24 24">
-            <path d="M12 2L2 12h3v8h6v-6h2v6h6v-8h3L12 2z" />
-          </svg>
-        </div>
-      </AdvancedMarker>
-    </GoogleMap>
+      <Marker position={[riderPos.lat, riderPos.lng]} icon={riderIcon} />
+      <Marker position={[destPos.lat, destPos.lng]} icon={destIcon} />
+    </MapContainer>
   );
 }
 

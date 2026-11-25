@@ -14,8 +14,17 @@ import {
 import OrderChat from "./OrderChat";
 import { useRiderLocationTracker } from "../lib/riderLocationTracker";
 import { formatOrderId } from "../utils/catalogNormalizer";
-import { AdvancedMarker, Map as GoogleMap } from "@vis.gl/react-google-maps";
+import L from "leaflet";
+import { MapContainer, TileLayer, Marker } from "react-leaflet";
 import GoogleMapsProvider from "./GoogleMapsProvider";
+
+// Pink doorstep pin (Leaflet divIcon with inline HTML/SVG = lucide MapPin look).
+const RIDER_DEST_ICON = L.divIcon({
+  html: `<div style="width:32px;height:32px;background:#E21B70;border:2px solid #fff;border-radius:9999px;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1);color:#fff"><svg style="width:16px;height:16px" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg></div>`,
+  className: "",
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
+});
 
 interface RiderPanelProps {
   currentUser: UserProfile;
@@ -1127,31 +1136,29 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
 
                          <div className="relative w-full h-48 sm:h-56 rounded-xl overflow-hidden border border-zinc-800 bg-zinc-900 shadow-inner">
                            <GoogleMapsProvider>
-                             <GoogleMap
-                               key={`rider-dest-map-${riderActiveOrder.id}`}
-                               defaultCenter={{
-                                 lat: riderActiveOrder.userCoords.latitude,
-                                 lng: riderActiveOrder.userCoords.longitude,
-                               }}
-                               defaultZoom={16}
-                               mapId="DEMO_MAP_ID"
-                               gestureHandling="greedy"
-                               disableDefaultUI
-                               internalUsageAttributionIds={["gmp_mcp_codeassist_v1_aistudio"]}
-                               style={{ width: "100%", height: "100%" }}
-                             >
-                               <AdvancedMarker
-                                 position={{
-                                   lat: riderActiveOrder.userCoords.latitude,
-                                   lng: riderActiveOrder.userCoords.longitude,
-                                 }}
-                               >
-                                 <div className="w-8 h-8 bg-[#E21B70] border-2 border-white rounded-full flex items-center justify-center shadow-lg text-white">
-                                   <MapPin className="w-4 h-4" />
-                                 </div>
-                               </AdvancedMarker>
-                             </GoogleMap>
-                           </GoogleMapsProvider>
+                            <MapContainer
+                              key={`rider-dest-map-${riderActiveOrder.id}`}
+                              center={[
+                                riderActiveOrder.userCoords.latitude,
+                                riderActiveOrder.userCoords.longitude,
+                              ]}
+                              zoom={16}
+                              zoomControl={false}
+                              style={{ width: "100%", height: "100%" }}
+                            >
+                              <TileLayer
+                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                              />
+                              <Marker
+                                position={[
+                                  riderActiveOrder.userCoords.latitude,
+                                  riderActiveOrder.userCoords.longitude,
+                                ]}
+                                icon={RIDER_DEST_ICON}
+                              />
+                            </MapContainer>
+                          </GoogleMapsProvider>
                            <div className="absolute bottom-2.5 right-2.5 bg-zinc-950/90 border border-zinc-850 py-1 px-2.5 rounded-lg text-[8px] sm:text-[9px] font-black tracking-wider text-emerald-400 shadow flex items-center gap-1.5 pointer-events-none backdrop-blur-md">
                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                              CUSTOMER DOORSTEP

@@ -1,17 +1,8 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import {
-  Map as GoogleMap,
-  AdvancedMarker,
-  useMap,
-  useMapsLibrary,
-  useApiLoadingStatus,
-  APILoadingStatus,
-} from "@vis.gl/react-google-maps";
-import { MapPin, Navigation, Search, Check, X, Compass, Loader2, AlertTriangle } from "lucide-react";
-import GoogleMapsProvider, {
-  isQuotaOrRateLimitError,
-  notifyMapsQuotaExceeded,
-} from "./GoogleMapsProvider";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import L from "leaflet";
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-leaflet";
+import { MapPin, Navigation, Search, Check, X, Compass, Loader2 } from "lucide-react";
+import GoogleMapsProvider from "./GoogleMapsProvider";
 
 interface MapLocationPickerModalProps {
   isOpen: boolean;
@@ -24,6 +15,57 @@ interface MapLocationPickerModalProps {
 
 const DADU_CENTER = { lat: 26.7323, lng: 67.7744 };
 
+const OSM_TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+const OSM_ATTRIBUTION =
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+
+// Pink teardrop pin, same look as the old Google AdvancedMarker pin.
+// Inline styles (not Tailwind classes) because Leaflet injects this HTML at
+// runtime via innerHTML — inline styles always render, no build scanning needed.
+const PIN_HTML = `<div style="position:relative;display:flex;flex-direction:column;align-items:center;cursor:grab" title="Drag pin to adjust location"><div style="width:40px;height:40px;background:#E21B70;border:3px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1)"><div style="width:14px;height:14px;background:#fff;border-radius:50%"></div></div><div style="width:12px;height:6px;background:rgba(0,0,0,.25);border-radius:50%;filter:blur(1px);margin-top:2px"></div></div>`;
+
+function makePinIcon() {
+  return L.divIcon({
+    html: PIN_HTML,
+    className: "",
+    iconSize: [40, 48],
+    iconAnchor: [20, 40],
+  });
+}
+
+interface NominatimResult {
+  place_id: number;
+  display_name: string;
+  lat: string;
+  lon: string;
+}
+
+function buildSearchQuery(raw: string) {
+  const trimmed = raw.trim();
+  return trimmed.toLowerCase().includes("dadu")
+    ? trimmed
+    : `${trimmed}, Dadu, Sindh, Pakistan`;
+}
+
+async function searchNominatim(query: string): Promise<NominatimResult[]> {
+  const url =
+    "https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&countrycodes=pk&q=" +
+    encodeURIComponent(buildSearchQuery(query));
+  const res = await fetch(url, { headers: { "Accept-Language": "en" } });
+  if (!res.ok) throw new Error("Nominatim search failed");
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+
+async function reverseGeocode(lat: number, lng: number): Promise<string | null> {
+  const url =
+    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`;
+  const res = await fetch(url, { headers: { "Accept-Language": "en" } });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return typeof data?.display_name === "string" ? data.display_name : null;
+}
+
 function MapCameraController({
   targetPosition,
   panTrigger,
@@ -34,8 +76,8 @@ function MapCameraController({
   const map = useMap();
 
   useEffect(() => {
-    if (!map || panTrigger === 0) return;
-    map.panTo(targetPosition);
+    if (panTrigger === 0) return;
+    map.panTo([targetPosition.lat, targetPosition.lng]);
     const currentZoom = map.getZoom() ?? 15;
     if (currentZoom < 15) {
       map.setZoom(16);
@@ -45,29 +87,34 @@ function MapCameraController({
   return null;
 }
 
-function PlacesAutocompleteSearch({
+function MapClickHandler({
+  onPick,
+}: {
+  onPick: (lat: number, lng: number) => void;
+}) {
+  useMapEvents({
+    click(e) {
+      onPick(Number(e.latlng.lat.toFixed(6)), Number(e.latlng.lng.toFixed(6)));
+    },
+  });
+  return null;
+}
+
+function NominatimSearch({
   onSelectLocation,
   onError,
 }: {
   onSelectLocation: (lat: number, lng: number, label?: string) => void;
   onError: (msg: string) => void;
 }) {
-  const placesLib = useMapsLibrary("places");
   const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<google.maps.places.AutocompleteSuggestion[]>([]);
+  const [suggestions, setSuggestions] = useState<NominatimResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null);
-
-  const resetSession = useCallback(() => {
-    sessionTokenRef.current = null;
-    setSuggestions([]);
-    setShowDropdown(false);
-  }, []);
 
   useEffect(() => {
     const trimmed = query.trim();
-    if (!placesLib || trimmed.length < 2) {
+    if (trimmed.length < 2) {
       setSuggestions([]);
       setShowDropdown(false);
       return;
@@ -78,79 +125,38 @@ function PlacesAutocompleteSearch({
       try {
         setIsSearching(true);
         onError("");
-        const { AutocompleteSessionToken, AutocompleteSuggestion } = placesLib;
-        if (!sessionTokenRef.current) {
-          sessionTokenRef.current = new AutocompleteSessionToken();
-        }
-
-        const request: google.maps.places.AutocompleteRequest = {
-          input: trimmed,
-          sessionToken: sessionTokenRef.current,
-          includedRegionCodes: ["pk"],
-          locationBias: {
-            center: DADU_CENTER,
-            radius: 18000,
-          },
-        };
-
-        const response = await AutocompleteSuggestion.fetchAutocompleteSuggestions(request);
+        const results = await searchNominatim(trimmed);
         if (!cancelled) {
-          setSuggestions(response.suggestions || []);
-          setShowDropdown((response.suggestions || []).length > 0);
+          setSuggestions(results);
+          setShowDropdown(results.length > 0);
         }
-      } catch (err) {
+      } catch {
         if (!cancelled) {
-          if (isQuotaOrRateLimitError(err)) {
-            notifyMapsQuotaExceeded();
-          }
           setSuggestions([]);
           setShowDropdown(false);
         }
       } finally {
         if (!cancelled) setIsSearching(false);
       }
-    }, 280);
+    }, 300);
 
     return () => {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [placesLib, query, onError]);
+  }, [query, onError]);
 
-  const handleSelectSuggestion = async (
-    suggestion: google.maps.places.AutocompleteSuggestion
-  ) => {
-    if (!suggestion.placePrediction) return;
-    setIsSearching(true);
-    onError("");
-    try {
-      const place = suggestion.placePrediction.toPlace();
-      await place.fetchFields({
-        fields: ["location", "formattedAddress", "displayName"],
-      });
-
-      const loc = place.location;
-      if (loc) {
-        const nextLat = Number(loc.lat().toFixed(6));
-        const nextLng = Number(loc.lng().toFixed(6));
-        const label =
-          place.formattedAddress ||
-          place.displayName ||
-          suggestion.placePrediction.text.text;
-        setQuery(label || "");
-        onSelectLocation(nextLat, nextLng, label);
-      } else {
-        onError("Selected place had no coordinates. Tap directly on the map to set the pin.");
-      }
-    } catch (err) {
-      if (isQuotaOrRateLimitError(err)) {
-        notifyMapsQuotaExceeded();
-      }
-      onError("Could not load place details. Tap directly on the map to place your pin.");
-    } finally {
-      setIsSearching(false);
-      resetSession();
+  const handleSelectSuggestion = async (item: NominatimResult) => {
+    const nextLat = Number(Number(item.lat).toFixed(6));
+    const nextLng = Number(Number(item.lon).toFixed(6));
+    if (isNaN(nextLat) || isNaN(nextLng)) {
+      onError("Selected place had no coordinates. Tap directly on the map to set the pin.");
+      return;
     }
+    setQuery(item.display_name || "");
+    setSuggestions([]);
+    setShowDropdown(false);
+    onSelectLocation(nextLat, nextLng, item.display_name);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -159,38 +165,24 @@ function PlacesAutocompleteSearch({
       await handleSelectSuggestion(suggestions[0]);
       return;
     }
-    if (!placesLib || !query.trim()) return;
+    if (!query.trim()) return;
     setIsSearching(true);
     onError("");
     try {
-      const { Place } = placesLib;
-      const result = await Place.searchByText({
-        textQuery: query.toLowerCase().includes("dadu")
-          ? query.trim()
-          : `${query.trim()}, Dadu, Sindh, Pakistan`,
-        fields: ["location", "formattedAddress", "displayName"],
-        locationBias: {
-          center: DADU_CENTER,
-          radius: 18000,
-        },
-        maxResultCount: 1,
-      });
-      const firstPlace = result.places?.[0];
-      if (firstPlace?.location) {
-        const nextLat = Number(firstPlace.location.lat().toFixed(6));
-        const nextLng = Number(firstPlace.location.lng().toFixed(6));
-        onSelectLocation(
-          nextLat,
-          nextLng,
-          firstPlace.formattedAddress || firstPlace.displayName || query.trim()
-        );
+      const results = await searchNominatim(query.trim());
+      const first = results?.[0];
+      if (first) {
+        const nextLat = Number(Number(first.lat).toFixed(6));
+        const nextLng = Number(Number(first.lon).toFixed(6));
+        if (!isNaN(nextLat) && !isNaN(nextLng)) {
+          onSelectLocation(nextLat, nextLng, first.display_name || query.trim());
+        } else {
+          onError("Location not found. Tap directly on the map to place the pin.");
+        }
       } else {
         onError("Location not found. Tap directly on the map to place the pin.");
       }
-    } catch (err) {
-      if (isQuotaOrRateLimitError(err)) {
-        notifyMapsQuotaExceeded();
-      }
+    } catch {
       onError("Could not search right now. Tap directly on the map to place the pin.");
     } finally {
       setIsSearching(false);
@@ -224,11 +216,11 @@ function PlacesAutocompleteSearch({
 
       {showDropdown && suggestions.length > 0 && (
         <ul className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl max-h-56 overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-800">
-          {suggestions.map((item, idx) => {
-            const label = item.placePrediction?.text.text || "";
+          {suggestions.map((item) => {
+            const label = item.display_name || "";
             if (!label) return null;
             return (
-              <li key={item.placePrediction?.placeId || idx}>
+              <li key={item.place_id}>
                 <button
                   type="button"
                   onClick={() => handleSelectSuggestion(item)}
@@ -246,7 +238,7 @@ function PlacesAutocompleteSearch({
   );
 }
 
-function InteractiveGoogleMapView({
+function InteractiveLeafletMapView({
   lat,
   lng,
   panTrigger,
@@ -257,60 +249,29 @@ function InteractiveGoogleMapView({
   panTrigger: number;
   onPickCoords: (nextLat: number, nextLng: number) => void;
 }) {
-  const status = useApiLoadingStatus();
-
-  if (status === APILoadingStatus.FAILED || status === APILoadingStatus.AUTH_FAILURE) {
-    return (
-      <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-zinc-100 dark:bg-zinc-900">
-        <AlertTriangle className="w-8 h-8 text-[#E21B70] mb-2" />
-        <p className="text-sm font-bold text-zinc-900 dark:text-white">
-          Unable to load Google Maps right now
-        </p>
-        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 max-w-xs">
-          Please check your network or use the &ldquo;My GPS&rdquo; button above to capture exact coordinates.
-        </p>
-      </div>
-    );
-  }
+  const pinIcon = useMemo(() => makePinIcon(), []);
 
   return (
-    <GoogleMap
-      mapId="DEMO_MAP_ID"
-      defaultCenter={{ lat, lng }}
-      defaultZoom={15}
-      gestureHandling="greedy"
-      streetViewControl={false}
-      mapTypeControl={false}
-      fullscreenControl={false}
-      internalUsageAttributionIds={["gmp_mcp_codeassist_v1_aistudio"]}
+    <MapContainer
+      center={[lat, lng]}
+      zoom={15}
       style={{ width: "100%", height: "100%" }}
-      onClick={(ev) => {
-        const clicked = ev.detail.latLng;
-        if (!clicked) return;
-        onPickCoords(Number(clicked.lat.toFixed(6)), Number(clicked.lng.toFixed(6)));
-      }}
     >
+      <TileLayer url={OSM_TILE_URL} attribution={OSM_ATTRIBUTION} />
       <MapCameraController targetPosition={{ lat, lng }} panTrigger={panTrigger} />
-      <AdvancedMarker
-        position={{ lat, lng }}
-        draggable={true}
-        onDragEnd={(ev) => {
-          const pos = ev.latLng;
-          if (!pos) return;
-          onPickCoords(Number(pos.lat().toFixed(6)), Number(pos.lng().toFixed(6)));
+      <MapClickHandler onPick={onPickCoords} />
+      <Marker
+        position={[lat, lng]}
+        icon={pinIcon}
+        draggable
+        eventHandlers={{
+          dragend: (e) => {
+            const ll = (e.target as L.Marker).getLatLng();
+            onPickCoords(Number(ll.lat.toFixed(6)), Number(ll.lng.toFixed(6)));
+          },
         }}
-      >
-        <div
-          className="relative flex flex-col items-center cursor-grab active:cursor-grabbing"
-          title="Drag pin to adjust location"
-        >
-          <div className="w-10 h-10 bg-[#E21B70] border-[3px] border-white rounded-full rounded-bl-none -rotate-45 flex items-center justify-center shadow-lg">
-            <div className="w-3.5 h-3.5 bg-white rounded-full" />
-          </div>
-          <div className="w-3 h-1.5 bg-black/25 rounded-full blur-[1px] mt-0.5" />
-        </div>
-      </AdvancedMarker>
-    </GoogleMap>
+      />
+    </MapContainer>
   );
 }
 
@@ -331,6 +292,8 @@ export default function MapLocationPickerModal({
   const [panTrigger, setPanTrigger] = useState<number>(0);
   const [searchError, setSearchError] = useState("");
   const [isLocating, setIsLocating] = useState(false);
+  const reverseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestPickRef = useRef<{ lat: number; lng: number }>({ lat: defaultLat, lng: defaultLng });
 
   useEffect(() => {
     if (isOpen) {
@@ -338,20 +301,60 @@ export default function MapLocationPickerModal({
       const validLng = initialLng && !isNaN(initialLng) ? initialLng : DADU_CENTER.lng;
       setLat(validLat);
       setLng(validLng);
+      latestPickRef.current = { lat: validLat, lng: validLng };
       setSelectedLabel(undefined);
       setSearchError("");
       setPanTrigger((n) => n + 1);
     }
   }, [isOpen, initialLat, initialLng]);
 
+  // Best-effort reverse-geocode: fills the address label for pins placed by
+  // tapping/dragging/GPS. Never blocks saving; never overwrites a search label.
+  const scheduleReverseGeocode = useCallback((nextLat: number, nextLng: number) => {
+    if (reverseTimerRef.current) clearTimeout(reverseTimerRef.current);
+    reverseTimerRef.current = setTimeout(async () => {
+      try {
+        const label = await reverseGeocode(nextLat, nextLng);
+        if (!label) return;
+        // Only apply if the pin has not moved on since this lookup started.
+        if (
+          latestPickRef.current.lat === nextLat &&
+          latestPickRef.current.lng === nextLng
+        ) {
+          setSelectedLabel(label);
+        }
+      } catch {
+        // Best-effort only; ignore failures.
+      }
+    }, 600);
+  }, []);
+
   const handleSelectPosition = useCallback(
     (nextLat: number, nextLng: number, label?: string) => {
+      if (reverseTimerRef.current) clearTimeout(reverseTimerRef.current);
       setLat(nextLat);
       setLng(nextLng);
-      if (label) setSelectedLabel(label);
+      latestPickRef.current = { lat: nextLat, lng: nextLng };
+      if (label) {
+        setSelectedLabel(label);
+      } else {
+        scheduleReverseGeocode(nextLat, nextLng);
+      }
       setPanTrigger((n) => n + 1);
     },
-    []
+    [scheduleReverseGeocode]
+  );
+
+  // Map tap / marker drag: move the pin and reverse-geocode the label.
+  const handlePickCoords = useCallback(
+    (nextLat: number, nextLng: number) => {
+      if (reverseTimerRef.current) clearTimeout(reverseTimerRef.current);
+      setLat(nextLat);
+      setLng(nextLng);
+      latestPickRef.current = { lat: nextLat, lng: nextLng };
+      scheduleReverseGeocode(nextLat, nextLng);
+    },
+    [scheduleReverseGeocode]
   );
 
   const handleGetCurrentLocation = () => {
@@ -414,7 +417,7 @@ export default function MapLocationPickerModal({
           {/* Search & GPS Toolbar */}
           <div className="p-3 sm:p-4 bg-white dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800/60 space-y-2">
             <div className="flex gap-2 items-start">
-              <PlacesAutocompleteSearch
+              <NominatimSearch
                 onSelectLocation={handleSelectPosition}
                 onError={setSearchError}
               />
@@ -440,16 +443,13 @@ export default function MapLocationPickerModal({
             )}
           </div>
 
-          {/* Google Map View (explicit CSS height to prevent 0x0 collapse) */}
+          {/* Leaflet Map View (explicit CSS height to prevent 0x0 collapse) */}
           <div className="relative w-full h-[320px] sm:h-[380px] bg-zinc-200 dark:bg-zinc-800 shrink-0">
-            <InteractiveGoogleMapView
+            <InteractiveLeafletMapView
               lat={lat}
               lng={lng}
               panTrigger={panTrigger}
-              onPickCoords={(nextLat, nextLng) => {
-                setLat(nextLat);
-                setLng(nextLng);
-              }}
+              onPickCoords={handlePickCoords}
             />
 
             {/* Instruction Pill Overlay */}
