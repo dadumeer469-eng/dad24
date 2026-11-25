@@ -3093,6 +3093,61 @@ export default function AdminPanel({
     }
   };
 
+  // Easypaisa payment verification: receipt confirmed -> order becomes confirmed
+  const handleVerifyEasypaisaPayment = async (orderId: string) => {
+    try {
+      await updateDoc(doc(db, "orders", orderId), {
+        status: "confirmed",
+        paymentVerified: true,
+        paymentRejected: false,
+        paymentVerifiedAt: { seconds: Date.now() / 1000 },
+      });
+      const targetOrder = orders.find((o) => o.id === orderId);
+      if (targetOrder) {
+        await addDoc(collection(db, "notifications"), {
+          userId: targetOrder.userId,
+          title: `Order Update ${formatOrderId(orderId)}`,
+          message: "Your Easypaisa payment was verified. Order confirmed!",
+          createdAt: { seconds: Date.now() / 1000 },
+          read: false,
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Easypaisa payment rejection: ask reason -> order cancelled + customer notified
+  const handleRejectEasypaisaPayment = async (orderId: string) => {
+    const reason = prompt(
+      "Payment reject karne ki wajah likhein (customer ko bheji jayegi):",
+    );
+    if (reason === null) return; // User pressed cancel on the prompt
+    try {
+      await updateDoc(doc(db, "orders", orderId), {
+        status: "cancelled",
+        paymentVerified: false,
+        paymentRejected: true,
+        paymentRejectionReason:
+          reason || "Payment receipt could not be verified.",
+        cancelReason: reason || "Easypaisa payment could not be verified.",
+      });
+      const targetOrder = orders.find((o) => o.id === orderId);
+      if (targetOrder) {
+        await addDoc(collection(db, "notifications"), {
+          userId: targetOrder.userId,
+          title: `Order Update ${formatOrderId(orderId)}`,
+          message:
+            "Your Easypaisa payment could not be verified. Order cancelled.",
+          createdAt: { seconds: Date.now() / 1000 },
+          read: false,
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   // Save customized Rider & custom ETA
   const handleSaveRiderAndEta = async (orderId: string) => {
     const riderIdValue = riderNames[orderId]?.trim() || "";
@@ -6624,6 +6679,73 @@ export default function AdminPanel({
                               </div>
                             </div>
                           </div>
+
+                          {/* Easypaisa payment verification (receipt) */}
+                          {order.paymentMethod === "Easypaisa" && (
+                            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-2xl p-4 space-y-3">
+                              <div className="flex items-center justify-between gap-2 flex-wrap">
+                                <span className="text-[11px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-400">
+                                  📱 Easypaisa Payment —{" "}
+                                  {order.paymentVerified
+                                    ? "Verified ✅"
+                                    : order.paymentRejected
+                                      ? "Rejected ❌"
+                                      : "Verification Pending"}
+                                </span>
+                                <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400">
+                                  {order.paymentAccountTitle || "Ghulam Murtaza"} ·{" "}
+                                  {order.paymentAccountNumber || "03277004471"}
+                                </span>
+                              </div>
+                              {order.paymentReceiptUrl ? (
+                                <a
+                                  href={order.paymentReceiptUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="block"
+                                >
+                                  <img
+                                    src={order.paymentReceiptUrl}
+                                    alt="Easypaisa payment receipt"
+                                    className="max-h-64 w-auto rounded-xl border border-slate-200 shadow-sm"
+                                  />
+                                </a>
+                              ) : (
+                                <p className="text-xs text-slate-500 font-medium">
+                                  Customer ne abhi tak receipt screenshot upload nahi kiya.
+                                </p>
+                              )}
+                              {order.status === "payment_verification_pending" &&
+                                !order.paymentVerified &&
+                                !order.paymentRejected && (
+                                  <div className="flex flex-wrap gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleVerifyEasypaisaPayment(order.id)
+                                      }
+                                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider cursor-pointer transition hover:scale-[1.02] active:scale-95"
+                                    >
+                                      ✅ Verify & Confirm Order
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleRejectEasypaisaPayment(order.id)
+                                      }
+                                      className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider cursor-pointer transition hover:scale-[1.02] active:scale-95"
+                                    >
+                                      ❌ Reject Payment
+                                    </button>
+                                  </div>
+                                )}
+                              {order.paymentRejectionReason && (
+                                <p className="text-[11px] text-rose-600 font-bold">
+                                  Rejection reason: {order.paymentRejectionReason}
+                                </p>
+                              )}
+                            </div>
+                          )}
 
                           {/* Items descriptions and customer address */}
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs font-medium">

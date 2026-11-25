@@ -30,6 +30,10 @@ interface CartDrawerProps {
     riderTip?: number;
     isScheduled?: boolean;
     scheduledTime?: string;
+    deliverySpeed?: "saver" | "standard" | "priority";
+    leaveAtDoor?: boolean;
+    messageUponArrival?: boolean;
+    cutlery?: boolean;
     voucher?: { code: string; discountAmount: number };
   }) => Promise<void>;
   onAddDrink: (drink: any) => void;
@@ -74,6 +78,11 @@ export default function CartDrawer({
   const [riderTip, setRiderTip] = useState<number>(0);
   const [isScheduled, setIsScheduled] = useState<boolean>(false);
   const [scheduledTime, setScheduledTime] = useState<string>("Today, +1 Hour");
+  // Foodpanda-style delivery speed + delivery preferences
+  const [deliverySpeed, setDeliverySpeed] = useState<"saver" | "standard" | "priority">("standard");
+  const [leaveAtDoor, setLeaveAtDoor] = useState<boolean>(false);
+  const [messageUponArrival, setMessageUponArrival] = useState<boolean>(false);
+  const [cutlery, setCutlery] = useState<boolean>(false);
   const [locationTimedOut, setLocationTimedOut] = useState<boolean>(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [isEditingAddress, setIsEditingAddress] = useState(!currentUser?.address);
@@ -223,13 +232,21 @@ export default function CartDrawer({
   const isFreeFoodDelivery = hasFood && totalFoodItemsPrice >= 1000;
   const isDoubleFee = hasFood && totalFoodItemsPrice < 500;
   const standardFee = deliveryFee > 0 ? deliveryFee : 50;
-  const finalDeliveryFee = !hasFood
+  const baseDeliveryFee = !hasFood
     ? 0
     : isFreeFoodDelivery
     ? 0
     : isDoubleFee
     ? standardFee * 2
     : standardFee;
+  // Delivery speed adjustment: Saver -Rs 20, Priority +Rs 30 (Standard unchanged)
+  const speedFeeAdjustment =
+    !hasFood || deliverySpeed === "standard"
+      ? 0
+      : deliverySpeed === "saver"
+        ? -20
+        : 30;
+  const finalDeliveryFee = Math.max(0, baseDeliveryFee + speedFeeAdjustment);
 
   // Base total before any discounts (items + delivery + optional rider tip)
   const baseOrderTotal = totalFoodItemsPrice + finalDeliveryFee + riderTip;
@@ -476,6 +493,10 @@ export default function CartDrawer({
         riderTip: riderTip > 0 ? riderTip : undefined,
         isScheduled: isScheduled || undefined,
         scheduledTime: isScheduled ? scheduledTime : undefined,
+        deliverySpeed: hasFood ? deliverySpeed : undefined,
+        leaveAtDoor: leaveAtDoor || undefined,
+        messageUponArrival: messageUponArrival || undefined,
+        cutlery: cutlery || undefined,
         voucher: appliedVoucher ? {
           code: appliedVoucher.code,
           discountAmount: voucherDiscount,
@@ -1002,6 +1023,74 @@ export default function CartDrawer({
                   )}
                 </div>
 
+                {/* Delivery Speed: Saver / Standard / Priority */}
+                {hasFood && (
+                  <div className="bg-zinc-950 border border-zinc-800 p-3.5 rounded-xl space-y-2">
+                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-400 block">
+                      Delivery Speed
+                    </span>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(
+                        [
+                          { id: "saver", label: "Saver", eta: "45–60 min", feeNote: "−Rs. 20" },
+                          { id: "standard", label: "Standard", eta: "25–35 min", feeNote: "Standard" },
+                          { id: "priority", label: "Priority", eta: "15–25 min", feeNote: "+Rs. 30" },
+                        ] as const
+                      ).map((opt) => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setDeliverySpeed(opt.id)}
+                          className={`py-2 px-2 rounded-xl text-center border transition cursor-pointer ${
+                            deliverySpeed === opt.id
+                              ? "bg-[#E21B70] border-[#E21B70] text-white"
+                              : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-zinc-600"
+                          }`}
+                        >
+                          <span className="block text-xs font-extrabold">{opt.label}</span>
+                          <span className="block text-[10px] font-bold opacity-80">{opt.eta}</span>
+                          <span className="block text-[10px] font-bold opacity-80">{opt.feeNote}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Delivery Preferences: Leave at door / Message upon arrival / Cutlery */}
+                {hasFood && (
+                  <div className="bg-zinc-950 border border-zinc-800 p-3.5 rounded-xl space-y-3">
+                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-400 block">
+                      Delivery Preferences
+                    </span>
+                    {(
+                      [
+                        { key: "leaveAtDoor", label: "Leave at door", desc: "Rider order darwaze par chhor dega", value: leaveAtDoor, set: setLeaveAtDoor },
+                        { key: "messageUponArrival", label: "Message upon arrival", desc: "Pahunchne par rider message karega", value: messageUponArrival, set: setMessageUponArrival },
+                        { key: "cutlery", label: "Cutlery", desc: "Chammach / kaanta saath chahiye", value: cutlery, set: setCutlery },
+                      ] as const
+                    ).map((pref) => (
+                      <button
+                        key={pref.key}
+                        type="button"
+                        onClick={() => pref.set(!pref.value)}
+                        className="w-full flex items-center justify-between gap-3 cursor-pointer"
+                      >
+                        <span className="text-left">
+                          <span className="block text-xs font-bold text-zinc-100">{pref.label}</span>
+                          <span className="block text-[10px] text-zinc-400">{pref.desc}</span>
+                        </span>
+                        <span
+                          className={`shrink-0 w-11 h-6 rounded-full p-0.5 transition ${pref.value ? "bg-[#E21B70]" : "bg-zinc-700"}`}
+                        >
+                          <span
+                            className={`block w-5 h-5 rounded-full bg-white shadow transition ${pref.value ? "translate-x-5" : "translate-x-0"}`}
+                          />
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 {/* Optional Rider Tip */}
                 {hasFood && (
                   <div className="bg-zinc-950 border border-zinc-800 p-3.5 rounded-xl space-y-2">
@@ -1013,8 +1102,8 @@ export default function CartDrawer({
                         {riderTip > 0 ? `Rs. ${riderTip}` : "Optional"}
                       </span>
                     </div>
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {[0, 30, 50, 100].map((amt) => (
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {[0, 50, 100, 200, 300].map((amt) => (
                         <button
                           key={amt}
                           type="button"
