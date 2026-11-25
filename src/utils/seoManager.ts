@@ -3,7 +3,7 @@ import { getShopProfile } from "./catalogNormalizer";
 
 export const DADU_FOOD_BUSINESS = {
   name: "Dadu Food",
-  tagline: "Dadu Food is Dadu City's fastest online food, grocery, and home services delivery platform with hot meals delivered to your doorstep in 20–35 minutes.",
+  tagline: "Fresh, hot food and daily groceries delivered fast across Dadu City in 20–35 minutes.",
   address: "Station Road, Dadu, Sindh, Pakistan",
   city: "Dadu",
   region: "Sindh",
@@ -122,12 +122,12 @@ const INFO_PAGE_META: Record<InfoPageSlug, { title: string; description: string 
   about: {
     title: "About Us — Dadu's Trusted Food Delivery | Dadu Food",
     description:
-      "Learn how Dadu Food connects Dadu City households with top local restaurants, fresh groceries, and trusted home services daily from 9:00 AM to 11:59 PM.",
+      "Learn how Dadu Food connects Dadu City households with trusted local restaurants and daily groceries from 9:00 AM to 11:59 PM.",
   },
   terms: {
     title: "Terms & Conditions | Dadu Food",
     description:
-      "Read the Terms & Conditions for ordering food, groceries, and home services on Dadu Food in Dadu, Sindh.",
+      "Read the Terms & Conditions for ordering food and groceries on Dadu Food in Dadu, Sindh.",
   },
   "privacy-policy": {
     title: "Privacy Policy | Dadu Food",
@@ -169,7 +169,7 @@ export function syncPageSeo(params: {
   const origin = window.location.origin;
   let title = "Best Online Food Delivery in Dadu | Dadu Food";
   let description =
-    "Order pizza, biryani, mutton karahi, broast, chai, groceries, and home services online in Dadu City. Fast 20-35 min delivery, COD, JazzCash & Easypaisa. Call 03277004471.";
+    "Fresh, hot food delivered fast in Dadu City. Order pizza, biryani, mutton karahi, broast, chai, and groceries online. COD, JazzCash & Easypaisa. Call 03277004471.";
   let canonicalPath = "/";
   let ogImage = "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=1200&q=80&auto=format&fit=crop";
 
@@ -207,7 +207,12 @@ export function syncPageSeo(params: {
     const slug = slugifyShop(profile.name);
     canonicalPath = `/shop/${slug}`;
     title = `${profile.name} Menu & Online Delivery in Dadu | Dadu Food`;
-    description = `${profile.oneLineDescription} Rated ${profile.rating}/5 (${profile.reviewCount} reviews). Delivery in ${profile.deliveryTime}, min order Rs. ${profile.minOrder}.`;
+    const ratingPart =
+      profile.rating && profile.reviewCount > 0
+        ? ` Rated ${profile.rating}/5 (${profile.reviewCount} ratings).`
+        : "";
+    const minPart = profile.minOrder ? `, min order Rs. ${profile.minOrder}` : "";
+    description = `${profile.oneLineDescription}${ratingPart} Delivery in ${profile.deliveryTime}${minPart}.`;
     if (params.shopDishes && params.shopDishes[0]?.imageUrl) {
       ogImage = params.shopDishes[0].imageUrl;
     }
@@ -225,7 +230,7 @@ export function syncPageSeo(params: {
       },
     }));
 
-    graphNodes.push({
+    const restaurantNode: Record<string, unknown> = {
       "@type": "Restaurant",
       "@id": `${origin}${canonicalPath}#restaurant`,
       name: profile.name,
@@ -243,11 +248,6 @@ export function syncPageSeo(params: {
         addressRegion: "Sindh",
         addressCountry: "PK",
       },
-      aggregateRating: {
-        "@type": "AggregateRating",
-        ratingValue: profile.rating,
-        reviewCount: profile.reviewCount,
-      },
       hasMenu: {
         "@type": "Menu",
         name: `${profile.name} Full Menu`,
@@ -259,7 +259,15 @@ export function syncPageSeo(params: {
           },
         ],
       },
-    });
+    };
+    if (profile.rating && profile.reviewCount > 0) {
+      restaurantNode.aggregateRating = {
+        "@type": "AggregateRating",
+        ratingValue: profile.rating,
+        reviewCount: profile.reviewCount,
+      };
+    }
+    graphNodes.push(restaurantNode);
   } else if (params.pageType === "info" && params.infoSlug) {
     const info = INFO_PAGE_META[params.infoSlug];
     title = info.title;

@@ -1121,7 +1121,7 @@ export default function AiMenuGeneratorModal({
           className="relative w-full max-w-5xl bg-white border border-slate-200 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
         >
           {/* Top Banner Header */}
-          <div className="relative bg-gradient-to-r from-[#D70F64] via-[#b00c50] to-[#7209b7] p-6 text-white shrink-0">
+          <div className="relative bg-gradient-to-r from-[#E21B70] via-[#C2145E] to-[#7209b7] p-6 text-white shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-lg border border-white/30 text-white">
@@ -1155,7 +1155,7 @@ export default function AiMenuGeneratorModal({
             {/* Step 1: Restaurant Selection & Settings */}
             <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-5 space-y-4">
               <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-[#D70F64]">
+                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-[#E21B70]">
                   <Store className="w-4 h-4" />
                   <span>Target Restaurant &amp; Branding</span>
                 </div>
@@ -1167,7 +1167,7 @@ export default function AiMenuGeneratorModal({
                       onClick={() => setItemType("food")}
                       className={`px-3 py-1 rounded-md transition ${
                         itemType === "food"
-                          ? "bg-[#D70F64] text-white shadow-sm"
+                          ? "bg-[#E21B70] text-white shadow-sm"
                           : "text-slate-600 hover:text-slate-900"
                       }`}
                     >
@@ -1178,7 +1178,7 @@ export default function AiMenuGeneratorModal({
                       onClick={() => setItemType("service")}
                       className={`px-3 py-1 rounded-md transition ${
                         itemType === "service"
-                          ? "bg-[#D70F64] text-white shadow-sm"
+                          ? "bg-[#E21B70] text-white shadow-sm"
                           : "text-slate-600 hover:text-slate-900"
                       }`}
                     >
@@ -1196,7 +1196,7 @@ export default function AiMenuGeneratorModal({
                     <button
                       type="button"
                       onClick={() => setIsCustomRestaurant(!isCustomRestaurant)}
-                      className="text-[#D70F64] hover:underline font-bold"
+                      className="text-[#E21B70] hover:underline font-bold"
                     >
                       {isCustomRestaurant ? "Choose from existing" : "+ Add New Restaurant"}
                     </button>
@@ -1208,13 +1208,13 @@ export default function AiMenuGeneratorModal({
                       value={customRestaurantName}
                       onChange={e => setCustomRestaurantName(e.target.value)}
                       placeholder="e.g. Royal Spice Grill House"
-                      className="w-full p-3 bg-white border border-[#D70F64] rounded-xl text-slate-900 font-bold outline-none ring-2 ring-[#D70F64]/10"
+                      className="w-full p-3 bg-white border border-[#E21B70] rounded-xl text-slate-900 font-bold outline-none ring-2 ring-[#E21B70]/10"
                     />
                   ) : (
                     <select
                       value={selectedRestaurant}
                       onChange={e => setSelectedRestaurant(e.target.value)}
-                      className="w-full p-3 bg-white border border-slate-300 rounded-xl text-slate-900 font-bold outline-none cursor-pointer focus:border-[#D70F64]"
+                      className="w-full p-3 bg-white border border-slate-300 rounded-xl text-slate-900 font-bold outline-none cursor-pointer focus:border-[#E21B70]"
                     >
                       {uniqueRestaurants.map(r => (
                         <option key={r} value={r}>
@@ -1228,7 +1228,7 @@ export default function AiMenuGeneratorModal({
                 {/* Branding Badge Info */}
                 <div className="bg-white border border-slate-200 rounded-xl p-3 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#D70F64] to-pink-500 text-white flex items-center justify-center font-black text-sm shadow-md">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#E21B70] to-pink-500 text-white flex items-center justify-center font-black text-sm shadow-md">
                       {activeRestaurantName.charAt(0)}
                     </div>
                     <div>
@@ -1236,7 +1236,7 @@ export default function AiMenuGeneratorModal({
                         {activeRestaurantName}
                       </p>
                       <p className="text-[10px] text-slate-500 font-medium flex items-center gap-1">
-                        <Tag className="w-3 h-3 text-[#D70F64]" />
+                        <Tag className="w-3 h-3 text-[#E21B70]" />
                         Items will be assigned here
                       </p>
                     </div>
@@ -1255,12 +1255,12 @@ export default function AiMenuGeneratorModal({
                       </span>
                     </label>
 
-                    <label className="flex items-center gap-2 cursor-pointer bg-pink-50 border border-pink-200 px-3 py-1.5 rounded-lg text-[#D70F64] font-bold text-[10px] hover:bg-pink-100 transition">
+                    <label className="flex items-center gap-2 cursor-pointer bg-pink-50 border border-pink-200 px-3 py-1.5 rounded-lg text-[#E21B70] font-bold text-[10px] hover:bg-pink-100 transition">
                       <input
                         type="checkbox"
                         checked={brandWatermark}
                         onChange={e => setBrandWatermark(e.target.checked)}
-                        className="w-3.5 h-3.5 accent-[#D70F64] rounded"
+                        className="w-3.5 h-3.5 accent-[#E21B70] rounded"
                       />
                       <span>Brand Badge</span>
                     </label>
@@ -1273,7 +1273,7 @@ export default function AiMenuGeneratorModal({
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-[#D70F64]" />
+                  <FileText className="w-4 h-4 text-[#E21B70]" />
                   Paste Menu Text / Item List With Prices
                 </label>
 
@@ -1301,7 +1301,7 @@ export default function AiMenuGeneratorModal({
                   value={menuText}
                   onChange={e => setMenuText(e.target.value)}
                   placeholder={`Paste your menu text or WhatsApp list here...\n\nExample:\nZinger Burger - Rs 290\nSpecial Beef Double Patty Burger - Rs 420\nChicken Fajita Pizza (Medium) - Rs 850\nLahori Chicken Biryani - Rs 220\nFresh Mint Raita - Rs 50\nDadu Special Orange Karak Chai - Rs 120`}
-                  className="w-full p-4 bg-white border-2 border-slate-200 focus:border-[#D70F64] rounded-2xl text-slate-900 text-xs font-mono font-medium outline-none transition placeholder:text-slate-400 shadow-inner"
+                  className="w-full p-4 bg-white border-2 border-slate-200 focus:border-[#E21B70] rounded-2xl text-slate-900 text-xs font-mono font-medium outline-none transition placeholder:text-slate-400 shadow-inner"
                 />
 
                 <div className="absolute bottom-3 right-3 flex items-center gap-2">
@@ -1318,7 +1318,7 @@ export default function AiMenuGeneratorModal({
                     type="button"
                     onClick={handleParseMenu}
                     disabled={isProcessing || !menuText.trim()}
-                    className="bg-gradient-to-r from-[#D70F64] to-[#b00c50] hover:from-[#b00c50] hover:to-[#910a42] text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-md hover:shadow-lg transition cursor-pointer disabled:opacity-50"
+                    className="bg-gradient-to-r from-[#E21B70] to-[#C2145E] hover:from-[#C2145E] hover:to-[#910a42] text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-md hover:shadow-lg transition cursor-pointer disabled:opacity-50"
                   >
                     {isProcessing ? (
                       <>
@@ -1357,7 +1357,7 @@ export default function AiMenuGeneratorModal({
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                      <ChefHat className="w-4 h-4 text-[#D70F64]" />
+                      <ChefHat className="w-4 h-4 text-[#E21B70]" />
                       Generated Items Preview ({parsedItems.length} items)
                     </h4>
                     <p className="text-[11px] text-slate-500">
@@ -1391,7 +1391,7 @@ export default function AiMenuGeneratorModal({
                       onClick={handleAddBlankItem}
                       className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl text-[11px] font-bold text-slate-700 flex items-center gap-1.5 transition cursor-pointer"
                     >
-                      <Plus className="w-3.5 h-3.5 text-[#D70F64]" />
+                      <Plus className="w-3.5 h-3.5 text-[#E21B70]" />
                       Add Item
                     </button>
                     <button
@@ -1417,7 +1417,7 @@ export default function AiMenuGeneratorModal({
                       transition={{ delay: idx * 0.03 }}
                       className={`p-4 rounded-2xl border-2 transition relative flex gap-4 ${
                         item.selected
-                          ? "bg-white border-[#D70F64]/30 shadow-sm"
+                          ? "bg-white border-[#E21B70]/30 shadow-sm"
                           : "bg-slate-50/70 border-slate-200 opacity-60"
                       }`}
                     >
@@ -1426,7 +1426,7 @@ export default function AiMenuGeneratorModal({
                         type="checkbox"
                         checked={item.selected}
                         onChange={e => handleUpdateItem(item.id, "selected", e.target.checked)}
-                        className="absolute top-3 left-3 w-4 h-4 accent-[#D70F64] rounded cursor-pointer z-10"
+                        className="absolute top-3 left-3 w-4 h-4 accent-[#E21B70] rounded cursor-pointer z-10"
                       />
 
                       {/* Food Photo Container with Restaurant Logo Badge */}
@@ -1451,7 +1451,7 @@ export default function AiMenuGeneratorModal({
                         {/* Restaurant Watermark Badge Overlay */}
                         {brandWatermark && (
                           <div className="absolute top-1.5 right-1.5 bg-black/80 backdrop-blur-md px-1.5 py-0.5 rounded text-[8px] font-black text-white flex items-center gap-1 shadow-md border border-white/20 pointer-events-none z-10">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#D70F64] inline-block" />
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#E21B70] inline-block" />
                             <span className="truncate max-w-[65px]">{activeRestaurantName}</span>
                           </div>
                         )}
@@ -1491,7 +1491,7 @@ export default function AiMenuGeneratorModal({
                             type="button"
                             onClick={() => handleCycleImage(item.id)}
                             title="Cycle next photo"
-                            className="bg-white/90 hover:bg-white text-slate-800 p-1 rounded-lg shadow-md transition border border-slate-200 hover:text-[#D70F64] cursor-pointer"
+                            className="bg-white/90 hover:bg-white text-slate-800 p-1 rounded-lg shadow-md transition border border-slate-200 hover:text-[#E21B70] cursor-pointer"
                           >
                             <RefreshCw className="w-2.5 h-2.5" />
                           </button>
@@ -1506,7 +1506,7 @@ export default function AiMenuGeneratorModal({
                             value={item.name}
                             onChange={e => handleUpdateItem(item.id, "name", e.target.value)}
                             placeholder="Item Name"
-                            className="font-bold text-slate-900 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-[#D70F64] outline-none w-full"
+                            className="font-bold text-slate-900 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-[#E21B70] outline-none w-full"
                           />
                           <button
                             type="button"
@@ -1556,7 +1556,7 @@ export default function AiMenuGeneratorModal({
                             value={item.description}
                             onChange={e => handleUpdateItem(item.id, "description", e.target.value)}
                             placeholder="Description..."
-                            className="w-full p-1.5 bg-transparent border-b border-slate-200 text-[10.5px] text-slate-600 outline-none focus:border-[#D70F64]"
+                            className="w-full p-1.5 bg-transparent border-b border-slate-200 text-[10.5px] text-slate-600 outline-none focus:border-[#E21B70]"
                           />
                         </div>
 
@@ -1601,7 +1601,7 @@ export default function AiMenuGeneratorModal({
               {parsedItems.length > 0 ? (
                 <span>
                   <strong className="text-slate-900">{parsedItems.filter(i => i.selected).length}</strong> of {parsedItems.length} items ready to publish to{" "}
-                  <strong className="text-[#D70F64]">{activeRestaurantName}</strong>
+                  <strong className="text-[#E21B70]">{activeRestaurantName}</strong>
                 </span>
               ) : (
                 <span>Paste menu above and click &quot;Generate Items &amp; Photos&quot;</span>
@@ -1621,7 +1621,7 @@ export default function AiMenuGeneratorModal({
                 type="button"
                 onClick={handlePublishToFirestore}
                 disabled={isPublishing || parsedItems.filter(i => i.selected).length === 0}
-                className="bg-[#D70F64] hover:bg-[#b00c50] text-white px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider shadow-lg shadow-pink-600/30 flex items-center gap-2 transition cursor-pointer disabled:opacity-50"
+                className="bg-[#E21B70] hover:bg-[#C2145E] text-white px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider shadow-lg shadow-pink-600/30 flex items-center gap-2 transition cursor-pointer disabled:opacity-50"
               >
                 {isPublishing ? (
                   <>
@@ -1649,10 +1649,10 @@ export default function AiMenuGeneratorModal({
             >
               <div className="flex items-center justify-between border-b border-slate-200 pb-3">
                 <div className="flex items-center gap-2">
-                  <ImageIcon className="w-5 h-5 text-[#D70F64]" />
+                  <ImageIcon className="w-5 h-5 text-[#E21B70]" />
                   <h4 className="font-black text-slate-900 text-base">
                     Select Exact Photo for:{" "}
-                    <span className="text-[#D70F64]">
+                    <span className="text-[#E21B70]">
                       {parsedItems.find(i => i.id === pickingImageForItem)?.name}
                     </span>
                   </h4>
@@ -1777,7 +1777,7 @@ export default function AiMenuGeneratorModal({
                   value={customImageUrlInput}
                   onChange={e => setCustomImageUrlInput(e.target.value)}
                   placeholder="Paste custom Image URL here..."
-                  className="flex-1 p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono outline-none focus:border-[#D70F64]"
+                  className="flex-1 p-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono outline-none focus:border-[#E21B70]"
                 />
                 <button
                   type="button"
@@ -1786,7 +1786,7 @@ export default function AiMenuGeneratorModal({
                       handleApplyChosenPhoto(customImageUrlInput.trim(), "custom");
                     }
                   }}
-                  className="bg-[#D70F64] hover:bg-[#b00c50] text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer"
+                  className="bg-[#E21B70] hover:bg-[#C2145E] text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer"
                 >
                   Apply URL
                 </button>
@@ -1799,7 +1799,7 @@ export default function AiMenuGeneratorModal({
                   onClick={() => setGalleryCategory("all")}
                   className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition cursor-pointer ${
                     galleryCategory === "all"
-                      ? "bg-[#D70F64] text-white"
+                      ? "bg-[#E21B70] text-white"
                       : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                   }`}
                 >
@@ -1812,7 +1812,7 @@ export default function AiMenuGeneratorModal({
                     onClick={() => setGalleryCategory(key)}
                     className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition cursor-pointer ${
                       galleryCategory === key
-                        ? "bg-[#D70F64] text-white"
+                        ? "bg-[#E21B70] text-white"
                         : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                     }`}
                   >
@@ -1827,7 +1827,7 @@ export default function AiMenuGeneratorModal({
                   <div
                     key={i}
                     onClick={() => handleApplyChosenPhoto(photo.url)}
-                    className="group relative rounded-xl overflow-hidden aspect-video border-2 border-slate-200 hover:border-[#D70F64] cursor-pointer shadow-sm transition-all hover:scale-105"
+                    className="group relative rounded-xl overflow-hidden aspect-video border-2 border-slate-200 hover:border-[#E21B70] cursor-pointer shadow-sm transition-all hover:scale-105"
                   >
                     <img
                       src={photo.url}

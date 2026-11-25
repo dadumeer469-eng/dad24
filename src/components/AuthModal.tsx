@@ -227,7 +227,7 @@ export default function AuthModal({
           <X className="w-5 h-5" />
         </button>
 
-        <div className="bg-[#D70F64] p-6 text-center">
+        <div className="bg-[#E21B70] p-6 text-center">
           <img
             src={daduLogo}
             alt="Dadu Food Logo"
@@ -274,7 +274,7 @@ export default function AuthModal({
                     placeholder="Staff Email or Phone"
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-zinc-300 dark:border-zinc-700 outline-none focus:border-[#D70F64] focus:ring-2 focus:ring-[#D70F64]/20 transition bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-bold text-sm"
+                    className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-zinc-300 dark:border-zinc-700 outline-none focus:border-[#E21B70] focus:ring-2 focus:ring-[#E21B70]/20 transition bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-bold text-sm"
                   />
                 </div>
                 <div className="relative">
@@ -285,7 +285,7 @@ export default function AuthModal({
                     placeholder="Staff Password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-zinc-300 dark:border-zinc-700 outline-none focus:border-[#D70F64] focus:ring-2 focus:ring-[#D70F64]/20 transition bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-bold text-sm"
+                    className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-zinc-300 dark:border-zinc-700 outline-none focus:border-[#E21B70] focus:ring-2 focus:ring-[#E21B70]/20 transition bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-bold text-sm"
                   />
                 </div>
               </div>
@@ -293,7 +293,7 @@ export default function AuthModal({
               <button
                 type="submit"
                 disabled={loading || !phoneNumber.trim() || password.length < 4}
-                className="w-full bg-[#D70F64] hover:bg-[#b00c50] text-white font-black tracking-wide shadow-md transition-all flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm uppercase disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="w-full bg-[#E21B70] hover:bg-[#C2145E] text-white font-black tracking-wide shadow-md transition-all flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm uppercase disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {loading ? <DaduLogoLoader compact size="sm" /> : <>Verify &amp; Login <ArrowRight className="w-4 h-4" /></>}
               </button>
@@ -312,7 +312,7 @@ export default function AuthModal({
                     const val = e.target.value.replace(/\D/g, "");
                     setPhoneNumber(val.slice(0, 11));
                   }}
-                  className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-zinc-300 dark:border-zinc-700 outline-none focus:border-[#D70F64] focus:ring-2 focus:ring-[#D70F64]/20 transition bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-bold text-lg tracking-wide"
+                  className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-zinc-300 dark:border-zinc-700 outline-none focus:border-[#E21B70] focus:ring-2 focus:ring-[#E21B70]/20 transition bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-bold text-lg tracking-wide"
                 />
               </div>
               <p className="text-[11px] text-zinc-500 dark:text-zinc-400 text-center">
@@ -321,7 +321,7 @@ export default function AuthModal({
               <button
                 type="submit"
                 disabled={loading || phoneNumber.length < 11}
-                className="w-full bg-[#D70F64] hover:bg-[#b00c50] text-white font-black tracking-wide shadow-md transition-all flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm uppercase disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="w-full bg-[#E21B70] hover:bg-[#C2145E] text-white font-black tracking-wide shadow-md transition-all flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm uppercase disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {loading ? <DaduLogoLoader compact size="sm" /> : <>Send SMS OTP <ArrowRight className="w-4 h-4" /></>}
               </button>
@@ -329,7 +329,7 @@ export default function AuthModal({
           ) : (
             <form onSubmit={handleVerifyOtp} className="space-y-4">
               <div className="relative">
-                <ShieldCheck className="absolute left-4 top-3.5 w-5 h-5 text-[#D70F64]" />
+                <ShieldCheck className="absolute left-4 top-3.5 w-5 h-5 text-[#E21B70]" />
                 <input
                   type="text"
                   inputMode="numeric"
@@ -338,14 +338,14 @@ export default function AuthModal({
                   placeholder="Enter 6-digit OTP"
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-zinc-300 dark:border-zinc-700 outline-none focus:border-[#D70F64] focus:ring-2 focus:ring-[#D70F64]/20 transition bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-black text-xl tracking-[0.3em] text-center"
+                  className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-zinc-300 dark:border-zinc-700 outline-none focus:border-[#E21B70] focus:ring-2 focus:ring-[#E21B70]/20 transition bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-black text-xl tracking-[0.3em] text-center"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading || otpCode.length < 6}
-                className="w-full bg-[#D70F64] hover:bg-[#b00c50] text-white font-black tracking-wide shadow-md transition-all flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm uppercase disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="w-full bg-[#E21B70] hover:bg-[#C2145E] text-white font-black tracking-wide shadow-md transition-all flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm uppercase disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {loading ? <DaduLogoLoader compact size="sm" /> : <>Verify OTP &amp; Continue <ArrowRight className="w-4 h-4" /></>}
               </button>
@@ -358,7 +358,7 @@ export default function AuthModal({
                     setOtpCode("");
                     setError("");
                   }}
-                  className="inline-flex items-center gap-1 font-bold text-zinc-600 dark:text-zinc-300 hover:text-[#D70F64] cursor-pointer"
+                  className="inline-flex items-center gap-1 font-bold text-zinc-600 dark:text-zinc-300 hover:text-[#E21B70] cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" /> Change Number
                 </button>
@@ -366,7 +366,7 @@ export default function AuthModal({
                   type="button"
                   disabled={resendCooldown > 0 || loading}
                   onClick={() => handleSendOtp()}
-                  className="inline-flex items-center gap-1 font-bold text-[#D70F64] disabled:text-zinc-400 cursor-pointer"
+                  className="inline-flex items-center gap-1 font-bold text-[#E21B70] disabled:text-zinc-400 cursor-pointer"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend OTP"}

@@ -42,7 +42,7 @@ export default function OrderSuccessAnimation({
       requestAnimationFrame(animateProgress);
 
       // Generate confetti particles on load
-      const colors = ["#D70F64", "#EA580C", "#10B981", "#3B82F6", "#F59E0B", "#EC4899", "#8B5CF6"];
+      const colors = ["#E21B70", "#EA580C", "#10B981", "#3B82F6", "#F59E0B", "#EC4899", "#8B5CF6"];
       const generated = Array.from({ length: 18 }).map((_, i) => ({
         id: i,
         x: Math.random() * 100, // percentage of screen width
@@ -200,7 +200,7 @@ export default function OrderSuccessAnimation({
               <motion.span
                 animate={{ y: [0, 8, 0], scale: [0.8, 1.2, 0.8], rotate: [0, -20, 0] }}
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
-                className="absolute -bottom-3 -left-5 text-[#D70F64]"
+                className="absolute -bottom-3 -left-5 text-[#E21B70]"
               >
                 <Sparkles className="w-5 h-5 fill-pink-500/20 drop-shadow-md" />
               </motion.span>
@@ -239,7 +239,7 @@ export default function OrderSuccessAnimation({
               {/* Progress Bar Track */}
               <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden mb-3">
                 <div 
-                  className="bg-gradient-to-r from-emerald-500 via-[#D70F64] to-pink-500 h-full transition-all duration-300 ease-out rounded-full shadow-[0_0_8px_rgba(215,15,100,0.8)]"
+                  className="bg-gradient-to-r from-emerald-500 via-[#E21B70] to-pink-500 h-full transition-all duration-300 ease-out rounded-full shadow-[0_0_8px_rgba(215,15,100,0.8)]"
                   style={{ width: `${progressCount}%` }}
                 />
               </div>
@@ -317,7 +317,7 @@ export default function OrderSuccessAnimation({
 
                 <div className="flex justify-between items-center pt-3 text-sm">
                   <span className="font-black text-zinc-800 dark:text-zinc-200">Total Paid</span>
-                  <span className="font-black text-xl text-[#D70F64] tracking-tight">
+                  <span className="font-black text-xl text-[#E21B70] tracking-tight">
                     Rs. {order.grandTotal}
                   </span>
                 </div>
@@ -334,7 +334,7 @@ export default function OrderSuccessAnimation({
               <button
                 type="button"
                 onClick={onClose}
-                className="w-full bg-gradient-to-r from-[#D70F64] to-pink-600 text-white hover:from-[#b00c50] hover:to-pink-700 transition-colors py-3.5 px-4 rounded-xl text-xs font-black uppercase tracking-widest cursor-pointer text-center shadow-lg shadow-pink-500/20"
+                className="w-full bg-gradient-to-r from-[#E21B70] to-pink-600 text-white hover:from-[#C2145E] hover:to-pink-700 transition-colors py-3.5 px-4 rounded-xl text-xs font-black uppercase tracking-widest cursor-pointer text-center shadow-lg shadow-pink-500/20"
               >
                 Close & View Orders
               </button>

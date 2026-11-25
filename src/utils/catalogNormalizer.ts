@@ -1,11 +1,11 @@
-import { Dish, SystemSettings, Banner } from "../types";
+import { Dish, SystemSettings, Banner, Order } from "../types";
 
 export interface ShopProfile {
   name: string;
-  rating: string;
+  rating: string | null;
   reviewCount: number;
   deliveryTime: string;
-  minOrder: number;
+  minOrder: number | null;
   deliveryFee: number;
   oneLineDescription: string;
   servesCuisine: string[];
@@ -13,12 +13,23 @@ export interface ShopProfile {
   priceRange: string;
 }
 
+export interface ShopOpenStatus {
+  isOpen: boolean;
+  label: string;
+  detail: string;
+  hoursText: string;
+}
+
 const SPELLING_RULES: Array<[RegExp, string]> = [
   [/\bBrost\b/gi, "Broast"],
   [/\blitter\b/gi, "litre"],
   [/\bMashroom\b/gi, "Mushroom"],
   [/\bAlfrido\b/gi, "Alfredo"],
-  [/\bPlan\b(?=\s+(?:Paratha|Naan|Roti|Fries|Rice|Biryani|Tea|Chai|Burger|Pizza|Pasta))/gi, "Plain"],
+  [
+    /\bPlan\b(?=\s+(?:Lasagna|Lazania|Lazina|Paratha|Naan|Roti|Fries|Rice|Biryani|Tea|Chai|Burger|Pizza|Pasta|Sandwich|Roll))/gi,
+    "Plain",
+  ],
+  [/\bVaggis\b/gi, "Veggies"],
   [/\bVaggi\b/gi, "Veggie"],
   [/\bSouce\b/gi, "Sauce"],
   [/\bChees\b/gi, "Cheese"],
@@ -36,7 +47,8 @@ const SPELLING_RULES: Array<[RegExp, string]> = [
   [/\bTodays\b/gi, "Today's"],
   [/\bChowmin\b/gi, "Chowmein"],
   [/(\d+)\s*fresh\s*items\s*available/gi, "$1 fresh items available"],
-  [/Sign in to order food,\s*books\s*and\s*services/gi, "Sign in to order food, groceries and home services"],
+  [/(\d+)\s*fresh\s*item\s*available/gi, "$1 fresh item available"],
+  [/Sign in to order food,\s*books\s*and\s*services/gi, "Sign in to order fresh food & groceries in Dadu"],
 ];
 
 export function fixSpelling(text: string | undefined | null): string {
@@ -65,15 +77,35 @@ export function stripEmbeddedPrice(name: string): string {
 export function isBlockedShop(name: string | undefined | null): boolean {
   if (!name) return false;
   const n = name.toLowerCase().trim();
-  return n === "foodpanda" || n.includes("foodpanda") || n.includes("food panda") || /\bkfc\b/i.test(n);
+  return (
+    n === "foodpanda" ||
+    n.includes("foodpanda") ||
+    n.includes("food panda") ||
+    /\bkfc\b/i.test(n) ||
+    n.includes("dadu home care") ||
+    n.includes("dadu home services") ||
+    n === "home services" ||
+    n.includes("home care services")
+  );
 }
 
 export function isBlockedTrademarkItem(dish: Partial<Dish>): boolean {
+  if (dish.type === "service") return true;
+  const catLower = (dish.category || "").toLowerCase().trim();
+  if (catLower === "home services" || catLower.includes("home care")) return true;
+
   const combined = `${dish.name || ""} ${dish.description || ""} ${dish.restaurantName || ""}`.toLowerCase();
   if (isBlockedShop(dish.restaurantName)) return true;
   if (/\bkfc\b/i.test(combined)) return true;
   if (combined.includes("hot shots") && (combined.includes("kfc") || combined.includes("foodpanda"))) return true;
   if (combined.includes("foodpanda")) return true;
+  if (
+    /\b(home\s+electrician|ac\s+service\s*&\s*gas|inverter\s+ac\s+diagnostic|plumber\s+repair|emergency\s+plumber)\b/i.test(
+      combined
+    )
+  ) {
+    return true;
+  }
   return false;
 }
 
@@ -127,7 +159,6 @@ const CATEGORY_ALIASES: Record<string, string> = {
   "steaks & grill": "Steaks & Grill",
   "salads": "Salads",
   "salad": "Salads",
-  "home services": "Home Services",
   "groceries": "Groceries",
 };
 
@@ -141,9 +172,6 @@ export function recategorizeDish(dish: Dish): string {
   const nameLower = `${dish.name || ""} ${dish.description || ""}`.toLowerCase();
   const baseCat = normalizeCategoryName(dish.category);
 
-  if (dish.type === "service" || baseCat === "Home Services") {
-    return "Home Services";
-  }
   if (/\b(pasta|alfredo|penne|spaghetti|macaroni|chowmein|noodles)\b/i.test(nameLower) && !/\bpizza\b/i.test(nameLower)) {
     return "Pasta";
   }
@@ -204,7 +232,6 @@ const DISH_IMAGE_MAP = {
   shake: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=600&q=80&auto=format&fit=crop",
   cheesecake: "https://images.unsplash.com/photo-1533134242443-d4fd215305ad?w=600&q=80&auto=format&fit=crop",
   naan: "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=600&q=80&auto=format&fit=crop",
-  homeService: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600&q=80&auto=format&fit=crop",
 };
 
 const KNOWN_BAD_PHOTO_SNIPPETS = [
@@ -238,7 +265,6 @@ function pickFallbackPhotoByName(name: string): string {
   if (name.includes("salad")) return DISH_IMAGE_MAP.salad;
   if (name.includes("cheesecake") || name.includes("cake") || name.includes("dessert") || name.includes("brownie")) return DISH_IMAGE_MAP.cheesecake;
   if (name.includes("shake") || name.includes("lassi")) return DISH_IMAGE_MAP.shake;
-  if (name.includes("service") || name.includes("plumber") || name.includes("electrician") || name.includes("ac ")) return DISH_IMAGE_MAP.homeService;
   return DISH_IMAGE_MAP.pizza;
 }
 
@@ -284,14 +310,14 @@ export function isDishVeg(dish: Partial<Dish>): boolean {
     "biryani", "wings", "nuggets", "drumstick", "meat", "keema", "qeema", "lamb", "paya", "paye",
   ];
   if (nonVegKeywords.some((k) => text.includes(k))) {
-    if (/\b(veg|vegetable|paneer|aloo|daal|dal|palak)\b/i.test(text) && !/\b(chicken|beef|mutton|fish)\b/i.test(text)) {
+    if (/\b(veg|vegetable|veggies|paneer|aloo|daal|dal|palak)\b/i.test(text) && !/\b(chicken|beef|mutton|fish)\b/i.test(text)) {
       return true;
     }
     return false;
   }
   const vegKeywords = [
     "naan", "roti", "chapati", "paratha", "chai", "tea", "kehwa", "kahwa", "lassi",
-    "fries", "salad", "raita", "veg", "veggie", "vegetable", "margherita", "cheese",
+    "fries", "salad", "raita", "veg", "veggie", "veggies", "vegetable", "margherita", "cheese",
     "paneer", "aloo", "daal", "dal", "chana", "shake", "milkshake", "juice", "soda",
     "pepsi", "7up", "dew", "water", "cake", "cheesecake", "brownie", "ice cream", "kheer",
     "gulab jamun", "halwa", "coffee", "cold coffee", "mint margarita",
@@ -318,131 +344,8 @@ export function normalizePrice(dish: Dish, normalizedCat: string): number {
   return Math.round(price);
 }
 
-export const SUPPLEMENTAL_DADU_DISHES: Dish[] = [
-  {
-    id: "dadu_desi_sindhi_biryani",
-    name: "Sindhi Chicken Biryani",
-    restaurantName: "Dadu Royal Kitchen",
-    price: 380,
-    category: "Desi Food",
-    imageUrl: DISH_IMAGE_MAP.biryani,
-    description: "Aromatic long-grain basmati rice cooked with tender spiced chicken, potatoes, and traditional Sindhi masala.",
-    isVeg: false,
-    isBestseller: true,
-    isAvailable: true,
-    type: "food",
-  },
-  {
-    id: "dadu_desi_mutton_karahi",
-    name: "Special Mutton Karahi (Half)",
-    restaurantName: "S M Bilal",
-    price: 1450,
-    category: "Desi Food",
-    imageUrl: DISH_IMAGE_MAP.karahi,
-    description: "Fresh tender mutton wok-cooked with tomatoes, ginger, green chillies, and pure spices.",
-    isVeg: false,
-    isBestseller: true,
-    isAvailable: true,
-    type: "food",
-  },
-  {
-    id: "dadu_desi_chicken_handi",
-    name: "Chicken Makhni Boneless Handi",
-    restaurantName: "Dadu Royal Kitchen",
-    price: 1150,
-    category: "Desi Food",
-    imageUrl: DISH_IMAGE_MAP.karahi,
-    description: "Creamy boneless chicken simmered in butter, tomato gravy, and crushed black pepper.",
-    isVeg: false,
-    isAvailable: true,
-    type: "food",
-  },
-  {
-    id: "dadu_desi_garlic_naan",
-    name: "Tandoori Garlic Naan",
-    restaurantName: "S M Bilal",
-    price: 70,
-    category: "Desi Food",
-    imageUrl: DISH_IMAGE_MAP.naan,
-    description: "Fresh clay-oven naan brushed with roasted garlic butter.",
-    isVeg: true,
-    isAvailable: true,
-    type: "food",
-  },
-  {
-    id: "dadu_tea_doodh_patti",
-    name: "Doodh Patti Chai",
-    restaurantName: "Dadu Chai & Cafe",
-    price: 80,
-    category: "Tea & Chai",
-    imageUrl: DISH_IMAGE_MAP.chai,
-    description: "Rich slow-simmered milk tea brewed with strong Assam leaves and green cardamom.",
-    isVeg: true,
-    isBestseller: true,
-    isAvailable: true,
-    type: "food",
-  },
-  {
-    id: "dadu_tea_green_tea",
-    name: "Green Tea (Peshawari Kehwa)",
-    restaurantName: "Dadu Chai & Cafe",
-    price: 70,
-    category: "Tea & Chai",
-    imageUrl: DISH_IMAGE_MAP.greenTea,
-    description: "Refreshing lemon and cardamom Peshawari green tea, served piping hot.",
-    isVeg: true,
-    isAvailable: true,
-    type: "food",
-  },
-  {
-    id: "dadu_tea_karak_chai",
-    name: "Karak Elaichi Chai",
-    restaurantName: "Dadu Chai & Cafe",
-    price: 90,
-    category: "Tea & Chai",
-    imageUrl: DISH_IMAGE_MAP.chai,
-    description: "Double-strong highway-style karak chai infused with crushed cardamom.",
-    isVeg: true,
-    isAvailable: true,
-    type: "food",
-  },
-  {
-    id: "dadu_service_electrician",
-    name: "Home Electrician Visit",
-    restaurantName: "Dadu Home Care Services",
-    price: 600,
-    category: "Home Services",
-    imageUrl: DISH_IMAGE_MAP.homeService,
-    description: "Certified Dadu electrician for UPS, fan, wiring, breaker, and switchboard repair.",
-    isVeg: true,
-    isAvailable: true,
-    type: "service",
-  },
-  {
-    id: "dadu_service_ac_tech",
-    name: "AC Service & Gas Check",
-    restaurantName: "Dadu Home Care Services",
-    price: 1500,
-    category: "Home Services",
-    imageUrl: DISH_IMAGE_MAP.homeService,
-    description: "Complete split/window AC indoor & outdoor wash plus cooling pressure inspection in Dadu.",
-    isVeg: true,
-    isAvailable: true,
-    type: "service",
-  },
-  {
-    id: "dadu_service_plumber",
-    name: "Plumber Repair & Leak Fix",
-    restaurantName: "Dadu Home Care Services",
-    price: 550,
-    category: "Home Services",
-    imageUrl: DISH_IMAGE_MAP.homeService,
-    description: "Quick home plumbing visit for tap replacement, water motor, and pipe leakage repair.",
-    isVeg: true,
-    isAvailable: true,
-    type: "service",
-  },
-];
+// No invented dishes or fabricated partner shops — show real catalog data only.
+export const SUPPLEMENTAL_DADU_DISHES: Dish[] = [];
 
 export function normalizeDish(raw: Dish): Dish {
   const cleanName = stripEmbeddedPrice(raw.name || "Fresh Dish");
@@ -464,6 +367,17 @@ export function normalizeDish(raw: Dish): Dish {
     price: Math.max(50, Math.round(Number(s.price) || price)),
   }));
 
+  const normalizedFlavors = raw.flavors?.map((f) =>
+    typeof f === "string"
+      ? fixSpelling(f)
+      : { ...f, name: fixSpelling(f.name) }
+  );
+
+  const normalizedAddOns = raw.addOns?.map((a) => ({
+    ...a,
+    name: fixSpelling(a.name),
+  }));
+
   return {
     ...raw,
     name: cleanName,
@@ -475,8 +389,10 @@ export function normalizeDish(raw: Dish): Dish {
     imageUrl: resolveAccurateDishImage({ ...raw, name: cleanName, category: recat }),
     isVeg: isDishVeg({ ...raw, name: cleanName, category: recat, description: cleanDesc }),
     isAvailable,
-    type: recat === "Home Services" ? "service" : raw.type || "food",
+    type: "food",
     sizes: normalizedSizes,
+    flavors: normalizedFlavors as Dish["flavors"],
+    addOns: normalizedAddOns,
   };
 }
 
@@ -489,31 +405,29 @@ export function normalizeCatalog(rawDishes: Dish[]): Dish[] {
     if (isBlockedTrademarkItem(raw)) continue;
 
     const dish = normalizeDish(raw);
+    if (isBlockedShop(dish.restaurantName)) continue;
+
     const dedupeKey = `${(dish.restaurantName || "").toLowerCase()}::${dish.name.toLowerCase()}`;
     if (seen.has(dedupeKey)) continue;
     seen.add(dedupeKey);
     cleaned.push(dish);
   }
 
-  const hasDesi = cleaned.some((d) => d.category === "Desi Food");
-  const hasTea = cleaned.some((d) => d.category === "Tea & Chai" && d.name.toLowerCase().includes("chai"));
-  const hasServices = cleaned.some((d) => d.category === "Home Services");
-
-  for (const sup of SUPPLEMENTAL_DADU_DISHES) {
-    if (sup.category === "Desi Food" && hasDesi) continue;
-    if (sup.category === "Tea & Chai" && hasTea) continue;
-    if (sup.category === "Home Services" && hasServices) continue;
-    const dedupeKey = `${(sup.restaurantName || "").toLowerCase()}::${sup.name.toLowerCase()}`;
-    if (!seen.has(dedupeKey)) {
-      seen.add(dedupeKey);
-      cleaned.push(sup);
-    }
-  }
-
   return cleaned;
 }
 
-export function normalizeFoodCategories<T extends { id?: string; name: string; imageUrl?: string; bgImageUrl?: string; emoji?: string; subtitle?: string; position?: number; isAvailable?: boolean }>(
+export function normalizeFoodCategories<
+  T extends {
+    id?: string;
+    name: string;
+    imageUrl?: string;
+    bgImageUrl?: string;
+    emoji?: string;
+    subtitle?: string;
+    position?: number;
+    isAvailable?: boolean;
+  }
+>(
   rawCategories: T[],
   normalizedDishes: Dish[]
 ): Array<T & { id: string; name: string; count: number; isAvailable: boolean }> {
@@ -523,6 +437,7 @@ export function normalizeFoodCategories<T extends { id?: string; name: string; i
   for (const dish of normalizedDishes) {
     if (dish.id?.startsWith("drink_")) continue;
     const cat = normalizeCategoryName(dish.category);
+    if (cat.toLowerCase().includes("home service")) continue;
     counts.set(cat, (counts.get(cat) || 0) + 1);
     if (!firstImageByCat.has(cat) && dish.imageUrl) {
       firstImageByCat.set(cat, dish.imageUrl);
@@ -534,7 +449,7 @@ export function normalizeFoodCategories<T extends { id?: string; name: string; i
 
   for (const c of rawCategories) {
     const normName = normalizeCategoryName(c.name);
-    if (normName === "All" || seen.has(normName)) continue;
+    if (normName === "All" || normName.toLowerCase().includes("home service") || seen.has(normName)) continue;
     const count = counts.get(normName) || 0;
     if (count === 0) continue; // Hide empty categories with 0 items
     seen.add(normName);
@@ -542,7 +457,7 @@ export function normalizeFoodCategories<T extends { id?: string; name: string; i
       ...c,
       id: c.id || `cat_${normName.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`,
       name: normName,
-      subtitle: fixSpelling(c.subtitle || `${count} items`),
+      subtitle: `${count} ${count === 1 ? "item" : "items"}`,
       imageUrl: c.imageUrl || firstImageByCat.get(normName),
       isAvailable: true,
       count,
@@ -555,7 +470,7 @@ export function normalizeFoodCategories<T extends { id?: string; name: string; i
       result.push({
         id: `cat_${catName.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`,
         name: catName,
-        subtitle: `${count} fresh items`,
+        subtitle: `${count} ${count === 1 ? "item" : "items"}`,
         imageUrl: firstImageByCat.get(catName),
         isAvailable: true,
         count,
@@ -584,95 +499,143 @@ export function matchesFoodSearch(dish: Dish, rawQuery: string): boolean {
     }
     if (token === "brost") return /\bbroast\b/i.test(haystack);
     if (token === "lazania" || token === "lazina") return /\blasagna\b/i.test(haystack);
+    if (token === "vaggis" || token === "vaggi") return /\bveggie/i.test(haystack);
     return haystack.includes(token);
   });
 }
 
-const KNOWN_SHOP_PROFILES: Record<string, Partial<ShopProfile>> = {
+function formatTime12h(hhmm?: string): string {
+  if (!hhmm || !hhmm.includes(":")) return "";
+  const [hRaw, mRaw] = hhmm.split(":").map(Number);
+  if (Number.isNaN(hRaw) || Number.isNaN(mRaw)) return hhmm;
+  const suffix = hRaw >= 12 ? "PM" : "AM";
+  const h12 = hRaw % 12 === 0 ? 12 : hRaw % 12;
+  return `${h12}:${String(mRaw).padStart(2, "0")} ${suffix}`;
+}
+
+export function getShopOpenStatus(
+  shopName: string,
+  systemSettings?: SystemSettings,
+  isClosedOverride?: boolean
+): ShopOpenStatus {
+  const specific = systemSettings?.restaurantStatuses?.[shopName];
+  const globalStatus = systemSettings?.restaurantStatus;
+
+  const openStr = specific?.openingTime || globalStatus?.openingTime || "09:00";
+  const closeStr = specific?.closingTime || globalStatus?.closingTime || "23:59";
+  const openFormatted = formatTime12h(openStr) || "9:00 AM";
+  const closeFormatted = formatTime12h(closeStr) || "11:59 PM";
+  const hoursText = `${openFormatted} – ${closeFormatted}`;
+
+  const isClosed = Boolean(isClosedOverride);
+
+  if (isClosed) {
+    return {
+      isOpen: false,
+      label: "Closed",
+      detail: `Opens ${openFormatted}`,
+      hoursText,
+    };
+  }
+
+  return {
+    isOpen: true,
+    label: "Open",
+    detail: `Until ${closeFormatted}`,
+    hoursText,
+  };
+}
+
+const SHOP_DESCRIPTIONS: Record<string, { oneLineDescription: string; servesCuisine: string[] }> = {
   "dadu fast food": {
-    rating: "4.6",
-    reviewCount: 184,
-    deliveryTime: "20-30 min",
-    minOrder: 200,
-    deliveryFee: 50,
-    oneLineDescription: "Freshly baked pizzas, zinger burgers, broast, and family deals delivered hot across Dadu.",
+    oneLineDescription: "Freshly baked pizzas, zinger burgers, crispy broast, and deals across Dadu.",
     servesCuisine: ["Fast Food", "Pizza", "Burgers", "Broast"],
   },
   "s m bilal": {
-    rating: "4.7",
-    reviewCount: 242,
-    deliveryTime: "25-35 min",
-    minOrder: 250,
-    deliveryFee: 50,
-    oneLineDescription: "Authentic Dadu BBQ, mutton karahi, seekh kababs, and fresh tandoori naan.",
+    oneLineDescription: "Dadu BBQ, mutton karahi, seekh kababs, and fresh tandoori naan.",
     servesCuisine: ["Desi Food", "BBQ", "Karahi"],
   },
   "tasty bites": {
-    rating: "4.8",
-    reviewCount: 163,
-    deliveryTime: "20-30 min",
-    minOrder: 200,
-    deliveryFee: 50,
-    oneLineDescription: "Signature creamy pastas, loaded lasagna, grilled sandwiches, and stone-baked pizzas in Dadu.",
+    oneLineDescription: "Creamy pastas, loaded lasagna, grilled sandwiches, and pizzas in Dadu.",
     servesCuisine: ["Pizza", "Pasta", "Lasagna", "Sandwich"],
-  },
-  "dadu royal kitchen": {
-    rating: "4.8",
-    reviewCount: 129,
-    deliveryTime: "25-40 min",
-    minOrder: 250,
-    deliveryFee: 60,
-    oneLineDescription: "Traditional Sindhi biryani, boneless makhni handi, and homestyle desi curries in Dadu.",
-    servesCuisine: ["Desi Food", "Biryani", "Handi"],
-  },
-  "dadu chai & cafe": {
-    rating: "4.9",
-    reviewCount: 97,
-    deliveryTime: "15-25 min",
-    minOrder: 150,
-    deliveryFee: 40,
-    oneLineDescription: "Hot Doodh Patti chai, karak elaichi tea, Peshawari kehwa, and crispy parathas delivered fast.",
-    servesCuisine: ["Tea & Chai", "Paratha", "Cafe"],
-  },
-  "dadu home care services": {
-    rating: "4.7",
-    reviewCount: 74,
-    deliveryTime: "30-45 min",
-    minOrder: 300,
-    deliveryFee: 50,
-    oneLineDescription: "Trusted on-demand electricians, AC technicians, and plumbers serving all areas of Dadu City.",
-    servesCuisine: ["Home Services"],
   },
 };
 
 export function getShopProfile(
   shopName: string,
   systemSettings?: SystemSettings,
-  shopDishes?: Dish[]
+  shopDishes?: Dish[],
+  realOrders?: Order[]
 ): ShopProfile {
   const cleanName = fixSpelling(shopName || "Dadu Kitchen");
   const key = cleanName.toLowerCase().trim();
-  const preset = KNOWN_SHOP_PROFILES[key];
-
-  const hash = Array.from(key).reduce((acc, ch, i) => acc + ch.charCodeAt(0) * (i + 1), 0);
-  const ratings = ["4.4", "4.5", "4.6", "4.7", "4.8", "4.9"];
-  const times = ["15-25 min", "20-30 min", "25-35 min", "30-40 min"];
-  const minOrders = [150, 200, 250, 300];
-  const baseFee = systemSettings?.deliveryFee && systemSettings.deliveryFee > 0 ? systemSettings.deliveryFee : 50;
+  const descPreset = SHOP_DESCRIPTIONS[key];
+  const specific = systemSettings?.restaurantStatuses?.[shopName] || systemSettings?.restaurantStatuses?.[cleanName];
 
   const derivedCuisines = Array.from(
     new Set((shopDishes || []).map((d) => normalizeCategoryName(d.category)).filter(Boolean))
   ).slice(0, 4);
 
-  const reviewCount = preset?.reviewCount ?? 48 + (hash % 190);
-  const rating = preset?.rating ?? ratings[hash % ratings.length];
-  const deliveryTime = preset?.deliveryTime ?? times[hash % times.length];
-  const minOrder = preset?.minOrder ?? minOrders[hash % minOrders.length];
-  const deliveryFee = preset?.deliveryFee ?? baseFee;
-  const servesCuisine = preset?.servesCuisine ?? (derivedCuisines.length > 0 ? derivedCuisines : ["Fast Food", "Desi Food"]);
+  const servesCuisine =
+    derivedCuisines.length > 0
+      ? derivedCuisines
+      : descPreset?.servesCuisine || ["Fresh Food"];
+
   const oneLineDescription =
-    preset?.oneLineDescription ??
-    `Order fresh ${servesCuisine.slice(0, 2).join(" and ").toLowerCase()} online from ${cleanName} with fast doorstep delivery across Dadu.`;
+    descPreset?.oneLineDescription ||
+    `Order fresh ${servesCuisine.slice(0, 2).join(" & ").toLowerCase()} from ${cleanName} in Dadu.`;
+
+  // Honest ratings ONLY: derive from actual rated orders for this shop if available, never invent fake numbers.
+  let rating: string | null = null;
+  let reviewCount = 0;
+
+  if (realOrders && realOrders.length > 0) {
+    const shopRatedOrders = realOrders.filter((o) => {
+      const r = Number((o as any).rating || (o as any).restaurantRating || 0);
+      if (r < 1 || r > 5) return false;
+      const matchesShop = o.items?.some(
+        (i) => (i.restaurantName || "").toLowerCase().trim() === key
+      );
+      return Boolean(matchesShop);
+    });
+    if (shopRatedOrders.length > 0) {
+      const avg =
+        shopRatedOrders.reduce(
+          (sum, o) => sum + Number((o as any).rating || (o as any).restaurantRating || 0),
+          0
+        ) / shopRatedOrders.length;
+      rating = avg.toFixed(1);
+      reviewCount = shopRatedOrders.length;
+    }
+  }
+
+  // Parse configured delivery fee honestly
+  const configuredBaseFee =
+    systemSettings?.deliveryFee && systemSettings.deliveryFee > 0 ? systemSettings.deliveryFee : 50;
+  let deliveryFee = configuredBaseFee;
+  if (specific?.deliveryCharge) {
+    const parsed = parseInt(String(specific.deliveryCharge).replace(/[^0-9]/g, ""), 10);
+    if (!Number.isNaN(parsed) && parsed > 0) {
+      deliveryFee = parsed;
+    }
+  }
+
+  // Only show minOrder when explicitly configured (> 0)
+  const configuredMin = Number(specific?.minOrder || 0);
+  const minOrder = configuredMin > 0 ? configuredMin : null;
+
+  const deliveryTime = specific?.deliveryTime?.trim() || "25–35 min";
+
+  const openStatus = getShopOpenStatus(shopName, systemSettings, false);
+
+  // Honest price range computed from real menu items if available
+  const prices = (shopDishes || [])
+    .map((d) => Number(d.discountPrice || d.price || 0))
+    .filter((p) => p > 0);
+  const priceRange =
+    prices.length > 0
+      ? `Rs. ${Math.min(...prices).toLocaleString()} – Rs. ${Math.max(...prices).toLocaleString()}`
+      : "Rs. 100 – Rs. 2,500";
 
   return {
     name: cleanName,
@@ -683,8 +646,8 @@ export function getShopProfile(
     deliveryFee,
     oneLineDescription,
     servesCuisine,
-    openingHours: "09:00 AM – 11:59 PM",
-    priceRange: "Rs. 80 – Rs. 2,500",
+    openingHours: openStatus.hoursText,
+    priceRange,
   };
 }
 
@@ -728,19 +691,15 @@ export function sanitizeBanner(banner: Banner): Banner | null {
   const rawDetail = fixSpelling(banner.detail || "");
   const combined = `${rawRest} ${rawDetail}`;
 
-  if (isBlockedShop(rawRest) || /\bfoodpanda\b|\bkfc\b/i.test(combined)) {
+  if (
+    isBlockedShop(rawRest) ||
+    /\bfoodpanda\b|\bkfc\b|\blorem\s+ipsum\b|\bdolor\s+sit\s+amet\b|\b45%\b|\bhome\s+services?\b/i.test(
+      combined
+    )
+  ) {
     return null;
   }
 
-  if (/\blorem\s+ipsum\b|\bdolor\s+sit\s+amet\b|\bconsectetur\b/i.test(combined)) {
-    return {
-      ...banner,
-      restaurantName: rawRest || "Dadu Food Specials",
-      detail: "Flat 20% OFF on fresh pizza, biryani, karahi, and chai across Dadu City. Free delivery above Rs. 1,000.",
-    };
-  }
-
-  // Resolve conflicting multiple percentages on the same slide (e.g. 45%, 10%, 20% off -> single true discount)
   let detail = rawDetail;
   const pctMatches = detail.match(/\b\d{1,2}%\s*(?:off)?/gi);
   if (pctMatches && pctMatches.length > 1) {

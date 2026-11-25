@@ -242,7 +242,7 @@ For help or inquiries, contact us on WhatsApp.`;
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
       <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col my-auto max-h-[92vh] animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#D70F64] to-[#b00c50] text-white px-5 py-4 flex items-center justify-between shrink-0 shadow-md">
+        <div className="bg-gradient-to-r from-[#E21B70] to-[#C2145E] text-white px-5 py-4 flex items-center justify-between shrink-0 shadow-md">
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
             <div>
@@ -343,7 +343,7 @@ function drawReceiptCanvas(canvas: HTMLCanvasElement, order: any) {
   ctx.fillRect(0, 0, width, calculatedHeight);
 
   // Top Pink Accent Header
-  ctx.fillStyle = "#D70F64";
+  ctx.fillStyle = "#E21B70";
   ctx.fillRect(0, 0, width, 50);
 
   ctx.fillStyle = "#ffffff";
@@ -397,7 +397,7 @@ function drawReceiptCanvas(canvas: HTMLCanvasElement, order: any) {
   // Table Headers
   y += 22;
   ctx.font = "bold 13px monospace";
-  ctx.fillStyle = "#D70F64";
+  ctx.fillStyle = "#E21B70";
   ctx.fillText("QTY  ITEM NAME", 25, y);
   ctx.textAlign = "right";
   ctx.fillText("TOTAL", width - 25, y);
@@ -460,7 +460,7 @@ function drawReceiptCanvas(canvas: HTMLCanvasElement, order: any) {
   }
 
   y += 24;
-  ctx.fillStyle = "#D70F64";
+  ctx.fillStyle = "#E21B70";
   ctx.font = "bold 16px monospace";
   ctx.textAlign = "left";
   ctx.fillText("GRAND TOTAL (CASH):", 25, y);

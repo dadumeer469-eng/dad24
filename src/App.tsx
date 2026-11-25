@@ -35,7 +35,7 @@ import {
   GroceryOrder,
   Voucher,
 } from "./types";
-import { INITIAL_MENU_ITEMS, DEFAULT_FOOD_CATEGORIES, DEFAULT_GROCERY_CATEGORIES, DEFAULT_GROCERY_PRODUCTS, getDefaultRestaurantImage } from "./data";
+import { INITIAL_MENU_ITEMS, DEFAULT_FOOD_CATEGORIES, getDefaultRestaurantImage } from "./data";
 
 // Import modules
 import FoodpandaHeader from "./components/FoodpandaHeader";
@@ -60,6 +60,7 @@ import NetworkStatusBanner from "./components/NetworkStatusBanner";
 import { CustomerSettingsModal } from "./components/CustomerSettingsModal";
 import { InfoPagesView } from "./components/InfoPagesView";
 import { HomeFaqAeoSection } from "./components/HomeFaqAeoSection";
+import WhatsAppListOrderCard from "./components/WhatsAppListOrderCard";
 import useLazyBatchLoad from "./hooks/useLazyBatchLoad";
 import daduLogo from "./assets/images/dadu_food_logo_new_1782333467889.jpg";
 import { logMemoryUsage, useMemoryMonitor } from "./utils/memoryLogger";
@@ -68,6 +69,7 @@ import {
   normalizeFoodCategories,
   matchesFoodSearch,
   getShopProfile,
+  getShopOpenStatus,
   generateUniqueOrderId,
   formatOrderId,
   calculateDeliveryFee,
@@ -104,6 +106,8 @@ import {
   ChevronRight,
   X,
   Bike,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -168,7 +172,7 @@ function BannerLiveChatButton({
     <button
       type="button"
       onClick={onClick}
-      className="bg-[#D70F64] hover:bg-[#b00c50] text-white px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider text-center transition cursor-pointer shadow-2xs active:scale-95 flex items-center gap-1.5 relative"
+      className="bg-[#E21B70] hover:bg-[#C2145E] text-white px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider text-center transition cursor-pointer shadow-2xs active:scale-95 flex items-center gap-1.5 relative"
     >
       <span>💬 Live Chat</span>
       {unreadCount > 0 && (
@@ -326,14 +330,18 @@ export default function App() {
     }
   }, [dealTimeLeft, dealConfig.isActive]);
 
-  // Standalone Grocery Module states
-  const initialGroceryProducts = getCachedData<GroceryProduct[]>("dadu_cached_grocery_products", DEFAULT_GROCERY_PRODUCTS as any);
-  const [activeModule, setActiveModule] = useState<"food" | "grocery">("food");
-  const [foodCategories, setFoodCategories] = useState<FoodCategory[]>(() => 
-    getCachedData<FoodCategory[]>("dadu_cached_food_categories", DEFAULT_FOOD_CATEGORIES as any)
+  // Standalone Grocery Module states (honest empty defaults — never inject invented fallback products)
+  const initialGroceryProducts = getCachedData<GroceryProduct[]>("dadu_cached_grocery_products", []).filter(
+    (item) => item && !String(item.id || "").startsWith("gprod_"),
   );
-  const [groceryCategories, setGroceryCategories] = useState<GroceryCategory[]>(() => 
-    getCachedData<GroceryCategory[]>("dadu_cached_grocery_categories", DEFAULT_GROCERY_CATEGORIES as any)
+  const [activeModule, setActiveModule] = useState<"food" | "grocery">("food");
+  const [foodCategories, setFoodCategories] = useState<FoodCategory[]>(() =>
+    getCachedData<FoodCategory[]>("dadu_cached_food_categories", DEFAULT_FOOD_CATEGORIES as any),
+  );
+  const [groceryCategories, setGroceryCategories] = useState<GroceryCategory[]>(() =>
+    getCachedData<GroceryCategory[]>("dadu_cached_grocery_categories", []).filter(
+      (cat) => cat && !String(cat.id || "").startsWith("gcat_"),
+    ),
   );
   const [groceryProducts, setGroceryProducts] = useState<GroceryProduct[]>(() => initialGroceryProducts);
   const [isLoadingGrocery, setIsLoadingGrocery] = useState(false);
@@ -949,7 +957,7 @@ export default function App() {
               name: "All",
               emoji: "🍽️",
               subtitle: "Sab Kuch",
-              color: "from-[#d70f64] to-[#f22c80]",
+              color: "from-[#E21B70] to-[#f22c80]",
               isAvailable: true,
               position: 0,
             },
@@ -1039,18 +1047,9 @@ export default function App() {
               name: "Specials",
               emoji: "⭐️",
               subtitle: "Dadu Premium",
-              color: "from-purple-500 to-indigo-600",
+              color: "#E21B70",
               isAvailable: true,
               position: 10,
-            },
-            {
-              id: "cat_services",
-              name: "Home Services",
-              emoji: "🛠️",
-              subtitle: "Expert Repairs",
-              color: "from-sky-500 to-blue-600",
-              isAvailable: true,
-              position: 11,
             },
           ];
 
@@ -1090,9 +1089,8 @@ export default function App() {
           list.push({ id: doc.id, ...doc.data() } as GroceryCategory);
         });
         list.sort((a, b) => (a.position || 0) - (b.position || 0));
-        const finalCats = list.length > 0 ? list : (DEFAULT_GROCERY_CATEGORIES as unknown as GroceryCategory[]);
-        setGroceryCategories(finalCats);
-        setCachedData("dadu_cached_grocery_categories", finalCats);
+        setGroceryCategories(list);
+        setCachedData("dadu_cached_grocery_categories", list);
         setIsLoadingGrocery(false);
       },
       (err) => {
@@ -1117,11 +1115,10 @@ export default function App() {
         snapshot.forEach((doc) => {
           list.push({ id: doc.id, ...doc.data() } as GroceryProduct);
         });
-        const finalProducts = list.length > 0 ? list : (DEFAULT_GROCERY_PRODUCTS as unknown as GroceryProduct[]);
-        setGroceryProducts(finalProducts);
-        setCachedData("dadu_cached_grocery_products", finalProducts);
+        setGroceryProducts(list);
+        setCachedData("dadu_cached_grocery_products", list);
         setIsLoadingGrocery(false);
-        preloadImages(finalProducts.slice(0, 20).map((p) => p.imageUrl));
+        preloadImages(list.slice(0, 20).map((p) => p.imageUrl));
       },
       (err) => {
         console.warn("Grocery products notice:", handleFirestoreError(err));
@@ -1708,11 +1705,7 @@ export default function App() {
     }
 
     // Limit cart constraint: Max 2 different restaurants per order
-    let itemRestaurant =
-      dish.restaurantName ||
-      (dish.type === "service"
-        ? "Dadu Home Services"
-        : "Dadu Fast Food & Kitchen");
+    let itemRestaurant = dish.restaurantName || "Dadu Fast Food & Kitchen";
     const isDrink =
       dish.id.startsWith("drink_") ||
       dish.category === "Drinks" ||
@@ -2514,7 +2507,7 @@ export default function App() {
 
     return false;
   }, [deliverySettings]);
-  // Clean, normalized catalog (removes foodpanda/KFC, fixes spelling/prices/photos/categories, adds Desi/Chai/Home Services)
+  // Clean, normalized catalog (removes blocked shops/KFC/Home Services, fixes spelling/prices/photos/categories)
   const catalogDishes = React.useMemo(() => normalizeCatalog(dishes), [dishes]);
 
   const normalizedFoodCategories = React.useMemo(
@@ -2526,11 +2519,7 @@ export default function App() {
     return catalogDishes.map((dish) => {
       let isAvailable = dish.isAvailable;
       
-      const rName =
-        dish.restaurantName?.trim() ||
-        (dish.type === "service"
-          ? "Dadu Home Services"
-          : "Dadu Fast Food & Kitchen");
+      const rName = dish.restaurantName?.trim() || "Dadu Fast Food & Kitchen";
 
       if (isAvailable !== false && checkIsRestaurantClosed(rName)) {
         isAvailable = false;
@@ -2576,13 +2565,7 @@ export default function App() {
     const list = Array.from(
       new Set(
         catalogDishes
-          .map(
-            (d) =>
-              d.restaurantName?.trim() ||
-              (d.type === "service"
-                ? "Dadu Home Services"
-                : "Dadu Fast Food & Kitchen"),
-          )
+          .map((d) => d.restaurantName?.trim() || "Dadu Fast Food & Kitchen")
           .filter(Boolean),
       ),
     ) as string[];
@@ -2636,8 +2619,7 @@ export default function App() {
     if (selectedRestaurant !== "All Restaurants") {
       const shopDishes = finalDishes.filter(
         (d) =>
-          (d.restaurantName?.trim() ||
-            (d.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen")) ===
+          (d.restaurantName?.trim() || "Dadu Fast Food & Kitchen") ===
           selectedRestaurant,
       );
       const shopPath = `/shop/${slugifyShop(selectedRestaurant)}`;
@@ -2678,11 +2660,7 @@ export default function App() {
       // When searching, search across ALL categories so "biryani" works even when Pizza is selected
       const matchesCategory =
         q.length > 0 || activeCategory === "All" || dish.category === activeCategory;
-      const rName =
-        dish.restaurantName ||
-        (dish.type === "service"
-          ? "Dadu Home Services"
-          : "Dadu Fast Food & Kitchen");
+      const rName = dish.restaurantName || "Dadu Fast Food & Kitchen";
       const matchesRestaurant =
         q.length > 0 || selectedRestaurant === "All Restaurants" || rName === selectedRestaurant;
       const matchesFavorites =
@@ -2691,13 +2669,16 @@ export default function App() {
 
       const effectivePrice = dish.discountPrice && dish.discountPrice > 0 ? dish.discountPrice : dish.price;
       const textBlob = `${dish.name || ""} ${dish.category || ""} ${dish.description || ""}`.toLowerCase();
-      const restProfile = getShopProfile(rName, deliverySettings);
+      const restProfile = getShopProfile(rName, deliverySettings, undefined, orders);
 
       let matchesQuickFilter = true;
       if (quickFilter === "top_rated") {
-        matchesQuickFilter = Boolean(dish.isFeatured || Number(restProfile.rating) >= 4.6);
+        matchesQuickFilter = Boolean(
+          dish.isFeatured ||
+            (restProfile.rating !== null && Number(restProfile.rating) >= 4.5),
+        );
       } else if (quickFilter === "under_300") {
-        matchesQuickFilter = effectivePrice <= 300 && dish.type !== "service";
+        matchesQuickFilter = effectivePrice <= 300;
       } else if (quickFilter === "fast_food") {
         matchesQuickFilter = /burger|zinger|broast|fries|roll|shawarma|sandwich|wrap|wings|nuggets/.test(textBlob);
       } else if (quickFilter === "desi") {
@@ -2717,7 +2698,7 @@ export default function App() {
       seenKeys.add(dedupeKey);
       return true;
     });
-  }, [finalDishes, activeCategory, selectedRestaurant, showFavoritesOnly, favoriteDishIds, searchQuery, quickFilter, deliverySettings]);
+  }, [finalDishes, activeCategory, selectedRestaurant, showFavoritesOnly, favoriteDishIds, searchQuery, quickFilter, deliverySettings, orders]);
 
   const cartCountTotal = cartItems.reduce(
     (acc, item) => acc + item.quantity,
@@ -2854,7 +2835,7 @@ export default function App() {
               className="relative w-full max-w-sm bg-white dark:bg-zinc-900 rounded-3xl p-6 border border-zinc-200 dark:border-zinc-800 shadow-2xl space-y-4"
             >
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-[#D70F64]/10 text-[#D70F64] flex items-center justify-center shrink-0">
+                <div className="w-11 h-11 rounded-2xl bg-[#E21B70]/10 text-[#E21B70] flex items-center justify-center shrink-0">
                   <AlertTriangle className="w-5 h-5" />
                 </div>
                 <div>
@@ -2873,7 +2854,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => performLogout(false)}
-                  className="w-full py-2.5 px-4 rounded-xl bg-[#D70F64] hover:bg-[#b00c50] text-white text-xs font-black uppercase tracking-wider cursor-pointer transition"
+                  className="w-full py-2.5 px-4 rounded-xl bg-[#E21B70] hover:bg-[#C2145E] text-white text-xs font-black uppercase tracking-wider cursor-pointer transition"
                 >
                   Keep Cart & Sign Out
                 </button>
@@ -2925,7 +2906,7 @@ export default function App() {
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               className="relative w-full max-w-sm bg-zinc-900 rounded-3xl overflow-hidden shadow-2xl border border-zinc-800 text-center"
             >
-              <div className="bg-[#D70F64] p-6 text-center">
+              <div className="bg-[#E21B70] p-6 text-center">
                 <div className="w-16 h-16 rounded-2xl mx-auto shadow-xl border-2 border-white/20 mb-3 bg-white flex items-center justify-center text-3xl animate-pulse">
                   📞
                 </div>
@@ -2939,7 +2920,7 @@ export default function App() {
                 </p>
                 <button
                   onClick={() => setIsVerificationModalOpen(false)}
-                  className="w-full bg-[#D70F64] hover:bg-[#b00c50] text-white font-black tracking-wide shadow-md transition-all py-3.5 rounded-2xl text-sm uppercase cursor-pointer"
+                  className="w-full bg-[#E21B70] hover:bg-[#C2145E] text-white font-black tracking-wide shadow-md transition-all py-3.5 rounded-2xl text-sm uppercase cursor-pointer"
                 >
                   Theek Hai
                 </button>
@@ -3106,10 +3087,7 @@ export default function App() {
         isActiveDetailDishClosed={
           activeDetailDish
             ? checkIsRestaurantClosed(
-                activeDetailDish.restaurantName ||
-                  (activeDetailDish.type === "service"
-                    ? "Dadu Home Services"
-                    : "Dadu Fast Food & Kitchen"),
+                activeDetailDish.restaurantName || "Dadu Fast Food & Kitchen",
               )
             : false
         }
@@ -3159,8 +3137,8 @@ export default function App() {
       />
 
       {toastNotification && (
-        <div className="fixed bottom-6 right-6 z-50 p-4 max-w-sm bg-zinc-900 border-2 border-[#d70f64]/40 text-zinc-100 rounded-2xl shadow-2xl flex items-start gap-3 animate-slide-in">
-          <div className="bg-[#d70f64] text-white p-2.5 rounded-xl shrink-0">
+        <div className="fixed bottom-6 right-6 z-50 p-4 max-w-sm bg-zinc-900 border-2 border-[#E21B70]/40 text-zinc-100 rounded-2xl shadow-2xl flex items-start gap-3 animate-slide-in">
+          <div className="bg-[#E21B70] text-white p-2.5 rounded-xl shrink-0">
             <Sparkles className="w-5 h-5 animate-pulse" />
           </div>
           <div>
@@ -3176,10 +3154,10 @@ export default function App() {
 
       {isExitConfirmationOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fade-in">
-          <div className="bg-zinc-900 border-2 border-[#d70f64]/30 rounded-[32px] max-w-sm w-full overflow-hidden shadow-2xl text-zinc-100 relative">
-            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#d70f64] to-transparent" />
+          <div className="bg-zinc-900 border-2 border-[#E21B70]/30 rounded-[32px] max-w-sm w-full overflow-hidden shadow-2xl text-zinc-100 relative">
+            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#E21B70] to-transparent" />
             <div className="p-6 text-center space-y-5">
-              <div className="mx-auto w-16 h-16 rounded-full bg-[#d70f64]/10 border border-[#d70f64]/20 flex items-center justify-center text-[#d70f64]">
+              <div className="mx-auto w-16 h-16 rounded-full bg-[#E21B70]/10 border border-[#E21B70]/20 flex items-center justify-center text-[#E21B70]">
                 <LogOut className="w-8 h-8 animate-pulse" />
               </div>
               <div className="space-y-2">
@@ -3195,7 +3173,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setIsExitConfirmationOpen(false)}
-                  className="w-full bg-[#d70f64] hover:bg-[#b00c50] text-white py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider transition active:scale-95 shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full bg-[#E21B70] hover:bg-[#C2145E] text-white py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider transition active:scale-95 shadow-md flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <UtensilsCrossed className="w-4 h-4" />
                   Keep Ordering
@@ -3277,7 +3255,7 @@ export default function App() {
                     localStorage.setItem(`seen_announcement_${annId}`, "true");
                     setShowAnnouncementPopup(false);
                   }}
-                  className="w-full bg-[#D70F64] hover:bg-[#b00c50] text-white py-3.5 sm:py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition active:scale-95 shadow-lg shadow-[#D70F64]/10 hover:shadow-[#D70F64]/20 flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full bg-[#E21B70] hover:bg-[#C2145E] text-white py-3.5 sm:py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition active:scale-95 shadow-lg shadow-[#E21B70]/10 hover:shadow-[#E21B70]/20 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span>Maza Aa Gaya! (Explore Now)</span>
                 </button>
@@ -3294,7 +3272,7 @@ export default function App() {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 text-center select-none font-sans relative overflow-hidden">
         {/* Soft Ambient Radial Pink Neon Glow */}
-        <div className="absolute w-80 h-80 sm:w-96 sm:h-96 bg-[#D70F64]/20 rounded-full blur-[100px] pointer-events-none animate-pulse" />
+        <div className="absolute w-80 h-80 sm:w-96 sm:h-96 bg-[#E21B70]/20 rounded-full blur-[100px] pointer-events-none animate-pulse" />
 
         {/* Central Neon Emblem with Glowing Rings */}
         <div className="relative z-10 mb-8 flex items-center justify-center">
@@ -3303,15 +3281,15 @@ export default function App() {
             initial={{ scale: 0.85, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
-            className="w-44 h-44 sm:w-52 sm:h-52 rounded-full border-[3px] border-[#D70F64] shadow-[0_0_40px_rgba(215,15,100,0.8),inset_0_0_20px_rgba(215,15,100,0.6)] p-2.5 flex items-center justify-center relative bg-black/90"
+            className="w-44 h-44 sm:w-52 sm:h-52 rounded-full border-[3px] border-[#E21B70] shadow-[0_0_40px_rgba(215,15,100,0.8),inset_0_0_20px_rgba(215,15,100,0.6)] p-2.5 flex items-center justify-center relative bg-black/90"
           >
             {/* Inner Ring with Logo */}
-            <div className="w-full h-full rounded-full border-2 border-[#D70F64]/80 shadow-[0_0_25px_rgba(215,15,100,0.7)] bg-black flex flex-col items-center justify-center p-3 relative overflow-hidden">
+            <div className="w-full h-full rounded-full border-2 border-[#E21B70]/80 shadow-[0_0_25px_rgba(215,15,100,0.7)] bg-black flex flex-col items-center justify-center p-3 relative overflow-hidden">
               <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full p-0.5 bg-white shadow-lg overflow-hidden flex items-center justify-center mb-1.5 border border-pink-500/30">
                 <img src={daduLogo} alt="Dadu Food Logo" className="w-full h-full object-cover rounded-full bg-white" />
               </div>
               
-              <span className="text-[11px] sm:text-xs font-black tracking-[0.25em] text-white uppercase drop-shadow-[0_0_10px_#D70F64]">
+              <span className="text-[11px] sm:text-xs font-black tracking-[0.25em] text-white uppercase drop-shadow-[0_0_10px_#E21B70]">
                 DELIVERY
               </span>
             </div>
@@ -3326,7 +3304,7 @@ export default function App() {
           className="relative z-10 space-y-1.5"
         >
           <h1 className="text-3xl sm:text-4xl font-black tracking-tight uppercase">
-            DADU <span className="text-[#D70F64] drop-shadow-[0_0_20px_#D70F64]">FOOD</span>
+            DADU <span className="text-[#E21B70] drop-shadow-[0_0_20px_#E21B70]">FOOD</span>
           </h1>
           <p className="text-[10px] sm:text-[11px] font-extrabold text-zinc-400 uppercase tracking-[0.25em]">
             FASTEST DELIVERY IN DADU CITY
@@ -3360,7 +3338,7 @@ export default function App() {
   if (isUserOutOfRange && currentUser?.role !== "admin" && currentUser?.role !== "rider") {
     return (
       <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-24 h-24 mb-6 rounded-3xl bg-gradient-to-br from-[#d70f64] to-red-500 flex items-center justify-center shadow-2xl shadow-[#d70f64]/20 animate-pulse">
+        <div className="w-24 h-24 mb-6 rounded-3xl bg-gradient-to-br from-[#E21B70] to-red-500 flex items-center justify-center shadow-2xl shadow-[#E21B70]/20 animate-pulse">
           <MapPin className="w-12 h-12 text-white" />
         </div>
         <h1 className="text-3xl font-black text-white mb-4 tracking-tight">Out of Service Area</h1>
@@ -3381,7 +3359,7 @@ export default function App() {
 
 
   const lockedBanner = currentUser?.status === 'locked' ? (
-    <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-[#D70F64] text-white p-4 rounded-2xl shadow-2xl z-[999] flex items-start gap-4">
+    <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-[#E21B70] text-white p-4 rounded-2xl shadow-2xl z-[999] flex items-start gap-4">
       <div className="text-3xl animate-pulse">⏳</div>
       <div>
         <h3 className="font-black text-lg mb-1 uppercase tracking-tight">Number Under Verification</h3>
@@ -3465,22 +3443,19 @@ export default function App() {
 
   if (selectedRestaurant !== "All Restaurants") {
     const restaurantDishes = finalDishes.filter((d) => {
-      const rName =
-        d.restaurantName?.trim() ||
-        (d.type === "service"
-          ? "Dadu Home Services"
-          : "Dadu Fast Food & Kitchen");
+      const rName = d.restaurantName?.trim() || "Dadu Fast Food & Kitchen";
       return rName === selectedRestaurant;
     });
 
     const selectedFoodCategory = foodCategories.find(c => c.name === selectedRestaurant);
 
     return (
-      <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-zinc-50"><div className="w-10 h-10 border-4 border-[#d70f64] border-t-transparent rounded-full animate-spin" /></div>}>
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#F9F9FB] dark:bg-[#0B0B0F]"><div className="w-10 h-10 border-4 border-[#E21B70] border-t-transparent rounded-full animate-spin" /></div>}>
         <FoodpandaRestaurantPage
           restaurantName={selectedRestaurant}
           dishes={restaurantDishes}
           deliverySettings={deliverySettings}
+          orders={orders}
           initialCategory={initialRestaurantCategory}
           isRestaurantClosed={checkIsRestaurantClosed(selectedRestaurant)}
           bgImageUrl={
@@ -3512,7 +3487,7 @@ export default function App() {
             if (coords?.lat && coords?.lng) {
               return calculateDistanceKm(refCoords.latitude, refCoords.longitude, coords.lat, coords.lng).toFixed(1) + " km away";
             }
-            return "Nearby";
+            return null;
           })()}
         />
         {commonModals}
@@ -3527,180 +3502,7 @@ export default function App() {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#FFFDFE] via-[#FDF5F8] to-[#FFFDFE] dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 text-zinc-800 dark:text-zinc-100 relative pb-28 md:pb-12 flex flex-col font-sans overflow-x-clip">
-      {/* Decorative Premium Food Watermark/Pattern Background */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden select-none z-0">
-        {/* Subtle grid pattern of culinary shapes */}
-        <div
-          className="absolute inset-0 w-full h-full opacity-[0.025]"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cpath d='M15 15h10v10H15zm40 20h10v10H55zm40-20h10v10H95zM35 75h10v10H35zm40 10h10v10H75zM25 105h10v10H25zm50 5h10v10H75zm40-20h10v10h-10z' fill='%23D70F64'/%3E%3C/svg%3E")`,
-            backgroundSize: "120px 120px",
-          }}
-        />
-
-        {/* Floating Glowing Culinary Accents (Sunset & Pink gradients) */}
-        <div className="absolute top-1/4 -left-48 w-96 h-96 bg-pink-400/10 rounded-full blur-[120px]" />
-        <div className="absolute top-1/2 -right-48 w-96 h-96 bg-pink-300/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-1/4 left-1/3 w-80 h-80 bg-rose-300/8 rounded-full blur-[100px]" />
-
-        {/* Ambient floating elements behind content (visible on tablet and desktop) */}
-        <div className="absolute top-[400px] left-[10%] opacity-[0.06] text-6xl animate-pulse">
-          🍔
-        </div>
-        <div
-          className="absolute top-[650px] right-[8%] opacity-[0.05] text-5xl animate-bounce"
-          style={{ animationDuration: "6s" }}
-        >
-          🍕
-        </div>
-        <div
-          className="absolute top-[1100px] left-[5%] opacity-[0.04] text-7xl animate-pulse"
-          style={{ animationDuration: "8s" }}
-        >
-          🍵
-        </div>
-        <div
-          className="absolute top-[1400px] right-[12%] opacity-[0.05] text-6xl animate-bounce"
-          style={{ animationDuration: "7s" }}
-        >
-          🍗
-        </div>
-        <div className="absolute top-[1900px] left-[12%] opacity-[0.04] text-5xl animate-pulse">
-          🔧
-        </div>
-        <div
-          className="absolute top-[2200px] right-[6%] opacity-[0.06] text-7xl animate-bounce"
-          style={{ animationDuration: "5s" }}
-        >
-          🍏
-        </div>
-        <div
-          className="absolute top-[2700px] left-[8%] opacity-[0.05] text-6xl animate-pulse"
-          style={{ animationDuration: "9s" }}
-        >
-          🍩
-        </div>
-      </div>
-
-      {/* Decorative Food Side Panels (Visible only on wide desktop screens to fill the margins) */}
-      <div className="hidden xl:flex fixed left-4 top-1/4 bottom-1/4 w-44 flex-col justify-around pointer-events-none select-none z-10">
-        <motion.div
-          animate={{ y: [0, -10, 0] }}
-          transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-          className="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border border-pink-150/60 shadow-[0_12px_40px_rgba(0,0,0,0.06)] flex flex-col items-center text-center gap-1.5"
-        >
-          <LazyImage
-            src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80&w=120"
-            alt="Hot Burger"
-            className="w-14 h-14 rounded-full overflow-hidden border-2 border-pink-200 shadow-sm"
-            referrerPolicy="no-referrer"
-          />
-          <span className="text-[10px] font-black uppercase text-[#d70f64] tracking-wider mt-1">
-            Hot Burgers
-          </span>
-          <span className="text-[9px] text-zinc-400 font-semibold leading-none">
-            Fresh & Sizzling
-          </span>
-        </motion.div>
-
-        <motion.div
-          animate={{ y: [0, 8, 0] }}
-          transition={{ repeat: Infinity, duration: 4.5, ease: "easeInOut" }}
-          className="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border border-pink-150/60 shadow-[0_12px_40px_rgba(0,0,0,0.06)] flex flex-col items-center text-center gap-1.5"
-        >
-          <LazyImage
-            src="https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&q=80&w=120"
-            alt="Special Tea"
-            className="w-14 h-14 rounded-full overflow-hidden border-2 border-pink-200 shadow-sm"
-            referrerPolicy="no-referrer"
-          />
-          <span className="text-[10px] font-black uppercase text-[#d70f64] tracking-wider mt-1">
-            Dadu Special Tea
-          </span>
-          <span className="text-[9px] text-zinc-400 font-semibold leading-none">
-            Brewed with love
-          </span>
-        </motion.div>
-
-        <motion.div
-          animate={{ y: [0, -6, 0] }}
-          transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut" }}
-          className="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border border-pink-150/60 shadow-[0_12px_40px_rgba(0,0,0,0.06)] flex flex-col items-center text-center gap-1.5"
-        >
-          <LazyImage
-            src="https://images.unsplash.com/photo-1610348725511-27aae371f0d9?auto=format&fit=crop&q=80&w=120"
-            alt="Grocery"
-            className="w-14 h-14 rounded-full overflow-hidden border-2 border-orange-200 shadow-sm"
-            referrerPolicy="no-referrer"
-          />
-          <span className="text-[10px] font-black uppercase text-pink-600 tracking-wider mt-1">
-            Groceries
-          </span>
-          <span className="text-[9px] text-zinc-400 font-semibold leading-none">
-            Delivered under 20m
-          </span>
-        </motion.div>
-      </div>
-
-      <div className="hidden xl:flex fixed right-4 top-1/4 bottom-1/4 w-44 flex-col justify-around pointer-events-none select-none z-10">
-        <motion.div
-          animate={{ y: [0, 10, 0] }}
-          transition={{ repeat: Infinity, duration: 4.2, ease: "easeInOut" }}
-          className="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border border-pink-150/60 shadow-[0_12px_40px_rgba(0,0,0,0.06)] flex flex-col items-center text-center gap-1.5"
-        >
-          <LazyImage
-            src="https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&q=80&w=120"
-            alt="Cheesy Pizza"
-            className="w-14 h-14 rounded-full overflow-hidden border-2 border-pink-200 shadow-sm"
-            referrerPolicy="no-referrer"
-          />
-          <span className="text-[10px] font-black uppercase text-[#d70f64] tracking-wider mt-1">
-            Cheesy Pizza
-          </span>
-          <span className="text-[9px] text-zinc-400 font-semibold leading-none">
-            Thick Crust Hot
-          </span>
-        </motion.div>
-
-        <motion.div
-          animate={{ y: [0, -8, 0] }}
-          transition={{ repeat: Infinity, duration: 3.8, ease: "easeInOut" }}
-          className="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border border-pink-150/60 shadow-[0_12px_40px_rgba(0,0,0,0.06)] flex flex-col items-center text-center gap-1.5"
-        >
-          <LazyImage
-            src="https://images.unsplash.com/photo-1633945274405-b6c8069047b0?auto=format&fit=crop&q=80&w=120"
-            alt="Dadu Biryani"
-            className="w-14 h-14 rounded-full overflow-hidden border-2 border-pink-200 shadow-sm"
-            referrerPolicy="no-referrer"
-          />
-          <span className="text-[10px] font-black uppercase text-[#d70f64] tracking-wider mt-1">
-            Dadu Biryani
-          </span>
-          <span className="text-[9px] text-zinc-400 font-semibold leading-none">
-            Spiced to perfection
-          </span>
-        </motion.div>
-
-        <motion.div
-          animate={{ y: [0, 6, 0] }}
-          transition={{ repeat: Infinity, duration: 4.8, ease: "easeInOut" }}
-          className="bg-white/90 backdrop-blur-md p-3.5 rounded-2xl border border-pink-150/60 shadow-[0_12px_40px_rgba(0,0,0,0.06)] flex flex-col items-center text-center gap-1.5"
-        >
-          <LazyImage
-            src="https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&q=80&w=120"
-            alt="Home Services"
-            className="w-14 h-14 rounded-full overflow-hidden border-2 border-zinc-200 shadow-sm"
-            referrerPolicy="no-referrer"
-          />
-          <span className="text-[10px] font-black uppercase text-zinc-700 tracking-wider mt-1">
-            Home Services
-          </span>
-          <span className="text-[9px] text-zinc-400 font-semibold leading-none">
-            Certified Mechanics
-          </span>
-        </motion.div>
-      </div>
+    <div className="min-h-screen bg-[#F9F9FB] dark:bg-[#0B0B0F] text-[#111118] dark:text-[#F5F5F8] relative pb-28 md:pb-12 flex flex-col font-sans overflow-x-clip">
 
       {/* Welcome Intro Splash Animation Screen with Site Logo */}
       <AnimatePresence mode="wait">
@@ -3735,7 +3537,7 @@ export default function App() {
               <motion.div
                 animate={{ rotate: 360, scale: [1, 1.1, 1] }}
                 transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                className="absolute w-[80vw] h-[80vw] max-w-[600px] max-h-[600px] bg-gradient-to-tr from-[#d70f64] to-[#7209b7] rounded-full blur-[100px] opacity-60"
+                className="absolute w-[80vw] h-[80vw] max-w-[600px] max-h-[600px] bg-gradient-to-tr from-[#E21B70] to-[#7209b7] rounded-full blur-[100px] opacity-60"
               />
               <motion.div
                 animate={{ rotate: -360, scale: [1, 1.2, 1] }}
@@ -4057,14 +3859,14 @@ export default function App() {
         ) : isMaintenanceActive && !isUserAdmin ? (
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center z-10 max-w-lg mx-auto my-auto min-h-[70vh] gap-6 relative animate-fade-in">
             <div className="w-16 h-16 bg-rose-50 dark:bg-rose-950/30 rounded-2xl flex items-center justify-center border border-rose-100 dark:border-rose-900 animate-bounce shadow-md">
-              <Wrench className="w-8 h-8 text-[#d70f64]" />
+              <Wrench className="w-8 h-8 text-[#E21B70]" />
             </div>
             
             <div className="space-y-2">
               <h1 className="text-3xl font-black tracking-tight text-zinc-900 dark:text-zinc-50 uppercase">
                 Under Maintenance
               </h1>
-              <p className="text-[10px] font-bold tracking-widest text-[#d70f64] uppercase">
+              <p className="text-[10px] font-bold tracking-widest text-[#E21B70] uppercase">
                 Hum jald hi wapas aayenge!
               </p>
             </div>
@@ -4102,50 +3904,50 @@ export default function App() {
           </div>
         ) : (
           <div className="flex-1">
-          {/* Module Switcher Tabs - Smooth Framer Motion Switcher */}
+          {/* Module Switcher Tabs - Unified Crimson Rose */}
           {!isAuthOpen && (
-            <div className="max-w-7xl mx-auto px-4 mt-6">
-              <div className="bg-zinc-200/80 dark:bg-zinc-850 p-1 rounded-2xl flex gap-1.5 border border-zinc-200/80 dark:border-zinc-800 shadow-inner relative overflow-hidden max-w-sm sm:max-w-md mx-auto backdrop-blur-md select-none">
+            <div className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-4">
+              <div className="bg-[#EFEFF5] dark:bg-[#14141A] p-1 rounded-2xl flex gap-1.5 border border-[#E6E6EE] dark:border-[#272733] relative overflow-hidden max-w-sm sm:max-w-md mx-auto select-none">
                 <button
                   type="button"
                   onClick={handleGoToFoodHome}
-                  className={`relative flex-1 py-2.5 sm:py-3 text-[10.5px] font-black uppercase tracking-wider rounded-xl transition-colors duration-200 flex items-center justify-center gap-1.5 cursor-pointer z-10 ${
+                  className={`relative flex-1 min-h-[44px] py-2.5 text-xs font-extrabold uppercase tracking-wider rounded-xl transition-colors duration-200 flex items-center justify-center gap-1.5 cursor-pointer z-10 ${
                     activeModule === "food"
                       ? "text-white"
-                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+                      : "text-[#5A5A6B] dark:text-[#A3A3B5] hover:text-[#111118] dark:hover:text-[#F5F5F8]"
                   }`}
                 >
                   {activeModule === "food" && (
                     <motion.div
                       layoutId="activeModulePill"
-                      className="absolute inset-0 bg-[#d70f64] rounded-xl shadow-md"
+                      className="absolute inset-0 bg-[#E21B70] rounded-xl shadow-xs"
                       transition={{ type: "spring", stiffness: 450, damping: 32 }}
                     />
                   )}
-                  <span className="relative z-10 text-sm">🍔</span>
-                  <span className="relative z-10">Dadu Kitchen</span>
+                  <span className="relative z-10 text-sm" aria-hidden="true">🍔</span>
+                  <span className="relative z-10">Food Delivery</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={handleGoToGroceryHome}
-                  className={`relative flex-1 py-2.5 sm:py-3 text-[10.5px] font-black uppercase tracking-wider rounded-xl transition-colors duration-200 flex items-center justify-center gap-1.5 cursor-pointer z-10 ${
+                  className={`relative flex-1 min-h-[44px] py-2.5 text-xs font-extrabold uppercase tracking-wider rounded-xl transition-colors duration-200 flex items-center justify-center gap-1.5 cursor-pointer z-10 ${
                     activeModule === "grocery"
                       ? "text-white"
-                      : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
+                      : "text-[#5A5A6B] dark:text-[#A3A3B5] hover:text-[#111118] dark:hover:text-[#F5F5F8]"
                   }`}
                 >
                   {activeModule === "grocery" && (
                     <motion.div
                       layoutId="activeModulePill"
-                      className="absolute inset-0 bg-[#d70f64] rounded-xl shadow-md"
+                      className="absolute inset-0 bg-[#E21B70] rounded-xl shadow-xs"
                       transition={{ type: "spring", stiffness: 450, damping: 32 }}
                     />
                   )}
-                  <span className="relative z-10 text-xs">🍏</span>
+                  <span className="relative z-10 text-sm" aria-hidden="true">🛒</span>
                   <span className="relative z-10">Groceries</span>
                   {groceryCartItems.length > 0 && (
-                    <span className="relative z-10 bg-white text-[#d70f64] font-mono text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center shadow-xs leading-none shrink-0">
+                    <span className="relative z-10 bg-white text-[#E21B70] font-mono text-[10px] font-extrabold min-w-[20px] h-5 px-1 rounded-full flex items-center justify-center leading-none shrink-0 tabular-nums">
                       {groceryCartItems.reduce((acc, i) => acc + i.quantity, 0)}
                     </span>
                   )}
@@ -4154,54 +3956,20 @@ export default function App() {
             </div>
           )}
 
-          <Suspense fallback={<div className="p-10 text-center animate-pulse">Loading modules...</div>}>
+          <Suspense fallback={<div className="p-10 text-center text-sm text-[#5A5A6B] dark:text-[#A3A3B5]">Loading…</div>}>
             <AnimatePresence mode="wait">
               {activeModule === "food" ? (
                 <motion.div
                   key="food-module-view"
-                  initial={{ opacity: 0, y: 14, scale: 0.995 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -14, scale: 0.995 }}
-                  transition={{ duration: 0.24, ease: [0.25, 0.1, 0.25, 1.0] }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
                 >
               <>
-                {/* Semantic H1 & Speakable Summary + Delivery Fee Transparency Strip */}
-                <section className="max-w-7xl mx-auto px-4 pt-5 pb-1">
-                  <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-4 sm:px-6 py-4 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                    <div>
-                      <h1 className="text-xl sm:text-2xl font-black tracking-tight text-zinc-900 dark:text-white">
-                        {language === "ur"
-                          ? "Dadu City ka Behtareen Online Food Delivery"
-                          : "Best Online Food Delivery in Dadu"}
-                      </h1>
-                      <p className="speakable-summary text-xs sm:text-sm text-zinc-600 dark:text-zinc-300 mt-1">
-                        {DADU_FOOD_BUSINESS.tagline}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold shrink-0">
-                      <span className="px-2.5 py-1 rounded-lg bg-[#D70F64]/10 text-[#D70F64] dark:bg-[#D70F64]/20 dark:text-pink-300">
-                        Delivery Rs. {deliverySettings?.deliveryFee || 50}
-                      </span>
-                      <span className="px-2.5 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200">
-                        2x below Rs. 500
-                      </span>
-                      <span className="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300">
-                        FREE Rs. 1,000+
-                      </span>
-                    </div>
-                  </div>
-                </section>
-
-                <BannerCarousel 
-                  bannerVersion={deliverySettings.bannerVersion} 
-                  onBannerClick={(actionLink) => {
-                    if (actionLink.startsWith("http")) {
-                      window.open(actionLink, "_blank");
-                    } else {
-                      setActiveCategory("All");
-                      handleRestaurantClick(actionLink);
-                    }
-                  }}
+                <BannerCarousel
+                  bannerVersion={deliverySettings.bannerVersion}
+                  deliveryFee={deliverySettings?.deliveryFee || 50}
                 />
                 {/* Billboard / category selectors */}
                 <FoodpandaHero
@@ -4212,146 +3980,105 @@ export default function App() {
                   foodCategories={normalizedFoodCategories}
                   heroBgUrl={heroBgUrl}
                 >
-                <div className="max-w-7xl mx-auto px-4 mt-6 mb-2">
-                  <motion.div
-                    initial={{ opacity: 0, y: 28, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    transition={{ duration: 0.65, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-                    className="relative p-5 rounded-3xl space-y-4 shadow-md border border-pink-200/50 dark:border-zinc-800 overflow-hidden"
-                  >
-                    {/* Premium Partner Shops Background Image Overlay - HD Crystal Clear */}
-                    <div className="absolute inset-0 z-0 overflow-hidden">
-                      <img
-                        src={partnerShopsBgUrl || "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=1200"}
-                        alt="Partner Shops Background"
-                        className="w-full h-full object-cover transition-all duration-500 scale-100 contrast-[1.02] brightness-[0.95]"
-                        referrerPolicy="no-referrer"
-                      />
-                      {/* Subtle gradient vignette to ensure crisp readability while maintaining 100% HD image clarity */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/35 to-black/65" />
-                    </div>
-
-                    <div className="flex items-center justify-between relative z-10">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#d70f64] to-pink-500 flex items-center justify-center shadow-lg shadow-pink-500/30 text-white shrink-0">
-                          <Compass className="w-5 h-5 animate-pulse-subtle" />
+                <div className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-4 mb-2">
+                  <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-3.5 border border-[#E6E6EE] dark:border-[#272733] shadow-xs">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-[#E21B70] flex items-center justify-center text-white shrink-0">
+                          <Compass className="w-4.5 h-4.5" />
                         </div>
                         <div>
-                          <h4 className="text-[13px] font-black uppercase tracking-widest text-white drop-shadow-xs">
-                            Partner Shops
-                          </h4>
-                          <p className="text-[10px] text-pink-200 font-bold leading-tight mt-0.5 tracking-wide">
-                            Filter by specific vendor
+                          <h2 className="text-sm font-extrabold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
+                            Partner Restaurants in Dadu
+                          </h2>
+                          <p className="text-xs text-[#5A5A6B] dark:text-[#A3A3B5]">
+                            Tap any kitchen to browse full menu & live hours
                           </p>
                         </div>
                       </div>
                       {selectedRestaurant !== "All Restaurants" && (
                         <button
-                          onClick={() =>
-                            setSelectedRestaurant("All Restaurants")
-                          }
-                          className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-md px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shrink-0 cursor-pointer shadow-sm active:scale-95"
+                          type="button"
+                          onClick={() => setSelectedRestaurant("All Restaurants")}
+                          className="min-h-[44px] px-3.5 rounded-xl text-xs font-extrabold text-[#E21B70] dark:text-[#FF4D94] border border-[#E21B70]/30 hover:bg-[#E21B70]/10 transition-colors cursor-pointer shrink-0"
                         >
-                          Reset
+                          All Shops
                         </button>
                       )}
                     </div>
 
-                    <div className="flex items-start gap-3 overflow-x-auto pb-2 scrollbar-none scroll-smooth px-1 relative z-10 touch-pan-both overscroll-x-contain">
-                      <motion.button
-                        initial={{ opacity: 0, y: 15 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3 }}
-                        whileHover={{ scale: 1.03 }}
-                        whileTap={{ scale: 0.97 }}
-                        onClick={() =>
-                          setSelectedRestaurant("All Restaurants")
-                        }
-                        className={`w-[90px] h-[95px] rounded-2xl flex flex-col items-center justify-center p-2 font-black transition shrink-0 cursor-pointer border ${
+                    <div className="flex items-stretch gap-2.5 overflow-x-auto pb-1 scrollbar-none touch-pan-x overscroll-x-contain">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedRestaurant("All Restaurants")}
+                        className={`w-[96px] min-h-[108px] rounded-2xl flex flex-col items-center justify-center p-2 font-bold transition-colors shrink-0 cursor-pointer border ${
                           selectedRestaurant === "All Restaurants"
-                            ? "bg-[#d70f64] text-white border-white/80 shadow-md shadow-pink-500/30 ring-2 ring-pink-400/50"
-                            : "bg-white/95 backdrop-blur-md text-zinc-700 hover:text-zinc-900 hover:bg-white border-white/80 shadow-xs"
+                            ? "bg-[#E21B70] text-white border-[#E21B70] shadow-xs"
+                            : "bg-[#F9F9FB] dark:bg-[#1D1D26] text-[#111118] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733] hover:border-[#E21B70]/50"
                         }`}
                       >
-                        <span className="text-2xl mb-1">🎪</span>
-                        <span className="text-[10px] text-center uppercase tracking-wider leading-tight font-black">
+                        <span className="text-2xl mb-1" aria-hidden="true">🍽️</span>
+                        <span className="text-[11px] text-center font-extrabold leading-tight">
                           All Shops
                         </span>
-                      </motion.button>
+                      </button>
                       {isLoadingDishes
                         ? Array.from({ length: 5 }).map((_, idx) => (
                             <div
                               key={`sk-${idx}`}
-                              className="w-[90px] h-[95px] rounded-2xl bg-white/20 backdrop-blur-md border border-white/20 flex items-center justify-center p-1 shrink-0 animate-pulse"
-                            >
-                              <div className="w-full h-full rounded-xl bg-white/30" />
-                            </div>
+                              className="w-[104px] h-[108px] rounded-2xl bg-[#EFEFF5] dark:bg-[#1D1D26] shrink-0"
+                            />
                           ))
-                        : uniqueRestaurants.map((vendor, idx) => {
+                        : uniqueRestaurants.map((vendor) => {
                             const vendorImageUrl =
                               deliverySettings?.restaurantStatuses?.[vendor]?.imageUrl ||
                               deliverySettings?.restaurantStatuses?.[vendor]?.bgImageUrl ||
                               dishes.find(d => (d.restaurantName || "Dadu Fast Food & Kitchen") === vendor && d.imageUrl)?.imageUrl ||
                               getDefaultRestaurantImage(vendor);
-                            const vendorCoords = deliverySettings?.restaurantStatuses?.[vendor]?.coords;
-                            const refCoords = globalCoords || (
-                              deliverySettings?.baseLocationCoords?.lat && deliverySettings?.baseLocationCoords?.lng
-                                ? { latitude: deliverySettings.baseLocationCoords.lat, longitude: deliverySettings.baseLocationCoords.lng }
-                                : { latitude: 26.7323, longitude: 67.7744 }
-                            );
-                            const distKm = vendorCoords?.lat && vendorCoords?.lng
-                              ? calculateDistanceKm(refCoords.latitude, refCoords.longitude, vendorCoords.lat, vendorCoords.lng).toFixed(1) + " km"
-                              : null;
+                            const vendorIsClosed = checkIsRestaurantClosed(vendor);
+                            const openStatus = getShopOpenStatus(vendor, deliverySettings, vendorIsClosed);
 
                             return (
-                              <motion.button
+                              <button
                                 key={vendor}
-                                initial={{ opacity: 0, y: 20, scale: 0.94 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                transition={{ duration: 0.35, delay: idx * 0.045 }}
-                                whileHover={{ scale: 1.04 }}
-                                whileTap={{ scale: 0.96 }}
-                                onClick={() =>
-                                  handleRestaurantClick(vendor)
-                                }
-                                className={`w-[90px] h-[95px] rounded-2xl flex flex-col items-center justify-between p-1.5 font-black transition shrink-0 cursor-pointer border overflow-hidden shadow-xs hover:shadow-md ${
+                                type="button"
+                                onClick={() => handleRestaurantClick(vendor)}
+                                className={`w-[106px] min-h-[108px] rounded-2xl flex flex-col items-center justify-between p-1.5 transition-colors shrink-0 cursor-pointer border overflow-hidden ${
                                   selectedRestaurant === vendor
-                                    ? "bg-[#d70f64] text-white border-white/80 ring-2 ring-pink-400/50 shadow-md shadow-pink-500/30"
-                                    : "bg-white/95 backdrop-blur-md text-zinc-800 hover:text-zinc-950 hover:bg-white border-white/80"
+                                    ? "bg-[#E21B70] text-white border-[#E21B70] shadow-xs"
+                                    : "bg-[#F9F9FB] dark:bg-[#1D1D26] text-[#111118] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733] hover:border-[#E21B70]/50"
                                 }`}
-                                title={`${vendor}${distKm ? ` (${distKm})` : ""}`}
+                                title={`${vendor} · ${openStatus.label}`}
                               >
-                                <div className="w-full h-[62px] rounded-xl overflow-hidden bg-zinc-100 flex items-center justify-center relative">
+                                <div className="w-full h-[64px] rounded-xl overflow-hidden bg-[#1D1D26] flex items-center justify-center relative">
                                   {vendorImageUrl ? (
                                     <LazyImage
                                       src={vendorImageUrl}
                                       alt={vendor}
                                       className="w-full h-full object-cover"
-                                      imgClassName="object-cover w-full h-full"
+                                      imgClassName={`object-cover w-full h-full ${!openStatus.isOpen ? "grayscale-[35%] opacity-80" : ""}`}
                                     />
                                   ) : (
-                                    <span className="opacity-90 text-2xl">
-                                      {vendor.includes("Services") ||
-                                      vendor.includes("Pr") ||
-                                      vendor.includes("Re")
-                                        ? "🛠️"
-                                        : "🍔"}
-                                    </span>
+                                    <span className="text-2xl" aria-hidden="true">🍔</span>
                                   )}
-                                  {distKm && (
-                                    <span className="absolute bottom-1 right-1 bg-black/80 text-white text-[8px] font-extrabold px-1 py-0.5 rounded-md backdrop-blur-xs">
-                                      {distKm}
-                                    </span>
-                                  )}
+                                  <span
+                                    className={`absolute top-1 left-1 px-1.5 py-0.5 rounded-md text-[9px] font-extrabold leading-none flex items-center gap-0.5 shadow-xs ${
+                                      openStatus.isOpen
+                                        ? "bg-[#15803D] text-white"
+                                        : "bg-[#B91C1C] text-white"
+                                    }`}
+                                  >
+                                    {openStatus.isOpen ? "Open" : "Closed"}
+                                  </span>
                                 </div>
-                                <span className={`text-[9.5px] font-black text-center truncate w-full px-0.5 tracking-tight ${selectedRestaurant === vendor ? "text-white" : "text-zinc-800"}`}>
+                                <span className={`text-[11px] font-bold text-center truncate w-full px-0.5 mt-1 ${selectedRestaurant === vendor ? "text-white" : "text-[#111118] dark:text-[#F5F5F8]"}`}>
                                   {vendor}
                                 </span>
-                              </motion.button>
+                              </button>
                             );
                           })}
                     </div>
-                  </motion.div>
+                  </div>
                 </div>
               </FoodpandaHero>
 
@@ -4414,7 +4141,7 @@ export default function App() {
                       return (
                         <div
                           key={activeOrderForBanner.id}
-                          className="shrink-0 w-[90vw] sm:w-[580px] max-w-full snap-center bg-white border-2 border-[#d70f64] rounded-2xl shadow-xl shadow-red-500/5 overflow-hidden transition-all duration-300 hover:shadow-2xl"
+                          className="shrink-0 w-[90vw] sm:w-[580px] max-w-full snap-center bg-white dark:bg-[#14141A] border-2 border-[#E21B70] rounded-2xl shadow-sm overflow-hidden transition-colors"
                         >
                           {/* Banner Header: Tap-to-track details */}
                           <div
@@ -4422,24 +4149,24 @@ export default function App() {
                               setActiveTrackingOrder(activeOrderForBanner);
                               setIsTrackingModalOpen(true);
                             }}
-                            className="p-3.5 sm:p-4 flex items-center justify-between gap-3 cursor-pointer hover:bg-zinc-50 transition border-b border-zinc-100"
+                            className="p-3.5 sm:p-4 flex items-center justify-between gap-3 cursor-pointer hover:bg-[#F9F9FB] dark:hover:bg-[#1D1D26] transition border-b border-[#E6E6EE] dark:border-[#272733]"
                           >
                             <div className="flex items-center gap-3 min-w-0 flex-1">
-                              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#d70f64]/10 border border-[#d70f64]/20 flex items-center justify-center text-xl shrink-0 animate-pulse">
-                                {isService ? "🛠️" : "🛵"}
+                              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#E21B70]/10 border border-[#E21B70]/25 flex items-center justify-center text-xl shrink-0">
+                                🛵
                               </div>
                               <div className="flex-1 min-w-0">
-                                <span className="text-[9.5px] font-black uppercase tracking-widest text-[#d70f64] flex items-center gap-1">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
-                                  Live Order Tracking Active
+                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#E21B70] dark:text-[#FF4D94] flex items-center gap-1.5">
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-[#15803D] dark:text-[#4ADE80]" />
+                                  Live Order Tracking
                                 </span>
-                                <h4 className="text-xs sm:text-sm font-black text-zinc-800 mt-0.5 leading-normal truncate">
-                                  {isService ? "Service" : "Order"}{" "}
-                                  <span className="font-mono text-zinc-500 font-bold">
+                                <h4 className="text-xs sm:text-sm font-extrabold text-[#111118] dark:text-[#F5F5F8] mt-0.5 leading-normal truncate">
+                                  Order{" "}
+                                  <span className="font-mono text-[#5A5A6B] dark:text-[#A3A3B5] font-bold">
                                     {formatOrderId(activeOrderForBanner.id)}
                                   </span>{" "}
                                   •{" "}
-                                  <span className="text-[#d70f64] uppercase font-bold">
+                                  <span className="text-[#E21B70] dark:text-[#FF4D94] uppercase font-bold">
                                     {activeOrderForBanner.status === "out_for_delivery"
                                       ? "On Way"
                                       : activeOrderForBanner.status === "preparing"
@@ -4468,7 +4195,7 @@ export default function App() {
                                   <div className="flex items-center gap-1 mt-0.5">
                                     <span className="text-[9.5px] text-zinc-500 font-extrabold truncate">
                                       Rider:{" "}
-                                      <span className="text-[#d70f64] font-black">
+                                      <span className="text-[#E21B70] font-black">
                                         {activeOrderForBanner.riderName}
                                       </span>
                                     </span>
@@ -4482,7 +4209,7 @@ export default function App() {
                             </div>
 
                             {/* Rider ETA Box */}
-                            <div className="shrink-0 bg-gradient-to-r from-[#d70f64] to-pink-600 text-white px-3 py-1.5 rounded-2xl text-center shadow-md border border-pink-400/30">
+                            <div className="shrink-0 bg-gradient-to-r from-[#E21B70] to-pink-600 text-white px-3 py-1.5 rounded-2xl text-center shadow-md border border-pink-400/30">
                               <span className="text-[8px] uppercase tracking-wider font-extrabold text-pink-100 block leading-none">
                                 Est. Arrival
                               </span>
@@ -4499,7 +4226,7 @@ export default function App() {
                               <div className="absolute left-3 right-3 top-1/2 -translate-y-1/2 h-1 bg-zinc-200 -z-10 rounded-full" />
                               {/* Animated active filled line */}
                               <div
-                                className="absolute left-3 top-1/2 -translate-y-1/2 h-1 bg-gradient-to-r from-pink-500 to-[#d70f64] -z-10 rounded-full transition-all duration-500"
+                                className="absolute left-3 top-1/2 -translate-y-1/2 h-1 bg-gradient-to-r from-pink-500 to-[#E21B70] -z-10 rounded-full transition-all duration-500"
                                 style={{ width: `${((currentStep - 1) / 4) * 100}%` }}
                               />
 
@@ -4513,7 +4240,7 @@ export default function App() {
                                     <div
                                       className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-black transition-all duration-300 shadow-sm ${
                                         isPassed
-                                          ? "bg-[#d70f64] text-white ring-2 ring-pink-100"
+                                          ? "bg-[#E21B70] text-white ring-2 ring-pink-100"
                                           : "bg-white text-zinc-400 border border-zinc-200"
                                       } ${isCurrent ? "animate-pulse scale-110" : ""}`}
                                     >
@@ -4521,7 +4248,7 @@ export default function App() {
                                     </div>
                                     <span
                                       className={`text-[8.5px] sm:text-[9px] font-black uppercase tracking-wider mt-1 ${
-                                        isCurrent ? "text-[#d70f64]" : isPassed ? "text-zinc-700" : "text-zinc-400"
+                                        isCurrent ? "text-[#E21B70]" : isPassed ? "text-zinc-700" : "text-zinc-400"
                                       }`}
                                     >
                                       {step.label}
@@ -4534,10 +4261,9 @@ export default function App() {
 
                           {/* Quick Actions Footer (Contact Captain / Whatsapp) */}
                           {activeOrderForBanner.riderName && activeOrderForBanner.riderPhone && (
-                            <div className="px-3.5 py-2 bg-zinc-50 flex items-center justify-between gap-2 border-t border-zinc-100 overflow-x-auto">
-                              <span className="text-[9.5px] text-zinc-500 font-extrabold flex items-center gap-1 shrink-0 truncate">
-                                <span className="w-1.5 h-1.5 bg-emerald-500 animate-pulse rounded-full"></span>
-                                {activeOrderForBanner.riderName}:
+                            <div className="px-3.5 py-2 bg-[#F9F9FB] dark:bg-[#1D1D26] flex items-center justify-between gap-2 border-t border-[#E6E6EE] dark:border-[#272733] overflow-x-auto">
+                              <span className="text-[11px] text-[#5A5A6B] dark:text-[#A3A3B5] font-bold flex items-center gap-1 shrink-0 truncate">
+                                Rider: {activeOrderForBanner.riderName}
                               </span>
                               <div className="flex items-center gap-1.5 shrink-0">
                                 <BannerLiveChatButton
@@ -4573,16 +4299,16 @@ export default function App() {
               })()}
 
               {/* Catalog Listing */}
-              <main className="max-w-7xl mx-auto px-4 py-6">
+              <main id="catalog-section" className="max-w-7xl mx-auto px-3.5 sm:px-4 py-5">
                 <div className="flex flex-col md:flex-row gap-6">
                   {/* Left Column: Menu Cards Catalog grid */}
-                  <div className="flex-1 space-y-5">
+                  <div className="flex-1 space-y-5 min-w-0">
 
-                    {/* 1-Tap Quick Filter Chips Bar */}
-                    <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
+                    {/* 1-Tap Quick Filter Chips Bar (44px+ touch targets) */}
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1 touch-pan-x">
                       {[
-                        { id: "all", label: "🍽️ Sab Restaurants" },
-                        { id: "top_rated", label: "🔥 Top Rated" },
+                        { id: "all", label: "🍽️ All Kitchens" },
+                        { id: "top_rated", label: "🔥 Featured" },
                         { id: "under_300", label: "⚡ Under Rs. 300" },
                         { id: "fast_food", label: "🍔 Burgers & Fast Food" },
                         { id: "desi", label: "🍛 Biryani & Karahi" },
@@ -4595,10 +4321,10 @@ export default function App() {
                             key={chip.id}
                             type="button"
                             onClick={() => setQuickFilter(chip.id as typeof quickFilter)}
-                            className={`shrink-0 px-3.5 py-2 rounded-xl text-xs font-black tracking-tight transition cursor-pointer border shadow-2xs ${
+                            className={`shrink-0 min-h-[44px] px-4 rounded-xl text-xs font-extrabold tracking-tight transition-colors cursor-pointer border ${
                               active
-                                ? "bg-[#d70f64] text-white border-[#d70f64] shadow-md shadow-pink-500/20"
-                                : "bg-white text-zinc-700 border-zinc-200 hover:border-[#d70f64]/50 hover:text-[#d70f64]"
+                                ? "bg-[#E21B70] text-white border-[#E21B70] shadow-xs"
+                                : "bg-white dark:bg-[#14141A] text-[#111118] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733] hover:border-[#E21B70]/60 hover:text-[#E21B70] dark:hover:text-[#FF4D94]"
                             }`}
                           >
                             {chip.label}
@@ -4607,37 +4333,41 @@ export default function App() {
                       })}
                     </div>
 
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <h3 className="text-sm font-extrabold tracking-wider text-zinc-750 uppercase border-b border-red-100 pb-2">
+                    <div className="flex items-center justify-between gap-2 flex-wrap border-b border-[#E6E6EE] dark:border-[#272733] pb-2.5">
+                      <h2 className="text-base sm:text-lg font-extrabold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
                         {quickFilter !== "all"
                           ? quickFilter === "top_rated"
-                            ? "🔥 Top Rated Picks"
+                            ? "Featured Picks"
                             : quickFilter === "under_300"
-                              ? "⚡ Budget Deals (Under Rs. 300)"
+                              ? "Budget Deals (Under Rs. 300)"
                               : quickFilter === "fast_food"
-                                ? "🍔 Burgers & Fast Food"
+                                ? "Burgers & Fast Food"
                                 : quickFilter === "desi"
-                                  ? "🍛 Biryani & Karahi"
+                                  ? "Biryani & Karahi"
                                   : quickFilter === "pizza"
-                                    ? "🍕 Pizzas & Pasta"
-                                    : "🥤 Chai & Sweets"
+                                    ? "Pizzas & Pasta"
+                                    : "Chai & Sweets"
                           : selectedRestaurant === "All Restaurants"
-                            ? activeCategory
+                            ? activeCategory === "All"
+                              ? "Restaurants in Dadu"
+                              : activeCategory
                             : selectedRestaurant}{" "}
-                        Delicacies ({filteredDishes.length})
-                      </h3>
+                        <span className="text-sm font-semibold text-[#5A5A6B] dark:text-[#A3A3B5] tabular-nums">
+                          ({selectedRestaurant === "All Restaurants" && activeCategory === "All" && !searchQuery && quickFilter === "all" && !showFavoritesOnly ? `${uniqueRestaurants.length} kitchens` : `${filteredDishes.length} items`})
+                        </span>
+                      </h2>
                       <div className="flex items-center gap-2">
                         {quickFilter !== "all" && (
                           <button
                             type="button"
                             onClick={() => setQuickFilter("all")}
-                            className="text-[11px] font-black text-[#d70f64] hover:underline cursor-pointer"
+                            className="min-h-[36px] px-2.5 text-xs font-extrabold text-[#E21B70] dark:text-[#FF4D94] hover:underline cursor-pointer"
                           >
                             Clear Filter ✕
                           </button>
                         )}
                         {searchQuery && (
-                          <span className="text-xs text-zinc-500 font-bold">
+                          <span className="text-xs text-[#5A5A6B] dark:text-[#A3A3B5] font-semibold">
                             Matching "{searchQuery}"
                           </span>
                         )}
@@ -4645,14 +4375,11 @@ export default function App() {
                     </div>
 
                     {selectedRestaurant === "All Restaurants" && activeCategory === "All" && !searchQuery && quickFilter === "all" && !showFavoritesOnly ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
                         {uniqueRestaurants.map((vendor) => {
                             const vendorAllDishes = catalogDishes.filter(
                               (d) =>
-                                (d.restaurantName?.trim() ||
-                                  (d.type === "service"
-                                    ? "Dadu Home Services"
-                                    : "Dadu Fast Food & Kitchen")) ===
+                                (d.restaurantName?.trim() || "Dadu Fast Food & Kitchen") ===
                                   vendor && d.isAvailable !== false,
                             );
                             const vendorDishes = [...vendorAllDishes]
@@ -4669,15 +4396,15 @@ export default function App() {
                               })
                               .slice(0, 8);
 
-                            const shopProfile = getShopProfile(vendor, deliverySettings, vendorAllDishes);
+                            const shopProfile = getShopProfile(vendor, deliverySettings, vendorAllDishes, orders);
+                            const isClosed = checkIsRestaurantClosed(vendor);
+                            const openStatus = getShopOpenStatus(vendor, deliverySettings, isClosed);
 
                             const vendorImageUrl =
                               deliverySettings?.restaurantStatuses?.[vendor]?.imageUrl ||
                               deliverySettings?.restaurantStatuses?.[vendor]?.bgImageUrl ||
                               vendorDishes.find((d) => d.imageUrl)?.imageUrl ||
                               getDefaultRestaurantImage(vendor);
-
-                            const isClosed = checkIsRestaurantClosed(vendor);
 
                             const vendorCoords = deliverySettings?.restaurantStatuses?.[vendor]?.coords;
                             const refCoords = globalCoords || (
@@ -4686,8 +4413,8 @@ export default function App() {
                                 : { latitude: 26.7323, longitude: 67.7744 }
                             );
                             const distanceDisplay = vendorCoords?.lat && vendorCoords?.lng
-                              ? calculateDistanceKm(refCoords.latitude, refCoords.longitude, vendorCoords.lat, vendorCoords.lng).toFixed(1) + " km away"
-                              : "Dadu City";
+                              ? calculateDistanceKm(refCoords.latitude, refCoords.longitude, vendorCoords.lat, vendorCoords.lng).toFixed(1) + " km"
+                              : null;
 
                             const feeDisplay = isRiderRangeExceeded
                               ? `Rs. ${shopProfile.deliveryFee * 2}`
@@ -4697,61 +4424,83 @@ export default function App() {
                               <article
                                 key={vendor}
                                 onClick={() => handleRestaurantClick(vendor)}
-                                className={`bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800 rounded-3xl overflow-hidden shadow-xs hover:shadow-md transition-all cursor-pointer group flex flex-col ${isClosed ? "opacity-70 grayscale-[20%]" : ""}`}
+                                className={`bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs hover:shadow-md hover:border-[#E21B70]/40 transition-all cursor-pointer group flex flex-col ${!openStatus.isOpen ? "opacity-85" : ""}`}
                               >
-                                <div className="h-44 bg-zinc-100 dark:bg-zinc-800 relative overflow-hidden shrink-0">
+                                <div className="h-44 bg-[#1D1D26] relative overflow-hidden shrink-0">
                                   {vendorImageUrl ? (
                                     <LazyImage
                                       src={vendorImageUrl}
                                       alt={`${vendor} restaurant in Dadu`}
                                       className="w-full h-full"
-                                      imgClassName="object-cover group-hover:scale-105 transition duration-500"
+                                      imgClassName={`object-cover group-hover:scale-105 transition-transform duration-300 ${!openStatus.isOpen ? "grayscale-[35%]" : ""}`}
                                     />
                                   ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-pink-50 text-5xl">
-                                      {vendor.includes("Services") ? "🛠️" : "🍔"}
+                                    <div className="w-full h-full flex items-center justify-center bg-[#1D1D26] text-4xl">
+                                      🍔
                                     </div>
                                   )}
-                                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent"></div>
-                                  
-                                  {/* Distance Badge Top Left */}
-                                  <div className="absolute top-3 left-3 bg-zinc-950/85 text-white border border-white/20 px-2.5 py-1 rounded-xl text-[11px] font-black shadow-lg backdrop-blur-md flex items-center gap-1">
-                                    <Compass className="w-3.5 h-3.5 text-pink-400" />
-                                    <span>{distanceDisplay}</span>
+                                  <div className="absolute inset-0 bg-gradient-to-t from-[#0B0B0F]/90 via-[#0B0B0F]/35 to-transparent" />
+
+                                  {/* Live Open / Closed Badge Top Right (Always visible with clear text + icon) */}
+                                  <div
+                                    className={`absolute top-3 right-3 px-2.5 py-1 rounded-lg text-[11px] font-extrabold shadow-sm flex items-center gap-1 ${
+                                      openStatus.isOpen
+                                        ? "bg-[#15803D] text-white"
+                                        : "bg-[#B91C1C] text-white"
+                                    }`}
+                                  >
+                                    {openStatus.isOpen ? (
+                                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                                    ) : (
+                                      <XCircle className="w-3.5 h-3.5 shrink-0" />
+                                    )}
+                                    <span>
+                                      {openStatus.label}
+                                      {openStatus.detail ? ` · ${openStatus.detail}` : ""}
+                                    </span>
                                   </div>
 
+                                  {/* Distance Badge Top Left (Only if real coordinates exist) */}
+                                  {distanceDisplay && (
+                                    <div className="absolute top-3 left-3 bg-[#0B0B0F]/85 text-white border border-white/15 px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 tabular-nums">
+                                      <Compass className="w-3.5 h-3.5 text-[#FF4D94]" />
+                                      <span>{distanceDisplay}</span>
+                                    </div>
+                                  )}
+
                                   <div className="absolute bottom-3 left-4 right-4 text-white">
-                                    <h3 className="font-black text-lg sm:text-xl tracking-tight shadow-sm leading-tight mb-1">
+                                    <h3 className="font-extrabold text-lg sm:text-xl tracking-tight leading-tight mb-0.5">
                                       {vendor}
                                     </h3>
-                                    <p className="text-[11px] text-zinc-200 line-clamp-1 mb-1.5">
+                                    <p className="text-xs text-white/85 line-clamp-1 mb-1.5">
                                       {shopProfile.oneLineDescription}
                                     </p>
-                                    <div className="text-[11px] font-bold text-white flex flex-wrap items-center gap-2">
-                                      <span className="flex items-center bg-black/55 px-1.5 py-0.5 rounded-md backdrop-blur-md">
-                                        <Star className="w-3 h-3 text-amber-400 mr-1 fill-current" />{" "}
-                                        {shopProfile.rating} ({shopProfile.reviewCount})
+                                    <div className="text-[11px] font-bold text-white/95 flex flex-wrap items-center gap-x-2.5 gap-y-1 tabular-nums">
+                                      {shopProfile.rating && shopProfile.reviewCount > 0 ? (
+                                        <span className="inline-flex items-center bg-black/55 px-1.5 py-0.5 rounded-md">
+                                          <Star className="w-3 h-3 text-amber-400 mr-1 fill-current" />
+                                          {shopProfile.rating} ({shopProfile.reviewCount})
+                                        </span>
+                                      ) : (
+                                        <span className="inline-flex items-center bg-black/55 px-1.5 py-0.5 rounded-md">
+                                          {vendorAllDishes.length} menu items
+                                        </span>
+                                      )}
+                                      <span className="inline-flex items-center">
+                                        <Clock className="w-3 h-3 mr-1 text-[#FF4D94]" /> {shopProfile.deliveryTime}
                                       </span>
-                                      <span className="flex items-center">
-                                        <Clock className="w-3 h-3 mr-1" /> {shopProfile.deliveryTime}
-                                      </span>
-                                      <span className="flex items-center">
-                                        <MapPin className="w-3 h-3 mr-1" /> {feeDisplay} • Min Rs. {shopProfile.minOrder}
+                                      <span className="inline-flex items-center">
+                                        <MapPin className="w-3 h-3 mr-1 text-[#FF4D94]" /> {feeDisplay}
+                                        {shopProfile.minOrder !== null ? ` · Min Rs. ${shopProfile.minOrder}` : ""}
                                       </span>
                                     </div>
                                   </div>
-                                  {isClosed && (
-                                    <div className="absolute top-3 right-3 bg-white/95 text-[#D70F64] px-2 py-1 rounded-lg text-xs font-black shadow-sm flex items-center gap-1">
-                                      <Clock className="w-3.5 h-3.5" />
-                                      Closed
-                                    </div>
-                                  )}
                                 </div>
-                                <div className="p-3 bg-white dark:bg-zinc-900 flex items-center gap-3 overflow-x-auto scrollbar-none border-t border-zinc-100 dark:border-zinc-800 touch-pan-both overscroll-x-contain">
+                                <div className="p-3 bg-white dark:bg-[#14141A] flex items-center gap-2.5 overflow-x-auto scrollbar-none border-t border-[#E6E6EE] dark:border-[#272733] touch-pan-x overscroll-x-contain">
                                   {vendorDishes.map((d) => (
                                     <div
                                       key={d.id}
-                                      className="flex flex-col gap-1 w-20 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                                      className="flex flex-col gap-1 w-20 shrink-0 cursor-pointer hover:opacity-85 transition-opacity"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         if (!isClosed && d.isAvailable !== false) {
@@ -4759,7 +4508,7 @@ export default function App() {
                                         }
                                       }}
                                     >
-                                      <div className="w-full h-20 rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-800">
+                                      <div className="w-full h-20 rounded-xl overflow-hidden bg-[#F2F2F6] dark:bg-[#1D1D26] border border-[#E6E6EE] dark:border-[#272733]">
                                         <LazyImage
                                           src={
                                             d.imageUrl ||
@@ -4770,10 +4519,10 @@ export default function App() {
                                           imgClassName="object-cover"
                                         />
                                       </div>
-                                      <span className="text-[10px] font-bold text-zinc-700 dark:text-zinc-200 line-clamp-1">
+                                      <span className="text-[11px] font-bold text-[#111118] dark:text-[#F5F5F8] line-clamp-1">
                                         {d.name}
                                       </span>
-                                      <span className="text-[10px] text-[#d70f64] font-black leading-none">
+                                      <span className="text-[11px] text-[#E21B70] dark:text-[#FF4D94] font-extrabold leading-none tabular-nums">
                                         Rs. {d.discountPrice || d.price}
                                       </span>
                                     </div>
@@ -4783,11 +4532,11 @@ export default function App() {
                                       e.stopPropagation();
                                       handleRestaurantClick(vendor);
                                     }}
-                                    className="w-16 h-20 flex flex-col items-center justify-center gap-1 shrink-0 bg-pink-50 dark:bg-[#D70F64]/15 rounded-xl text-[#d70f64] hover:bg-pink-100 dark:hover:bg-[#D70F64]/25 transition border border-pink-100 dark:border-[#D70F64]/30 cursor-pointer"
+                                    className="w-16 h-20 flex flex-col items-center justify-center gap-1 shrink-0 bg-[#E21B70]/10 dark:bg-[#E21B70]/15 rounded-xl text-[#E21B70] dark:text-[#FF4D94] hover:bg-[#E21B70]/20 transition-colors border border-[#E21B70]/25 cursor-pointer"
                                   >
                                     <ChevronRight className="w-5 h-5" />
-                                    <span className="text-[9px] font-black uppercase">
-                                      Menu ({vendorAllDishes.length})
+                                    <span className="text-[10px] font-extrabold uppercase tabular-nums">
+                                      All ({vendorAllDishes.length})
                                     </span>
                                   </div>
                                 </div>
@@ -4796,32 +4545,30 @@ export default function App() {
                           })}
                       </div>
                     ) : (
-                      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
+                      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
                         {isLoadingDishes
                         ? Array.from({ length: 8 }).map((_, idx) => (
                             <div
                               key={idx}
-                              className="bg-white border border-zinc-200/80 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs animate-pulse flex flex-col h-full"
+                              className="bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl overflow-hidden flex flex-col h-full"
                             >
-                              <div className="h-28 sm:h-44 bg-zinc-200 shrink-0" />
+                              <div className="h-28 sm:h-44 bg-[#EFEFF5] dark:bg-[#1D1D26] shrink-0" />
                               <div className="p-3 sm:p-4 flex-1 flex flex-col gap-3">
-                                <div className="h-2 sm:h-3 w-1/3 bg-zinc-200 rounded-full" />
-                                <div className="h-4 sm:h-5 w-3/4 bg-zinc-200 rounded-full" />
+                                <div className="h-3 w-1/3 bg-[#EFEFF5] dark:bg-[#1D1D26] rounded-full" />
+                                <div className="h-4 w-3/4 bg-[#EFEFF5] dark:bg-[#1D1D26] rounded-full" />
                                 <div className="mt-auto flex justify-between items-center pt-2">
-                                  <div className="h-4 sm:h-5 w-1/4 bg-zinc-200 rounded-full" />
-                                  <div className="h-8 sm:h-10 w-8 sm:w-10 bg-zinc-200 rounded-full" />
+                                  <div className="h-4 w-1/4 bg-[#EFEFF5] dark:bg-[#1D1D26] rounded-full" />
+                                  <div className="h-10 w-10 bg-[#EFEFF5] dark:bg-[#1D1D26] rounded-xl" />
                                 </div>
                               </div>
                             </div>
                           ))
                         : [...filteredDishes]
                             .sort((a, b) => {
-                              const isSvcA = a.type === "service";
-                              const dishRestaurantNameA = a.restaurantName || (isSvcA ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
+                              const dishRestaurantNameA = a.restaurantName || "Dadu Fast Food & Kitchen";
                               const aClosed = checkIsRestaurantClosed(dishRestaurantNameA) ? 1 : 0;
-                              
-                              const isSvcB = b.type === "service";
-                              const dishRestaurantNameB = b.restaurantName || (isSvcB ? "Dadu Home Services" : "Dadu Fast Food & Kitchen");
+
+                              const dishRestaurantNameB = b.restaurantName || "Dadu Fast Food & Kitchen";
                               const bClosed = checkIsRestaurantClosed(dishRestaurantNameB) ? 1 : 0;
 
                               if (aClosed !== bClosed) {
@@ -4839,12 +4586,8 @@ export default function App() {
                               return String(b.id).localeCompare(String(a.id));
                             })
                             .map((dish, idx) => {
-                            const isSvc = dish.type === "service";
                             const dishRestaurantName =
-                              dish.restaurantName ||
-                              (isSvc
-                                ? "Dadu Home Services"
-                                : "Dadu Fast Food & Kitchen");
+                              dish.restaurantName || "Dadu Fast Food & Kitchen";
                             const isRestaurantClosed =
                               checkIsRestaurantClosed(dishRestaurantName);
                             const openingTime =
@@ -4876,37 +4619,50 @@ export default function App() {
                     )}
 
                     {!isLoadingDishes && filteredDishes.length === 0 && (
-                      <div className="bg-white/80 backdrop-blur-md border border-red-100 p-12 rounded-3.5xl text-center space-y-4 shadow-sm max-w-md mx-auto">
-                        <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto text-3xl shadow-inner animate-bounce">
+                      <div className="bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] p-8 sm:p-10 rounded-3xl text-center space-y-4 shadow-xs max-w-md mx-auto">
+                        <div className="w-14 h-14 bg-[#E21B70]/10 rounded-2xl flex items-center justify-center mx-auto text-2xl">
                           {showFavoritesOnly ? "💔" : "🍛"}
                         </div>
                         <div>
-                          <h4 className="font-black text-sm text-zinc-800 uppercase tracking-tight">
+                          <h3 className="font-extrabold text-base text-[#111118] dark:text-[#F5F5F8]">
                             {showFavoritesOnly
                               ? "No Favorites Yet"
-                              : "No Delicious Dishes Found"}
-                          </h4>
-                          <p className="text-[11px] text-zinc-400 font-semibold leading-relaxed mt-1.5 px-4">
+                              : "No Matching Dishes Found"}
+                          </h3>
+                          <p className="text-xs text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed mt-1.5 px-2">
                             {showFavoritesOnly
-                              ? "Aapne abhi tak kisi dish ko favorite nahi kiya. Favorite button dabayein!"
-                              : `Hamein aapki search query "${searchQuery}" se milti-julti koi dish nahi mili. Kuch naya try karein!`}
+                              ? "Tap the heart icon on any dish to save it to your favorites."
+                              : searchQuery
+                                ? `No dishes matched "${searchQuery}". Try another keyword or browse all kitchens.`
+                                : "No dishes are currently available in this filter."}
                           </p>
                         </div>
                         <button
+                          type="button"
                           onClick={() => {
                             setSearchQuery("");
                             setActiveCategory("All");
+                            setQuickFilter("all");
                             setShowFavoritesOnly(false);
                           }}
-                          className="bg-[#d70f64] hover:bg-[#b00c50] text-white font-black py-2.5 px-6 text-[10px] uppercase tracking-widest rounded-xl cursor-pointer transition-all shadow-md active:scale-95"
+                          className="min-h-[44px] bg-[#E21B70] hover:bg-[#C2145E] text-white font-extrabold py-2.5 px-6 text-xs uppercase tracking-wider rounded-xl cursor-pointer transition-colors"
                         >
-                          Show All Food Menu 🍽️
+                          Show All Kitchens
                         </button>
                       </div>
                     )}
                   </div>
                 </div>
               </main>
+
+              {/* WhatsApp List Ordering Card (Order by typed list on WhatsApp) */}
+              <div className="max-w-7xl mx-auto px-3.5 sm:px-4 pb-2">
+                <WhatsAppListOrderCard
+                  mode="food"
+                  defaultAddress={currentUser?.address || ""}
+                />
+              </div>
+
               <HomeFaqAeoSection language={language} />
             </>
           </motion.div>
@@ -4959,96 +4715,97 @@ export default function App() {
 
       {commonModals}
 
-      {/* Floating Bottom Cart for mobile screens */}
+      {/* Floating Bottom Cart for mobile screens (compact <=56px, positioned cleanly above BottomNavBar) */}
       {cartCountTotal > 0 && selectedRestaurant === "All Restaurants" && (
-        <div className={`fixed bottom-[72px] left-4 right-4 z-40 md:hidden bg-zinc-900/95 border border-zinc-800 p-3 rounded-2xl shadow-2xl flex items-center justify-between gap-3 backdrop-blur-md transition-all duration-300`}>
-          <div className="flex items-center gap-2">
-            <div className="bg-[#d70f64] text-white px-2 rounded-lg font-black text-xs h-7 flex items-center justify-center min-w-[28px]">
+        <div className="fixed bottom-[68px] left-3.5 right-3.5 z-40 md:hidden bg-[#14141A]/95 border border-[#272733] px-3.5 py-2 rounded-2xl shadow-xl flex items-center justify-between gap-3 backdrop-blur-md">
+          <div className="flex items-center gap-2.5">
+            <div className="bg-[#E21B70] text-white px-2.5 rounded-lg font-extrabold text-xs h-8 flex items-center justify-center min-w-[30px] tabular-nums">
               {cartCountTotal}
             </div>
             <div className="text-left">
-              <span className="text-[10px] text-zinc-400 font-bold block leading-none">
-                TOTAL PRICE
+              <span className="text-[10px] text-[#A3A3B5] font-bold uppercase tracking-wider block leading-none">
+                Cart Total
               </span>
-              <span className="text-zinc-100 font-extrabold text-xs sm:text-sm font-mono mt-1 block leading-none">
+              <span className="text-white font-extrabold text-sm font-mono mt-1 block leading-none tabular-nums">
                 Rs. {cartPriceTotal}
               </span>
             </div>
           </div>
           <button
+            type="button"
             onClick={() => setIsCartOpen(true)}
-            className="bg-[#d70f64] text-white font-black text-xs uppercase tracking-wider py-2 px-3.5 rounded-xl hover:bg-[#b00c50] transition active:scale-95 shadow-md flex items-center gap-1 shrink-0 cursor-pointer"
+            className="min-h-[44px] bg-[#E21B70] hover:bg-[#C2145E] text-white font-extrabold text-xs uppercase tracking-wider px-4 rounded-xl transition-colors active:scale-95 flex items-center gap-1.5 shrink-0 cursor-pointer"
           >
-            Review & Order 🛍
+            View Cart
           </button>
         </div>
       )}
 
       {/* Footer with Company, Legal, Partner & Contact Links + Consistent Business Facts */}
-      <footer className="max-w-7xl mx-auto w-full px-4 mt-10 pt-8 pb-24 md:pb-10 border-t border-zinc-200 dark:border-zinc-800 text-xs text-zinc-600 dark:text-zinc-400">
+      <footer className="max-w-7xl mx-auto w-full px-3.5 sm:px-4 mt-10 pt-8 pb-24 md:pb-10 border-t border-[#E6E6EE] dark:border-[#272733] text-xs text-[#5A5A6B] dark:text-[#A3A3B5]">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-left mb-6">
           <div className="space-y-2">
-            <h3 className="font-black text-sm text-zinc-900 dark:text-white tracking-tight">
+            <h3 className="font-extrabold text-sm text-[#111118] dark:text-[#F5F5F8] tracking-tight">
               DADU FOOD
             </h3>
-            <p className="text-[11px] leading-relaxed text-zinc-600 dark:text-zinc-400">
+            <p className="text-xs leading-relaxed text-[#5A5A6B] dark:text-[#A3A3B5]">
               {DADU_FOOD_BUSINESS.tagline}
             </p>
           </div>
-          <div className="space-y-2">
-            <h4 className="font-black text-[11px] uppercase tracking-wider text-zinc-900 dark:text-zinc-200">
+          <div className="space-y-1.5">
+            <h4 className="font-extrabold text-[11px] uppercase tracking-wider text-[#111118] dark:text-[#F5F5F8] mb-2">
               Company & Legal
             </h4>
-            <ul className="space-y-1.5 text-[11px] font-semibold">
+            <ul className="space-y-1 text-xs font-semibold">
               <li>
-                <button type="button" onClick={() => navigateToInfoPage("about")} className="hover:text-[#D70F64] transition cursor-pointer">
+                <button type="button" onClick={() => navigateToInfoPage("about")} className="min-h-[36px] py-1 hover:text-[#E21B70] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
                   About Us
                 </button>
               </li>
               <li>
-                <button type="button" onClick={() => navigateToInfoPage("contact")} className="hover:text-[#D70F64] transition cursor-pointer">
+                <button type="button" onClick={() => navigateToInfoPage("contact")} className="min-h-[36px] py-1 hover:text-[#E21B70] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
                   Contact & Helpline
                 </button>
               </li>
               <li>
-                <button type="button" onClick={() => navigateToInfoPage("terms")} className="hover:text-[#D70F64] transition cursor-pointer">
+                <button type="button" onClick={() => navigateToInfoPage("terms")} className="min-h-[36px] py-1 hover:text-[#E21B70] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
                   Terms & Conditions
                 </button>
               </li>
               <li>
-                <button type="button" onClick={() => navigateToInfoPage("privacy-policy")} className="hover:text-[#D70F64] transition cursor-pointer">
+                <button type="button" onClick={() => navigateToInfoPage("privacy-policy")} className="min-h-[36px] py-1 hover:text-[#E21B70] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
                   Privacy Policy
                 </button>
               </li>
               <li>
-                <button type="button" onClick={() => navigateToInfoPage("refund-policy")} className="hover:text-[#D70F64] transition cursor-pointer">
+                <button type="button" onClick={() => navigateToInfoPage("refund-policy")} className="min-h-[36px] py-1 hover:text-[#E21B70] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
                   Refund & Cancellation Policy
                 </button>
               </li>
             </ul>
           </div>
-          <div className="space-y-2">
-            <h4 className="font-black text-[11px] uppercase tracking-wider text-zinc-900 dark:text-zinc-200">
+          <div className="space-y-1.5">
+            <h4 className="font-extrabold text-[11px] uppercase tracking-wider text-[#111118] dark:text-[#F5F5F8] mb-2">
               Grow With Dadu Food
             </h4>
-            <ul className="space-y-1.5 text-[11px] font-semibold">
+            <ul className="space-y-1 text-xs font-semibold">
               <li>
-                <button type="button" onClick={() => navigateToInfoPage("partner-with-us")} className="hover:text-[#D70F64] transition cursor-pointer">
+                <button type="button" onClick={() => navigateToInfoPage("partner-with-us")} className="min-h-[36px] py-1 hover:text-[#E21B70] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
                   Register Your Restaurant
                 </button>
               </li>
               <li>
-                <button type="button" onClick={() => navigateToInfoPage("become-a-rider")} className="hover:text-[#D70F64] transition cursor-pointer">
+                <button type="button" onClick={() => navigateToInfoPage("become-a-rider")} className="min-h-[36px] py-1 hover:text-[#E21B70] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
                   Become a Delivery Rider
                 </button>
               </li>
             </ul>
           </div>
-          <div className="space-y-1.5 text-[11px]">
-            <h4 className="font-black text-[11px] uppercase tracking-wider text-zinc-900 dark:text-zinc-200 mb-2">
+          <div className="space-y-1.5 text-xs">
+            <h4 className="font-extrabold text-[11px] uppercase tracking-wider text-[#111118] dark:text-[#F5F5F8] mb-2">
               Dadu City Support
             </h4>
-            <p className="font-semibold text-zinc-700 dark:text-zinc-300">
+            <p className="font-semibold text-[#111118] dark:text-[#F5F5F8]">
               {DADU_FOOD_BUSINESS.address}
             </p>
             <p>Hours: {DADU_FOOD_BUSINESS.openingHoursDisplay}</p>
@@ -5058,19 +4815,19 @@ export default function App() {
                 href="https://wa.me/923277004471"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[#D70F64] hover:underline font-bold"
+                className="text-[#E21B70] dark:text-[#FF4D94] hover:underline font-bold"
               >
                 {DADU_FOOD_BUSINESS.phoneDisplay} (Call / WhatsApp)
               </a>
             </p>
-            <p>Delivery: Rs. 50 • 2x below Rs. 500 • Free Rs. 1,000+</p>
+            <p className="tabular-nums">Delivery: Rs. 50 · 2x below Rs. 500 · Free Rs. 1,000+</p>
           </div>
         </div>
-        <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px]">
-          <p className="font-bold text-zinc-700 dark:text-zinc-300">
+        <div className="pt-4 border-t border-[#E6E6EE] dark:border-[#272733] flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+          <p className="font-bold text-[#111118] dark:text-[#F5F5F8]">
             © {new Date().getFullYear()} Dadu Food Delivery Services. All Rights Reserved.
           </p>
-          <p className="text-zinc-500 dark:text-zinc-400">
+          <p className="text-[#5A5A6B] dark:text-[#A3A3B5]">
             Serving Station Road, Makhdoom Bilawal Nagar, Civil Hospital Road & all of Dadu City
           </p>
         </div>
@@ -5102,7 +4859,7 @@ export default function App() {
               <motion.div 
                 animate={{ rotate: 360, scale: [1, 1.1, 1] }} 
                 transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                className="absolute w-[80vw] h-[80vw] max-w-[600px] max-h-[600px] bg-gradient-to-tr from-[#d70f64] to-[#7209b7] rounded-full blur-[100px] opacity-60"
+                className="absolute w-[80vw] h-[80vw] max-w-[600px] max-h-[600px] bg-gradient-to-tr from-[#E21B70] to-[#7209b7] rounded-full blur-[100px] opacity-60"
               />
               <motion.div 
                 animate={{ rotate: -360, scale: [1, 1.2, 1] }} 
@@ -5148,7 +4905,7 @@ export default function App() {
                     {animatingRestaurant.imageUrl ? (
                       <img src={animatingRestaurant.imageUrl} alt={animatingRestaurant.name} className="w-full h-full object-cover transform scale-105 transition-transform duration-300 group-hover:scale-100" />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-pink-50 to-pink-100 flex items-center justify-center text-7xl font-black text-[#d70f64] shadow-inner">
+                      <div className="w-full h-full bg-gradient-to-br from-pink-50 to-pink-100 flex items-center justify-center text-7xl font-black text-[#E21B70] shadow-inner">
                         {animatingRestaurant.name.charAt(0)}
                       </div>
                     )}

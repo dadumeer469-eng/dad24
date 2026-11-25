@@ -1,44 +1,48 @@
 import React, { useState, useEffect, useRef } from "react";
-import { 
-  ChevronLeft, 
-  Heart, 
-  Search, 
-  Star, 
-  MapPin, 
-  Clock, 
-  Tag, 
-  Sparkles, 
-  Flame, 
-  Check, 
-  Plus, 
-  Minus, 
-  Share2, 
-  BadgeCheck, 
-  SlidersHorizontal,
+import {
+  ChevronLeft,
+  Heart,
+  Search,
+  Star,
+  MapPin,
+  Clock,
+  Sparkles,
+  Flame,
+  Plus,
+  Minus,
+  Share2,
+  BadgeCheck,
   Info,
   ShoppingBag,
   Store,
-  ChevronRight
+  ChevronRight,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
-import { Dish, OrderItem, SystemSettings } from "../types";
+import { Dish, Order, OrderItem, SystemSettings } from "../types";
 import { getDefaultRestaurantImage } from "../data";
 import { LazyImage } from "./LazyImage";
 import FoodDetailModal from "./FoodDetailModal";
-import { getShopProfile, isDishVeg } from "../utils/catalogNormalizer";
+import { getShopOpenStatus, getShopProfile, isDishVeg } from "../utils/catalogNormalizer";
 
 interface FoodpandaRestaurantPageProps {
   restaurantName: string;
   dishes: Dish[];
   deliverySettings?: SystemSettings;
+  orders?: Order[];
   initialCategory?: string;
   isRestaurantClosed?: boolean;
   bgImageUrl?: string;
   onBack: () => void;
   onAddToCart: (
-    dish: Dish, 
-    quantityToAdd?: number, 
-    options?: { size?: string; flavor?: string; addOns?: { name: string; price: number; }[]; specialInstructions?: string; }
+    dish: Dish,
+    quantityToAdd?: number,
+    options?: {
+      size?: string;
+      flavor?: string;
+      addOns?: { name: string; price: number }[];
+      specialInstructions?: string;
+    }
   ) => void;
   cartItems: OrderItem[];
   cartCountTotal: number;
@@ -50,7 +54,6 @@ interface FoodpandaRestaurantPageProps {
   distanceDisplay?: string | null;
 }
 
-// Subcomponent for clean category dish grid without stuck spinner
 function CategoryDishGridBatch({
   dishes,
   isClosed,
@@ -74,7 +77,7 @@ function CategoryDishGridBatch({
 
   return (
     <div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
         {visibleItems.map((dish) => (
           <DishCard
             key={dish.id}
@@ -94,7 +97,7 @@ function CategoryDishGridBatch({
           <button
             type="button"
             onClick={() => setVisibleCount((c) => c + 24)}
-            className="px-5 py-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-[#D70F64]/40 text-[#D70F64] hover:bg-[#D70F64] hover:text-white font-bold text-xs transition-colors cursor-pointer"
+            className="min-h-[44px] px-5 py-2.5 rounded-xl bg-white dark:bg-[#14141A] border border-[#E21B70]/45 text-[#E21B70] dark:text-[#FF4D94] hover:bg-[#E21B70] hover:text-white font-bold text-xs transition-colors cursor-pointer"
           >
             Show {Math.min(remaining, 24)} More Items ({remaining} remaining)
           </button>
@@ -103,19 +106,22 @@ function CategoryDishGridBatch({
     </div>
   );
 }
+
 const getCategoryEmoji = (category: string) => {
   const cat = (category || "").toLowerCase();
   if (cat.includes("burger") || cat.includes("fast food")) return "🍔";
   if (cat.includes("pizza")) return "🍕";
   if (cat.includes("drink") || cat.includes("beverage") || cat.includes("shake")) return "🥤";
-  if (cat.includes("biryani") || cat.includes("rice") || cat.includes("pulao")) return "🍛";
-  if (cat.includes("chicken") || cat.includes("karahi") || cat.includes("barbecue") || cat.includes("bbq")) return "🍗";
+  if (cat.includes("biryani") || cat.includes("rice") || cat.includes("pulao") || cat.includes("desi")) return "🍛";
+  if (cat.includes("chicken") || cat.includes("karahi") || cat.includes("barbecue") || cat.includes("bbq") || cat.includes("broast")) return "🍗";
   if (cat.includes("roll") || cat.includes("shawarma") || cat.includes("wrap")) return "🌯";
   if (cat.includes("dessert") || cat.includes("sweet") || cat.includes("ice cream")) return "🍦";
-  if (cat.includes("deal") || cat.includes("combo") || cat.includes("offer")) return "🔥";
-  if (cat.includes("service") || cat.includes("repair")) return "🛠️";
+  if (cat.includes("deal") || cat.includes("combo") || cat.includes("offer") || cat.includes("special")) return "⭐";
   if (cat.includes("fries") || cat.includes("side") || cat.includes("snack")) return "🍟";
   if (cat.includes("tea") || cat.includes("coffee") || cat.includes("chai")) return "☕";
+  if (cat.includes("pasta") || cat.includes("lasagna")) return "🍝";
+  if (cat.includes("sandwich")) return "🥪";
+  if (cat.includes("paratha")) return "🫓";
   return "🍽️";
 };
 
@@ -123,6 +129,7 @@ export default function FoodpandaRestaurantPage({
   restaurantName,
   dishes,
   deliverySettings,
+  orders = [],
   initialCategory,
   isRestaurantClosed,
   bgImageUrl,
@@ -135,22 +142,22 @@ export default function FoodpandaRestaurantPage({
   toggleFavorite,
   favoriteDishIds,
   isRiderRangeExceeded,
-  distanceDisplay
+  distanceDisplay,
 }: FoodpandaRestaurantPageProps) {
-  // Distinct realistic shop profile (rating, reviews, delivery time, min order, one-line AEO summary)
-  const shopProfile = getShopProfile(restaurantName, deliverySettings, dishes);
+  const shopProfile = getShopProfile(restaurantName, deliverySettings, dishes, orders);
+  const openStatus = getShopOpenStatus(restaurantName, deliverySettings, isRestaurantClosed);
 
-  // Group dishes by category & distinct bestsellers (prevent repeating the same 2 deals)
-  const categories = Array.from(new Set(dishes.map(d => d.category)));
-  const explicitBestsellers = dishes.filter(d => Boolean(d.isBestseller));
+  const categories = Array.from(new Set(dishes.map((d) => d.category)));
+  const explicitBestsellers = dishes.filter((d) => Boolean(d.isBestseller));
   const bestsellerDishes = (() => {
     const picked = new Map<string, Dish>();
     for (const d of explicitBestsellers) picked.set(d.id, d);
     if (picked.size < 4 && dishes.length > 4) {
-      // Pick distinct items from different categories so Bestsellers isn't a duplicate of 2 Deals
       for (const cat of categories) {
         if (picked.size >= 6) break;
-        const candidate = dishes.find(d => d.category === cat && !picked.has(d.id) && d.isAvailable !== false);
+        const candidate = dishes.find(
+          (d) => d.category === cat && !picked.has(d.id) && d.isAvailable !== false
+        );
         if (candidate) picked.set(candidate.id, candidate);
       }
     }
@@ -161,10 +168,10 @@ export default function FoodpandaRestaurantPage({
 
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>(
-    initialCategory || (allNavCategories[0] || "")
+    initialCategory || allNavCategories[0] || ""
   );
   const [activeDetailDish, setActiveDetailDish] = useState<Dish | null>(null);
-  const [filterType, setFilterType] = useState<"all" | "bestsellers" | "veg">("all");
+  const [filterType, setFilterType] = useState<"all" | "bestsellers">("all");
   const [copiedLink, setCopiedLink] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -183,35 +190,40 @@ export default function FoodpandaRestaurantPage({
     isManualScrollingRef.current = true;
     const element = categoryRefs.current[category];
     if (element) {
-      const yOffset = -110; 
+      const yOffset = -110;
       const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
-      window.scrollTo({ top: y, behavior: 'smooth' });
+      window.scrollTo({ top: y, behavior: "smooth" });
     }
     setTimeout(() => {
       isManualScrollingRef.current = false;
-    }, 800);
+    }, 700);
   };
 
   useEffect(() => {
     if (initialCategory && allNavCategories.includes(initialCategory)) {
       setTimeout(() => {
         scrollToCategory(initialCategory);
-      }, 300);
+      }, 280);
     }
   }, []);
 
-  // Scroll spy: update active category smoothly as user scrolls down menu
   useEffect(() => {
     let requestRunning = false;
 
     const handleScroll = () => {
-      if (requestRunning || isManualScrollingRef.current || searchQuery || filterType !== "all" || allNavCategories.length === 0) return;
+      if (
+        requestRunning ||
+        isManualScrollingRef.current ||
+        searchQuery ||
+        filterType !== "all" ||
+        allNavCategories.length === 0
+      )
+        return;
 
       requestRunning = true;
       requestAnimationFrame(() => {
         requestRunning = false;
 
-        // Check if scrolled near bottom of page
         if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100) {
           const lastCat = allNavCategories[allNavCategories.length - 1];
           if (lastCat && activeCategory !== lastCat) {
@@ -220,7 +232,7 @@ export default function FoodpandaRestaurantPage({
           return;
         }
 
-        const triggerPoint = 160; // Offset relative to viewport top (sticky nav bar height)
+        const triggerPoint = 160;
         let currentCategory = allNavCategories[0];
 
         for (const cat of allNavCategories) {
@@ -243,36 +255,33 @@ export default function FoodpandaRestaurantPage({
     return () => window.removeEventListener("scroll", handleScroll);
   }, [allNavCategories, activeCategory, searchQuery, filterType]);
 
-  // Keep active category button centered in horizontal scrollbar smoothly without causing page window vertical jumps
   useEffect(() => {
     if (activeCategory && categoryButtonRefs.current[activeCategory] && scrollRef.current) {
       const container = scrollRef.current;
       const btn = categoryButtonRefs.current[activeCategory];
       if (btn && container) {
-        const targetScrollLeft = btn.offsetLeft - (container.clientWidth / 2) + (btn.clientWidth / 2);
+        const targetScrollLeft =
+          btn.offsetLeft - container.clientWidth / 2 + btn.clientWidth / 2;
         container.scrollTo({
           left: Math.max(0, targetScrollLeft),
-          behavior: "smooth"
+          behavior: "smooth",
         });
       }
     }
   }, [activeCategory]);
 
-  // Filtered dishes according to search & chips
-  const filteredDishes = dishes.filter(d => {
+  const filteredDishes = dishes.filter((d) => {
     const q = (searchQuery || "").trim().toLowerCase();
-    const matchesSearch = !q ||
-                          (d.name || "").toLowerCase().includes(q) || 
-                          (d.description || "").toLowerCase().includes(q) ||
-                          (d.category || "").toLowerCase().includes(q);
-    
+    const matchesSearch =
+      !q ||
+      (d.name || "").toLowerCase().includes(q) ||
+      (d.description || "").toLowerCase().includes(q) ||
+      (d.category || "").toLowerCase().includes(q);
+
     if (!matchesSearch) return false;
 
     if (filterType === "bestsellers") {
       return Boolean(d.isBestseller);
-    }
-    if (filterType === "veg") {
-      return d.isVeg || (d.category || "").toLowerCase().includes("veg") || (d.description || "").toLowerCase().includes("veg");
     }
     return true;
   });
@@ -280,300 +289,336 @@ export default function FoodpandaRestaurantPage({
   const restaurantImageUrl =
     deliverySettings?.restaurantStatuses?.[restaurantName]?.imageUrl ||
     deliverySettings?.restaurantStatuses?.[restaurantName]?.bgImageUrl ||
-    dishes.find(d => d.imageUrl)?.imageUrl ||
+    dishes.find((d) => d.imageUrl)?.imageUrl ||
     getDefaultRestaurantImage(restaurantName);
 
   const restaurantCoverUrl =
     bgImageUrl ||
     deliverySettings?.restaurantStatuses?.[restaurantName]?.bgImageUrl ||
     deliverySettings?.restaurantStatuses?.[restaurantName]?.imageUrl ||
-    dishes.find(d => d.imageUrl)?.imageUrl ||
+    dishes.find((d) => d.imageUrl)?.imageUrl ||
     getDefaultRestaurantImage(restaurantName);
-
-  const isMerchantVerified = true;
 
   const handleShare = () => {
     if (navigator.share) {
-      navigator.share({
-        title: restaurantName,
-        text: `Order delicious items from ${restaurantName} on Dadu Express!`,
-        url: window.location.href,
-      }).catch(() => {});
-    } else {
+      navigator
+        .share({
+          title: restaurantName,
+          text: `Order fresh food from ${restaurantName} on Dadu Food!`,
+          url: window.location.href,
+        })
+        .catch(() => {});
+    } else if (navigator.clipboard) {
       navigator.clipboard.writeText(window.location.href);
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2000);
     }
   };
 
-  // Helper to count quantity of dish in cart
   const getDishQuantityInCart = (dishId: string) => {
     return cartItems
-      .filter(item => item.dishId === dishId)
+      .filter((item) => item.dishId === dishId)
       .reduce((sum, item) => sum + item.quantity, 0);
   };
 
+  const deliveryFeeString = (() => {
+    let chargeStr = deliverySettings?.restaurantStatuses?.[restaurantName]?.deliveryCharge;
+    if (!chargeStr) {
+      chargeStr = `Rs. ${shopProfile.deliveryFee}`;
+    }
+    if (isRiderRangeExceeded) {
+      const match = chargeStr.match(/\d+/);
+      if (match) {
+        return chargeStr.replace(match[0], String(parseInt(match[0], 10) * 2));
+      }
+    }
+    return chargeStr;
+  })();
+
+  // Clean distance display — never render "Nearby"
+  const cleanDistance =
+    distanceDisplay && distanceDisplay.toLowerCase() !== "nearby" ? distanceDisplay : null;
+
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans pb-32 transition-colors duration-200">
-      
+    <div className="min-h-screen bg-[#F9F9FB] dark:bg-[#0B0B0F] text-[#14141A] dark:text-[#F5F5F8] font-sans pb-36 transition-colors duration-200 overflow-x-clip">
       {/* Hero Cover Header */}
-      <div className="relative h-56 sm:h-72 w-full overflow-hidden bg-gradient-to-r from-zinc-900 via-rose-950 to-pink-900">
+      <div className="relative h-48 sm:h-64 w-full overflow-hidden bg-[#14141A]">
         {restaurantCoverUrl ? (
-          <LazyImage 
-            src={restaurantCoverUrl} 
+          <LazyImage
+            src={restaurantCoverUrl}
             alt={restaurantName}
             className="w-full h-full"
-            imgClassName="w-full h-full object-cover opacity-85 scale-105 filter saturate-110 transform transition-transform duration-700 hover:scale-100"
+            imgClassName="w-full h-full object-cover opacity-85"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#D70F64] to-rose-700 opacity-90">
-            <Store className="w-24 h-24 text-white/20" />
+          <div className="w-full h-full flex items-center justify-center bg-[#E21B70]">
+            <Store className="w-20 h-20 text-white/25" />
           </div>
         )}
-        
-        {/* Soft Glass Dark Gradient Overlay for Contrast */}
-        <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-black/30" />
 
-        {/* Top Control Bar */}
-        <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between">
-          <button 
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0B0B0F] via-[#0B0B0F]/45 to-black/30" />
+
+        {/* Top Control Bar (>=44px touch targets) */}
+        <div className="absolute top-3.5 left-3.5 right-3.5 z-20 flex items-center justify-between">
+          <button
+            type="button"
             onClick={onBack}
-            className="p-2.5 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md rounded-full text-zinc-800 dark:text-zinc-100 shadow-lg hover:bg-white transition-all cursor-pointer active:scale-95"
+            className="w-11 h-11 bg-white/95 dark:bg-[#14141A]/95 backdrop-blur-md rounded-full text-[#14141A] dark:text-white shadow-md hover:bg-white transition flex items-center justify-center cursor-pointer active:scale-95"
+            aria-label="Back to restaurants"
             title="Go back"
           >
             <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
           </button>
-          
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={handleShare}
-              className="p-2.5 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md rounded-full text-zinc-800 dark:text-zinc-100 shadow-lg hover:bg-white transition-all cursor-pointer active:scale-95 relative"
-              title="Share store"
-            >
-              <Share2 className="w-5 h-5 stroke-[2]" />
-              {copiedLink && (
-                <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 bg-zinc-900 text-white text-[10px] px-2 py-0.5 rounded shadow-md whitespace-nowrap">
-                  Link Copied!
-                </span>
-              )}
-            </button>
-          </div>
+
+          <button
+            type="button"
+            onClick={handleShare}
+            className="w-11 h-11 bg-white/95 dark:bg-[#14141A]/95 backdrop-blur-md rounded-full text-[#14141A] dark:text-white shadow-md hover:bg-white transition flex items-center justify-center cursor-pointer active:scale-95 relative"
+            aria-label="Share restaurant"
+            title="Share store"
+          >
+            <Share2 className="w-4 h-4 stroke-[2.2]" />
+            {copiedLink && (
+              <span className="absolute -bottom-8 right-0 bg-[#14141A] text-white text-[10px] font-bold px-2.5 py-1 rounded-lg shadow-md whitespace-nowrap">
+                Link Copied
+              </span>
+            )}
+          </button>
         </div>
       </div>
 
       {/* Floating Main Restaurant Profile Card */}
-      <div className="max-w-4xl mx-auto px-4 -mt-16 sm:-mt-20 relative z-20">
-        <div className="bg-white dark:bg-zinc-900 rounded-3xl p-5 sm:p-7 shadow-xl shadow-zinc-200/50 dark:shadow-none border border-zinc-100 dark:border-zinc-800/80 backdrop-blur-xl relative overflow-hidden">
-          
-          {/* Top Decorative Pink Glow */}
-          <div className="absolute -top-12 -right-12 w-40 h-40 bg-[#D70F64]/10 rounded-full blur-2xl pointer-events-none" />
-
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-4">
-              {/* Avatar Logo */}
-              <div className="w-20 h-20 sm:w-24 sm:h-24 bg-white dark:bg-zinc-800 rounded-2xl shadow-lg border-2 border-white dark:border-zinc-700 overflow-hidden shrink-0 relative group">
-                {restaurantImageUrl ? (
-                  <LazyImage src={restaurantImageUrl} alt={restaurantName} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-[#D70F64] to-rose-600 flex items-center justify-center text-white font-black text-2xl">
-                    {restaurantName.substring(0, 2).toUpperCase()}
-                  </div>
-                )}
-                {isMerchantVerified && (
-                  <div className="absolute bottom-1 right-1 bg-[#D70F64] text-white rounded-full p-0.5 shadow-sm" title="Verified Merchant">
-                    <BadgeCheck className="w-4 h-4 fill-white text-[#D70F64]" />
-                  </div>
-                )}
-              </div>
-
-              {/* Info */}
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-zinc-900 dark:text-white">
-                    {restaurantName}
-                  </h1>
-                  {isRestaurantClosed ? (
-                    <span className="bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 border border-rose-200 dark:border-rose-900">
-                      Closed Now
-                    </span>
-                  ) : (
-                    <span className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 border border-emerald-200 dark:border-emerald-900 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Open Now
-                    </span>
-                  )}
+      <div className="max-w-4xl mx-auto px-3.5 sm:px-4 -mt-14 sm:-mt-16 relative z-20">
+        <div className="bg-white dark:bg-[#14141A] rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-[#E6E6EE] dark:border-[#272733]">
+          <div className="flex items-start gap-3.5 sm:gap-4">
+            {/* Avatar Logo */}
+            <div className="w-18 h-18 sm:w-22 sm:h-22 bg-white dark:bg-[#1D1D26] rounded-2xl shadow-sm border border-[#E6E6EE] dark:border-[#272733] overflow-hidden shrink-0 relative">
+              {restaurantImageUrl ? (
+                <LazyImage
+                  src={restaurantImageUrl}
+                  alt={restaurantName}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-[#E21B70] flex items-center justify-center text-white font-extrabold text-xl">
+                  {restaurantName.substring(0, 2).toUpperCase()}
                 </div>
-                <p className="speakable-summary text-xs sm:text-sm text-zinc-600 dark:text-zinc-300 font-medium mt-1 flex items-center gap-1.5">
-                  <Store className="w-3.5 h-3.5 text-[#D70F64] shrink-0" />
-                  <span>{shopProfile.oneLineDescription}</span>
-                </p>
+              )}
+              <div
+                className="absolute bottom-1 right-1 bg-[#E21B70] text-white rounded-full p-0.5 shadow-xs"
+                title="Verified Dadu Food Partner"
+              >
+                <BadgeCheck className="w-3.5 h-3.5 fill-white text-[#E21B70]" />
               </div>
+            </div>
+
+            {/* Info + Live Open/Closed Status */}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#14141A] dark:text-[#F5F5F8] leading-tight">
+                  {restaurantName}
+                </h1>
+                {openStatus.isOpen ? (
+                  <span className="inline-flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 px-2.5 py-0.5 rounded-lg text-[11px] font-bold border border-emerald-200 dark:border-emerald-800 shrink-0">
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                    <span>Open · {openStatus.detail}</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 px-2.5 py-0.5 rounded-lg text-[11px] font-bold border border-red-200 dark:border-red-800 shrink-0">
+                    <XCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>Closed · {openStatus.detail}</span>
+                  </span>
+                )}
+              </div>
+              <p className="speakable-summary text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A1A1B2] font-medium mt-1 leading-relaxed">
+                {shopProfile.oneLineDescription}
+              </p>
             </div>
           </div>
 
-          {/* Quick Metrics Bar — Distinct per shop & accurately labelled */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mt-4 sm:mt-5 pt-3.5 sm:pt-4 border-t border-zinc-100 dark:border-zinc-800/80">
-            
-            {/* Rating */}
-            <div className="bg-zinc-50 dark:bg-zinc-800/60 p-2.5 sm:p-3 rounded-2xl flex items-center gap-2 border border-zinc-200/70 dark:border-zinc-800 min-w-0">
-              <div className="p-1.5 rounded-xl bg-amber-500/15 text-amber-500 shrink-0">
-                <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
+          {/* Honest Quick Metrics Bar (No invented ratings or "Nearby") */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mt-4 pt-4 border-t border-[#EFEFF5] dark:border-[#23232E]">
+            {/* Honest Rating or Menu Count */}
+            <div className="bg-[#F9F9FB] dark:bg-[#1B1B23] p-2.5 sm:p-3 rounded-xl flex items-center gap-2 border border-[#E6E6EE] dark:border-[#272733] min-w-0">
+              <div className="p-1.5 rounded-lg bg-[#FDF2F6] dark:bg-[#2A121D] text-[#E21B70] dark:text-[#FF4D94] shrink-0">
+                {shopProfile.rating ? (
+                  <Star className="w-4 h-4 fill-current" />
+                ) : (
+                  <Store className="w-4 h-4" />
+                )}
               </div>
               <div className="min-w-0 flex-1">
-                <span className="block text-xs font-black text-zinc-900 dark:text-zinc-100 truncate">{shopProfile.rating} / 5</span>
-                <span className="block text-[10px] text-zinc-500 dark:text-zinc-400 font-medium truncate leading-tight">{shopProfile.reviewCount} reviews</span>
+                {shopProfile.rating && shopProfile.reviewCount > 0 ? (
+                  <>
+                    <span className="block text-xs font-extrabold text-[#14141A] dark:text-white truncate tabular-nums">
+                      {shopProfile.rating} / 5
+                    </span>
+                    <span className="block text-[10px] text-[#5A5A6B] dark:text-[#A1A1B2] font-medium truncate">
+                      {shopProfile.reviewCount} verified {shopProfile.reviewCount === 1 ? "rating" : "ratings"}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="block text-xs font-extrabold text-[#14141A] dark:text-white truncate tabular-nums">
+                      {dishes.length} {dishes.length === 1 ? "Item" : "Items"}
+                    </span>
+                    <span className="block text-[10px] text-[#5A5A6B] dark:text-[#A1A1B2] font-medium truncate">
+                      Fresh Menu
+                    </span>
+                  </>
+                )}
               </div>
             </div>
 
             {/* Delivery Time */}
-            <div className="bg-zinc-50 dark:bg-zinc-800/60 p-2.5 sm:p-3 rounded-2xl flex items-center gap-2 border border-zinc-200/70 dark:border-zinc-800 min-w-0">
-              <div className="p-1.5 rounded-xl bg-[#D70F64]/15 text-[#D70F64] shrink-0">
+            <div className="bg-[#F9F9FB] dark:bg-[#1B1B23] p-2.5 sm:p-3 rounded-xl flex items-center gap-2 border border-[#E6E6EE] dark:border-[#272733] min-w-0">
+              <div className="p-1.5 rounded-lg bg-[#FDF2F6] dark:bg-[#2A121D] text-[#E21B70] dark:text-[#FF4D94] shrink-0">
                 <Clock className="w-4 h-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <span className="block text-xs font-black text-zinc-900 dark:text-zinc-100 truncate">{shopProfile.deliveryTime}</span>
-                <span className="block text-[10px] text-zinc-500 dark:text-zinc-400 font-medium truncate leading-tight">Est. Delivery</span>
+                <span className="block text-xs font-extrabold text-[#14141A] dark:text-white truncate tabular-nums">
+                  {shopProfile.deliveryTime}
+                </span>
+                <span className="block text-[10px] text-[#5A5A6B] dark:text-[#A1A1B2] font-medium truncate">
+                  Est. Delivery
+                </span>
               </div>
             </div>
 
-            {/* Delivery Fee (Properly labelled — never mislabelled "Nearby") */}
-            <div className="bg-zinc-50 dark:bg-zinc-800/60 p-2.5 sm:p-3 rounded-2xl flex items-center gap-2 border border-zinc-200/70 dark:border-zinc-800 min-w-0">
-              <div className="p-1.5 rounded-xl bg-[#D70F64]/15 text-[#D70F64] shrink-0">
+            {/* Delivery Fee (Never labelled "Nearby") */}
+            <div className="bg-[#F9F9FB] dark:bg-[#1B1B23] p-2.5 sm:p-3 rounded-xl flex items-center gap-2 border border-[#E6E6EE] dark:border-[#272733] min-w-0">
+              <div className="p-1.5 rounded-lg bg-[#FDF2F6] dark:bg-[#2A121D] text-[#E21B70] dark:text-[#FF4D94] shrink-0">
                 <MapPin className="w-4 h-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <span className="block text-xs font-black text-zinc-900 dark:text-zinc-100 truncate">
-                  {(() => {
-                    let chargeStr = deliverySettings?.restaurantStatuses?.[restaurantName]?.deliveryCharge;
-                    if (!chargeStr) {
-                      chargeStr = `Rs. ${shopProfile.deliveryFee}`;
-                    }
-                    if (isRiderRangeExceeded) {
-                      const match = chargeStr.match(/\d+/);
-                      if (match) {
-                        return chargeStr.replace(match[0], String(parseInt(match[0], 10) * 2));
-                      }
-                    }
-                    return chargeStr;
-                  })()}
+                <span className="block text-xs font-extrabold text-[#14141A] dark:text-white truncate tabular-nums">
+                  {deliveryFeeString}
                 </span>
-                <span className="block text-[10px] text-zinc-500 dark:text-zinc-400 font-medium truncate leading-tight">
-                  Delivery Fee{distanceDisplay ? ` • ${distanceDisplay}` : ""}
+                <span className="block text-[10px] text-[#5A5A6B] dark:text-[#A1A1B2] font-medium truncate">
+                  {cleanDistance ? `Fee · ${cleanDistance}` : "Delivery Fee"}
                 </span>
               </div>
             </div>
 
-            {/* Min Order (Consistent across homepage & shop pages) */}
-            <div className="bg-zinc-50 dark:bg-zinc-800/60 p-2.5 sm:p-3 rounded-2xl flex items-center gap-2 border border-zinc-200/70 dark:border-zinc-800 min-w-0">
-              <div className="p-1.5 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 shrink-0">
+            {/* Min Order (Honest: only show amount if configured) */}
+            <div className="bg-[#F9F9FB] dark:bg-[#1B1B23] p-2.5 sm:p-3 rounded-xl flex items-center gap-2 border border-[#E6E6EE] dark:border-[#272733] min-w-0">
+              <div className="p-1.5 rounded-lg bg-[#FDF2F6] dark:bg-[#2A121D] text-[#E21B70] dark:text-[#FF4D94] shrink-0">
                 <ShoppingBag className="w-4 h-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <span className="block text-xs font-black text-zinc-900 dark:text-zinc-100 truncate">
-                  Rs. {Number(deliverySettings?.restaurantStatuses?.[restaurantName]?.minOrder) || shopProfile.minOrder}
+                <span className="block text-xs font-extrabold text-[#14141A] dark:text-white truncate tabular-nums">
+                  {shopProfile.minOrder ? `Rs. ${shopProfile.minOrder}` : "No Minimum"}
                 </span>
-                <span className="block text-[10px] text-zinc-500 dark:text-zinc-400 font-medium truncate leading-tight">Min. Order</span>
+                <span className="block text-[10px] text-[#5A5A6B] dark:text-[#A1A1B2] font-medium truncate">
+                  Min. Order
+                </span>
               </div>
             </div>
           </div>
 
           {/* Transparent Delivery Fee Policy Notice */}
-          <p className="mt-3 text-[11px] font-semibold text-zinc-600 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/70 dark:border-zinc-800 rounded-xl px-3 py-2 flex items-center gap-1.5">
-            <Info className="w-3.5 h-3.5 text-[#D70F64] shrink-0" />
+          <p className="mt-3 text-xs font-medium text-[#5A5A6B] dark:text-[#A1A1B2] bg-[#F9F9FB] dark:bg-[#1B1B23] border border-[#E6E6EE] dark:border-[#272733] rounded-xl px-3 py-2 flex items-center gap-2">
+            <Info className="w-4 h-4 text-[#E21B70] shrink-0" />
             <span>
-              Delivery fee: Rs. {shopProfile.deliveryFee} standard • Doubled below Rs. 500 • <strong className="text-emerald-600 dark:text-emerald-400">FREE above Rs. 1,000</strong>
+              Delivery fee Rs. {shopProfile.deliveryFee} standard · Doubled below Rs. 500 ·{" "}
+              <strong className="text-[#14141A] dark:text-white">Free above Rs. 1,000</strong>
             </span>
           </p>
-
         </div>
       </div>
 
-      {/* Toolbar: Search & Quick Filter Pills */}
-      <div className="max-w-4xl mx-auto px-4 mt-6">
-        <div className="flex flex-col sm:flex-row gap-3">
-          
-          {/* Search Bar */}
+      {/* Toolbar: Search & Filter Buttons (>=44px) */}
+      <div className="max-w-4xl mx-auto px-3.5 sm:px-4 mt-5">
+        <div className="flex flex-col sm:flex-row gap-2.5">
           <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-            <input 
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#717185]" />
+            <input
               type="text"
               value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={`Search in ${restaurantName}...`}
-              className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl py-3 pl-10 pr-10 text-xs sm:text-sm font-semibold outline-none focus:ring-2 focus:ring-[#D70F64]/30 dark:text-white transition-all shadow-xs"
+              className="w-full min-h-[44px] bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-xl py-2.5 pl-10 pr-10 text-sm font-medium outline-none focus:border-[#E21B70] focus:ring-2 focus:ring-[#E21B70]/20 text-[#14141A] dark:text-white transition"
             />
             {searchQuery && (
-              <button 
+              <button
+                type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 font-bold bg-zinc-100 dark:bg-zinc-800 rounded-full w-5 h-5 flex items-center justify-center"
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 text-xs text-[#5A5A6B] hover:text-[#14141A] dark:hover:text-white font-bold bg-[#F2F2F6] dark:bg-[#1D1D26] rounded-lg flex items-center justify-center cursor-pointer"
               >
                 ✕
               </button>
             )}
           </div>
 
-          {/* Quick Filter Chips */}
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1 touch-pan-both overscroll-x-contain">
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none touch-pan-both overscroll-x-contain">
             <button
+              type="button"
               onClick={() => setFilterType("all")}
-              className={`px-3.5 py-2 rounded-2xl text-xs font-black transition-all shrink-0 cursor-pointer ${
+              className={`min-h-[44px] px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer border ${
                 filterType === "all"
-                  ? "bg-[#D70F64] text-white shadow-md shadow-pink-500/20"
-                  : "bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  ? "bg-[#E21B70] text-white border-[#E21B70]"
+                  : "bg-white dark:bg-[#14141A] text-[#14141A] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733]"
               }`}
             >
               All Items ({dishes.length})
             </button>
             <button
+              type="button"
               onClick={() => setFilterType(filterType === "bestsellers" ? "all" : "bestsellers")}
-              className={`px-3.5 py-2 rounded-2xl text-xs font-black transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+              className={`min-h-[44px] px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer border ${
                 filterType === "bestsellers"
-                  ? "bg-[#D70F64] text-white shadow-md shadow-[#D70F64]/20"
-                  : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  ? "bg-[#E21B70] text-white border-[#E21B70]"
+                  : "bg-white dark:bg-[#14141A] text-[#14141A] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733]"
               }`}
             >
-              <Flame className={`w-3.5 h-3.5 ${filterType === "bestsellers" ? "text-white" : "text-[#D70F64]"}`} /> Bestsellers
+              <Flame
+                className={`w-3.5 h-3.5 ${
+                  filterType === "bestsellers" ? "text-white" : "text-[#E21B70]"
+                }`}
+              />
+              <span>Bestsellers</span>
             </button>
           </div>
-
         </div>
       </div>
 
       {/* Sticky Category Navigation Strip */}
       {!searchQuery && allNavCategories.length > 0 && (
-        <div className="sticky top-0 z-30 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border-y border-zinc-200/80 dark:border-zinc-800 shadow-xs mt-6">
-          <div className="max-w-4xl mx-auto px-4">
-            <div className="flex overflow-x-auto scrollbar-none py-2.5 gap-2 items-center touch-pan-both overscroll-x-contain" ref={scrollRef}>
-              {allNavCategories.map(cat => {
+        <div className="sticky top-0 z-30 bg-white/95 dark:bg-[#14141A]/95 backdrop-blur-md border-y border-[#E6E6EE] dark:border-[#272733] mt-5">
+          <div className="max-w-4xl mx-auto px-3.5 sm:px-4">
+            <div
+              className="flex overflow-x-auto scrollbar-none py-2 gap-2 items-center touch-pan-both overscroll-x-contain"
+              ref={scrollRef}
+            >
+              {allNavCategories.map((cat) => {
                 const isBestsellerTab = cat === "🔥 Bestsellers";
-                const count = isBestsellerTab ? bestsellerDishes.length : dishes.filter(d => d.category === cat).length;
+                const count = isBestsellerTab
+                  ? bestsellerDishes.length
+                  : dishes.filter((d) => d.category === cat).length;
                 const isActive = activeCategory === cat;
                 const emoji = isBestsellerTab ? "🔥" : getCategoryEmoji(cat);
 
                 return (
                   <button
                     key={cat}
-                    ref={el => categoryButtonRefs.current[cat] = el}
+                    type="button"
+                    ref={(el) => (categoryButtonRefs.current[cat] = el)}
                     onClick={() => scrollToCategory(cat)}
-                    className={`relative whitespace-nowrap px-4 py-2 rounded-2xl text-xs font-black transition-colors flex items-center gap-2 cursor-pointer select-none ${
-                      isActive 
-                        ? "text-white" 
-                        : "bg-zinc-100 dark:bg-zinc-800/80 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                    className={`min-h-[44px] whitespace-nowrap px-3.5 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-2 cursor-pointer select-none border ${
+                      isActive
+                        ? "bg-[#E21B70] text-white border-[#E21B70]"
+                        : "bg-[#F9F9FB] dark:bg-[#1D1D26] text-[#14141A] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733]"
                     }`}
                   >
-                    {isActive && (
-                      <motion.div
-                        layoutId="activeCategoryTab"
-                        className="absolute inset-0 rounded-2xl shadow-md bg-[#D70F64] shadow-[#D70F64]/25"
-                        transition={{ type: "spring", stiffness: 450, damping: 32 }}
-                      />
-                    )}
-                    <span className="relative z-10 text-sm">{emoji}</span>
-                    <span className="relative z-10">{isBestsellerTab ? "Bestsellers" : cat}</span>
-                    <span className={`relative z-10 px-1.5 py-0.5 rounded-full text-[10px] font-black ${
-                      isActive 
-                        ? "bg-white/20 text-white" 
-                        : "bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-200"
-                    }`}>
+                    <span className="text-sm">{emoji}</span>
+                    <span>{isBestsellerTab ? "Bestsellers" : cat}</span>
+                    <span
+                      className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold tabular-nums ${
+                        isActive
+                          ? "bg-white/20 text-white"
+                          : "bg-[#E6E6EE] dark:bg-[#272733] text-[#5A5A6B] dark:text-[#A1A1B2]"
+                      }`}
+                    >
                       {count}
                     </span>
                   </button>
@@ -585,29 +630,34 @@ export default function FoodpandaRestaurantPage({
       )}
 
       {/* Menu Categories & Items Grid */}
-      <div className="max-w-4xl mx-auto px-4 mt-6">
+      <div className="max-w-4xl mx-auto px-3.5 sm:px-4 mt-5">
         {searchQuery || filterType !== "all" ? (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-black text-zinc-900 dark:text-white flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-[#D70F64]" />
-                Filtered Menu Items ({filteredDishes.length})
+              <h2 className="text-base sm:text-lg font-extrabold text-[#14141A] dark:text-white flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[#E21B70]" />
+                <span>Filtered Items ({filteredDishes.length})</span>
               </h2>
-              {(searchQuery || filterType !== "all") && (
-                <button 
-                  onClick={() => { setSearchQuery(""); setFilterType("all"); }}
-                  className="text-xs text-[#D70F64] font-black hover:underline cursor-pointer"
-                >
-                  Clear Filters
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery("");
+                  setFilterType("all");
+                }}
+                className="min-h-[40px] px-3 text-xs text-[#E21B70] dark:text-[#FF4D94] font-bold hover:underline cursor-pointer"
+              >
+                Clear Filters
+              </button>
             </div>
 
             {filteredDishes.length === 0 ? (
-              <div className="py-12 text-center bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 p-8">
-                <div className="text-4xl mb-2">🔍</div>
-                <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">No dishes match your criteria</p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Try clearing search keywords or changing category filters.</p>
+              <div className="py-12 text-center bg-white dark:bg-[#14141A] rounded-2xl border border-[#E6E6EE] dark:border-[#272733] p-6">
+                <p className="text-sm font-bold text-[#14141A] dark:text-white">
+                  No dishes match your search
+                </p>
+                <p className="text-xs text-[#5A5A6B] dark:text-[#A1A1B2] mt-1">
+                  Try clearing keywords or switching back to all items.
+                </p>
               </div>
             ) : (
               <CategoryDishGridBatch
@@ -623,38 +673,36 @@ export default function FoodpandaRestaurantPage({
           </div>
         ) : (
           <>
-            {/* Dedicated Bestsellers Section at the top */}
             {hasBestsellers && (
-              <div 
-                ref={el => categoryRefs.current["🔥 Bestsellers"] = el}
-                className="mb-10 scroll-mt-32"
+              <div
+                ref={(el) => (categoryRefs.current["🔥 Bestsellers"] = el)}
+                className="mb-8 scroll-mt-28"
               >
-                <div className="flex items-center justify-between mb-4 pb-2 border-b border-amber-500/30">
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-2xl p-2 bg-amber-100 dark:bg-amber-950/60 rounded-2xl border border-amber-300 dark:border-amber-800 shadow-xs">
-                      🔥
-                    </span>
-                    <div>
-                      <h2 className="text-lg sm:text-xl font-black text-amber-600 dark:text-amber-400 tracking-tight flex items-center gap-2">
-                        Popular Bestsellers
-                        <span className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[9.5px] uppercase font-black px-2 py-0.5 rounded-full shadow-xs">
-                          🔥 Must Try
-                        </span>
-                      </h2>
-                      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">
-                        {bestsellerDishes.length} top rated & most ordered item{bestsellerDishes.length > 1 ? "s" : ""}
-                      </p>
-                    </div>
+                <div className="flex items-center gap-2.5 mb-3.5 pb-2 border-b border-[#E6E6EE] dark:border-[#272733]">
+                  <span className="text-xl w-10 h-10 flex items-center justify-center bg-[#FDF2F6] dark:bg-[#2A121D] rounded-xl">
+                    🔥
+                  </span>
+                  <div>
+                    <h2 className="text-base sm:text-lg font-extrabold text-[#14141A] dark:text-white tracking-tight">
+                      Popular Bestsellers
+                    </h2>
+                    <p className="text-xs text-[#5A5A6B] dark:text-[#A1A1B2] font-medium">
+                      {bestsellerDishes.length} popular{" "}
+                      {bestsellerDishes.length === 1 ? "dish" : "dishes"}
+                    </p>
                   </div>
                 </div>
 
-                <div className="flex overflow-x-auto gap-4 pb-3 pt-1 -mx-4 px-4 scrollbar-none snap-x touch-pan-both overscroll-x-contain">
-                  {bestsellerDishes.map(dish => (
-                    <div key={`bestseller-${dish.id}`} className="w-[280px] sm:w-[320px] shrink-0 snap-start">
-                      <DishCard 
-                        dish={dish} 
-                        onAdd={() => setActiveDetailDish(dish)} 
-                        isClosed={isRestaurantClosed} 
+                <div className="flex overflow-x-auto gap-3.5 pb-2 -mx-3.5 px-3.5 scrollbar-none snap-x touch-pan-both overscroll-x-contain">
+                  {bestsellerDishes.map((dish) => (
+                    <div
+                      key={`bestseller-${dish.id}`}
+                      className="w-[290px] sm:w-[320px] shrink-0 snap-start"
+                    >
+                      <DishCard
+                        dish={dish}
+                        onAdd={() => setActiveDetailDish(dish)}
+                        isClosed={isRestaurantClosed}
                         quantityInCart={getDishQuantityInCart(dish.id)}
                         isFavorite={favoriteDishIds.includes(dish.id)}
                         onToggleFavorite={() => toggleFavorite(dish.id)}
@@ -666,83 +714,77 @@ export default function FoodpandaRestaurantPage({
               </div>
             )}
 
-            {categories.map(cat => {
-            const catDishes = dishes.filter(d => d.category === cat);
-            if (catDishes.length === 0) return null;
-            const emoji = getCategoryEmoji(cat);
+            {categories.map((cat) => {
+              const catDishes = dishes.filter((d) => d.category === cat);
+              if (catDishes.length === 0) return null;
+              const emoji = getCategoryEmoji(cat);
 
-            return (
-              <div 
-                key={cat} 
-                ref={el => categoryRefs.current[cat] = el}
-                className="mb-10 scroll-mt-32"
-              >
-                {/* Category Header */}
-                <div className="flex items-center justify-between mb-4 pb-2 border-b border-zinc-200/80 dark:border-zinc-800">
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-2xl p-2 bg-pink-50 dark:bg-pink-950/40 rounded-2xl border border-pink-100 dark:border-pink-900/40">
+              return (
+                <div
+                  key={cat}
+                  ref={(el) => (categoryRefs.current[cat] = el)}
+                  className="mb-8 scroll-mt-28"
+                >
+                  <div className="flex items-center gap-2.5 mb-3.5 pb-2 border-b border-[#E6E6EE] dark:border-[#272733]">
+                    <span className="text-xl w-10 h-10 flex items-center justify-center bg-[#FDF2F6] dark:bg-[#2A121D] rounded-xl">
                       {emoji}
                     </span>
                     <div>
-                      <h2 className="text-lg sm:text-xl font-black text-zinc-900 dark:text-white tracking-tight">
+                      <h2 className="text-base sm:text-lg font-extrabold text-[#14141A] dark:text-white tracking-tight">
                         {cat}
                       </h2>
-                      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">
-                        {catDishes.length} fresh item{catDishes.length > 1 ? "s" : ""} available
+                      <p className="text-xs text-[#5A5A6B] dark:text-[#A1A1B2] font-medium tabular-nums">
+                        {`${catDishes.length} fresh ${catDishes.length === 1 ? "item" : "items"} available`}
                       </p>
                     </div>
                   </div>
-                </div>
 
-                {/* Items Grid with Lazy Batch Loading */}
-                <CategoryDishGridBatch
-                  dishes={catDishes}
-                  isClosed={isRestaurantClosed}
-                  getDishQuantityInCart={getDishQuantityInCart}
-                  favoriteDishIds={favoriteDishIds}
-                  toggleFavorite={toggleFavorite}
-                  onAddToCart={onAddToCart}
-                  setActiveDetailDish={setActiveDetailDish}
-                />
-              </div>
-            );
-          })}
-        </>
+                  <CategoryDishGridBatch
+                    dishes={catDishes}
+                    isClosed={isRestaurantClosed}
+                    getDishQuantityInCart={getDishQuantityInCart}
+                    favoriteDishIds={favoriteDishIds}
+                    toggleFavorite={toggleFavorite}
+                    onAddToCart={onAddToCart}
+                    setActiveDetailDish={setActiveDetailDish}
+                  />
+                </div>
+              );
+            })}
+          </>
         )}
       </div>
 
-      {/* Floating Bottom Cart Bar */}
+      {/* Floating Sticky Cart Bar (Compact <=15% mobile sticky cap, >=48px touch target) */}
       {cartCountTotal > 0 && (
-        <motion.div 
-          initial={{ y: 50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="fixed bottom-[72px] lg:bottom-6 left-4 right-4 z-40 max-w-4xl mx-auto"
-        >
-          <button 
+        <div className="fixed bottom-[68px] lg:bottom-5 left-3.5 right-3.5 z-40 max-w-4xl mx-auto">
+          <button
+            type="button"
             onClick={onViewCart}
-            className="w-full bg-[#D70F64] hover:bg-[#c00c58] text-white p-4 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider shadow-2xl shadow-pink-500/40 transition-all flex items-center justify-between border border-pink-400/40 backdrop-blur-md cursor-pointer active:scale-98 group"
+            className="w-full min-h-[52px] bg-[#E21B70] hover:bg-[#C2145E] text-white px-4 py-3 rounded-2xl font-bold text-sm shadow-lg transition flex items-center justify-between cursor-pointer active:scale-[0.99] group"
           >
-            <div className="flex items-center gap-3">
-              <div className="bg-white/20 px-3 py-1.5 rounded-xl flex items-center justify-center text-xs font-black">
-                {cartCountTotal} {cartCountTotal === 1 ? 'Item' : 'Items'}
-              </div>
-              <span className="font-mono text-sm sm:text-base font-black">Rs. {cartPriceTotal}</span>
+            <div className="flex items-center gap-2.5">
+              <span className="bg-white/20 px-2.5 py-1 rounded-lg text-xs font-bold tabular-nums">
+                {cartCountTotal} {cartCountTotal === 1 ? "Item" : "Items"}
+              </span>
+              <span className="font-mono text-sm sm:text-base font-extrabold tabular-nums">
+                Rs. {cartPriceTotal}
+              </span>
             </div>
 
-            <div className="flex items-center gap-1.5 font-black text-xs sm:text-sm tracking-wider">
-              <span>View Cart & Checkout</span>
-              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            <div className="flex items-center gap-1 font-bold text-xs sm:text-sm">
+              <span>View Cart</span>
+              <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
             </div>
           </button>
-        </motion.div>
+        </div>
       )}
 
-      {/* Food Item Detail Modal */}
       {activeDetailDish && (
-        <FoodDetailModal 
-          dish={activeDetailDish} 
+        <FoodDetailModal
+          dish={activeDetailDish}
           onClose={() => setActiveDetailDish(null)}
-          isActiveDetailDishClosed={false}
+          isActiveDetailDishClosed={Boolean(isRestaurantClosed)}
           onAddToCart={(item, qty, opts) => {
             onAddToCart(item, qty, opts);
             setActiveDetailDish(null);
@@ -753,109 +795,98 @@ export default function FoodpandaRestaurantPage({
   );
 }
 
-// Professional Dish Card Component
-const DishCard = React.memo(function DishCard({ 
-  dish, 
-  onAdd, 
+const DishCard = React.memo(function DishCard({
+  dish,
+  onAdd,
   isClosed,
   quantityInCart,
   isFavorite,
   onToggleFavorite,
-  onQuickAdd
-}: { 
+  onQuickAdd,
+}: {
   key?: React.Key;
   dish: Dish;
-  onAdd: () => void; 
+  onAdd: () => void;
   isClosed?: boolean;
   quantityInCart?: number;
   isFavorite?: boolean;
   onToggleFavorite?: () => void;
   onQuickAdd?: (qty: number) => void;
 }) {
-  const hasOptions = (dish.sizes && dish.sizes.length > 0) || (dish.flavors && dish.flavors.length > 0) || (dish.addOns && dish.addOns.length > 0);
+  const hasOptions =
+    (dish.sizes && dish.sizes.length > 0) ||
+    (dish.flavors && dish.flavors.length > 0) ||
+    (dish.addOns && dish.addOns.length > 0);
   const isAvailable = dish.isAvailable !== false && !isClosed;
-  const isBestseller = Boolean(dish.isBestseller);
+  const veg = isDishVeg(dish);
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, ease: "easeOut" }}
-      className={`group relative flex gap-3 sm:gap-4 p-3.5 sm:p-4 bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/90 rounded-3xl shadow-xs hover:shadow-md transition-all duration-200 ${
-        !isAvailable ? "opacity-60 grayscale-[15%]" : "hover:border-pink-200 dark:hover:border-pink-900/60"
+    <div
+      className={`group relative flex gap-3 p-3.5 bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl shadow-2xs hover:shadow-sm transition-all duration-200 ${
+        !isAvailable ? "opacity-65 grayscale-[15%]" : "hover:border-[#E21B70]/45"
       }`}
     >
       {/* Left Info Column */}
       <div className="flex-1 min-w-0 flex flex-col justify-between">
         <div>
-          {/* Badges */}
-          <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
-            {/* Accurate Veg / Non-Veg Indicator Dot */}
-            {(() => {
-              const veg = isDishVeg(dish);
-              return (
-                <span 
-                  className={`w-3.5 h-3.5 rounded-md border flex items-center justify-center shrink-0 ${
-                    veg 
-                      ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40" 
-                      : "border-rose-600 bg-rose-50 dark:bg-rose-950/40"
-                  }`}
-                  title={veg ? "Vegetarian" : "Non-Vegetarian"}
-                >
-                  <span className={`w-1.5 h-1.5 rounded-full ${veg ? "bg-emerald-600" : "bg-rose-600"}`} />
-                </span>
-              );
-            })()}
-
-            {isBestseller && (
-              <span className="bg-[#D70F64]/10 text-[#D70F64] px-2 py-0.5 rounded-md text-[9.5px] font-black uppercase tracking-wider flex items-center gap-1 border border-[#D70F64]/25">
-                <Flame className="w-3 h-3" /> Bestseller
+          <div className="flex items-center gap-1.5 flex-wrap mb-1">
+            <span
+              className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center shrink-0 ${
+                veg
+                  ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40"
+                  : "border-rose-600 bg-rose-50 dark:bg-rose-950/40"
+              }`}
+              title={veg ? "Vegetarian" : "Non-Vegetarian"}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  veg ? "bg-emerald-600" : "bg-rose-600"
+                }`}
+              />
+            </span>
+            {dish.isBestseller && (
+              <span className="text-[10px] font-bold text-[#E21B70] dark:text-[#FF4D94] uppercase tracking-wide">
+                Bestseller
               </span>
             )}
-
             {!dish.isAvailable && (
-              <span className="bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 px-2 py-0.5 rounded-md text-[9.5px] font-black uppercase tracking-wider">
+              <span className="text-[10px] font-bold text-[#DC2626] uppercase tracking-wide">
                 Sold Out
               </span>
             )}
           </div>
 
-          {/* Dish Name */}
-          <h3 
+          <h3
             onClick={onAdd}
-            className="font-black text-zinc-900 dark:text-white text-sm sm:text-base leading-snug group-hover:text-[#D70F64] transition-colors cursor-pointer line-clamp-2"
+            className="font-bold text-[#14141A] dark:text-white text-sm sm:text-[15px] leading-snug group-hover:text-[#E21B70] transition-colors cursor-pointer line-clamp-2"
           >
             {dish.name}
           </h3>
 
-          {/* Description */}
           {dish.description && (
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 line-clamp-2 leading-relaxed font-medium">
+            <p className="text-xs text-[#5A5A6B] dark:text-[#A1A1B2] mt-1 line-clamp-2 leading-relaxed">
               {dish.description}
             </p>
           )}
         </div>
 
-        {/* Price & Options Tag */}
-        <div className="mt-3 flex items-center justify-between flex-wrap gap-2 pt-1">
+        <div className="mt-2.5 flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-baseline gap-1.5">
-            <span className="font-black text-[#D70F64] text-sm sm:text-base">
-              Rs. {dish.discountPrice && dish.discountPrice < dish.price ? dish.discountPrice : dish.price}
+            <span className="font-mono font-extrabold text-[#E21B70] dark:text-[#FF4D94] text-sm tabular-nums">
+              Rs.{" "}
+              {dish.discountPrice && dish.discountPrice < dish.price
+                ? dish.discountPrice
+                : dish.price}
             </span>
             {dish.discountPrice && dish.discountPrice < dish.price && (
-              <span className="text-xs text-zinc-400 line-through font-semibold">
+              <span className="font-mono text-xs text-[#717185] line-through tabular-nums">
                 Rs. {dish.price}
-              </span>
-            )}
-            {hasOptions && (
-              <span className="text-[10px] text-zinc-400 font-semibold uppercase tracking-wider">
-                • Custom
               </span>
             )}
           </div>
 
           {quantityInCart && quantityInCart > 0 ? (
-            <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+            <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
               {quantityInCart} in cart
             </span>
           ) : null}
@@ -863,53 +894,63 @@ const DishCard = React.memo(function DishCard({
       </div>
 
       {/* Right Image & Action Box */}
-      <div className="relative w-28 h-28 sm:w-32 sm:h-32 shrink-0 flex flex-col items-center">
-        {/* Image Box */}
-        <div 
+      <div className="relative w-26 h-26 sm:w-30 sm:h-30 shrink-0 flex flex-col items-center">
+        <div
           onClick={onAdd}
-          className="w-full h-full rounded-2xl overflow-hidden bg-zinc-100 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-800 shadow-xs relative cursor-pointer group-hover:scale-[1.02] transition-transform duration-300"
+          className="w-full h-full rounded-xl overflow-hidden bg-[#F2F2F6] dark:bg-[#1D1D26] border border-[#E6E6EE] dark:border-[#272733] relative cursor-pointer"
         >
           {dish.imageUrl ? (
-            <LazyImage src={dish.imageUrl} alt={`${dish.name} from ${dish.restaurantName || "Dadu Food"}`} className="w-full h-full object-cover" />
+            <LazyImage
+              src={dish.imageUrl}
+              alt={`${dish.name} from ${dish.restaurantName || "Dadu Food"}`}
+              className="w-full h-full object-cover"
+            />
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-400">
-              <span className="text-xl mb-1">🍔</span>
-              <span className="text-[9px] font-bold uppercase tracking-wider">Dadu Food</span>
+            <div className="w-full h-full flex items-center justify-center bg-[#1D1D26] text-white text-xs font-bold">
+              DADU FOOD
             </div>
           )}
 
-          {/* Wishlist Heart Button */}
           {onToggleFavorite && (
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleFavorite();
               }}
-              className="absolute top-1.5 right-1.5 p-1.5 rounded-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm text-zinc-600 dark:text-zinc-300 hover:text-[#D70F64] transition-colors shadow-xs"
-              title="Add to favorites"
+              aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+              className="absolute top-1 right-1 w-9 h-9 rounded-full bg-white/90 dark:bg-[#14141A]/90 text-[#5A5A6B] hover:text-[#E21B70] transition flex items-center justify-center cursor-pointer"
             >
-              <Heart className={`w-3.5 h-3.5 ${isFavorite ? "fill-[#D70F64] text-[#D70F64]" : ""}`} />
+              <Heart
+                className={`w-3.5 h-3.5 ${
+                  isFavorite ? "fill-[#E21B70] text-[#E21B70]" : ""
+                }`}
+              />
             </button>
           )}
         </div>
 
-        {/* ADD Button or Quantity Stepper */}
-        <div className="absolute -bottom-2 sm:-bottom-3 inset-x-1 flex justify-center z-10">
+        {/* ADD Button or Quantity Stepper (>=40px interactive control) */}
+        <div className="absolute -bottom-2 inset-x-0.5 flex justify-center z-10">
           {isAvailable ? (
             quantityInCart && quantityInCart > 0 ? (
-              <div className="bg-[#D70F64] text-white px-2 py-1 rounded-2xl font-black text-xs shadow-lg shadow-pink-500/30 flex items-center justify-between gap-2 border border-pink-400/40 backdrop-blur-md animate-in fade-in zoom-in-95 duration-200 min-w-[90px]">
+              <div className="bg-[#E21B70] text-white px-1.5 py-1 rounded-xl font-bold text-xs shadow-md flex items-center justify-between gap-1.5 min-w-[96px]">
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (onQuickAdd) onQuickAdd(-1);
                   }}
-                  className="w-6 h-6 rounded-xl bg-white/20 hover:bg-white/30 text-white flex items-center justify-center font-black transition-colors cursor-pointer active:scale-90"
-                  title="Remove one"
+                  aria-label="Remove one"
+                  className="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 text-white flex items-center justify-center cursor-pointer active:scale-90"
                 >
-                  <Minus className="w-3.5 h-3.5 stroke-[3]" />
+                  <Minus className="w-3.5 h-3.5 stroke-[2.8]" />
                 </button>
-                <span className="font-mono text-xs font-black px-1">{quantityInCart}</span>
+                <span className="font-mono text-xs font-bold tabular-nums px-1">
+                  {quantityInCart}
+                </span>
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (hasOptions) {
@@ -918,46 +959,42 @@ const DishCard = React.memo(function DishCard({
                       onQuickAdd(1);
                     }
                   }}
-                  className="w-6 h-6 rounded-xl bg-white/20 hover:bg-white/30 text-white flex items-center justify-center font-black transition-colors cursor-pointer active:scale-90"
-                  title="Add another"
+                  aria-label="Add one more"
+                  className="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 text-white flex items-center justify-center cursor-pointer active:scale-90"
                 >
-                  <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                  <Plus className="w-3.5 h-3.5 stroke-[2.8]" />
                 </button>
               </div>
-            ) : hasOptions ? (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onAdd();
-                }}
-                className="bg-white dark:bg-zinc-800 border-2 border-[#D70F64] text-[#D70F64] dark:text-pink-400 hover:bg-[#D70F64] hover:text-white px-3.5 sm:px-4 py-1 sm:py-1.5 rounded-2xl font-black text-xs uppercase tracking-wider shadow-md shadow-pink-500/10 transition-all flex items-center justify-center gap-1 active:scale-95 cursor-pointer group/btn"
-              >
-                <span>ADD</span>
-                <Plus className="w-3.5 h-3.5 stroke-[3] group-hover/btn:rotate-90 transition-transform duration-200" />
-              </button>
             ) : (
               <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (onQuickAdd) {
+                  if (hasOptions) {
+                    onAdd();
+                  } else if (onQuickAdd) {
                     onQuickAdd(1);
                   } else {
                     onAdd();
                   }
                 }}
-                className="bg-[#D70F64] hover:bg-[#b00c50] text-white px-3.5 sm:px-4 py-1 sm:py-1.5 rounded-2xl font-black text-xs uppercase tracking-wider shadow-md shadow-pink-500/25 transition-all flex items-center justify-center gap-1 active:scale-95 cursor-pointer group/btn"
+                className={`min-h-[38px] px-4 py-1.5 rounded-xl font-bold text-xs uppercase tracking-wider shadow-md transition flex items-center justify-center gap-1 active:scale-95 cursor-pointer ${
+                  hasOptions
+                    ? "bg-white dark:bg-[#14141A] border-2 border-[#E21B70] text-[#E21B70] dark:text-[#FF4D94] hover:bg-[#E21B70] hover:text-white"
+                    : "bg-[#E21B70] hover:bg-[#C2145E] text-white"
+                }`}
               >
-                <span>ADD</span>
-                <Plus className="w-3.5 h-3.5 stroke-[3] group-hover/btn:rotate-90 transition-transform duration-200" />
+                <span>Add</span>
+                <Plus className="w-3.5 h-3.5 stroke-[2.8]" />
               </button>
             )
           ) : (
-            <span className="bg-zinc-200 dark:bg-zinc-800 text-zinc-500 text-[10px] font-black uppercase px-2.5 py-1 rounded-xl border border-zinc-300 dark:border-zinc-700">
+            <span className="bg-[#E6E6EE] dark:bg-[#272733] text-[#5A5A6B] dark:text-[#A1A1B2] text-[10px] font-bold uppercase px-2.5 py-1 rounded-lg">
               Unavailable
             </span>
           )}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 });

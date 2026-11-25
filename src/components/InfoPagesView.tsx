@@ -68,7 +68,7 @@ export const InfoPagesView: React.FC<InfoPagesViewProps> = ({ page, onBack, onNa
       <button
         type="button"
         onClick={onBack}
-        className="inline-flex items-center gap-2 text-sm font-bold text-[#d70f64] hover:underline mb-6 cursor-pointer"
+        className="inline-flex items-center gap-2 text-sm font-bold text-[#E21B70] hover:underline mb-6 cursor-pointer"
       >
         <ArrowLeft className="w-4 h-4" />
         Back to Dadu Food Home
@@ -97,7 +97,7 @@ export const InfoPagesView: React.FC<InfoPagesViewProps> = ({ page, onBack, onNa
             }}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
               page === slug
-                ? "bg-[#d70f64] text-white"
+                ? "bg-[#E21B70] text-white"
                 : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700"
             }`}
           >
@@ -110,9 +110,9 @@ export const InfoPagesView: React.FC<InfoPagesViewProps> = ({ page, onBack, onNa
         {page === "about" && (
           <>
             <header className="space-y-2 border-b border-zinc-100 dark:border-zinc-800 pb-5">
-              <p className="text-xs font-bold uppercase tracking-wider text-[#d70f64]">About Dadu Food</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-[#E21B70]">About Dadu Food</p>
               <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-white">
-                Dadu City&apos;s Fastest Food, Grocery &amp; Home Services Platform
+                Dadu City&apos;s Fastest Food &amp; Grocery Delivery Platform
               </h1>
               <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-300 leading-relaxed">
                 {DADU_FOOD_BUSINESS.tagline}
@@ -149,7 +149,7 @@ export const InfoPagesView: React.FC<InfoPagesViewProps> = ({ page, onBack, onNa
         {page === "terms" && (
           <>
             <header className="space-y-2 border-b border-zinc-100 dark:border-zinc-800 pb-5">
-              <div className="flex items-center gap-2 text-[#d70f64] text-xs font-bold uppercase tracking-wider">
+              <div className="flex items-center gap-2 text-[#E21B70] text-xs font-bold uppercase tracking-wider">
                 <FileText className="w-4 h-4" /> Legal
               </div>
               <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-white">Terms &amp; Conditions</h1>
@@ -179,7 +179,7 @@ export const InfoPagesView: React.FC<InfoPagesViewProps> = ({ page, onBack, onNa
         {page === "privacy-policy" && (
           <>
             <header className="space-y-2 border-b border-zinc-100 dark:border-zinc-800 pb-5">
-              <div className="flex items-center gap-2 text-[#d70f64] text-xs font-bold uppercase tracking-wider">
+              <div className="flex items-center gap-2 text-[#E21B70] text-xs font-bold uppercase tracking-wider">
                 <ShieldCheck className="w-4 h-4" /> Privacy &amp; Data Protection
               </div>
               <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-white">Privacy Policy</h1>
@@ -209,7 +209,7 @@ export const InfoPagesView: React.FC<InfoPagesViewProps> = ({ page, onBack, onNa
         {page === "refund-policy" && (
           <>
             <header className="space-y-2 border-b border-zinc-100 dark:border-zinc-800 pb-5">
-              <div className="flex items-center gap-2 text-[#d70f64] text-xs font-bold uppercase tracking-wider">
+              <div className="flex items-center gap-2 text-[#E21B70] text-xs font-bold uppercase tracking-wider">
                 <RefreshCw className="w-4 h-4" /> Customer Guarantee
               </div>
               <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-white">Refund &amp; Cancellation Policy</h1>
@@ -234,7 +234,7 @@ export const InfoPagesView: React.FC<InfoPagesViewProps> = ({ page, onBack, onNa
         {page === "contact" && (
           <>
             <header className="space-y-2 border-b border-zinc-100 dark:border-zinc-800 pb-5">
-              <p className="text-xs font-bold uppercase tracking-wider text-[#d70f64]">Customer Support</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-[#E21B70]">Customer Support</p>
               <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-white">Contact Dadu Food</h1>
               <p className="text-sm text-zinc-600 dark:text-zinc-300">
                 Need help with an order, refund, or partnership? Our local Dadu support team is here daily.
@@ -243,19 +243,19 @@ export const InfoPagesView: React.FC<InfoPagesViewProps> = ({ page, onBack, onNa
 
             <div className="grid sm:grid-cols-3 gap-3">
               <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/70 border border-zinc-200 dark:border-zinc-700">
-                <Phone className="w-5 h-5 text-[#d70f64] mb-2" />
+                <Phone className="w-5 h-5 text-[#E21B70] mb-2" />
                 <h2 className="text-xs font-bold uppercase text-zinc-500 dark:text-zinc-400">Helpline / WhatsApp</h2>
-                <a href={`tel:${DADU_FOOD_BUSINESS.phoneIntl}`} className="font-black text-zinc-900 dark:text-white hover:text-[#d70f64]">
+                <a href={`tel:${DADU_FOOD_BUSINESS.phoneIntl}`} className="font-black text-zinc-900 dark:text-white hover:text-[#E21B70]">
                   {DADU_FOOD_BUSINESS.phoneDisplay}
                 </a>
               </div>
               <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/70 border border-zinc-200 dark:border-zinc-700">
-                <MapPin className="w-5 h-5 text-[#d70f64] mb-2" />
+                <MapPin className="w-5 h-5 text-[#E21B70] mb-2" />
                 <h2 className="text-xs font-bold uppercase text-zinc-500 dark:text-zinc-400">Office Address</h2>
                 <p className="font-bold text-sm text-zinc-900 dark:text-white">{DADU_FOOD_BUSINESS.address}</p>
               </div>
               <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/70 border border-zinc-200 dark:border-zinc-700">
-                <Clock className="w-5 h-5 text-[#d70f64] mb-2" />
+                <Clock className="w-5 h-5 text-[#E21B70] mb-2" />
                 <h2 className="text-xs font-bold uppercase text-zinc-500 dark:text-zinc-400">Opening Hours</h2>
                 <p className="font-bold text-sm text-zinc-900 dark:text-white">{DADU_FOOD_BUSINESS.openingHoursDisplay}</p>
               </div>
@@ -315,7 +315,7 @@ export const InfoPagesView: React.FC<InfoPagesViewProps> = ({ page, onBack, onNa
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#d70f64] hover:bg-[#b50c54] text-white font-bold text-sm transition-colors cursor-pointer disabled:opacity-60"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#E21B70] hover:bg-[#b50c54] text-white font-bold text-sm transition-colors cursor-pointer disabled:opacity-60"
                 >
                   <Send className="w-4 h-4" />
                   {submitting ? "Sending..." : "Send Message"}
@@ -328,7 +328,7 @@ export const InfoPagesView: React.FC<InfoPagesViewProps> = ({ page, onBack, onNa
         {page === "partner-with-us" && (
           <>
             <header className="space-y-2 border-b border-zinc-100 dark:border-zinc-800 pb-5">
-              <div className="flex items-center gap-2 text-[#d70f64] text-xs font-bold uppercase tracking-wider">
+              <div className="flex items-center gap-2 text-[#E21B70] text-xs font-bold uppercase tracking-wider">
                 <Store className="w-4 h-4" /> Restaurant &amp; Shop Partners
               </div>
               <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-white">
@@ -402,7 +402,7 @@ export const InfoPagesView: React.FC<InfoPagesViewProps> = ({ page, onBack, onNa
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#d70f64] hover:bg-[#b50c54] text-white font-bold text-sm transition-colors cursor-pointer disabled:opacity-60"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#E21B70] hover:bg-[#b50c54] text-white font-bold text-sm transition-colors cursor-pointer disabled:opacity-60"
                 >
                   <Store className="w-4 h-4" />
                   {submitting ? "Submitting..." : "Submit Partner Application"}
@@ -415,7 +415,7 @@ export const InfoPagesView: React.FC<InfoPagesViewProps> = ({ page, onBack, onNa
         {page === "become-a-rider" && (
           <>
             <header className="space-y-2 border-b border-zinc-100 dark:border-zinc-800 pb-5">
-              <div className="flex items-center gap-2 text-[#d70f64] text-xs font-bold uppercase tracking-wider">
+              <div className="flex items-center gap-2 text-[#E21B70] text-xs font-bold uppercase tracking-wider">
                 <Bike className="w-4 h-4" /> Delivery Fleet
               </div>
               <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-white">
@@ -490,7 +490,7 @@ export const InfoPagesView: React.FC<InfoPagesViewProps> = ({ page, onBack, onNa
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#d70f64] hover:bg-[#b50c54] text-white font-bold text-sm transition-colors cursor-pointer disabled:opacity-60"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#E21B70] hover:bg-[#b50c54] text-white font-bold text-sm transition-colors cursor-pointer disabled:opacity-60"
                 >
                   <Bike className="w-4 h-4" />
                   {submitting ? "Submitting..." : "Apply as Delivery Rider"}
@@ -502,10 +502,10 @@ export const InfoPagesView: React.FC<InfoPagesViewProps> = ({ page, onBack, onNa
 
         <footer className="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-500 dark:text-zinc-400">
           <span className="inline-flex items-center gap-1.5">
-            <Mail className="w-3.5 h-3.5 text-[#d70f64]" /> {DADU_FOOD_BUSINESS.email}
+            <Mail className="w-3.5 h-3.5 text-[#E21B70]" /> {DADU_FOOD_BUSINESS.email}
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <Phone className="w-3.5 h-3.5 text-[#d70f64]" /> Helpline: {DADU_FOOD_BUSINESS.phoneDisplay}
+            <Phone className="w-3.5 h-3.5 text-[#E21B70]" /> Helpline: {DADU_FOOD_BUSINESS.phoneDisplay}
           </span>
         </footer>
       </article>

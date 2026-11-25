@@ -116,7 +116,7 @@ export default function OrderHistoryDrawer({
       accepted: { bg: "bg-purple-50 text-purple-700 border-purple-200", text: "text-purple-700", label: "Accepted" },
       confirmed: { bg: "bg-purple-100 text-purple-800 border-purple-300", text: "text-purple-800", label: "Confirmed" },
       preparing: { bg: "bg-indigo-50 text-indigo-700 border-indigo-200 animate-pulse", text: "text-indigo-700", label: "Kitchen/Preparing" },
-      out_for_delivery: { bg: "bg-pink-50 text-[#D70F64] border-pink-200 animate-pulse", text: "text-[#D70F64]", label: "On the way 🛵" },
+      out_for_delivery: { bg: "bg-pink-50 text-[#E21B70] border-pink-200 animate-pulse", text: "text-[#E21B70]", label: "On the way 🛵" },
       delivered: { bg: "bg-emerald-50 text-emerald-700 border-emerald-200", text: "text-emerald-700", label: "Delivered 🎉" },
       cancelled: { bg: "bg-pink-50 text-pink-700 border-pink-200", text: "text-pink-700", label: "Cancelled" },
       // Service statuses
@@ -179,7 +179,7 @@ export default function OrderHistoryDrawer({
             {/* Header top section */}
             <div className="p-4 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl bg-[#D70F64]/10 flex items-center justify-center text-[#D70F64]">
+                <div className="w-9 h-9 rounded-xl bg-[#E21B70]/10 flex items-center justify-center text-[#E21B70]">
                   <RotateCcw className="w-5 h-5 stroke-[2.5]" />
                 </div>
                 <div>
@@ -206,7 +206,7 @@ export default function OrderHistoryDrawer({
                   placeholder="Search previous dishes or orders..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 rounded-xl py-2 pl-9 pr-4 text-xs font-semibold focus:outline-none focus:border-[#D70F64] transition placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
+                  className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 rounded-xl py-2 pl-9 pr-4 text-xs font-semibold focus:outline-none focus:border-[#E21B70] transition placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
                   id="history-search-input"
                 />
                 {searchQuery && (
@@ -227,7 +227,7 @@ export default function OrderHistoryDrawer({
                     onClick={() => setFilterType(type)}
                     className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border cursor-pointer shrink-0 transition ${
                       filterType === type 
-                        ? "bg-[#D70F64] text-white border-[#D70F64]" 
+                        ? "bg-[#E21B70] text-white border-[#E21B70]" 
                         : "bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-650 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700"
                     }`}
                   >
@@ -248,7 +248,7 @@ export default function OrderHistoryDrawer({
                     <div 
                       key={order.id} 
                       className={`bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-xs overflow-hidden transition hover:border-zinc-300 dark:hover:border-zinc-700 ${
-                        isActive ? "ring-1 ring-[#D70F64]/30" : ""
+                        isActive ? "ring-1 ring-[#E21B70]/30" : ""
                       }`}
                     >
                       {/* Main card header summary (clickable to toggle zoom) */}
@@ -258,7 +258,7 @@ export default function OrderHistoryDrawer({
                       >
                         <div className="flex items-start justify-between">
                           <div className="space-y-1">
-                            <span className="text-[9px] font-black text-[#D70F64] bg-[#D70F64]/10 border border-[#D70F64]/15 px-2 py-0.5 rounded uppercase leading-none">
+                            <span className="text-[9px] font-black text-[#E21B70] bg-[#E21B70]/10 border border-[#E21B70]/15 px-2 py-0.5 rounded uppercase leading-none">
                               {order.orderType === "grocery" ? "Grocery" : order.orderType === "service" ? "Service Visit" : "Dadu Food"}
                             </span>
                             <div className="text-xs font-black text-zinc-800 dark:text-zinc-200 flex items-center gap-1 mt-1">
@@ -330,7 +330,7 @@ export default function OrderHistoryDrawer({
                               </div>
                               <div className="flex justify-between border-t border-zinc-100 dark:border-zinc-800 pt-1.5 text-zinc-800 dark:text-zinc-200 leading-none">
                                 <span className="font-bold">Grand Total:</span>
-                                <span className="text-[#D70F64] text-xs font-black">Rs. {order.grandTotal}</span>
+                                <span className="text-[#E21B70] text-xs font-black">Rs. {order.grandTotal}</span>
                               </div>
                               
                               <div className="mt-2.5 pt-2 border-t border-dashed border-zinc-200 dark:border-zinc-800 flex flex-col gap-1 text-[9.5px]">
@@ -351,7 +351,7 @@ export default function OrderHistoryDrawer({
                             {(order.status === "delivered" || order.status === "completed") && (
                               <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 space-y-2.5">
                                 <div className="flex items-center justify-between">
-                                  <span className="text-[10px] font-black uppercase tracking-widest text-[#D70F64]">
+                                  <span className="text-[10px] font-black uppercase tracking-widest text-[#E21B70]">
                                     {order.rating ? "Your Feedback & Rating" : "Rate Your Order"}
                                   </span>
                                   {order.rating && (
@@ -417,7 +417,7 @@ export default function OrderHistoryDrawer({
                                         onChange={(e) =>
                                           setRatingComments((prev) => ({ ...prev, [order.id]: e.target.value }))
                                         }
-                                        className="flex-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 rounded-lg px-2.5 py-1 text-[11px] font-semibold focus:outline-none focus:border-[#D70F64] placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
+                                        className="flex-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 rounded-lg px-2.5 py-1 text-[11px] font-semibold focus:outline-none focus:border-[#E21B70] placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
                                       />
                                       <button
                                         type="button"
@@ -425,7 +425,7 @@ export default function OrderHistoryDrawer({
                                         onClick={() =>
                                           handleRateOrder(order.id)
                                         }
-                                        className="bg-[#D70F64] text-white text-[10px] font-bold px-3 py-1 rounded-lg hover:bg-[#b00c50] disabled:opacity-50 transition cursor-pointer shrink-0"
+                                        className="bg-[#E21B70] text-white text-[10px] font-bold px-3 py-1 rounded-lg hover:bg-[#C2145E] disabled:opacity-50 transition cursor-pointer shrink-0"
                                       >
                                         {submittingRating[order.id] ? "Saving..." : "Submit"}
                                       </button>
@@ -464,7 +464,7 @@ export default function OrderHistoryDrawer({
                                   onReorder(order);
                                   onClose();
                                 }}
-                                className="w-full py-2 px-2.5 rounded-xl bg-[#D70F64] hover:bg-[#b00c50] text-white transition font-black text-[10.5px] uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-pink-500/10"
+                                className="w-full py-2 px-2.5 rounded-xl bg-[#E21B70] hover:bg-[#C2145E] text-white transition font-black text-[10.5px] uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-pink-500/10"
                                 id={`reorder-btn-${order.id}`}
                               >
                                 <ShoppingBag className="w-3.5 h-3.5" />

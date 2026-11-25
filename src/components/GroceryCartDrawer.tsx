@@ -1017,14 +1017,14 @@ export default function GroceryCartDrawer({
                 )}
 
                 {!isFreeDelivery && (
-                  <div className="text-[10px] bg-[#D70F64]/15 text-pink-300 border border-[#D70F64]/30 p-2 rounded-lg font-bold text-center">
+                  <div className="text-[10px] bg-[#E21B70]/15 text-pink-300 border border-[#E21B70]/30 p-2 rounded-lg font-bold text-center">
                     Add Rs. {Math.max(0, freeThreshold - totalGroceryPrice)} more to get FREE delivery!
                   </div>
                 )}
 
                 <div className="border-t border-zinc-800 my-2.5 pt-2 flex justify-between text-white font-black text-sm">
                   <span>TOTAL BILLING</span>
-                  <span className="font-mono text-[#D70F64]">Rs. {grandTotal}</span>
+                  <span className="font-mono text-[#E21B70]">Rs. {grandTotal}</span>
                 </div>
               </div>
 
@@ -1049,7 +1049,7 @@ export default function GroceryCartDrawer({
                       onClick={() => setPaymentMethod(m)}
                       className={`py-1.5 rounded-lg text-[10px] font-bold border transition cursor-pointer ${
                         paymentMethod === m
-                          ? "bg-[#D70F64] border-[#D70F64] text-white"
+                          ? "bg-[#E21B70] border-[#E21B70] text-white"
                           : "bg-zinc-900 border-zinc-800 text-zinc-300"
                       }`}
                     >
@@ -1069,7 +1069,7 @@ export default function GroceryCartDrawer({
               <button
                 onClick={handleCheckoutSubmit}
                 disabled={submitting}
-                className="w-full py-3.5 bg-[#D70F64] hover:bg-[#b00c50] disabled:opacity-60 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+                className="w-full py-3.5 bg-[#E21B70] hover:bg-[#C2145E] disabled:opacity-60 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 {submitting ? (
                   <>Placing Grocery Order...</>

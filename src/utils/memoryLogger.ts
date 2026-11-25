@@ -22,7 +22,7 @@ export function logMemoryUsage(tag: string = "Memory Snapshot"): void {
 
     console.groupCollapsed(
       `%c[Memory Usage] %c${tag}%c - ${usedMB} MB / ${totalMB} MB (Limit: ${limitMB} MB)`,
-      "color: #d70f64; font-weight: bold;",
+      "color: #E21B70; font-weight: bold;",
       "color: #10b981; font-weight: bold;",
       "color: #6b7280;"
     );
@@ -36,7 +36,7 @@ export function logMemoryUsage(tag: string = "Memory Snapshot"): void {
   } else {
     console.log(
       `%c[Memory Usage] %c${tag}%c - performance.memory is not supported in this browser environment.`,
-      "color: #d70f64; font-weight: bold;",
+      "color: #E21B70; font-weight: bold;",
       "color: #10b981; font-weight: bold;",
       "color: #6b7280;"
     );

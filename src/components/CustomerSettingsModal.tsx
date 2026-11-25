@@ -186,7 +186,7 @@ export const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
               onClick={() => setActiveTab(t.id)}
               className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-colors cursor-pointer ${
                 activeTab === t.id
-                  ? "bg-[#d70f64] text-white shadow-sm"
+                  ? "bg-[#E21B70] text-white shadow-sm"
                   : "bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700"
               }`}
             >
@@ -240,7 +240,7 @@ export const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
               <button
                 type="submit"
                 disabled={saving}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#d70f64] hover:bg-[#b50c54] text-white font-bold text-sm cursor-pointer disabled:opacity-60"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#E21B70] hover:bg-[#b50c54] text-white font-bold text-sm cursor-pointer disabled:opacity-60"
               >
                 <Save className="w-4 h-4" />
                 {saving ? "Saving..." : "Save Profile"}
@@ -262,7 +262,7 @@ export const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                       className="flex items-start justify-between gap-3 p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/60"
                     >
                       <div>
-                        <span className="inline-block px-2 py-0.5 rounded bg-[#d70f64]/15 text-[#d70f64] text-[11px] font-bold mb-1">
+                        <span className="inline-block px-2 py-0.5 rounded bg-[#E21B70]/15 text-[#E21B70] text-[11px] font-bold mb-1">
                           {addr.label}
                         </span>
                         <p className="text-sm font-semibold text-zinc-900 dark:text-white">{addr.address}</p>
@@ -290,7 +290,7 @@ export const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                       onClick={() => setNewLabel(lbl)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer ${
                         newLabel === lbl
-                          ? "bg-[#d70f64] text-white"
+                          ? "bg-[#E21B70] text-white"
                           : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
                       }`}
                     >
@@ -315,7 +315,7 @@ export const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                 />
                 <button
                   type="submit"
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#d70f64] hover:bg-[#b50c54] text-white font-bold text-sm cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#E21B70] hover:bg-[#b50c54] text-white font-bold text-sm cursor-pointer"
                 >
                   <Plus className="w-4 h-4" /> Save Address
                 </button>
@@ -334,7 +334,7 @@ export const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                     key={opt.id}
                     className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-colors ${
                       preferredPayment === opt.id
-                        ? "border-[#d70f64] bg-[#d70f64]/5 dark:bg-[#d70f64]/10"
+                        ? "border-[#E21B70] bg-[#E21B70]/5 dark:bg-[#E21B70]/10"
                         : "border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800/50"
                     }`}
                   >
@@ -343,7 +343,7 @@ export const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                       name="preferredPayment"
                       checked={preferredPayment === opt.id}
                       onChange={() => setPreferredPayment(opt.id)}
-                      className="mt-1 accent-[#d70f64]"
+                      className="mt-1 accent-[#E21B70]"
                     />
                     <div>
                       <p className="text-sm font-bold text-zinc-900 dark:text-white">{opt.label}</p>
@@ -370,7 +370,7 @@ export const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                 type="button"
                 onClick={handleSavePayment}
                 disabled={saving}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#d70f64] hover:bg-[#b50c54] text-white font-bold text-sm cursor-pointer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#E21B70] hover:bg-[#b50c54] text-white font-bold text-sm cursor-pointer"
               >
                 <Save className="w-4 h-4" /> Save Payment Preference
               </button>
@@ -410,7 +410,7 @@ export const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                     aria-checked={Boolean(notifPrefs[item.key])}
                     onClick={() => handleToggleNotif(item.key)}
                     className={`w-11 h-6 rounded-full transition-colors relative shrink-0 cursor-pointer ${
-                      notifPrefs[item.key] ? "bg-[#d70f64]" : "bg-zinc-300 dark:bg-zinc-600"
+                      notifPrefs[item.key] ? "bg-[#E21B70]" : "bg-zinc-300 dark:bg-zinc-600"
                     }`}
                   >
                     <span
@@ -435,7 +435,7 @@ export const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                   onClick={() => handleSelectLanguage("en")}
                   className={`p-4 rounded-xl border text-left cursor-pointer transition-colors ${
                     language === "en"
-                      ? "border-[#d70f64] bg-[#d70f64]/10 text-zinc-900 dark:text-white"
+                      ? "border-[#E21B70] bg-[#E21B70]/10 text-zinc-900 dark:text-white"
                       : "border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200"
                   }`}
                 >
@@ -447,7 +447,7 @@ export const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                   onClick={() => handleSelectLanguage("ur")}
                   className={`p-4 rounded-xl border text-left cursor-pointer transition-colors ${
                     language === "ur"
-                      ? "border-[#d70f64] bg-[#d70f64]/10 text-zinc-900 dark:text-white"
+                      ? "border-[#E21B70] bg-[#E21B70]/10 text-zinc-900 dark:text-white"
                       : "border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200"
                   }`}
                 >

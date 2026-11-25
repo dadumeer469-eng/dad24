@@ -475,7 +475,7 @@ export default function CartDrawer({
         {/* Banner with close */}
         <div className="p-4 border-b border-zinc-800 bg-zinc-950 flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-2">
-            <ShoppingBag className="w-5 h-5 text-[#D70F64]" />
+            <ShoppingBag className="w-5 h-5 text-[#E21B70]" />
             <h3 className="font-extrabold text-sm tracking-wide text-zinc-100 uppercase">Your Delivery Cart</h3>
           </div>
           <button
@@ -495,7 +495,7 @@ export default function CartDrawer({
               <p className="text-xs text-zinc-400 font-bold uppercase tracking-wider">Your Dadu Cart is empty!</p>
               <button
                 onClick={onClose}
-                className="bg-[#D70F64] hover:bg-[#b00c50] transition text-white font-black text-xs uppercase tracking-wider py-3 px-6 rounded-xl cursor-pointer shadow-xs"
+                className="bg-[#E21B70] hover:bg-[#C2145E] transition text-white font-black text-xs uppercase tracking-wider py-3 px-6 rounded-xl cursor-pointer shadow-xs"
               >
                 Go Add Tea & Food
               </button>
@@ -526,8 +526,8 @@ export default function CartDrawer({
                         Note: {item.specialInstructions}
                       </div>
                     )}
-                    <div className="text-[10px] text-[#D70F64] font-black tracking-wider uppercase flex items-center gap-1 select-none mt-0.5">
-                      <span>🏪</span> {item.restaurantName || (item.type === "service" ? "Dadu Home Services" : "Dadu Fast Food & Kitchen")}
+                    <div className="text-[10px] text-[#E21B70] dark:text-[#FF4D94] font-extrabold tracking-wider uppercase flex items-center gap-1 select-none mt-0.5">
+                      <span>🏪</span> {item.restaurantName || "Dadu Fast Food & Kitchen"}
                     </div>
                     <span className="text-xs text-zinc-400 font-bold block mt-0.5">Rs. {item.price} each</span>
                   </div>
@@ -551,7 +551,7 @@ export default function CartDrawer({
 
                   <button
                     onClick={() => onRemoveItem(item.dishId)}
-                    className="p-1 text-zinc-450 hover:text-[#D70F64] shrink-0 transition cursor-pointer"
+                    className="p-1 text-zinc-450 hover:text-[#E21B70] shrink-0 transition cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -562,12 +562,12 @@ export default function CartDrawer({
 
           {/* Checkout-Exclusive Drinks Recommendation Section */}
           {cartItems.length > 0 && (
-            <div className="bg-gradient-to-br from-[#D70F64]/5 to-zinc-900 border border-[#D70F64]/15 p-4 rounded-3xl mt-4 space-y-3 shadow-xs">
+            <div className="bg-gradient-to-br from-[#E21B70]/5 to-zinc-900 border border-[#E21B70]/15 p-4 rounded-3xl mt-4 space-y-3 shadow-xs">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-black uppercase tracking-wider text-[#D70F64] flex items-center gap-1.5">
+                <span className="text-xs font-black uppercase tracking-wider text-[#E21B70] flex items-center gap-1.5">
                   <span className="text-base">🥤</span> Complete Your Meal
                 </span>
-                <span className="bg-[#D70F64]/10 text-[#D70F64] text-[8px] font-black uppercase px-2 py-0.5 rounded-full">
+                <span className="bg-[#E21B70]/10 text-[#E21B70] text-[8px] font-black uppercase px-2 py-0.5 rounded-full">
                   Checkout Exclusive
                 </span>
               </div>
@@ -581,7 +581,7 @@ export default function CartDrawer({
                   return (
                     <div 
                       key={drink.id} 
-                      className="bg-zinc-950 border border-zinc-800/80 rounded-2xl p-2.5 w-36 shrink-0 flex flex-col justify-between gap-2 snap-start hover:border-[#D70F64]/30 transition"
+                      className="bg-zinc-950 border border-zinc-800/80 rounded-2xl p-2.5 w-36 shrink-0 flex flex-col justify-between gap-2 snap-start hover:border-[#E21B70]/30 transition"
                     >
                       <div className="relative h-20 rounded-xl overflow-hidden bg-zinc-900 shrink-0">
                         <LazyImage 
@@ -601,7 +601,7 @@ export default function CartDrawer({
                       </div>
 
                       {alreadyInCart ? (
-                        <div className="flex items-center justify-between bg-[#D70F64]/10 border border-[#D70F64]/20 p-0.5 rounded-xl text-xs">
+                        <div className="flex items-center justify-between bg-[#E21B70]/10 border border-[#E21B70]/20 p-0.5 rounded-xl text-xs">
                           <button
                             type="button"
                             onClick={() => onUpdateQuantity(drink.id, alreadyInCart.quantity - 1)}
@@ -622,7 +622,7 @@ export default function CartDrawer({
                         <button
                           type="button"
                           onClick={() => onAddDrink(drink)}
-                          className="w-full bg-[#D70F64] hover:bg-[#b00c50] text-white py-1.5 rounded-xl font-black text-[9px] uppercase tracking-wider transition cursor-pointer text-center hover:scale-[1.02] active:scale-95"
+                          className="w-full bg-[#E21B70] hover:bg-[#C2145E] text-white py-1.5 rounded-xl font-black text-[9px] uppercase tracking-wider transition cursor-pointer text-center hover:scale-[1.02] active:scale-95"
                         >
                           + Add Drink
                         </button>
@@ -638,7 +638,7 @@ export default function CartDrawer({
           {cartItems.length > 0 && (
             <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-3xl mt-6 space-y-4 shadow-3xs">
               <h4 className="text-xs font-black uppercase tracking-wider text-zinc-300 border-b border-zinc-800 pb-2 flex items-center gap-1.5">
-                <MapPin className="w-4 h-4 text-[#D70F64]" />
+                <MapPin className="w-4 h-4 text-[#E21B70]" />
                 Delivery Information Details
               </h4>
 
@@ -655,21 +655,21 @@ export default function CartDrawer({
                           if (checkoutError) setCheckoutError(null);
                         }}
                         placeholder="Apna naam likhein (e.g. Ali Ahmed)..."
-                        className="w-full bg-zinc-900 border border-zinc-700 focus:border-[#D70F64] rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-zinc-500 focus:outline-none font-bold"
+                        className="w-full bg-zinc-900 border border-zinc-700 focus:border-[#E21B70] rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-zinc-500 focus:outline-none font-bold"
                       />
                     </div>
 
                     <div className="bg-zinc-950 p-3 rounded-xl border border-zinc-800 space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider flex items-center gap-1.5">
-                          <MapPin className="w-3.5 h-3.5 text-[#D70F64]" />
+                          <MapPin className="w-3.5 h-3.5 text-[#E21B70]" />
                           Delivery Address
                         </span>
                         {!isEditingAddress && (
                           <button
                             type="button"
                             onClick={handleStartEditAddress}
-                            className="flex items-center gap-1 text-[11px] font-black text-[#D70F64] hover:text-[#ff2b7f] hover:underline transition cursor-pointer"
+                            className="flex items-center gap-1 text-[11px] font-black text-[#E21B70] hover:text-[#ff2b7f] hover:underline transition cursor-pointer"
                           >
                             <Edit2 className="w-3 h-3" />
                             {currentUser.address ? "Change Address" : "Add Address"}
@@ -695,7 +695,7 @@ export default function CartDrawer({
                                 onClick={() => setAddressLabel(tag)}
                                 className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition cursor-pointer border ${
                                   addressLabel === tag
-                                    ? "bg-[#D70F64] text-white border-[#D70F64]"
+                                    ? "bg-[#E21B70] text-white border-[#E21B70]"
                                     : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
                                 }`}
                               >
@@ -711,7 +711,7 @@ export default function CartDrawer({
                             }}
                             placeholder="Enter full delivery address (House/Shop #, Street, Area, Dadu)..."
                             rows={3}
-                            className="w-full bg-zinc-900 border border-zinc-700 focus:border-[#D70F64] rounded-xl p-2.5 text-xs text-white placeholder:text-zinc-600 focus:outline-none resize-none font-medium leading-relaxed"
+                            className="w-full bg-zinc-900 border border-zinc-700 focus:border-[#E21B70] rounded-xl p-2.5 text-xs text-white placeholder:text-zinc-600 focus:outline-none resize-none font-medium leading-relaxed"
                             autoFocus
                           />
                           {addressError && (
@@ -733,7 +733,7 @@ export default function CartDrawer({
                               type="button"
                               onClick={handleSaveAddress}
                               disabled={isSavingAddress}
-                              className="px-4 py-1.5 rounded-lg text-xs font-black text-white bg-[#D70F64] hover:bg-[#b00c50] shadow-md shadow-[#D70F64]/20 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                              className="px-4 py-1.5 rounded-lg text-xs font-black text-white bg-[#E21B70] hover:bg-[#C2145E] shadow-md shadow-[#E21B70]/20 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                             >
                               {isSavingAddress ? (
                                 <>
@@ -794,7 +794,7 @@ export default function CartDrawer({
                                   title={entry.address}
                                   className={`max-w-full text-left px-2.5 py-1.5 rounded-xl text-[10.5px] font-bold transition cursor-pointer flex items-center gap-1.5 border ${
                                     isActive
-                                      ? "bg-[#D70F64]/15 border-[#D70F64]/60 text-pink-200"
+                                      ? "bg-[#E21B70]/15 border-[#E21B70]/60 text-pink-200"
                                       : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-zinc-600"
                                   }`}
                                 >
@@ -824,7 +824,7 @@ export default function CartDrawer({
                       <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(#3f3f46 1px, transparent 1px), linear-gradient(90deg, #3f3f46 1px, transparent 1px)', backgroundSize: '20px 20px', opacity: 0.2 }}></div>
                       {/* Pin */}
                       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center animate-bounce">
-                        <div className="bg-[#D70F64] text-white p-1.5 rounded-full shadow-lg">
+                        <div className="bg-[#E21B70] text-white p-1.5 rounded-full shadow-lg">
                           <MapPin className="w-4 h-4" />
                         </div>
                         <div className="w-1.5 h-1.5 bg-black/40 rounded-full mt-1 blur-[1px]"></div>
@@ -845,7 +845,7 @@ export default function CartDrawer({
                   </div>
                 ) : (
                   <div className="bg-zinc-950 border border-zinc-800 p-3.5 rounded-xl flex flex-col items-center text-center gap-2">
-                    <MapPin className={`w-5 h-5 ${locationTimedOut ? "text-[#D70F64]" : "text-zinc-400 animate-pulse"}`} />
+                    <MapPin className={`w-5 h-5 ${locationTimedOut ? "text-[#E21B70]" : "text-zinc-400 animate-pulse"}`} />
                     <p className="text-zinc-200 text-xs font-bold">
                       {locationTimedOut
                         ? "GPS unavailable — proceed smoothly with your manual Dadu address!"
@@ -854,7 +854,7 @@ export default function CartDrawer({
                     <button
                       type="button"
                       onClick={handleStartEditAddress}
-                      className="text-[11px] font-black text-[#D70F64] hover:underline cursor-pointer"
+                      className="text-[11px] font-black text-[#E21B70] hover:underline cursor-pointer"
                     >
                       Enter / Edit Delivery Address Manually
                     </button>
@@ -864,7 +864,7 @@ export default function CartDrawer({
                 {/* Editable Contact Phone Number */}
                 <div className="bg-zinc-950 border border-zinc-800 p-3.5 rounded-xl space-y-2">
                   <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
-                    <Phone className="w-3.5 h-3.5 text-[#D70F64]" /> Contact Phone Number *
+                    <Phone className="w-3.5 h-3.5 text-[#E21B70]" /> Contact Phone Number *
                   </label>
                   <input
                     type="tel"
@@ -872,7 +872,7 @@ export default function CartDrawer({
                     value={phoneInput}
                     onChange={(e) => setPhoneInput(e.target.value.replace(/\D/g, "").slice(0, 11))}
                     placeholder="03XX-XXXXXXX"
-                    className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-100 text-xs font-bold focus:outline-none focus:border-[#D70F64]"
+                    className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-100 text-xs font-bold focus:outline-none focus:border-[#E21B70]"
                   />
                 </div>
 
@@ -892,7 +892,7 @@ export default function CartDrawer({
                         }}
                         className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition cursor-pointer ${
                           paymentMethod === method
-                            ? "bg-[#D70F64] border-[#D70F64] text-white"
+                            ? "bg-[#E21B70] border-[#E21B70] text-white"
                             : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-zinc-600"
                         }`}
                       >
@@ -918,7 +918,7 @@ export default function CartDrawer({
                       onClick={() => setIsScheduled(false)}
                       className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition cursor-pointer ${
                         !isScheduled
-                          ? "bg-[#D70F64] border-[#D70F64] text-white"
+                          ? "bg-[#E21B70] border-[#E21B70] text-white"
                           : "bg-zinc-900 border-zinc-800 text-zinc-300"
                       }`}
                     >
@@ -929,7 +929,7 @@ export default function CartDrawer({
                       onClick={() => setIsScheduled(true)}
                       className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition cursor-pointer ${
                         isScheduled
-                          ? "bg-[#D70F64] border-[#D70F64] text-white"
+                          ? "bg-[#E21B70] border-[#E21B70] text-white"
                           : "bg-zinc-900 border-zinc-800 text-zinc-300"
                       }`}
                     >
@@ -959,7 +959,7 @@ export default function CartDrawer({
                       <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-400">
                         Rider Tip (100% goes to rider)
                       </span>
-                      <span className="text-[11px] font-black text-[#D70F64]">
+                      <span className="text-[11px] font-black text-[#E21B70]">
                         {riderTip > 0 ? `Rs. ${riderTip}` : "Optional"}
                       </span>
                     </div>
@@ -971,7 +971,7 @@ export default function CartDrawer({
                           onClick={() => setRiderTip(amt)}
                           className={`py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer ${
                             riderTip === amt
-                              ? "bg-[#D70F64] border-[#D70F64] text-white"
+                              ? "bg-[#E21B70] border-[#E21B70] text-white"
                               : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-zinc-600"
                           }`}
                         >
@@ -1041,9 +1041,9 @@ export default function CartDrawer({
               const bestSave = calculateVoucherDiscount(bestVoucher, totalFoodItemsPrice);
 
               return (
-                <div className="bg-gradient-to-r from-[#D70F64]/20 via-pink-600/15 to-amber-500/15 border border-[#D70F64]/40 rounded-2xl p-2.5 flex items-center justify-between gap-2">
+                <div className="bg-gradient-to-r from-[#E21B70]/20 via-pink-600/15 to-amber-500/15 border border-[#E21B70]/40 rounded-2xl p-2.5 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-7 h-7 rounded-xl bg-[#D70F64] text-white flex items-center justify-center shrink-0 shadow-sm">
+                    <div className="w-7 h-7 rounded-xl bg-[#E21B70] text-white flex items-center justify-center shrink-0 shadow-sm">
                       <Ticket className="w-3.5 h-3.5" />
                     </div>
                     <div className="min-w-0">
@@ -1058,7 +1058,7 @@ export default function CartDrawer({
                   <button
                     type="button"
                     onClick={() => handleApplyVoucher(bestVoucher)}
-                    className="bg-[#D70F64] hover:bg-[#b00c50] text-white text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-xl shrink-0 shadow-md shadow-[#D70F64]/25 cursor-pointer transition active:scale-95"
+                    className="bg-[#E21B70] hover:bg-[#C2145E] text-white text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-xl shrink-0 shadow-md shadow-[#E21B70]/25 cursor-pointer transition active:scale-95"
                   >
                     1-Tap Apply
                   </button>
@@ -1075,8 +1075,8 @@ export default function CartDrawer({
                 className="w-full p-3 flex items-center justify-between gap-2.5 text-left hover:bg-zinc-850/60 transition cursor-pointer"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#D70F64]/20 via-pink-500/10 to-amber-500/20 border border-[#D70F64]/30 flex items-center justify-center shrink-0 shadow-inner">
-                    <Sparkles className="w-4 h-4 text-[#D70F64]" />
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#E21B70]/20 via-pink-500/10 to-amber-500/20 border border-[#E21B70]/30 flex items-center justify-center shrink-0 shadow-inner">
+                    <Sparkles className="w-4 h-4 text-[#E21B70]" />
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
@@ -1088,7 +1088,7 @@ export default function CartDrawer({
                           Rs. {voucherDiscount + coinsDeducted} Saved
                         </span>
                       ) : (
-                        <span className="bg-[#D70F64]/15 border border-[#D70F64]/25 text-pink-400 text-[9px] font-extrabold px-1.5 py-0.5 rounded-md">
+                        <span className="bg-[#E21B70]/15 border border-[#E21B70]/25 text-pink-400 text-[9px] font-extrabold px-1.5 py-0.5 rounded-md">
                           Vouchers & Coins
                         </span>
                       )}
@@ -1109,7 +1109,7 @@ export default function CartDrawer({
                   <span className="text-[10px] font-bold text-zinc-400 hidden sm:inline">
                     {isBenefitsOpen ? "Close" : "Open"}
                   </span>
-                  <div className={`w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 transition-transform duration-300 ${isBenefitsOpen ? "rotate-180 text-white bg-[#D70F64]" : ""}`}>
+                  <div className={`w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 transition-transform duration-300 ${isBenefitsOpen ? "rotate-180 text-white bg-[#E21B70]" : ""}`}>
                     <ChevronDown className="w-3.5 h-3.5" />
                   </div>
                 </div>
@@ -1122,26 +1122,26 @@ export default function CartDrawer({
                   <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl p-3 space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5 text-xs font-black text-pink-400">
-                        <Ticket className="w-3.5 h-3.5 text-[#D70F64]" />
+                        <Ticket className="w-3.5 h-3.5 text-[#E21B70]" />
                         <span>Promo Voucher</span>
                       </div>
                       <button
                         type="button"
                         onClick={() => setIsVouchersModalOpen(true)}
-                        className="text-[10.5px] font-black text-[#D70F64] hover:text-pink-300 underline cursor-pointer"
+                        className="text-[10.5px] font-black text-[#E21B70] hover:text-pink-300 underline cursor-pointer"
                       >
                         View My Vouchers 🎟️
                       </button>
                     </div>
 
                     {appliedVoucher ? (
-                      <div className="bg-pink-500/10 border border-[#D70F64]/30 rounded-xl p-2.5 flex items-center justify-between">
+                      <div className="bg-pink-500/10 border border-[#E21B70]/30 rounded-xl p-2.5 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
                           <div>
                             <div className="flex items-center gap-1.5">
                               <span className="font-mono font-black text-xs text-white">{appliedVoucher.code}</span>
-                              <span className="bg-[#D70F64] text-white text-[9px] font-black px-1.5 py-0.2 rounded-md">
+                              <span className="bg-[#E21B70] text-white text-[9px] font-black px-1.5 py-0.2 rounded-md">
                                 Rs. {voucherDiscount} OFF
                               </span>
                             </div>
@@ -1172,13 +1172,13 @@ export default function CartDrawer({
                                   handleApplyVoucher(voucherInputCode);
                                 }
                               }}
-                              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-8 pr-3 py-2 text-xs font-mono font-bold text-white placeholder:text-zinc-600 focus:outline-none focus:border-[#D70F64] uppercase"
+                              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-8 pr-3 py-2 text-xs font-mono font-bold text-white placeholder:text-zinc-600 focus:outline-none focus:border-[#E21B70] uppercase"
                             />
                           </div>
                           <button
                             type="button"
                             onClick={() => handleApplyVoucher(voucherInputCode)}
-                            className="bg-[#D70F64] hover:bg-[#b00c50] text-white text-xs font-black px-3.5 py-2 rounded-xl transition cursor-pointer"
+                            className="bg-[#E21B70] hover:bg-[#C2145E] text-white text-xs font-black px-3.5 py-2 rounded-xl transition cursor-pointer"
                           >
                             Apply
                           </button>
@@ -1326,7 +1326,7 @@ export default function CartDrawer({
               )}
               <div className="flex justify-between text-zinc-100 text-sm font-black border-t border-zinc-800 pt-2.5">
                 <span>Grand Total ({paymentMethod}):</span>
-                <span className="text-[#D70F64] text-base font-bold font-mono">Rs. {grandTotal}</span>
+                <span className="text-[#E21B70] text-base font-bold font-mono">Rs. {grandTotal}</span>
               </div>
             </div>
 
@@ -1340,7 +1340,7 @@ export default function CartDrawer({
             <button
               onClick={handleSubmitOrder}
               disabled={submitting}
-              className="w-full bg-[#D70F64] hover:bg-[#b00c50] text-white py-3.5 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75"
+              className="w-full bg-[#E21B70] hover:bg-[#C2145E] text-white py-3.5 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75"
             >
               {submitting ? (
                 <>Placing Order...</>

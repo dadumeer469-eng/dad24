@@ -1,6 +1,5 @@
 import React from "react";
 import { Utensils, Store, Search, ShoppingBag, User } from "lucide-react";
-import { motion } from "motion/react";
 
 interface BottomNavBarProps {
   activeModule: "food" | "grocery";
@@ -56,7 +55,7 @@ export default function BottomNavBar({
         } else if (desktopInput) {
           desktopInput.focus();
         }
-      }, 300);
+      }, 260);
     } else if (tab === "cart") {
       if (activeModule === "grocery") {
         onOpenGroceryCart();
@@ -73,116 +72,106 @@ export default function BottomNavBar({
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-zinc-900 border-t border-zinc-100 dark:border-zinc-800 shadow-[0_-4px_16px_rgba(0,0,0,0.04)] pb-safe lg:hidden">
-      <div className="grid grid-cols-5 h-13.5 max-w-2xl mx-auto px-1">
-        
+    <nav
+      aria-label="Mobile Primary Navigation"
+      className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#14141A]/95 backdrop-blur-md border-t border-[#E6E6EE] dark:border-[#272733] shadow-[0_-4px_18px_rgba(0,0,0,0.06)] pb-safe lg:hidden"
+    >
+      <div className="grid grid-cols-5 h-[60px] max-w-2xl mx-auto px-1">
         {/* Food Tab */}
         <button
+          type="button"
           onClick={() => handleTabClick("food")}
-          className="flex flex-col items-center justify-center gap-0.5 h-full text-center relative select-none cursor-pointer active:scale-95 transition-all"
+          aria-current={activeModule === "food" ? "page" : undefined}
+          className="min-h-[48px] flex flex-col items-center justify-center gap-1 text-center relative select-none cursor-pointer active:scale-95 transition-transform"
         >
-          <motion.div
-            whileTap={{ scale: 0.85 }}
-            className={`p-0.5 rounded-full ${activeModule === "food" ? "text-[#D70F64]" : "text-zinc-400 dark:text-zinc-500"}`}
-          >
-            <Utensils className="w-5 h-5 stroke-[2.2]" />
-          </motion.div>
-          <span
-            className={`text-[9.5px] leading-none tracking-wide font-bold ${
+          {activeModule === "food" && (
+            <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[3px] rounded-b-full bg-[#E21B70]" />
+          )}
+          <Utensils
+            className={`w-5 h-5 stroke-[2.2] ${
               activeModule === "food"
-                ? "text-[#D70F64] font-black"
-                : "text-zinc-500 dark:text-zinc-400"
+                ? "text-[#E21B70] dark:text-[#FF4D94]"
+                : "text-[#5A5A6B] dark:text-[#A1A1B2]"
+            }`}
+          />
+          <span
+            className={`text-[10px] leading-none font-bold ${
+              activeModule === "food"
+                ? "text-[#E21B70] dark:text-[#FF4D94]"
+                : "text-[#5A5A6B] dark:text-[#A1A1B2]"
             }`}
           >
             Food
           </span>
-          {activeModule === "food" && (
-            <motion.div
-              layoutId="bottom-nav-active-dot"
-              className="absolute bottom-1 w-1 h-1 rounded-full bg-[#D70F64]"
-              transition={{ type: "spring", stiffness: 380, damping: 30 }}
-            />
-          )}
         </button>
 
         {/* Grocery Tab */}
         <button
+          type="button"
           onClick={() => handleTabClick("grocery")}
-          className="flex flex-col items-center justify-center gap-0.5 h-full text-center relative select-none cursor-pointer active:scale-95 transition-all"
+          aria-current={activeModule === "grocery" ? "page" : undefined}
+          className="min-h-[48px] flex flex-col items-center justify-center gap-1 text-center relative select-none cursor-pointer active:scale-95 transition-transform"
         >
-          <motion.div
-            whileTap={{ scale: 0.85 }}
-            className={`p-0.5 rounded-full ${activeModule === "grocery" ? "text-[#D70F64]" : "text-zinc-400 dark:text-zinc-500"}`}
-          >
-            <Store className="w-5 h-5 stroke-[2.2]" />
-          </motion.div>
-          <span
-            className={`text-[9.5px] leading-none tracking-wide font-bold ${
+          {activeModule === "grocery" && (
+            <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[3px] rounded-b-full bg-[#E21B70]" />
+          )}
+          <Store
+            className={`w-5 h-5 stroke-[2.2] ${
               activeModule === "grocery"
-                ? "text-[#D70F64] font-black"
-                : "text-zinc-500 dark:text-zinc-400"
+                ? "text-[#E21B70] dark:text-[#FF4D94]"
+                : "text-[#5A5A6B] dark:text-[#A1A1B2]"
+            }`}
+          />
+          <span
+            className={`text-[10px] leading-none font-bold ${
+              activeModule === "grocery"
+                ? "text-[#E21B70] dark:text-[#FF4D94]"
+                : "text-[#5A5A6B] dark:text-[#A1A1B2]"
             }`}
           >
             Grocery
           </span>
-          {activeModule === "grocery" && (
-            <motion.div
-              layoutId="bottom-nav-active-dot"
-              className="absolute bottom-1 w-1 h-1 rounded-full bg-[#D70F64]"
-              transition={{ type: "spring", stiffness: 380, damping: 30 }}
-            />
-          )}
         </button>
 
         {/* Search Tab */}
         <button
+          type="button"
           onClick={() => handleTabClick("search")}
-          className="flex flex-col items-center justify-center gap-0.5 h-full text-center relative select-none cursor-pointer active:scale-95 transition-all text-zinc-400 dark:text-zinc-500"
+          className="min-h-[48px] flex flex-col items-center justify-center gap-1 text-center relative select-none cursor-pointer active:scale-95 transition-transform text-[#5A5A6B] dark:text-[#A1A1B2]"
         >
-          <motion.div whileTap={{ scale: 0.85 }} className="p-0.5">
-            <Search className="w-5 h-5 stroke-[2.2]" />
-          </motion.div>
-          <span className="text-[9.5px] leading-none tracking-wide font-bold text-zinc-500 dark:text-zinc-400">
-            Search
-          </span>
+          <Search className="w-5 h-5 stroke-[2.2]" />
+          <span className="text-[10px] leading-none font-bold">Search</span>
         </button>
 
-        {/* Carts Tab */}
+        {/* Cart Tab */}
         <button
+          type="button"
           onClick={() => handleTabClick("cart")}
-          className="flex flex-col items-center justify-center gap-0.5 h-full text-center relative select-none cursor-pointer active:scale-95 transition-all text-zinc-400 dark:text-zinc-500"
+          className="min-h-[48px] flex flex-col items-center justify-center gap-1 text-center relative select-none cursor-pointer active:scale-95 transition-transform text-[#5A5A6B] dark:text-[#A1A1B2]"
         >
-          <motion.div whileTap={{ scale: 0.85 }} className="p-0.5 relative">
+          <div className="relative">
             <ShoppingBag className="w-5 h-5 stroke-[2.2]" />
             {currentCartCount > 0 && (
-              <motion.span
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="absolute -top-1.5 -right-2 bg-[#D70F64] text-white text-[8px] font-black min-w-4 h-4 rounded-full px-0.5 flex items-center justify-center border border-white dark:border-zinc-900 shadow-sm"
-              >
+              <span className="absolute -top-1.5 -right-2.5 bg-[#E21B70] text-white text-[9px] font-bold min-w-[18px] h-[18px] rounded-full px-1 flex items-center justify-center border-2 border-white dark:border-[#14141A] tabular-nums">
                 {currentCartCount}
-              </motion.span>
+              </span>
             )}
-          </motion.div>
-          <span className="text-[9.5px] leading-none tracking-wide font-bold text-zinc-500 dark:text-zinc-400">
-            Carts
-          </span>
+          </div>
+          <span className="text-[10px] leading-none font-bold">Cart</span>
         </button>
 
         {/* Account Tab */}
         <button
+          type="button"
           onClick={() => handleTabClick("account")}
-          className="flex flex-col items-center justify-center gap-0.5 h-full text-center relative select-none cursor-pointer active:scale-95 transition-all text-zinc-400 dark:text-zinc-500"
+          className="min-h-[48px] flex flex-col items-center justify-center gap-1 text-center relative select-none cursor-pointer active:scale-95 transition-transform text-[#5A5A6B] dark:text-[#A1A1B2]"
         >
-          <motion.div whileTap={{ scale: 0.85 }} className="p-0.5">
-            <User className="w-5 h-5 stroke-[2.2]" />
-          </motion.div>
-          <span className="text-[9.5px] leading-none tracking-wide font-bold text-zinc-500 dark:text-zinc-400">
-            Account
+          <User className="w-5 h-5 stroke-[2.2]" />
+          <span className="text-[10px] leading-none font-bold">
+            {user ? "Account" : "Sign In"}
           </span>
         </button>
-
       </div>
-    </div>
+    </nav>
   );
 }

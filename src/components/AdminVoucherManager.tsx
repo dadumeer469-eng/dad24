@@ -329,9 +329,9 @@ export default function AdminVoucherManager({
         
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 text-[#D70F64]">
+            <div className="flex items-center gap-2 text-[#E21B70]">
               <Ticket className="w-5 h-5 animate-pulse" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-[#D70F64]">
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#E21B70]">
                 Promotions & Coupons
               </span>
             </div>
@@ -346,7 +346,7 @@ export default function AdminVoucherManager({
           {/* Action Button */}
           <button
             onClick={handleOpenCreate}
-            className="px-5 py-3 bg-[#D70F64] hover:bg-[#b00c50] text-white font-black text-xs uppercase tracking-wider rounded-2xl transition shadow-md shadow-pink-500/20 flex items-center justify-center gap-2 cursor-pointer shrink-0"
+            className="px-5 py-3 bg-[#E21B70] hover:bg-[#C2145E] text-white font-black text-xs uppercase tracking-wider rounded-2xl transition shadow-md shadow-pink-500/20 flex items-center justify-center gap-2 cursor-pointer shrink-0"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
             <span>Create New Voucher</span>
@@ -368,8 +368,8 @@ export default function AdminVoucherManager({
             <span className="text-xl font-black text-amber-600 mt-0.5 block">{totalExpired}</span>
           </div>
           <div className="bg-pink-50/60 border border-pink-200/60 p-3 rounded-2xl">
-            <span className="text-[9.5px] font-black uppercase text-[#D70F64] block">Total Redeemed</span>
-            <span className="text-xl font-black text-[#D70F64] mt-0.5 block">{totalUses} Uses</span>
+            <span className="text-[9.5px] font-black uppercase text-[#E21B70] block">Total Redeemed</span>
+            <span className="text-xl font-black text-[#E21B70] mt-0.5 block">{totalUses} Uses</span>
           </div>
         </div>
 
@@ -382,7 +382,7 @@ export default function AdminVoucherManager({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by voucher code, restaurant or description..."
-              className="w-full bg-slate-100/90 border border-slate-200 text-slate-900 placeholder-slate-400 pl-10 pr-4 py-2.5 rounded-2xl text-xs font-semibold focus:outline-hidden focus:border-[#D70F64]"
+              className="w-full bg-slate-100/90 border border-slate-200 text-slate-900 placeholder-slate-400 pl-10 pr-4 py-2.5 rounded-2xl text-xs font-semibold focus:outline-hidden focus:border-[#E21B70]"
             />
             {searchTerm && (
               <button
@@ -434,7 +434,7 @@ export default function AdminVoucherManager({
       {/* Vouchers List */}
       {filteredVouchers.length === 0 ? (
         <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center space-y-3">
-          <div className="w-16 h-16 rounded-3xl bg-pink-50 border border-pink-100 flex items-center justify-center text-3xl mx-auto text-[#D70F64]">
+          <div className="w-16 h-16 rounded-3xl bg-pink-50 border border-pink-100 flex items-center justify-center text-3xl mx-auto text-[#E21B70]">
             🎟️
           </div>
           <h3 className="text-base font-black text-slate-800">No Vouchers Found</h3>
@@ -445,7 +445,7 @@ export default function AdminVoucherManager({
           </p>
           <button
             onClick={handleOpenCreate}
-            className="mt-2 px-4 py-2 bg-[#D70F64] hover:bg-[#b00c50] text-white rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer"
+            className="mt-2 px-4 py-2 bg-[#E21B70] hover:bg-[#C2145E] text-white rounded-xl text-xs font-black uppercase tracking-wider transition cursor-pointer"
           >
             + Create First Voucher
           </button>
@@ -506,7 +506,7 @@ export default function AdminVoucherManager({
 
                   {/* Discount Value */}
                   <div className="mt-3">
-                    <div className="text-xl font-black text-[#D70F64] flex items-baseline gap-1.5">
+                    <div className="text-xl font-black text-[#E21B70] flex items-baseline gap-1.5">
                       {v.discountType === "percentage" ? (
                         <>
                           <span>{v.discountValue}% OFF</span>
@@ -634,7 +634,7 @@ export default function AdminVoucherManager({
             {/* Modal Header */}
             <div className="p-5 border-b border-slate-100 bg-slate-50/80 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-[#D70F64]/10 border border-[#D70F64]/20 flex items-center justify-center text-[#D70F64]">
+                <div className="w-9 h-9 rounded-xl bg-[#E21B70]/10 border border-[#E21B70]/20 flex items-center justify-center text-[#E21B70]">
                   <Ticket className="w-5 h-5" />
                 </div>
                 <div>
@@ -668,7 +668,7 @@ export default function AdminVoucherManager({
                     value={code}
                     onChange={(e) => setCode(e.target.value.toUpperCase())}
                     placeholder="e.g. WELCOME100, DADU20"
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-black font-mono text-slate-900 uppercase tracking-wider outline-none focus:border-[#D70F64] focus:ring-1 focus:ring-[#D70F64]"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-black font-mono text-slate-900 uppercase tracking-wider outline-none focus:border-[#E21B70] focus:ring-1 focus:ring-[#E21B70]"
                   />
                 </div>
 
@@ -702,7 +702,7 @@ export default function AdminVoucherManager({
                       onClick={() => setDiscountType("percentage")}
                       className={`py-2 px-3 rounded-xl border text-xs font-black uppercase tracking-wider transition cursor-pointer ${
                         discountType === "percentage"
-                          ? "bg-[#D70F64] text-white border-[#D70F64]"
+                          ? "bg-[#E21B70] text-white border-[#E21B70]"
                           : "bg-slate-50 text-slate-600 border-slate-200"
                       }`}
                     >
@@ -713,7 +713,7 @@ export default function AdminVoucherManager({
                       onClick={() => setDiscountType("fixed")}
                       className={`py-2 px-3 rounded-xl border text-xs font-black uppercase tracking-wider transition cursor-pointer ${
                         discountType === "fixed"
-                          ? "bg-[#D70F64] text-white border-[#D70F64]"
+                          ? "bg-[#E21B70] text-white border-[#E21B70]"
                           : "bg-slate-50 text-slate-600 border-slate-200"
                       }`}
                     >
@@ -733,7 +733,7 @@ export default function AdminVoucherManager({
                     value={discountValue}
                     onChange={(e) => setDiscountValue(Math.max(1, Number(e.target.value)))}
                     placeholder={discountType === "percentage" ? "e.g. 20 (for 20%)" : "e.g. 100 (for Rs. 100)"}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-[#D70F64]"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-[#E21B70]"
                   />
                 </div>
               </div>
@@ -750,7 +750,7 @@ export default function AdminVoucherManager({
                     value={minOrderAmount}
                     onChange={(e) => setMinOrderAmount(Math.max(0, Number(e.target.value)))}
                     placeholder="e.g. 500 (Voucher applies if order >= Rs. 500)"
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-[#D70F64]"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-[#E21B70]"
                   />
                   <span className="text-[9.5px] text-slate-400 mt-0.5 block">0 for no minimum requirement</span>
                 </div>
@@ -766,7 +766,7 @@ export default function AdminVoucherManager({
                       value={maxDiscountAmount || ""}
                       onChange={(e) => setMaxDiscountAmount(e.target.value ? Number(e.target.value) : undefined)}
                       placeholder="e.g. 200 (Max discount amount limit)"
-                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-[#D70F64]"
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-[#E21B70]"
                     />
                     <span className="text-[9.5px] text-slate-400 mt-0.5 block">Leave empty for no maximum cap</span>
                   </div>
@@ -784,7 +784,7 @@ export default function AdminVoucherManager({
                     onClick={() => setApplicableType("all")}
                     className={`p-2 rounded-xl border text-[10.5px] font-black uppercase tracking-wider transition cursor-pointer text-center ${
                       applicableType === "all"
-                        ? "bg-[#D70F64] text-white border-[#D70F64]"
+                        ? "bg-[#E21B70] text-white border-[#E21B70]"
                         : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
                     }`}
                   >
@@ -795,7 +795,7 @@ export default function AdminVoucherManager({
                     onClick={() => setApplicableType("food_only")}
                     className={`p-2 rounded-xl border text-[10.5px] font-black uppercase tracking-wider transition cursor-pointer text-center ${
                       applicableType === "food_only"
-                        ? "bg-[#D70F64] text-white border-[#D70F64]"
+                        ? "bg-[#E21B70] text-white border-[#E21B70]"
                         : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
                     }`}
                   >
@@ -806,7 +806,7 @@ export default function AdminVoucherManager({
                     onClick={() => setApplicableType("grocery_only")}
                     className={`p-2 rounded-xl border text-[10.5px] font-black uppercase tracking-wider transition cursor-pointer text-center ${
                       applicableType === "grocery_only"
-                        ? "bg-[#D70F64] text-white border-[#D70F64]"
+                        ? "bg-[#E21B70] text-white border-[#E21B70]"
                         : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
                     }`}
                   >
@@ -817,7 +817,7 @@ export default function AdminVoucherManager({
                     onClick={() => setApplicableType("restaurant")}
                     className={`p-2 rounded-xl border text-[10.5px] font-black uppercase tracking-wider transition cursor-pointer text-center ${
                       applicableType === "restaurant"
-                        ? "bg-[#D70F64] text-white border-[#D70F64]"
+                        ? "bg-[#E21B70] text-white border-[#E21B70]"
                         : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
                     }`}
                   >
@@ -833,7 +833,7 @@ export default function AdminVoucherManager({
                     <select
                       value={applicableRestaurant}
                       onChange={(e) => setApplicableRestaurant(e.target.value)}
-                      className="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-[#D70F64]"
+                      className="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-[#E21B70]"
                     >
                       {restaurantNames.map((r) => (
                         <option key={r} value={r}>
@@ -855,7 +855,7 @@ export default function AdminVoucherManager({
                     type="datetime-local"
                     value={expiryDate}
                     onChange={(e) => setExpiryDate(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none focus:border-[#D70F64]"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none focus:border-[#E21B70]"
                   />
                   {expiryDate && (
                     <button
@@ -878,7 +878,7 @@ export default function AdminVoucherManager({
                     value={maxUses}
                     onChange={(e) => setMaxUses(Math.max(0, Number(e.target.value)))}
                     placeholder="0 for unlimited uses across system"
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-[#D70F64]"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-[#E21B70]"
                   />
                   <span className="text-[9.5px] text-slate-400 mt-0.5 block">0 = Unlimited redemptions</span>
                 </div>
@@ -894,7 +894,7 @@ export default function AdminVoucherManager({
                   value={successMessage}
                   onChange={(e) => setSuccessMessage(e.target.value)}
                   placeholder="e.g. Special 20% discount for Dadu foodies!"
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 outline-none focus:border-[#D70F64]"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 outline-none focus:border-[#E21B70]"
                 />
               </div>
 
@@ -999,7 +999,7 @@ export default function AdminVoucherManager({
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="px-6 py-2.5 bg-[#D70F64] hover:bg-[#b00c50] text-white rounded-xl text-xs font-black uppercase tracking-wider transition shadow-md cursor-pointer disabled:opacity-50"
+                  className="px-6 py-2.5 bg-[#E21B70] hover:bg-[#C2145E] text-white rounded-xl text-xs font-black uppercase tracking-wider transition shadow-md cursor-pointer disabled:opacity-50"
                 >
                   {isSaving ? "Saving..." : editingVoucher ? "Update Voucher" : "Create & Activate Voucher"}
                 </button>
@@ -1040,7 +1040,7 @@ export default function AdminVoucherManager({
               <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
                 <div>
                   <span className="font-mono font-black text-sm text-slate-900 block">{sendModalVoucher.code}</span>
-                  <span className="text-xs text-[#D70F64] font-black">
+                  <span className="text-xs text-[#E21B70] font-black">
                     {sendModalVoucher.discountType === "percentage"
                       ? `${sendModalVoucher.discountValue}% OFF`
                       : `Rs. ${sendModalVoucher.discountValue} OFF`}
@@ -1066,7 +1066,7 @@ export default function AdminVoucherManager({
                         setSendTargetUserIds(allUsersList.map((u) => u.uid));
                       }
                     }}
-                    className="text-[10px] font-black text-[#D70F64] hover:underline cursor-pointer"
+                    className="text-[10px] font-black text-[#E21B70] hover:underline cursor-pointer"
                   >
                     {sendTargetUserIds.length === allUsersList.length ? "Deselect All" : "Select All Users"}
                   </button>
@@ -1111,7 +1111,7 @@ export default function AdminVoucherManager({
                             <span className="text-[10px] text-slate-400 font-mono">{u.phone || "No Phone"}</span>
                           </div>
                           <div className={`w-5 h-5 rounded-md border flex items-center justify-center ${
-                            isSelected ? "bg-[#D70F64] border-[#D70F64] text-white" : "border-slate-300 bg-white"
+                            isSelected ? "bg-[#E21B70] border-[#E21B70] text-white" : "border-slate-300 bg-white"
                           }`}>
                             {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                           </div>
@@ -1134,7 +1134,7 @@ export default function AdminVoucherManager({
                 type="button"
                 disabled={isSending || sendTargetUserIds.length === 0}
                 onClick={handleSendVoucherSubmit}
-                className="px-5 py-2 bg-[#D70F64] hover:bg-[#b00c50] text-white rounded-xl text-xs font-black uppercase tracking-wider transition shadow-md cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                className="px-5 py-2 bg-[#E21B70] hover:bg-[#C2145E] text-white rounded-xl text-xs font-black uppercase tracking-wider transition shadow-md cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
               >
                 <Send className="w-3.5 h-3.5" />
                 <span>{isSending ? "Sending..." : `Send to ${sendTargetUserIds.length} Users`}</span>

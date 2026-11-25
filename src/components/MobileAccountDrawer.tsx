@@ -78,14 +78,14 @@ export default function MobileAccountDrawer({
             {/* Header */}
             <div className="px-5 pb-3 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-pink-50 dark:bg-zinc-850 flex items-center justify-center text-xl font-black text-[#D70F64] shadow-2xs border border-[#D70F64]/10">
+                <div className="w-12 h-12 rounded-2xl bg-pink-50 dark:bg-zinc-850 flex items-center justify-center text-xl font-black text-[#E21B70] shadow-2xs border border-[#E21B70]/10">
                   {user.name.charAt(0).toUpperCase()}
                 </div>
                 <div>
                   <div className="flex items-center gap-1 font-black text-base text-zinc-900 dark:text-white">
                     {user.name}
                     {user.role === "admin" && (
-                      <BadgeCheck className="w-4 h-4 text-[#D70F64] shrink-0" />
+                      <BadgeCheck className="w-4 h-4 text-[#E21B70] shrink-0" />
                     )}
                   </div>
                   <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">
@@ -105,7 +105,7 @@ export default function MobileAccountDrawer({
             <div className="flex-1 overflow-y-auto p-5 space-y-6 scrollbar-none">
               
               {/* Dadu Loyalty Wallet Card */}
-              <div className="bg-gradient-to-br from-[#D70F64] to-pink-600 rounded-3xl p-4 sm:p-5 text-white shadow-lg relative overflow-hidden">
+              <div className="bg-gradient-to-br from-[#E21B70] to-pink-600 rounded-3xl p-4 sm:p-5 text-white shadow-lg relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-3 opacity-15">
                   <span className="text-5xl">👑</span>
                 </div>
@@ -120,7 +120,7 @@ export default function MobileAccountDrawer({
                   <span className="font-bold text-pink-100">
                     🔥 Earned Rs. 15 per completed delivery
                   </span>
-                  <span className="bg-white text-[#D70F64] px-2 py-0.5 rounded-full font-black text-[9px] uppercase tracking-wide">
+                  <span className="bg-white text-[#E21B70] px-2 py-0.5 rounded-full font-black text-[9px] uppercase tracking-wide">
                     Level {(user.ordersCount || 0) > 10 ? "Gold" : "Silver"}
                   </span>
                 </div>
@@ -129,7 +129,7 @@ export default function MobileAccountDrawer({
               {/* Active Placed Orders Tracker */}
               {activeOrders.length > 0 && (
                 <div className="space-y-2">
-                  <span className="text-[10px] uppercase font-black tracking-widest text-[#D70F64] block">
+                  <span className="text-[10px] uppercase font-black tracking-widest text-[#E21B70] block">
                     Live Deliveries
                   </span>
                   <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none">
@@ -146,7 +146,7 @@ export default function MobileAccountDrawer({
                           <span className="font-mono text-xs font-black text-zinc-800 dark:text-zinc-200">
                             {formatOrderId(o.id)}
                           </span>
-                          <span className="text-[8px] font-black uppercase text-[#D70F64] bg-[#D70F64]/10 px-2 py-0.5 rounded border border-[#D70F64]/20">
+                          <span className="text-[8px] font-black uppercase text-[#E21B70] bg-[#E21B70]/10 px-2 py-0.5 rounded border border-[#E21B70]/20">
                             Track 🛵
                           </span>
                         </div>
@@ -169,7 +169,7 @@ export default function MobileAccountDrawer({
                     {recentUserOrders.map((o) => (
                       <div
                         key={o.id}
-                        className="shrink-0 w-48 p-3 rounded-2xl border border-zinc-150 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 hover:border-[#D70F64]/20 transition-all text-left shadow-3xs flex flex-col justify-between h-[105px]"
+                        className="shrink-0 w-48 p-3 rounded-2xl border border-zinc-150 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 hover:border-[#E21B70]/20 transition-all text-left shadow-3xs flex flex-col justify-between h-[105px]"
                       >
                         <div>
                           <div className="flex items-center justify-between mb-1">
@@ -191,7 +191,7 @@ export default function MobileAccountDrawer({
                           </div>
                         </div>
                         <div className="flex items-center justify-between pt-2 border-t border-zinc-100 dark:border-zinc-800/60">
-                          <span className="text-[#D70F64] font-black text-xs">
+                          <span className="text-[#E21B70] font-black text-xs">
                             Rs. {o.grandTotal}
                           </span>
                           {onReorder && (
@@ -200,7 +200,7 @@ export default function MobileAccountDrawer({
                                 onClose();
                                 onReorder(o);
                               }}
-                              className="text-[9px] text-white bg-[#D70F64] hover:bg-[#b00c50] px-2.5 py-1 rounded-lg flex items-center gap-1 font-black cursor-pointer transition uppercase tracking-wider"
+                              className="text-[9px] text-white bg-[#E21B70] hover:bg-[#C2145E] px-2.5 py-1 rounded-lg flex items-center gap-1 font-black cursor-pointer transition uppercase tracking-wider"
                             >
                               <RotateCcw className="w-2.5 h-2.5 stroke-[3]" />
                               Reorder
@@ -224,11 +224,11 @@ export default function MobileAccountDrawer({
                   }}
                   className={`p-3.5 rounded-2xl transition flex flex-col items-center justify-center gap-2 cursor-pointer border ${
                     showFavoritesOnly 
-                      ? "text-[#D70F64] bg-pink-50/50 border-[#D70F64]/30 dark:bg-pink-950/10 dark:border-pink-900/30 font-black" 
+                      ? "text-[#E21B70] bg-pink-50/50 border-[#E21B70]/30 dark:bg-pink-950/10 dark:border-pink-900/30 font-black" 
                       : "text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-800/80 border-zinc-100 dark:border-zinc-850 hover:bg-zinc-100 dark:hover:bg-zinc-800"
                   }`}
                 >
-                  <Heart className={`w-5 h-5 ${showFavoritesOnly ? "fill-[#D70F64] text-[#D70F64]" : "text-[#D70F64]"}`} />
+                  <Heart className={`w-5 h-5 ${showFavoritesOnly ? "fill-[#E21B70] text-[#E21B70]" : "text-[#E21B70]"}`} />
                   <span className="text-xs font-extrabold">Favorites Only</span>
                 </button>
 
@@ -253,7 +253,7 @@ export default function MobileAccountDrawer({
                     }}
                     className="p-3.5 rounded-2xl text-zinc-800 dark:text-zinc-100 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition flex items-center justify-center gap-2 cursor-pointer col-span-2"
                   >
-                    <Settings className="w-4 h-4 text-[#D70F64] shrink-0" />
+                    <Settings className="w-4 h-4 text-[#E21B70] shrink-0" />
                     <span className="text-xs font-extrabold">My Profile, Addresses, Payments &amp; Language</span>
                   </button>
                 )}
@@ -284,9 +284,9 @@ export default function MobileAccountDrawer({
                       onClose();
                       onOpenAdmin();
                     }}
-                    className="w-full font-bold text-xs text-[#D70F64] bg-[#D70F64]/10 border border-[#D70F64]/30 px-3.5 py-3 hover:bg-[#D70F64]/20 rounded-2xl transition flex items-center justify-center gap-2 cursor-pointer col-span-2 shadow-2xs"
+                    className="w-full font-bold text-xs text-[#E21B70] bg-[#E21B70]/10 border border-[#E21B70]/30 px-3.5 py-3 hover:bg-[#E21B70]/20 rounded-2xl transition flex items-center justify-center gap-2 cursor-pointer col-span-2 shadow-2xs"
                   >
-                    <ShieldAlert className="w-4 h-4 text-[#D70F64] shrink-0" />
+                    <ShieldAlert className="w-4 h-4 text-[#E21B70] shrink-0" />
                     <span>Open Admin Console</span>
                   </button>
                 )}

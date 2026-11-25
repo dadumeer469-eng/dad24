@@ -159,7 +159,7 @@ export default function UserVoucherInspectorModal({
                   type="button"
                   disabled={!selectedVoucherCode || isProcessing}
                   onClick={handleAssignVoucher}
-                  className="w-full py-2.5 bg-[#D70F64] hover:bg-[#b00c50] text-white font-black text-xs uppercase tracking-wider rounded-xl transition shadow-sm cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
+                  className="w-full py-2.5 bg-[#E21B70] hover:bg-[#C2145E] text-white font-black text-xs uppercase tracking-wider rounded-xl transition shadow-sm cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
                 >
                   <Send className="w-3.5 h-3.5" />
                   <span>{isProcessing ? "Assigning..." : "Assign & Send Notification"}</span>
@@ -202,7 +202,7 @@ export default function UserVoucherInspectorModal({
                           <span className="font-mono font-black text-xs text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md">
                             {v.code}
                           </span>
-                          <span className="text-xs font-black text-[#D70F64]">
+                          <span className="text-xs font-black text-[#E21B70]">
                             {v.discountType === "percentage"
                               ? `${v.discountValue}% OFF`
                               : `Rs. ${v.discountValue} OFF`}

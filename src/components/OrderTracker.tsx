@@ -150,7 +150,7 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
       cancelled: { bg: "bg-pink-500/10 border-red-500/20", text: "text-pink-400", label: "Cancelled x" },
       
       booked: { bg: "bg-yellow-500/10 border-yellow-500/20", text: "text-yellow-500", label: "Booked" },
-      diagnostic_on_way: { bg: "bg-[#D70F64]/10 border-[#D70F64]/20", text: "text-[#D70F64]", label: "Traveling" },
+      diagnostic_on_way: { bg: "bg-[#E21B70]/10 border-[#E21B70]/20", text: "text-[#E21B70]", label: "Traveling" },
       diagnostic_underway: { bg: "bg-indigo-500/10 border-indigo-500/20", text: "text-indigo-400", label: "Inspecting" },
       completed: { bg: "bg-emerald-500/10 border-emerald-500/20", text: "text-emerald-400", label: "Completed" },
     };
@@ -178,9 +178,9 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
         <div className="flex items-center justify-between border-b border-zinc-900 pb-3">
           <div className="flex items-center gap-2">
             <span className="text-base">🚴</span>
-            <span className="text-[10px] font-black uppercase tracking-widest text-[#D70F64]">Rider Assigned Details</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-[#E21B70]">Rider Assigned Details</span>
           </div>
-          <span className="text-[9px] bg-[#D70F64]/10 text-[#D70F64] font-black px-2.5 py-1 rounded-full uppercase tracking-wider">
+          <span className="text-[9px] bg-[#E21B70]/10 text-[#E21B70] font-black px-2.5 py-1 rounded-full uppercase tracking-wider">
             {order.status === "out_for_delivery" ? "On The Way" : "Preparing Package"}
           </span>
         </div>
@@ -191,7 +191,7 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
               <div className="flex items-center gap-3.5">
                 {/* Dadu Food styled pink-themed avatar circle */}
                 <div className="relative shrink-0">
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#D70F64] via-pink-500 to-amber-500 p-0.5 shadow-md">
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#E21B70] via-pink-500 to-amber-500 p-0.5 shadow-md">
                     <div className="w-full h-full rounded-full bg-zinc-900 flex items-center justify-center text-white font-black text-lg font-mono">
                       {order.riderName.charAt(0).toUpperCase()}
                     </div>
@@ -241,8 +241,8 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
                   onClick={() => setShowLiveChat(!showLiveChat)}
                   className={`py-2 sm:py-2.5 px-2 rounded-xl transition text-center font-black text-[10.5px] sm:text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer active:scale-95 truncate relative ${
                     showLiveChat 
-                      ? "bg-zinc-800 border border-[#D70F64] text-white hover:bg-zinc-750 ring-2 ring-[#D70F64]/30" 
-                      : "bg-gradient-to-r from-[#D70F64] to-pink-600 text-white hover:from-[#b00c50] hover:to-pink-700"
+                      ? "bg-zinc-800 border border-[#E21B70] text-white hover:bg-zinc-750 ring-2 ring-[#E21B70]/30" 
+                      : "bg-gradient-to-r from-[#E21B70] to-pink-600 text-white hover:from-[#C2145E] hover:to-pink-700"
                   }`}
                 >
                   <span>💬 {showLiveChat ? "Close Chat" : "Live Chat"}</span>
@@ -290,7 +290,7 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
           </div>
         ) : (
           <div className="flex items-center gap-3.5 py-1">
-            <div className="w-12 h-12 rounded-full bg-[#D70F64]/10 border border-[#D70F64]/20 flex items-center justify-center text-[#D70F64] shrink-0 shadow-sm">
+            <div className="w-12 h-12 rounded-full bg-[#E21B70]/10 border border-[#E21B70]/20 flex items-center justify-center text-[#E21B70] shrink-0 shadow-sm">
               <MapPin className="w-5 h-5" />
             </div>
             <div>
@@ -358,13 +358,13 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
       
       {/* Background Decorative Neon Light */}
       <div className={`absolute top-0 right-0 w-44 h-44 rounded-full blur-3xl pointer-events-none -mt-10 -mr-10 ${
-        isService ? "bg-amber-500/5" : "bg-[#D70F64]/5"
+        isService ? "bg-amber-500/5" : "bg-[#E21B70]/5"
       }`}></div>
 
       {/* Header Info */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-zinc-800 pb-4">
         <div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-[#D70F64] block">
+          <span className="text-[10px] font-black uppercase tracking-widest text-[#E21B70] block">
             {isService ? "Active Service Live Tracker" : "Live Order Tracker"}
           </span>
           <h3 className="font-extrabold text-sm text-zinc-100 mt-1 flex items-center gap-1.5 flex-wrap">
@@ -381,9 +381,9 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
         <div className={`py-2 px-4 rounded-2xl flex items-center gap-2 border shadow-xs ${
           isService 
             ? "bg-amber-950/20 border border-amber-900/40 text-amber-500" 
-            : "bg-[#D70F64]/10 border border-[#D70F64]/20 text-[#D70F64]"
+            : "bg-[#E21B70]/10 border border-[#E21B70]/20 text-[#E21B70]"
         }`}>
-          <Clock className={`w-4 h-4 shrink-0 ${isService ? "text-amber-550" : "text-[#D70F64]"}`} />
+          <Clock className={`w-4 h-4 shrink-0 ${isService ? "text-amber-550" : "text-[#E21B70]"}`} />
           <div>
             <span className="text-[9px] uppercase tracking-wider font-extrabold text-zinc-400 block leading-none">
               {isService ? "Service Timing" : "Est. Delivery"}
@@ -409,7 +409,7 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
             {/* Background connecting bar */}
             <div className="absolute left-4 right-4 top-4 h-1 bg-zinc-800 -z-0 rounded-full" />
             <div
-              className="absolute left-4 top-4 h-1 bg-gradient-to-r from-pink-500 to-[#D70F64] z-0 rounded-full transition-all duration-500"
+              className="absolute left-4 top-4 h-1 bg-gradient-to-r from-pink-500 to-[#E21B70] z-0 rounded-full transition-all duration-500"
               style={{ width: `${Math.max(0, (activeIndex / (steps.length - 1)) * 100)}%` }}
             />
 
@@ -422,11 +422,11 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
                   {/* Step bullet dot */}
                   <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center border transition-all text-xs font-black shadow-md ${
                     isPast 
-                      ? "bg-[#D70F64] border-[#D70F64] text-white" 
+                      ? "bg-[#E21B70] border-[#E21B70] text-white" 
                       : isCurrent 
                         ? isService 
                           ? "bg-amber-500 text-neutral-950 border-amber-500 scale-110 shadow-amber-500/30" 
-                          : "bg-[#D70F64] text-white border-[#D70F64] scale-110 shadow-pink-500/30 animate-pulse"
+                          : "bg-[#E21B70] text-white border-[#E21B70] scale-110 shadow-pink-500/30 animate-pulse"
                         : "bg-zinc-900 text-zinc-500 border-zinc-750"
                   }`}>
                     {isPast ? (
@@ -443,7 +443,7 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
                       : isCurrent 
                         ? isService 
                           ? "text-amber-400 font-extrabold" 
-                          : "text-[#D70F64] font-extrabold" 
+                          : "text-[#E21B70] font-extrabold" 
                         : "text-zinc-600"
                   }`}>
                     {step.label}
@@ -461,7 +461,7 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
       {/* Details Footer Card */}
       <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 mt-8 space-y-3 font-medium text-xs">
         <h4 className="font-bold text-[10px] text-zinc-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-zinc-800 pb-2">
-          {isService ? <Wrench className="w-3.5 h-3.5 text-amber-500" /> : <User className="w-3.5 h-3.5 text-[#D70F64]" />}
+          {isService ? <Wrench className="w-3.5 h-3.5 text-amber-500" /> : <User className="w-3.5 h-3.5 text-[#E21B70]" />}
           {isService ? "Assigned Professional Details" : "Delivery Logistics Details"}
         </h4>
         
@@ -493,7 +493,7 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
           </div>
           <div>
             <span className="text-zinc-500 block font-semibold">Payment Mode:</span>
-            <span className="font-extrabold uppercase text-[#D70F64]">
+            <span className="font-extrabold uppercase text-[#E21B70]">
               {order.paymentMethod || (isService ? "Pay on Visit" : "Cash on Delivery")}
             </span>
           </div>

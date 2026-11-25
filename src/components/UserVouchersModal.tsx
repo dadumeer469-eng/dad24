@@ -82,13 +82,13 @@ export default function UserVouchersModal({
           {/* Header */}
           <div className="p-5 border-b border-zinc-800 bg-zinc-950 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#D70F64] to-pink-600 flex items-center justify-center text-white shadow-md shadow-pink-500/20">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#E21B70] to-pink-600 flex items-center justify-center text-white shadow-md shadow-pink-500/20">
                 <Ticket className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="text-base font-black text-white flex items-center gap-2">
                   My Vouchers & Offers
-                  <span className="text-[10px] bg-[#D70F64]/20 border border-[#D70F64]/30 text-pink-400 font-bold px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] bg-[#E21B70]/20 border border-[#E21B70]/30 text-pink-400 font-bold px-2 py-0.5 rounded-full">
                     {activeAvailableVouchers.length} Available
                   </span>
                 </h3>
@@ -111,7 +111,7 @@ export default function UserVouchersModal({
               onClick={() => setFilterTab("all")}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition whitespace-nowrap cursor-pointer ${
                 filterTab === "all"
-                  ? "bg-[#D70F64] text-white shadow-sm"
+                  ? "bg-[#E21B70] text-white shadow-sm"
                   : "bg-zinc-800 text-zinc-400 hover:text-zinc-200"
               }`}
             >
@@ -121,7 +121,7 @@ export default function UserVouchersModal({
               onClick={() => setFilterTab("food")}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition whitespace-nowrap cursor-pointer ${
                 filterTab === "food"
-                  ? "bg-[#D70F64] text-white shadow-sm"
+                  ? "bg-[#E21B70] text-white shadow-sm"
                   : "bg-zinc-800 text-zinc-400 hover:text-zinc-200"
               }`}
             >
@@ -131,7 +131,7 @@ export default function UserVouchersModal({
               onClick={() => setFilterTab("grocery")}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition whitespace-nowrap cursor-pointer ${
                 filterTab === "grocery"
-                  ? "bg-[#D70F64] text-white shadow-sm"
+                  ? "bg-[#E21B70] text-white shadow-sm"
                   : "bg-zinc-800 text-zinc-400 hover:text-zinc-200"
               }`}
             >
@@ -220,7 +220,7 @@ export default function UserVouchersModal({
                         ? "bg-zinc-900/40 border-zinc-800/80 opacity-60"
                         : isAssignedToUser
                         ? "bg-gradient-to-br from-amber-500/10 via-zinc-900 to-zinc-900 border-amber-500/30 shadow-md shadow-amber-500/5"
-                        : "bg-gradient-to-br from-[#D70F64]/10 via-zinc-900 to-zinc-900 border-[#D70F64]/20 shadow-md shadow-pink-500/5"
+                        : "bg-gradient-to-br from-[#E21B70]/10 via-zinc-900 to-zinc-900 border-[#E21B70]/20 shadow-md shadow-pink-500/5"
                     }`}
                   >
                     {/* Top Row: Discount & Badge */}
@@ -233,7 +233,7 @@ export default function UserVouchersModal({
                             </span>
                           )}
                           <span className="inline-flex items-center gap-1 bg-zinc-800 border border-zinc-700 text-zinc-300 text-[9px] font-black uppercase px-2 py-0.5 rounded-full">
-                            <UserCheck className="w-2.5 h-2.5 text-[#D70F64]" />
+                            <UserCheck className="w-2.5 h-2.5 text-[#E21B70]" />
                             {perUserLimit === 1 ? "1 Use Per User" : `${perUserLimit} Uses Per User`}
                           </span>
                           {voucher.maxUses > 0 && (
@@ -246,7 +246,7 @@ export default function UserVouchersModal({
                         <h4 className="text-lg font-black text-white flex items-baseline gap-2">
                           {voucher.discountType === "percentage" ? (
                             <>
-                              <span className="text-[#D70F64]">{voucher.discountValue}% OFF</span>
+                              <span className="text-[#E21B70]">{voucher.discountValue}% OFF</span>
                               {voucher.maxDiscountAmount ? (
                                 <span className="text-xs text-zinc-400 font-semibold">(Up to Rs. {voucher.maxDiscountAmount})</span>
                               ) : null}
@@ -356,7 +356,7 @@ export default function UserVouchersModal({
                           }}
                           className={`px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer ${
                             canApplyNow
-                              ? "bg-[#D70F64] hover:bg-[#b00c50] text-white shadow-sm"
+                              ? "bg-[#E21B70] hover:bg-[#C2145E] text-white shadow-sm"
                               : "bg-zinc-800 text-zinc-500 opacity-60 cursor-not-allowed"
                           }`}
                         >

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Utensils, ImageOff } from "lucide-react";
+import { Utensils } from "lucide-react";
 
 interface LazyImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src?: string;
@@ -11,12 +11,11 @@ interface LazyImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   fallbackIcon?: React.ReactNode;
 }
 
-// Global in-memory cache to prevent re-shimmering of already loaded images
 const loadedImageCache = new Set<string>();
 
 export function LazyImage({
   src,
-  alt = "Item photo",
+  alt = "Dadu Food dish photo",
   className = "w-full h-full",
   imgClassName = "",
   referrerPolicy = "no-referrer",
@@ -41,7 +40,6 @@ export function LazyImage({
       setIsLoaded(true);
       return;
     }
-    // Check if the DOM image is already loaded from browser cache
     if (imgRef.current && imgRef.current.complete && imgRef.current.naturalWidth > 0) {
       loadedImageCache.add(src);
       setIsLoaded(true);
@@ -51,47 +49,45 @@ export function LazyImage({
   const handleImageError = () => {
     if (retryCount < 1 && src && !src.startsWith("data:")) {
       setRetryCount((prev) => prev + 1);
-      // Brief timeout before retrying to handle cellular network glitches
       setTimeout(() => {
         if (imgRef.current) {
           const sep = src.includes("?") ? "&" : "?";
           imgRef.current.src = `${src}${sep}retry=${Date.now()}`;
         }
-      }, 800);
+      }, 700);
     } else {
       setHasError(true);
     }
   };
 
   return (
-    <div className={`relative overflow-hidden bg-zinc-100 dark:bg-zinc-800/90 ${className}`}>
-      {/* Premium Shimmer Skeleton Beam only while actually loading */}
+    <div className={`relative overflow-hidden bg-[#F2F2F6] dark:bg-[#1D1D26] ${className}`}>
       {!isLoaded && !hasError && (
-        <div className="absolute inset-0 z-10 overflow-hidden bg-zinc-200/80 dark:bg-zinc-800/80 pointer-events-none flex items-center justify-center">
-          {/* Animated Light Sweep Effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 dark:via-white/10 to-transparent animate-shimmer-sweep" />
-          {/* Center icon placeholder */}
-          <div className="p-2 rounded-xl bg-white/50 dark:bg-zinc-700/50 text-zinc-400 dark:text-zinc-500 animate-pulse-subtle">
-            {fallbackIcon || <Utensils className="w-4 h-4 opacity-50" />}
+        <div className="absolute inset-0 z-10 overflow-hidden bg-[#ECECF2] dark:bg-[#1D1D26] pointer-events-none flex items-center justify-center">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 dark:via-white/8 to-transparent animate-shimmer-sweep" />
+          <div className="p-2 rounded-xl bg-white/80 dark:bg-[#252530] text-[#E21B70]">
+            {fallbackIcon || <Utensils className="w-4 h-4 opacity-70" />}
           </div>
         </div>
       )}
 
-      {/* Broken image error state */}
       {hasError ? (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-400">
-          {fallbackIcon || <ImageOff className="w-4 h-4 opacity-50" />}
-          <span className="text-[9px] font-bold text-zinc-400/80 uppercase tracking-widest mt-1">Dadu Express</span>
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-2 bg-[#1D1D26] text-white">
+          <div className="w-8 h-8 rounded-xl bg-[#E21B70] text-white flex items-center justify-center mb-1 shadow-xs">
+            {fallbackIcon || <Utensils className="w-4 h-4" />}
+          </div>
+          <span className="text-[10px] font-extrabold text-white tracking-wider uppercase">
+            DADU EXPRESS
+          </span>
         </div>
       ) : (
-        /* Actual Image with GPU-accelerated smooth scale/fade transition */
         <img
           ref={imgRef}
           src={src}
           alt={alt}
           loading={loading}
           decoding="async"
-          className={`w-full h-full transition-opacity duration-200 transform-gpu ${
+          className={`w-full h-full transition-opacity duration-200 gpu-layer ${
             isLoaded ? "opacity-100" : "opacity-0"
           } ${imgClassName}`}
           referrerPolicy={referrerPolicy}
@@ -107,5 +103,3 @@ export function LazyImage({
     </div>
   );
 }
-
-

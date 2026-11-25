@@ -85,20 +85,20 @@ export default function FoodpandaHeader({
   const categories = [
     { name: "All", emoji: "🍽️" },
     { name: "Burgers", emoji: "🍔" },
-    { name: "Pizzas", emoji: "🍕" },
-    { name: "Chicken & Rice", emoji: "🍗" },
-    { name: "Only Tea", emoji: "🍵" },
-    { name: "Specials", emoji: "⭐️" },
-    { name: "Home Services", emoji: "🛠️" }
+    { name: "Pizza", emoji: "🍕" },
+    { name: "Desi Food", emoji: "🍛" },
+    { name: "Tea & Chai", emoji: "☕" },
+    { name: "Specials", emoji: "⭐" },
   ];
 
   return (
     <>
-      <header className="relative z-40 bg-white dark:bg-zinc-950 text-zinc-800 dark:text-zinc-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)] border-b border-pink-100/60 dark:border-zinc-800">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+      <header className="relative z-40 bg-white dark:bg-[#14141A] text-[#14141A] dark:text-[#F5F5F8] border-b border-[#E6E6EE] dark:border-[#272733]">
+        <div className="max-w-7xl mx-auto px-3.5 sm:px-4 h-[60px] flex items-center justify-between gap-2 sm:gap-4">
           
           {/* Logo and Brand */}
-        <div 
+        <button
+          type="button"
           onClick={() => {
             if (activeModule === "grocery" && onResetGroceryHome) {
               onResetGroceryHome();
@@ -108,91 +108,93 @@ export default function FoodpandaHeader({
               window.scrollTo({ top: 0, behavior: "smooth" });
             }
           }}
-          className="flex items-center gap-2 shrink-0 cursor-pointer group select-none"
+          className="min-h-[44px] flex items-center gap-2 shrink-0 cursor-pointer group select-none text-left"
           title="Dadu Food Home"
         >
-          <div className="w-11 h-11 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 overflow-hidden flex items-center justify-center group-hover:scale-105 active:scale-95 shadow-sm transition-all relative shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-white border border-[#E6E6EE] dark:border-[#272733] overflow-hidden flex items-center justify-center group-hover:scale-105 active:scale-95 shadow-2xs transition-transform relative shrink-0">
             <img 
               src={daduLogo} 
-              alt="DF" 
+              alt="Dadu Food Logo" 
               className="w-full h-full object-cover scale-110" 
               referrerPolicy="no-referrer"
             />
           </div>
-          <span className="text-base sm:text-xl font-black tracking-tight text-zinc-900 dark:text-zinc-100">
-            DADU<span className="text-[#d70f64]">FOOD</span>
+          <span className="text-base sm:text-xl font-extrabold tracking-tight text-[#14141A] dark:text-[#F5F5F8]">
+            DADU<span className="text-[#E21B70]">FOOD</span>
           </span>
-        </div>
+        </button>
 
-        {/* Address and support info - desktop only */}
+        {/* Address - desktop only */}
         {user && (
-          <div className="hidden md:flex flex-col text-xs text-zinc-500 dark:text-zinc-400 max-w-xs truncate">
-            <span className="font-bold text-zinc-400 dark:text-zinc-500 block uppercase tracking-wider text-[10px]">DELIVERING TO:</span>
-            <span className="truncate text-zinc-750 dark:text-zinc-250 font-medium">{user.address}</span>
+          <div className="hidden md:flex flex-col text-xs text-[#5A5A6B] dark:text-[#A1A1B2] max-w-xs truncate">
+            <span className="font-bold text-[#717185] dark:text-[#8E8EA0] block uppercase tracking-wider text-[10px]">Delivering to</span>
+            <span className="truncate text-[#14141A] dark:text-[#F5F5F8] font-semibold">{user.address}</span>
           </div>
         )}
 
         {/* Search bar inside header */}
         <div className="relative flex-1 max-w-md hidden sm:block">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#d70f64] pointer-events-none" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#E21B70] pointer-events-none" />
           <input
             id="desktop-search-input"
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search for food, grocery or deals..."
-            className="w-full pl-10 pr-9 py-2 bg-zinc-100/90 dark:bg-zinc-800/80 border border-zinc-200/80 dark:border-zinc-700/80 rounded-full text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 outline-none focus:bg-white dark:focus:bg-zinc-900 focus:border-[#d70f64] focus:ring-2 focus:ring-[#d70f64]/20 transition-all shadow-2xs font-medium"
+            placeholder="Search biryani, pizza, chai or restaurants..."
+            className="w-full min-h-[42px] pl-10 pr-10 py-2 bg-[#F2F2F6] dark:bg-[#1D1D26] border border-[#E6E6EE] dark:border-[#272733] rounded-xl text-sm text-[#14141A] dark:text-[#F5F5F8] placeholder-[#717185] outline-none focus:bg-white dark:focus:bg-[#14141A] focus:border-[#E21B70] focus:ring-2 focus:ring-[#E21B70]/20 transition-all font-medium"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-full transition cursor-pointer"
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-[#5A5A6B] hover:text-[#14141A] dark:hover:text-white rounded-lg transition cursor-pointer"
               title="Clear search"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-4 h-4" />
             </button>
           )}
         </div>
 
-        {/* Action Widgets Grid */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Action Widgets */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
 
-          {/* Visible Dark / Light Mode Toggle in Header */}
+          {/* Visible Dark / Light Mode Toggle (>=44px touch target) */}
           {onToggleTheme && (
             <button
               type="button"
               onClick={onToggleTheme}
               aria-label={theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"}
               title={theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"}
-              className="flex items-center gap-1.5 px-2.5 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 text-zinc-800 dark:text-zinc-100 rounded-xl transition cursor-pointer text-xs font-bold shrink-0"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center gap-1.5 px-2.5 bg-[#F2F2F6] dark:bg-[#1D1D26] hover:bg-[#E6E6EE] dark:hover:bg-[#272733] border border-[#E6E6EE] dark:border-[#272733] text-[#14141A] dark:text-[#F5F5F8] rounded-xl transition cursor-pointer text-xs font-bold shrink-0"
             >
               {theme === "light" ? (
                 <>
-                  <Moon className="w-4 h-4 text-zinc-700 shrink-0" />
+                  <Moon className="w-4 h-4 text-[#14141A] shrink-0" />
                   <span className="hidden xl:inline">Dark</span>
                 </>
               ) : (
                 <>
                   <Sun className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span className="hidden xl:inline text-zinc-100">Light</span>
+                  <span className="hidden xl:inline text-[#F5F5F8]">Light</span>
                 </>
               )}
             </button>
           )}
           
-          {/* In-App Notifications Center Dropdown */}
+          {/* In-App Notifications Center Dropdown (>=44px touch target) */}
           <div className="relative">
             <button
+              type="button"
+              aria-label="Notifications"
               onClick={() => {
                 setShowNotifications(!showNotifications);
                 setShowUserMenu(false);
               }}
-              className="p-2.5 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-250 dark:border-zinc-700 rounded-xl transition cursor-pointer relative"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center bg-[#F2F2F6] dark:bg-[#1D1D26] hover:bg-[#E6E6EE] dark:hover:bg-[#272733] border border-[#E6E6EE] dark:border-[#272733] rounded-xl transition cursor-pointer relative"
             >
-              <Bell className="w-4 h-4 text-zinc-700 dark:text-zinc-300" />
+              <Bell className="w-4 h-4 text-[#14141A] dark:text-[#F5F5F8]" />
               {unreadNotifications.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-[#d70f64] text-white text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center animate-bounce">
+                <span className="absolute -top-1 -right-1 bg-[#E21B70] text-white text-[10px] font-bold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center tabular-nums">
                   {unreadNotifications.length}
                 </span>
               )}
@@ -204,7 +206,7 @@ export default function FoodpandaHeader({
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-xs tracking-wide uppercase text-zinc-600 dark:text-zinc-300">Notifications</span>
                     {unreadNotifications.length > 0 && (
-                      <span className="bg-[#d70f64] text-white text-[9px] font-black px-2 py-0.5 rounded-full">
+                      <span className="bg-[#E21B70] text-white text-[9px] font-black px-2 py-0.5 rounded-full">
                         {unreadNotifications.length} unread
                       </span>
                     )}
@@ -227,7 +229,7 @@ export default function FoodpandaHeader({
                           onClearNotifications();
                           setShowNotifications(false);
                         }}
-                        className="text-[10px] text-[#d70f64] font-bold hover:underline cursor-pointer"
+                        className="text-[10px] text-[#E21B70] font-bold hover:underline cursor-pointer"
                       >
                         Clear All
                       </button>
@@ -252,13 +254,13 @@ export default function FoodpandaHeader({
                         }}
                         className={`p-3.5 transition text-xs cursor-pointer group flex items-start gap-2.5 ${
                           !notif.read
-                            ? "bg-pink-50/70 dark:bg-pink-950/20 hover:bg-pink-100/70 dark:hover:bg-pink-950/40 border-l-4 border-l-[#d70f64]"
+                            ? "bg-pink-50/70 dark:bg-pink-950/20 hover:bg-pink-100/70 dark:hover:bg-pink-950/40 border-l-4 border-l-[#E21B70]"
                             : "hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
                         }`}
                       >
                         <div className="mt-0.5 shrink-0">
                           {!notif.read ? (
-                            <span className="w-2.5 h-2.5 rounded-full bg-[#d70f64] block animate-pulse" />
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#E21B70] block animate-pulse" />
                           ) : (
                             <span className="w-2.5 h-2.5 rounded-full bg-zinc-300 dark:bg-zinc-700 block" />
                           )}
@@ -269,7 +271,7 @@ export default function FoodpandaHeader({
                               {notif.title}
                             </span>
                             {!notif.read && (
-                              <span className="text-[9px] font-black uppercase text-[#d70f64] bg-pink-100 dark:bg-pink-900/40 px-1.5 py-0.2 rounded shrink-0">
+                              <span className="text-[9px] font-black uppercase text-[#E21B70] bg-pink-100 dark:bg-pink-900/40 px-1.5 py-0.2 rounded shrink-0">
                                 NEW
                               </span>
                             )}
@@ -277,7 +279,7 @@ export default function FoodpandaHeader({
                           <p className="text-zinc-500 dark:text-zinc-400 mt-1 font-medium line-clamp-2 leading-relaxed">
                             {notif.message}
                           </p>
-                          <span className="text-[9.5px] text-zinc-400 dark:text-zinc-500 mt-1.5 block font-semibold group-hover:text-[#d70f64] transition-colors">
+                          <span className="text-[9.5px] text-zinc-400 dark:text-zinc-500 mt-1.5 block font-semibold group-hover:text-[#E21B70] transition-colors">
                             Click to read full message →
                           </span>
                         </div>
@@ -289,18 +291,19 @@ export default function FoodpandaHeader({
             )}
           </div>
 
-          {/* Dynamic Checkout Cart Trigger */}
+          {/* Dynamic Checkout Cart Trigger (>=44px touch target) */}
           <button
+            type="button"
             onClick={activeModule === "grocery" ? onOpenGroceryCart : onOpenCart}
-            className="flex items-center gap-1.5 transition py-2 px-3.5 rounded-xl text-xs font-black shadow-md cursor-pointer shrink-0 bg-[#d70f64] hover:bg-[#b00c50] text-white"
+            className="min-h-[44px] flex items-center gap-1.5 transition py-2 px-3 sm:px-3.5 rounded-xl text-xs font-bold shadow-xs cursor-pointer shrink-0 bg-[#E21B70] hover:bg-[#C2145E] text-white active:scale-[0.98]"
           >
             {isLocked ? <span className="text-sm">🔒</span> : <ShoppingBag className="w-4 h-4" />}
             <span className="hidden md:inline">{activeModule === "grocery" ? "Basket" : "Cart"}</span>
-            <span className="bg-white/20 px-1.5 py-0.5 rounded-md text-[10px] font-bold">
+            <span className="bg-white/20 px-1.5 py-0.5 rounded-md text-[11px] font-bold tabular-nums">
               {activeModule === "grocery" ? groceryCartCount : cartCount}
             </span>
             {activeModule !== "grocery" && cartTotal > 0 && (
-              <span className="hidden leading-none lg:inline ml-0.5 border-l border-white/20 pl-1.5">
+              <span className="hidden leading-none lg:inline ml-0.5 border-l border-white/25 pl-1.5 font-mono tabular-nums">
                 Rs. {cartTotal}
               </span>
             )}
@@ -310,32 +313,34 @@ export default function FoodpandaHeader({
           <div className="relative hidden lg:block">
             {user ? (
               <button
+                type="button"
                 onClick={() => {
                   setShowUserMenu(!showUserMenu);
                   setShowNotifications(false);
                 }}
-                className="flex items-center justify-center w-9.5 h-9.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 font-extrabold text-sm text-[#d70f64] hover:border-pink-500/40 cursor-pointer shadow-xs transition animate-fade-in"
+                className="flex items-center justify-center w-11 h-11 rounded-xl bg-[#F2F2F6] dark:bg-[#1D1D26] border border-[#E6E6EE] dark:border-[#272733] font-extrabold text-sm text-[#E21B70] dark:text-[#FF4D94] hover:border-[#E21B70]/50 cursor-pointer transition"
               >
                 {user.name.charAt(0).toUpperCase()}
               </button>
             ) : (
               <button
+                type="button"
                 onClick={() => {
                   setShowUserMenu(!showUserMenu);
                   setShowNotifications(false);
                 }}
-                className="p-2.5 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 rounded-xl transition cursor-pointer flex items-center gap-1.5 shrink-0"
+                className="min-h-[44px] px-3 bg-[#F2F2F6] dark:bg-[#1D1D26] hover:bg-[#E6E6EE] dark:hover:bg-[#272733] border border-[#E6E6EE] dark:border-[#272733] rounded-xl transition cursor-pointer flex items-center gap-1.5 shrink-0"
               >
-                <User className="w-4 h-4 text-zinc-700 dark:text-zinc-300" />
-                <span className="hidden md:inline text-xs font-bold text-zinc-800 dark:text-zinc-200">Sign In & Settings</span>
+                <User className="w-4 h-4 text-[#14141A] dark:text-[#F5F5F8]" />
+                <span className="hidden md:inline text-xs font-bold text-[#14141A] dark:text-[#F5F5F8]">Sign In</span>
               </button>
             )}
 
             {!user && showUserMenu && (
-              <div className="absolute right-0 mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-100 rounded-2xl shadow-xl w-56 max-sm:fixed max-sm:top-16 max-sm:left-4 max-sm:right-4 max-sm:w-auto overflow-hidden z-50 animate-fade-in">
-                <div className="p-3.5 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 flex flex-col items-start">
-                  <span className="font-bold text-xs text-zinc-900 dark:text-white uppercase tracking-wider text-[10px]">Guest Options</span>
-                  <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium mt-1">Sign in to order food, groceries and home services</span>
+              <div className="absolute right-0 mt-2 bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] text-[#14141A] dark:text-[#F5F5F8] rounded-2xl shadow-xl w-56 max-sm:fixed max-sm:top-16 max-sm:left-4 max-sm:right-4 max-sm:w-auto overflow-hidden z-50 animate-fade-in">
+                <div className="p-3.5 border-b border-[#E6E6EE] dark:border-[#272733] bg-[#F9F9FB] dark:bg-[#0B0B0F] flex flex-col items-start">
+                  <span className="font-bold text-[10px] text-[#14141A] dark:text-white uppercase tracking-wider">Guest Options</span>
+                  <span className="text-[11px] text-[#5A5A6B] dark:text-[#A1A1B2] font-medium mt-1">Sign in to order fresh food &amp; groceries in Dadu</span>
                 </div>
 
                 <div className="p-1 bg-white dark:bg-zinc-900">
@@ -344,9 +349,9 @@ export default function FoodpandaHeader({
                       setShowUserMenu(false);
                       onOpenAuth();
                     }}
-                    className="w-full text-left font-bold text-xs text-[#d70f64] px-3.5 py-2 hover:bg-pink-50 dark:hover:bg-zinc-800/60 rounded-xl transition flex items-center gap-2 cursor-pointer"
+                    className="w-full text-left font-bold text-xs text-[#E21B70] px-3.5 py-2 hover:bg-pink-50 dark:hover:bg-zinc-800/60 rounded-xl transition flex items-center gap-2 cursor-pointer"
                   >
-                    <User className="w-4 h-4 shrink-0 text-[#d70f64]" />
+                    <User className="w-4 h-4 shrink-0 text-[#E21B70]" />
                     Sign In / Register
                   </button>
 
@@ -379,26 +384,26 @@ export default function FoodpandaHeader({
                     <div className="flex items-center gap-1 font-bold text-sm text-zinc-900 dark:text-white">
                       {user.name}
                       {user.role === "admin" && (
-                        <BadgeCheck className="w-4 h-4 text-[#d70f64] shrink-0" />
+                        <BadgeCheck className="w-4 h-4 text-[#E21B70] shrink-0" />
                       )}
                     </div>
-                    <div className="bg-[#d70f64]/10 border border-[#d70f64]/20 text-[#d70f64] px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-widest rounded-md">
+                    <div className="bg-[#E21B70]/10 border border-[#E21B70]/20 text-[#E21B70] px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-widest rounded-md">
                       {user.ordersCount || 0} Orders
                     </div>
                   </div>
                   <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">Phone: {user.phone}</span>
                   
                   {/* Loyalty Balance Badge */}
-                  <div className="mt-2 w-full bg-gradient-to-r from-[#d70f64] to-pink-600 rounded-xl p-2 text-white flex items-center justify-between text-[10px] font-sans">
+                  <div className="mt-2 w-full bg-gradient-to-r from-[#E21B70] to-pink-600 rounded-xl p-2 text-white flex items-center justify-between text-[10px] font-sans">
                     <span className="font-extrabold flex items-center gap-1">👑 Coin Benefit Wallet:</span>
-                    <span className="font-black bg-white text-[#d70f64] px-1.5 py-0.5 rounded-md text-[9px]">Rs. {user.loyaltyCoins ?? ((user.ordersCount || 0) * 15)}</span>
+                    <span className="font-black bg-white text-[#E21B70] px-1.5 py-0.5 rounded-md text-[9px]">Rs. {user.loyaltyCoins ?? ((user.ordersCount || 0) * 15)}</span>
                   </div>
                 </div>
 
                 {/* Active Placed Orders List inside User profile dropdown (Horizontal Scroll) */}
                 {orders && orders.length > 0 && (
                   <div className="p-2 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/50">
-                    <span className="text-[8.5px] uppercase font-black tracking-widest text-[#d70f64] px-1.5 block mb-1">
+                    <span className="text-[8.5px] uppercase font-black tracking-widest text-[#E21B70] px-1.5 block mb-1">
                       Live Delivery Tracker
                     </span>
                     <div className="flex overflow-x-auto gap-1.5 pb-1 scrollbar-none">
@@ -414,7 +419,7 @@ export default function FoodpandaHeader({
                           <span className="truncate max-w-[90px] text-zinc-800 dark:text-zinc-200 font-mono">
                             {formatOrderId(o.id)}
                           </span>
-                          <span className="text-[8px] font-black uppercase text-[#d70f64] bg-[#d70f64]/10 px-1.5 py-0.5 rounded leading-none shrink-0 border border-[#d70f64]/20">
+                          <span className="text-[8px] font-black uppercase text-[#E21B70] bg-[#E21B70]/10 px-1.5 py-0.5 rounded leading-none shrink-0 border border-[#E21B70]/20">
                             {o.status === "out_for_delivery" ? "Transit 🛵" : o.status === "preparing" ? "Kitchen 🍳" : o.status === "accepted" ? "Cook 🍳" : "Placed"}
                           </span>
                         </button>
@@ -438,7 +443,7 @@ export default function FoodpandaHeader({
                         {recentUserOrders.map((o) => (
                           <div
                             key={o.id}
-                            className="shrink-0 w-44 p-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-[#d70f64]/30 transition-all text-[10.5px] font-bold space-y-1 shadow-2xs"
+                            className="shrink-0 w-44 p-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-[#E21B70]/30 transition-all text-[10.5px] font-bold space-y-1 shadow-2xs"
                           >
                             <div className="flex items-center justify-between">
                               <span className="text-zinc-700 dark:text-zinc-300 font-extrabold text-[10px]">
@@ -458,7 +463,7 @@ export default function FoodpandaHeader({
                               {o.items.map((i) => `${i.quantity}x ${i.name}`).join(", ")}
                             </div>
                             <div className="flex items-center justify-between pt-1 border-t border-zinc-100 dark:border-zinc-800">
-                              <span className="text-[#d70f64] font-black text-[9.5px]">
+                              <span className="text-[#E21B70] font-black text-[9.5px]">
                                 Rs. {o.grandTotal}
                               </span>
                               {onReorder && (
@@ -467,7 +472,7 @@ export default function FoodpandaHeader({
                                     setShowUserMenu(false);
                                     onReorder(o);
                                   }}
-                                  className="text-[8.5px] text-white bg-[#d70f64] hover:bg-[#b00c50] px-2 py-0.5 rounded-md flex items-center gap-0.5 font-black cursor-pointer transition uppercase"
+                                  className="text-[8.5px] text-white bg-[#E21B70] hover:bg-[#C2145E] px-2 py-0.5 rounded-md flex items-center gap-0.5 font-black cursor-pointer transition uppercase"
                                 >
                                   <RotateCcw className="w-2.5 h-2.5 stroke-[3]" />
                                   Reorder
@@ -488,9 +493,9 @@ export default function FoodpandaHeader({
                       setShowUserMenu(false);
                       if (onToggleFavorites) onToggleFavorites();
                     }}
-                    className={`flex-1 min-w-[100px] font-bold text-xs px-2.5 py-2 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer border ${showFavoritesOnly ? 'text-[#d70f64] bg-[#d70f64]/10 border-[#d70f64]/20' : 'text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-800/80 border-zinc-100 dark:border-zinc-750 hover:bg-zinc-100'}`}
+                    className={`flex-1 min-w-[100px] font-bold text-xs px-2.5 py-2 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer border ${showFavoritesOnly ? 'text-[#E21B70] bg-[#E21B70]/10 border-[#E21B70]/20' : 'text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-800/80 border-zinc-100 dark:border-zinc-750 hover:bg-zinc-100'}`}
                   >
-                    <Heart className={`w-3.5 h-3.5 shrink-0 ${showFavoritesOnly ? 'fill-[#d70f64] text-[#d70f64]' : 'text-[#d70f64]'}`} />
+                    <Heart className={`w-3.5 h-3.5 shrink-0 ${showFavoritesOnly ? 'fill-[#E21B70] text-[#E21B70]' : 'text-[#E21B70]'}`} />
                     <span>Favorites</span>
                   </button>
 
@@ -502,7 +507,7 @@ export default function FoodpandaHeader({
                     className="flex-1 min-w-[100px] font-bold text-xs text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-100 dark:border-zinc-750 px-2.5 py-2 hover:bg-zinc-100 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
                     id="history-menu-btn"
                   >
-                    <History className="w-3.5 h-3.5 text-[#d70f64] shrink-0" />
+                    <History className="w-3.5 h-3.5 text-[#E21B70] shrink-0" />
                     <span>History</span>
                   </button>
 
@@ -513,7 +518,7 @@ export default function FoodpandaHeader({
                     }}
                     className="flex-1 min-w-[100px] font-bold text-xs text-zinc-800 dark:text-zinc-100 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-2.5 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
                   >
-                    <Settings className="w-3.5 h-3.5 text-[#d70f64] shrink-0" />
+                    <Settings className="w-3.5 h-3.5 text-[#E21B70] shrink-0" />
                     <span>My Settings</span>
                   </button>
 
@@ -537,9 +542,9 @@ export default function FoodpandaHeader({
                         setShowUserMenu(false);
                         onOpenAdmin();
                       }}
-                      className="w-full font-bold text-xs text-[#d70f64] bg-[#d70f64]/10 border border-[#d70f64]/30 px-2.5 py-2 hover:bg-[#d70f64]/20 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="w-full font-bold text-xs text-[#E21B70] bg-[#E21B70]/10 border border-[#E21B70]/30 px-2.5 py-2 hover:bg-[#E21B70]/20 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
                     >
-                      <ShieldAlert className="w-3.5 h-3.5 text-[#d70f64] shrink-0" />
+                      <ShieldAlert className="w-3.5 h-3.5 text-[#E21B70] shrink-0" />
                       <span>Admin Console</span>
                     </button>
                   )}
@@ -563,26 +568,26 @@ export default function FoodpandaHeader({
       </div>
       </header>
       
-      {/* Mobile-only Search Sub Bar */}
-      <div className="sticky top-0 z-30 bg-white dark:bg-zinc-950 border-b border-zinc-100 dark:border-zinc-800/80 block sm:hidden px-4 py-2 shadow-xs">
+      {/* Mobile-only Search Sub Bar (compact, >=44px input height) */}
+      <div className="sticky top-0 z-30 bg-white/95 dark:bg-[#14141A]/95 backdrop-blur-md border-b border-[#E6E6EE] dark:border-[#272733] block sm:hidden px-3.5 py-2">
         <div className="relative flex items-center">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#d70f64] pointer-events-none" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#E21B70] pointer-events-none" />
           <input
             id="mobile-search-input"
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search for food, grocery or deals..."
-            className="w-full pl-10 pr-9 py-2.5 bg-zinc-100/90 dark:bg-zinc-900/90 border border-zinc-200/80 dark:border-zinc-800 rounded-full text-xs text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 outline-none focus:bg-white dark:focus:bg-zinc-900 focus:border-[#d70f64] focus:ring-2 focus:ring-[#d70f64]/20 transition-all shadow-2xs font-medium"
+            placeholder="Search biryani, pizza, chai or shops..."
+            className="w-full min-h-[44px] pl-10 pr-10 py-2.5 bg-[#F2F2F6] dark:bg-[#1D1D26] border border-[#E6E6EE] dark:border-[#272733] rounded-xl text-sm text-[#14141A] dark:text-[#F5F5F8] placeholder-[#717185] outline-none focus:bg-white dark:focus:bg-[#14141A] focus:border-[#E21B70] focus:ring-2 focus:ring-[#E21B70]/20 transition-all font-medium"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-full transition cursor-pointer"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center text-[#5A5A6B] hover:text-[#14141A] dark:hover:text-white rounded-lg transition cursor-pointer"
               title="Clear search"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-4 h-4" />
             </button>
           )}
         </div>
@@ -594,7 +599,7 @@ export default function FoodpandaHeader({
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl max-w-md w-full p-6 shadow-2xl relative overflow-hidden animate-scale-up">
             <div className="flex items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-full bg-pink-100 dark:bg-pink-950/50 flex items-center justify-center text-[#d70f64] shrink-0">
+                <div className="w-9 h-9 rounded-full bg-pink-100 dark:bg-pink-950/50 flex items-center justify-center text-[#E21B70] shrink-0">
                   <Bell className="w-5 h-5" />
                 </div>
                 <div>
@@ -632,7 +637,7 @@ export default function FoodpandaHeader({
               </span>
               <button
                 onClick={() => setSelectedNotification(null)}
-                className="px-5 py-2.5 bg-[#d70f64] text-white text-xs font-bold rounded-xl hover:bg-[#b00c50] transition cursor-pointer shadow-md"
+                className="px-5 py-2.5 bg-[#E21B70] text-white text-xs font-bold rounded-xl hover:bg-[#C2145E] transition cursor-pointer shadow-md"
               >
                 Close
               </button>

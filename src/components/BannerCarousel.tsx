@@ -1,375 +1,98 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
-import { db, analytics } from "../firebase";
-import { logEvent } from "firebase/analytics";
-import { Banner } from "../types";
-import { LazyImage } from "./LazyImage";
-import { sanitizeBanner } from "../utils/catalogNormalizer";
+import React, { useEffect } from "react";
+import { ArrowRight, Clock, MessageCircle, Truck } from "lucide-react";
+import heroFeastImg from "../assets/images/dadu_food_hero_feast_1795614443664.jpg";
 
 interface BannerCarouselProps {
   bannerVersion?: number;
   onBannerClick?: (link: string) => void;
+  deliveryFee?: number;
 }
 
-const DEFAULT_BANNERS: Banner[] = [
-  {
-    id: "default_banner_1",
-    imageUrl: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=1200",
-    restaurantName: "Dadu Fast Food & Kitchen",
-    detail: "🔥 Special Discount - Hot & Fresh Food Delivered!",
-    isActive: true,
-  },
-  {
-    id: "default_banner_2",
-    imageUrl: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&q=80&w=1200",
-    restaurantName: "Dadu Fast Food & Kitchen",
-    detail: "🍕 Cheesy Hot Pizzas & Burgers Under 25 Mins",
-    isActive: true,
-  },
-  {
-    id: "default_banner_3",
-    imageUrl: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=1200",
-    restaurantName: "Dadu Home Services",
-    detail: "⚡ Instant Rider Delivery & Home Services",
-    isActive: true,
-  },
-];
-
-const BannerImage: React.FC<{ banner: Banner; onClick: () => void }> = ({ banner, onClick }) => {
-  return (
-    <div
-      className="relative w-full h-full flex-shrink-0 cursor-pointer bg-zinc-900 flex items-center justify-center overflow-hidden select-none"
-      onClick={onClick}
-    >
-      <LazyImage
-        src={banner.imageUrl}
-        alt={banner.restaurantName || "Dadu Food Offer"}
-        className="w-full h-full"
-        imgClassName="object-cover w-full h-full transform transition-transform duration-700 hover:scale-105"
-        referrerPolicy="no-referrer"
-      />
-      
-      {/* Dark high-contrast gradient overlay at bottom for crisp readability */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none" />
-
-      {/* Stylish Detail Text Overlay */}
-      {banner.detail && (
-        <div className="absolute bottom-4 left-4 right-16 z-10 pointer-events-none">
-          <span className="inline-block bg-zinc-950/85 backdrop-blur-md text-white text-xs md:text-sm font-black px-3.5 py-1.5 md:px-4 md:py-2 rounded-full shadow-lg border border-white/20 tracking-wide">
-            {banner.detail}
-          </span>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const sanitizeList = (list: Banner[]): Banner[] =>
-  list
-    .map((b) => sanitizeBanner(b))
-    .filter((b): b is Banner => Boolean(b));
-
-const getInitialBanners = (): Banner[] => {
-  try {
-    const saved = localStorage.getItem("dadu_cached_banners");
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        const clean = sanitizeList(parsed);
-        if (clean.length > 0) return clean;
-      }
-    }
-  } catch (e) {
-    console.warn("Failed to load cached banners:", e);
-  }
-  return DEFAULT_BANNERS;
-};
-
-// Preload banner images
-const preloadBannerImages = (bannerList: Banner[]) => {
-  bannerList.forEach((b) => {
-    if (b.imageUrl) {
-      const img = new Image();
-      img.src = b.imageUrl;
-    }
-  });
-};
-
-export default function BannerCarousel({ onBannerClick }: BannerCarouselProps) {
-  const [banners, setBanners] = useState<Banner[]>(getInitialBanners);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-
-  const containerRef = useRef<HTMLDivElement>(null);
-  const startXRef = useRef<number>(0);
-  const currentXRef = useRef<number>(0);
-  const autoSlideTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const displayBanners = banners.length > 0 ? banners : DEFAULT_BANNERS;
-
-  // Preload initial banner images
+export default function BannerCarousel({
+  deliveryFee = 50,
+}: BannerCarouselProps) {
+  // Purge any legacy cached Firestore banners (which previously contained 45% off / Lorem Ipsum graphics)
   useEffect(() => {
-    preloadBannerImages(displayBanners);
+    try {
+      localStorage.removeItem("dadu_cached_banners");
+    } catch {
+      // Ignore storage restrictions
+    }
   }, []);
 
-  const nextSlide = useCallback(() => {
-    setCurrentIndex((prev) => (prev + 1) % displayBanners.length);
-  }, [displayBanners.length]);
-
-  const prevSlide = useCallback(() => {
-    setCurrentIndex((prev) => (prev - 1 + displayBanners.length) % displayBanners.length);
-  }, [displayBanners.length]);
-
-  // Firestore real-time listener for banners updated from admin panel
-  useEffect(() => {
-    const q = query(collection(db, "promotional_banners"), where("isActive", "==", true));
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const fetchedBanners = sanitizeList(
-          snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() } as Banner))
-        );
-        fetchedBanners.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-
-        if (fetchedBanners.length > 0) {
-          setBanners(fetchedBanners);
-          preloadBannerImages(fetchedBanners);
-          try {
-            localStorage.setItem("dadu_cached_banners", JSON.stringify(fetchedBanners));
-          } catch (e) {
-            console.warn("Failed to cache banners to storage:", e);
-          }
-        }
-        setIsLoading(false);
-      },
-      (err) => {
-        console.error("Failed to fetch banners:", err);
-        setIsLoading(false);
-      }
-    );
-
-    return () => unsubscribe();
-  }, []);
-
-  // Automatic auto-scrolling interval (continuous timer)
-  useEffect(() => {
-    if (displayBanners.length <= 1 || isPaused || isDragging) return;
-
-    autoSlideTimerRef.current = setInterval(() => {
-      nextSlide();
-    }, 3200);
-
-    return () => {
-      if (autoSlideTimerRef.current) {
-        clearInterval(autoSlideTimerRef.current);
-      }
-    };
-  }, [displayBanners.length, isPaused, isDragging, nextSlide]);
-
-  const handleBannerClick = (banner: Banner) => {
-    if (Math.abs(dragOffset) > 8) return; // Ignore click if user was dragging
-    if (analytics) {
-      try {
-        logEvent(analytics, "banner_clicked", {
-          restaurant_name: banner.restaurantName || "general_offer",
-          banner_id: banner.id,
-        });
-      } catch (e) {
-        console.warn("Analytics event logging failed:", e);
-      }
-    }
-    if (banner.restaurantName && onBannerClick) {
-      onBannerClick(banner.restaurantName);
+  const handleBrowseMenu = () => {
+    const el = document.getElementById("catalog-section");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
-
-  // --- MOUSE & TOUCH DRAG HANDLERS FOR MANUAL SCROLLING ---
-  const handleDragStart = (clientX: number) => {
-    setIsDragging(true);
-    setIsPaused(true);
-    startXRef.current = clientX;
-    currentXRef.current = clientX;
-    setDragOffset(0);
-  };
-
-  const handleDragMove = (clientX: number) => {
-    if (!isDragging) return;
-    currentXRef.current = clientX;
-    const diff = clientX - startXRef.current;
-    setDragOffset(diff);
-  };
-
-  const handleDragEnd = () => {
-    if (!isDragging) return;
-    setIsDragging(false);
-    
-    const diff = currentXRef.current - startXRef.current;
-    const threshold = 40; // minimum drag distance in px to trigger slide change
-
-    if (diff < -threshold) {
-      nextSlide();
-    } else if (diff > threshold) {
-      prevSlide();
-    }
-    
-    setDragOffset(0);
-    // Resume auto-scroll after 2 seconds
-    setTimeout(() => {
-      setIsPaused(false);
-    }, 2000);
-  };
-
-  // Mouse drag events
-  const handleMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    handleDragStart(e.clientX);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    handleDragMove(e.clientX);
-  };
-
-  const handleMouseUp = () => {
-    handleDragEnd();
-  };
-
-  const handleMouseLeave = () => {
-    if (isDragging) {
-      handleDragEnd();
-    }
-    setIsPaused(false);
-  };
-
-  const startYRef = useRef<number>(0);
-  const isTouchActiveRef = useRef<boolean>(false);
-  const isTouchDraggingRef = useRef<boolean>(false);
-  const isVerticalScrollRef = useRef<boolean>(false);
-
-  // Touch drag events
-  const handleTouchStart = (e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    startXRef.current = touch.clientX;
-    startYRef.current = touch.clientY;
-    currentXRef.current = touch.clientX;
-    isTouchActiveRef.current = true;
-    isTouchDraggingRef.current = false;
-    isVerticalScrollRef.current = false;
-    setIsPaused(true);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isTouchActiveRef.current || isVerticalScrollRef.current) return;
-
-    const touch = e.touches[0];
-    const diffX = touch.clientX - startXRef.current;
-    const diffY = touch.clientY - startYRef.current;
-
-    // First movement classification: vertical vs horizontal
-    if (!isTouchDraggingRef.current && !isVerticalScrollRef.current) {
-      if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 5) {
-        // Yield completely to native page vertical scrolling
-        isVerticalScrollRef.current = true;
-        return;
-      }
-      if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 5) {
-        // Start horizontal carousel dragging
-        isTouchDraggingRef.current = true;
-        setIsDragging(true);
-      }
-    }
-
-    if (isTouchDraggingRef.current) {
-      currentXRef.current = touch.clientX;
-      setDragOffset(diffX);
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (!isTouchActiveRef.current) return;
-    isTouchActiveRef.current = false;
-
-    if (isTouchDraggingRef.current) {
-      handleDragEnd();
-    } else {
-      setIsPaused(false);
-      setIsDragging(false);
-      setDragOffset(0);
-    }
-    isTouchDraggingRef.current = false;
-    isVerticalScrollRef.current = false;
-  };
-
-  if (isLoading) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 mt-4 mb-4">
-        <div className="w-full h-44 sm:h-56 md:h-64 rounded-3xl shadow-lg bg-zinc-200 dark:bg-zinc-850 animate-pulse flex items-center justify-center">
-          <div className="w-8 h-8 border-4 border-[#d70f64] border-t-transparent rounded-full animate-spin" />
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 mt-4 mb-4">
-      <div
-        ref={containerRef}
-        className={`relative w-full h-44 sm:h-56 md:h-64 rounded-3xl overflow-hidden shadow-xl border border-pink-200/50 dark:border-zinc-800 group select-none touch-pan-both ${
-          isDragging ? "cursor-grabbing" : "cursor-grab"
-        }`}
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={handleMouseLeave}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
-        {/* Banner Images Track */}
+    <section className="max-w-7xl mx-auto px-3.5 sm:px-4 pt-3 sm:pt-4 pb-2">
+      <div className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] shadow-sm min-h-[250px] sm:min-h-[310px] md:min-h-[340px] flex items-center">
+        {/* Generated Editorial Hero Photography */}
+        <img
+          src={heroFeastImg}
+          alt="Fresh Pakistani biryani, wood-fired pizza, seekh kababs, and crispy burger delivered fast in Dadu"
+          className="absolute inset-0 w-full h-full object-cover object-right sm:object-center"
+          loading="eager"
+          decoding="async"
+        />
+
+        {/* High-Contrast Dark Scrim for >10:1 Text Readability */}
         <div
-          className={`flex w-full h-full ${
-            isDragging ? "transition-none" : "transition-transform duration-500 ease-out"
-          }`}
-          style={{
-            transform: `translateX(calc(-${currentIndex * 100}% + ${dragOffset}px))`,
-          }}
-        >
-          {displayBanners.map((banner) => (
-            <BannerImage
-              key={banner.id}
-              banner={banner}
-              onClick={() => handleBannerClick(banner)}
-            />
-          ))}
-        </div>
+          className="absolute inset-0 bg-gradient-to-r from-[#0B0B0F]/95 via-[#0B0B0F]/82 to-[#0B0B0F]/35 sm:via-[#0B0B0F]/75 sm:to-transparent"
+          aria-hidden="true"
+        />
 
-        {/* Floating Auto-Scroll Bottom Dots Indicator Bar */}
-        {displayBanners.length > 1 && (
-          <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/15 shadow-sm">
-            {displayBanners.map((_, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setCurrentIndex(idx);
-                  setIsPaused(true);
-                  setTimeout(() => setIsPaused(false), 3000);
-                }}
-                className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-                  currentIndex === idx
-                    ? "bg-[#d70f64] w-3.5 ring-1 ring-[#d70f64]/40"
-                    : "bg-white/50 hover:bg-white/80 w-1.5"
-                }`}
-                aria-label={`Go to slide ${idx + 1}`}
-              />
-            ))}
+        {/* Editorial Hero Content */}
+        <div className="relative z-10 w-full max-w-2xl px-5 py-6 sm:px-8 sm:py-9 md:px-10 space-y-3.5 sm:space-y-4">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-semibold text-white/90">
+            <span className="inline-flex items-center gap-1.5 text-[#FF4D94] font-bold uppercase tracking-wider text-[11px]">
+              Dadu City Delivery
+            </span>
+            <span className="text-white/40" aria-hidden="true">·</span>
+            <span className="inline-flex items-center gap-1 tabular-nums">
+              <Clock className="w-3.5 h-3.5 text-[#FF4D94]" />
+              20–35 min
+            </span>
+            <span className="text-white/40" aria-hidden="true">·</span>
+            <span className="inline-flex items-center gap-1 tabular-nums">
+              <Truck className="w-3.5 h-3.5 text-[#FF4D94]" />
+              Rs. {deliveryFee} fee · Free Rs. 1,000+
+            </span>
           </div>
-        )}
+
+          <h1 className="text-2xl sm:text-4xl md:text-[42px] font-extrabold text-white tracking-tight leading-[1.12]">
+            Fresh, Hot Food Delivered Fast in Dadu
+          </h1>
+
+          <p className="speakable-summary text-xs sm:text-sm md:text-base text-zinc-200 max-w-lg leading-relaxed">
+            Order pizza, Sindhi biryani, karahi, burgers, broast, and fresh chai from trusted local Dadu kitchens. Pay with Cash on Delivery, JazzCash, or Easypaisa.
+          </p>
+
+          <div className="flex flex-wrap items-center gap-2.5 pt-1">
+            <button
+              type="button"
+              onClick={handleBrowseMenu}
+              className="min-h-[44px] px-5 py-2.5 rounded-xl bg-[#E21B70] hover:bg-[#C2145E] text-white text-sm font-bold flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-[0.98] cursor-pointer"
+            >
+              <span>Order Food Now</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+
+            <a
+              href="https://wa.me/923277004471?text=Assalam-o-Alaikum%20Dadu%20Food!%20I%20would%20like%20to%20order%3A%20"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="min-h-[44px] px-4 py-2.5 rounded-xl bg-white/12 hover:bg-white/20 text-white border border-white/25 backdrop-blur-sm text-sm font-bold flex items-center justify-center gap-2 transition-colors"
+            >
+              <MessageCircle className="w-4 h-4 text-[#4ADE80]" />
+              <span>WhatsApp Order</span>
+            </a>
+          </div>
+        </div>
       </div>
-    </div>
+    </section>
   );
 }

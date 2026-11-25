@@ -82,7 +82,7 @@ export default function MapLocationPickerModal({
         <div style="
           width: 38px;
           height: 38px;
-          background-color: #D70F64;
+          background-color: #E21B70;
           border: 3px solid white;
           border-radius: 50% 50% 50% 0;
           transform: rotate(-45deg);
@@ -216,7 +216,7 @@ export default function MapLocationPickerModal({
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50 dark:bg-zinc-900/80">
           <div className="flex items-center gap-2.5">
-            <div className="p-2.5 bg-[#D70F64]/10 text-[#D70F64] rounded-2xl">
+            <div className="p-2.5 bg-[#E21B70]/10 text-[#E21B70] rounded-2xl">
               <MapPin className="w-5 h-5 stroke-[2.5]" />
             </div>
             <div>
@@ -248,7 +248,7 @@ export default function MapLocationPickerModal({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search location or area name..."
-                className="w-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl py-2 pl-9 pr-3 text-xs font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-[#D70F64]/40 transition"
+                className="w-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl py-2 pl-9 pr-3 text-xs font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-[#E21B70]/40 transition"
               />
             </div>
             <button
@@ -262,10 +262,10 @@ export default function MapLocationPickerModal({
               type="button"
               onClick={handleGetCurrentLocation}
               disabled={isLocating}
-              className="bg-[#D70F64]/10 text-[#D70F64] hover:bg-[#D70F64]/20 px-3 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer shrink-0"
+              className="bg-[#E21B70]/10 text-[#E21B70] hover:bg-[#E21B70]/20 px-3 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer shrink-0"
               title="Use current GPS position"
             >
-              {isLocating ? <Loader2 className="w-3.5 h-3.5 animate-spin text-[#D70F64]" /> : <Navigation className="w-3.5 h-3.5 fill-[#D70F64]" />}
+              {isLocating ? <Loader2 className="w-3.5 h-3.5 animate-spin text-[#E21B70]" /> : <Navigation className="w-3.5 h-3.5 fill-[#E21B70]" />}
               <span className="hidden sm:inline">My GPS</span>
             </button>
           </form>
@@ -317,7 +317,7 @@ export default function MapLocationPickerModal({
                 onSaveLocation(lat, lng);
                 onClose();
               }}
-              className="px-5 py-2.5 rounded-2xl bg-[#D70F64] hover:bg-[#b00c50] text-white text-xs font-black shadow-lg shadow-pink-500/20 transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+              className="px-5 py-2.5 rounded-2xl bg-[#E21B70] hover:bg-[#C2145E] text-white text-xs font-black shadow-lg shadow-pink-500/20 transition flex items-center gap-1.5 cursor-pointer active:scale-95"
             >
               <Check className="w-4 h-4 stroke-[2.5]" />
               <span>Save Location</span>

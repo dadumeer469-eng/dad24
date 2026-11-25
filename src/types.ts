@@ -164,6 +164,8 @@ export interface SystemSettings {
     phone?: string;
     minOrder?: string;
     deliveryCharge?: string;
+    deliveryTime?: string;
+    tagline?: string;
     coords?: { lat: number; lng: number };
     lastSettledAt?: any;
     commissionEnabled?: boolean;

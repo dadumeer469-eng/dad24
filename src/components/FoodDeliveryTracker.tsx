@@ -283,8 +283,8 @@ export default function FoodDeliveryTracker({
       className: "custom-dadufood-rider-marker filter drop-shadow-md",
       html: `
         <div class="relative flex items-center justify-center">
-          <div class="absolute w-12 h-12 bg-[#D70F64]/25 rounded-full animate-ping"></div>
-          <div class="w-10 h-10 bg-[#D70F64] text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white overflow-hidden p-0.5">
+          <div class="absolute w-12 h-12 bg-[#E21B70]/25 rounded-full animate-ping"></div>
+          <div class="w-10 h-10 bg-[#E21B70] text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white overflow-hidden p-0.5">
             <img src="${daduLogo}" class="w-full h-full object-cover rounded-full" />
           </div>
         </div>
@@ -298,7 +298,7 @@ export default function FoodDeliveryTracker({
       className: "custom-restaurant-marker filter drop-shadow-md",
       html: `
         <div class="relative flex items-center justify-center">
-          <div class="w-10 h-10 bg-gradient-to-tr from-[#D70F64] to-amber-500 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white overflow-hidden p-0.5">
+          <div class="w-10 h-10 bg-gradient-to-tr from-[#E21B70] to-amber-500 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white overflow-hidden p-0.5">
             <img src="${daduLogo}" class="w-full h-full object-cover rounded-full" />
           </div>
           <div class="absolute -bottom-1 bg-slate-900 text-white text-[8px] font-black px-1.5 py-0.2 rounded-full border border-white shadow-xs">
@@ -338,7 +338,7 @@ export default function FoodDeliveryTracker({
         [destLat, destLng],
       ],
       {
-        color: "#D70F64",
+        color: "#E21B70",
         weight: 5,
         opacity: 0.9,
         lineCap: "round",
@@ -452,7 +452,7 @@ export default function FoodDeliveryTracker({
               onClick={toggleSheet}
               className="bg-white/95 backdrop-blur-md hover:bg-slate-100 text-slate-900 text-xs font-extrabold px-3 py-2 rounded-xl shadow-lg border border-slate-200/80 transition active:scale-95 cursor-pointer flex items-center gap-1.5"
             >
-              {isSheetCollapsed ? <Minimize2 className="w-3.5 h-3.5 text-[#D70F64]" /> : <Maximize2 className="w-3.5 h-3.5 text-[#D70F64]" />}
+              {isSheetCollapsed ? <Minimize2 className="w-3.5 h-3.5 text-[#E21B70]" /> : <Maximize2 className="w-3.5 h-3.5 text-[#E21B70]" />}
               <span>{isSheetCollapsed ? "Show Details" : "Full Map"}</span>
             </button>
 
@@ -520,7 +520,7 @@ export default function FoodDeliveryTracker({
                   <div className="w-7 h-7 rounded-full bg-pink-50 flex items-center justify-center">
                     <div className="relative">
                       {/* Pink dadufood shopping bag */}
-                      <div className="w-4 h-4.5 bg-[#D70F64] rounded-sm shadow-xs flex items-center justify-center relative overflow-hidden p-0.5">
+                      <div className="w-4 h-4.5 bg-[#E21B70] rounded-sm shadow-xs flex items-center justify-center relative overflow-hidden p-0.5">
                         <div className="w-1.5 h-1 border-t-2 border-r-2 border-white/90 rounded-t-full -mt-2.5" />
                         <img src={daduLogo} alt="DF" className="w-3 h-3 object-cover rounded-full" />
                       </div>
@@ -547,9 +547,9 @@ export default function FoodDeliveryTracker({
           className="w-full flex flex-col items-center justify-center py-1 cursor-pointer group active:scale-98 transition focus:outline-none"
           title={isSheetCollapsed ? "Tap to view full order details" : "Tap to collapse and view full map"}
         >
-          <div className="w-12 h-1 bg-slate-300 group-hover:bg-[#D70F64] rounded-full mb-1 transition-colors" />
+          <div className="w-12 h-1 bg-slate-300 group-hover:bg-[#E21B70] rounded-full mb-1 transition-colors" />
           
-          <div className="flex items-center gap-1.5 text-slate-500 group-hover:text-[#D70F64] text-[11px] font-extrabold uppercase tracking-wider">
+          <div className="flex items-center gap-1.5 text-slate-500 group-hover:text-[#E21B70] text-[11px] font-extrabold uppercase tracking-wider">
             {isSheetCollapsed ? (
               <>
                 <span>View Order Details</span>
@@ -578,7 +578,7 @@ export default function FoodDeliveryTracker({
                 <h4 className="text-sm font-black text-slate-900 leading-tight">
                   {orderEta ? (orderEta.toLowerCase().includes("min") ? orderEta : `${orderEta} mins`) : `${minEta} — ${maxEta} mins`}
                 </h4>
-                <p className="text-xs font-bold text-[#D70F64] mt-0.5">
+                <p className="text-xs font-bold text-[#E21B70] mt-0.5">
                   {statusTitle}
                 </p>
               </div>
@@ -592,7 +592,7 @@ export default function FoodDeliveryTracker({
                   className="w-9 h-9 bg-white border border-slate-200 text-slate-800 rounded-full flex items-center justify-center shadow-xs transition active:scale-95"
                   title="Call Rider"
                 >
-                  <Phone className="w-4 h-4 text-[#D70F64]" />
+                  <Phone className="w-4 h-4 text-[#E21B70]" />
                 </a>
               )}
               <div className="w-8 h-8 rounded-full bg-slate-200/80 flex items-center justify-center text-slate-600">
@@ -666,7 +666,7 @@ export default function FoodDeliveryTracker({
         ) : (
           <div className="bg-gradient-to-br from-pink-50/80 via-white to-amber-50/40 border border-pink-200/80 rounded-2xl p-4 shadow-sm space-y-3 animate-fade-in">
             <div className="flex items-center gap-3.5">
-              <div className="w-11 h-11 rounded-2xl bg-[#D70F64] text-white flex items-center justify-center shrink-0 font-extrabold text-xl shadow-xs">
+              <div className="w-11 h-11 rounded-2xl bg-[#E21B70] text-white flex items-center justify-center shrink-0 font-extrabold text-xl shadow-xs">
                 {isKitchen ? "🍳" : isAccepted ? "👨‍🍳" : "📝"}
               </div>
 
@@ -697,7 +697,7 @@ export default function FoodDeliveryTracker({
             <div className="pt-2 border-t border-pink-100">
               <div className="grid grid-cols-4 gap-1 text-center text-[10px] font-bold">
                 {/* Step 1: Placed */}
-                <div className={`flex flex-col items-center gap-1 ${isPlaced ? "text-[#D70F64] font-extrabold" : "text-emerald-600"}`}>
+                <div className={`flex flex-col items-center gap-1 ${isPlaced ? "text-[#E21B70] font-extrabold" : "text-emerald-600"}`}>
                   {isPlaced ? (
                     <div className="w-4.5 h-4.5 rounded-full bg-pink-100 border border-pink-500 flex items-center justify-center text-[9px] animate-bounce">
                       📝
@@ -709,7 +709,7 @@ export default function FoodDeliveryTracker({
                 </div>
 
                 {/* Step 2: Accepted */}
-                <div className={`flex flex-col items-center gap-1 ${isAccepted ? "text-[#D70F64] font-extrabold" : (isKitchen || isOutForDelivery || isDelivered) ? "text-emerald-600" : "text-slate-400"}`}>
+                <div className={`flex flex-col items-center gap-1 ${isAccepted ? "text-[#E21B70] font-extrabold" : (isKitchen || isOutForDelivery || isDelivered) ? "text-emerald-600" : "text-slate-400"}`}>
                   {isAccepted ? (
                     <div className="w-4.5 h-4.5 rounded-full bg-pink-100 border border-pink-500 flex items-center justify-center text-[9px] animate-bounce">
                       👨‍🍳
@@ -723,7 +723,7 @@ export default function FoodDeliveryTracker({
                 </div>
 
                 {/* Step 3: Kitchen */}
-                <div className={`flex flex-col items-center gap-1 ${isKitchen ? "text-[#D70F64] font-extrabold" : (isOutForDelivery || isDelivered) ? "text-emerald-600" : "text-slate-400"}`}>
+                <div className={`flex flex-col items-center gap-1 ${isKitchen ? "text-[#E21B70] font-extrabold" : (isOutForDelivery || isDelivered) ? "text-emerald-600" : "text-slate-400"}`}>
                   {isKitchen ? (
                     <div className="w-4.5 h-4.5 rounded-full bg-pink-100 border border-pink-500 flex items-center justify-center text-[9px] animate-bounce">
                       🍳
@@ -737,7 +737,7 @@ export default function FoodDeliveryTracker({
                 </div>
 
                 {/* Step 4: On Way */}
-                <div className={`flex flex-col items-center gap-1 ${isOutForDelivery ? "text-[#D70F64] font-extrabold" : isDelivered ? "text-emerald-600" : "text-slate-400"}`}>
+                <div className={`flex flex-col items-center gap-1 ${isOutForDelivery ? "text-[#E21B70] font-extrabold" : isDelivered ? "text-emerald-600" : "text-slate-400"}`}>
                   {isOutForDelivery ? (
                     <div className="w-4.5 h-4.5 rounded-full bg-pink-100 border border-pink-500 flex items-center justify-center text-[9px] animate-bounce">
                       🏍️

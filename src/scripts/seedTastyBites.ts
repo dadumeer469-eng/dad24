@@ -183,7 +183,6 @@ async function seed() {
           minOrder: 300,
           deliveryCharge: "Rs. 50-100",
           commission: 10,
-          rating: 4.5
         }
       }
     }, { merge: true });
