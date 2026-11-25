@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { Dish } from "../types";
 import { AlertTriangle, Clock, Plus, Minus, X, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -88,7 +89,7 @@ export default function FoodDetailModal({
     }
   };
 
-  return (
+  return createPortal(
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }}
@@ -397,6 +398,7 @@ export default function FoodDetailModal({
           )}
         </AnimatePresence>
       </motion.div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
