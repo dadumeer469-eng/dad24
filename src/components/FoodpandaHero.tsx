@@ -86,14 +86,14 @@ export default function FoodpandaHero({
       {/* Foodpanda Cuisines Row (Visual Rounded Cuisine Tiles) */}
       <div className="max-w-7xl mx-auto px-3.5 sm:px-4 pt-3 pb-1">
         <div className="flex items-center justify-between mb-2.5">
-          <h2 className="text-sm sm:text-base font-extrabold tracking-tight text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.55)]">
+          <h2 className="text-sm sm:text-base font-extrabold tracking-tight text-[#14141A] dark:text-[#F5F5F8]">
             Cuisines
           </h2>
           {activeCategory !== "All" && (
             <button
               type="button"
               onClick={() => setActiveCategory("All")}
-              className="text-xs font-extrabold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.55)] hover:underline cursor-pointer"
+              className="text-xs font-extrabold text-[#D70F64] hover:underline cursor-pointer"
             >
               Show All
             </button>
@@ -128,12 +128,16 @@ export default function FoodpandaHero({
                   )}
                 </div>
                 <span
-                  className="text-[11px] font-bold text-center leading-tight line-clamp-1 w-full text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)]"
+                  className={`text-[11px] font-bold text-center leading-tight line-clamp-1 w-full ${
+                    isSelected
+                      ? "text-[#D70F64] dark:text-[#FF5C9E]"
+                      : "text-[#14141A] dark:text-[#F5F5F8]"
+                  }`}
                 >
                   {cat.name}
                 </span>
                 {cat.subtitle && (
-                  <span className="text-[9.5px] font-medium text-white/85 drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)] leading-none line-clamp-1">
+                  <span className="text-[9.5px] font-medium text-[#6E6E80] dark:text-[#A1A1B2] leading-none line-clamp-1">
                     {cat.subtitle}
                   </span>
                 )}
