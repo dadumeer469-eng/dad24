@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { UserProfile, OrderItem, getUserCoins, Voucher, calculateVoucherDiscount, isVoucherExpired, canUserUseVoucher } from "../types";
-import { X, ShoppingBag, MapPin, Phone, User, AlertTriangle, ShieldCheck, Heart, Edit2, Compass, Coins, Ticket, CheckCircle, Tag, ChevronDown, Sparkles, Gift, Check, Loader2, Info } from "lucide-react";
+import { X, ShoppingBag, MapPin, Phone, User, AlertTriangle, ShieldCheck, Heart, Edit2, Compass, Coins, Ticket, CheckCircle, Tag, ChevronDown, Gift, Check, Loader2, Info } from "lucide-react";
 import { CHECKOUT_DRINKS } from "../data";
 import { LazyImage } from "./LazyImage";
 import UserVouchersModal from "./UserVouchersModal";
@@ -1230,7 +1230,7 @@ export default function CartDrawer({
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#E21B70]/20 via-pink-500/10 to-amber-500/20 border border-[#E21B70]/30 flex items-center justify-center shrink-0 shadow-inner">
-                    <Sparkles className="w-4 h-4 text-[#E21B70]" />
+                    <Tag className="w-4 h-4 text-[#E21B70]" />
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">

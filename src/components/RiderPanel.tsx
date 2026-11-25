@@ -9,7 +9,7 @@ import { awardLoyaltyCoinsForOrder, creditRiderCoinsForOrder } from "../lib/loya
 import { 
   CheckCircle2, Compass, Coins, CalendarDays, TrendingUp, History, User, 
   MapPin, PhoneCall, LogOut, ArrowRight, ClipboardList, DollarSign, Clock, Check, Store, XCircle, Star,
-  Ticket, Sparkles, Wallet, Banknote, ShieldCheck, Info
+  Ticket, Wallet, Banknote, ShieldCheck, Info
 } from "lucide-react";
 import OrderChat from "./OrderChat";
 import { useRiderLocationTracker } from "../lib/riderLocationTracker";

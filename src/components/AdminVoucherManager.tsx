@@ -4,7 +4,6 @@ import {
   Plus,
   Search,
   Calendar,
-  Sparkles,
   Trash2,
   Edit2,
   Send,

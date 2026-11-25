@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { X, Ticket, Copy, Check, Calendar, Store, ShoppingBag, Sparkles, AlertCircle, ArrowRight, UserCheck, ShieldCheck, History } from "lucide-react";
+import { X, Ticket, Copy, Check, Calendar, Store, ShoppingBag, AlertCircle, ArrowRight, UserCheck, ShieldCheck, History } from "lucide-react";
 import { Voucher, UserProfile, isVoucherExpired, canUserUseVoucher, isVoucherExhaustedForUser } from "../types";
 
 interface UserVouchersModalProps {
@@ -229,7 +229,7 @@ export default function UserVouchersModal({
                         <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
                           {isAssignedToUser && (
                             <span className="inline-flex items-center gap-1 bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[9px] font-black uppercase px-2 py-0.5 rounded-full">
-                              <Sparkles className="w-2.5 h-2.5" /> Sent For You
+                              Sent For You
                             </span>
                           )}
                           <span className="inline-flex items-center gap-1 bg-zinc-800 border border-zinc-700 text-zinc-300 text-[9px] font-black uppercase px-2 py-0.5 rounded-full">

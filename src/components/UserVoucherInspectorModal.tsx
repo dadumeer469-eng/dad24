@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { X, Ticket, Send, Trash2, CheckCircle, Calendar, Plus, Sparkles, Store, ShoppingBag } from "lucide-react";
+import { X, Ticket, Send, Trash2, CheckCircle, Calendar, Plus, Store, ShoppingBag } from "lucide-react";
 import { collection, doc, updateDoc, arrayUnion, arrayRemove, addDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { Voucher, UserProfile, isVoucherExpired } from "../types";

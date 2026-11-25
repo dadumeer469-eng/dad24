@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
-import { X, Printer, Send, Download, Copy, Check, Share2, Sparkles } from "lucide-react";
+import { X, Printer, Send, Download, Copy, Check, Share2, Receipt } from "lucide-react";
 import { formatOrderId } from "../utils/catalogNormalizer";
 
 interface OrderReceiptModalProps {
@@ -244,7 +244,7 @@ For help or inquiries, contact us on WhatsApp.`;
         {/* Header */}
         <div className="bg-gradient-to-r from-[#E21B70] to-[#C2145E] text-white px-5 py-4 flex items-center justify-between shrink-0 shadow-md">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
+            <Receipt className="w-5 h-5 text-amber-300" />
             <div>
               <h3 className="font-black text-sm sm:text-base uppercase tracking-tight leading-tight">
                 Order Receipt & WhatsApp

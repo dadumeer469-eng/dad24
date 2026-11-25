@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { UserProfile, GroceryOrderItem, GroceryDeliveryConfig, getUserCoins, Voucher, calculateVoucherDiscount, isVoucherExpired, canUserUseVoucher } from "../types";
-import { X, ShoppingBag, MapPin, Phone, User, AlertTriangle, ShieldCheck, Heart, Edit2, Compass, Trash2, CheckCircle, Coins, Ticket, Tag, ChevronDown, Sparkles, Check, Loader2, Info } from "lucide-react";
+import { X, ShoppingBag, MapPin, Phone, User, AlertTriangle, ShieldCheck, Heart, Edit2, Compass, Trash2, CheckCircle, Coins, Ticket, Tag, ChevronDown, Check, Loader2, Info } from "lucide-react";
 import { LazyImage } from "./LazyImage";
 import UserVouchersModal from "./UserVouchersModal";
 import { doc, setDoc } from "firebase/firestore";
 import { db, handleFirestoreError } from "../firebase";
 import { getSavedAddresses, saveRecentAddress, SavedAddressEntry } from "../utils/savedAddresses";
 import EasypaisaPaymentBox from "./EasypaisaPaymentBox";
+import { OWNER_GROCERY_PRODUCTS } from "../data/ownerGroceryCatalog";
 
 interface GroceryCartDrawerProps {
   isOpen: boolean;
@@ -203,7 +204,16 @@ export default function GroceryCartDrawer({
   const doubleFeeBelow = Number(systemSettings?.doubleFeeBelowAmount ?? 500);
   const freeThreshold = Number(deliveryConfig?.freeDeliveryAboveAmount || 1000);
   const isFreeDelivery = totalGroceryPrice >= freeThreshold;
-  const baseDeliveryFee = (deliveryConfig?.baseDeliveryFee || 0) > 0 ? deliveryConfig.baseDeliveryFee : 50;
+  // Medicine has its OWN delivery fee, separate from grocery (user instruction).
+  // If the cart contains any medicine item, the medicine fee applies instead.
+  const MEDICINE_PRODUCT_IDS = new Set(
+    OWNER_GROCERY_PRODUCTS.filter((p) => p.categoryId === "gcat_medicine").map((p) => p.id),
+  );
+  const hasMedicine = cartItems.some((item) => MEDICINE_PRODUCT_IDS.has(item.productId));
+  const medicineDeliveryFee = (deliveryConfig?.medicineDeliveryFee || 0) > 0 ? deliveryConfig.medicineDeliveryFee : 30;
+  const baseDeliveryFee = hasMedicine
+    ? medicineDeliveryFee
+    : (deliveryConfig?.baseDeliveryFee || 0) > 0 ? deliveryConfig.baseDeliveryFee : 50;
   const isDoubleFee = doubleFeeBelow > 0 && totalGroceryPrice < doubleFeeBelow;
   const deliveryFeeRate = isDoubleFee ? baseDeliveryFee * 2 : baseDeliveryFee;
   const finalDeliveryFee = !deliveryRequired
@@ -804,7 +814,7 @@ export default function GroceryCartDrawer({
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-500/20 via-amber-500/10 to-emerald-500/20 border border-orange-500/30 flex items-center justify-center shrink-0 shadow-inner">
-                    <Sparkles className="w-4 h-4 text-orange-500" />
+                    <Tag className="w-4 h-4 text-orange-500" />
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
@@ -1038,7 +1048,7 @@ export default function GroceryCartDrawer({
                 
                 {/* Delivery fee checkout representation */}
                 <div className="flex justify-between text-zinc-400 font-semibold">
-                  <span>Grocery Delivery Fee</span>
+                  <span>{hasMedicine ? "Medicine Delivery Fee" : "Grocery Delivery Fee"}</span>
                   <span>
                     {isFreeDelivery ? (
                       <span className="text-emerald-400 font-black uppercase">FREE (≥ Rs. {freeThreshold})</span>

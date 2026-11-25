@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import OrderReceiptModal from "./OrderReceiptModal";
 import MapLocationPickerModal from "./MapLocationPickerModal";
-import AiMenuGeneratorModal from "./AiMenuGeneratorModal";
 import AdminVoucherManager from "./AdminVoucherManager";
 import UserVoucherInspectorModal from "./UserVoucherInspectorModal";
 import {
@@ -104,8 +103,6 @@ import {
   Coins,
   ClipboardList,
   Navigation,
-  Sparkles,
-  Wand2,
   Upload,
 } from "lucide-react";
 
@@ -619,7 +616,6 @@ export default function AdminPanel({
   const [userFilterTab, setUserFilterTab] = useState<"new" | "active" | "blocked">("new");
   const [receiptModalOrder, setReceiptModalOrder] = useState<Order | null>(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
-  const [isAiMenuGeneratorOpen, setIsAiMenuGeneratorOpen] = useState(false);
 
   // Realtime subscription to vouchers
   useEffect(() => {
@@ -1175,6 +1171,9 @@ export default function AdminPanel({
   // Grocery settings inputs
   const [gBaseDeliveryFee, setGBaseDeliveryFee] = useState(
     groceryDeliveryConfig?.baseDeliveryFee || 50,
+  );
+  const [gMedicineDeliveryFee, setGMedicineDeliveryFee] = useState(
+    groceryDeliveryConfig?.medicineDeliveryFee ?? 30,
   );
   const [gFreeDeliveryAbove, setGFreeDeliveryAbove] = useState(
     groceryDeliveryConfig?.freeDeliveryAboveAmount || 1000,
@@ -2411,6 +2410,7 @@ export default function AdminPanel({
         baseDeliveryFee: Number(gBaseDeliveryFee),
         freeDeliveryAboveAmount: Number(gFreeDeliveryAbove),
         allowMixedCart: Boolean(gAllowMixed),
+        medicineDeliveryFee: Number(gMedicineDeliveryFee),
       });
       alert("Grocery store settings saved successfully!");
     } catch (err) {
@@ -3691,15 +3691,6 @@ export default function AdminPanel({
                   </button>
 
                   <button
-                    type="button"
-                    onClick={() => setIsAiMenuGeneratorOpen(true)}
-                    className="w-full font-black text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border border-pink-200 bg-gradient-to-r from-pink-50 to-purple-50 text-[#E21B70] hover:from-pink-100 hover:to-purple-100 shadow-sm"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-[#E21B70] animate-pulse" />
-                    <span>✨ AI Bulk Menu Gen</span>
-                  </button>
-
-                  <button
                     onClick={() => setActiveSubTab("food_categories")}
                     className={`w-full font-bold text-xs px-3 py-2 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border ${
                       activeSubTab === "food_categories"
@@ -4771,14 +4762,6 @@ export default function AdminPanel({
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsAiMenuGeneratorOpen(true)}
-                    className="bg-gradient-to-r from-[#E21B70] via-pink-600 to-purple-600 hover:from-[#C2145E] hover:to-purple-700 text-white px-4 py-2 rounded-xl text-[10px] uppercase font-black tracking-wider transition-all shadow-md shadow-pink-600/30 hover:scale-[1.02] flex items-center gap-2 cursor-pointer border border-white/20"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-yellow-300 animate-pulse" />
-                    ✨ AI Menu &amp; Photo Generator
-                  </button>
                   <button
                     onClick={async () => {
                         const btn = document.getElementById("clear-menu-btn");
@@ -8047,6 +8030,26 @@ export default function AdminPanel({
                     </div>
                   </div>
 
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-600">
+                      Medicine Delivery Fee
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-3.5 text-slate-600 font-bold">
+                        Rs.
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={gMedicineDeliveryFee}
+                        onChange={(e) =>
+                          setGMedicineDeliveryFee(Number(e.target.value))
+                        }
+                        className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 border border-slate-200 rounded-xl outline-none text-slate-900 font-extrabold focus:border-orange-500 transition"
+                      />
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
                     <span className="text-[10px] font-black uppercase tracking-wider text-slate-600 block font-sans">
                       Mixed Basket Checkout Policy
@@ -11111,13 +11114,6 @@ export default function AdminPanel({
         onSaveLocation={(lat, lng) => {
           setUnlockCoords({ lat, lng });
         }}
-      />
-
-      <AiMenuGeneratorModal
-        isOpen={isAiMenuGeneratorOpen}
-        onClose={() => setIsAiMenuGeneratorOpen(false)}
-        uniqueRestaurants={uniqueRestaurants}
-        foodCategories={foodCategories}
       />
 
       {/* USER VOUCHERS INSPECTOR & SENDER MODAL */}

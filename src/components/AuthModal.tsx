@@ -140,11 +140,11 @@ export default function AuthModal({
       const code = err?.code || "";
       if (code === "auth/operation-not-allowed") {
         setError(
-          "SMS OTP Sign-In is not yet enabled in Firebase Console (Authentication → Sign-in method → Phone). Enable Phone Auth to receive live SMS codes."
+          "Server is busy right now, please try again later."
         );
       } else if (code === "auth/unauthorized-domain") {
         setError(
-          "This domain is not authorized for Firebase Phone Auth. Add this domain under Firebase Console → Authentication → Settings → Authorized domains."
+          "Server is busy right now, please try again later."
         );
       } else if (code === "auth/too-many-requests") {
         setError("Too many OTP attempts. Please wait a few minutes and try again.");
@@ -154,12 +154,12 @@ export default function AuthModal({
         setError("reCAPTCHA verification failed. Please tap Send OTP again.");
       } else if (code === "auth/billing-not-enabled" || code === "auth/quota-exceeded") {
         setError(
-          "Firebase SMS quota/billing is not enabled on this project yet. Enable Firebase Blaze billing or test phone numbers in Firebase Console."
+          "Server is busy right now, please try again later."
         );
       } else if (code === "auth/network-request-failed") {
         setError("Network error while sending SMS OTP. Please check your connection and try again.");
       } else {
-        setError(err?.message || "Could not send SMS OTP. Please verify Firebase Phone Auth setup.");
+        setError("Server is busy right now, please try again later.");
       }
     } finally {
       setLoading(false);
@@ -193,7 +193,7 @@ export default function AuthModal({
       } else if (code === "auth/code-expired") {
         setError("This OTP code has expired. Tap Resend OTP to receive a new one.");
       } else {
-        setError(err?.message || "OTP verification failed. Please try again.");
+        setError("Server is busy right now, please try again later.");
       }
     } finally {
       setLoading(false);
@@ -223,11 +223,11 @@ export default function AuthModal({
       const code = err?.code || "";
       if (code === "auth/operation-not-allowed") {
         setError(
-          "Google Sign-In is not yet enabled in Firebase Console (Authentication → Sign-in method → Google). Enable Google provider once console access is active."
+          "Server is busy right now, please try again later."
         );
       } else if (code === "auth/unauthorized-domain") {
         setError(
-          "This domain is not authorized for Google Sign-In yet. Add this domain under Firebase Console → Authentication → Settings → Authorized domains."
+          "Server is busy right now, please try again later."
         );
       } else if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
         setError("Google Sign-In popup was closed before completing sign-in. Tap Continue with Google to try again.");
@@ -236,7 +236,7 @@ export default function AuthModal({
       } else if (code === "auth/network-request-failed") {
         setError("Network error during Google Sign-In. Check your internet connection and retry.");
       } else {
-        setError(err?.message || "Could not complete Google Sign-In right now.");
+        setError("Server is busy right now, please try again later.");
       }
     } finally {
       setGoogleLoading(false);
@@ -261,7 +261,7 @@ export default function AuthModal({
     try {
       await onAuthSuccess(cleanIdentifier, true, password);
     } catch (err: any) {
-      setError(err?.message || "Staff authentication failed.");
+      setError("Staff authentication failed. Please check your details and try again.");
     } finally {
       setLoading(false);
     }

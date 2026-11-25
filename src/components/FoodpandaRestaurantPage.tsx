@@ -6,7 +6,6 @@ import {
   Star,
   MapPin,
   Clock,
-  Sparkles,
   Flame,
   Plus,
   Minus,
@@ -671,7 +670,7 @@ export default function FoodpandaRestaurantPage({
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base sm:text-lg font-extrabold text-[#14141A] dark:text-white flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-[#D70F64]" />
+                <Star className="w-4 h-4 text-[#D70F64]" />
                 <span>Filtered Items ({filteredDishes.length})</span>
               </h2>
               <button
