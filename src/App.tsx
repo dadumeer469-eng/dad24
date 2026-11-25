@@ -4505,9 +4505,13 @@ export default function App() {
                           <ArrowRight className="w-4 h-4" />
                         </span>
                       </div>
-                      <span className="w-[96px] h-[96px] sm:w-[104px] sm:h-[104px] rounded-full bg-[#25D366] flex items-center justify-center shrink-0">
-                        <Phone className="w-11 h-11 text-white" />
-                      </span>
+                      <img
+                        src="/images/home/whatsapp-logo.jpg"
+                        alt="WhatsApp"
+                        className="w-[96px] h-[96px] sm:w-[104px] sm:h-[104px] rounded-2xl object-cover shrink-0"
+                        loading="lazy"
+                        decoding="async"
+                      />
                     </a>
                     </div>
                   </div>
