@@ -142,7 +142,7 @@ export default function FoodpandaHeader({
   const resolvedLocationText =
     (locationLabel && locationLabel.trim()) ||
     (user?.address && user.address.trim()) ||
-    "Set Delivery Location in Dadu";
+    "Set your location";
 
   return (
     <>

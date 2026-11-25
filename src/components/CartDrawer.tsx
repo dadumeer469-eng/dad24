@@ -623,14 +623,14 @@ export default function CartDrawer({
                   <div className="flex items-center gap-2 select-none shrink-0 bg-zinc-950 border border-zinc-800 p-1 rounded-xl">
                     <button
                       onClick={() => onUpdateQuantity(item.dishId, item.quantity - 1)}
-                      className="w-6 h-6 rounded-lg text-xs bg-zinc-900 border border-zinc-800 text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-800"
+                      className="w-9 h-9 rounded-lg text-sm bg-zinc-900 border border-zinc-800 text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-800"
                     >
                       -
                     </button>
                     <span className="text-xs font-black min-w-4 text-center text-zinc-200">{item.quantity}</span>
                     <button
                       onClick={() => onUpdateQuantity(item.dishId, item.quantity + 1)}
-                      className="w-6 h-6 rounded-lg text-xs bg-zinc-900 border border-zinc-800 text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-800"
+                      className="w-9 h-9 rounded-lg text-sm bg-zinc-900 border border-zinc-800 text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-800"
                     >
                       +
                     </button>
