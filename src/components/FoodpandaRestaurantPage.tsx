@@ -18,6 +18,10 @@ import {
   ChevronRight,
   CheckCircle2,
   XCircle,
+  ChefHat,
+  ClipboardCheck,
+  Timer,
+  LayoutGrid,
 } from "lucide-react";
 import { Dish, Order, OrderItem, SystemSettings } from "../types";
 import { getDefaultRestaurantImage } from "../data";
@@ -171,7 +175,7 @@ export default function FoodpandaRestaurantPage({
     initialCategory || allNavCategories[0] || ""
   );
   const [activeDetailDish, setActiveDetailDish] = useState<Dish | null>(null);
-  const [filterType, setFilterType] = useState<"all" | "bestsellers">("all");
+  const [filterType, setFilterType] = useState<"all" | "bestsellers" | "top_rated">("all");
   const [copiedLink, setCopiedLink] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -283,6 +287,9 @@ export default function FoodpandaRestaurantPage({
     if (filterType === "bestsellers") {
       return Boolean(d.isBestseller);
     }
+    if (filterType === "top_rated") {
+      return Boolean(d.isFeatured);
+    }
     return true;
   });
 
@@ -392,7 +399,7 @@ export default function FoodpandaRestaurantPage({
         <div className="bg-white dark:bg-[#14141A] rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-[#E6E6EE] dark:border-[#272733]">
           <div className="flex items-start gap-3.5 sm:gap-4">
             {/* Avatar Logo */}
-            <div className="w-18 h-18 sm:w-22 sm:h-22 bg-white dark:bg-[#1D1D26] rounded-2xl shadow-sm border border-[#E6E6EE] dark:border-[#272733] overflow-hidden shrink-0 relative">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 bg-white dark:bg-[#1D1D26] rounded-full shadow-md border-2 border-white dark:border-[#272733] overflow-hidden shrink-0 relative">
               {restaurantImageUrl ? (
                 <LazyImage
                   src={restaurantImageUrl}
@@ -405,10 +412,10 @@ export default function FoodpandaRestaurantPage({
                 </div>
               )}
               <div
-                className="absolute bottom-1 right-1 bg-[#D70F64] text-white rounded-full p-0.5 shadow-xs"
+                className="absolute bottom-0 right-0 bg-[#D70F64] text-white rounded-full p-1.5 shadow-md border-2 border-white dark:border-[#14141A]"
                 title="Verified Dadu Food Partner"
               >
-                <BadgeCheck className="w-3.5 h-3.5 fill-white text-[#D70F64]" />
+                <ChefHat className="w-4 h-4" />
               </div>
             </div>
 
@@ -418,6 +425,7 @@ export default function FoodpandaRestaurantPage({
                 <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#14141A] dark:text-[#F5F5F8] leading-tight">
                   {restaurantName}
                 </h1>
+                <BadgeCheck className="w-5 h-5 fill-[#D70F64] text-white shrink-0 mt-0.5" />
                 {openStatus.isOpen ? (
                   <span className="inline-flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 px-2.5 py-0.5 rounded-lg text-[11px] font-bold border border-emerald-200 dark:border-emerald-800 shrink-0">
                     <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
@@ -429,6 +437,15 @@ export default function FoodpandaRestaurantPage({
                     <span>Closed · {openStatus.detail}</span>
                   </span>
                 )}
+                {shopProfile.rating && shopProfile.reviewCount > 0 && (
+                  <span className="inline-flex flex-col items-center bg-[#FDF2F6] dark:bg-[#2A121D] border border-[#D70F64]/25 rounded-xl px-2.5 py-1 leading-none shrink-0 ml-auto">
+                    <span className="flex items-center gap-1">
+                      <Star className="w-3.5 h-3.5 text-amber-400 fill-current" />
+                      <span className="text-sm font-extrabold text-[#14141A] dark:text-white tabular-nums">{shopProfile.rating}</span>
+                    </span>
+                    <span className="text-[10px] font-bold text-[#D70F64] dark:text-[#FF4D94]">({shopProfile.reviewCount})</span>
+                  </span>
+                )}
               </div>
               <p className="speakable-summary text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A1A1B2] font-medium mt-1 leading-relaxed">
                 {shopProfile.oneLineDescription}
@@ -436,83 +453,67 @@ export default function FoodpandaRestaurantPage({
             </div>
           </div>
 
-          {/* Honest Quick Metrics Bar (No invented ratings or "Nearby") */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mt-4 pt-4 border-t border-[#EFEFF5] dark:border-[#23232E]">
-            {/* Honest Rating or Menu Count */}
-            <div className="bg-[#F9F9FB] dark:bg-[#1B1B23] p-2.5 sm:p-3 rounded-xl flex items-center gap-2 border border-[#E6E6EE] dark:border-[#272733] min-w-0">
-              <div className="p-1.5 rounded-lg bg-[#FDF2F6] dark:bg-[#2A121D] text-[#D70F64] dark:text-[#FF4D94] shrink-0">
-                {shopProfile.rating ? (
-                  <Star className="w-4 h-4 fill-current" />
-                ) : (
-                  <Store className="w-4 h-4" />
-                )}
+          {/* Quick Info Tiles (design: 2x2 pink tiles with chevrons) */}
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 mt-4 pt-4 border-t border-[#EFEFF5] dark:border-[#23232E]">
+            {/* Items */}
+            <div className="bg-[#FDF2F6] dark:bg-[#2A121D] p-3 rounded-2xl flex items-center gap-2.5 border border-[#F9A8C9]/50 dark:border-[#D70F64]/25 min-w-0">
+              <div className="w-10 h-10 rounded-full bg-[#D70F64] text-white flex items-center justify-center shrink-0 shadow-sm">
+                <ChefHat className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                {shopProfile.rating && shopProfile.reviewCount > 0 ? (
-                  <>
-                    <span className="block text-xs font-extrabold text-[#14141A] dark:text-white truncate tabular-nums">
-                      {shopProfile.rating} / 5
-                    </span>
-                    <span className="block text-[10px] text-[#5A5A6B] dark:text-[#A1A1B2] font-medium truncate">
-                      {shopProfile.reviewCount} verified {shopProfile.reviewCount === 1 ? "rating" : "ratings"}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span className="block text-xs font-extrabold text-[#14141A] dark:text-white truncate tabular-nums">
-                      {dishes.length} {dishes.length === 1 ? "Item" : "Items"}
-                    </span>
-                    <span className="block text-[10px] text-[#5A5A6B] dark:text-[#A1A1B2] font-medium truncate">
-                      Fresh Menu
-                    </span>
-                  </>
-                )}
+                <span className="block text-sm font-extrabold text-[#14141A] dark:text-white truncate tabular-nums">
+                  {dishes.length} {dishes.length === 1 ? "Item" : "Items"}
+                </span>
+                <span className="block text-[11px] text-[#5A5A6B] dark:text-[#A1A1B2] font-medium truncate">
+                  Fresh Menu
+                </span>
               </div>
+              <ChevronRight className="w-4 h-4 text-[#D70F64] shrink-0" />
             </div>
-
             {/* Delivery Time */}
-            <div className="bg-[#F9F9FB] dark:bg-[#1B1B23] p-2.5 sm:p-3 rounded-xl flex items-center gap-2 border border-[#E6E6EE] dark:border-[#272733] min-w-0">
-              <div className="p-1.5 rounded-lg bg-[#FDF2F6] dark:bg-[#2A121D] text-[#D70F64] dark:text-[#FF4D94] shrink-0">
-                <Clock className="w-4 h-4" />
+            <div className="bg-[#FDF2F6] dark:bg-[#2A121D] p-3 rounded-2xl flex items-center gap-2.5 border border-[#F9A8C9]/50 dark:border-[#D70F64]/25 min-w-0">
+              <div className="w-10 h-10 rounded-full bg-[#D70F64] text-white flex items-center justify-center shrink-0 shadow-sm">
+                <Clock className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <span className="block text-xs font-extrabold text-[#14141A] dark:text-white truncate tabular-nums">
+                <span className="block text-sm font-extrabold text-[#14141A] dark:text-white truncate tabular-nums">
                   {shopProfile.deliveryTime}
                 </span>
-                <span className="block text-[10px] text-[#5A5A6B] dark:text-[#A1A1B2] font-medium truncate">
+                <span className="block text-[11px] text-[#5A5A6B] dark:text-[#A1A1B2] font-medium truncate">
                   Est. Delivery
                 </span>
               </div>
+              <ChevronRight className="w-4 h-4 text-[#D70F64] shrink-0" />
             </div>
-
-            {/* Delivery Fee (Never labelled "Nearby") */}
-            <div className="bg-[#F9F9FB] dark:bg-[#1B1B23] p-2.5 sm:p-3 rounded-xl flex items-center gap-2 border border-[#E6E6EE] dark:border-[#272733] min-w-0">
-              <div className="p-1.5 rounded-lg bg-[#FDF2F6] dark:bg-[#2A121D] text-[#D70F64] dark:text-[#FF4D94] shrink-0">
-                <MapPin className="w-4 h-4" />
+            {/* Delivery Fee */}
+            <div className="bg-[#FDF2F6] dark:bg-[#2A121D] p-3 rounded-2xl flex items-center gap-2.5 border border-[#F9A8C9]/50 dark:border-[#D70F64]/25 min-w-0">
+              <div className="w-10 h-10 rounded-full bg-[#D70F64] text-white flex items-center justify-center shrink-0 shadow-sm">
+                <MapPin className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <span className="block text-xs font-extrabold text-[#14141A] dark:text-white truncate tabular-nums">
+                <span className="block text-sm font-extrabold text-[#14141A] dark:text-white truncate tabular-nums">
                   {deliveryFeeString}
                 </span>
-                <span className="block text-[10px] text-[#5A5A6B] dark:text-[#A1A1B2] font-medium truncate">
+                <span className="block text-[11px] text-[#5A5A6B] dark:text-[#A1A1B2] font-medium truncate">
                   {cleanDistance ? `Fee · ${cleanDistance}` : "Delivery Fee"}
                 </span>
               </div>
+              <ChevronRight className="w-4 h-4 text-[#D70F64] shrink-0" />
             </div>
-
-            {/* Min Order (Honest: only show amount if configured) */}
-            <div className="bg-[#F9F9FB] dark:bg-[#1B1B23] p-2.5 sm:p-3 rounded-xl flex items-center gap-2 border border-[#E6E6EE] dark:border-[#272733] min-w-0">
-              <div className="p-1.5 rounded-lg bg-[#FDF2F6] dark:bg-[#2A121D] text-[#D70F64] dark:text-[#FF4D94] shrink-0">
-                <ShoppingBag className="w-4 h-4" />
+            {/* Min Order */}
+            <div className="bg-[#FDF2F6] dark:bg-[#2A121D] p-3 rounded-2xl flex items-center gap-2.5 border border-[#F9A8C9]/50 dark:border-[#D70F64]/25 min-w-0">
+              <div className="w-10 h-10 rounded-full bg-[#D70F64] text-white flex items-center justify-center shrink-0 shadow-sm">
+                <ClipboardCheck className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <span className="block text-xs font-extrabold text-[#14141A] dark:text-white truncate tabular-nums">
+                <span className="block text-sm font-extrabold text-[#14141A] dark:text-white truncate tabular-nums">
                   {shopProfile.minOrder ? `Rs. ${shopProfile.minOrder}` : "No Minimum"}
                 </span>
-                <span className="block text-[10px] text-[#5A5A6B] dark:text-[#A1A1B2] font-medium truncate">
+                <span className="block text-[11px] text-[#5A5A6B] dark:text-[#A1A1B2] font-medium truncate">
                   Min. Order
                 </span>
               </div>
+              <ChevronRight className="w-4 h-4 text-[#D70F64] shrink-0" />
             </div>
           </div>
 
@@ -524,6 +525,28 @@ export default function FoodpandaRestaurantPage({
               <strong className="text-[#14141A] dark:text-white">Free above Rs. 1,000</strong>
             </span>
           </p>
+        </div>
+      </div>
+
+      {/* Free Delivery Banner (design: rider + stopwatch) */}
+      <div className="max-w-4xl mx-auto px-3.5 sm:px-4 mt-4">
+        <div className="relative overflow-hidden rounded-[28px] bg-gradient-to-r from-[#D70F64] via-[#E21B70] to-[#FF2B85] text-white shadow-[0_12px_28px_rgba(215,15,100,0.35)]">
+          <img
+            src="/images/home/rider-scooter.jpg"
+            alt="Dadu Food rider on a pink scooter"
+            className="absolute left-0 top-0 h-full w-[42%] sm:w-[32%] object-cover object-center"
+            loading="lazy"
+            decoding="async"
+          />
+          <div className="absolute inset-y-0 left-0 w-[42%] sm:w-[32%] bg-gradient-to-l from-[#E21B70] via-[#E21B70]/30 to-transparent pointer-events-none" aria-hidden="true" />
+          <div className="relative z-10 pl-[44%] sm:pl-[34%] pr-4 py-4 flex items-center justify-between gap-3 min-h-[96px]">
+            <p className="text-lg sm:text-2xl font-black italic leading-tight tracking-tight">
+              Free Delivery <span className="text-[#FFD500]">on Orders</span> Above Rs. 1,000
+            </p>
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/15 border border-white/25 flex items-center justify-center shrink-0">
+              <Timer className="w-7 h-7 sm:w-8 sm:h-8" />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -554,20 +577,21 @@ export default function FoodpandaRestaurantPage({
             <button
               type="button"
               onClick={() => setFilterType("all")}
-              className={`min-h-[44px] px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer border ${
+              className={`min-h-[44px] px-4 py-2 rounded-full text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer border ${
                 filterType === "all"
-                  ? "bg-[#D70F64] text-white border-[#D70F64]"
+                  ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
                   : "bg-white dark:bg-[#14141A] text-[#14141A] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733]"
               }`}
             >
-              All Items ({dishes.length})
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>All Items ({dishes.length})</span>
             </button>
             <button
               type="button"
               onClick={() => setFilterType(filterType === "bestsellers" ? "all" : "bestsellers")}
-              className={`min-h-[44px] px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer border ${
+              className={`min-h-[44px] px-4 py-2 rounded-full text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer border ${
                 filterType === "bestsellers"
-                  ? "bg-[#D70F64] text-white border-[#D70F64]"
+                  ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
                   : "bg-white dark:bg-[#14141A] text-[#14141A] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733]"
               }`}
             >
@@ -577,6 +601,22 @@ export default function FoodpandaRestaurantPage({
                 }`}
               />
               <span>Bestsellers</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterType(filterType === "top_rated" ? "all" : "top_rated")}
+              className={`min-h-[44px] px-4 py-2 rounded-full text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer border ${
+                filterType === "top_rated"
+                  ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
+                  : "bg-white dark:bg-[#14141A] text-[#14141A] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733]"
+              }`}
+            >
+              <Star
+                className={`w-3.5 h-3.5 ${
+                  filterType === "top_rated" ? "text-white fill-current" : "text-amber-400 fill-current"
+                }`}
+              />
+              <span>Top Rated</span>
             </button>
           </div>
         </div>
@@ -604,9 +644,9 @@ export default function FoodpandaRestaurantPage({
                     type="button"
                     ref={(el) => (categoryButtonRefs.current[cat] = el)}
                     onClick={() => scrollToCategory(cat)}
-                    className={`min-h-[44px] whitespace-nowrap px-3.5 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-2 cursor-pointer select-none border ${
+                    className={`min-h-[44px] whitespace-nowrap px-3.5 py-2 rounded-full text-xs font-bold transition-colors flex items-center gap-2 cursor-pointer select-none border ${
                       isActive
-                        ? "bg-[#D70F64] text-white border-[#D70F64]"
+                        ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
                         : "bg-[#F9F9FB] dark:bg-[#1D1D26] text-[#14141A] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733]"
                     }`}
                   >
@@ -844,11 +884,6 @@ const DishCard = React.memo(function DishCard({
                 }`}
               />
             </span>
-            {dish.isBestseller && (
-              <span className="text-[10px] font-bold text-[#D70F64] dark:text-[#FF4D94] uppercase tracking-wide">
-                Bestseller
-              </span>
-            )}
             {!dish.isAvailable && (
               <span className="text-[10px] font-bold text-[#DC2626] uppercase tracking-wide">
                 Sold Out
@@ -911,6 +946,12 @@ const DishCard = React.memo(function DishCard({
             </div>
           )}
 
+          {(dish.isBestseller || dish.isFeatured) && (
+            <span className="absolute top-2 left-2 bg-[#D70F64] text-white text-[10px] font-extrabold px-2 py-1 rounded-full shadow-md z-10">
+              {dish.isBestseller ? "Best Seller" : "Popular"}
+            </span>
+          )}
+
           {onToggleFavorite && (
             <button
               type="button"
@@ -919,11 +960,15 @@ const DishCard = React.memo(function DishCard({
                 onToggleFavorite();
               }}
               aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
-              className="absolute top-1 right-1 w-9 h-9 rounded-full bg-white/90 dark:bg-[#14141A]/90 text-[#5A5A6B] hover:text-[#D70F64] transition flex items-center justify-center cursor-pointer"
+              className={`absolute top-1 right-1 w-9 h-9 rounded-full transition flex items-center justify-center cursor-pointer shadow-sm ${
+                isFavorite
+                  ? "bg-[#D70F64] text-white"
+                  : "bg-white/90 dark:bg-[#14141A]/90 text-[#5A5A6B] hover:text-[#D70F64]"
+              }`}
             >
               <Heart
                 className={`w-3.5 h-3.5 ${
-                  isFavorite ? "fill-[#D70F64] text-[#D70F64]" : ""
+                  isFavorite ? "fill-white text-white" : ""
                 }`}
               />
             </button>
