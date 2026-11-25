@@ -1,72 +1,68 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://dadufood.pk/</loc>
+    <loc>https://dadufood.store/</loc>
+    <lastmod>2026-11-26</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://dadufood.pk/shop/dadu-fast-food</loc>
+    <loc>https://dadufood.store/shop/dadu-fast-food-kitchen</loc>
+    <lastmod>2026-11-26</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://dadufood.pk/shop/s-m-bilal</loc>
+    <loc>https://dadufood.store/shop/s-m-bilal-hotel</loc>
+    <lastmod>2026-11-26</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://dadufood.pk/shop/tasty-bites</loc>
+    <loc>https://dadufood.store/shop/tasty-bites-dadu</loc>
+    <lastmod>2026-11-26</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://dadufood.pk/shop/dadu-royal-kitchen</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://dadufood.pk/shop/dadu-chai-cafe</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.85</priority>
-  </url>
-  <url>
-    <loc>https://dadufood.pk/shop/dadu-home-care-services</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://dadufood.pk/about</loc>
+    <loc>https://dadufood.store/about</loc>
+    <lastmod>2026-11-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://dadufood.pk/contact</loc>
+    <loc>https://dadufood.store/contact</loc>
+    <lastmod>2026-11-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://dadufood.pk/partner-with-us</loc>
+    <loc>https://dadufood.store/partner-with-us</loc>
+    <lastmod>2026-11-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
-    <loc>https://dadufood.pk/become-a-rider</loc>
+    <loc>https://dadufood.store/become-a-rider</loc>
+    <lastmod>2026-11-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.75</priority>
   </url>
   <url>
-    <loc>https://dadufood.pk/terms</loc>
+    <loc>https://dadufood.store/terms</loc>
+    <lastmod>2026-11-26</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://dadufood.pk/privacy-policy</loc>
+    <loc>https://dadufood.store/privacy-policy</loc>
+    <lastmod>2026-11-26</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://dadufood.pk/refund-policy</loc>
+    <loc>https://dadufood.store/refund-policy</loc>
+    <lastmod>2026-11-26</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.5</priority>
   </url>
