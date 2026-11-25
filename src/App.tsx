@@ -4404,7 +4404,7 @@ export default function App() {
                         setActiveCategory("All");
                         document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth" });
                       }}
-                      className="min-h-[108px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "60ms" }}
+                      className="min-h-[124px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "60ms" }}
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
@@ -4422,7 +4422,7 @@ export default function App() {
                       <img
                         src="/images/home/burger-3d.jpg"
                         alt="Crispy burger"
-                        className="w-[72px] h-[72px] sm:w-20 sm:h-20 rounded-2xl object-cover shrink-0"
+                        className="w-[96px] h-[96px] sm:w-[104px] sm:h-[104px] rounded-2xl object-cover shrink-0"
                         loading="lazy"
                         decoding="async"
                       />
@@ -4431,7 +4431,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={handleGoToGroceryHome}
-                      className="min-h-[108px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "120ms" }}
+                      className="min-h-[124px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "120ms" }}
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
@@ -4449,7 +4449,7 @@ export default function App() {
                       <img
                         src="/images/home/grocery-cart-3d.jpg"
                         alt="Grocery cart full of fresh groceries"
-                        className="w-[72px] h-[72px] sm:w-20 sm:h-20 rounded-2xl object-cover shrink-0"
+                        className="w-[96px] h-[96px] sm:w-[104px] sm:h-[104px] rounded-2xl object-cover shrink-0"
                         loading="lazy"
                         decoding="async"
                       />
@@ -4462,7 +4462,7 @@ export default function App() {
                         setQuickFilter("under_300");
                         document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth" });
                       }}
-                      className="min-h-[108px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "180ms" }}
+                      className="min-h-[124px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "180ms" }}
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
@@ -4480,7 +4480,7 @@ export default function App() {
                       <img
                         src="/images/home/price-tag-3d.jpg"
                         alt="Discount price tag"
-                        className="w-[72px] h-[72px] sm:w-20 sm:h-20 rounded-2xl object-cover shrink-0"
+                        className="w-[96px] h-[96px] sm:w-[104px] sm:h-[104px] rounded-2xl object-cover shrink-0"
                         loading="lazy"
                         decoding="async"
                       />
@@ -4490,7 +4490,7 @@ export default function App() {
                       href={`https://wa.me/${deliverySettings?.whatsappNumber || "923277004471"}?text=Assalam-o-Alaikum%20Dadu%20Food!%20Mera%20WhatsApp%20order%20list%20ye%20hai:`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="min-h-[108px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#25D366]/60 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "240ms" }}
+                      className="min-h-[124px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#25D366]/60 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "240ms" }}
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
@@ -4505,8 +4505,8 @@ export default function App() {
                           <ArrowRight className="w-4 h-4" />
                         </span>
                       </div>
-                      <span className="w-[72px] h-[72px] sm:w-20 sm:h-20 rounded-2xl bg-[#25D366] flex items-center justify-center shrink-0">
-                        <Phone className="w-8 h-8 text-white" />
+                      <span className="w-[96px] h-[96px] sm:w-[104px] sm:h-[104px] rounded-full bg-[#25D366] flex items-center justify-center shrink-0">
+                        <Phone className="w-11 h-11 text-white" />
                       </span>
                     </a>
                     </div>
