@@ -765,7 +765,8 @@ export function formatOrderId(id: string | undefined | null): string {
 export function calculateDeliveryFee(
   itemsSubtotal: number,
   baseFeeInput?: number,
-  freeThresholdInput?: number
+  freeThresholdInput?: number,
+  doubleBelowInput?: number
 ): { fee: number; isFree: boolean; isDoubledBelow500: boolean; freeThreshold: number } {
   const configuredFree = Number(freeThresholdInput || 0);
   const freeThreshold = configuredFree >= 500 ? configuredFree : 1000;
@@ -775,7 +776,9 @@ export function calculateDeliveryFee(
     return { fee: 0, isFree: true, isDoubledBelow500: false, freeThreshold };
   }
 
-  const isDoubledBelow500 = itemsSubtotal > 0 && itemsSubtotal < 500;
+  // Admin-controlled: fee doubles below this subtotal (0 = doubling disabled)
+  const doubleBelow = Number(doubleBelowInput ?? 500);
+  const isDoubledBelow500 = doubleBelow > 0 && itemsSubtotal > 0 && itemsSubtotal < doubleBelow;
   const fee = isDoubledBelow500 ? baseFee * 2 : baseFee;
 
   return { fee: Math.round(fee), isFree: false, isDoubledBelow500, freeThreshold };
