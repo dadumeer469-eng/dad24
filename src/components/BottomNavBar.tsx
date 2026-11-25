@@ -77,25 +77,51 @@ export default function BottomNavBar({
       {/* Foodpanda Sticky Floating View-Cart Bar above Mobile Bottom Nav */}
       {!hideFloatingCart && currentCartCount > 0 && (
         <div className="fixed bottom-[66px] left-3 right-3 z-40 lg:hidden animate-slide-up">
-          <button
-            type="button"
-            onClick={activeModule === "grocery" ? onOpenGroceryCart : onOpenCart}
-            className="w-full min-h-[48px] btn-pink text-white px-4 py-2.5 rounded-2xl shadow-lg flex items-center justify-between gap-2 cursor-pointer active:scale-[0.99] transition-transform"
-          >
-            <div className="flex items-center gap-2.5">
-              <span className="bg-white/20 px-2 py-0.5 rounded-lg text-xs font-black tabular-nums flex items-center gap-1">
-                <ShoppingBag className="w-3.5 h-3.5" />
-                {currentCartCount}
-              </span>
-              <span className="text-xs font-extrabold tracking-tight">
-                {activeModule === "grocery" ? "View Mart Basket" : "View Your Cart"}
-              </span>
+          {activeModule === "grocery" ? (
+            <div className="w-full min-h-[48px] btn-pink text-white px-3 py-2 rounded-2xl shadow-lg flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={onOpenGroceryCart}
+                className="flex items-center gap-2 min-w-0 cursor-pointer active:scale-[0.98] transition-transform"
+              >
+                <span className="bg-white/20 px-2 py-0.5 rounded-lg text-xs font-black tabular-nums flex items-center gap-1 shrink-0">
+                  <ShoppingBag className="w-3.5 h-3.5" />
+                  {currentCartCount}
+                </span>
+                <span className="text-xs font-extrabold tracking-tight whitespace-nowrap">View Cart</span>
+                {currentCartTotal > 0 && (
+                  <span className="font-mono text-xs font-black tabular-nums whitespace-nowrap">
+                    • Rs. {currentCartTotal}
+                  </span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={onOpenGroceryCart}
+                className="bg-white text-[#D70F64] text-xs font-extrabold px-3.5 py-2 rounded-full shadow-sm flex items-center gap-1 shrink-0 cursor-pointer active:scale-95 transition"
+              >
+                Checkout <ChevronRight className="w-3.5 h-3.5" />
+              </button>
             </div>
-            <div className="flex items-center gap-1 font-mono text-xs font-black tabular-nums">
-              {currentCartTotal > 0 && <span>Rs. {currentCartTotal}</span>}
-              <ChevronRight className="w-4 h-4" />
-            </div>
-          </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onOpenCart}
+              className="w-full min-h-[48px] btn-pink text-white px-4 py-2.5 rounded-2xl shadow-lg flex items-center justify-between gap-2 cursor-pointer active:scale-[0.99] transition-transform"
+            >
+              <div className="flex items-center gap-2.5">
+                <span className="bg-white/20 px-2 py-0.5 rounded-lg text-xs font-black tabular-nums flex items-center gap-1">
+                  <ShoppingBag className="w-3.5 h-3.5" />
+                  {currentCartCount}
+                </span>
+                <span className="text-xs font-extrabold tracking-tight">View Your Cart</span>
+              </div>
+              <div className="flex items-center gap-1 font-mono text-xs font-black tabular-nums">
+                {currentCartTotal > 0 && <span>Rs. {currentCartTotal}</span>}
+                <ChevronRight className="w-4 h-4" />
+              </div>
+            </button>
+          )}
         </div>
       )}
 
