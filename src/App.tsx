@@ -45,7 +45,6 @@ import { INITIAL_MENU_ITEMS, DEFAULT_FOOD_CATEGORIES, getDefaultRestaurantImage 
 // Import modules
 import FoodpandaHeader from "./components/FoodpandaHeader";
 import FoodpandaHero from "./components/FoodpandaHero";
-import BannerCarousel from "./components/BannerCarousel";
 import CartDrawer from "./components/CartDrawer";
 import OrderTracker from "./components/OrderTracker";
 import AdminPanel from "./components/AdminPanel";
@@ -542,14 +541,20 @@ export default function App() {
   });
   const [gmpQuotaExceeded, setGmpQuotaExceeded] = useState(false);
 
-  // Floating Promo Countdown Banner State (ticks every second for live urgency)
+  // Free-delivery countdown: real deadline — offer ends at midnight tonight (local time).
+  const secondsUntilMidnight = () => {
+    const now = new Date();
+    const midnight = new Date(now);
+    midnight.setHours(24, 0, 0, 0);
+    return Math.max(0, Math.floor((midnight.getTime() - now.getTime()) / 1000));
+  };
   const [promoBannerDismissed, setPromoBannerDismissed] = useState(false);
-  const [promoCountdownSec, setPromoCountdownSec] = useState(42 * 60 + 18);
+  const [promoCountdownSec, setPromoCountdownSec] = useState(secondsUntilMidnight);
 
   useEffect(() => {
     if (promoBannerDismissed) return;
     const interval = setInterval(() => {
-      setPromoCountdownSec((prev) => (prev > 1 ? prev - 1 : 45 * 60));
+      setPromoCountdownSec(secondsUntilMidnight());
     }, 1000);
     return () => clearInterval(interval);
   }, [promoBannerDismissed]);
@@ -1337,8 +1342,11 @@ export default function App() {
           list.push({ id: doc.id, ...doc.data() } as GroceryCategory);
         });
         list.sort((a, b) => (a.position || 0) - (b.position || 0));
-        setGroceryCategories(list);
-        setCachedData("dadu_cached_grocery_categories", list);
+        // If Firestore returns nothing, show the built-in 12 categories so the
+        // grouped grocery sections render instead of a blank page.
+        const displayCats = list.length > 0 ? list : [...OWNER_GROCERY_CATEGORIES];
+        setGroceryCategories(displayCats);
+        setCachedData("dadu_cached_grocery_categories", displayCats);
         setIsLoadingGrocery(false);
         // Seed the 12 owner categories once if any are missing from Firestore.
         if (!groceryCategorySeedAttemptedRef.current) {
@@ -1362,6 +1370,13 @@ export default function App() {
       } catch (err) {
         if (cancelled) return;
         console.warn("Grocery categories notice:", handleFirestoreError(err));
+        // Offline fallback: built-in 12 categories so grouped sections render
+        // even when Firestore can't be read (e.g. daily quota exhausted).
+        setGroceryCategories((prev) => {
+          const fallback = prev.length > 0 ? prev : [...OWNER_GROCERY_CATEGORIES];
+          setCachedData("dadu_cached_grocery_categories", fallback);
+          return fallback;
+        });
         setIsLoadingGrocery(false);
       }
     };
@@ -1392,10 +1407,13 @@ export default function App() {
         snapshot.forEach((doc) => {
           list.push({ id: doc.id, ...doc.data() } as GroceryProduct);
         });
-        setGroceryProducts(list);
-        setCachedData("dadu_cached_grocery_products", list);
+        // If Firestore returns nothing (empty collection / seed still running),
+        // show the built-in catalog instead of a blank page.
+        const displayList = list.length > 0 ? list : [...OWNER_GROCERY_PRODUCTS];
+        setGroceryProducts(displayList);
+        setCachedData("dadu_cached_grocery_products", displayList);
         setIsLoadingGrocery(false);
-        preloadImages(list.slice(0, 20).map((p) => p.imageUrl));
+        preloadImages(displayList.slice(0, 20).map((p) => p.imageUrl));
         // Seed the 100 owner grocery items once if any are missing from Firestore.
         if (!grocerySeedAttemptedRef.current) {
           grocerySeedAttemptedRef.current = true;
@@ -4331,6 +4349,7 @@ export default function App() {
             }
           }}
           onOpenSettings={() => setIsSettingsModalOpen(true)}
+          onOpenMenu={() => setIsMobileAccountOpen(true)}
           onOpenHistory={() => setIsHistoryDrawerOpen(true)}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
@@ -4455,199 +4474,47 @@ export default function App() {
                   transition={{ duration: 0.2, ease: "easeOut" }}
                 >
               <>
-                {/* Dadu Food hero banner — Foodpanda-style, richer: headline + rider + 4 service tiles */}
-                <section className="max-w-7xl mx-auto px-3.5 sm:px-4 pt-3.5 pb-1">
-                  <div className="rounded-[28px] bg-gradient-to-br from-[#FF2B85] via-[#E21B70] to-[#B80C54] shadow-md relative overflow-hidden animate-fade-in">
-                    {/* Headline + rider row */}
-                    <div className="relative min-h-[185px] sm:min-h-[220px]">
-                      <img
-                        src="/images/home/rider-scooter.jpg"
-                        alt="Dadu Food rider delivering fast on a pink scooter"
-                        className="absolute right-0 top-0 h-full w-[56%] sm:w-[48%] object-cover object-center animate-float-soft"
-                        loading="eager"
-                        decoding="async"
-                      />
-                      <div className="absolute inset-y-0 right-0 w-[56%] sm:w-[48%] bg-gradient-to-r from-[#E21B70] via-[#E21B70]/25 to-transparent pointer-events-none" aria-hidden="true" />
-                      <div className="relative z-10 px-4 sm:px-6 pt-5 sm:pt-7 pb-4 max-w-[62%] sm:max-w-[58%] animate-slide-in-left">
-                        <h2 className="text-[27px] sm:text-4xl font-black italic leading-[1.05] text-white tracking-tight drop-shadow-[0_2px_6px_rgba(0,0,0,0.25)]">
-                          DADU FOOD - <span className="text-[#FFD500]">FAST</span>
-                          <br />
-                          <span className="relative inline-block">
-                            DELIVERY
-                            <span className="absolute left-0 -bottom-1 h-[5px] w-full bg-[#FFD500] rounded-full -rotate-1" />
-                          </span>
-                        </h2>
-                        <p className="mt-3 flex items-center gap-1.5 text-[12px] sm:text-sm font-bold text-white/95">
-                          <Clock className="w-4 h-4 shrink-0" />
-                          25–35 min • COD &amp; Easypaisa
-                        </p>
-                      </div>
-                    </div>
-                    <div className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 p-2.5 sm:p-3 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveModule("food");
-                        setQuickFilter("all");
-                        setActiveCategory("All");
-                        document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth" });
-                      }}
-                      className="min-h-[124px] text-left p-3 rounded-3xl bg-gradient-to-br from-white via-white to-[#FFF0F5] dark:from-[#1C1C26] dark:via-[#14141A] dark:to-[#1C1C26] border border-white dark:border-[#272733] hover:border-[#D70F64]/50 shadow-[0_12px_28px_rgba(215,15,100,0.30),inset_0_1px_0_rgba(255,255,255,0.9)] transition-all cursor-pointer active:scale-[0.98] hover:-translate-y-0.5 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "60ms" }}
-                    >
-                      <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
-                        <div>
-                          <span className="block text-sm sm:text-[15px] font-black text-[#14141A] dark:text-white leading-tight">
-                            Food<br />Delivery
-                          </span>
-                          <span className="block text-[11px] font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-1 leading-snug">
-                            Hot meals in Dadu
-                          </span>
-                        </div>
-                        <span className="mt-2 inline-flex w-7 h-7 rounded-full bg-gradient-to-br from-[#FF2B85] to-[#D70F64] text-white items-center justify-center shrink-0 shadow-md shadow-[#D70F64]/40">
-                          <ArrowRight className="w-4 h-4" />
-                        </span>
-                      </div>
-                      <img
-                        src="/images/home/burger-3d.jpg"
-                        alt="Crispy burger"
-                        className="w-[68px] h-[68px] sm:w-[96px] sm:h-[96px] rounded-2xl object-cover shrink-0 animate-float-soft" style={{ animationDelay: "0s" }}
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleGoToGroceryHome}
-                      className="min-h-[124px] text-left p-3 rounded-3xl bg-gradient-to-br from-white via-white to-[#FFF0F5] dark:from-[#1C1C26] dark:via-[#14141A] dark:to-[#1C1C26] border border-white dark:border-[#272733] hover:border-[#D70F64]/50 shadow-[0_12px_28px_rgba(215,15,100,0.30),inset_0_1px_0_rgba(255,255,255,0.9)] transition-all cursor-pointer active:scale-[0.98] hover:-translate-y-0.5 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "120ms" }}
-                    >
-                      <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
-                        <div>
-                          <span className="block text-sm sm:text-[15px] font-black text-[#14141A] dark:text-white leading-tight">
-                            Dadu<br />Mart
-                          </span>
-                          <span className="block text-[11px] font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-1 leading-snug">
-                            100 groceries &amp; rashan
-                          </span>
-                        </div>
-                        <span className="mt-2 inline-flex w-7 h-7 rounded-full bg-gradient-to-br from-[#FF2B85] to-[#D70F64] text-white items-center justify-center shrink-0 shadow-md shadow-[#D70F64]/40">
-                          <ArrowRight className="w-4 h-4" />
-                        </span>
-                      </div>
-                      <img
-                        src="/images/home/grocery-cart-3d.jpg"
-                        alt="Grocery cart full of fresh groceries"
-                        className="w-[68px] h-[68px] sm:w-[96px] sm:h-[96px] rounded-2xl object-cover shrink-0 animate-float-soft" style={{ animationDelay: "0.5s" }}
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveModule("food");
-                        setQuickFilter("under_300");
-                        document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth" });
-                      }}
-                      className="min-h-[124px] text-left p-3 rounded-3xl bg-gradient-to-br from-white via-white to-[#FFF0F5] dark:from-[#1C1C26] dark:via-[#14141A] dark:to-[#1C1C26] border border-white dark:border-[#272733] hover:border-[#D70F64]/50 shadow-[0_12px_28px_rgba(215,15,100,0.30),inset_0_1px_0_rgba(255,255,255,0.9)] transition-all cursor-pointer active:scale-[0.98] hover:-translate-y-0.5 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "180ms" }}
-                    >
-                      <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
-                        <div>
-                          <span className="block text-sm sm:text-[15px] font-black text-[#14141A] dark:text-white leading-tight">
-                            Budget<br />Deals
-                          </span>
-                          <span className="block text-[11px] font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-1 leading-snug">
-                            Under Rs. 300 picks
-                          </span>
-                        </div>
-                        <span className="mt-2 inline-flex w-7 h-7 rounded-full bg-gradient-to-br from-[#FF2B85] to-[#D70F64] text-white items-center justify-center shrink-0 shadow-md shadow-[#D70F64]/40">
-                          <ArrowRight className="w-4 h-4" />
-                        </span>
-                      </div>
-                      <img
-                        src="/images/home/price-tag-3d.jpg"
-                        alt="Discount price tag"
-                        className="w-[68px] h-[68px] sm:w-[96px] sm:h-[96px] rounded-2xl object-cover shrink-0 animate-float-soft" style={{ animationDelay: "1s" }}
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    </button>
-
-                    <a
-                      href={`https://wa.me/${deliverySettings?.whatsappNumber || "923277004471"}?text=Assalam-o-Alaikum%20Dadu%20Food!%20Mera%20WhatsApp%20order%20list%20ye%20hai:`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="min-h-[124px] text-left p-3 rounded-3xl bg-gradient-to-br from-white via-white to-[#FFF0F5] dark:from-[#1C1C26] dark:via-[#14141A] dark:to-[#1C1C26] border border-white dark:border-[#272733] hover:border-[#25D366]/60 shadow-[0_12px_28px_rgba(215,15,100,0.30),inset_0_1px_0_rgba(255,255,255,0.9)] transition-all cursor-pointer active:scale-[0.98] hover:-translate-y-0.5 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "240ms" }}
-                    >
-                      <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
-                        <div>
-                          <span className="block text-sm sm:text-[15px] font-black text-[#14141A] dark:text-white leading-tight">
-                            WhatsApp<br />List
-                          </span>
-                          <span className="block text-[11px] font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-1 leading-snug">
-                            Send list directly
-                          </span>
-                        </div>
-                        <span className="mt-2 inline-flex w-7 h-7 rounded-full bg-gradient-to-br from-[#FF2B85] to-[#D70F64] text-white items-center justify-center shrink-0 shadow-md shadow-[#D70F64]/40">
-                          <ArrowRight className="w-4 h-4" />
-                        </span>
-                      </div>
-                      <img
-                        src="/images/home/whatsapp-logo.jpg"
-                        alt="WhatsApp"
-                        className="w-[68px] h-[68px] sm:w-[96px] sm:h-[96px] rounded-2xl object-cover shrink-0 animate-float-soft" style={{ animationDelay: "1.5s" }}
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    </a>
-                    </div>
-                  </div>
-                </section>
-
-                {/* Promo Carousel & Hero */}
-                <BannerCarousel
-                  bannerVersion={deliverySettings.bannerVersion}
-                  deliveryFee={deliverySettings?.deliveryFee || 50}
-                  onOpenGrocery={handleGoToGroceryHome}
-                  cartTotal={cartPriceTotal}
-                  cartCount={cartCountTotal}
-                  onOpenCart={() => setIsCartOpen(true)}
-                  freeDeliveryAbove={deliverySettings?.freeDeliveryAboveAmount ?? 1000}
-                  whatsappNumber={deliverySettings?.whatsappNumber || "923277004471"}
-                />
-
-                {/* Floating Promo Banner with Live Countdown */}
+                {/* Free Delivery Banner (design: rider + skyline + live countdown to midnight) */}
                 {!promoBannerDismissed && (
                   <div className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-3">
-                    <div className="bg-gradient-to-r from-[#D70F64] to-[#FF2B85] text-white rounded-2xl px-4 py-3 shadow-sm flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center text-lg shrink-0">
-                          🎉
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-xs sm:text-sm font-black leading-tight truncate">
-                            Free Delivery on Orders Above Rs. 1,000!
-                          </p>
-                          <p className="text-[10.5px] text-pink-100 font-medium truncate mt-0.5">
-                            Standard Rs. {deliverySettings?.deliveryFee || 50} delivery fee · Cash on Delivery &amp; Easypaisa
-                          </p>
+                    <div className="relative overflow-hidden rounded-[28px] bg-gradient-to-r from-[#D70F64] via-[#E21B70] to-[#FF2B85] text-white shadow-[0_12px_28px_rgba(215,15,100,0.35)]">
+                      {/* Rider on pink scooter */}
+                      <img
+                        src="/images/home/rider-scooter.jpg"
+                        alt="Dadu Food rider on a pink scooter"
+                        className="absolute right-0 top-0 h-full w-[46%] sm:w-[38%] object-cover object-center"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                      <div className="absolute inset-y-0 right-0 w-[46%] sm:w-[38%] bg-gradient-to-r from-[#E21B70] via-[#E21B70]/30 to-transparent pointer-events-none" aria-hidden="true" />
+                      {/* City skyline silhouette */}
+                      <svg className="absolute bottom-0 left-0 w-full h-9 text-[#8F0A45]/35 pointer-events-none" viewBox="0 0 400 36" preserveAspectRatio="none" aria-hidden="true">
+                        <path d="M0 36 V20 h18 V12 h14 V22 h16 V8 h12 V24 h20 V14 h14 V26 h18 V10 h12 V22 h16 V16 h14 V28 h20 V12 h12 V24 h18 V18 h14 V30 h20 V14 h12 V26 h16 V20 h14 V36 Z" fill="currentColor" />
+                      </svg>
+                      <div className="relative z-10 px-4 sm:px-5 py-4 max-w-[62%] sm:max-w-[60%]">
+                        <p className="text-lg sm:text-2xl font-black italic leading-tight tracking-tight">
+                          Free Delivery <span className="text-[#FFD500]">on Orders</span> Above Rs. {(deliverySettings?.freeDeliveryAboveAmount ?? 1000).toLocaleString()}!
+                        </p>
+                        <p className="text-[11px] sm:text-xs font-semibold text-white/90 mt-1">
+                          Standard Rs. {deliverySettings?.deliveryFee || 50} delivery fee waived!
+                        </p>
+                        <div className="flex items-center gap-2 mt-2.5">
+                          <span className="bg-white/20 px-2.5 py-1 rounded-lg font-mono text-xs font-black tabular-nums">
+                            {String(Math.floor(promoCountdownSec / 3600)).padStart(2, "0")}:
+                            {String(Math.floor((promoCountdownSec % 3600) / 60)).padStart(2, "0")}:
+                            {String(promoCountdownSec % 60).padStart(2, "0")}
+                          </span>
+                          <span className="text-[10px] font-bold text-white/85">left today</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="bg-white/20 px-2.5 py-1 rounded-lg font-mono text-xs font-black tabular-nums">
-                          {String(Math.floor(promoCountdownSec / 60)).padStart(2, "0")}:
-                          {String(promoCountdownSec % 60).padStart(2, "0")}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setPromoBannerDismissed(true)}
-                          aria-label="Dismiss promo banner"
-                          className="w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white cursor-pointer transition"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setPromoBannerDismissed(true)}
+                        aria-label="Dismiss promo banner"
+                        className="absolute top-2.5 right-2.5 z-10 w-7 h-7 rounded-full bg-black/25 hover:bg-black/40 flex items-center justify-center text-white cursor-pointer transition"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
                 )}
@@ -5071,7 +4938,7 @@ export default function App() {
                             key={chip.id}
                             type="button"
                             onClick={() => setQuickFilter(chip.id as typeof quickFilter)}
-                            className={`shrink-0 min-h-[44px] px-4 rounded-xl text-xs font-extrabold tracking-tight transition-colors cursor-pointer border ${
+                            className={`shrink-0 min-h-[44px] px-4 rounded-full text-xs font-extrabold tracking-tight transition-colors cursor-pointer border ${
                               active
                                 ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
                                 : "bg-white dark:bg-[#14141A] text-[#111118] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/60 hover:text-[#D70F64] dark:hover:text-[#FF4D94]"
@@ -5107,6 +4974,19 @@ export default function App() {
                         </span>
                       </h2>
                       <div className="flex items-center gap-2">
+                        {quickFilter === "all" && selectedRestaurant === "All Restaurants" && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setQuickFilter("all");
+                              setActiveCategory("All");
+                              document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth" });
+                            }}
+                            className="min-h-[36px] px-2.5 text-xs font-extrabold text-[#D70F64] dark:text-[#FF4D94] hover:underline cursor-pointer shrink-0"
+                          >
+                            See All →
+                          </button>
+                        )}
                         {quickFilter !== "all" && (
                           <button
                             type="button"
