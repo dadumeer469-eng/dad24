@@ -3,7 +3,6 @@ import { GroceryCategory, GroceryProduct, GroceryOrderItem } from "../types";
 import { ShoppingBasket, Package, Plus, Minus, ChevronDown } from "lucide-react";
 import { LazyImage } from "./LazyImage";
 import useLazyBatchLoad from "../hooks/useLazyBatchLoad";
-import WhatsAppListOrderCard from "./WhatsAppListOrderCard";
 import { GROCERY_CATEGORY_VISUALS } from "../data/ownerGroceryCatalog";
 
 interface GroceryModuleProps {
@@ -280,11 +279,8 @@ export default function GroceryModule({
                     : "No items in this category yet"}
                 </h3>
                 <p className="text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A1A1B2] max-w-md leading-relaxed">
-                  Try another category or send your exact grocery list below on WhatsApp and our rider will deliver it across Dadu.
+                  Try another category or search for the item you need.
                 </p>
-              </div>
-
-              <WhatsAppListOrderCard mode="grocery" />
             </div>
           ) : (
             <div className="space-y-6">
@@ -401,7 +397,6 @@ export default function GroceryModule({
                 </div>
               )}
 
-              <WhatsAppListOrderCard mode="grocery" />
             </div>
           )}
         </div>
