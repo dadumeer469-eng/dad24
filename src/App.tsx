@@ -63,7 +63,6 @@ import DaduLogoLoader from "./components/DaduLogoLoader";
 import NetworkStatusBanner from "./components/NetworkStatusBanner";
 import { CustomerSettingsModal } from "./components/CustomerSettingsModal";
 import { InfoPagesView } from "./components/InfoPagesView";
-import { HomeFaqAeoSection } from "./components/HomeFaqAeoSection";
 import useLazyBatchLoad from "./hooks/useLazyBatchLoad";
 import daduLogo from "./assets/images/dadu_food_logo_new_1782333467889.jpg";
 import { logMemoryUsage, useMemoryMonitor } from "./utils/memoryLogger";
@@ -4031,7 +4030,7 @@ export default function App() {
 
 
   return (
-    <div className="min-h-screen bg-[#F9F9FB] dark:bg-[#0B0B0F] text-[#111118] dark:text-[#F5F5F8] relative pb-28 md:pb-12 flex flex-col font-sans overflow-x-clip">
+    <div className="min-h-screen bg-[#E21B70]/30 dark:bg-[#0B0B0F] text-[#111118] dark:text-[#F5F5F8] relative pb-28 md:pb-12 flex flex-col font-sans overflow-x-clip">
 
       {/* Welcome Intro Splash Animation Screen with Site Logo */}
       <AnimatePresence mode="wait">
@@ -5430,7 +5429,6 @@ export default function App() {
                 </div>
               </main>
 
-              <HomeFaqAeoSection language={language} />
             </>
           </motion.div>
         ) : (
