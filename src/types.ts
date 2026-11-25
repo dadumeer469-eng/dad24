@@ -116,6 +116,10 @@ export interface Order {
   riderTip?: number;
   isScheduled?: boolean;
   scheduledTime?: string;
+  deliverySpeed?: "saver" | "standard" | "priority";
+  leaveAtDoor?: boolean;
+  messageUponArrival?: boolean;
+  cutlery?: boolean;
   cancelledBy?: string;
   cancelledAt?: any;
   orderType: "food" | "service" | "grocery";

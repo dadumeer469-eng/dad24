@@ -18,8 +18,13 @@ import {
   increment,
   arrayUnion,
   arrayRemove,
+  writeBatch,
 } from "firebase/firestore";
 import { auth, db, handleFirestoreError, cleanObject } from "./firebase";
+import {
+  OWNER_GROCERY_CATEGORIES,
+  OWNER_GROCERY_PRODUCTS,
+} from "./data/ownerGroceryCatalog";
 import {
   Dish,
   Order,
@@ -395,7 +400,22 @@ export default function App() {
   >("all");
   const prevOrderStatusesRef = useRef<Record<string, string>>({});
   const prevUnreadCountRef = useRef<number>(0);
-  const [cartItems, setCartItems] = useState<OrderItem[]>([]);
+  // Food cart persists in localStorage so a full page reload keeps the cart
+  const [cartItems, setCartItems] = useState<OrderItem[]>(() => {
+    try {
+      const raw =
+        typeof window !== "undefined" ? localStorage.getItem("dadu_cart") : null;
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("dadu_cart", JSON.stringify(cartItems));
+    } catch {}
+  }, [cartItems]);
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [activeTrackingOrder, setActiveTrackingOrder] = useState<Order | null>(
     null,
@@ -490,7 +510,20 @@ export default function App() {
   const [showInstallBubble, setShowInstallBubble] = useState(false);
 
   // Global Location State
-  const [globalCoords, setGlobalCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  // Location persists for 30 minutes so a returning visit never re-prompts:
+  // if location is already on, the prompt/modal goes away instantly.
+  const [globalCoords, setGlobalCoords] = useState<{ latitude: number; longitude: number } | null>(() => {
+    try {
+      const raw = typeof window !== "undefined" ? localStorage.getItem("dadu_coords") : null;
+      if (!raw) return null;
+      const saved = JSON.parse(raw) as { latitude: number; longitude: number; at?: number };
+      if (!saved || typeof saved.latitude !== "number" || typeof saved.longitude !== "number") return null;
+      if (saved.at && Date.now() - saved.at > 30 * 60 * 1000) return null;
+      return { latitude: saved.latitude, longitude: saved.longitude };
+    } catch {
+      return null;
+    }
+  });
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
   const [locationPromptDismissed, setLocationPromptDismissed] = useState(false);
   const [locationRequiredForOrder, setLocationRequiredForOrder] = useState(false);
@@ -552,6 +585,17 @@ export default function App() {
 
   const nativeLocationRequestedRef = useRef(false);
 
+  // Save coords to state + localStorage (30-min freshness) in one place
+  const saveCoords = (coords: { latitude: number; longitude: number }) => {
+    setGlobalCoords(coords);
+    try {
+      localStorage.setItem(
+        "dadu_coords",
+        JSON.stringify({ ...coords, at: Date.now() }),
+      );
+    } catch {}
+  };
+
   // FIRST-VISIT LOCATION: Trigger browser's NATIVE geolocation dialog directly first.
   // Only if the user denies or geolocation fails/unavailable, show the Urdu "Apni Location On Karein" prompt.
   useEffect(() => {
@@ -569,7 +613,7 @@ export default function App() {
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setGlobalCoords({
+        saveCoords({
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
         });
@@ -582,33 +626,57 @@ export default function App() {
           setShowLocationPrompt(true);
         }
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      // Fast resolve: accept a cached fix up to 60s old, 5s max wait
+      { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
     );
   }, [showSplash, globalCoords, manualAddress, locationPromptDismissed]);
 
-  const requestLocation = () => {
+  const requestLocation = async () => {
     if (!navigator.geolocation) {
       setShowLocationPrompt(true);
       return;
     }
+    // If the browser already blocked location, getCurrentPosition fails silently
+    // without showing any prompt — check permission first so the tap does something useful.
+    try {
+      const perm = await (navigator as any).permissions?.query({ name: "geolocation" });
+      if (perm?.state === "denied") {
+        setShowLocationPrompt(true);
+        setToastNotification({
+          title: "Location Blocked",
+          message:
+            "Browser ki settings mein is site ke liye Location Allow karein, phir dobara koshish karein.",
+        });
+        // Useless messages must not linger: clear after 2 seconds
+        setTimeout(() => setToastNotification(null), 2000);
+        return;
+      }
+    } catch {}
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setGlobalCoords({
+        saveCoords({
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
         });
         setShowLocationPrompt(false);
         setLocationRequiredForOrder(false);
-        setToastNotification({
-          title: "Location Enabled",
-          message: "GPS location captured for accurate delivery in Dadu.",
-        });
+        // No success toast — the modal closing is the feedback.
       },
-      () => {
+      (err) => {
         // Keep modal open so user sees exact Urdu message and can retry or use manual Dadu address fallback
         setShowLocationPrompt(true);
+        if (err && (err as GeolocationPositionError).code === 1) {
+          setToastNotification({
+            title: "Location Blocked",
+            message:
+              "Browser ki settings mein is site ke liye Location Allow karein, phir dobara koshish karein.",
+          });
+          // Useless messages must not linger: clear after 2 seconds
+          setTimeout(() => setToastNotification(null), 2000);
+        }
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      // Fast resolve: accept a cached fix up to 60s old, 5s max wait
+      { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
     );
   };
 
@@ -968,6 +1036,50 @@ export default function App() {
           setIsLoadingDishes(false);
           setCachedData("dadu_cached_dishes", list);
           preloadImages(list.slice(0, 20).map((d) => d.imageUrl));
+          // One-time menu data corrections (owner-approved): remove implausible
+          // luxury items, fix the Biryani/Sada Roti descriptions, move steaks
+          // out of the Tea & Chai category. Runs once per page load; after the
+          // docs are fixed the checks below become no-ops.
+          if (!menuFixAttemptedRef.current) {
+            menuFixAttemptedRef.current = true;
+            const LUXURY_NAMES = [
+              "belgian mousse dome",
+              "san pellegrino",
+              "wagyu",
+              "classic lotus biscoff cheesecake",
+              "molten lava cake",
+            ];
+            snapshot.forEach((d) => {
+              const data = d.data() as Dish;
+              const name = String(data.name || "").toLowerCase();
+              const desc = String(data.description || "");
+              if (LUXURY_NAMES.some((n) => name.includes(n))) {
+                deleteDoc(doc(db, "menu", d.id)).catch(() => {});
+                return;
+              }
+              const updates: Record<string, string> = {};
+              if (
+                name.includes("biryani") &&
+                /yogurt dip/i.test(desc)
+              ) {
+                updates.description =
+                  "Fragrant basmati rice layered with spiced chicken, saffron and crispy fried onions. Served hot with fresh salad and raita.";
+              }
+              if (name.includes("sada roti")) {
+                updates.description =
+                  "Soft whole-wheat flatbread baked fresh on the tawa. Served hot with your salan.";
+              }
+              if (
+                String(data.category || "").toLowerCase().includes("tea") &&
+                /steak/i.test(name + " " + desc)
+              ) {
+                updates.category = "Steaks & Grill";
+              }
+              if (Object.keys(updates).length > 0) {
+                updateDoc(doc(db, "menu", d.id), updates).catch(() => {});
+              }
+            });
+          }
         }
       },
       (err) => {
@@ -1167,6 +1279,14 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
+  // One-time client-side seed guards for the owner grocery catalog
+  // (100 items + 12 categories with branded photos in public/images/grocery/).
+  // Firestore rules allow client-side seeding; the guard makes it idempotent.
+  const grocerySeedAttemptedRef = useRef(false);
+  const groceryCategorySeedAttemptedRef = useRef(false);
+  // One-time menu data corrections (wrong descriptions, luxury items, miscategorised steaks)
+  const menuFixAttemptedRef = useRef(false);
+
   // 3b. Real-time Grocery Categories Listening
   useEffect(() => {
     console.log("Trace: Initializing GroceryCategories collection listener...");
@@ -1185,6 +1305,25 @@ export default function App() {
         setGroceryCategories(list);
         setCachedData("dadu_cached_grocery_categories", list);
         setIsLoadingGrocery(false);
+        // Seed the 12 owner categories once if any are missing from Firestore.
+        if (!groceryCategorySeedAttemptedRef.current) {
+          groceryCategorySeedAttemptedRef.current = true;
+          const existingIds = new Set(list.map((c) => c.id));
+          const missing = OWNER_GROCERY_CATEGORIES.filter(
+            (c) => !existingIds.has(c.id),
+          );
+          if (missing.length > 0) {
+            const batch = writeBatch(db);
+            missing.forEach((c) =>
+              batch.set(doc(db, "groceryCategories", c.id), { ...c }),
+            );
+            batch
+              .commit()
+              .catch((e) =>
+                console.warn("Grocery categories seed failed:", e),
+              );
+          }
+        }
       },
       (err) => {
         console.warn("Grocery categories notice:", handleFirestoreError(err));
@@ -1212,6 +1351,25 @@ export default function App() {
         setCachedData("dadu_cached_grocery_products", list);
         setIsLoadingGrocery(false);
         preloadImages(list.slice(0, 20).map((p) => p.imageUrl));
+        // Seed the 100 owner grocery items once if any are missing from Firestore.
+        if (!grocerySeedAttemptedRef.current) {
+          grocerySeedAttemptedRef.current = true;
+          const existingIds = new Set(list.map((p) => p.id));
+          const missing = OWNER_GROCERY_PRODUCTS.filter(
+            (p) => !existingIds.has(p.id),
+          );
+          if (missing.length > 0) {
+            const batch = writeBatch(db);
+            missing.forEach((p) =>
+              batch.set(doc(db, "groceryProducts", p.id), { ...p }),
+            );
+            batch
+              .commit()
+              .catch((e) =>
+                console.warn("Grocery products seed failed:", e),
+              );
+          }
+        }
       },
       (err) => {
         console.warn("Grocery products notice:", handleFirestoreError(err));
@@ -2290,6 +2448,10 @@ export default function App() {
     riderTip?: number;
     isScheduled?: boolean;
     scheduledTime?: string;
+    deliverySpeed?: "saver" | "standard" | "priority";
+    leaveAtDoor?: boolean;
+    messageUponArrival?: boolean;
+    cutlery?: boolean;
   }) => {
     if (currentUser?.status === 'locked' || currentUser?.status === 'blocked') {
       setIsVerificationModalOpen(true);
@@ -2348,7 +2510,19 @@ export default function App() {
       details.orderType === "food"
         ? calculateDeliveryFee(itemsTotal, parsedDeliveryFee, deliverySettings)
         : { fee: 0, isFree: true, isSmallOrderDoubled: false, reason: "Service booking" };
-    const finalFee = isRiderRangeExceeded ? feeCalc.fee * 2 : feeCalc.fee;
+    // Delivery speed adjustment (matches CartDrawer display): Saver -Rs 20, Priority +Rs 30
+    const speedFeeAdjustment =
+      details.orderType === "food"
+        ? details.deliverySpeed === "saver"
+          ? -20
+          : details.deliverySpeed === "priority"
+            ? 30
+            : 0
+        : 0;
+    const finalFee = Math.max(
+      0,
+      (isRiderRangeExceeded ? feeCalc.fee * 2 : feeCalc.fee) + speedFeeAdjustment,
+    );
     const riderTip = Math.max(0, Number(details.riderTip || 0));
 
     let finalGrandTotal = itemsTotal + finalFee + riderTip;
@@ -2393,6 +2567,10 @@ export default function App() {
       riderTip: riderTip > 0 ? riderTip : undefined,
       isScheduled: details.isScheduled || undefined,
       scheduledTime: details.isScheduled ? details.scheduledTime : undefined,
+      deliverySpeed: details.deliverySpeed || undefined,
+      leaveAtDoor: details.leaveAtDoor || undefined,
+      messageUponArrival: details.messageUponArrival || undefined,
+      cutlery: details.cutlery || undefined,
       grandTotal: finalGrandTotal,
       status: isEasypaisa
         ? "payment_verification_pending"
@@ -4183,9 +4361,20 @@ export default function App() {
                   transition={{ duration: 0.2, ease: "easeOut" }}
                 >
               <>
-                {/* Foodpanda 4 Service Tiles Grid (2x2 Mobile / 4-col Desktop) */}
+                {/* Foodpanda 4 Service Tiles Grid (2x2 Mobile / 4-col Desktop) — sits on a slim professional banner */}
                 <section className="max-w-7xl mx-auto px-3.5 sm:px-4 pt-3.5 pb-1">
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+                  <div className="rounded-3xl bg-gradient-to-r from-[#D70F64] via-[#E21B70] to-[#B80C54] p-2.5 sm:p-3 shadow-sm relative overflow-hidden">
+                    <div className="absolute -right-6 -top-10 w-28 h-28 rounded-full bg-white/10 pointer-events-none" />
+                    <div className="absolute -left-4 -bottom-12 w-24 h-24 rounded-full bg-white/10 pointer-events-none" />
+                    <div className="relative flex items-center justify-between gap-2 px-1.5 pb-2 pt-0.5">
+                      <span className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-white">
+                        Dadu Food • Fast Delivery
+                      </span>
+                      <span className="text-[11px] font-bold text-white/90 whitespace-nowrap">
+                        25–35 min • COD &amp; Easypaisa
+                      </span>
+                    </div>
+                    <div className="relative grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
                     <button
                       type="button"
                       onClick={() => {
@@ -4267,6 +4456,7 @@ export default function App() {
                         💬
                       </span>
                     </a>
+                    </div>
                   </div>
                 </section>
 
