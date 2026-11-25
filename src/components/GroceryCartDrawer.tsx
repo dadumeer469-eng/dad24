@@ -1104,6 +1104,8 @@ export default function GroceryCartDrawer({
                     receiptUrl={paymentReceiptUrl}
                     onReceiptChange={setPaymentReceiptUrl}
                     amount={grandTotal}
+                    accountTitle={systemSettings?.easypaisaTitle || "Ghulam Murtaza"}
+                    accountNumber={systemSettings?.easypaisaNumber || "03277004471"}
                   />
                 )}
               </div>

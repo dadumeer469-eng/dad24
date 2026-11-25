@@ -11,13 +11,21 @@ interface EasypaisaPaymentBoxProps {
   receiptUrl: string | null;
   onReceiptChange: (dataUrl: string | null) => void;
   amount: number;
+  accountTitle?: string;
+  accountNumber?: string;
 }
 
 export default function EasypaisaPaymentBox({
   receiptUrl,
   onReceiptChange,
   amount,
+  accountTitle,
+  accountNumber,
 }: EasypaisaPaymentBoxProps) {
+  const account = {
+    title: accountTitle || EASYPAISA_ACCOUNT.title,
+    number: accountNumber || EASYPAISA_ACCOUNT.number,
+  };
   const [copied, setCopied] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -26,10 +34,10 @@ export default function EasypaisaPaymentBox({
   const handleCopyNumber = async () => {
     try {
       if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(EASYPAISA_ACCOUNT.number);
+        await navigator.clipboard.writeText(account.number);
       } else {
         const ta = document.createElement("textarea");
-        ta.value = EASYPAISA_ACCOUNT.number;
+        ta.value = account.number;
         ta.style.position = "fixed";
         ta.style.opacity = "0";
         document.body.appendChild(ta);
@@ -85,13 +93,13 @@ export default function EasypaisaPaymentBox({
             Account Title
           </span>
           <span className="block text-xs font-extrabold text-white truncate">
-            {EASYPAISA_ACCOUNT.title}
+            {account.title}
           </span>
           <span className="block text-[10px] uppercase tracking-wider font-bold text-zinc-400 mt-1.5">
             Easypaisa Number
           </span>
           <span className="block text-sm font-black font-mono tracking-wider text-emerald-400">
-            {EASYPAISA_ACCOUNT.number}
+            {account.number}
           </span>
         </div>
 

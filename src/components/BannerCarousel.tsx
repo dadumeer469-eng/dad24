@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ArrowRight, Clock, MessageCircle, Truck, ShoppingBasket, Sparkles } from "lucide-react";
+import { ArrowRight, Clock, MessageCircle, Truck, ShoppingBasket, ShoppingCart, Sparkles } from "lucide-react";
 import heroFeastImg from "../assets/images/dadu_food_hero_feast_1795614443664.jpg";
 
 interface BannerCarouselProps {
@@ -7,11 +7,19 @@ interface BannerCarouselProps {
   onBannerClick?: (link: string) => void;
   deliveryFee?: number;
   onOpenGrocery?: () => void;
+  cartTotal?: number;
+  cartCount?: number;
+  onOpenCart?: () => void;
+  freeDeliveryAbove?: number;
 }
 
 export default function BannerCarousel({
   deliveryFee = 50,
   onOpenGrocery,
+  cartTotal = 0,
+  cartCount = 0,
+  onOpenCart,
+  freeDeliveryAbove = 1000,
 }: BannerCarouselProps) {
   const [activeSlide, setActiveSlide] = useState(0);
 
@@ -82,10 +90,9 @@ export default function BannerCarousel({
 
         <div className="relative z-10 w-full max-w-2xl px-5 py-5 sm:px-8 sm:py-8 md:px-10 space-y-3 sm:space-y-4">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-semibold text-white/90">
-            <span className="inline-flex items-center gap-1.5 text-[#FF4D94] font-bold uppercase tracking-wider text-[11px]">
+            <span className="inline-flex items-center gap-1.5 bg-[#D70F64] text-white font-black uppercase tracking-wider text-[11px] px-2.5 py-1 rounded-full shadow-sm">
               Dadu City Delivery
             </span>
-            <span className="text-white/40" aria-hidden="true">·</span>
             <span className="inline-flex items-center gap-1 tabular-nums">
               <Clock className="w-3.5 h-3.5 text-[#FF4D94]" />
               20–35 min
@@ -93,12 +100,17 @@ export default function BannerCarousel({
             <span className="text-white/40" aria-hidden="true">·</span>
             <span className="inline-flex items-center gap-1 tabular-nums">
               <Truck className="w-3.5 h-3.5 text-[#FF4D94]" />
-              <span>{`Rs. ${deliveryFee} delivery fee · Free Rs. 1,000+`}</span>
+              <span>{`Rs. ${deliveryFee} delivery fee · Free Rs. ${freeDeliveryAbove.toLocaleString()}+`}</span>
             </span>
           </div>
 
           <h1 className="text-2xl sm:text-4xl md:text-[40px] font-extrabold text-white tracking-tight leading-[1.12]">
-            Fresh, Hot Food Delivered Fast in Dadu
+            Fresh, Hot Food Delivered{" "}
+            <span className="relative inline-block text-[#FFD500]">
+              Fast
+              <span className="absolute left-0 -bottom-0.5 h-[4px] w-full bg-[#FFD500] rounded-full -rotate-1" />
+            </span>{" "}
+            in Dadu
           </h1>
 
           <p className="speakable-summary text-xs sm:text-sm md:text-base text-zinc-200 max-w-lg leading-relaxed">
@@ -106,24 +118,50 @@ export default function BannerCarousel({
           </p>
 
           <div className="flex flex-wrap items-center gap-2.5 pt-0.5">
-            <button
-              type="button"
-              onClick={handleBrowseMenu}
-              className="min-h-[44px] px-5 py-2.5 rounded-xl bg-[#D70F64] hover:bg-[#B80C54] text-white text-sm font-bold flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-[0.98] cursor-pointer"
-            >
-              <span>Order Food Now</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
+            {cartCount > 0 ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => onOpenCart?.()}
+                  className="min-h-[48px] px-5 py-2.5 rounded-full bg-[#D70F64] hover:bg-[#B80C54] text-white text-sm font-black flex items-center justify-center gap-2.5 shadow-md transition-transform active:scale-[0.98] cursor-pointer"
+                >
+                  <ShoppingCart className="w-5 h-5" />
+                  <span className="text-left leading-tight">
+                    <span className="block text-[9px] font-bold uppercase tracking-wider text-white/80">Cart Total</span>
+                    <span className="block font-mono tabular-nums">Rs. {cartTotal.toLocaleString()}</span>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onOpenCart?.()}
+                  className="min-h-[48px] px-6 py-2.5 rounded-full bg-[#D70F64] hover:bg-[#B80C54] text-white text-sm font-black flex items-center justify-center gap-2 shadow-md transition-transform active:scale-[0.98] cursor-pointer"
+                >
+                  <span>VIEW CART</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={handleBrowseMenu}
+                  className="min-h-[44px] px-5 py-2.5 rounded-xl bg-[#D70F64] hover:bg-[#B80C54] text-white text-sm font-bold flex items-center justify-center gap-2 shadow-sm transition-transform active:scale-[0.98] cursor-pointer"
+                >
+                  <span>Order Food Now</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
 
-            <a
-              href="https://wa.me/923277004471?text=Assalam-o-Alaikum%20Dadu%20Food!%20I%20would%20like%20to%20order%3A%20"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="min-h-[44px] px-4 py-2.5 rounded-xl bg-white/12 hover:bg-white/20 text-white border border-white/25 backdrop-blur-sm text-sm font-bold flex items-center justify-center gap-2 transition-colors"
-            >
-              <MessageCircle className="w-4 h-4 text-[#4ADE80]" />
-              <span>WhatsApp Order</span>
-            </a>
+                <a
+                  href="https://wa.me/923277004471?text=Assalam-o-Alaikum%20Dadu%20Food!%20I%20would%20like%20to%20order%3A%20"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="min-h-[44px] px-4 py-2.5 rounded-xl bg-white/12 hover:bg-white/20 text-white border border-white/25 backdrop-blur-sm text-sm font-bold flex items-center justify-center gap-2 transition-colors"
+                >
+                  <MessageCircle className="w-4 h-4 text-[#4ADE80]" />
+                  <span>WhatsApp Order</span>
+                </a>
+              </>
+            )}
           </div>
         </div>
       </div>

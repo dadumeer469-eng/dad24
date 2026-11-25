@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { UserProfile, AppNotification, Order } from "../types";
-import { Search, ShoppingBag, User, LogOut, Bell, ShieldAlert, BadgeCheck, History, Heart, RotateCcw, Sun, Moon, X, Settings, MapPin, ChevronDown } from "lucide-react";
+import { Search, ShoppingBag, User, LogOut, Bell, ShieldAlert, BadgeCheck, History, Heart, RotateCcw, Sun, Moon, X, Settings, MapPin, ChevronDown, Mic } from "lucide-react";
 import daduLogo from "../assets/images/dadu_food_logo_new_1782333467889.jpg";
 import { formatOrderId } from "../utils/catalogNormalizer";
 
@@ -79,6 +79,63 @@ export default function FoodpandaHeader({
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState<AppNotification | null>(null);
+  const [isListening, setIsListening] = useState(false);
+
+  // Voice search (Web Speech API) — speaks the dish/shop name into the search box
+  const voiceSupported =
+    typeof window !== "undefined" &&
+    !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+  const startVoiceSearch = () => {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) return;
+    try {
+      const rec = new SR();
+      rec.lang = "en-US";
+      rec.interimResults = false;
+      rec.maxAlternatives = 1;
+      setIsListening(true);
+      rec.onresult = (e: any) => {
+        const text = e.results?.[0]?.[0]?.transcript;
+        if (text) setSearchQuery(text);
+      };
+      rec.onend = () => setIsListening(false);
+      rec.onerror = () => setIsListening(false);
+      rec.start();
+    } catch {
+      setIsListening(false);
+    }
+  };
+  const switchModule = (mode: "food" | "grocery") => {
+    if (setActiveModule) setActiveModule(mode);
+    if (mode === "food" && onResetFoodHome) onResetFoodHome();
+    if (mode === "grocery" && onResetGroceryHome) onResetGroceryHome();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Food / Groceries segmented switch (Foodpanda-style, with grocery basket badge)
+  const moduleSwitch = (
+    <div className="bg-white rounded-full p-1 flex shadow-sm">
+      <button
+        type="button"
+        onClick={() => switchModule("food")}
+        className={`flex-1 min-h-[40px] rounded-full text-[13px] sm:text-sm font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${activeModule === "food" ? "bg-gradient-to-r from-[#D70F64] to-[#E21B70] text-white shadow-sm" : "text-[#14141A]"}`}
+      >
+        🍔 FOOD DELIVERY
+      </button>
+      <button
+        type="button"
+        onClick={() => switchModule("grocery")}
+        className={`flex-1 min-h-[40px] rounded-full text-[13px] sm:text-sm font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${activeModule === "grocery" ? "bg-gradient-to-r from-[#D70F64] to-[#E21B70] text-white shadow-sm" : "text-[#14141A]"}`}
+      >
+        🛒 GROCERIES
+        {groceryCartCount > 0 && (
+          <span className={`text-[10px] font-black min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center tabular-nums ${activeModule === "grocery" ? "bg-white text-[#D70F64]" : "bg-[#D70F64] text-white"}`}>
+            {groceryCartCount}
+          </span>
+        )}
+      </button>
+    </div>
+  );
 
   const unreadNotifications = notifications.filter(n => !n.read);
   const resolvedLocationText =
@@ -155,6 +212,17 @@ export default function FoodpandaHeader({
               }
               className="w-full min-h-[42px] pl-10 pr-10 py-2 bg-white text-[#14141A] placeholder-[#6E6E80] rounded-full text-sm outline-none shadow-xs focus:ring-2 focus:ring-white/60 transition-all font-medium"
             />
+            {voiceSupported && (
+              <button
+                type="button"
+                onClick={startVoiceSearch}
+                aria-label="Voice search"
+                title="Voice search"
+                className={`absolute ${searchQuery ? "right-10" : "right-2"} top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full transition cursor-pointer ${isListening ? "bg-[#D70F64] text-white animate-pulse" : "text-[#D70F64] hover:bg-pink-50"}`}
+              >
+                <Mic className="w-4 h-4" />
+              </button>
+            )}
             {searchQuery && (
               <button
                 type="button"
@@ -610,6 +678,17 @@ export default function FoodpandaHeader({
             }
             className="w-full min-h-[44px] pl-10 pr-10 py-2.5 bg-white text-[#14141A] placeholder-[#6E6E80] rounded-full text-sm outline-none shadow-xs focus:ring-2 focus:ring-white/60 transition-all font-medium"
           />
+          {voiceSupported && (
+            <button
+              type="button"
+              onClick={startVoiceSearch}
+              aria-label="Voice search"
+              title="Voice search"
+              className={`absolute ${searchQuery ? "right-11" : "right-1.5"} top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full transition cursor-pointer ${isListening ? "bg-[#D70F64] text-white animate-pulse" : "text-[#D70F64] hover:bg-pink-50"}`}
+            >
+              <Mic className="w-4 h-4" />
+            </button>
+          )}
           {searchQuery && (
             <button
               type="button"
@@ -620,6 +699,15 @@ export default function FoodpandaHeader({
               <X className="w-4 h-4" />
             </button>
           )}
+        </div>
+        {/* Food / Groceries segmented switch */}
+        <div className="mt-2.5">{moduleSwitch}</div>
+      </div>
+
+      {/* Desktop Food / Groceries segmented switch */}
+      <div className="hidden sm:block bg-[#D70F64] px-4 pb-3">
+        <div className="max-w-7xl mx-auto">
+          <div className="mx-auto max-w-lg">{moduleSwitch}</div>
         </div>
       </div>
 

@@ -247,12 +247,14 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
   // Removed live rider GPS pinpoint tracking to save data usage and database writes.
   // The system now only relies on static user delivery coordinates.
 
-  // 1. Subscribe to Available Orders (unaccepted status === "pending" or "placed" or "confirmed" for food deliveries)
+  // 1. Subscribe to Available Orders — ONLY admin-approved orders (status === "confirmed").
+  // Unapproved orders ("placed" COD food, "pending" COD grocery, "payment_verification_pending" Easypaisa)
+  // must NEVER reach a rider until the admin approves/verifies them in the Admin Panel.
   useEffect(() => {
     // Only food/grocery deliveries are routed to standard riders
     const q = query(
-      collection(db, "orders"), 
-      where("status", "in", ["pending", "placed", "confirmed"])
+      collection(db, "orders"),
+      where("status", "==", "confirmed")
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {

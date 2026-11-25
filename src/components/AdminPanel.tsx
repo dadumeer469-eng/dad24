@@ -684,6 +684,47 @@ export default function AdminPanel({
     deliverySettings?.baseLocationCoords?.lng || 67.7744, // Dadu city center approx
   );
 
+  // Store Controls — every user-panel option mirrored here (Admin Panel → Store Controls)
+  const [easypaisaTitleInput, setEasypaisaTitleInput] = useState(
+    deliverySettings?.easypaisaTitle || "Ghulam Murtaza",
+  );
+  const [easypaisaNumberInput, setEasypaisaNumberInput] = useState(
+    deliverySettings?.easypaisaNumber || "03277004471",
+  );
+  const [whatsappNumberInput, setWhatsappNumberInput] = useState(
+    deliverySettings?.whatsappNumber || "923277004471",
+  );
+  const [tipOptionsInput, setTipOptionsInput] = useState(
+    (deliverySettings?.tipOptions || [0, 50, 100, 200, 300]).join(","),
+  );
+  const [saverDiscountInput, setSaverDiscountInput] = useState(
+    deliverySettings?.saverDiscount ?? 20,
+  );
+  const [priorityFeeInput, setPriorityFeeInput] = useState(
+    deliverySettings?.priorityFee ?? 30,
+  );
+  const [freeDeliveryAboveInput, setFreeDeliveryAboveInput] = useState(
+    deliverySettings?.freeDeliveryAboveAmount ?? 1000,
+  );
+  const [doubleFeeBelowInput, setDoubleFeeBelowInput] = useState(
+    deliverySettings?.doubleFeeBelowAmount ?? 500,
+  );
+  const [saverEnabledInput, setSaverEnabledInput] = useState(
+    deliverySettings?.saverEnabled !== false,
+  );
+  const [priorityEnabledInput, setPriorityEnabledInput] = useState(
+    deliverySettings?.priorityEnabled !== false,
+  );
+  const [cutleryEnabledInput, setCutleryEnabledInput] = useState(
+    deliverySettings?.cutleryEnabled !== false,
+  );
+  const [leaveAtDoorEnabledInput, setLeaveAtDoorEnabledInput] = useState(
+    deliverySettings?.leaveAtDoorEnabled !== false,
+  );
+  const [messageOnArrivalEnabledInput, setMessageOnArrivalEnabledInput] = useState(
+    deliverySettings?.messageOnArrivalEnabled !== false,
+  );
+
   // Maintenance Mode States
   const [isMaintenanceMode, setIsMaintenanceMode] = useState(
     deliverySettings?.isMaintenanceMode || false,
@@ -798,6 +839,21 @@ export default function AdminPanel({
         setBaseLatInput(deliverySettings.baseLocationCoords.lat);
         setBaseLngInput(deliverySettings.baseLocationCoords.lng);
       }
+
+      // Sync Store Controls
+      setEasypaisaTitleInput(deliverySettings.easypaisaTitle || "Ghulam Murtaza");
+      setEasypaisaNumberInput(deliverySettings.easypaisaNumber || "03277004471");
+      setWhatsappNumberInput(deliverySettings.whatsappNumber || "923277004471");
+      setTipOptionsInput((deliverySettings.tipOptions || [0, 50, 100, 200, 300]).join(","));
+      setSaverDiscountInput(deliverySettings.saverDiscount ?? 20);
+      setPriorityFeeInput(deliverySettings.priorityFee ?? 30);
+      setFreeDeliveryAboveInput(deliverySettings.freeDeliveryAboveAmount ?? 1000);
+      setDoubleFeeBelowInput(deliverySettings.doubleFeeBelowAmount ?? 500);
+      setSaverEnabledInput(deliverySettings.saverEnabled !== false);
+      setPriorityEnabledInput(deliverySettings.priorityEnabled !== false);
+      setCutleryEnabledInput(deliverySettings.cutleryEnabled !== false);
+      setLeaveAtDoorEnabledInput(deliverySettings.leaveAtDoorEnabled !== false);
+      setMessageOnArrivalEnabledInput(deliverySettings.messageOnArrivalEnabled !== false);
 
       // Initialize loyalty parameters
       setLoyaltyEnabled(deliverySettings.loyaltyEnabled !== false);
@@ -1356,7 +1412,11 @@ export default function AdminPanel({
   };
 
   // Count unapproved pending orders and locked new users
-  const unapprovedOrdersCount = orders.filter((o) => o.status === "pending").length;
+  // Orders waiting for admin approval: grocery COD ("pending"), food COD ("placed") and
+  // Easypaisa orders awaiting receipt verification ("payment_verification_pending").
+  const unapprovedOrdersCount = orders.filter((o) =>
+    ["pending", "placed", "payment_verification_pending"].includes(o.status)
+  ).length;
   const lockedUsersCount = allUsersList.filter((u) => u.status === "locked").length;
 
   // Loop alarm sound when unapproved new orders or locked new users exist
@@ -2239,6 +2299,20 @@ export default function AdminPanel({
           lat: Number(baseLatInput),
           lng: Number(baseLngInput),
         },
+        // Store Controls — checkout & payment options shown in the user panel
+        easypaisaTitle: easypaisaTitleInput.trim() || "Ghulam Murtaza",
+        easypaisaNumber: easypaisaNumberInput.trim() || "03277004471",
+        whatsappNumber: whatsappNumberInput.trim().replace(/[^0-9]/g, "") || "923277004471",
+        tipOptions: tipOptionsInput.split(",").map((v) => Number(v.trim())).filter((n) => !isNaN(n) && n >= 0),
+        saverDiscount: Number(saverDiscountInput) || 0,
+        priorityFee: Number(priorityFeeInput) || 0,
+        freeDeliveryAboveAmount: Number(freeDeliveryAboveInput) || 1000,
+        doubleFeeBelowAmount: Number(doubleFeeBelowInput) || 0,
+        saverEnabled: saverEnabledInput,
+        priorityEnabled: priorityEnabledInput,
+        cutleryEnabled: cutleryEnabledInput,
+        leaveAtDoorEnabled: leaveAtDoorEnabledInput,
+        messageOnArrivalEnabled: messageOnArrivalEnabledInput,
         // Keep legacy for safety
         restaurantStatus: deliverySettings?.restaurantStatus || {
           isTemporarilyUnavailable: false,
@@ -7101,6 +7175,69 @@ export default function AdminPanel({
                         />
                       </div>
                     </div>
+                    {/* Store Controls — every user-panel checkout/payment option */}
+                    <div className="pt-3 mt-3 border-t border-slate-100 space-y-3">
+                      <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                        🏪 Store Controls — Checkout & Payment (user panel options)
+                      </span>
+                      <p className="text-[10.5px] text-slate-500 font-semibold leading-relaxed">
+                        Jo option customer ko cart/checkout mein dikhti hai, wo yahan se control hoti hai. Save karne par user panel turant update ho jata hai.
+                      </p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Easypaisa Account Title</span>
+                          <input type="text" value={easypaisaTitleInput} onChange={(e) => setEasypaisaTitleInput(e.target.value)} placeholder="Ghulam Murtaza" className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none text-slate-900 font-extrabold focus:border-[#E21B70] transition text-xs" />
+                        </div>
+                        <div>
+                          <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Easypaisa Number</span>
+                          <input type="text" value={easypaisaNumberInput} onChange={(e) => setEasypaisaNumberInput(e.target.value)} placeholder="03277004471" className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none text-slate-900 font-extrabold focus:border-[#E21B70] transition text-xs" />
+                        </div>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">WhatsApp / Support Number (country code ke saath, + ke baghair)</span>
+                        <input type="text" value={whatsappNumberInput} onChange={(e) => setWhatsappNumberInput(e.target.value)} placeholder="923277004471" className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none text-slate-900 font-extrabold focus:border-[#E21B70] transition text-xs" />
+                      </div>
+                      <div>
+                        <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Rider Tip Options (comma se alag, Rs.)</span>
+                        <input type="text" value={tipOptionsInput} onChange={(e) => setTipOptionsInput(e.target.value)} placeholder="0,50,100,200,300" className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none text-slate-900 font-extrabold focus:border-[#E21B70] transition text-xs" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Saver Discount (Rs. off)</span>
+                          <input type="number" min="0" value={saverDiscountInput} onChange={(e) => setSaverDiscountInput(Number(e.target.value))} className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none text-slate-900 font-extrabold focus:border-[#E21B70] transition text-xs" />
+                        </div>
+                        <div>
+                          <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Priority Extra Fee (Rs.)</span>
+                          <input type="number" min="0" value={priorityFeeInput} onChange={(e) => setPriorityFeeInput(Number(e.target.value))} className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none text-slate-900 font-extrabold focus:border-[#E21B70] transition text-xs" />
+                        </div>
+                        <div>
+                          <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Free Delivery Above (Rs.)</span>
+                          <input type="number" min="0" value={freeDeliveryAboveInput} onChange={(e) => setFreeDeliveryAboveInput(Number(e.target.value))} className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none text-slate-900 font-extrabold focus:border-[#E21B70] transition text-xs" />
+                        </div>
+                        <div>
+                          <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Double Fee Below (Rs., 0 = off)</span>
+                          <input type="number" min="0" value={doubleFeeBelowInput} onChange={(e) => setDoubleFeeBelowInput(Number(e.target.value))} className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none text-slate-900 font-extrabold focus:border-[#E21B70] transition text-xs" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        {([
+                          { label: "Saver speed dikhao", value: saverEnabledInput, set: setSaverEnabledInput },
+                          { label: "Priority speed dikhao", value: priorityEnabledInput, set: setPriorityEnabledInput },
+                          { label: "Cutlery option dikhao", value: cutleryEnabledInput, set: setCutleryEnabledInput },
+                          { label: "Leave at door dikhao", value: leaveAtDoorEnabledInput, set: setLeaveAtDoorEnabledInput },
+                          { label: "Message on arrival dikhao", value: messageOnArrivalEnabledInput, set: setMessageOnArrivalEnabledInput },
+                        ]).map((t) => (
+                          <label key={t.label} className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2.5 cursor-pointer text-xs font-bold text-slate-700">
+                            <input type="checkbox" checked={t.value} onChange={(e) => t.set(e.target.checked)} className="accent-[#E21B70] w-4 h-4" />
+                            {t.label}
+                          </label>
+                        ))}
+                      </div>
+                      <button type="button" onClick={handleSaveDeliveryConfig} className="bg-[#E21B70] text-white font-black px-5 py-3 rounded-xl hover:scale-[1.02] active:scale-95 transition cursor-pointer text-xs uppercase w-full">
+                        Save Store Controls
+                      </button>
+                    </div>
+
                     <div className="pt-2">
                       <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5 flex items-center gap-1">
                         <MapPin className="w-3.5 h-3.5 text-[#E21B70]" />

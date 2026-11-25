@@ -224,13 +224,32 @@ export default function CartDrawer({
   const hasFood = cartItems.some((item) => item.type === "food");
   const hasService = cartItems.some((item) => item.type === "service");
 
-  // Consistent Delivery Fee Policy:
+  // Consistent Delivery Fee Policy (amounts controlled by Admin Panel → Store Controls):
   // - Pure home service: Rs. 0 delivery fee
-  // - Food >= Rs. 1,000: FREE delivery
-  // - Food < Rs. 500: Doubled delivery fee (2x standard)
-  // - Food Rs. 500 - Rs. 999: Standard delivery fee
-  const isFreeFoodDelivery = hasFood && totalFoodItemsPrice >= 1000;
-  const isDoubleFee = hasFood && totalFoodItemsPrice < 500;
+  // - Food >= freeDeliveryAboveAmount: FREE delivery
+  // - Food < doubleFeeBelowAmount: Doubled delivery fee (2x standard, 0 = disabled)
+  // - Otherwise: Standard delivery fee
+  const freeDeliveryAbove = Number(systemSettings?.freeDeliveryAboveAmount ?? 1000);
+  const doubleFeeBelow = Number(systemSettings?.doubleFeeBelowAmount ?? 500);
+  const saverDiscount = Number(systemSettings?.saverDiscount ?? 20);
+  const priorityFee = Number(systemSettings?.priorityFee ?? 30);
+  const tipOptions = (Array.isArray(systemSettings?.tipOptions) && systemSettings.tipOptions.length > 0
+    ? systemSettings.tipOptions
+    : [0, 50, 100, 200, 300]) as number[];
+  const speedOptions = [
+    { id: "saver" as const, label: "Saver", eta: "45–60 min", feeNote: `−Rs. ${saverDiscount}`, enabled: systemSettings?.saverEnabled !== false },
+    { id: "standard" as const, label: "Standard", eta: "25–35 min", feeNote: "Standard", enabled: true },
+    { id: "priority" as const, label: "Priority", eta: "15–25 min", feeNote: `+Rs. ${priorityFee}`, enabled: systemSettings?.priorityEnabled !== false },
+  ].filter((o) => o.enabled);
+  const effectiveSpeed = speedOptions.some((o) => o.id === deliverySpeed) ? deliverySpeed : "standard";
+  const showDeliveryPreferences =
+    systemSettings?.leaveAtDoorEnabled !== false ||
+    systemSettings?.messageOnArrivalEnabled !== false ||
+    systemSettings?.cutleryEnabled !== false;
+  const easypaisaTitle = systemSettings?.easypaisaTitle || "Ghulam Murtaza";
+  const easypaisaNumber = systemSettings?.easypaisaNumber || "03277004471";
+  const isFreeFoodDelivery = hasFood && totalFoodItemsPrice >= freeDeliveryAbove;
+  const isDoubleFee = hasFood && doubleFeeBelow > 0 && totalFoodItemsPrice < doubleFeeBelow;
   const standardFee = deliveryFee > 0 ? deliveryFee : 50;
   const baseDeliveryFee = !hasFood
     ? 0
@@ -239,13 +258,13 @@ export default function CartDrawer({
     : isDoubleFee
     ? standardFee * 2
     : standardFee;
-  // Delivery speed adjustment: Saver -Rs 20, Priority +Rs 30 (Standard unchanged)
+  // Delivery speed adjustment (admin-controlled): Saver -saverDiscount, Priority +priorityFee
   const speedFeeAdjustment =
-    !hasFood || deliverySpeed === "standard"
+    !hasFood || effectiveSpeed === "standard"
       ? 0
-      : deliverySpeed === "saver"
-        ? -20
-        : 30;
+      : effectiveSpeed === "saver"
+        ? -saverDiscount
+        : priorityFee;
   const finalDeliveryFee = Math.max(0, baseDeliveryFee + speedFeeAdjustment);
 
   // Base total before any discounts (items + delivery + optional rider tip)
@@ -493,7 +512,7 @@ export default function CartDrawer({
         riderTip: riderTip > 0 ? riderTip : undefined,
         isScheduled: isScheduled || undefined,
         scheduledTime: isScheduled ? scheduledTime : undefined,
-        deliverySpeed: hasFood ? deliverySpeed : undefined,
+        deliverySpeed: hasFood ? effectiveSpeed : undefined,
         leaveAtDoor: leaveAtDoor || undefined,
         messageUponArrival: messageUponArrival || undefined,
         cutlery: cutlery || undefined,
@@ -974,6 +993,8 @@ export default function CartDrawer({
                       receiptUrl={paymentReceiptUrl}
                       onReceiptChange={setPaymentReceiptUrl}
                       amount={grandTotal}
+                      accountTitle={easypaisaTitle}
+                      accountNumber={easypaisaNumber}
                     />
                   )}
                 </div>
@@ -1029,20 +1050,14 @@ export default function CartDrawer({
                     <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-400 block">
                       Delivery Speed
                     </span>
-                    <div className="grid grid-cols-3 gap-2">
-                      {(
-                        [
-                          { id: "saver", label: "Saver", eta: "45–60 min", feeNote: "−Rs. 20" },
-                          { id: "standard", label: "Standard", eta: "25–35 min", feeNote: "Standard" },
-                          { id: "priority", label: "Priority", eta: "15–25 min", feeNote: "+Rs. 30" },
-                        ] as const
-                      ).map((opt) => (
+                    <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${speedOptions.length}, minmax(0, 1fr))` }}>
+                      {speedOptions.map((opt) => (
                         <button
                           key={opt.id}
                           type="button"
                           onClick={() => setDeliverySpeed(opt.id)}
                           className={`py-2 px-2 rounded-xl text-center border transition cursor-pointer ${
-                            deliverySpeed === opt.id
+                            effectiveSpeed === opt.id
                               ? "bg-[#E21B70] border-[#E21B70] text-white"
                               : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-zinc-600"
                           }`}
@@ -1057,18 +1072,18 @@ export default function CartDrawer({
                 )}
 
                 {/* Delivery Preferences: Leave at door / Message upon arrival / Cutlery */}
-                {hasFood && (
+                {hasFood && showDeliveryPreferences && (
                   <div className="bg-zinc-950 border border-zinc-800 p-3.5 rounded-xl space-y-3">
                     <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-400 block">
                       Delivery Preferences
                     </span>
                     {(
                       [
-                        { key: "leaveAtDoor", label: "Leave at door", desc: "Rider order darwaze par chhor dega", value: leaveAtDoor, set: setLeaveAtDoor },
-                        { key: "messageUponArrival", label: "Message upon arrival", desc: "Pahunchne par rider message karega", value: messageUponArrival, set: setMessageUponArrival },
-                        { key: "cutlery", label: "Cutlery", desc: "Chammach / kaanta saath chahiye", value: cutlery, set: setCutlery },
+                        { key: "leaveAtDoor", label: "Leave at door", desc: "Rider order darwaze par chhor dega", value: leaveAtDoor, set: setLeaveAtDoor, enabled: systemSettings?.leaveAtDoorEnabled !== false },
+                        { key: "messageUponArrival", label: "Message upon arrival", desc: "Pahunchne par rider message karega", value: messageUponArrival, set: setMessageUponArrival, enabled: systemSettings?.messageOnArrivalEnabled !== false },
+                        { key: "cutlery", label: "Cutlery", desc: "Chammach / kaanta saath chahiye", value: cutlery, set: setCutlery, enabled: systemSettings?.cutleryEnabled !== false },
                       ] as const
-                    ).map((pref) => (
+                    ).filter((pref) => pref.enabled).map((pref) => (
                       <button
                         key={pref.key}
                         type="button"
@@ -1102,8 +1117,8 @@ export default function CartDrawer({
                         {riderTip > 0 ? `Rs. ${riderTip}` : "Optional"}
                       </span>
                     </div>
-                    <div className="grid grid-cols-5 gap-1.5">
-                      {[0, 50, 100, 200, 300].map((amt) => (
+                    <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${tipOptions.length}, minmax(0, 1fr))` }}>
+                      {tipOptions.map((amt) => (
                         <button
                           key={amt}
                           type="button"
@@ -1450,7 +1465,7 @@ export default function CartDrawer({
                 <span className="text-zinc-100 font-extrabold">
                   {finalDeliveryFee === 0 ? (
                     <span className="text-emerald-400 font-black">
-                      {isFreeFoodDelivery ? "FREE (Order ≥ Rs. 1,000)" : "FREE (Home Service Booking)"}
+                      {isFreeFoodDelivery ? `FREE (Order ≥ Rs. ${freeDeliveryAbove.toLocaleString()})` : "FREE (Home Service Booking)"}
                     </span>
                   ) : (
                     <span className="font-mono">Rs. {finalDeliveryFee}</span>
