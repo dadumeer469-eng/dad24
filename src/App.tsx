@@ -219,6 +219,19 @@ const preloadImages = (urls: (string | undefined)[]) => {
   });
 };
 
+// Merge the built-in owner catalogue with live/cached data so newly added
+// owner items (e.g. the Medicine category) show immediately, even when
+// Firestore still holds older data or the read fails (quota). Live items win
+// on id conflict (admin edits preserved); owner order is kept.
+function mergeOwnerFirst<T extends { id: string }>(owner: T[], live: T[]): T[] {
+  const byId = new Map<string, T>();
+  owner.forEach((item) => byId.set(item.id, item));
+  live.forEach((item) => {
+    if (item && item.id) byId.set(item.id, item);
+  });
+  return [...byId.values()];
+}
+
 export default function App() {
   useMemoryMonitor("App");
   const [showSplash, setShowSplash] = useState(() => {
@@ -1340,9 +1353,9 @@ export default function App() {
           list.push({ id: doc.id, ...doc.data() } as GroceryCategory);
         });
         list.sort((a, b) => (a.position || 0) - (b.position || 0));
-        // If Firestore returns nothing, show the built-in 12 categories so the
-        // grouped grocery sections render instead of a blank page.
-        const displayCats = list.length > 0 ? list : [...OWNER_GROCERY_CATEGORIES];
+        // Merge owner catalogue in so new categories (e.g. Medicine) show
+        // immediately even if Firestore still holds the older list.
+        const displayCats = mergeOwnerFirst(OWNER_GROCERY_CATEGORIES, list);
         setGroceryCategories(displayCats);
         setCachedData("dadu_cached_grocery_categories", displayCats);
         setIsLoadingGrocery(false);
@@ -1368,10 +1381,10 @@ export default function App() {
       } catch (err) {
         if (cancelled) return;
         console.warn("Grocery categories notice:", handleFirestoreError(err));
-        // Offline fallback: built-in 12 categories so grouped sections render
-        // even when Firestore can't be read (e.g. daily quota exhausted).
+        // Offline fallback: merge the built-in catalogue in so new categories
+        // (e.g. Medicine) still show when Firestore can't be read (quota).
         setGroceryCategories((prev) => {
-          const fallback = prev.length > 0 ? prev : [...OWNER_GROCERY_CATEGORIES];
+          const fallback = mergeOwnerFirst(OWNER_GROCERY_CATEGORIES, prev);
           setCachedData("dadu_cached_grocery_categories", fallback);
           return fallback;
         });
@@ -1405,9 +1418,9 @@ export default function App() {
         snapshot.forEach((doc) => {
           list.push({ id: doc.id, ...doc.data() } as GroceryProduct);
         });
-        // If Firestore returns nothing (empty collection / seed still running),
-        // show the built-in catalog instead of a blank page.
-        const displayList = list.length > 0 ? list : [...OWNER_GROCERY_PRODUCTS];
+        // Merge owner catalogue in so new products (e.g. medicines) show
+        // immediately even if Firestore still holds the older list.
+        const displayList = mergeOwnerFirst(OWNER_GROCERY_PRODUCTS, list);
         setGroceryProducts(displayList);
         setCachedData("dadu_cached_grocery_products", displayList);
         setIsLoadingGrocery(false);
@@ -1434,11 +1447,10 @@ export default function App() {
       } catch (err) {
         if (cancelled) return;
         console.warn("Grocery products notice:", handleFirestoreError(err));
-        // Offline fallback: if Firestore can't be read (e.g. daily read quota
-        // exhausted), show the built-in 100-item catalog so grocery never looks
-        // empty. A successful fetch later replaces this with live data.
+        // Offline fallback: merge the built-in catalogue in so new products
+        // (e.g. medicines) still show when Firestore can't be read (quota).
         setGroceryProducts((prev) => {
-          const fallback = prev.length > 0 ? prev : [...OWNER_GROCERY_PRODUCTS];
+          const fallback = mergeOwnerFirst(OWNER_GROCERY_PRODUCTS, prev);
           setCachedData("dadu_cached_grocery_products", fallback);
           return fallback;
         });
