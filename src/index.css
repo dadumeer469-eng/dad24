@@ -187,6 +187,38 @@
   }
 }
 
+/* Home hero animations — rider bobbing, headline slide-in, tiles staggered fade-up */
+@keyframes float-soft {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -6px, 0);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translate3d(-18px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
 .animate-slide-in {
   animation: slide-in-right 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   will-change: transform, opacity;
@@ -228,6 +260,21 @@
 
 .animate-pulse-subtle {
   animation: pulse-subtle 2.2s ease-in-out infinite;
+}
+
+.animate-float-soft {
+  animation: float-soft 3.2s ease-in-out infinite;
+  will-change: transform;
+}
+
+.animate-fade-up {
+  animation: fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity;
 }
 
 /* Skeleton Shimmer Utility */

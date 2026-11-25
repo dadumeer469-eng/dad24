@@ -65,7 +65,6 @@ import NetworkStatusBanner from "./components/NetworkStatusBanner";
 import { CustomerSettingsModal } from "./components/CustomerSettingsModal";
 import { InfoPagesView } from "./components/InfoPagesView";
 import { HomeFaqAeoSection } from "./components/HomeFaqAeoSection";
-import WhatsAppListOrderCard from "./components/WhatsAppListOrderCard";
 import useLazyBatchLoad from "./hooks/useLazyBatchLoad";
 import daduLogo from "./assets/images/dadu_food_logo_new_1782333467889.jpg";
 import { logMemoryUsage, useMemoryMonitor } from "./utils/memoryLogger";
@@ -4370,18 +4369,18 @@ export default function App() {
               <>
                 {/* Dadu Food hero banner — Foodpanda-style, richer: headline + rider + 4 service tiles */}
                 <section className="max-w-7xl mx-auto px-3.5 sm:px-4 pt-3.5 pb-1">
-                  <div className="rounded-[28px] bg-gradient-to-br from-[#FF2B85] via-[#E21B70] to-[#B80C54] shadow-md relative overflow-hidden">
+                  <div className="rounded-[28px] bg-gradient-to-br from-[#FF2B85] via-[#E21B70] to-[#B80C54] shadow-md relative overflow-hidden animate-fade-in">
                     {/* Headline + rider row */}
                     <div className="relative min-h-[185px] sm:min-h-[220px]">
                       <img
                         src="/images/home/rider-scooter.jpg"
                         alt="Dadu Food rider delivering fast on a pink scooter"
-                        className="absolute right-0 top-0 h-full w-[56%] sm:w-[48%] object-cover object-center"
+                        className="absolute right-0 top-0 h-full w-[56%] sm:w-[48%] object-cover object-center animate-float-soft"
                         loading="eager"
                         decoding="async"
                       />
                       <div className="absolute inset-y-0 right-0 w-[56%] sm:w-[48%] bg-gradient-to-r from-[#E21B70] via-[#E21B70]/25 to-transparent pointer-events-none" aria-hidden="true" />
-                      <div className="relative z-10 px-4 sm:px-6 pt-5 sm:pt-7 pb-4 max-w-[62%] sm:max-w-[58%]">
+                      <div className="relative z-10 px-4 sm:px-6 pt-5 sm:pt-7 pb-4 max-w-[62%] sm:max-w-[58%] animate-slide-in-left">
                         <h2 className="text-[27px] sm:text-4xl font-black italic leading-[1.05] text-white tracking-tight drop-shadow-[0_2px_6px_rgba(0,0,0,0.25)]">
                           DADU FOOD - <span className="text-[#FFD500]">FAST</span>
                           <br />
@@ -4405,7 +4404,7 @@ export default function App() {
                         setActiveCategory("All");
                         document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth" });
                       }}
-                      className="min-h-[108px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2"
+                      className="min-h-[108px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "60ms" }}
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
@@ -4432,7 +4431,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={handleGoToGroceryHome}
-                      className="min-h-[108px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2"
+                      className="min-h-[108px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "120ms" }}
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
@@ -4463,7 +4462,7 @@ export default function App() {
                         setQuickFilter("under_300");
                         document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth" });
                       }}
-                      className="min-h-[108px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2"
+                      className="min-h-[108px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "180ms" }}
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
@@ -4491,7 +4490,7 @@ export default function App() {
                       href={`https://wa.me/${deliverySettings?.whatsappNumber || "923277004471"}?text=Assalam-o-Alaikum%20Dadu%20Food!%20Mera%20WhatsApp%20order%20list%20ye%20hai:`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="min-h-[108px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#25D366]/60 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2"
+                      className="min-h-[108px] text-left p-3 rounded-3xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#25D366]/60 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "240ms" }}
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
@@ -5316,14 +5315,6 @@ export default function App() {
                   </div>
                 </div>
               </main>
-
-              {/* WhatsApp List Ordering Card (Order by typed list on WhatsApp) */}
-              <div className="max-w-7xl mx-auto px-3.5 sm:px-4 pb-2">
-                <WhatsAppListOrderCard
-                  mode="food"
-                  defaultAddress={currentUser?.address || ""}
-                />
-              </div>
 
               <HomeFaqAeoSection language={language} />
             </>
