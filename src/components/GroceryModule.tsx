@@ -19,9 +19,11 @@ interface GroceryModuleProps {
 function GroceryProductImage({
   product,
   categoryName,
+  eager = false,
 }: {
   product: GroceryProduct;
   categoryName: string;
+  eager?: boolean;
 }) {
   const [imgFailed, setImgFailed] = useState(false);
   const visual = GROCERY_CATEGORY_VISUALS[product.categoryId] || {
@@ -70,11 +72,12 @@ function GroceryProductImage({
     <img
       src={product.imageUrl}
       alt={product.name}
-      loading="lazy"
+      loading={eager ? "eager" : "lazy"}
+      fetchPriority={eager ? "high" : "auto"}
       decoding="async"
       referrerPolicy="no-referrer"
       onError={() => setImgFailed(true)}
-      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+      className="relative w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
     />
   );
 }
@@ -210,7 +213,7 @@ export default function GroceryModule({
       .filter((s) => s.count > 0);
   }, [isGroupedView, activeCategories, products]);
 
-  const renderProductCard = (p: GroceryProduct) => {
+  const renderProductCard = (p: GroceryProduct, eager = false) => {
     const qty = getProductQuantityInCart(p.id);
     const isOutOfStock = !p.isAvailable || p.stock <= 0;
     const hasDiscount = p.discountPrice && p.discountPrice < p.price;
@@ -225,7 +228,11 @@ export default function GroceryModule({
         className="bg-[#FFF0F5] dark:bg-[#2A101B] border border-[#F9A8C9]/40 dark:border-[#D70F64]/25 rounded-2xl overflow-hidden shadow-xs hover:shadow-md hover:border-[#D70F64]/50 transition-all duration-200 flex flex-col relative group"
       >
         <div className="relative h-[104px] sm:h-32 md:h-36 bg-[#FFF0F5] dark:bg-[#2A101B] shrink-0 select-none overflow-hidden">
-          <GroceryProductImage product={p} categoryName={categoryNameMap[p.categoryId] || "Grocery"} />
+          {/* Loading shimmer so the tile never looks blank pink while the photo loads */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 dark:via-white/10 to-transparent animate-shimmer-sweep" />
+          </div>
+          <GroceryProductImage product={p} categoryName={categoryNameMap[p.categoryId] || "Grocery"} eager={eager} />
           {isOutOfStock ? (
             <div className="absolute bottom-2 left-2 z-10 bg-zinc-900/90 text-white font-bold text-[10px] uppercase tracking-wider py-0.5 px-2 rounded-full border border-white/15">
               Out of Stock
@@ -337,15 +344,16 @@ export default function GroceryModule({
   };
 
   return (
-    <div className="bg-white dark:bg-[#0B0B0F] text-[#14141A] dark:text-[#F5F5F8] min-h-screen py-4 sm:py-6 transition-colors duration-200 animate-slide-screen">
-      <div className="max-w-7xl mx-auto px-3.5 sm:px-4 space-y-5 sm:space-y-6">
+    <div className="bg-white dark:bg-[#0B0B0F] text-[#14141A] dark:text-[#F5F5F8] min-h-screen py-3 sm:py-4 transition-colors duration-200 animate-slide-screen">
+      <div className="max-w-7xl mx-auto px-3.5 sm:px-4 space-y-4 sm:space-y-5">
         {/* Dadu Express Mart Hero (design: dark banner, basket photo, yellow headline) */}
         <div className="relative overflow-hidden rounded-[28px] shadow-[0_12px_28px_rgba(215,15,100,0.25)] min-h-[210px] sm:min-h-[230px]">
           <img
             src="/images/home/grocery-basket.jpg"
             alt="Fresh groceries in a Dadu Food basket"
             className="absolute inset-0 w-full h-full object-cover object-center"
-            loading="lazy"
+            loading="eager"
+            fetchPriority="high"
             decoding="async"
           />
           <div
@@ -379,7 +387,7 @@ export default function GroceryModule({
 
         {/* Category Tiles (design: photo tiles row, light pink) */}
         {activeCategories.length > 0 && (
-          <div className="flex items-stretch gap-2.5 overflow-x-auto pb-1 scrollbar-none touch-pan-both overscroll-x-contain -mx-3.5 px-3.5 sm:mx-0 sm:px-0">
+          <div className="flex items-stretch gap-2.5 overflow-x-auto pb-1 scrollbar-none touch-pan-both overscroll-x-contain -mx-3.5 pl-3.5 pr-5 sm:mx-0 sm:pl-0 sm:pr-3">
             <button
               type="button"
               onClick={() => {
@@ -528,7 +536,7 @@ export default function GroceryModule({
                       </button>
                     </div>
                     <div className="grid grid-cols-3 gap-2.5 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
-                      {section.items.map((p) => renderProductCard(p))}
+                      {section.items.map((p, i) => renderProductCard(p, i < 6))}
                     </div>
                   </section>
                 ))}
@@ -536,7 +544,7 @@ export default function GroceryModule({
             ) : (
               <div className="space-y-6">
                 <div className="grid grid-cols-3 gap-2.5 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
-                  {visibleItems.map((p) => renderProductCard(p))}
+                  {visibleItems.map((p, i) => renderProductCard(p, i < 9))}
                 </div>
 
                 {hasMore && (

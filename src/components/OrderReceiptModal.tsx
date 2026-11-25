@@ -256,6 +256,7 @@ For help or inquiries, contact us on WhatsApp.`;
           </div>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="p-1.5 rounded-full hover:bg-white/20 text-white transition cursor-pointer"
           >
             <X className="w-5 h-5" />

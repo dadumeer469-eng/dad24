@@ -95,6 +95,7 @@ export default function MobileAccountDrawer({
               </div>
               <button
                 onClick={onClose}
+                aria-label="Close"
                 className="p-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 rounded-full transition cursor-pointer"
               >
                 <X className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />

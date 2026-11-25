@@ -112,6 +112,7 @@ export default function UserVoucherInspectorModal({
           </div>
           <button
             onClick={onClose}
+            aria-label="Close"
             className="p-2 text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-100 rounded-full border border-slate-200 transition cursor-pointer"
           >
             <X className="w-4 h-4" />

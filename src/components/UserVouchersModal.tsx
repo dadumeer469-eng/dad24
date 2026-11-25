@@ -99,6 +99,7 @@ export default function UserVouchersModal({
             </div>
             <button
               onClick={onClose}
+              aria-label="Close"
               className="p-2 text-zinc-400 hover:text-white bg-zinc-800/60 hover:bg-zinc-800 rounded-full transition cursor-pointer"
             >
               <X className="w-4 h-4" />

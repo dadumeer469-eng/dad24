@@ -463,21 +463,21 @@ export default function GroceryCartDrawer({
       <div className="absolute inset-0 bg-black/80 transition-opacity" onClick={onClose} />
 
       <div className="absolute inset-y-0 right-0 max-w-full flex sm:pl-10">
-        <div className="w-screen max-w-md bg-zinc-950 text-zinc-100 border-l border-zinc-900 shadow-2xl flex flex-col h-full animate-slide-in">
+        <div className="w-screen max-w-md bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 border-l border-zinc-200 dark:border-zinc-900 shadow-2xl flex flex-col h-full animate-slide-in">
           
           {/* Header */}
-          <div className="p-4 border-b border-zinc-900 flex items-center justify-between bg-zinc-900/40">
+          <div className="p-4 border-b border-zinc-200 dark:border-zinc-900 flex items-center justify-between bg-zinc-200/50 dark:bg-zinc-900/40">
             <div className="flex items-center gap-2">
               <ShoppingBag className="w-5 h-5 text-[#D70F64]" />
               <div>
-                <h3 className="text-sm font-black uppercase tracking-wider text-zinc-100">Dadu Grocery Basket</h3>
-                <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mt-0.5">Express Mart Checkout</p>
+                <h3 className="text-sm font-black uppercase tracking-wider text-zinc-900 dark:text-zinc-100">Dadu Grocery Basket</h3>
+                <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-widest mt-0.5">Express Mart Checkout</p>
               </div>
             </div>
             <button
               onClick={onClose}
               aria-label="Close grocery basket"
-              className="p-2 -mr-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-900/60 transition cursor-pointer"
+              className="p-2 -mr-2 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/70 dark:hover:bg-zinc-900/60 transition cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -485,9 +485,9 @@ export default function GroceryCartDrawer({
 
           {/* Foodpanda 3-Step Progress Bar */}
           {cartItems.length > 0 && (
-            <div className="px-4 py-2.5 bg-zinc-950 border-b border-zinc-800/80">
+            <div className="px-4 py-2.5 bg-white dark:bg-zinc-950 border-b border-zinc-200/80 dark:border-zinc-800/80">
               <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wider">
-                <div className="flex items-center gap-1.5 text-emerald-400">
+                <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
                   <span className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px]">✓</span>
                   <span>1. Mart</span>
                 </div>
@@ -496,9 +496,9 @@ export default function GroceryCartDrawer({
                   <span className="w-5 h-5 rounded-full bg-[#D70F64] text-white flex items-center justify-center text-[10px]">2</span>
                   <span>2. Basket</span>
                 </div>
-                <div className="flex-1 h-[2px] mx-2 bg-zinc-700" />
-                <div className="flex items-center gap-1.5 text-zinc-300">
-                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${currentUser && (userCoords || addressInput.trim().length >= 6) ? "bg-[#D70F64] text-white" : "bg-zinc-800 text-zinc-400"}`}>3</span>
+                <div className="flex-1 h-[2px] mx-2 bg-zinc-300 dark:bg-zinc-700" />
+                <div className="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300">
+                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${currentUser && (userCoords || addressInput.trim().length >= 6) ? "bg-[#D70F64] text-white" : "bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400"}`}>3</span>
                   <span>3. Checkout</span>
                 </div>
               </div>
@@ -513,8 +513,8 @@ export default function GroceryCartDrawer({
                   <ShoppingBag className="w-8 h-8" />
                 </div>
                 <div className="space-y-1">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-zinc-200">Your basket is empty</h4>
-                  <p className="text-[10.5px] text-zinc-500 font-semibold max-w-xs leading-normal">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Your basket is empty</h4>
+                  <p className="text-[10.5px] text-zinc-500 dark:text-zinc-500 font-semibold max-w-xs leading-normal">
                     Browse our ultra fresh categories and tap "Add To Grocery Cart" to populate your express shipping!
                   </p>
                 </div>
@@ -525,23 +525,23 @@ export default function GroceryCartDrawer({
                 {cartItems.map((item) => (
                   <div
                     key={item.productId}
-                    className="bg-zinc-900/40 border border-zinc-900/80 p-3 rounded-2xl flex items-center gap-3"
+                    className="bg-zinc-200/50 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-900/80 p-3 rounded-2xl flex items-center gap-3"
                   >
                     <LazyImage src={item.imageUrl} alt={item.name} className="w-12 h-12 rounded-xl overflow-hidden shrink-0" referrerPolicy="no-referrer" />
                     <div className="flex-1 min-w-0">
-                      <h5 className="font-bold text-xs text-zinc-100 truncate">{item.name}</h5>
-                      <span className="text-[10px] text-zinc-400 block font-semibold">Unit: {item.unit} • Price: Rs. {item.price}</span>
+                      <h5 className="font-bold text-xs text-zinc-900 dark:text-zinc-100 truncate">{item.name}</h5>
+                      <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block font-semibold">Unit: {item.unit} • Price: Rs. {item.price}</span>
                     </div>
 
                     {/* Quantity Selector */}
-                    <div className="flex items-center gap-2 border border-zinc-800 p-1 rounded-xl bg-zinc-950">
+                    <div className="flex items-center gap-2 border border-zinc-200 dark:border-zinc-800 p-1 rounded-xl bg-zinc-100 dark:bg-zinc-950">
                       <button
                         onClick={() => onUpdateQuantity(item.productId, item.quantity - 1)}
                         className="w-9 h-9 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 font-bold flex items-center justify-center text-sm active:scale-90"
                       >
                         -
                       </button>
-                      <span className="text-[11px] font-mono font-black text-white px-0.5">{item.quantity}</span>
+                      <span className="text-[11px] font-mono font-black text-zinc-900 dark:text-white px-0.5">{item.quantity}</span>
                       <button
                         onClick={() => onUpdateQuantity(item.productId, item.quantity + 1)}
                         className="w-9 h-9 rounded-lg btn-pink text-white font-bold flex items-center justify-center text-sm active:scale-90"
@@ -552,7 +552,7 @@ export default function GroceryCartDrawer({
 
                     <button
                       onClick={() => onRemoveItem(item.productId)}
-                      className="p-1.5 bg-pink-950/20 hover:bg-pink-950 text-pink-400 rounded-lg hover:text-pink-300 transition shrink-0 cursor-pointer"
+                      className="p-1.5 bg-pink-100 dark:bg-pink-950/20 hover:bg-pink-200 dark:hover:bg-pink-950 text-pink-600 dark:text-pink-400 rounded-lg hover:text-pink-600 dark:hover:text-pink-300 transition shrink-0 cursor-pointer"
                       title="Remove product"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -564,12 +564,12 @@ export default function GroceryCartDrawer({
 
             {/* Address Form or Credentials Check */}
             {cartItems.length > 0 && (
-              <div className="bg-zinc-900/50 border border-zinc-900 p-4.5 rounded-2.5xl space-y-4">
+              <div className="bg-zinc-200/60 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-900 p-4.5 rounded-2.5xl space-y-4">
                 <span className="text-[10px] font-black uppercase text-orange-500 tracking-widest block">Recipient and Shipping info</span>
 
                 {!currentUser ? (
-                  <div className="bg-zinc-900 border border-zinc-850 p-4 rounded-xl text-center space-y-2">
-                    <p className="text-[10.5px] text-orange-200 font-semibold leading-relaxed">
+                  <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-850 p-4 rounded-xl text-center space-y-2">
+                    <p className="text-[10.5px] text-orange-700 dark:text-orange-200 font-semibold leading-relaxed">
                       💡 Sign in to automatically map your pre-configured address info and track deliveries instantly!
                     </p>
                     <button
@@ -583,7 +583,7 @@ export default function GroceryCartDrawer({
                 ) : (
                   <div className="space-y-2 text-xs">
                     <div className="space-y-1">
-                      <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider block">Customer Name</span>
+                      <span className="text-[10px] font-black uppercase text-zinc-500 dark:text-zinc-400 tracking-wider block">Customer Name</span>
                       <input
                         type="text"
                         value={nameInput}
@@ -592,17 +592,17 @@ export default function GroceryCartDrawer({
                           if (checkoutError) setCheckoutError(null);
                         }}
                         placeholder="Apna naam likhein (e.g. Ali Ahmed)..."
-                        className="w-full bg-zinc-950 border border-zinc-700 focus:border-orange-500 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-zinc-500 focus:outline-none font-bold"
+                        className="w-full bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 focus:border-orange-500 rounded-lg px-2.5 py-1.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none font-bold"
                       />
                     </div>
-                    <div className="flex items-center gap-1.5 text-zinc-300">
-                      <Phone className="w-4 h-4 text-orange-400 shrink-0" />
+                    <div className="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300">
+                      <Phone className="w-4 h-4 text-orange-600 dark:text-orange-400 shrink-0" />
                       <span className="font-semibold font-mono">{currentUser.phone}</span>
                     </div>
 
-                    <div className="border-t border-zinc-850 pt-2.5 mt-2 space-y-2">
+                    <div className="border-t border-zinc-200 dark:border-zinc-850 pt-2.5 mt-2 space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider flex items-center gap-1.5">
+                        <span className="text-[10px] font-black uppercase text-zinc-500 dark:text-zinc-400 tracking-wider flex items-center gap-1.5">
                           <MapPin className="w-3.5 h-3.5 text-orange-500" />
                           Shipment Destination Address
                         </span>
@@ -610,7 +610,7 @@ export default function GroceryCartDrawer({
                           <button
                             type="button"
                             onClick={handleStartEditAddress}
-                            className="flex items-center gap-1 text-[11px] font-black text-orange-400 hover:text-orange-300 hover:underline transition cursor-pointer"
+                            className="flex items-center gap-1 text-[11px] font-black text-orange-600 dark:text-orange-400 hover:text-orange-500 dark:hover:text-orange-300 hover:underline transition cursor-pointer"
                           >
                             <Edit2 className="w-3 h-3" />
                             {currentUser.address ? "Change Address" : "Add Address"}
@@ -619,7 +619,7 @@ export default function GroceryCartDrawer({
                       </div>
 
                       {addressSaveSuccess && (
-                        <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-bold flex items-center gap-1.5 animate-fadeIn">
+                        <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold flex items-center gap-1.5 animate-fadeIn">
                           <Check className="w-3.5 h-3.5 shrink-0" />
                           Address updated in database successfully!
                         </div>
@@ -637,7 +637,7 @@ export default function GroceryCartDrawer({
                                 className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition cursor-pointer border ${
                                   addressLabel === tag
                                     ? "bg-orange-600 text-white border-orange-500"
-                                    : "bg-zinc-950 text-zinc-400 border-zinc-800 hover:text-white"
+                                    : "bg-white dark:bg-zinc-950 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:text-zinc-900 dark:hover:text-white"
                                 }`}
                               >
                                 {tag === "Ghar" ? "🏠 Ghar" : tag === "Dukan / Office" ? "🏪 Dukan / Office" : tag === "Hostel" ? "🎓 Hostel" : "📍 Other"}
@@ -652,7 +652,7 @@ export default function GroceryCartDrawer({
                             }}
                             placeholder="Enter full delivery address (House/Shop #, Street, Area, Dadu)..."
                             rows={3}
-                            className="w-full bg-zinc-950 border border-zinc-700 focus:border-orange-500 rounded-xl p-2.5 text-xs text-white placeholder:text-zinc-600 focus:outline-none resize-none font-medium leading-relaxed"
+                            className="w-full bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 focus:border-orange-500 rounded-xl p-2.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none resize-none font-medium leading-relaxed"
                             autoFocus
                           />
                           {addressError && (
@@ -666,7 +666,7 @@ export default function GroceryCartDrawer({
                                 setAddressError(null);
                               }}
                               disabled={isSavingAddress}
-                              className="px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-400 hover:text-white bg-zinc-900 border border-zinc-800 transition cursor-pointer"
+                              className="px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 transition cursor-pointer"
                             >
                               Cancel
                             </button>
@@ -691,7 +691,7 @@ export default function GroceryCartDrawer({
                           </div>
                         </div>
                       ) : currentUser.address ? (
-                        <p className="bg-zinc-950 p-2.5 rounded-xl text-[11px] text-zinc-300 font-bold leading-normal border border-zinc-850">
+                        <p className="bg-white dark:bg-zinc-950 p-2.5 rounded-xl text-[11px] text-zinc-700 dark:text-zinc-300 font-bold leading-normal border border-zinc-200 dark:border-zinc-850">
                           {currentUser.address}
                         </p>
                       ) : (
@@ -700,7 +700,7 @@ export default function GroceryCartDrawer({
                           <button
                             type="button"
                             onClick={handleStartEditAddress}
-                            className="text-[11px] underline font-black text-white cursor-pointer"
+                            className="text-[11px] underline font-black text-rose-600 dark:text-white cursor-pointer"
                           >
                             + Click here to add your delivery address
                           </button>
@@ -709,8 +709,8 @@ export default function GroceryCartDrawer({
 
                       {/* 1-Tap Saved Recent Addresses */}
                       {savedAddresses.length > 0 && (
-                        <div className="pt-1.5 space-y-1.5 border-t border-zinc-800/80">
-                          <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-zinc-500 block">
+                        <div className="pt-1.5 space-y-1.5 border-t border-zinc-200/80 dark:border-zinc-800/80">
+                          <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-zinc-500 dark:text-zinc-500 block">
                             1-Tap Saved Addresses
                           </span>
                           <div className="flex flex-wrap gap-1.5">
@@ -735,13 +735,13 @@ export default function GroceryCartDrawer({
                                   title={entry.address}
                                   className={`max-w-full text-left px-2.5 py-1.5 rounded-xl text-[10.5px] font-bold transition cursor-pointer flex items-center gap-1.5 border ${
                                     isActive
-                                      ? "bg-orange-500/15 border-orange-500/60 text-orange-200"
-                                      : "bg-zinc-950 border-zinc-800 text-zinc-300 hover:border-zinc-600"
+                                      ? "bg-orange-500/15 border-orange-500/60 text-orange-700 dark:text-orange-200"
+                                      : "bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-600"
                                   }`}
                                 >
                                   <span>{icon}</span>
-                                  <span className="font-black text-white shrink-0">{entry.label}:</span>
-                                  <span className="truncate max-w-[140px] text-zinc-400">{entry.address}</span>
+                                  <span className="font-black text-zinc-900 dark:text-white shrink-0">{entry.label}:</span>
+                                  <span className="truncate max-w-[140px] text-zinc-500 dark:text-zinc-400">{entry.address}</span>
                                 </button>
                               );
                             })}
@@ -757,7 +757,7 @@ export default function GroceryCartDrawer({
 
           {/* Pricing & Checkout Panel */}
           {cartItems.length > 0 && (
-            <div className="p-5 border-t border-zinc-900 bg-zinc-900/60 space-y-4">
+            <div className="p-5 border-t border-zinc-200 dark:border-zinc-900 bg-zinc-200/70 dark:bg-zinc-900/60 space-y-4">
             {/* 1-TAP AUTO-APPLY BEST GROCERY VOUCHER BANNER */}
             {!appliedVoucher && (() => {
               const eligibleGroceryVouchers = allVouchers
@@ -785,10 +785,10 @@ export default function GroceryCartDrawer({
                       <Ticket className="w-3.5 h-3.5" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[11px] font-black text-white truncate">
-                        Save Rs. {bestSave} with <span className="font-mono text-orange-300">{bestVoucher.code}</span>
+                      <p className="text-[11px] font-black text-zinc-900 dark:text-white truncate">
+                        Save Rs. {bestSave} with <span className="font-mono text-orange-600 dark:text-orange-300">{bestVoucher.code}</span>
                       </p>
-                      <p className="text-[9.5px] text-zinc-300 truncate">
+                      <p className="text-[9.5px] text-zinc-700 dark:text-zinc-300 truncate">
                         {bestVoucher.successMessage || "Instant grocery discount available!"}
                       </p>
                     </div>
@@ -805,12 +805,12 @@ export default function GroceryCartDrawer({
             })()}
 
             {/* BENEFIT / OFFERS & DISCOUNTS COLLAPSIBLE BOX */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden transition-all duration-200">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden transition-all duration-200">
               {/* Box Click Trigger */}
               <button
                 type="button"
                 onClick={() => setIsBenefitsOpen(!isBenefitsOpen)}
-                className="w-full p-3 flex items-center justify-between gap-2.5 text-left hover:bg-zinc-850/60 transition cursor-pointer"
+                className="w-full p-3 flex items-center justify-between gap-2.5 text-left hover:bg-zinc-100/70 dark:hover:bg-zinc-850/60 transition cursor-pointer"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-500/20 via-amber-500/10 to-emerald-500/20 border border-orange-500/30 flex items-center justify-center shrink-0 shadow-inner">
@@ -818,20 +818,20 @@ export default function GroceryCartDrawer({
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-xs font-black text-white tracking-wide">
+                      <span className="text-xs font-black text-zinc-900 dark:text-white tracking-wide">
                         Offers & Benefits
                       </span>
                       {(appliedVoucher || (useCoins && coinsDeducted > 0)) ? (
-                        <span className="bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-[9px] font-black px-2 py-0.5 rounded-full animate-pulse">
+                        <span className="bg-emerald-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[9px] font-black px-2 py-0.5 rounded-full animate-pulse">
                           Rs. {voucherDiscount + coinsDeducted} Saved
                         </span>
                       ) : (
-                        <span className="bg-orange-500/15 border border-orange-500/25 text-orange-400 text-[9px] font-extrabold px-1.5 py-0.5 rounded-md">
+                        <span className="bg-orange-500/15 border border-orange-500/25 text-orange-600 dark:text-orange-400 text-[9px] font-extrabold px-1.5 py-0.5 rounded-md">
                           Vouchers & Coins
                         </span>
                       )}
                     </div>
-                    <p className="text-[10px] text-zinc-400 font-medium truncate mt-0.5">
+                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium truncate mt-0.5">
                       {appliedVoucher && useCoins
                         ? `Voucher: ${appliedVoucher.code} + 🪙 ${coinsDeducted} Coins Active`
                         : appliedVoucher
@@ -844,10 +844,10 @@ export default function GroceryCartDrawer({
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="text-[10px] font-bold text-zinc-400 hidden sm:inline">
+                  <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 hidden sm:inline">
                     {isBenefitsOpen ? "Close" : "Open"}
                   </span>
-                  <div className={`w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 transition-transform duration-300 ${isBenefitsOpen ? "rotate-180 text-white bg-orange-600" : ""}`}>
+                  <div className={`w-6 h-6 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 dark:text-zinc-400 transition-transform duration-300 ${isBenefitsOpen ? "rotate-180 text-white bg-orange-600" : ""}`}>
                     <ChevronDown className="w-3.5 h-3.5" />
                   </div>
                 </div>
@@ -855,18 +855,18 @@ export default function GroceryCartDrawer({
 
               {/* Inside Benefit Box (Shown when open) */}
               {isBenefitsOpen && (
-                <div className="p-3 pt-2.5 border-t border-zinc-800 space-y-3 bg-zinc-950/60">
+                <div className="p-3 pt-2.5 border-t border-zinc-200 dark:border-zinc-800 space-y-3 bg-zinc-100/70 dark:bg-zinc-950/60">
                   {/* VOUCHER / PROMO CODE SECTION */}
-                  <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl p-3 space-y-2">
+                  <div className="bg-zinc-50 dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 space-y-2">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-xs font-black text-orange-400">
+                      <div className="flex items-center gap-1.5 text-xs font-black text-orange-600 dark:text-orange-400">
                         <Ticket className="w-3.5 h-3.5 text-orange-500" />
                         <span>Grocery Voucher</span>
                       </div>
                       <button
                         type="button"
                         onClick={() => setIsVouchersModalOpen(true)}
-                        className="text-[10.5px] font-black text-orange-400 hover:text-orange-300 underline cursor-pointer"
+                        className="text-[10.5px] font-black text-orange-600 dark:text-orange-400 hover:text-orange-500 dark:hover:text-orange-300 underline cursor-pointer"
                       >
                         View My Vouchers 🎟️
                       </button>
@@ -875,21 +875,21 @@ export default function GroceryCartDrawer({
                     {appliedVoucher ? (
                       <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-2.5 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                          <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                           <div>
                             <div className="flex items-center gap-1.5">
-                              <span className="font-mono font-black text-xs text-white">{appliedVoucher.code}</span>
+                              <span className="font-mono font-black text-xs text-zinc-900 dark:text-white">{appliedVoucher.code}</span>
                               <span className="bg-orange-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-md">
                                 Rs. {voucherDiscount} OFF
                               </span>
                             </div>
-                            <span className="text-[10px] text-zinc-400 block">{appliedVoucher.title}</span>
+                            <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block">{appliedVoucher.title}</span>
                           </div>
                         </div>
                         <button
                           type="button"
                           onClick={handleRemoveVoucher}
-                          className="text-xs text-rose-400 hover:text-rose-300 font-bold px-2 py-1 bg-rose-500/10 rounded-lg cursor-pointer"
+                          className="text-xs text-rose-400 hover:text-rose-500 dark:hover:text-rose-300 font-bold px-2 py-1 bg-rose-500/10 rounded-lg cursor-pointer"
                         >
                           Remove
                         </button>
@@ -898,7 +898,7 @@ export default function GroceryCartDrawer({
                       <div className="space-y-1.5">
                         <div className="flex items-center gap-2">
                           <div className="relative flex-1">
-                            <Tag className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                            <Tag className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
                             <input
                               type="text"
                               placeholder="ENTER VOUCHER CODE"
@@ -910,7 +910,7 @@ export default function GroceryCartDrawer({
                                   handleApplyVoucher(voucherInputCode);
                                 }
                               }}
-                              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-8 pr-3 py-2 text-xs font-mono font-bold text-white placeholder:text-zinc-600 focus:outline-none focus:border-orange-500 uppercase"
+                              className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl pl-8 pr-3 py-2 text-xs font-mono font-bold text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-orange-500 uppercase"
                             />
                           </div>
                           <button
@@ -929,8 +929,8 @@ export default function GroceryCartDrawer({
                   </div>
 
                   {/* Policy banner for 1 offer limit */}
-                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-[9.5px] text-zinc-400">
-                    <Info className="w-3 h-3 text-orange-400 shrink-0" />
+                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-[9.5px] text-zinc-500 dark:text-zinc-400">
+                    <Info className="w-3 h-3 text-orange-600 dark:text-orange-400 shrink-0" />
                     <span>Ek order par sirf 1 offer lag sakti hai (Voucher <strong>ya</strong> Coin Discount).</span>
                   </div>
 
@@ -940,19 +940,19 @@ export default function GroceryCartDrawer({
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0">
                           <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0 shadow-inner">
-                            <Coins className="w-4 h-4 text-amber-400 animate-pulse" />
+                            <Coins className="w-4 h-4 text-amber-600 dark:text-amber-400 animate-pulse" />
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-black text-amber-300 truncate">
+                              <span className="text-xs font-black text-amber-600 dark:text-amber-300 truncate">
                                 🪙 Coin Benefit Discount
                               </span>
-                              <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full ${useCoins && !appliedVoucher ? 'bg-amber-400 text-zinc-950' : 'bg-zinc-800 text-zinc-400'}`}>
+                              <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full ${useCoins && !appliedVoucher ? 'bg-amber-400 text-zinc-950' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'}`}>
                                 {useCoins && !appliedVoucher ? `Rs. ${maxCoinsUsable} OFF` : 'OFF'}
                               </span>
                             </div>
-                            <span className="text-[10px] text-amber-400/90 font-bold block truncate mt-0.5">
-                              Wallet: <span className="font-mono font-black text-amber-300">{userCoins} Coins</span> (1 Coin = Rs. 1)
+                            <span className="text-[10px] text-amber-600/90 dark:text-amber-400/90 font-bold block truncate mt-0.5">
+                              Wallet: <span className="font-mono font-black text-amber-600 dark:text-amber-300">{userCoins} Coins</span> (1 Coin = Rs. 1)
                             </span>
                           </div>
                         </div>
@@ -962,12 +962,12 @@ export default function GroceryCartDrawer({
                           type="button"
                           onClick={handleToggleCoins}
                           className={`w-11 h-6 rounded-full transition-all relative cursor-pointer outline-none shrink-0 border ${
-                            useCoins && !appliedVoucher ? "bg-amber-500 border-amber-400 shadow-md shadow-amber-500/20" : "bg-zinc-800 border-zinc-700"
+                            useCoins && !appliedVoucher ? "bg-amber-500 border-amber-400 shadow-md shadow-amber-500/20" : "bg-zinc-200 dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700"
                           }`}
                         >
                           <span
                             className={`absolute top-0.5 left-0.5 w-4.5 h-4.5 rounded-full bg-white shadow-md transition-transform flex items-center justify-center text-[9px] font-black ${
-                              useCoins && !appliedVoucher ? "transform translate-x-5 text-amber-600" : "text-zinc-500"
+                              useCoins && !appliedVoucher ? "transform translate-x-5 text-amber-600" : "text-zinc-500 dark:text-zinc-500"
                             }`}
                           >
                             {useCoins && !appliedVoucher ? "✓" : ""}
@@ -976,11 +976,11 @@ export default function GroceryCartDrawer({
                       </div>
 
                       {/* Admin settings info row */}
-                      <div className="pt-2 border-t border-amber-500/20 flex items-center justify-between text-[10px] text-amber-300/80 font-semibold">
+                      <div className="pt-2 border-t border-amber-500/20 flex items-center justify-between text-[10px] text-amber-600/80 dark:text-amber-300/80 font-semibold">
                         <span>
-                          ⚡ Admin Max Limit: <strong className="text-amber-300 font-mono">Rs. {maxAllowedCoinsByAdmin}</strong>
+                          ⚡ Admin Max Limit: <strong className="text-amber-600 dark:text-amber-300 font-mono">Rs. {maxAllowedCoinsByAdmin}</strong>
                         </span>
-                        <span className="text-amber-400 font-bold">
+                        <span className="text-amber-600 dark:text-amber-400 font-bold">
                           {useCoins && !appliedVoucher ? `Applied: Rs. ${coinsDeducted}` : `Available: Rs. ${maxCoinsUsable}`}
                         </span>
                       </div>
@@ -992,15 +992,15 @@ export default function GroceryCartDrawer({
                     <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between text-left text-xs animate-fadeIn shadow-xs">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/35 flex items-center justify-center shrink-0">
-                          <Coins className="w-3.5 h-3.5 text-emerald-400 animate-bounce" />
+                          <Coins className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 animate-bounce" />
                         </div>
                         <div>
                           {grandTotal >= loyaltyMinOrder ? (
                             <>
-                              <span className="text-xs font-black text-emerald-300 block">
-                                🎉 Cashback: <span className="text-emerald-200 font-mono font-black">+{estimatedCoinsEarned} Coins</span>
+                              <span className="text-xs font-black text-emerald-600 dark:text-emerald-300 block">
+                                🎉 Cashback: <span className="text-emerald-700 dark:text-emerald-200 font-mono font-black">+{estimatedCoinsEarned} Coins</span>
                               </span>
-                              <span className="text-[10px] text-emerald-400/90 font-medium block mt-0.5">
+                              <span className="text-[10px] text-emerald-600/90 dark:text-emerald-400/90 font-medium block mt-0.5">
                                 {loyaltyEarnType === "fixed" 
                                   ? `Flat ${loyaltyEarnVal} Coins (Rs. ${estimatedCoinsEarned} Cashback)` 
                                   : `${loyaltyEarnVal}% Cashback on Order (Rs. ${estimatedCoinsEarned})`}
@@ -1008,10 +1008,10 @@ export default function GroceryCartDrawer({
                             </>
                           ) : (
                             <>
-                              <span className="text-xs font-black text-amber-300 block">
+                              <span className="text-xs font-black text-amber-600 dark:text-amber-300 block">
                                 💡 Rs. {loyaltyMinOrder - Math.floor(grandTotal)} Ka Aur Order Karein
                               </span>
-                              <span className="text-[10px] text-amber-400/90 font-medium block mt-0.5">
+                              <span className="text-[10px] text-amber-600/90 dark:text-amber-400/90 font-medium block mt-0.5">
                                 Min order Rs. {loyaltyMinOrder} par +{loyaltyEarnType === 'fixed' ? `${loyaltyEarnVal} Coins` : `${loyaltyEarnVal}% Coins`} cashback!
                               </span>
                             </>
@@ -1026,32 +1026,32 @@ export default function GroceryCartDrawer({
 
               <div className="space-y-1.5 text-xs">
                 {totalGroceryPrice < 500 && (
-                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-2.5 text-[10.5px] text-amber-400 flex items-start gap-2 mb-2">
+                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-2.5 text-[10.5px] text-amber-600 dark:text-amber-400 flex items-start gap-2 mb-2">
                     <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                     <div>
-                      <span className="font-extrabold block text-amber-300">Delivery Charges Doubled (Below Rs. 500)</span>
+                      <span className="font-extrabold block text-amber-600 dark:text-amber-300">Delivery Charges Doubled (Below Rs. 500)</span>
                       Rs. 500 se kam order par delivery charges double hain. Add Rs. {500 - totalGroceryPrice} more grocery items to get standard delivery!
                     </div>
                   </div>
                 )}
-                <div className="flex justify-between text-zinc-400 font-semibold">
+                <div className="flex justify-between text-zinc-500 dark:text-zinc-400 font-semibold">
                   <span>Cart Subtotal</span>
                   <span>Rs. {totalGroceryPrice}</span>
                 </div>
 
                 {appliedVoucher && voucherDiscount > 0 && (
-                  <div className="flex justify-between text-orange-400 font-bold">
+                  <div className="flex justify-between text-orange-600 dark:text-orange-400 font-bold">
                     <span>Voucher Discount ({appliedVoucher.code})</span>
                     <span>- Rs. {voucherDiscount}</span>
                   </div>
                 )}
                 
                 {/* Delivery fee checkout representation */}
-                <div className="flex justify-between text-zinc-400 font-semibold">
+                <div className="flex justify-between text-zinc-500 dark:text-zinc-400 font-semibold">
                   <span>{hasMedicine ? "Medicine Delivery Fee" : "Grocery Delivery Fee"}</span>
                   <span>
                     {isFreeDelivery ? (
-                      <span className="text-emerald-400 font-black uppercase">FREE (≥ Rs. {freeThreshold})</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-black uppercase">FREE (≥ Rs. {freeThreshold})</span>
                     ) : (
                       `Rs. ${finalDeliveryFee}`
                     )}
@@ -1071,23 +1071,23 @@ export default function GroceryCartDrawer({
                   </div>
                 )}
 
-                <div className="border-t border-zinc-800 my-2.5 pt-2 flex justify-between text-white font-black text-sm">
+                <div className="border-t border-zinc-200 dark:border-zinc-800 my-2.5 pt-2 flex justify-between text-zinc-900 dark:text-white font-black text-sm">
                   <span>TOTAL BILLING</span>
                   <span className="font-mono text-[#D70F64]">Rs. {grandTotal}</span>
                 </div>
               </div>
 
               {/* Phone + Payment Method (ONLY COD & Easypaisa) */}
-              <div className="bg-zinc-950 p-3 rounded-xl border border-zinc-800 space-y-2.5">
+              <div className="bg-white dark:bg-zinc-950 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-2.5">
                 <div>
-                  <label className="text-[10px] font-bold uppercase text-zinc-400 block mb-1">Contact Phone (03XXXXXXXXX)</label>
+                  <label className="text-[10px] font-bold uppercase text-zinc-500 dark:text-zinc-400 block mb-1">Contact Phone (03XXXXXXXXX)</label>
                   <input
                     type="tel"
                     inputMode="numeric"
                     value={phoneInput}
                     onChange={(e) => setPhoneInput(e.target.value.replace(/\D/g, "").slice(0, 11))}
                     placeholder="03XX-XXXXXXX"
-                    className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-100 text-xs font-bold"
+                    className="w-full px-3 py-2 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 text-xs font-bold"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
@@ -1103,7 +1103,7 @@ export default function GroceryCartDrawer({
                       className={`min-h-[44px] py-2 rounded-xl text-xs font-extrabold border transition cursor-pointer ${
                         paymentMethod === m
                           ? "btn-pink border-[#D70F64] text-white shadow-sm"
-                          : "bg-zinc-900 border-zinc-800 text-zinc-300"
+                          : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"
                       }`}
                     >
                       {m === "COD" ? "💵 Cash on Delivery" : "📱 Easypaisa"}
@@ -1122,7 +1122,7 @@ export default function GroceryCartDrawer({
               </div>
 
               {checkoutError && (
-                <div className="p-3 bg-rose-500/15 border border-rose-500/30 rounded-xl text-xs text-rose-300 font-bold flex items-center gap-2">
+                <div className="p-3 bg-rose-500/15 border border-rose-500/30 rounded-xl text-xs text-rose-500 dark:text-rose-300 font-bold flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
                   <span>{checkoutError}</span>
                 </div>

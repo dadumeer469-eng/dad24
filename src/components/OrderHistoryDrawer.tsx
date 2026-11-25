@@ -190,6 +190,7 @@ export default function OrderHistoryDrawer({
               </div>
               <button 
                 onClick={onClose}
+                aria-label="Close"
                 className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-500 dark:text-zinc-300 hover:text-zinc-800 dark:hover:text-white transition flex items-center justify-center cursor-pointer"
                 id="close-history-btn"
               >

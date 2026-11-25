@@ -84,8 +84,8 @@ export default function FoodpandaHero({
         )}
 
       {/* Foodpanda Cuisines Row (Visual Rounded Cuisine Tiles) */}
-      <div className="max-w-7xl mx-auto px-3.5 sm:px-4 pt-3 pb-1">
-        <div className="flex items-center justify-between mb-2.5">
+      <div className="max-w-7xl mx-auto px-3.5 sm:px-4 pt-2 pb-1">
+        <div className="flex items-center justify-between mb-2">
           <h2 className="text-sm sm:text-base font-extrabold tracking-tight text-[#14141A] dark:text-[#F5F5F8]">
             Cuisines
           </h2>
@@ -99,7 +99,7 @@ export default function FoodpandaHero({
             </button>
           )}
         </div>
-        <div className="flex items-start gap-3 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory touch-pan-both overscroll-x-contain">
+        <div className="flex items-start gap-3 overflow-x-auto pb-2 pr-3.5 scrollbar-none snap-x snap-mandatory touch-pan-both overscroll-x-contain">
           {cleanCategories.map((cat) => {
             const isSelected = activeCategory === cat.name;
             return (

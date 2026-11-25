@@ -568,7 +568,7 @@ export default function FoodpandaRestaurantPage({
             )}
           </div>
 
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none touch-pan-both overscroll-x-contain">
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none touch-pan-both overscroll-x-contain pr-3.5">
             <button
               type="button"
               onClick={() => setFilterType("all")}
@@ -622,7 +622,7 @@ export default function FoodpandaRestaurantPage({
         <div className="sticky top-0 z-30 bg-white/95 dark:bg-[#14141A]/95 backdrop-blur-md border-y border-[#E6E6EE] dark:border-[#272733] mt-5">
           <div className="max-w-4xl mx-auto px-3.5 sm:px-4">
             <div
-              className="flex overflow-x-auto scrollbar-none py-2 gap-2 items-center touch-pan-both overscroll-x-contain"
+              className="flex overflow-x-auto scrollbar-none py-2 gap-2 items-center touch-pan-both overscroll-x-contain pr-3.5"
               ref={scrollRef}
             >
               {allNavCategories.map((cat) => {

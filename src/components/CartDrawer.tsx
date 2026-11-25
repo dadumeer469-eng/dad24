@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { UserProfile, OrderItem, getUserCoins, Voucher, calculateVoucherDiscount, isVoucherExpired, canUserUseVoucher } from "../types";
+import { UserProfile, OrderItem, Dish, getUserCoins, Voucher, calculateVoucherDiscount, isVoucherExpired, canUserUseVoucher } from "../types";
 import { X, ShoppingBag, MapPin, Phone, User, AlertTriangle, ShieldCheck, Heart, Edit2, Compass, Coins, Ticket, CheckCircle, Tag, ChevronDown, Gift, Check, Loader2, Info } from "lucide-react";
 import { CHECKOUT_DRINKS } from "../data";
 import { LazyImage } from "./LazyImage";
@@ -37,6 +37,8 @@ interface CartDrawerProps {
     voucher?: { code: string; discountAmount: number };
   }) => Promise<void>;
   onAddDrink: (drink: any) => void;
+  popularDishes?: Dish[];
+  onAddPopularDish?: (dish: Dish) => void;
   userCoords?: { latitude: number; longitude: number } | null;
   systemSettings?: any;
   allVouchers?: Voucher[];
@@ -54,6 +56,8 @@ export default function CartDrawer({
   deliveryFee,
   onPlaceOrder,
   onAddDrink,
+  popularDishes = [],
+  onAddPopularDish,
   userCoords,
   systemSettings,
   allVouchers = [],
@@ -534,18 +538,18 @@ export default function CartDrawer({
       {/* Tap space to slide out drawer */}
       <div className="flex-1" onClick={onClose}></div>
 
-      <div className="w-full max-w-md bg-zinc-900 text-zinc-100 h-full flex flex-col shadow-2xl border-l border-zinc-800 animate-slide-in">
+      <div className="w-full max-w-md bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 h-full flex flex-col shadow-2xl border-l border-zinc-200 dark:border-zinc-800 animate-slide-in">
         
         {/* Banner with close */}
-        <div className="p-4 border-b border-zinc-800 bg-zinc-950 flex items-center justify-between shadow-xs">
+        <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-2">
             <ShoppingBag className="w-5 h-5 text-[#D70F64]" />
-            <h3 className="font-extrabold text-sm tracking-wide text-zinc-100 uppercase">Your Delivery Cart</h3>
+            <h3 className="font-extrabold text-sm tracking-wide text-zinc-900 dark:text-zinc-100 uppercase">Your Delivery Cart</h3>
           </div>
           <button
             onClick={onClose}
             aria-label="Close cart"
-            className="p-2 hover:bg-zinc-850 rounded-full transition cursor-pointer text-zinc-400 hover:text-zinc-250"
+            className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-850 rounded-full transition cursor-pointer text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
           >
             <X className="w-4 h-4" />
           </button>
@@ -553,9 +557,9 @@ export default function CartDrawer({
 
         {/* Foodpanda 3-Step Cart Progress Bar */}
         {cartItems.length > 0 && (
-          <div className="px-4 py-2.5 bg-zinc-950 border-b border-zinc-800/80">
+          <div className="px-4 py-2.5 bg-white dark:bg-zinc-950 border-b border-zinc-200/80 dark:border-zinc-800/80">
             <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wider">
-              <div className="flex items-center gap-1.5 text-emerald-400">
+              <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
                 <span className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px]">✓</span>
                 <span>1. Menu</span>
               </div>
@@ -564,9 +568,9 @@ export default function CartDrawer({
                 <span className="w-5 h-5 rounded-full bg-[#D70F64] text-white flex items-center justify-center text-[10px]">2</span>
                 <span>2. Cart</span>
               </div>
-              <div className="flex-1 h-[2px] mx-2 bg-zinc-700" />
-              <div className="flex items-center gap-1.5 text-zinc-300">
-                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${currentUser && (userCoords || addressInput.trim().length >= 6) ? "bg-[#D70F64] text-white" : "bg-zinc-800 text-zinc-400"}`}>3</span>
+              <div className="flex-1 h-[2px] mx-2 bg-zinc-300 dark:bg-zinc-700" />
+              <div className="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300">
+                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${currentUser && (userCoords || addressInput.trim().length >= 6) ? "bg-[#D70F64] text-white" : "bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400"}`}>3</span>
                 <span>3. Checkout</span>
               </div>
             </div>
@@ -574,12 +578,12 @@ export default function CartDrawer({
         )}
 
         {/* List of items inside the drawer */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-zinc-950">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white dark:bg-zinc-950">
           
           {cartItems.length === 0 ? (
             <div className="text-center py-20 space-y-3">
               <span className="text-4xl block animate-bounce">🛒</span>
-              <p className="text-xs text-zinc-400 font-bold uppercase tracking-wider">Your Dadu Cart is empty!</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-wider">Your Dadu Cart is empty!</p>
               <button
                 onClick={onClose}
                 className="bg-[#E21B70] hover:bg-[#C2145E] transition text-white font-black text-xs uppercase tracking-wider py-3 px-6 rounded-xl cursor-pointer shadow-xs"
@@ -590,18 +594,18 @@ export default function CartDrawer({
           ) : (
             <div className="space-y-3">
               {cartItems.map((item) => (
-                <div key={item.dishId} className="bg-zinc-900 border border-zinc-800 p-3.5 rounded-2xl flex items-center justify-between gap-3 shadow-xs">
+                <div key={item.dishId} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-2xl flex items-center justify-between gap-3 shadow-xs">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-extrabold text-sm text-zinc-100 block truncate">{item.name}</span>
+                      <span className="font-extrabold text-sm text-zinc-900 dark:text-zinc-100 block truncate">{item.name}</span>
                       {item.type === "service" && (
-                        <span className="bg-amber-950/40 border border-amber-900/40 text-amber-500 text-[9px] font-black uppercase px-2 py-0.5 rounded-sm shrink-0">
+                        <span className="bg-amber-100 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-900/40 text-amber-600 dark:text-amber-500 text-[9px] font-black uppercase px-2 py-0.5 rounded-sm shrink-0">
                           Service
                         </span>
                       )}
                     </div>
                     {item.selectedAddOns && item.selectedAddOns.length > 0 && (
-                      <div className="text-[10px] text-zinc-400 font-medium mt-0.5">
+                      <div className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
                         Add-ons: {Object.entries(item.selectedAddOns.reduce((acc, curr) => {
                           acc[curr.name] = (acc[curr.name] || 0) + 1;
                           return acc;
@@ -609,28 +613,28 @@ export default function CartDrawer({
                       </div>
                     )}
                     {item.specialInstructions && (
-                      <div className="text-[10px] text-zinc-400 font-medium mt-0.5 italic">
+                      <div className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 italic">
                         Note: {item.specialInstructions}
                       </div>
                     )}
                     <div className="text-[10px] text-[#E21B70] dark:text-[#FF4D94] font-extrabold tracking-wider uppercase flex items-center gap-1 select-none mt-0.5">
                       <span>🏪</span> {item.restaurantName || "Dadu Fast Food & Kitchen"}
                     </div>
-                    <span className="text-xs text-zinc-400 font-bold block mt-0.5">Rs. {item.price} each</span>
+                    <span className="text-xs text-zinc-500 dark:text-zinc-400 font-bold block mt-0.5">Rs. {item.price} each</span>
                   </div>
 
                   {/* Quantity adjustments */}
-                  <div className="flex items-center gap-2 select-none shrink-0 bg-zinc-950 border border-zinc-800 p-1 rounded-xl">
+                  <div className="flex items-center gap-2 select-none shrink-0 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-1 rounded-xl">
                     <button
                       onClick={() => onUpdateQuantity(item.dishId, item.quantity - 1)}
-                      className="w-9 h-9 rounded-lg text-sm bg-zinc-900 border border-zinc-800 text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-800"
+                      className="w-9 h-9 rounded-lg text-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800"
                     >
                       -
                     </button>
-                    <span className="text-xs font-black min-w-4 text-center text-zinc-200">{item.quantity}</span>
+                    <span className="text-xs font-black min-w-4 text-center text-zinc-800 dark:text-zinc-200">{item.quantity}</span>
                     <button
                       onClick={() => onUpdateQuantity(item.dishId, item.quantity + 1)}
-                      className="w-9 h-9 rounded-lg text-sm bg-zinc-900 border border-zinc-800 text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-800"
+                      className="w-9 h-9 rounded-lg text-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800"
                     >
                       +
                     </button>
@@ -638,7 +642,7 @@ export default function CartDrawer({
 
                   <button
                     onClick={() => onRemoveItem(item.dishId)}
-                    className="p-1 text-zinc-450 hover:text-[#E21B70] shrink-0 transition cursor-pointer"
+                    className="p-1 text-zinc-500 dark:text-zinc-400 hover:text-[#E21B70] shrink-0 transition cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -647,9 +651,86 @@ export default function CartDrawer({
             </div>
           )}
 
+          {/* Popular with your order — real bestsellers from the live menu */}
+          {cartItems.length > 0 && popularDishes.length > 0 && onAddPopularDish && (
+            <div className="bg-gradient-to-br from-[#E21B70]/5 to-white dark:to-zinc-900 border border-[#E21B70]/15 p-4 rounded-3xl mt-4 space-y-3 shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black uppercase tracking-wider text-[#E21B70] flex items-center gap-1.5">
+                  <span className="text-base">🔥</span> Popular with your order
+                </span>
+                <span className="bg-[#E21B70]/10 text-[#E21B70] text-[8px] font-black uppercase px-2 py-0.5 rounded-full">
+                  Bestsellers
+                </span>
+              </div>
+              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-semibold leading-tight">
+                Dadu's most-loved dishes — tap + to add one to your order.
+              </p>
+
+              <div className="flex gap-3 overflow-x-auto pb-1 pr-3 scrollbar-none snap-x snap-mandatory">
+                {popularDishes.filter((d) => d.isAvailable !== false).map((dish) => {
+                  const alreadyInCart = cartItems.find(item => item.dishId === dish.id);
+                  const price = dish.discountPrice && dish.discountPrice > 0 ? dish.discountPrice : dish.price;
+                  return (
+                    <div
+                      key={dish.id}
+                      className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800/80 rounded-2xl p-2.5 w-36 shrink-0 flex flex-col justify-between gap-2 snap-start hover:border-[#E21B70]/30 transition"
+                    >
+                      <div className="relative h-20 rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-900 shrink-0">
+                        <LazyImage
+                          src={dish.imageUrl}
+                          alt={dish.name}
+                          className="w-full h-full"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="absolute top-1 left-1 bg-black/60 backdrop-blur-xs text-[8px] font-black text-white px-1.5 py-0.5 rounded">
+                          Rs. {price}
+                        </div>
+                      </div>
+
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <h5 className="font-extrabold text-[11px] text-zinc-900 dark:text-zinc-100 truncate leading-tight">{dish.name}</h5>
+                        <p className="text-[9px] text-zinc-500 dark:text-zinc-400 font-semibold truncate leading-none">{dish.restaurantName || "Dadu Fast Food & Kitchen"}</p>
+                      </div>
+
+                      {alreadyInCart ? (
+                        <div className="flex items-center justify-between bg-[#E21B70]/10 border border-[#E21B70]/20 p-0.5 rounded-xl text-xs">
+                          <button
+                            type="button"
+                            onClick={() => onUpdateQuantity(dish.id, alreadyInCart.quantity - 1)}
+                            aria-label="Decrease quantity"
+                            className="w-5 h-5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                          >
+                            -
+                          </button>
+                          <span className="text-[10px] font-black text-zinc-800 dark:text-zinc-200">{alreadyInCart.quantity}</span>
+                          <button
+                            type="button"
+                            onClick={() => onUpdateQuantity(dish.id, alreadyInCart.quantity + 1)}
+                            aria-label="Increase quantity"
+                            className="w-5 h-5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                          >
+                            +
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => onAddPopularDish(dish)}
+                          className="w-full bg-[#E21B70] hover:bg-[#C2145E] text-white py-1.5 rounded-xl font-black text-[9px] uppercase tracking-wider transition cursor-pointer text-center hover:scale-[1.02] active:scale-95"
+                        >
+                          + Add Dish
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Checkout-Exclusive Drinks Recommendation Section */}
           {cartItems.length > 0 && (
-            <div className="bg-gradient-to-br from-[#E21B70]/5 to-zinc-900 border border-[#E21B70]/15 p-4 rounded-3xl mt-4 space-y-3 shadow-xs">
+            <div className="bg-gradient-to-br from-[#E21B70]/5 to-white dark:to-zinc-900 border border-[#E21B70]/15 p-4 rounded-3xl mt-4 space-y-3 shadow-xs">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-black uppercase tracking-wider text-[#E21B70] flex items-center gap-1.5">
                   <span className="text-base">🥤</span> Complete Your Meal
@@ -658,19 +739,19 @@ export default function CartDrawer({
                   Checkout Exclusive
                 </span>
               </div>
-              <p className="text-[10px] text-zinc-400 font-semibold leading-tight">
+              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-semibold leading-tight">
                 Add an ice-cold beverage to go with your hot food! (Served chilled)
               </p>
 
-              <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none snap-x snap-mandatory">
+              <div className="flex gap-3 overflow-x-auto pb-1 pr-3 scrollbar-none snap-x snap-mandatory">
                 {CHECKOUT_DRINKS.map((drink) => {
                   const alreadyInCart = cartItems.find(item => item.dishId === drink.id);
                   return (
                     <div 
                       key={drink.id} 
-                      className="bg-zinc-950 border border-zinc-800/80 rounded-2xl p-2.5 w-36 shrink-0 flex flex-col justify-between gap-2 snap-start hover:border-[#E21B70]/30 transition"
+                      className="bg-white dark:bg-zinc-950 border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl p-2.5 w-36 shrink-0 flex flex-col justify-between gap-2 snap-start hover:border-[#E21B70]/30 transition"
                     >
-                      <div className="relative h-20 rounded-xl overflow-hidden bg-zinc-900 shrink-0">
+                      <div className="relative h-20 rounded-xl overflow-hidden bg-white dark:bg-zinc-900 shrink-0">
                         <LazyImage 
                           src={drink.imageUrl} 
                           alt={drink.name} 
@@ -683,8 +764,8 @@ export default function CartDrawer({
                       </div>
                       
                       <div className="space-y-1 min-w-0 flex-1">
-                        <h5 className="font-extrabold text-[11px] text-zinc-100 truncate leading-tight">{drink.name}</h5>
-                        <p className="text-[9px] text-zinc-500 font-semibold truncate leading-none">{drink.description}</p>
+                        <h5 className="font-extrabold text-[11px] text-zinc-900 dark:text-zinc-100 truncate leading-tight">{drink.name}</h5>
+                        <p className="text-[9px] text-zinc-500 dark:text-zinc-500 font-semibold truncate leading-none">{drink.description}</p>
                       </div>
 
                       {alreadyInCart ? (
@@ -692,15 +773,15 @@ export default function CartDrawer({
                           <button
                             type="button"
                             onClick={() => onUpdateQuantity(drink.id, alreadyInCart.quantity - 1)}
-                            className="w-5 h-5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-800"
+                            className="w-5 h-5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800"
                           >
                             -
                           </button>
-                          <span className="text-[10px] font-black text-zinc-200">{alreadyInCart.quantity}</span>
+                          <span className="text-[10px] font-black text-zinc-800 dark:text-zinc-200">{alreadyInCart.quantity}</span>
                           <button
                             type="button"
                             onClick={() => onUpdateQuantity(drink.id, alreadyInCart.quantity + 1)}
-                            className="w-5 h-5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-800"
+                            className="w-5 h-5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800"
                           >
                             +
                           </button>
@@ -723,8 +804,8 @@ export default function CartDrawer({
 
           {/* Checkout address inputs flow */}
           {cartItems.length > 0 && (
-            <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-3xl mt-6 space-y-4 shadow-3xs">
-              <h4 className="text-xs font-black uppercase tracking-wider text-zinc-300 border-b border-zinc-800 pb-2 flex items-center gap-1.5">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-3xl mt-6 space-y-4 shadow-3xs">
+              <h4 className="text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300 border-b border-zinc-200 dark:border-zinc-800 pb-2 flex items-center gap-1.5">
                 <MapPin className="w-4 h-4 text-[#E21B70]" />
                 Delivery Information Details
               </h4>
@@ -732,8 +813,8 @@ export default function CartDrawer({
               <div className="space-y-2.5 pt-2">
                 {currentUser ? (
                   <div className="space-y-3">
-                    <div className="bg-zinc-950 p-3 rounded-xl border border-zinc-800 space-y-1.5">
-                      <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider block">Customer Name</span>
+                    <div className="bg-white dark:bg-zinc-950 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-1.5">
+                      <span className="text-[10px] font-black uppercase text-zinc-500 dark:text-zinc-400 tracking-wider block">Customer Name</span>
                       <input
                         type="text"
                         value={nameInput}
@@ -742,13 +823,13 @@ export default function CartDrawer({
                           if (checkoutError) setCheckoutError(null);
                         }}
                         placeholder="Apna naam likhein (e.g. Ali Ahmed)..."
-                        className="w-full bg-zinc-900 border border-zinc-700 focus:border-[#E21B70] rounded-lg px-2.5 py-1.5 text-xs text-white placeholder:text-zinc-500 focus:outline-none font-bold"
+                        className="w-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 focus:border-[#E21B70] rounded-lg px-2.5 py-1.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none font-bold"
                       />
                     </div>
 
-                    <div className="bg-zinc-950 p-3 rounded-xl border border-zinc-800 space-y-2">
+                    <div className="bg-white dark:bg-zinc-950 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider flex items-center gap-1.5">
+                        <span className="text-[10px] font-black uppercase text-zinc-500 dark:text-zinc-400 tracking-wider flex items-center gap-1.5">
                           <MapPin className="w-3.5 h-3.5 text-[#E21B70]" />
                           Delivery Address
                         </span>
@@ -765,7 +846,7 @@ export default function CartDrawer({
                       </div>
 
                       {addressSaveSuccess && (
-                        <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-bold flex items-center gap-1.5 animate-fadeIn">
+                        <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold flex items-center gap-1.5 animate-fadeIn">
                           <Check className="w-3.5 h-3.5 shrink-0" />
                           Address updated in database successfully!
                         </div>
@@ -783,7 +864,7 @@ export default function CartDrawer({
                                 className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition cursor-pointer border ${
                                   addressLabel === tag
                                     ? "bg-[#E21B70] text-white border-[#E21B70]"
-                                    : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
+                                    : "bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:text-zinc-900 dark:hover:text-white"
                                 }`}
                               >
                                 {tag === "Ghar" ? "🏠 Ghar" : tag === "Dukan / Office" ? "🏪 Dukan / Office" : tag === "Hostel" ? "🎓 Hostel" : "📍 Other"}
@@ -798,7 +879,7 @@ export default function CartDrawer({
                             }}
                             placeholder="Enter full delivery address (House/Shop #, Street, Area, Dadu)..."
                             rows={3}
-                            className="w-full bg-zinc-900 border border-zinc-700 focus:border-[#E21B70] rounded-xl p-2.5 text-xs text-white placeholder:text-zinc-600 focus:outline-none resize-none font-medium leading-relaxed"
+                            className="w-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 focus:border-[#E21B70] rounded-xl p-2.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none resize-none font-medium leading-relaxed"
                             autoFocus
                           />
                           {addressError && (
@@ -812,7 +893,7 @@ export default function CartDrawer({
                                 setAddressError(null);
                               }}
                               disabled={isSavingAddress}
-                              className="px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-400 hover:text-white bg-zinc-900 border border-zinc-800 transition cursor-pointer"
+                              className="px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 transition cursor-pointer"
                             >
                               Cancel
                             </button>
@@ -837,7 +918,7 @@ export default function CartDrawer({
                           </div>
                         </div>
                       ) : currentUser.address ? (
-                        <p className="text-xs text-zinc-200 font-bold leading-normal bg-zinc-900/60 p-2 rounded-lg border border-zinc-850">
+                        <p className="text-xs text-zinc-800 dark:text-zinc-200 font-bold leading-normal bg-zinc-200/70 dark:bg-zinc-900/60 p-2 rounded-lg border border-zinc-200 dark:border-zinc-850">
                           {currentUser.address}
                         </p>
                       ) : (
@@ -846,7 +927,7 @@ export default function CartDrawer({
                           <button
                             type="button"
                             onClick={handleStartEditAddress}
-                            className="text-[11px] underline font-black text-white cursor-pointer"
+                            className="text-[11px] underline font-black text-rose-600 dark:text-white cursor-pointer"
                           >
                             + Click here to add your delivery address
                           </button>
@@ -855,8 +936,8 @@ export default function CartDrawer({
 
                       {/* 1-Tap Saved Recent Addresses */}
                       {savedAddresses.length > 0 && (
-                        <div className="pt-1.5 space-y-1.5 border-t border-zinc-800/80">
-                          <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-zinc-500 block">
+                        <div className="pt-1.5 space-y-1.5 border-t border-zinc-200/80 dark:border-zinc-800/80">
+                          <span className="text-[9.5px] font-extrabold uppercase tracking-wider text-zinc-500 dark:text-zinc-500 block">
                             1-Tap Saved Addresses
                           </span>
                           <div className="flex flex-wrap gap-1.5">
@@ -881,13 +962,13 @@ export default function CartDrawer({
                                   title={entry.address}
                                   className={`max-w-full text-left px-2.5 py-1.5 rounded-xl text-[10.5px] font-bold transition cursor-pointer flex items-center gap-1.5 border ${
                                     isActive
-                                      ? "bg-[#E21B70]/15 border-[#E21B70]/60 text-pink-200"
-                                      : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-zinc-600"
+                                      ? "bg-[#E21B70]/15 border-[#E21B70]/60 text-pink-700 dark:text-pink-200"
+                                      : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-600"
                                   }`}
                                 >
                                   <span>{icon}</span>
-                                  <span className="font-black text-white shrink-0">{entry.label}:</span>
-                                  <span className="truncate max-w-[140px] text-zinc-400">{entry.address}</span>
+                                  <span className="font-black text-zinc-900 dark:text-white shrink-0">{entry.label}:</span>
+                                  <span className="truncate max-w-[140px] text-zinc-500 dark:text-zinc-400">{entry.address}</span>
                                 </button>
                               );
                             })}
@@ -897,16 +978,16 @@ export default function CartDrawer({
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-zinc-950 border border-zinc-800 p-4 rounded-xl text-center">
-                    <p className="text-xs text-zinc-400 font-semibold">Please sign in to place your order</p>
+                  <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-4 rounded-xl text-center">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 font-semibold">Please sign in to place your order</p>
                   </div>
                 )}
 
                 {userCoords ? (
-                  <div className="bg-zinc-950 border border-emerald-500/30 rounded-xl overflow-hidden relative">
+                  <div className="bg-white dark:bg-zinc-950 border border-emerald-500/30 rounded-xl overflow-hidden relative">
                     {/* Simulated Map Background */}
-                    <div className="h-24 w-full bg-zinc-900 relative overflow-hidden">
-                      <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-emerald-500 via-zinc-900 to-zinc-900"></div>
+                    <div className="h-24 w-full bg-white dark:bg-zinc-900 relative overflow-hidden">
+                      <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-emerald-500 via-white dark:via-zinc-900 to-white dark:to-zinc-900"></div>
                       {/* Grid pattern */}
                       <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(#3f3f46 1px, transparent 1px), linear-gradient(90deg, #3f3f46 1px, transparent 1px)', backgroundSize: '20px 20px', opacity: 0.2 }}></div>
                       {/* Pin */}
@@ -920,20 +1001,20 @@ export default function CartDrawer({
                     <div className="p-3">
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <div className="flex items-center gap-1.5 text-emerald-400 font-bold text-[10px] uppercase tracking-wider mb-1">
+                          <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] uppercase tracking-wider mb-1">
                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                             Location coordinates attached
                           </div>
-                          <p className="text-zinc-200 text-xs font-bold">{currentUser?.savedLocation?.area || currentUser?.address?.split(',')[0]?.trim() || "Location detected"}</p>
-                          <p className="text-zinc-400 text-[10px]">{currentUser?.savedLocation?.street || currentUser?.address?.split(',')[1]?.trim() || "Auto-filled"}</p>
+                          <p className="text-zinc-800 dark:text-zinc-200 text-xs font-bold">{currentUser?.savedLocation?.area || currentUser?.address?.split(',')[0]?.trim() || "Location detected"}</p>
+                          <p className="text-zinc-500 dark:text-zinc-400 text-[10px]">{currentUser?.savedLocation?.street || currentUser?.address?.split(',')[1]?.trim() || "Auto-filled"}</p>
                         </div>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-zinc-950 border border-zinc-800 p-3.5 rounded-xl flex flex-col items-center text-center gap-2">
-                    <MapPin className={`w-5 h-5 ${locationTimedOut ? "text-[#E21B70]" : "text-zinc-400 animate-pulse"}`} />
-                    <p className="text-zinc-200 text-xs font-bold">
+                  <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-xl flex flex-col items-center text-center gap-2">
+                    <MapPin className={`w-5 h-5 ${locationTimedOut ? "text-[#E21B70]" : "text-zinc-500 dark:text-zinc-400 animate-pulse"}`} />
+                    <p className="text-zinc-800 dark:text-zinc-200 text-xs font-bold">
                       {locationTimedOut
                         ? "GPS unavailable — proceed smoothly with your manual Dadu address!"
                         : "Checking optional GPS signal..."}
@@ -949,8 +1030,8 @@ export default function CartDrawer({
                 )}
 
                 {/* Editable Contact Phone Number */}
-                <div className="bg-zinc-950 border border-zinc-800 p-3.5 rounded-xl space-y-2">
-                  <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-xl space-y-2">
+                  <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
                     <Phone className="w-3.5 h-3.5 text-[#E21B70]" /> Contact Phone Number *
                   </label>
                   <input
@@ -959,13 +1040,13 @@ export default function CartDrawer({
                     value={phoneInput}
                     onChange={(e) => setPhoneInput(e.target.value.replace(/\D/g, "").slice(0, 11))}
                     placeholder="03XX-XXXXXXX"
-                    className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-100 text-xs font-bold focus:outline-none focus:border-[#E21B70]"
+                    className="w-full px-3 py-2 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 text-xs font-bold focus:outline-none focus:border-[#E21B70]"
                   />
                 </div>
 
                 {/* Payment Method Selector (ONLY Cash on Delivery & Easypaisa) */}
-                <div className="bg-zinc-950 border border-zinc-800 p-3.5 rounded-xl space-y-2">
-                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-400 block">
+                <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-xl space-y-2">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block">
                     Payment Method
                   </span>
                   <div className="grid grid-cols-2 gap-2">
@@ -981,7 +1062,7 @@ export default function CartDrawer({
                         className={`min-h-[44px] py-2.5 px-3 rounded-xl text-xs font-extrabold border transition cursor-pointer ${
                           paymentMethod === method
                             ? "bg-[#D70F64] border-[#D70F64] text-white shadow-sm"
-                            : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-zinc-600"
+                            : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-600"
                         }`}
                       >
                         {method === "COD" ? "💵 Cash on Delivery" : "📱 Easypaisa"}
@@ -1000,8 +1081,8 @@ export default function CartDrawer({
                 </div>
 
                 {/* Delivery Timing: Deliver Now vs Scheduled Pre-Order */}
-                <div className="bg-zinc-950 border border-zinc-800 p-3.5 rounded-xl space-y-2">
-                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-400 block">
+                <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-xl space-y-2">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block">
                     Delivery Timing
                   </span>
                   <div className="grid grid-cols-2 gap-2">
@@ -1011,7 +1092,7 @@ export default function CartDrawer({
                       className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition cursor-pointer ${
                         !isScheduled
                           ? "bg-[#E21B70] border-[#E21B70] text-white"
-                          : "bg-zinc-900 border-zinc-800 text-zinc-300"
+                          : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"
                       }`}
                     >
                       Deliver Now (ASAP)
@@ -1022,7 +1103,7 @@ export default function CartDrawer({
                       className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition cursor-pointer ${
                         isScheduled
                           ? "bg-[#E21B70] border-[#E21B70] text-white"
-                          : "bg-zinc-900 border-zinc-800 text-zinc-300"
+                          : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"
                       }`}
                     >
                       Schedule Pre-Order
@@ -1032,7 +1113,7 @@ export default function CartDrawer({
                     <select
                       value={scheduledTime}
                       onChange={(e) => setScheduledTime(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-100 text-xs font-bold"
+                      className="w-full px-3 py-2 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 text-xs font-bold"
                     >
                       <option value="Today, +45 Mins">Today, in 45 Minutes</option>
                       <option value="Today, +1 Hour">Today, in 1 Hour</option>
@@ -1046,8 +1127,8 @@ export default function CartDrawer({
 
                 {/* Delivery Speed: Saver / Standard / Priority */}
                 {hasFood && (
-                  <div className="bg-zinc-950 border border-zinc-800 p-3.5 rounded-xl space-y-2">
-                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-400 block">
+                  <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-xl space-y-2">
+                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block">
                       Delivery Speed
                     </span>
                     <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${speedOptions.length}, minmax(0, 1fr))` }}>
@@ -1059,7 +1140,7 @@ export default function CartDrawer({
                           className={`py-2 px-2 rounded-xl text-center border transition cursor-pointer ${
                             effectiveSpeed === opt.id
                               ? "bg-[#E21B70] border-[#E21B70] text-white"
-                              : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-zinc-600"
+                              : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-600"
                           }`}
                         >
                           <span className="block text-xs font-extrabold">{opt.label}</span>
@@ -1073,8 +1154,8 @@ export default function CartDrawer({
 
                 {/* Delivery Preferences: Leave at door / Message upon arrival / Cutlery */}
                 {hasFood && showDeliveryPreferences && (
-                  <div className="bg-zinc-950 border border-zinc-800 p-3.5 rounded-xl space-y-3">
-                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-400 block">
+                  <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-xl space-y-3">
+                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block">
                       Delivery Preferences
                     </span>
                     {(
@@ -1091,11 +1172,11 @@ export default function CartDrawer({
                         className="w-full flex items-center justify-between gap-3 cursor-pointer"
                       >
                         <span className="text-left">
-                          <span className="block text-xs font-bold text-zinc-100">{pref.label}</span>
-                          <span className="block text-[10px] text-zinc-400">{pref.desc}</span>
+                          <span className="block text-xs font-bold text-zinc-900 dark:text-zinc-100">{pref.label}</span>
+                          <span className="block text-[10px] text-zinc-500 dark:text-zinc-400">{pref.desc}</span>
                         </span>
                         <span
-                          className={`shrink-0 w-11 h-6 rounded-full p-0.5 transition ${pref.value ? "bg-[#E21B70]" : "bg-zinc-700"}`}
+                          className={`shrink-0 w-11 h-6 rounded-full p-0.5 transition ${pref.value ? "bg-[#E21B70]" : "bg-zinc-300 dark:bg-zinc-700"}`}
                         >
                           <span
                             className={`block w-5 h-5 rounded-full bg-white shadow transition ${pref.value ? "translate-x-5" : "translate-x-0"}`}
@@ -1108,9 +1189,9 @@ export default function CartDrawer({
 
                 {/* Optional Rider Tip */}
                 {hasFood && (
-                  <div className="bg-zinc-950 border border-zinc-800 p-3.5 rounded-xl space-y-2">
+                  <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-xl space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-400">
+                      <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                         Rider Tip (100% goes to rider)
                       </span>
                       <span className="text-[11px] font-black text-[#E21B70]">
@@ -1126,7 +1207,7 @@ export default function CartDrawer({
                           className={`py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer ${
                             riderTip === amt
                               ? "bg-[#E21B70] border-[#E21B70] text-white"
-                              : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-zinc-600"
+                              : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-600"
                           }`}
                         >
                           {amt === 0 ? "None" : `Rs. ${amt}`}
@@ -1142,11 +1223,11 @@ export default function CartDrawer({
 
           {/* Diagnostic Visitation Note for Pure Home Services ordered to omit Food terms */}
           {hasService && (
-            <div className="bg-amber-950/20 border border-amber-900/40 text-amber-500 text-xs p-3.5 rounded-3xl mt-4 flex items-start gap-2">
+            <div className="bg-amber-100 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-900/40 text-amber-600 dark:text-amber-500 text-xs p-3.5 rounded-3xl mt-4 flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500 mt-0.5" />
               <div>
                 <span className="font-extrabold block">⚠️ Visitation & Checkup Note:</span>
-                <p className="text-[10.5px] text-zinc-400 mt-1 leading-relaxed font-semibold">
+                <p className="text-[10.5px] text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed font-semibold">
                   The Rs. 500 charge is purely the diagnostic/visitation fee (Aane ke charges). Complete material and secondary repair estimates will be evaluated and quoted on-site by the technician once they inspect the job at your home.
                 </p>
               </div>
@@ -1157,12 +1238,12 @@ export default function CartDrawer({
 
         {/* Pricing Summary Bottom Card */}
         {cartItems.length > 0 && (
-          <div className="p-4 bg-zinc-950 border-t border-zinc-800 space-y-3.5 rounded-t-3xl shadow-2xl shrink-0">
+          <div className="p-4 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 space-y-3.5 rounded-t-3xl shadow-2xl shrink-0">
             {hasFood && totalFoodItemsPrice < 500 && (
-              <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-3 text-[11px] text-amber-400 flex items-start gap-2.5">
+              <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-3 text-[11px] text-amber-600 dark:text-amber-400 flex items-start gap-2.5">
                 <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-extrabold block text-amber-300">Delivery Charges Doubled (Below Rs. 500)</span>
+                  <span className="font-extrabold block text-amber-600 dark:text-amber-300">Delivery Charges Doubled (Below Rs. 500)</span>
                   Rs. 500 se kam order par delivery charges double hain. Add Rs. {500 - totalFoodItemsPrice} more of delicious food to get standard delivery rate!
                 </div>
               </div>
@@ -1201,10 +1282,10 @@ export default function CartDrawer({
                       <Ticket className="w-3.5 h-3.5" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[11px] font-black text-white truncate">
-                        Save Rs. {bestSave} with <span className="font-mono text-pink-300">{bestVoucher.code}</span>
+                      <p className="text-[11px] font-black text-zinc-900 dark:text-white truncate">
+                        Save Rs. {bestSave} with <span className="font-mono text-[#D70F64] dark:text-pink-300">{bestVoucher.code}</span>
                       </p>
-                      <p className="text-[9.5px] text-zinc-300 truncate">
+                      <p className="text-[9.5px] text-zinc-700 dark:text-zinc-300 truncate">
                         {bestVoucher.successMessage || "Instant promo discount available!"}
                       </p>
                     </div>
@@ -1221,12 +1302,12 @@ export default function CartDrawer({
             })()}
 
             {/* BENEFIT / OFFERS & DISCOUNTS COLLAPSIBLE BOX */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden transition-all duration-200">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden transition-all duration-200">
               {/* Box Click Trigger */}
               <button
                 type="button"
                 onClick={() => setIsBenefitsOpen(!isBenefitsOpen)}
-                className="w-full p-3 flex items-center justify-between gap-2.5 text-left hover:bg-zinc-850/60 transition cursor-pointer"
+                className="w-full p-3 flex items-center justify-between gap-2.5 text-left hover:bg-zinc-100/70 dark:hover:bg-zinc-850/60 transition cursor-pointer"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#E21B70]/20 via-pink-500/10 to-amber-500/20 border border-[#E21B70]/30 flex items-center justify-center shrink-0 shadow-inner">
@@ -1234,20 +1315,20 @@ export default function CartDrawer({
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-xs font-black text-white tracking-wide">
+                      <span className="text-xs font-black text-zinc-900 dark:text-white tracking-wide">
                         Offers & Benefits
                       </span>
                       {(appliedVoucher || (useCoins && coinsDeducted > 0)) ? (
-                        <span className="bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-[9px] font-black px-2 py-0.5 rounded-full animate-pulse">
+                        <span className="bg-emerald-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[9px] font-black px-2 py-0.5 rounded-full animate-pulse">
                           Rs. {voucherDiscount + coinsDeducted} Saved
                         </span>
                       ) : (
-                        <span className="bg-[#E21B70]/15 border border-[#E21B70]/25 text-pink-400 text-[9px] font-extrabold px-1.5 py-0.5 rounded-md">
+                        <span className="bg-[#E21B70]/15 border border-[#E21B70]/25 text-[#D70F64] dark:text-pink-400 text-[9px] font-extrabold px-1.5 py-0.5 rounded-md">
                           Vouchers & Coins
                         </span>
                       )}
                     </div>
-                    <p className="text-[10px] text-zinc-400 font-medium truncate mt-0.5">
+                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium truncate mt-0.5">
                       {appliedVoucher && useCoins
                         ? `Voucher: ${appliedVoucher.code} + 🪙 ${coinsDeducted} Coins Active`
                         : appliedVoucher
@@ -1260,10 +1341,10 @@ export default function CartDrawer({
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="text-[10px] font-bold text-zinc-400 hidden sm:inline">
+                  <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 hidden sm:inline">
                     {isBenefitsOpen ? "Close" : "Open"}
                   </span>
-                  <div className={`w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 transition-transform duration-300 ${isBenefitsOpen ? "rotate-180 text-white bg-[#E21B70]" : ""}`}>
+                  <div className={`w-6 h-6 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 dark:text-zinc-400 transition-transform duration-300 ${isBenefitsOpen ? "rotate-180 text-white bg-[#E21B70]" : ""}`}>
                     <ChevronDown className="w-3.5 h-3.5" />
                   </div>
                 </div>
@@ -1271,18 +1352,18 @@ export default function CartDrawer({
 
               {/* Inside Benefit Box (Shown when open) */}
               {isBenefitsOpen && (
-                <div className="p-3 pt-2.5 border-t border-zinc-800 space-y-3 bg-zinc-950/60">
+                <div className="p-3 pt-2.5 border-t border-zinc-200 dark:border-zinc-800 space-y-3 bg-zinc-100/70 dark:bg-zinc-950/60">
                   {/* VOUCHER / DISCOUNT CODE SECTION */}
-                  <div className="bg-zinc-900/90 border border-zinc-800 rounded-xl p-3 space-y-2">
+                  <div className="bg-zinc-50 dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 space-y-2">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-xs font-black text-pink-400">
+                      <div className="flex items-center gap-1.5 text-xs font-black text-[#D70F64] dark:text-pink-400">
                         <Ticket className="w-3.5 h-3.5 text-[#E21B70]" />
                         <span>Promo Voucher</span>
                       </div>
                       <button
                         type="button"
                         onClick={() => setIsVouchersModalOpen(true)}
-                        className="text-[10.5px] font-black text-[#E21B70] hover:text-pink-300 underline cursor-pointer"
+                        className="text-[10.5px] font-black text-[#E21B70] hover:text-[#C2145E] dark:hover:text-pink-300 underline cursor-pointer"
                       >
                         View My Vouchers 🎟️
                       </button>
@@ -1291,21 +1372,21 @@ export default function CartDrawer({
                     {appliedVoucher ? (
                       <div className="bg-pink-500/10 border border-[#E21B70]/30 rounded-xl p-2.5 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                          <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                           <div>
                             <div className="flex items-center gap-1.5">
-                              <span className="font-mono font-black text-xs text-white">{appliedVoucher.code}</span>
+                              <span className="font-mono font-black text-xs text-zinc-900 dark:text-white">{appliedVoucher.code}</span>
                               <span className="bg-[#E21B70] text-white text-[9px] font-black px-1.5 py-0.2 rounded-md">
                                 Rs. {voucherDiscount} OFF
                               </span>
                             </div>
-                            <span className="text-[10px] text-zinc-400 block">{appliedVoucher.title}</span>
+                            <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block">{appliedVoucher.title}</span>
                           </div>
                         </div>
                         <button
                           type="button"
                           onClick={handleRemoveVoucher}
-                          className="text-xs text-rose-400 hover:text-rose-300 font-bold px-2 py-1 bg-rose-500/10 rounded-lg cursor-pointer"
+                          className="text-xs text-rose-400 hover:text-rose-500 dark:hover:text-rose-300 font-bold px-2 py-1 bg-rose-500/10 rounded-lg cursor-pointer"
                         >
                           Remove
                         </button>
@@ -1314,7 +1395,7 @@ export default function CartDrawer({
                       <div className="space-y-1.5">
                         <div className="flex items-center gap-2">
                           <div className="relative flex-1">
-                            <Tag className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                            <Tag className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
                             <input
                               type="text"
                               placeholder="ENTER PROMO CODE"
@@ -1326,7 +1407,7 @@ export default function CartDrawer({
                                   handleApplyVoucher(voucherInputCode);
                                 }
                               }}
-                              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-8 pr-3 py-2 text-xs font-mono font-bold text-white placeholder:text-zinc-600 focus:outline-none focus:border-[#E21B70] uppercase"
+                              className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl pl-8 pr-3 py-2 text-xs font-mono font-bold text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-[#E21B70] uppercase"
                             />
                           </div>
                           <button
@@ -1345,8 +1426,8 @@ export default function CartDrawer({
                   </div>
 
                   {/* Policy banner for 1 offer limit */}
-                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-[9.5px] text-zinc-400">
-                    <Info className="w-3 h-3 text-pink-400 shrink-0" />
+                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-[9.5px] text-zinc-500 dark:text-zinc-400">
+                    <Info className="w-3 h-3 text-[#D70F64] dark:text-pink-400 shrink-0" />
                     <span>Ek order par sirf 1 offer lag sakti hai (Voucher <strong>ya</strong> Coin Discount).</span>
                   </div>
 
@@ -1356,19 +1437,19 @@ export default function CartDrawer({
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0">
                           <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0 shadow-inner">
-                            <Coins className="w-4 h-4 text-amber-400 animate-pulse" />
+                            <Coins className="w-4 h-4 text-amber-600 dark:text-amber-400 animate-pulse" />
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-black text-amber-300 truncate">
+                              <span className="text-xs font-black text-amber-600 dark:text-amber-300 truncate">
                                 🪙 Coin Benefit Discount
                               </span>
-                              <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full ${useCoins && !appliedVoucher ? 'bg-amber-400 text-zinc-950' : 'bg-zinc-800 text-zinc-400'}`}>
+                              <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full ${useCoins && !appliedVoucher ? 'bg-amber-400 text-zinc-950' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'}`}>
                                 {useCoins && !appliedVoucher ? `Rs. ${maxCoinsUsable} OFF` : 'OFF'}
                               </span>
                             </div>
-                            <span className="text-[10px] text-amber-400/90 font-bold block truncate mt-0.5">
-                              Wallet: <span className="font-mono font-black text-amber-300">{userCoins} Coins</span> (1 Coin = Rs. 1)
+                            <span className="text-[10px] text-amber-600/90 dark:text-amber-400/90 font-bold block truncate mt-0.5">
+                              Wallet: <span className="font-mono font-black text-amber-600 dark:text-amber-300">{userCoins} Coins</span> (1 Coin = Rs. 1)
                             </span>
                           </div>
                         </div>
@@ -1378,12 +1459,12 @@ export default function CartDrawer({
                           type="button"
                           onClick={handleToggleCoins}
                           className={`w-11 h-6 rounded-full transition-all relative cursor-pointer outline-none shrink-0 border ${
-                            useCoins && !appliedVoucher ? "bg-amber-500 border-amber-400 shadow-md shadow-amber-500/20" : "bg-zinc-800 border-zinc-700"
+                            useCoins && !appliedVoucher ? "bg-amber-500 border-amber-400 shadow-md shadow-amber-500/20" : "bg-zinc-200 dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700"
                           }`}
                         >
                           <span
                             className={`absolute top-0.5 left-0.5 w-4.5 h-4.5 rounded-full bg-white shadow-md transition-transform flex items-center justify-center text-[9px] font-black ${
-                              useCoins && !appliedVoucher ? "transform translate-x-5 text-amber-600" : "text-zinc-500"
+                              useCoins && !appliedVoucher ? "transform translate-x-5 text-amber-600" : "text-zinc-500 dark:text-zinc-500"
                             }`}
                           >
                             {useCoins && !appliedVoucher ? "✓" : ""}
@@ -1392,11 +1473,11 @@ export default function CartDrawer({
                       </div>
 
                       {/* Admin settings info row */}
-                      <div className="pt-2 border-t border-amber-500/20 flex items-center justify-between text-[10px] text-amber-300/80 font-semibold">
+                      <div className="pt-2 border-t border-amber-500/20 flex items-center justify-between text-[10px] text-amber-600/80 dark:text-amber-300/80 font-semibold">
                         <span>
-                          ⚡ Admin Max Limit: <strong className="text-amber-300 font-mono">Rs. {maxAllowedCoinsByAdmin}</strong>
+                          ⚡ Admin Max Limit: <strong className="text-amber-600 dark:text-amber-300 font-mono">Rs. {maxAllowedCoinsByAdmin}</strong>
                         </span>
-                        <span className="text-amber-400 font-bold">
+                        <span className="text-amber-600 dark:text-amber-400 font-bold">
                           {useCoins && !appliedVoucher ? `Applied: Rs. ${coinsDeducted}` : `Available: Rs. ${maxCoinsUsable}`}
                         </span>
                       </div>
@@ -1408,15 +1489,15 @@ export default function CartDrawer({
                     <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between text-left text-xs animate-fadeIn shadow-xs">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/35 flex items-center justify-center shrink-0">
-                          <Coins className="w-3.5 h-3.5 text-emerald-400 animate-bounce" />
+                          <Coins className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 animate-bounce" />
                         </div>
                         <div>
                           {grandTotal >= loyaltyMinOrder ? (
                             <>
-                              <span className="text-xs font-black text-emerald-300 block">
-                                🎉 Cashback: <span className="text-emerald-200 font-mono font-black">+{estimatedCoinsEarned} Coins</span>
+                              <span className="text-xs font-black text-emerald-600 dark:text-emerald-300 block">
+                                🎉 Cashback: <span className="text-emerald-700 dark:text-emerald-200 font-mono font-black">+{estimatedCoinsEarned} Coins</span>
                               </span>
-                              <span className="text-[10px] text-emerald-400/90 font-medium block mt-0.5">
+                              <span className="text-[10px] text-emerald-600/90 dark:text-emerald-400/90 font-medium block mt-0.5">
                                 {loyaltyEarnType === "fixed" 
                                   ? `Flat ${loyaltyEarnVal} Coins (Rs. ${estimatedCoinsEarned} Cashback)` 
                                   : `${loyaltyEarnVal}% Cashback on Order (Rs. ${estimatedCoinsEarned})`}
@@ -1424,10 +1505,10 @@ export default function CartDrawer({
                             </>
                           ) : (
                             <>
-                              <span className="text-xs font-black text-amber-300 block">
+                              <span className="text-xs font-black text-amber-600 dark:text-amber-300 block">
                                 💡 Rs. {loyaltyMinOrder - Math.floor(grandTotal)} Ka Aur Order Karein
                               </span>
-                              <span className="text-[10px] text-amber-400/90 font-medium block mt-0.5">
+                              <span className="text-[10px] text-amber-600/90 dark:text-amber-400/90 font-medium block mt-0.5">
                                 Min order Rs. {loyaltyMinOrder} par +{loyaltyEarnType === 'fixed' ? `${loyaltyEarnVal} Coins` : `${loyaltyEarnVal}% Coins`} cashback!
                               </span>
                             </>
@@ -1440,21 +1521,21 @@ export default function CartDrawer({
               )}
             </div>
 
-            <div className="space-y-1.5 text-xs text-zinc-400 font-semibold mt-4">
+            <div className="space-y-1.5 text-xs text-zinc-500 dark:text-zinc-400 font-semibold mt-4">
               <div className="flex justify-between">
                 <span>Items Subtotal:</span>
-                <span className="text-zinc-100 font-extrabold font-mono">Rs. {totalFoodItemsPrice}</span>
+                <span className="text-zinc-900 dark:text-zinc-100 font-extrabold font-mono">Rs. {totalFoodItemsPrice}</span>
               </div>
 
               {appliedVoucher && voucherDiscount > 0 && (
-                <div className="flex justify-between text-pink-400">
+                <div className="flex justify-between text-[#D70F64] dark:text-pink-400">
                   <span>Voucher Discount ({appliedVoucher.code}):</span>
                   <span className="font-extrabold font-mono">- Rs. {voucherDiscount}</span>
                 </div>
               )}
 
               {useCoins && coinsDeducted > 0 && (
-                <div className="flex justify-between text-amber-400">
+                <div className="flex justify-between text-amber-600 dark:text-amber-400">
                   <span>Coin Benefit Discount:</span>
                   <span className="font-extrabold font-mono">- Rs. {coinsDeducted}</span>
                 </div>
@@ -1462,9 +1543,9 @@ export default function CartDrawer({
 
               <div className="flex justify-between">
                 <span>Delivery / Service Fee:</span>
-                <span className="text-zinc-100 font-extrabold">
+                <span className="text-zinc-900 dark:text-zinc-100 font-extrabold">
                   {finalDeliveryFee === 0 ? (
-                    <span className="text-emerald-400 font-black">
+                    <span className="text-emerald-600 dark:text-emerald-400 font-black">
                       {isFreeFoodDelivery ? `FREE (Order ≥ Rs. ${freeDeliveryAbove.toLocaleString()})` : "FREE (Home Service Booking)"}
                     </span>
                   ) : (
@@ -1475,17 +1556,17 @@ export default function CartDrawer({
               {riderTip > 0 && (
                 <div className="flex justify-between">
                   <span>Rider Tip:</span>
-                  <span className="text-zinc-100 font-extrabold font-mono">Rs. {riderTip}</span>
+                  <span className="text-zinc-900 dark:text-zinc-100 font-extrabold font-mono">Rs. {riderTip}</span>
                 </div>
               )}
-              <div className="flex justify-between text-zinc-100 text-sm font-black border-t border-zinc-800 pt-2.5">
+              <div className="flex justify-between text-zinc-900 dark:text-zinc-100 text-sm font-black border-t border-zinc-200 dark:border-zinc-800 pt-2.5">
                 <span>Grand Total ({paymentMethod}):</span>
                 <span className="text-[#D70F64] text-base font-bold font-mono">Rs. {grandTotal}</span>
               </div>
             </div>
 
             {checkoutError && (
-              <div className="p-3 bg-rose-500/15 border border-rose-500/30 rounded-xl text-xs text-rose-300 font-bold flex items-center gap-2">
+              <div className="p-3 bg-rose-500/15 border border-rose-500/30 rounded-xl text-xs text-rose-500 dark:text-rose-300 font-bold flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
                 <span>{checkoutError}</span>
               </div>

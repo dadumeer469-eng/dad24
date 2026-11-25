@@ -1227,10 +1227,9 @@ export default function AdminPanel({
   const [newItemDiscountPrice, setNewItemDiscountPrice] = useState<number>(0);
   const [newItemDescription, setNewItemDescription] = useState("");
   const [newItemImageUrl, setNewItemImageUrl] = useState("");
-  const [newItemType, setNewItemType] = useState<"food" | "service">("food");
+  const [newItemType, setNewItemType] = useState<"food">("food");
   const [newItemOpeningTime, setNewItemOpeningTime] = useState("");
   const [newItemClosingTime, setNewItemClosingTime] = useState("");
-  const [newItemServiceDuration, setNewItemServiceDuration] = useState("");
   const [newItemRestaurantName, setNewItemRestaurantName] = useState("");
   const [newItemCommission, setNewItemCommission] = useState<number>(0);
   const [newItemIsBestseller, setNewItemIsBestseller] = useState<boolean>(false);
@@ -1899,15 +1898,28 @@ export default function AdminPanel({
     }
   };
 
-  const handleDeleteRider = (uid: string, name: string) => {
+  const handleDeleteRider = (uid: string, name: string, phone?: string) => {
     setConfirmDialog({
-      title: "Delete Rider Profile",
-      message: `Are you absolutely sure you want to PERMANENTLY delete and revoke Rider "${name}" access?`,
+      title: "Block Rider",
+      message: `Are you sure you want to BLOCK Rider "${name}"? They will be blacklisted and cannot sign in or re-register. (A plain delete would let them sign in again and reappear.)`,
       onConfirm: async () => {
         try {
-          await deleteDoc(doc(db, "users", uid));
+          await updateDoc(doc(db, "users", uid), {
+            status: "blocked",
+            isBlacklisted: true,
+            blockReason: "Rider access revoked by admin.",
+            needsUnblockAlert: false,
+            unblockAlertMessage: "",
+          });
+          await setDoc(doc(db, "blacklist", uid), {
+            phone: phone || "",
+            blockedAt: new Date(),
+            blockedBy: adminUsername || "admin",
+            reason: "Rider access revoked by admin",
+          });
+          alert(`❌ Rider ${name} blocked and blacklisted.`);
         } catch (err) {
-          console.error("Failed to delete rider profile:", err);
+          console.error("Failed to block rider profile:", err);
           alert(
             "Error: Database permission denied or insufficient administrative credentials.",
           );
@@ -2614,34 +2626,28 @@ export default function AdminPanel({
       price: Number(newItemPrice),
       discountPrice:
         newItemDiscountPrice > 0 ? Number(newItemDiscountPrice) : undefined,
-      category: newItemType === "service" ? "Home Services" : newItemCategory,
+      category: newItemCategory,
       imageUrl: finalImg,
       isAvailable: true,
       openingTime: newItemOpeningTime || undefined,
       closingTime: newItemClosingTime || undefined,
       type: newItemType,
       restaurantName:
-        newItemRestaurantName.trim() ||
-        (newItemType === "service"
-          ? "Dadu Home Services"
-          : "Dadu Fast Food & Kitchen"),
+        newItemRestaurantName.trim() || "Dadu Fast Food & Kitchen",
       commission: Number(newItemCommission),
       isBestseller: newItemIsBestseller,
       sizes:
-        newItemType === "food" && newItemSizes.length > 0
+        newItemSizes.length > 0
           ? newItemSizes
           : undefined,
       flavors:
-        newItemType === "food" && newItemFlavors.length > 0
+        newItemFlavors.length > 0
           ? newItemFlavors
           : undefined,
       addOns:
-        newItemType === "food" && newItemAddOns.length > 0
+        newItemAddOns.length > 0
           ? newItemAddOns
           : undefined,
-      ...(newItemType === "service" && newItemServiceDuration
-        ? { serviceDuration: newItemServiceDuration }
-        : {}),
     };
 
     try {
@@ -2652,7 +2658,6 @@ export default function AdminPanel({
       setNewItemPrice(300);
       setNewItemDiscountPrice(0);
       setNewItemImageUrl("");
-      setNewItemServiceDuration("");
       setNewItemRestaurantName("");
       setNewItemCommission(0);
       setNewItemIsBestseller(false);
@@ -4845,7 +4850,7 @@ export default function AdminPanel({
               </div>
               </div>
 
-              {/* Add New Dish / Home Service Product Form */}
+              {/* Add New Dish Form */}
               <form
                 onSubmit={handleAddNewItem}
                 className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm space-y-5 relative"
@@ -4853,7 +4858,7 @@ export default function AdminPanel({
                 <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#E21B70]/10 to-transparent" />
                 <h4 className="font-black text-sm text-slate-900 flex items-center gap-2 pb-3 border-b border-slate-200/50 uppercase tracking-wide">
                   <Plus className="w-4 h-4 text-[#E21B70]" />
-                  Register New Dish / Home Service Product
+                  Register New Dish
                 </h4>
 
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-5 text-xs">
@@ -5033,13 +5038,11 @@ export default function AdminPanel({
                     </label>
                   </div>
 
-                  {newItemType === "food" && (
-                    <>
-                      <div className="md:col-span-4 space-y-3">
-                        <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                          <label className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">
-                            Sizes & Prices (Optional)
-                          </label>
+                  <div className="md:col-span-4 space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                      <label className="text-slate-500 font-bold uppercase tracking-widest text-[9px]">
+                        Sizes & Prices (Optional)
+                      </label>
                           <button
                             type="button"
                             onClick={() =>
@@ -5295,8 +5298,6 @@ export default function AdminPanel({
                           </div>
                         ))}
                       </div>
-                    </>
-                  )}
                 </div>
 
                 <div className="flex justify-end pt-2">
@@ -7507,10 +7508,10 @@ export default function AdminPanel({
                               </span>
                               <button
                                 onClick={() =>
-                                  handleDeleteRider(rider.uid, rider.name)
+                                  handleDeleteRider(rider.uid, rider.name, rider.phone)
                                 }
                                 className="text-pink-400 hover:text-pink-300 p-1.5 rounded-lg hover:bg-red-500/10 transition cursor-pointer shrink-0"
-                                title="Delete Rider Permanent"
+                                title="Block Rider"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
