@@ -260,7 +260,7 @@ export default function GroceryModule({
           </button>
         </div>
 
-        <div className="p-2.5 sm:p-3 flex-1 flex flex-col justify-between gap-2">
+        <div className="p-2 sm:p-3 flex-1 flex flex-col justify-between gap-2">
           <div>
             <h4 className="font-bold text-[#14141A] dark:text-[#F5F5F8] text-[13px] sm:text-sm leading-snug line-clamp-2">
               {p.name}
@@ -270,24 +270,19 @@ export default function GroceryModule({
             </span>
           </div>
 
-          <div className="flex items-center justify-between gap-1.5">
-            <div className="flex items-baseline gap-1 min-w-0">
-              <span className="text-sm sm:text-[15px] font-extrabold text-[#D70F64] dark:text-[#FF4D94] font-mono tabular-nums truncate">
-                {`Rs. ${displayPrice}`}
-              </span>
-              {hasDiscount && (
-                <span className="text-[11px] text-[#717185] line-through font-mono tabular-nums truncate">
-                  {`Rs. ${p.price}`}
+          {qty > 0 && !isOutOfStock ? (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-baseline gap-1 min-w-0 overflow-hidden">
+                <span className="text-[13px] font-extrabold text-[#D70F64] dark:text-[#FF4D94] whitespace-nowrap">
+                  {`Rs. ${displayPrice}`}
                 </span>
-              )}
-            </div>
-
-            {isOutOfStock ? (
-              <span className="text-[10px] font-bold uppercase text-[#717185] px-2 py-1.5 rounded-full bg-white/70 dark:bg-white/10 shrink-0">
-                Out of Stock
-              </span>
-            ) : qty > 0 ? (
-              <div className="flex items-center gap-0.5 bg-[#D70F64] text-white p-0.5 rounded-full shrink-0 shadow-sm">
+                {hasDiscount && (
+                  <span className="hidden sm:inline text-[11px] text-[#717185] line-through whitespace-nowrap">
+                    {`Rs. ${p.price}`}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center justify-between bg-[#D70F64] text-white p-0.5 rounded-full shadow-sm">
                 <button
                   type="button"
                   onClick={() => onUpdateCartQuantity(p.id, qty - 1)}
@@ -296,7 +291,7 @@ export default function GroceryModule({
                 >
                   <Minus className="w-3.5 h-3.5" />
                 </button>
-                <span className="text-xs font-extrabold font-mono tabular-nums px-1 min-w-[18px] text-center">{qty}</span>
+                <span className="text-xs font-extrabold px-1 min-w-[18px] text-center">{qty}</span>
                 <button
                   type="button"
                   onClick={() => onUpdateCartQuantity(p.id, qty + 1)}
@@ -306,17 +301,36 @@ export default function GroceryModule({
                   <Plus className="w-3.5 h-3.5" />
                 </button>
               </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => onAddToCart(p)}
-                aria-label={`Add ${p.name} to cart`}
-                className="w-9 h-9 rounded-full btn-pink text-white flex items-center justify-center cursor-pointer active:scale-90 shrink-0 shadow-md"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between gap-1">
+              <div className="flex items-baseline gap-1 min-w-0 overflow-hidden">
+                <span className="text-xs sm:text-sm font-extrabold text-[#D70F64] dark:text-[#FF4D94] whitespace-nowrap">
+                  {`Rs. ${displayPrice}`}
+                </span>
+                {hasDiscount && (
+                  <span className="hidden sm:inline text-[11px] text-[#717185] line-through whitespace-nowrap">
+                    {`Rs. ${p.price}`}
+                  </span>
+                )}
+              </div>
+
+              {isOutOfStock ? (
+                <span className="text-[9px] font-bold uppercase text-[#717185] px-1.5 py-1 rounded-full bg-white/70 dark:bg-white/10 shrink-0">
+                  Out of Stock
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onAddToCart(p)}
+                  aria-label={`Add ${p.name} to cart`}
+                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full btn-pink text-white flex items-center justify-center cursor-pointer active:scale-90 shrink-0 shadow-md"
+                >
+                  <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     );

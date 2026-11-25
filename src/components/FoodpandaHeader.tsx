@@ -168,7 +168,7 @@ export default function FoodpandaHeader({
               <span className="flex flex-col items-center leading-none shrink-0 group-hover:scale-105 active:scale-95 transition-transform">
                 <svg
                   viewBox="0 0 24 24"
-                  className="w-6 h-6 text-white"
+                  className="w-7 h-7 text-white"
                   fill="none"
                   stroke="currentColor"
                   strokeWidth="2"
@@ -176,12 +176,12 @@ export default function FoodpandaHeader({
                   strokeLinejoin="round"
                   aria-hidden="true"
                 >
-                  <path d="M3 18h18" />
-                  <path d="M4.5 18a7.5 7.5 0 0 1 15 0" />
-                  <path d="M12 10.5V9" />
-                  <circle cx="12" cy="7.5" r="1.2" fill="currentColor" stroke="none" />
+                  <path d="M2.5 18h19" />
+                  <path d="M4 18 Q12 5.5 20 18" />
+                  <path d="M12 11.5V9.5" />
+                  <circle cx="12" cy="8" r="1.3" fill="currentColor" stroke="none" />
                 </svg>
-                <span className="text-[18px] font-black tracking-tight text-white leading-none mt-0.5">DADU</span>
+                <span className="text-[19px] font-black tracking-tight text-white leading-none mt-0.5">DADU</span>
                 <span className="text-[8px] font-bold text-white/90 tracking-wide leading-none mt-0.5">
                   Food &amp; Grocery
                 </span>
