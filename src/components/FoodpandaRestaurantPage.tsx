@@ -97,7 +97,7 @@ function CategoryDishGridBatch({
           <button
             type="button"
             onClick={() => setVisibleCount((c) => c + 24)}
-            className="min-h-[44px] px-5 py-2.5 rounded-xl bg-white dark:bg-[#14141A] border border-[#E21B70]/45 text-[#E21B70] dark:text-[#FF4D94] hover:bg-[#E21B70] hover:text-white font-bold text-xs transition-colors cursor-pointer"
+            className="min-h-[44px] px-5 py-2.5 rounded-xl bg-white dark:bg-[#14141A] border border-[#D70F64]/45 text-[#D70F64] dark:text-[#FF4D94] hover:bg-[#D70F64] hover:text-white font-bold text-xs transition-colors cursor-pointer"
           >
             Show {Math.min(remaining, 24)} More Items ({remaining} remaining)
           </button>
@@ -340,7 +340,7 @@ export default function FoodpandaRestaurantPage({
     distanceDisplay && distanceDisplay.toLowerCase() !== "nearby" ? distanceDisplay : null;
 
   return (
-    <div className="min-h-screen bg-[#F9F9FB] dark:bg-[#0B0B0F] text-[#14141A] dark:text-[#F5F5F8] font-sans pb-36 transition-colors duration-200 overflow-x-clip">
+    <div className="min-h-screen bg-[#F9F9FB] dark:bg-[#0B0B0F] text-[#14141A] dark:text-[#F5F5F8] font-sans pb-36 transition-colors duration-200 overflow-x-clip animate-slide-screen">
       {/* Hero Cover Header */}
       <div className="relative h-48 sm:h-64 w-full overflow-hidden bg-[#14141A]">
         {restaurantCoverUrl ? (
@@ -351,7 +351,7 @@ export default function FoodpandaRestaurantPage({
             imgClassName="w-full h-full object-cover opacity-85"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-[#E21B70]">
+          <div className="w-full h-full flex items-center justify-center bg-[#D70F64]">
             <Store className="w-20 h-20 text-white/25" />
           </div>
         )}
@@ -400,15 +400,15 @@ export default function FoodpandaRestaurantPage({
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full bg-[#E21B70] flex items-center justify-center text-white font-extrabold text-xl">
+                <div className="w-full h-full bg-[#D70F64] flex items-center justify-center text-white font-extrabold text-xl">
                   {restaurantName.substring(0, 2).toUpperCase()}
                 </div>
               )}
               <div
-                className="absolute bottom-1 right-1 bg-[#E21B70] text-white rounded-full p-0.5 shadow-xs"
+                className="absolute bottom-1 right-1 bg-[#D70F64] text-white rounded-full p-0.5 shadow-xs"
                 title="Verified Dadu Food Partner"
               >
-                <BadgeCheck className="w-3.5 h-3.5 fill-white text-[#E21B70]" />
+                <BadgeCheck className="w-3.5 h-3.5 fill-white text-[#D70F64]" />
               </div>
             </div>
 
@@ -440,7 +440,7 @@ export default function FoodpandaRestaurantPage({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mt-4 pt-4 border-t border-[#EFEFF5] dark:border-[#23232E]">
             {/* Honest Rating or Menu Count */}
             <div className="bg-[#F9F9FB] dark:bg-[#1B1B23] p-2.5 sm:p-3 rounded-xl flex items-center gap-2 border border-[#E6E6EE] dark:border-[#272733] min-w-0">
-              <div className="p-1.5 rounded-lg bg-[#FDF2F6] dark:bg-[#2A121D] text-[#E21B70] dark:text-[#FF4D94] shrink-0">
+              <div className="p-1.5 rounded-lg bg-[#FDF2F6] dark:bg-[#2A121D] text-[#D70F64] dark:text-[#FF4D94] shrink-0">
                 {shopProfile.rating ? (
                   <Star className="w-4 h-4 fill-current" />
                 ) : (
@@ -472,7 +472,7 @@ export default function FoodpandaRestaurantPage({
 
             {/* Delivery Time */}
             <div className="bg-[#F9F9FB] dark:bg-[#1B1B23] p-2.5 sm:p-3 rounded-xl flex items-center gap-2 border border-[#E6E6EE] dark:border-[#272733] min-w-0">
-              <div className="p-1.5 rounded-lg bg-[#FDF2F6] dark:bg-[#2A121D] text-[#E21B70] dark:text-[#FF4D94] shrink-0">
+              <div className="p-1.5 rounded-lg bg-[#FDF2F6] dark:bg-[#2A121D] text-[#D70F64] dark:text-[#FF4D94] shrink-0">
                 <Clock className="w-4 h-4" />
               </div>
               <div className="min-w-0 flex-1">
@@ -487,7 +487,7 @@ export default function FoodpandaRestaurantPage({
 
             {/* Delivery Fee (Never labelled "Nearby") */}
             <div className="bg-[#F9F9FB] dark:bg-[#1B1B23] p-2.5 sm:p-3 rounded-xl flex items-center gap-2 border border-[#E6E6EE] dark:border-[#272733] min-w-0">
-              <div className="p-1.5 rounded-lg bg-[#FDF2F6] dark:bg-[#2A121D] text-[#E21B70] dark:text-[#FF4D94] shrink-0">
+              <div className="p-1.5 rounded-lg bg-[#FDF2F6] dark:bg-[#2A121D] text-[#D70F64] dark:text-[#FF4D94] shrink-0">
                 <MapPin className="w-4 h-4" />
               </div>
               <div className="min-w-0 flex-1">
@@ -502,7 +502,7 @@ export default function FoodpandaRestaurantPage({
 
             {/* Min Order (Honest: only show amount if configured) */}
             <div className="bg-[#F9F9FB] dark:bg-[#1B1B23] p-2.5 sm:p-3 rounded-xl flex items-center gap-2 border border-[#E6E6EE] dark:border-[#272733] min-w-0">
-              <div className="p-1.5 rounded-lg bg-[#FDF2F6] dark:bg-[#2A121D] text-[#E21B70] dark:text-[#FF4D94] shrink-0">
+              <div className="p-1.5 rounded-lg bg-[#FDF2F6] dark:bg-[#2A121D] text-[#D70F64] dark:text-[#FF4D94] shrink-0">
                 <ShoppingBag className="w-4 h-4" />
               </div>
               <div className="min-w-0 flex-1">
@@ -518,7 +518,7 @@ export default function FoodpandaRestaurantPage({
 
           {/* Transparent Delivery Fee Policy Notice */}
           <p className="mt-3 text-xs font-medium text-[#5A5A6B] dark:text-[#A1A1B2] bg-[#F9F9FB] dark:bg-[#1B1B23] border border-[#E6E6EE] dark:border-[#272733] rounded-xl px-3 py-2 flex items-center gap-2">
-            <Info className="w-4 h-4 text-[#E21B70] shrink-0" />
+            <Info className="w-4 h-4 text-[#D70F64] shrink-0" />
             <span>
               Delivery fee Rs. {shopProfile.deliveryFee} standard · Doubled below Rs. 500 ·{" "}
               <strong className="text-[#14141A] dark:text-white">Free above Rs. 1,000</strong>
@@ -537,7 +537,7 @@ export default function FoodpandaRestaurantPage({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={`Search in ${restaurantName}...`}
-              className="w-full min-h-[44px] bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-xl py-2.5 pl-10 pr-10 text-sm font-medium outline-none focus:border-[#E21B70] focus:ring-2 focus:ring-[#E21B70]/20 text-[#14141A] dark:text-white transition"
+              className="w-full min-h-[44px] bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-xl py-2.5 pl-10 pr-10 text-sm font-medium outline-none focus:border-[#D70F64] focus:ring-2 focus:ring-[#D70F64]/20 text-[#14141A] dark:text-white transition"
             />
             {searchQuery && (
               <button
@@ -556,7 +556,7 @@ export default function FoodpandaRestaurantPage({
               onClick={() => setFilterType("all")}
               className={`min-h-[44px] px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer border ${
                 filterType === "all"
-                  ? "bg-[#E21B70] text-white border-[#E21B70]"
+                  ? "bg-[#D70F64] text-white border-[#D70F64]"
                   : "bg-white dark:bg-[#14141A] text-[#14141A] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733]"
               }`}
             >
@@ -567,13 +567,13 @@ export default function FoodpandaRestaurantPage({
               onClick={() => setFilterType(filterType === "bestsellers" ? "all" : "bestsellers")}
               className={`min-h-[44px] px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer border ${
                 filterType === "bestsellers"
-                  ? "bg-[#E21B70] text-white border-[#E21B70]"
+                  ? "bg-[#D70F64] text-white border-[#D70F64]"
                   : "bg-white dark:bg-[#14141A] text-[#14141A] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733]"
               }`}
             >
               <Flame
                 className={`w-3.5 h-3.5 ${
-                  filterType === "bestsellers" ? "text-white" : "text-[#E21B70]"
+                  filterType === "bestsellers" ? "text-white" : "text-[#D70F64]"
                 }`}
               />
               <span>Bestsellers</span>
@@ -606,7 +606,7 @@ export default function FoodpandaRestaurantPage({
                     onClick={() => scrollToCategory(cat)}
                     className={`min-h-[44px] whitespace-nowrap px-3.5 py-2 rounded-xl text-xs font-bold transition-colors flex items-center gap-2 cursor-pointer select-none border ${
                       isActive
-                        ? "bg-[#E21B70] text-white border-[#E21B70]"
+                        ? "bg-[#D70F64] text-white border-[#D70F64]"
                         : "bg-[#F9F9FB] dark:bg-[#1D1D26] text-[#14141A] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733]"
                     }`}
                   >
@@ -635,7 +635,7 @@ export default function FoodpandaRestaurantPage({
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base sm:text-lg font-extrabold text-[#14141A] dark:text-white flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-[#E21B70]" />
+                <Sparkles className="w-4 h-4 text-[#D70F64]" />
                 <span>Filtered Items ({filteredDishes.length})</span>
               </h2>
               <button
@@ -644,7 +644,7 @@ export default function FoodpandaRestaurantPage({
                   setSearchQuery("");
                   setFilterType("all");
                 }}
-                className="min-h-[40px] px-3 text-xs text-[#E21B70] dark:text-[#FF4D94] font-bold hover:underline cursor-pointer"
+                className="min-h-[40px] px-3 text-xs text-[#D70F64] dark:text-[#FF4D94] font-bold hover:underline cursor-pointer"
               >
                 Clear Filters
               </button>
@@ -761,7 +761,7 @@ export default function FoodpandaRestaurantPage({
           <button
             type="button"
             onClick={onViewCart}
-            className="w-full min-h-[52px] bg-[#E21B70] hover:bg-[#C2145E] text-white px-4 py-3 rounded-2xl font-bold text-sm shadow-lg transition flex items-center justify-between cursor-pointer active:scale-[0.99] group"
+            className="w-full min-h-[52px] bg-[#D70F64] hover:bg-[#B80C54] text-white px-4 py-3 rounded-2xl font-bold text-sm shadow-lg transition flex items-center justify-between cursor-pointer active:scale-[0.99] group"
           >
             <div className="flex items-center gap-2.5">
               <span className="bg-white/20 px-2.5 py-1 rounded-lg text-xs font-bold tabular-nums">
@@ -823,7 +823,7 @@ const DishCard = React.memo(function DishCard({
   return (
     <div
       className={`group relative flex gap-3 p-3.5 bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl shadow-2xs hover:shadow-sm transition-all duration-200 ${
-        !isAvailable ? "opacity-65 grayscale-[15%]" : "hover:border-[#E21B70]/45"
+        !isAvailable ? "opacity-65 grayscale-[15%]" : "hover:border-[#D70F64]/45"
       }`}
     >
       {/* Left Info Column */}
@@ -845,7 +845,7 @@ const DishCard = React.memo(function DishCard({
               />
             </span>
             {dish.isBestseller && (
-              <span className="text-[10px] font-bold text-[#E21B70] dark:text-[#FF4D94] uppercase tracking-wide">
+              <span className="text-[10px] font-bold text-[#D70F64] dark:text-[#FF4D94] uppercase tracking-wide">
                 Bestseller
               </span>
             )}
@@ -858,7 +858,7 @@ const DishCard = React.memo(function DishCard({
 
           <h3
             onClick={onAdd}
-            className="font-bold text-[#14141A] dark:text-white text-sm sm:text-[15px] leading-snug group-hover:text-[#E21B70] transition-colors cursor-pointer line-clamp-2"
+            className="font-bold text-[#14141A] dark:text-white text-sm sm:text-[15px] leading-snug group-hover:text-[#D70F64] transition-colors cursor-pointer line-clamp-2"
           >
             {dish.name}
           </h3>
@@ -872,7 +872,7 @@ const DishCard = React.memo(function DishCard({
 
         <div className="mt-2.5 flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-baseline gap-1.5">
-            <span className="font-mono font-extrabold text-[#E21B70] dark:text-[#FF4D94] text-sm tabular-nums">
+            <span className="font-mono font-extrabold text-[#D70F64] dark:text-[#FF4D94] text-sm tabular-nums">
               Rs.{" "}
               {dish.discountPrice && dish.discountPrice < dish.price
                 ? dish.discountPrice
@@ -919,11 +919,11 @@ const DishCard = React.memo(function DishCard({
                 onToggleFavorite();
               }}
               aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
-              className="absolute top-1 right-1 w-9 h-9 rounded-full bg-white/90 dark:bg-[#14141A]/90 text-[#5A5A6B] hover:text-[#E21B70] transition flex items-center justify-center cursor-pointer"
+              className="absolute top-1 right-1 w-9 h-9 rounded-full bg-white/90 dark:bg-[#14141A]/90 text-[#5A5A6B] hover:text-[#D70F64] transition flex items-center justify-center cursor-pointer"
             >
               <Heart
                 className={`w-3.5 h-3.5 ${
-                  isFavorite ? "fill-[#E21B70] text-[#E21B70]" : ""
+                  isFavorite ? "fill-[#D70F64] text-[#D70F64]" : ""
                 }`}
               />
             </button>
@@ -934,7 +934,7 @@ const DishCard = React.memo(function DishCard({
         <div className="absolute -bottom-2 inset-x-0.5 flex justify-center z-10">
           {isAvailable ? (
             quantityInCart && quantityInCart > 0 ? (
-              <div className="bg-[#E21B70] text-white px-1.5 py-1 rounded-xl font-bold text-xs shadow-md flex items-center justify-between gap-1.5 min-w-[96px]">
+              <div className="bg-[#D70F64] text-white px-1.5 py-1 rounded-xl font-bold text-xs shadow-md flex items-center justify-between gap-1.5 min-w-[96px]">
                 <button
                   type="button"
                   onClick={(e) => {
@@ -980,8 +980,8 @@ const DishCard = React.memo(function DishCard({
                 }}
                 className={`min-h-[38px] px-4 py-1.5 rounded-xl font-bold text-xs uppercase tracking-wider shadow-md transition flex items-center justify-center gap-1 active:scale-95 cursor-pointer ${
                   hasOptions
-                    ? "bg-white dark:bg-[#14141A] border-2 border-[#E21B70] text-[#E21B70] dark:text-[#FF4D94] hover:bg-[#E21B70] hover:text-white"
-                    : "bg-[#E21B70] hover:bg-[#C2145E] text-white"
+                    ? "bg-white dark:bg-[#14141A] border-2 border-[#D70F64] text-[#D70F64] dark:text-[#FF4D94] hover:bg-[#D70F64] hover:text-white"
+                    : "bg-[#D70F64] hover:bg-[#B80C54] text-white"
                 }`}
               >
                 <span>Add</span>

@@ -18,9 +18,11 @@ type SettingsTab = "profile" | "addresses" | "payments" | "notifications" | "lan
 
 const PAYMENT_OPTIONS = [
   { id: "COD", label: "Cash on Delivery (COD)", desc: "Pay cash at your doorstep when your order arrives." },
-  { id: "JazzCash", label: "JazzCash Mobile Account", desc: "Instant transfer via JazzCash 03XX account." },
-  { id: "Easypaisa", label: "Easypaisa Mobile Account", desc: "Quick payment via Easypaisa wallet." },
-  { id: "Card", label: "Debit / Credit Card", desc: "Visa or Mastercard payment on checkout." },
+  {
+    id: "Easypaisa",
+    label: "Easypaisa (Ghulam Murtaza · 03277004471)",
+    desc: "Transfer via Easypaisa and upload your receipt at checkout.",
+  },
 ];
 
 export const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
@@ -44,10 +46,11 @@ export const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
   const [newAddress, setNewAddress] = useState("");
   const [newLandmark, setNewLandmark] = useState("");
 
-  // Payment methods state
-  const [preferredPayment, setPreferredPayment] = useState<string>(
-    () => localStorage.getItem("dadu_preferred_payment") || user?.preferredPayment || "COD"
-  );
+  // Payment methods state (strictly COD or Easypaisa)
+  const [preferredPayment, setPreferredPayment] = useState<string>(() => {
+    const saved = localStorage.getItem("dadu_preferred_payment") || user?.preferredPayment || "COD";
+    return saved === "Easypaisa" ? "Easypaisa" : "COD";
+  });
   const [walletAccount, setWalletAccount] = useState<string>(
     () => localStorage.getItem("dadu_wallet_number") || user?.phone || ""
   );
@@ -352,10 +355,13 @@ export const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                   </label>
                 ))}
               </div>
-              {(preferredPayment === "JazzCash" || preferredPayment === "Easypaisa") && (
-                <div>
-                  <label className="block text-xs font-bold text-zinc-600 dark:text-zinc-300 mb-1.5">
-                    {preferredPayment} Mobile Number
+              {preferredPayment === "Easypaisa" && (
+                <div className="space-y-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 p-3.5">
+                  <p className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                    Easypaisa Account: Ghulam Murtaza · <span className="font-mono">03277004471</span>
+                  </p>
+                  <label className="block text-xs font-bold text-zinc-600 dark:text-zinc-300">
+                    Your Easypaisa Sender Number (Optional)
                   </label>
                   <input
                     type="tel"
@@ -370,7 +376,7 @@ export const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                 type="button"
                 onClick={handleSavePayment}
                 disabled={saving}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#E21B70] hover:bg-[#b50c54] text-white font-bold text-sm cursor-pointer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#D70F64] hover:bg-[#B80C54] text-white font-bold text-sm cursor-pointer"
               >
                 <Save className="w-4 h-4" /> Save Payment Preference
               </button>

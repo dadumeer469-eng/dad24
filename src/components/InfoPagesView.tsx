@@ -140,7 +140,7 @@ export const InfoPagesView: React.FC<InfoPagesViewProps> = ({ page, onBack, onNa
                 <li>Standard delivery fee is Rs. {DADU_FOOD_BUSINESS.standardDeliveryFee} across Dadu City.</li>
                 <li>Orders below Rs. {DADU_FOOD_BUSINESS.smallOrderThreshold} carry a small-order delivery fee (2x standard fee, Rs. {DADU_FOOD_BUSINESS.standardDeliveryFee * 2}).</li>
                 <li>Orders of Rs. {DADU_FOOD_BUSINESS.freeDeliveryThreshold} or more qualify for FREE delivery.</li>
-                <li>Pay flexibly with Cash on Delivery (COD), JazzCash, Easypaisa, or Card.</li>
+                <li>Pay flexibly with Cash on Delivery (COD) or Easypaisa (Ghulam Murtaza · 03277004471).</li>
               </ul>
             </section>
           </>
@@ -170,7 +170,7 @@ export const InfoPagesView: React.FC<InfoPagesViewProps> = ({ page, onBack, onNa
               </section>
               <section>
                 <h2 className="font-bold text-zinc-900 dark:text-white text-base mb-1">4. Payments</h2>
-                <p>We accept Cash on Delivery (COD), JazzCash, Easypaisa, and Debit/Credit Cards. Fraudulent orders or repeated refusals at the doorstep may result in account restriction.</p>
+                <p>We accept Cash on Delivery (COD) and Easypaisa (with receipt verification). Fraudulent orders or repeated refusals at the doorstep may result in account restriction.</p>
               </section>
             </div>
           </>
@@ -217,7 +217,7 @@ export const InfoPagesView: React.FC<InfoPagesViewProps> = ({ page, onBack, onNa
             <div className="space-y-4 text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed">
               <section>
                 <h2 className="font-bold text-zinc-900 dark:text-white text-base mb-1">1. Instant Cancellation</h2>
-                <p>Orders cancelled before kitchen preparation begins incur zero charges. Prepaid JazzCash/Easypaisa amounts are refunded within 24 hours.</p>
+                <p>Orders cancelled before kitchen preparation begins incur zero charges. Prepaid Easypaisa amounts are refunded within 24 hours.</p>
               </section>
               <section>
                 <h2 className="font-bold text-zinc-900 dark:text-white text-base mb-1">2. Missing, Wrong, or Damaged Items</h2>
@@ -225,7 +225,7 @@ export const InfoPagesView: React.FC<InfoPagesViewProps> = ({ page, onBack, onNa
               </section>
               <section>
                 <h2 className="font-bold text-zinc-900 dark:text-white text-base mb-1">3. Refund Methods</h2>
-                <p>Approved refunds are credited via JazzCash, Easypaisa, or Dadu Food Coins Wallet (your choice) within 24–48 business hours.</p>
+                <p>Approved refunds are credited via Easypaisa or Dadu Food Coins Wallet (your choice) within 24–48 business hours.</p>
               </section>
             </div>
           </>

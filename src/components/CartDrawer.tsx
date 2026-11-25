@@ -7,6 +7,7 @@ import UserVouchersModal from "./UserVouchersModal";
 import { doc, setDoc } from "firebase/firestore";
 import { db, handleFirestoreError } from "../firebase";
 import { getSavedAddresses, saveRecentAddress, SavedAddressEntry } from "../utils/savedAddresses";
+import EasypaisaPaymentBox from "./EasypaisaPaymentBox";
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -21,7 +22,8 @@ interface CartDrawerProps {
     name: string;
     phone: string;
     location: { area: string; street: string; lat?: number; lng?: number; googleMapsLink?: string };
-    paymentMethod: string;
+    paymentMethod: "COD" | "Easypaisa" | "Pay on Appointment";
+    paymentReceiptUrl?: string;
     orderType: "food" | "service";
     userCoords?: { latitude: number; longitude: number };
     coinsUsed?: number;
@@ -34,6 +36,7 @@ interface CartDrawerProps {
   userCoords?: { latitude: number; longitude: number } | null;
   systemSettings?: any;
   allVouchers?: Voucher[];
+  onRequireLocation?: () => void;
 }
 
 export default function CartDrawer({
@@ -50,6 +53,7 @@ export default function CartDrawer({
   userCoords,
   systemSettings,
   allVouchers = [],
+  onRequireLocation,
 }: CartDrawerProps) {
   const [submitting, setSubmitting] = useState(false);
   const [useCoins, setUseCoins] = useState(false);
@@ -62,9 +66,11 @@ export default function CartDrawer({
   // Customer Name, Phone, Payment, Schedule, Tip & Address states
   const [nameInput, setNameInput] = useState(currentUser?.name || "");
   const [phoneInput, setPhoneInput] = useState(currentUser?.phone || "");
-  const [paymentMethod, setPaymentMethod] = useState<"COD" | "JazzCash" | "Easypaisa" | "Card">(
-    () => (localStorage.getItem("dadu_preferred_payment") as any) || "COD"
-  );
+  const [paymentMethod, setPaymentMethod] = useState<"COD" | "Easypaisa">(() => {
+    const saved = localStorage.getItem("dadu_preferred_payment");
+    return saved === "Easypaisa" ? "Easypaisa" : "COD";
+  });
+  const [paymentReceiptUrl, setPaymentReceiptUrl] = useState<string | null>(null);
   const [riderTip, setRiderTip] = useState<number>(0);
   const [isScheduled, setIsScheduled] = useState<boolean>(false);
   const [scheduledTime, setScheduledTime] = useState<string>("Today, +1 Hour");
@@ -401,14 +407,30 @@ export default function CartDrawer({
     const finalStreet = parts.slice(1).join(",")?.trim() || "Dadu";
 
     const orderTypeValue = hasService && !hasFood ? "service" : "food";
-    const paymentMethodValue = orderTypeValue === "service" && paymentMethod === "COD" ? "Pay on Appointment" : paymentMethod;
+    const paymentMethodValue: "COD" | "Easypaisa" | "Pay on Appointment" =
+      orderTypeValue === "service" && paymentMethod === "COD" ? "Pay on Appointment" : paymentMethod;
+
+    // Strict location requirement: must have GPS coords OR valid entered/saved address
+    const hasManualAddress = currentAddr.length >= 6;
+    if (!userCoords && !hasManualAddress) {
+      setCheckoutError("Aapka order sahi address par pahunche, is liye location zaroori hai. Apni location on karein ya complete Dadu address enter karein.");
+      setSubmitting(false);
+      onRequireLocation?.();
+      return;
+    }
+
+    // Strict Easypaisa receipt upload requirement
+    if (paymentMethod === "Easypaisa" && !paymentReceiptUrl) {
+      setCheckoutError("Easypaisa payment receipt screenshot/photo upload karna zaroori hai.");
+      setSubmitting(false);
+      return;
+    }
 
     let activeCoords = userCoords;
     if (!activeCoords && currentUser?.savedLocation?.lat && currentUser?.savedLocation?.lng) {
       activeCoords = { latitude: currentUser.savedLocation.lat, longitude: currentUser.savedLocation.lng };
     }
 
-    // Fast non-blocking geolocation attempt (max 2.5s) with immediate Dadu City fallback
     if (!activeCoords && typeof navigator !== "undefined" && navigator.geolocation) {
       try {
         const coords = await new Promise<{ latitude: number; longitude: number }>((resolve, reject) => {
@@ -427,11 +449,11 @@ export default function CartDrawer({
         });
         activeCoords = coords;
       } catch {
-        // Proceed smoothly with manual address + Dadu City coordinates
+        // Proceed with verified manual Dadu address
       }
     }
 
-    if (!activeCoords) {
+    if (!activeCoords && hasManualAddress) {
       activeCoords = { latitude: 26.7322, longitude: 67.7771 };
     }
 
@@ -447,6 +469,7 @@ export default function CartDrawer({
           googleMapsLink: activeCoords ? `https://maps.google.com/?q=${activeCoords.latitude},${activeCoords.longitude}` : undefined
         },
         paymentMethod: paymentMethodValue,
+        paymentReceiptUrl: paymentMethod === "Easypaisa" ? (paymentReceiptUrl || undefined) : undefined,
         orderType: orderTypeValue,
         userCoords: activeCoords || undefined,
         coinsUsed: useCoins ? coinsDeducted : undefined,
@@ -458,6 +481,7 @@ export default function CartDrawer({
           discountAmount: voucherDiscount,
         } : undefined,
       });
+      setPaymentReceiptUrl(null);
     } catch (err) {
       console.error(err);
     } finally {
@@ -475,16 +499,39 @@ export default function CartDrawer({
         {/* Banner with close */}
         <div className="p-4 border-b border-zinc-800 bg-zinc-950 flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-2">
-            <ShoppingBag className="w-5 h-5 text-[#E21B70]" />
+            <ShoppingBag className="w-5 h-5 text-[#D70F64]" />
             <h3 className="font-extrabold text-sm tracking-wide text-zinc-100 uppercase">Your Delivery Cart</h3>
           </div>
           <button
             onClick={onClose}
+            aria-label="Close cart"
             className="p-2 hover:bg-zinc-850 rounded-full transition cursor-pointer text-zinc-400 hover:text-zinc-250"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
+
+        {/* Foodpanda 3-Step Cart Progress Bar */}
+        {cartItems.length > 0 && (
+          <div className="px-4 py-2.5 bg-zinc-950 border-b border-zinc-800/80">
+            <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wider">
+              <div className="flex items-center gap-1.5 text-emerald-400">
+                <span className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px]">✓</span>
+                <span>1. Menu</span>
+              </div>
+              <div className="flex-1 h-[2px] mx-2 bg-[#D70F64]" />
+              <div className="flex items-center gap-1.5 text-[#FF4D94]">
+                <span className="w-5 h-5 rounded-full bg-[#D70F64] text-white flex items-center justify-center text-[10px]">2</span>
+                <span>2. Cart</span>
+              </div>
+              <div className="flex-1 h-[2px] mx-2 bg-zinc-700" />
+              <div className="flex items-center gap-1.5 text-zinc-300">
+                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${currentUser && (userCoords || addressInput.trim().length >= 6) ? "bg-[#D70F64] text-white" : "bg-zinc-800 text-zinc-400"}`}>3</span>
+                <span>3. Checkout</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* List of items inside the drawer */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-zinc-950">
@@ -876,34 +923,37 @@ export default function CartDrawer({
                   />
                 </div>
 
-                {/* Payment Method Selector */}
+                {/* Payment Method Selector (ONLY Cash on Delivery & Easypaisa) */}
                 <div className="bg-zinc-950 border border-zinc-800 p-3.5 rounded-xl space-y-2">
                   <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-400 block">
                     Payment Method
                   </span>
                   <div className="grid grid-cols-2 gap-2">
-                    {(["COD", "JazzCash", "Easypaisa", "Card"] as const).map((method) => (
+                    {(["COD", "Easypaisa"] as const).map((method) => (
                       <button
                         key={method}
                         type="button"
                         onClick={() => {
                           setPaymentMethod(method);
+                          setCheckoutError(null);
                           localStorage.setItem("dadu_preferred_payment", method);
                         }}
-                        className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition cursor-pointer ${
+                        className={`min-h-[44px] py-2.5 px-3 rounded-xl text-xs font-extrabold border transition cursor-pointer ${
                           paymentMethod === method
-                            ? "bg-[#E21B70] border-[#E21B70] text-white"
+                            ? "bg-[#D70F64] border-[#D70F64] text-white shadow-sm"
                             : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-zinc-600"
                         }`}
                       >
-                        {method === "COD" ? "Cash (COD)" : method}
+                        {method === "COD" ? "💵 Cash on Delivery" : "📱 Easypaisa"}
                       </button>
                     ))}
                   </div>
-                  {(paymentMethod === "JazzCash" || paymentMethod === "Easypaisa") && (
-                    <p className="text-[10px] text-zinc-400">
-                      Send {paymentMethod} to Dadu Food account <strong className="text-zinc-200">03277004471</strong> or pay on delivery confirmation.
-                    </p>
+                  {paymentMethod === "Easypaisa" && (
+                    <EasypaisaPaymentBox
+                      receiptUrl={paymentReceiptUrl}
+                      onReceiptChange={setPaymentReceiptUrl}
+                      amount={grandTotal}
+                    />
                   )}
                 </div>
 
@@ -1326,7 +1376,7 @@ export default function CartDrawer({
               )}
               <div className="flex justify-between text-zinc-100 text-sm font-black border-t border-zinc-800 pt-2.5">
                 <span>Grand Total ({paymentMethod}):</span>
-                <span className="text-[#E21B70] text-base font-bold font-mono">Rs. {grandTotal}</span>
+                <span className="text-[#D70F64] text-base font-bold font-mono">Rs. {grandTotal}</span>
               </div>
             </div>
 
@@ -1340,14 +1390,14 @@ export default function CartDrawer({
             <button
               onClick={handleSubmitOrder}
               disabled={submitting}
-              className="w-full bg-[#E21B70] hover:bg-[#C2145E] text-white py-3.5 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75"
+              className="w-full min-h-[48px] bg-[#D70F64] hover:bg-[#B80C54] text-white py-3.5 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75 active:scale-[0.98]"
             >
               {submitting ? (
                 <>Placing Order...</>
-              ) : hasService && !hasFood ? (
+              ) : paymentMethod === "Easypaisa" ? (
                 <>
                   <ShieldCheck className="w-4 h-4" />
-                  Book Service ({paymentMethod})
+                  Submit Easypaisa Order • Rs. {grandTotal}
                 </>
               ) : isScheduled ? (
                 <>

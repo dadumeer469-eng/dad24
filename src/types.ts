@@ -263,9 +263,16 @@ export interface GroceryOrder {
   totalPrice: number;
   deliveryFee: number;
   grandTotal: number;
-  status: "placed" | "accepted" | "out_for_delivery" | "delivered" | "cancelled";
+  status: "payment_verification_pending" | "placed" | "accepted" | "out_for_delivery" | "delivered" | "cancelled";
   createdAt: any;
-  paymentMethod: "COD" | "JazzCash" | "Easypaisa" | "Card";
+  paymentMethod: "COD" | "Easypaisa";
+  paymentReceiptUrl?: string;
+  paymentVerified?: boolean;
+  paymentRejected?: boolean;
+  paymentRejectionReason?: string;
+  paymentVerifiedAt?: any;
+  paymentAccountTitle?: string;
+  paymentAccountNumber?: string;
   riderTip?: number;
   isScheduled?: boolean;
   scheduledTime?: string;

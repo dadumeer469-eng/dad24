@@ -69,7 +69,7 @@ export const HomeFaqAeoSection: React.FC<HomeFaqAeoSectionProps> = ({ language =
               {DADU_FOOD_BUSINESS.phoneDisplay}
             </a>
             <p className="text-xs text-[#5A5A6B] dark:text-[#A1A1B2] mt-0.5">
-              COD, JazzCash, Easypaisa, or Debit/Credit Card.
+              Cash on Delivery (COD) or Easypaisa.
             </p>
           </div>
         </div>

@@ -524,7 +524,13 @@ export function normalizeFoodCategories<
   const firstImageByCat = new Map<string, string>();
 
   for (const dish of normalizedDishes) {
-    if (dish.id?.startsWith("drink_")) continue;
+    if (
+      dish.id?.startsWith("drink_") ||
+      dish.category === "Drinks" ||
+      dish.category === "Beverages"
+    ) {
+      continue;
+    }
     const cat = normalizeCategoryName(dish.category);
     if (cat.toLowerCase().includes("home service")) continue;
     counts.set(cat, (counts.get(cat) || 0) + 1);

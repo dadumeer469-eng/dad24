@@ -99,23 +99,32 @@ export default function FoodDetailModal({
 
   return (
     <AnimatePresence>
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-6"
+        transition={{ duration: 0.2 }}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 sm:p-6"
       >
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-3xl sm:rounded-[32px] max-w-lg w-full overflow-hidden shadow-2xl relative max-h-[90vh] flex flex-col"
+        <motion.div
+          initial={{ y: "100%", opacity: 0.8 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: "100%", opacity: 0.8 }}
+          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          className="bg-white dark:bg-zinc-900 border-t sm:border border-zinc-100 dark:border-zinc-800 rounded-t-3xl sm:rounded-[32px] max-w-lg w-full overflow-hidden shadow-2xl relative max-h-[92vh] sm:max-h-[90vh] flex flex-col"
         >
+          {/* Mobile Bottom-Sheet Drag Handle */}
+          <div className="sm:hidden absolute top-2.5 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full bg-white/80 z-20 pointer-events-none shadow-xs" />
+
           {/* Close Button */}
           <button
+            type="button"
             onClick={onClose}
-            className="absolute top-4 right-4 z-10 w-9 h-9 bg-black/40 hover:bg-black/60 backdrop-blur-md text-white rounded-full flex items-center justify-center transition-colors cursor-pointer"
+            aria-label="Close dish details"
+            className="absolute top-4 right-4 z-10 w-10 h-10 bg-black/45 hover:bg-black/65 backdrop-blur-md text-white rounded-full flex items-center justify-center transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -127,7 +136,7 @@ export default function FoodDetailModal({
                   <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mb-4">
                      <span className="text-2xl">📋</span>
                   </div>
-                  <span className="text-[#E21B70] font-black uppercase tracking-widest text-[10px] mb-2 inline-block bg-[#E21B70]/5 px-3 py-1 rounded-full">Order Summary</span>
+                  <span className="text-[#D70F64] font-black uppercase tracking-widest text-[10px] mb-2 inline-block bg-[#D70F64]/5 px-3 py-1 rounded-full">Order Summary</span>
                   <h2 className="text-zinc-900 dark:text-zinc-100 font-black text-2xl sm:text-3xl tracking-tight leading-tight px-4">{dish.name}</h2>
                 </div>
 
@@ -145,7 +154,7 @@ export default function FoodDetailModal({
                                 <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-lg">📏</div>
                                 <span className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Size: {selectedSizeObj.name}</span>
                               </div>
-                              <span className="text-sm font-black text-[#E21B70]">Rs. {selectedSizeObj.price}</span>
+                              <span className="text-sm font-black text-[#D70F64]">Rs. {selectedSizeObj.price}</span>
                            </div>
                         )}
                         {selectedFlavorObj && (
@@ -154,7 +163,7 @@ export default function FoodDetailModal({
                                 <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-lg">🌶️</div>
                                 <span className="text-sm font-bold text-zinc-800 dark:text-zinc-200">Flavor: {selectedFlavorObj.name}</span>
                               </div>
-                              <span className="text-sm font-black text-[#E21B70]">{selectedFlavorObj.price > 0 ? `+ Rs. ${selectedFlavorObj.price}` : "Free"}</span>
+                              <span className="text-sm font-black text-[#D70F64]">{selectedFlavorObj.price > 0 ? `+ Rs. ${selectedFlavorObj.price}` : "Free"}</span>
                            </div>
                         )}
                         {selectedAddOns.map((ad, idx) => (
@@ -163,7 +172,7 @@ export default function FoodDetailModal({
                                 <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-lg">➕</div>
                                 <span className="text-sm font-bold text-zinc-800 dark:text-zinc-200">{ad.name}</span>
                               </div>
-                              <span className="text-sm font-black text-[#E21B70]">+ Rs. {ad.price}</span>
+                              <span className="text-sm font-black text-[#D70F64]">+ Rs. {ad.price}</span>
                            </div>
                         ))}
                       </div>
@@ -204,7 +213,7 @@ export default function FoodDetailModal({
                          <div className="h-px w-full bg-zinc-200/60 dark:bg-zinc-800 my-2" />
                          <div className="flex justify-between items-center pt-1">
                             <span className="text-base font-black text-zinc-900 dark:text-zinc-100">Total Amount</span>
-                            <span className="text-2xl font-black text-[#E21B70]">Rs. {totalPrice.toFixed(2)}</span>
+                            <span className="text-2xl font-black text-[#D70F64]">Rs. {totalPrice.toFixed(2)}</span>
                          </div>
                       </div>
                    </div>
@@ -227,7 +236,7 @@ export default function FoodDetailModal({
                   <button onClick={() => setShowConfirmation(false)} className="flex-1 py-4 sm:py-4.5 rounded-2xl text-sm font-black uppercase tracking-wider border-2 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-white hover:border-zinc-300 active:scale-[0.98] transition-all">
                      Change Selection
                   </button>
-                  <button onClick={handleAdd} className="flex-[2] py-4 sm:py-4.5 rounded-2xl text-sm font-black uppercase tracking-wider bg-[#E21B70] text-white hover:bg-[#C2145E] shadow-[0_8px_25px_-8px_rgba(215,15,100,0.5)] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                  <button onClick={handleAdd} className="flex-[2] py-4 sm:py-4.5 rounded-2xl text-sm font-black uppercase tracking-wider bg-[#D70F64] text-white hover:bg-[#B80C54] shadow-[0_8px_25px_-8px_rgba(215,15,100,0.5)] active:scale-[0.98] transition-all flex items-center justify-center gap-2">
                      Confirm & Add to Cart <span className="text-lg leading-none">🛒</span>
                   </button>
                 </div>
@@ -240,7 +249,7 @@ export default function FoodDetailModal({
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                 
                 <div className="absolute bottom-4 left-5 flex items-center gap-2">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider py-1 px-2.5 rounded-lg shadow-sm bg-[#E21B70] text-white">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider py-1 px-2.5 rounded-lg shadow-sm bg-[#D70F64] text-white">
                     Fresh Kitchen
                   </span>
                   <span className="text-[10px] bg-white/95 dark:bg-[#14141A]/95 backdrop-blur-sm text-[#111118] dark:text-[#F5F5F8] font-bold tracking-wider uppercase py-1 px-2.5 rounded-lg shadow-sm">
@@ -289,7 +298,7 @@ export default function FoodDetailModal({
                           }}
                           className={`flex flex-col items-center p-3 rounded-xl transition-all border ${
                             selectedSizeObj === sizeObj 
-                              ? "bg-[#E21B70]/10 border-[#E21B70] text-[#E21B70]" 
+                              ? "bg-[#D70F64]/10 border-[#D70F64] text-[#D70F64]" 
                               : "bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-600"
                           }`}
                         >
@@ -337,14 +346,14 @@ export default function FoodDetailModal({
                                 {flavorObj.price === 0 ? (
                                   <span className="text-zinc-500 dark:text-zinc-400 text-sm font-bold">Free</span>
                                 ) : (
-                                  <span className="text-[#E21B70] text-sm font-bold">+ Rs. {flavorObj.price.toFixed(2)}</span>
+                                  <span className="text-[#D70F64] text-sm font-bold">+ Rs. {flavorObj.price.toFixed(2)}</span>
                                 )}
                                 {flavorObj.originalPrice && flavorObj.originalPrice > 0 && (
                                   <span className="text-zinc-400 dark:text-zinc-500 text-xs line-through mt-0.5">Rs. {flavorObj.originalPrice.toFixed(2)}</span>
                                 )}
                               </div>
-                              <div className={`w-5 h-5 rounded-full border-[1.5px] flex items-center justify-center ${isSelected ? 'border-[#E21B70] bg-white dark:bg-zinc-900' : 'border-zinc-300 dark:border-zinc-600'}`}>
-                                {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-[#E21B70]" />}
+                              <div className={`w-5 h-5 rounded-full border-[1.5px] flex items-center justify-center ${isSelected ? 'border-[#D70F64] bg-white dark:bg-zinc-900' : 'border-zinc-300 dark:border-zinc-600'}`}>
+                                {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-[#D70F64]" />}
                               </div>
                             </div>
                           </div>
@@ -380,7 +389,7 @@ export default function FoodDetailModal({
                             </div>
                             <div className="flex items-center gap-4 px-2">
                               <div className="flex flex-col items-end">
-                                <span className="text-[#E21B70] text-sm font-bold">+ Rs. {addOn.price.toFixed(2)}</span>
+                                <span className="text-[#D70F64] text-sm font-bold">+ Rs. {addOn.price.toFixed(2)}</span>
                                 {addOn.originalPrice && addOn.originalPrice > 0 && (
                                   <span className="text-zinc-400 dark:text-zinc-500 text-xs line-through mt-0.5">Rs. {addOn.originalPrice.toFixed(2)}</span>
                                 )}
@@ -412,7 +421,7 @@ export default function FoodDetailModal({
                                     e.stopPropagation();
                                     setSelectedAddOns([...selectedAddOns, addOn]);
                                   }}
-                                  className="w-8 h-8 flex items-center justify-center text-[#E21B70] rounded-r-full active:bg-zinc-200 dark:active:bg-zinc-700"
+                                  className="w-8 h-8 flex items-center justify-center text-[#D70F64] rounded-r-full active:bg-zinc-200 dark:active:bg-zinc-700"
                                 >
                                   <Plus className="w-3.5 h-3.5" />
                                 </button>
@@ -432,7 +441,7 @@ export default function FoodDetailModal({
                     value={specialInstructions}
                     onChange={(e) => setSpecialInstructions(e.target.value)}
                     placeholder="e.g. No mayo, extra spicy..."
-                    className="w-full p-3 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-xl text-sm outline-none focus:border-[#E21B70] resize-none h-20 placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
+                    className="w-full p-3 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-xl text-sm outline-none focus:border-[#D70F64] resize-none h-20 placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
                   />
                 </div>
               </div>
@@ -444,14 +453,14 @@ export default function FoodDetailModal({
             <div className="flex items-center gap-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-full p-1 shadow-sm shrink-0">
               <button
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                className="w-10 h-10 rounded-full bg-white dark:bg-zinc-700 shadow-sm flex items-center justify-center text-zinc-600 dark:text-zinc-200 hover:text-[#E21B70] transition-colors"
+                className="w-10 h-10 rounded-full bg-white dark:bg-zinc-700 shadow-sm flex items-center justify-center text-zinc-600 dark:text-zinc-200 hover:text-[#D70F64] transition-colors"
               >
                 <Minus className="w-5 h-5" />
               </button>
               <span className="font-black text-base w-4 text-center text-zinc-900 dark:text-zinc-100">{quantity}</span>
               <button
                 onClick={() => setQuantity(quantity + 1)}
-                className="w-10 h-10 rounded-full bg-white dark:bg-zinc-700 shadow-sm flex items-center justify-center text-zinc-600 dark:text-zinc-200 hover:text-[#E21B70] transition-colors"
+                className="w-10 h-10 rounded-full bg-white dark:bg-zinc-700 shadow-sm flex items-center justify-center text-zinc-600 dark:text-zinc-200 hover:text-[#D70F64] transition-colors"
               >
                 <Plus className="w-5 h-5" />
               </button>
@@ -467,7 +476,7 @@ export default function FoodDetailModal({
                     ? 'bg-zinc-200 text-zinc-500 shadow-none hover:bg-zinc-300'
                     : isService 
                       ? 'bg-amber-500 text-neutral-950 hover:bg-amber-600 shadow-amber-500/20 active:scale-[0.98]' 
-                      : 'bg-[#E21B70] text-white hover:bg-[#C2145E] shadow-[#E21B70]/20 active:scale-[0.98]'
+                      : 'bg-[#D70F64] text-white hover:bg-[#B80C54] shadow-[#D70F64]/20 active:scale-[0.98]'
               }`}
             >
               <span>{isService ? "Book Visitation" : "Add to cart"}</span>

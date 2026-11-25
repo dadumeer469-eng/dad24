@@ -54,9 +54,9 @@ export const DADU_FOOD_FAQS: FaqItem[] = [
       "Dadu Food par minimum order aam tor par Rs. 200 hai (kuch chai aur snack shops par Rs. 150 se shuru hota hai).",
   },
   {
-    question: "Payment kaise karein (COD, JazzCash, Easypaisa)?",
+    question: "Payment kaise karein (COD aur Easypaisa)?",
     answer:
-      "Aap Cash on Delivery (COD), JazzCash, Easypaisa, ya Debit/Credit Card ke zariye aasani se checkout par payment kar sakte hain.",
+      "Aap Cash on Delivery (COD) ya Easypaisa (Ghulam Murtaza · 03277004471 par transfer kar ke receipt upload) ke zariye checkout par payment kar sakte hain.",
   },
   {
     question: "Dadu Food kis area mein delivery karta hai?",
@@ -137,7 +137,7 @@ const INFO_PAGE_META: Record<InfoPageSlug, { title: string; description: string 
   "refund-policy": {
     title: "Refund & Cancellation Policy | Dadu Food",
     description:
-      "Clear order cancellation, missing-item refund, and JazzCash/Easypaisa refund timelines for Dadu Food customers.",
+      "Clear order cancellation, missing-item refund, and Easypaisa refund timelines for Dadu Food customers.",
   },
   contact: {
     title: "Contact Dadu Food Helpline (03277004471) | Dadu Food",
@@ -169,7 +169,7 @@ export function syncPageSeo(params: {
   const origin = window.location.origin;
   let title = "Best Online Food Delivery in Dadu | Dadu Food";
   let description =
-    "Fresh, hot food delivered fast in Dadu City. Order pizza, biryani, mutton karahi, broast, chai, and groceries online. COD, JazzCash & Easypaisa. Call 03277004471.";
+    "Fresh, hot food delivered fast in Dadu City. Order pizza, biryani, mutton karahi, broast, chai, and groceries online. COD & Easypaisa. Call 03277004471.";
   let canonicalPath = "/";
   let ogImage = "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=1200&q=80&auto=format&fit=crop";
 
@@ -197,7 +197,7 @@ export function syncPageSeo(params: {
         postalCode: DADU_FOOD_BUSINESS.postalCode,
         addressCountry: DADU_FOOD_BUSINESS.country,
       },
-      paymentAccepted: "Cash on Delivery, JazzCash, Easypaisa, Credit Card, Debit Card",
+      paymentAccepted: "Cash on Delivery, Easypaisa",
       currenciesAccepted: "PKR",
     },
   ];

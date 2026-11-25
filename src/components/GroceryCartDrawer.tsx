@@ -6,6 +6,7 @@ import UserVouchersModal from "./UserVouchersModal";
 import { doc, setDoc } from "firebase/firestore";
 import { db, handleFirestoreError } from "../firebase";
 import { getSavedAddresses, saveRecentAddress, SavedAddressEntry } from "../utils/savedAddresses";
+import EasypaisaPaymentBox from "./EasypaisaPaymentBox";
 
 interface GroceryCartDrawerProps {
   isOpen: boolean;
@@ -24,7 +25,8 @@ interface GroceryCartDrawerProps {
     totalPrice: number;
     deliveryFee: number;
     grandTotal: number;
-    paymentMethod?: "COD" | "JazzCash" | "Easypaisa" | "Card";
+    paymentMethod?: "COD" | "Easypaisa";
+    paymentReceiptUrl?: string;
     userCoords?: { latitude: number; longitude: number };
     coinsUsed?: number;
     voucher?: { code: string; discountAmount: number };
@@ -32,6 +34,7 @@ interface GroceryCartDrawerProps {
   userCoords?: { latitude: number; longitude: number } | null;
   systemSettings?: any;
   allVouchers?: Voucher[];
+  onRequireLocation?: () => void;
 }
 
 export default function GroceryCartDrawer({
@@ -47,6 +50,7 @@ export default function GroceryCartDrawer({
   userCoords,
   systemSettings,
   allVouchers = [],
+  onRequireLocation,
 }: GroceryCartDrawerProps) {
   const [submitting, setSubmitting] = useState(false);
   const [useCoins, setUseCoins] = useState(false);
@@ -60,9 +64,11 @@ export default function GroceryCartDrawer({
   // Customer Name, Phone, Payment & Address editing states
   const [nameInput, setNameInput] = useState(currentUser?.name || "");
   const [phoneInput, setPhoneInput] = useState(currentUser?.phone || "");
-  const [paymentMethod, setPaymentMethod] = useState<"COD" | "JazzCash" | "Easypaisa" | "Card">(
-    () => (localStorage.getItem("dadu_preferred_payment") as any) || "COD"
-  );
+  const [paymentMethod, setPaymentMethod] = useState<"COD" | "Easypaisa">(() => {
+    const saved = localStorage.getItem("dadu_preferred_payment");
+    return saved === "Easypaisa" ? "Easypaisa" : "COD";
+  });
+  const [paymentReceiptUrl, setPaymentReceiptUrl] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [isEditingAddress, setIsEditingAddress] = useState(!currentUser?.address);
   const [addressInput, setAddressInput] = useState(currentUser?.address || "");
@@ -332,9 +338,16 @@ export default function GroceryCartDrawer({
     }
 
     const currentAddr = (addressInput.trim() || currentUser.address || "").trim();
-    if (!currentAddr || currentAddr.length < 4) {
+    const hasManualAddress = currentAddr.length >= 6;
+    if (!userCoords && !hasManualAddress) {
       setIsEditingAddress(true);
-      setCheckoutError("Ghar ya shop ka delivery address enter karein.");
+      setCheckoutError("Aapka order sahi address par pahunche, is liye location zaroori hai. Apni location on karein ya complete Dadu address enter karein.");
+      onRequireLocation?.();
+      return;
+    }
+
+    if (paymentMethod === "Easypaisa" && !paymentReceiptUrl) {
+      setCheckoutError("Easypaisa payment receipt screenshot/photo upload karna zaroori hai.");
       return;
     }
 
@@ -367,7 +380,7 @@ export default function GroceryCartDrawer({
     }
 
     const parts = currentAddr.split(",");
-    const finalArea = parts[0]?.trim() || currentAddr;
+    const finalArea = parts[0]?.trim() || currentAddr || "Dadu City";
     const finalStreet = parts.slice(1).join(",")?.trim() || "Dadu";
 
     let activeCoords = userCoords;
@@ -393,11 +406,11 @@ export default function GroceryCartDrawer({
         });
         activeCoords = coords;
       } catch {
-        // Use fallback Dadu coordinates seamlessly
+        // Proceed with verified manual Dadu address
       }
     }
 
-    if (!activeCoords) {
+    if (!activeCoords && hasManualAddress) {
       activeCoords = { latitude: 26.7322, longitude: 67.7771 };
     }
 
@@ -417,6 +430,7 @@ export default function GroceryCartDrawer({
         deliveryFee: finalDeliveryFee,
         grandTotal: grandTotal,
         paymentMethod,
+        paymentReceiptUrl: paymentMethod === "Easypaisa" ? (paymentReceiptUrl || undefined) : undefined,
         userCoords: activeCoords || undefined,
         coinsUsed: useCoins ? coinsDeducted : undefined,
         voucher: appliedVoucher ? {
@@ -424,6 +438,7 @@ export default function GroceryCartDrawer({
           discountAmount: voucherDiscount,
         } : undefined,
       });
+      setPaymentReceiptUrl(null);
       onClose();
     } catch (err) {
       console.error("Order submission fail:", err);
@@ -437,24 +452,47 @@ export default function GroceryCartDrawer({
       <div className="absolute inset-0 bg-black/80 transition-opacity" onClick={onClose} />
 
       <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-md bg-zinc-950 text-zinc-100 border-l border-zinc-900 shadow-2xl flex flex-col h-full">
+        <div className="w-screen max-w-md bg-zinc-950 text-zinc-100 border-l border-zinc-900 shadow-2xl flex flex-col h-full animate-slide-in">
           
           {/* Header */}
-          <div className="p-5 border-b border-zinc-900 flex items-center justify-between bg-zinc-900/40">
+          <div className="p-4 border-b border-zinc-900 flex items-center justify-between bg-zinc-900/40">
             <div className="flex items-center gap-2">
-              <ShoppingBag className="w-5 h-5 text-pink-500" />
+              <ShoppingBag className="w-5 h-5 text-[#D70F64]" />
               <div>
                 <h3 className="text-sm font-black uppercase tracking-wider text-zinc-100">Dadu Grocery Basket</h3>
-                <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mt-0.5">Standalone Express Checkout</p>
+                <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mt-0.5">Express Mart Checkout</p>
               </div>
             </div>
             <button
               onClick={onClose}
+              aria-label="Close grocery basket"
               className="p-2 -mr-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-900/60 transition cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
+
+          {/* Foodpanda 3-Step Progress Bar */}
+          {cartItems.length > 0 && (
+            <div className="px-4 py-2.5 bg-zinc-950 border-b border-zinc-800/80">
+              <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wider">
+                <div className="flex items-center gap-1.5 text-emerald-400">
+                  <span className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px]">✓</span>
+                  <span>1. Mart</span>
+                </div>
+                <div className="flex-1 h-[2px] mx-2 bg-[#D70F64]" />
+                <div className="flex items-center gap-1.5 text-[#FF4D94]">
+                  <span className="w-5 h-5 rounded-full bg-[#D70F64] text-white flex items-center justify-center text-[10px]">2</span>
+                  <span>2. Basket</span>
+                </div>
+                <div className="flex-1 h-[2px] mx-2 bg-zinc-700" />
+                <div className="flex items-center gap-1.5 text-zinc-300">
+                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${currentUser && (userCoords || addressInput.trim().length >= 6) ? "bg-[#D70F64] text-white" : "bg-zinc-800 text-zinc-400"}`}>3</span>
+                  <span>3. Checkout</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Cart items list */}
           <div className="flex-1 overflow-y-auto p-5 space-y-4">
@@ -1024,11 +1062,11 @@ export default function GroceryCartDrawer({
 
                 <div className="border-t border-zinc-800 my-2.5 pt-2 flex justify-between text-white font-black text-sm">
                   <span>TOTAL BILLING</span>
-                  <span className="font-mono text-[#E21B70]">Rs. {grandTotal}</span>
+                  <span className="font-mono text-[#D70F64]">Rs. {grandTotal}</span>
                 </div>
               </div>
 
-              {/* Phone + Payment Method */}
+              {/* Phone + Payment Method (ONLY COD & Easypaisa) */}
               <div className="bg-zinc-950 p-3 rounded-xl border border-zinc-800 space-y-2.5">
                 <div>
                   <label className="text-[10px] font-bold uppercase text-zinc-400 block mb-1">Contact Phone (03XXXXXXXXX)</label>
@@ -1038,25 +1076,36 @@ export default function GroceryCartDrawer({
                     value={phoneInput}
                     onChange={(e) => setPhoneInput(e.target.value.replace(/\D/g, "").slice(0, 11))}
                     placeholder="03XX-XXXXXXX"
-                    className="w-full px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-100 text-xs font-bold"
+                    className="w-full px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-100 text-xs font-bold"
                   />
                 </div>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {(["COD", "JazzCash", "Easypaisa", "Card"] as const).map((m) => (
+                <div className="grid grid-cols-2 gap-2">
+                  {(["COD", "Easypaisa"] as const).map((m) => (
                     <button
                       key={m}
                       type="button"
-                      onClick={() => setPaymentMethod(m)}
-                      className={`py-1.5 rounded-lg text-[10px] font-bold border transition cursor-pointer ${
+                      onClick={() => {
+                        setPaymentMethod(m);
+                        setCheckoutError(null);
+                        localStorage.setItem("dadu_preferred_payment", m);
+                      }}
+                      className={`min-h-[44px] py-2 rounded-xl text-xs font-extrabold border transition cursor-pointer ${
                         paymentMethod === m
-                          ? "bg-[#E21B70] border-[#E21B70] text-white"
+                          ? "bg-[#D70F64] border-[#D70F64] text-white shadow-sm"
                           : "bg-zinc-900 border-zinc-800 text-zinc-300"
                       }`}
                     >
-                      {m}
+                      {m === "COD" ? "💵 Cash on Delivery" : "📱 Easypaisa"}
                     </button>
                   ))}
                 </div>
+                {paymentMethod === "Easypaisa" && (
+                  <EasypaisaPaymentBox
+                    receiptUrl={paymentReceiptUrl}
+                    onReceiptChange={setPaymentReceiptUrl}
+                    amount={grandTotal}
+                  />
+                )}
               </div>
 
               {checkoutError && (
@@ -1069,7 +1118,7 @@ export default function GroceryCartDrawer({
               <button
                 onClick={handleCheckoutSubmit}
                 disabled={submitting}
-                className="w-full py-3.5 bg-[#E21B70] hover:bg-[#C2145E] disabled:opacity-60 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl transition active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+                className="w-full min-h-[48px] py-3.5 bg-[#D70F64] hover:bg-[#B80C54] disabled:opacity-60 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl transition active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 {submitting ? (
                   <>Placing Grocery Order...</>

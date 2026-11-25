@@ -113,7 +113,7 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
       if (status === "completed") return 4;
       return 0;
     } else {
-      if (status === "placed" || status === "pending") return 0;
+      if (status === "payment_verification_pending" || status === "placed" || status === "pending") return 0;
       if (status === "accepted" || status === "confirmed") return 1;
       if (status === "preparing") return 2;
       if (status === "out_for_delivery") return 3;
@@ -140,6 +140,7 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
 
   const getStatusBadge = (status: string) => {
     const map: Record<string, { bg: string, text: string, label: string }> = {
+      payment_verification_pending: { bg: "bg-amber-500/15 border-amber-500/35", text: "text-amber-400", label: "Payment verification pending" },
       placed: { bg: "bg-amber-500/10 border-amber-500/20", text: "text-amber-500", label: "Placed" },
       pending: { bg: "bg-amber-500/10 border-amber-500/20", text: "text-amber-500", label: "Pending" },
       accepted: { bg: "bg-sky-500/10 border-sky-500/20", text: "text-sky-400", label: "Accepted" },
@@ -147,10 +148,10 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
       preparing: { bg: "bg-purple-500/10 border-purple-500/20", text: "text-purple-400", label: "Cooking" },
       out_for_delivery: { bg: "bg-pink-500/10 border-pink-500/20", text: "text-pink-400", label: "Out For Delivery" },
       delivered: { bg: "bg-emerald-500/10 border-emerald-500/20", text: "text-emerald-400", label: "Delivered" },
-      cancelled: { bg: "bg-pink-500/10 border-red-500/20", text: "text-pink-400", label: "Cancelled x" },
+      cancelled: { bg: "bg-pink-500/10 border-red-500/20", text: "text-pink-400", label: "Cancelled" },
       
       booked: { bg: "bg-yellow-500/10 border-yellow-500/20", text: "text-yellow-500", label: "Booked" },
-      diagnostic_on_way: { bg: "bg-[#E21B70]/10 border-[#E21B70]/20", text: "text-[#E21B70]", label: "Traveling" },
+      diagnostic_on_way: { bg: "bg-[#D70F64]/10 border-[#D70F64]/20", text: "text-[#D70F64]", label: "Traveling" },
       diagnostic_underway: { bg: "bg-indigo-500/10 border-indigo-500/20", text: "text-indigo-400", label: "Inspecting" },
       completed: { bg: "bg-emerald-500/10 border-emerald-500/20", text: "text-emerald-400", label: "Completed" },
     };

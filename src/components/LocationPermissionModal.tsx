@@ -33,14 +33,16 @@ export default function LocationPermissionModal({
 
   return (
     <div
-      className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4 animate-fade-in"
       role="dialog"
       aria-modal="true"
       aria-labelledby="location-prompt-heading"
     >
-      <div className="bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-3xl p-6 max-w-sm w-full shadow-2xl relative animate-in zoom-in-95 duration-200 space-y-5">
-        <div className="w-16 h-16 bg-[#FDF2F6] dark:bg-[#2A121D] rounded-2xl flex items-center justify-center mx-auto border border-[#E21B70]/20">
-          <MapPin className="w-8 h-8 text-[#E21B70]" />
+      <div className="bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-t-3xl sm:rounded-3xl p-6 max-w-sm w-full shadow-2xl relative animate-sheet-up sm:animate-scale-up space-y-5">
+        <div className="w-10 h-1 rounded-full bg-zinc-300 dark:bg-zinc-700 mx-auto sm:hidden" />
+
+        <div className="w-16 h-16 bg-[#FFF0F5] dark:bg-[#2A101B] rounded-2xl flex items-center justify-center mx-auto border border-[#D70F64]/20">
+          <MapPin className="w-8 h-8 text-[#D70F64]" />
         </div>
 
         <div className="space-y-2 text-center">
@@ -59,7 +61,7 @@ export default function LocationPermissionModal({
           <button
             type="button"
             onClick={onAllow}
-            className="w-full min-h-[48px] bg-[#E21B70] hover:bg-[#C2145E] text-white font-extrabold py-3.5 px-4 rounded-2xl text-sm transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-sm active:scale-[0.98]"
+            className="w-full min-h-[48px] bg-[#D70F64] hover:bg-[#B80C54] text-white font-extrabold py-3.5 px-4 rounded-2xl text-sm transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-sm active:scale-[0.98]"
           >
             <Navigation className="w-4 h-4" />
             <span>Allow Location</span>
@@ -69,21 +71,21 @@ export default function LocationPermissionModal({
             <button
               type="button"
               onClick={() => setShowManualInput(true)}
-              className="w-full min-h-[44px] bg-[#F9F9FB] dark:bg-[#1B1B23] hover:bg-[#EFEFF5] dark:hover:bg-[#252530] border border-[#E6E6EE] dark:border-[#272733] text-[#14141A] dark:text-[#F5F5F8] font-bold py-3 px-4 rounded-2xl text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+              className="w-full min-h-[44px] bg-[#F7F7FA] dark:bg-[#1B1B23] hover:bg-[#EFEFF5] dark:hover:bg-[#252530] border border-[#E6E6EE] dark:border-[#272733] text-[#14141A] dark:text-[#F5F5F8] font-bold py-3 px-4 rounded-2xl text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5"
             >
-              <Edit3 className="w-3.5 h-3.5 text-[#E21B70]" />
+              <Edit3 className="w-3.5 h-3.5 text-[#D70F64]" />
               <span>Enter Manual Dadu Address Instead</span>
             </button>
           )}
 
           {showManualInput && onManualAddressSave && (
-            <form onSubmit={handleSaveManual} className="space-y-2.5 pt-1">
+            <form onSubmit={handleSaveManual} className="space-y-2.5 pt-1 animate-fade-in">
               <textarea
                 rows={2}
                 value={manualAddress}
                 onChange={(e) => setManualAddress(e.target.value)}
                 placeholder="House/Shop #, Street, Mohalla / Road (e.g., Station Road, Dadu)"
-                className="w-full rounded-xl bg-[#F9F9FB] dark:bg-[#1B1B23] border border-[#E6E6EE] dark:border-[#272733] px-3 py-2.5 text-xs font-medium text-[#14141A] dark:text-white focus:outline-none focus:border-[#E21B70]"
+                className="w-full rounded-xl bg-[#F7F7FA] dark:bg-[#1B1B23] border border-[#E6E6EE] dark:border-[#272733] px-3 py-2.5 text-xs font-medium text-[#14141A] dark:text-white focus:outline-none focus:border-[#D70F64]"
               />
               {manualError && (
                 <p className="text-[11px] font-semibold text-rose-500">{manualError}</p>

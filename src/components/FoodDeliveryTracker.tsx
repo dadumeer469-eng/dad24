@@ -349,9 +349,12 @@ export default function FoodDeliveryTracker({
     }, 220);
   };
 
-  let statusTitle = "Order Received";
-  let statusSubtitle = "Waiting for restaurant confirmation";
-  let gaugePercent = "18";
+  const isPaymentPending = normalizedStatus === "payment_verification_pending";
+  let statusTitle = isPaymentPending ? "Payment verification pending" : "Order Received";
+  let statusSubtitle = isPaymentPending
+    ? "Admin is verifying your Easypaisa receipt (03277004471)"
+    : "Waiting for restaurant confirmation";
+  let gaugePercent = isPaymentPending ? "12" : "18";
 
   if (isDelivered) {
     statusTitle = "Order Delivered!";

@@ -172,7 +172,7 @@ function BannerLiveChatButton({
     <button
       type="button"
       onClick={onClick}
-      className="bg-[#E21B70] hover:bg-[#C2145E] text-white px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider text-center transition cursor-pointer shadow-2xs active:scale-95 flex items-center gap-1.5 relative"
+      className="bg-[#D70F64] hover:bg-[#B80C54] text-white px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider text-center transition cursor-pointer shadow-2xs active:scale-95 flex items-center gap-1.5 relative"
     >
       <span>💬 Live Chat</span>
       {unreadCount > 0 && (
@@ -493,7 +493,28 @@ export default function App() {
   const [globalCoords, setGlobalCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
   const [locationPromptDismissed, setLocationPromptDismissed] = useState(false);
+  const [locationRequiredForOrder, setLocationRequiredForOrder] = useState(false);
+  const [manualAddress, setManualAddress] = useState<{ area: string; street: string } | null>(() => {
+    try {
+      const saved = localStorage.getItem("dadu_manual_address");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [gmpQuotaExceeded, setGmpQuotaExceeded] = useState(false);
+
+  // Floating Promo Countdown Banner State (ticks every second for live urgency)
+  const [promoBannerDismissed, setPromoBannerDismissed] = useState(false);
+  const [promoCountdownSec, setPromoCountdownSec] = useState(42 * 60 + 18);
+
+  useEffect(() => {
+    if (promoBannerDismissed) return;
+    const interval = setInterval(() => {
+      setPromoCountdownSec((prev) => (prev > 1 ? prev - 1 : 45 * 60));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [promoBannerDismissed]);
 
   useEffect(() => {
     const onQuotaExceeded = () => setGmpQuotaExceeded(true);
@@ -529,37 +550,102 @@ export default function App() {
     return userDistanceFromBase > deliverySettings.riderRangeKm;
   }, [userDistanceFromBase, deliverySettings]);
 
-  useEffect(() => {
-    // Wait for splash screen to finish
-    if (showSplash) return;
-    if (locationPromptDismissed) return;
-    if (globalCoords) return;
+  const nativeLocationRequestedRef = useRef(false);
 
-    // Check if permission already granted or prompt needed
-    navigator.permissions.query({ name: 'geolocation' }).then((result) => {
-      if (result.state === 'granted') {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => setGlobalCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-          () => {},
-          { enableHighAccuracy: true }
-        );
-      } else if (result.state === 'prompt') {
-        // Show our custom modal before requesting
+  // FIRST-VISIT LOCATION: Trigger browser's NATIVE geolocation dialog directly first.
+  // Only if the user denies or geolocation fails/unavailable, show the Urdu "Apni Location On Karein" prompt.
+  useEffect(() => {
+    if (showSplash) return;
+    if (globalCoords) return;
+    if (nativeLocationRequestedRef.current) return;
+    nativeLocationRequestedRef.current = true;
+
+    if (!navigator.geolocation) {
+      if (!manualAddress && !locationPromptDismissed) {
         setShowLocationPrompt(true);
       }
-    }).catch(() => {
-      // Fallback if permissions API not supported
-      setShowLocationPrompt(true);
-    });
-  }, [showSplash, locationPromptDismissed, globalCoords]);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setGlobalCoords({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        });
+        setShowLocationPrompt(false);
+        setLocationRequiredForOrder(false);
+      },
+      () => {
+        // User denied or blocked browser geolocation -> show exact Urdu modal with Allow Location + manual fallback
+        if (!manualAddress && !locationPromptDismissed) {
+          setShowLocationPrompt(true);
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, [showSplash, globalCoords, manualAddress, locationPromptDismissed]);
 
   const requestLocation = () => {
-    setShowLocationPrompt(false);
+    if (!navigator.geolocation) {
+      setShowLocationPrompt(true);
+      return;
+    }
     navigator.geolocation.getCurrentPosition(
-      (pos) => setGlobalCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
-      (err) => console.log("Location denied or error:", err),
-      { enableHighAccuracy: true }
+      (pos) => {
+        setGlobalCoords({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        });
+        setShowLocationPrompt(false);
+        setLocationRequiredForOrder(false);
+        setToastNotification({
+          title: "Location Enabled",
+          message: "GPS location captured for accurate delivery in Dadu.",
+        });
+      },
+      () => {
+        // Keep modal open so user sees exact Urdu message and can retry or use manual Dadu address fallback
+        setShowLocationPrompt(true);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
     );
+  };
+
+  const handleManualAddressSave = async (area: string, street: string) => {
+    const cleaned = { area: area.trim(), street: street.trim() };
+    setManualAddress(cleaned);
+    try {
+      localStorage.setItem("dadu_manual_address", JSON.stringify(cleaned));
+    } catch {}
+    const fullAddress = `${cleaned.area}, ${cleaned.street}`;
+    if (currentUser) {
+      const updatedUser: UserProfile = {
+        ...currentUser,
+        address: fullAddress,
+        savedLocation: {
+          ...(currentUser.savedLocation || {}),
+          area: cleaned.area,
+          street: cleaned.street,
+        },
+      };
+      setCurrentUser(updatedUser);
+      setCachedData("dadu_cached_user", updatedUser);
+      await setDoc(
+        doc(db, "users", currentUser.uid),
+        {
+          address: fullAddress,
+          savedLocation: updatedUser.savedLocation,
+        },
+        { merge: true }
+      ).catch(() => {});
+    }
+    setShowLocationPrompt(false);
+    setLocationRequiredForOrder(false);
+    setToastNotification({
+      title: "Delivery Address Saved",
+      message: `${fullAddress}, Dadu`,
+    });
   };
 
   // Continuous real-time geolocation watch to keep globalCoords updated
@@ -964,7 +1050,7 @@ export default function App() {
               name: "All",
               emoji: "🍽️",
               subtitle: "Sab Kuch",
-              color: "from-[#E21B70] to-[#f22c80]",
+              color: "from-[#D70F64] to-[#f22c80]",
               isAvailable: true,
               position: 0,
             },
@@ -1054,7 +1140,7 @@ export default function App() {
               name: "Specials",
               emoji: "⭐️",
               subtitle: "Dadu Premium",
-              color: "#E21B70",
+              color: "#D70F64",
               isAvailable: true,
               position: 10,
             },
@@ -2010,7 +2096,8 @@ export default function App() {
     totalPrice: number;
     deliveryFee: number;
     grandTotal: number;
-    paymentMethod?: "COD" | "JazzCash" | "Easypaisa" | "Card";
+    paymentMethod?: "COD" | "Easypaisa";
+    paymentReceiptUrl?: string;
     userCoords?: { latitude: number; longitude: number };
     voucher?: { code: string; discountAmount: number };
     coinsUsed?: number;
@@ -2044,7 +2131,7 @@ export default function App() {
         name: item.name,
         price: item.price,
         quantity: item.quantity,
-        restaurantName: "Dadu Grocery Store",
+        restaurantName: "Dadu Express Mart",
         commission: item.commission || 0,
       }));
 
@@ -2062,6 +2149,8 @@ export default function App() {
           (details.coinsUsed || 0),
       );
 
+      const isEasypaisa = details.paymentMethod === "Easypaisa";
+
       const orderDoc = {
         id: generatedOrderId,
         userId: currentUser?.uid || "guest",
@@ -2076,8 +2165,12 @@ export default function App() {
         totalPrice: details.totalPrice,
         deliveryFee: details.deliveryFee,
         grandTotal: computedGrandTotal,
-        paymentMethod: details.paymentMethod || "COD",
-        status: "pending",
+        paymentMethod: isEasypaisa ? "Easypaisa" : "COD",
+        status: isEasypaisa ? "payment_verification_pending" : "pending",
+        paymentReceiptUrl: isEasypaisa ? details.paymentReceiptUrl : undefined,
+        paymentVerified: isEasypaisa ? false : undefined,
+        paymentAccountTitle: isEasypaisa ? "Ghulam Murtaza" : undefined,
+        paymentAccountNumber: isEasypaisa ? "03277004471" : undefined,
         orderType: "grocery",
         deviceId: deviceId,
         createdAt: { seconds: Math.floor(Date.now() / 1000) },
@@ -2091,7 +2184,7 @@ export default function App() {
 
       if (details.voucher) {
         const matchedVoucher = vouchers.find(
-          (v) => v.code.toUpperCase() === details.voucher.code.toUpperCase() || v.id === details.voucher.code
+          (v) => v.code.toUpperCase() === details.voucher!.code.toUpperCase() || v.id === details.voucher!.code
         );
         const targetDocId = matchedVoucher?.id || details.voucher.code;
         const uid = currentUser?.uid;
@@ -2160,7 +2253,10 @@ export default function App() {
       setIsSuccessAnimationOpen(true);
     } catch (err) {
       console.error(err);
-      alert("Failed to record grocery order details: " + err);
+      setToastNotification({
+        title: "Order Failed",
+        message: "Could not record your grocery order. Please try again.",
+      });
     }
   };
 
@@ -2185,7 +2281,8 @@ export default function App() {
     name: string;
     phone: string;
     location: { area: string; street: string; lat?: number; lng?: number; googleMapsLink?: string };
-    paymentMethod: string;
+    paymentMethod: "COD" | "Easypaisa" | "Pay on Appointment";
+    paymentReceiptUrl?: string;
     orderType: "food" | "service";
     userCoords?: { latitude: number; longitude: number };
     voucher?: { code: string; discountAmount: number };
@@ -2278,6 +2375,7 @@ export default function App() {
       0,
     );
 
+    const isEasypaisa = details.paymentMethod === "Easypaisa";
     const uniqueOrderId = generateUniqueOrderId("DF");
     const orderModel: Order = {
       id: uniqueOrderId,
@@ -2296,8 +2394,16 @@ export default function App() {
       isScheduled: details.isScheduled || undefined,
       scheduledTime: details.isScheduled ? details.scheduledTime : undefined,
       grandTotal: finalGrandTotal,
-      status: details.orderType === "service" ? "booked" : "placed",
-      paymentMethod: (details.paymentMethod || "COD") as any,
+      status: isEasypaisa
+        ? "payment_verification_pending"
+        : details.orderType === "service"
+        ? "booked"
+        : "placed",
+      paymentMethod: details.paymentMethod || "COD",
+      paymentReceiptUrl: isEasypaisa ? details.paymentReceiptUrl : undefined,
+      paymentVerified: isEasypaisa ? false : undefined,
+      paymentAccountTitle: isEasypaisa ? "Ghulam Murtaza" : undefined,
+      paymentAccountNumber: isEasypaisa ? "03277004471" : undefined,
       orderType: details.orderType,
       deviceId: deviceId,
       serviceTiming: computedServiceTiming,
@@ -2751,6 +2857,10 @@ export default function App() {
             userCoords={globalCoords}
             systemSettings={deliverySettings}
             allVouchers={vouchers}
+            onRequireLocation={() => {
+              setLocationRequiredForOrder(true);
+              setShowLocationPrompt(true);
+            }}
           />
         );
       })()}
@@ -2775,6 +2885,10 @@ export default function App() {
             userCoords={globalCoords}
             systemSettings={deliverySettings}
             allVouchers={vouchers}
+            onRequireLocation={() => {
+              setLocationRequiredForOrder(true);
+              setShowLocationPrompt(true);
+            }}
           />
         );
       })()}
@@ -2842,7 +2956,7 @@ export default function App() {
               className="relative w-full max-w-sm bg-white dark:bg-zinc-900 rounded-3xl p-6 border border-zinc-200 dark:border-zinc-800 shadow-2xl space-y-4"
             >
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-[#E21B70]/10 text-[#E21B70] flex items-center justify-center shrink-0">
+                <div className="w-11 h-11 rounded-2xl bg-[#D70F64]/10 text-[#D70F64] flex items-center justify-center shrink-0">
                   <AlertTriangle className="w-5 h-5" />
                 </div>
                 <div>
@@ -2861,7 +2975,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => performLogout(false)}
-                  className="w-full py-2.5 px-4 rounded-xl bg-[#E21B70] hover:bg-[#C2145E] text-white text-xs font-black uppercase tracking-wider cursor-pointer transition"
+                  className="w-full py-2.5 px-4 rounded-xl bg-[#D70F64] hover:bg-[#B80C54] text-white text-xs font-black uppercase tracking-wider cursor-pointer transition"
                 >
                   Keep Cart & Sign Out
                 </button>
@@ -2892,6 +3006,9 @@ export default function App() {
         onResetGroceryHome={handleGoToGroceryHome}
         cartCount={cartCountTotal}
         groceryCartCount={groceryCartItems.reduce((acc, i) => acc + i.quantity, 0)}
+        cartTotal={cartPriceTotal}
+        groceryCartTotal={groceryCartItems.reduce((acc, i) => acc + i.price * i.quantity, 0)}
+        hideFloatingCart={selectedRestaurant !== "All Restaurants"}
         onOpenCart={() => setIsCartOpen(true)}
         onOpenGroceryCart={() => setIsGroceryCartOpen(true)}
         user={currentUser}
@@ -2913,7 +3030,7 @@ export default function App() {
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               className="relative w-full max-w-sm bg-zinc-900 rounded-3xl overflow-hidden shadow-2xl border border-zinc-800 text-center"
             >
-              <div className="bg-[#E21B70] p-6 text-center">
+              <div className="bg-[#D70F64] p-6 text-center">
                 <div className="w-16 h-16 rounded-2xl mx-auto shadow-xl border-2 border-white/20 mb-3 bg-white flex items-center justify-center text-3xl animate-pulse">
                   📞
                 </div>
@@ -2927,7 +3044,7 @@ export default function App() {
                 </p>
                 <button
                   onClick={() => setIsVerificationModalOpen(false)}
-                  className="w-full bg-[#E21B70] hover:bg-[#C2145E] text-white font-black tracking-wide shadow-md transition-all py-3.5 rounded-2xl text-sm uppercase cursor-pointer"
+                  className="w-full bg-[#D70F64] hover:bg-[#B80C54] text-white font-black tracking-wide shadow-md transition-all py-3.5 rounded-2xl text-sm uppercase cursor-pointer"
                 >
                   Theek Hai
                 </button>
@@ -3085,6 +3202,77 @@ export default function App() {
           window.dispatchEvent(new StorageEvent("storage", { key: "dadu_user_phone" }));
           setIsAuthOpen(false);
         }}
+        onGoogleAuthSuccess={async (gUser) => {
+          const googleEmail = (gUser.email || "").trim().toLowerCase();
+          let docId = `g_${gUser.uid}`;
+          let existingData: any = null;
+
+          if (googleEmail) {
+            const q = query(collection(db, "users"), where("email", "==", googleEmail));
+            const snap = await getDocs(q);
+            if (!snap.empty) {
+              docId = snap.docs[0].id;
+              existingData = snap.docs[0].data();
+            }
+          }
+
+          if (!existingData) {
+            const directSnap = await getDoc(doc(db, "users", docId));
+            if (directSnap.exists()) {
+              existingData = directSnap.data();
+            }
+          }
+
+          if (existingData && (existingData.status === "blocked" || existingData.isBlacklisted)) {
+            throw new Error("This account has been restricted. Contact support at 03277004471.");
+          }
+
+          const profileRef = doc(db, "users", docId);
+          if (existingData) {
+            await setDoc(
+              profileRef,
+              {
+                firebaseUid: gUser.uid,
+                email: googleEmail || existingData.email || "",
+                name: existingData.name || gUser.displayName || "Dadu Customer",
+                status: existingData.status === "locked" ? "locked" : "verified",
+              },
+              { merge: true }
+            ).catch(() => {});
+          } else {
+            const newProfile: any = {
+              uid: docId,
+              firebaseUid: gUser.uid,
+              name: gUser.displayName || "Dadu Customer",
+              email: googleEmail,
+              phone: "",
+              address: manualAddress ? `${manualAddress.area}, ${manualAddress.street}` : "",
+              role: "buyer",
+              status: "verified",
+              ordersCount: 0,
+              totalOrders: 0,
+              isBlacklisted: false,
+              createdAt: new Date(),
+            };
+            if (globalCoords) {
+              newProfile.savedLocation = {
+                lat: globalCoords.latitude,
+                lng: globalCoords.longitude,
+                area: manualAddress?.area || "",
+                street: manualAddress?.street || "",
+              };
+            }
+            await setDoc(profileRef, newProfile);
+          }
+
+          localStorage.setItem("dadu_user_phone", docId);
+          window.dispatchEvent(new StorageEvent("storage", { key: "dadu_user_phone" }));
+          setIsAuthOpen(false);
+          setToastNotification({
+            title: "Signed in with Google",
+            message: `Welcome, ${gUser.displayName || "Customer"}!`,
+          });
+        }}
       />
 
       <FoodDetailModal
@@ -3144,8 +3332,8 @@ export default function App() {
       />
 
       {toastNotification && (
-        <div className="fixed bottom-6 right-6 z-50 p-4 max-w-sm bg-zinc-900 border-2 border-[#E21B70]/40 text-zinc-100 rounded-2xl shadow-2xl flex items-start gap-3 animate-slide-in">
-          <div className="bg-[#E21B70] text-white p-2.5 rounded-xl shrink-0">
+        <div className="fixed bottom-6 right-6 z-50 p-4 max-w-sm bg-zinc-900 border-2 border-[#D70F64]/40 text-zinc-100 rounded-2xl shadow-2xl flex items-start gap-3 animate-slide-in">
+          <div className="bg-[#D70F64] text-white p-2.5 rounded-xl shrink-0">
             <Sparkles className="w-5 h-5 animate-pulse" />
           </div>
           <div>
@@ -3161,10 +3349,10 @@ export default function App() {
 
       {isExitConfirmationOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fade-in">
-          <div className="bg-zinc-900 border-2 border-[#E21B70]/30 rounded-[32px] max-w-sm w-full overflow-hidden shadow-2xl text-zinc-100 relative">
-            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#E21B70] to-transparent" />
+          <div className="bg-zinc-900 border-2 border-[#D70F64]/30 rounded-[32px] max-w-sm w-full overflow-hidden shadow-2xl text-zinc-100 relative">
+            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#D70F64] to-transparent" />
             <div className="p-6 text-center space-y-5">
-              <div className="mx-auto w-16 h-16 rounded-full bg-[#E21B70]/10 border border-[#E21B70]/20 flex items-center justify-center text-[#E21B70]">
+              <div className="mx-auto w-16 h-16 rounded-full bg-[#D70F64]/10 border border-[#D70F64]/20 flex items-center justify-center text-[#D70F64]">
                 <LogOut className="w-8 h-8 animate-pulse" />
               </div>
               <div className="space-y-2">
@@ -3180,7 +3368,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setIsExitConfirmationOpen(false)}
-                  className="w-full bg-[#E21B70] hover:bg-[#C2145E] text-white py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider transition active:scale-95 shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full bg-[#D70F64] hover:bg-[#B80C54] text-white py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider transition active:scale-95 shadow-md flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <UtensilsCrossed className="w-4 h-4" />
                   Keep Ordering
@@ -3262,7 +3450,7 @@ export default function App() {
                     localStorage.setItem(`seen_announcement_${annId}`, "true");
                     setShowAnnouncementPopup(false);
                   }}
-                  className="w-full bg-[#E21B70] hover:bg-[#C2145E] text-white py-3.5 sm:py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition active:scale-95 shadow-lg shadow-[#E21B70]/10 hover:shadow-[#E21B70]/20 flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full bg-[#D70F64] hover:bg-[#B80C54] text-white py-3.5 sm:py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition active:scale-95 shadow-lg shadow-[#D70F64]/10 hover:shadow-[#D70F64]/20 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span>Maza Aa Gaya! (Explore Now)</span>
                 </button>
@@ -3277,44 +3465,36 @@ export default function App() {
 
   if (showSplash) {
     return (
-      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 text-center select-none font-sans relative overflow-hidden">
-        {/* Soft Ambient Radial Pink Neon Glow */}
-        <div className="absolute w-80 h-80 sm:w-96 sm:h-96 bg-[#E21B70]/20 rounded-full blur-[100px] pointer-events-none animate-pulse" />
+      <div className="min-h-screen bg-[#FF2B85] text-white flex flex-col items-center justify-center p-6 text-center select-none font-sans relative overflow-hidden">
+        <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-white/15 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-[#D70F64]/60 blur-3xl pointer-events-none" />
 
-        {/* Central Neon Emblem with Glowing Rings */}
-        <div className="relative z-10 mb-8 flex items-center justify-center">
-          {/* Outer Ring with Glow */}
-          <motion.div
-            initial={{ scale: 0.85, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            className="w-44 h-44 sm:w-52 sm:h-52 rounded-full border-[3px] border-[#E21B70] shadow-[0_0_40px_rgba(215,15,100,0.8),inset_0_0_20px_rgba(215,15,100,0.6)] p-2.5 flex items-center justify-center relative bg-black/90"
-          >
-            {/* Inner Ring with Logo */}
-            <div className="w-full h-full rounded-full border-2 border-[#E21B70]/80 shadow-[0_0_25px_rgba(215,15,100,0.7)] bg-black flex flex-col items-center justify-center p-3 relative overflow-hidden">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full p-0.5 bg-white shadow-lg overflow-hidden flex items-center justify-center mb-1.5 border border-pink-500/30">
-                <img src={daduLogo} alt="Dadu Food Logo" className="w-full h-full object-cover rounded-full bg-white" />
-              </div>
-              
-              <span className="text-[11px] sm:text-xs font-black tracking-[0.25em] text-white uppercase drop-shadow-[0_0_10px_#E21B70]">
-                DELIVERY
-              </span>
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Title & Tagline */}
         <motion.div
-          initial={{ y: 15, opacity: 0 }}
+          initial={{ scale: 0.82, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+          className="relative z-10 mb-6 flex flex-col items-center"
+        >
+          <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl bg-white p-2 shadow-2xl flex items-center justify-center overflow-hidden border-4 border-white/30">
+            <img
+              src={daduLogo}
+              alt="Dadu Food Logo"
+              className="w-full h-full object-cover rounded-2xl"
+            />
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ y: 14, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.4 }}
+          transition={{ delay: 0.12, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
           className="relative z-10 space-y-1.5"
         >
-          <h1 className="text-3xl sm:text-4xl font-black tracking-tight uppercase">
-            DADU <span className="text-[#E21B70] drop-shadow-[0_0_20px_#E21B70]">FOOD</span>
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
+            dadu<span className="font-extrabold text-pink-100">food</span>
           </h1>
-          <p className="text-[10px] sm:text-[11px] font-extrabold text-zinc-400 uppercase tracking-[0.25em]">
-            FASTEST DELIVERY IN DADU CITY
+          <p className="text-xs font-bold text-white/90 tracking-wide">
+            Fresh Food &amp; 100 Groceries Delivered Fast in Dadu
           </p>
         </motion.div>
       </div>
@@ -3345,7 +3525,7 @@ export default function App() {
   if (isUserOutOfRange && currentUser?.role !== "admin" && currentUser?.role !== "rider") {
     return (
       <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-24 h-24 mb-6 rounded-3xl bg-gradient-to-br from-[#E21B70] to-red-500 flex items-center justify-center shadow-2xl shadow-[#E21B70]/20 animate-pulse">
+        <div className="w-24 h-24 mb-6 rounded-3xl bg-gradient-to-br from-[#D70F64] to-red-500 flex items-center justify-center shadow-2xl shadow-[#D70F64]/20 animate-pulse">
           <MapPin className="w-12 h-12 text-white" />
         </div>
         <h1 className="text-3xl font-black text-white mb-4 tracking-tight">Out of Service Area</h1>
@@ -3366,7 +3546,7 @@ export default function App() {
 
 
   const lockedBanner = currentUser?.status === 'locked' ? (
-    <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-[#E21B70] text-white p-4 rounded-2xl shadow-2xl z-[999] flex items-start gap-4">
+    <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-[#D70F64] text-white p-4 rounded-2xl shadow-2xl z-[999] flex items-start gap-4">
       <div className="text-3xl animate-pulse">⏳</div>
       <div>
         <h3 className="font-black text-lg mb-1 uppercase tracking-tight">Number Under Verification</h3>
@@ -3457,7 +3637,7 @@ export default function App() {
     const selectedFoodCategory = foodCategories.find(c => c.name === selectedRestaurant);
 
     return (
-      <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#F9F9FB] dark:bg-[#0B0B0F]"><div className="w-10 h-10 border-4 border-[#E21B70] border-t-transparent rounded-full animate-spin" /></div>}>
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#F9F9FB] dark:bg-[#0B0B0F]"><div className="w-10 h-10 border-4 border-[#D70F64] border-t-transparent rounded-full animate-spin" /></div>}>
         <FoodpandaRestaurantPage
           restaurantName={selectedRestaurant}
           dishes={restaurantDishes}
@@ -3544,7 +3724,7 @@ export default function App() {
               <motion.div
                 animate={{ rotate: 360, scale: [1, 1.1, 1] }}
                 transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                className="absolute w-[80vw] h-[80vw] max-w-[600px] max-h-[600px] bg-gradient-to-tr from-[#E21B70] to-[#7209b7] rounded-full blur-[100px] opacity-60"
+                className="absolute w-[80vw] h-[80vw] max-w-[600px] max-h-[600px] bg-gradient-to-tr from-[#D70F64] to-[#7209b7] rounded-full blur-[100px] opacity-60"
               />
               <motion.div
                 animate={{ rotate: -360, scale: [1, 1.2, 1] }}
@@ -3863,6 +4043,17 @@ export default function App() {
           onReorder={handleReorder}
           theme={theme}
           onToggleTheme={handleToggleTheme}
+          onOpenLocation={() => {
+            setLocationRequiredForOrder(false);
+            setShowLocationPrompt(true);
+          }}
+          locationLabel={
+            manualAddress
+              ? `${manualAddress.area}, ${manualAddress.street}`
+              : currentUser?.address ||
+                (globalCoords ? "GPS Live Location · Dadu" : undefined)
+          }
+          hasLocation={Boolean(globalCoords || manualAddress || (currentUser?.address && currentUser.address.trim().length >= 6))}
         />
       )}
 
@@ -3884,14 +4075,14 @@ export default function App() {
         ) : isMaintenanceActive && !isUserAdmin ? (
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center z-10 max-w-lg mx-auto my-auto min-h-[70vh] gap-6 relative animate-fade-in">
             <div className="w-16 h-16 bg-rose-50 dark:bg-rose-950/30 rounded-2xl flex items-center justify-center border border-rose-100 dark:border-rose-900 animate-bounce shadow-md">
-              <Wrench className="w-8 h-8 text-[#E21B70]" />
+              <Wrench className="w-8 h-8 text-[#D70F64]" />
             </div>
             
             <div className="space-y-2">
               <h1 className="text-3xl font-black tracking-tight text-zinc-900 dark:text-zinc-50 uppercase">
                 Under Maintenance
               </h1>
-              <p className="text-[10px] font-bold tracking-widest text-[#E21B70] uppercase">
+              <p className="text-[10px] font-bold tracking-widest text-[#D70F64] uppercase">
                 Hum jald hi wapas aayenge!
               </p>
             </div>
@@ -3945,7 +4136,7 @@ export default function App() {
                   {activeModule === "food" && (
                     <motion.div
                       layoutId="activeModulePill"
-                      className="absolute inset-0 bg-[#E21B70] rounded-xl shadow-xs"
+                      className="absolute inset-0 bg-[#D70F64] rounded-xl shadow-xs"
                       transition={{ type: "spring", stiffness: 450, damping: 32 }}
                     />
                   )}
@@ -3965,14 +4156,14 @@ export default function App() {
                   {activeModule === "grocery" && (
                     <motion.div
                       layoutId="activeModulePill"
-                      className="absolute inset-0 bg-[#E21B70] rounded-xl shadow-xs"
+                      className="absolute inset-0 bg-[#D70F64] rounded-xl shadow-xs"
                       transition={{ type: "spring", stiffness: 450, damping: 32 }}
                     />
                   )}
                   <span className="relative z-10 text-sm" aria-hidden="true">🛒</span>
                   <span className="relative z-10">Groceries</span>
                   {groceryCartItems.length > 0 && (
-                    <span className="relative z-10 bg-white text-[#E21B70] font-mono text-[10px] font-extrabold min-w-[20px] h-5 px-1 rounded-full flex items-center justify-center leading-none shrink-0 tabular-nums">
+                    <span className="relative z-10 bg-white text-[#D70F64] font-mono text-[10px] font-extrabold min-w-[20px] h-5 px-1 rounded-full flex items-center justify-center leading-none shrink-0 tabular-nums">
                       {groceryCartItems.reduce((acc, i) => acc + i.quantity, 0)}
                     </span>
                   )}
@@ -3992,11 +4183,201 @@ export default function App() {
                   transition={{ duration: 0.2, ease: "easeOut" }}
                 >
               <>
+                {/* Foodpanda 4 Service Tiles Grid (2x2 Mobile / 4-col Desktop) */}
+                <section className="max-w-7xl mx-auto px-3.5 sm:px-4 pt-3.5 pb-1">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveModule("food");
+                        setQuickFilter("all");
+                        setActiveCategory("All");
+                        document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth" });
+                      }}
+                      className="min-h-[82px] text-left p-3.5 rounded-2xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2"
+                    >
+                      <div className="min-w-0">
+                        <span className="block text-sm font-black text-[#14141A] dark:text-white leading-tight">
+                          Food Delivery
+                        </span>
+                        <span className="block text-[11px] font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-1">
+                          Hot meals in Dadu
+                        </span>
+                      </div>
+                      <span className="w-11 h-11 rounded-2xl bg-[#FFF0F5] dark:bg-[#2A101C] flex items-center justify-center text-2xl shrink-0">
+                        🍔
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleGoToGroceryHome}
+                      className="min-h-[82px] text-left p-3.5 rounded-2xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2"
+                    >
+                      <div className="min-w-0">
+                        <span className="block text-sm font-black text-[#14141A] dark:text-white leading-tight">
+                          Dadu Mart
+                        </span>
+                        <span className="block text-[11px] font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-1">
+                          100 groceries &amp; rashan
+                        </span>
+                      </div>
+                      <span className="w-11 h-11 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center text-2xl shrink-0">
+                        🛒
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveModule("food");
+                        setQuickFilter("under_300");
+                        document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth" });
+                      }}
+                      className="min-h-[82px] text-left p-3.5 rounded-2xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2"
+                    >
+                      <div className="min-w-0">
+                        <span className="block text-sm font-black text-[#14141A] dark:text-white leading-tight">
+                          Budget Deals
+                        </span>
+                        <span className="block text-[11px] font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-1">
+                          Under Rs. 300 picks
+                        </span>
+                      </div>
+                      <span className="w-11 h-11 rounded-2xl bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center text-2xl shrink-0">
+                        ⚡
+                      </span>
+                    </button>
+
+                    <a
+                      href="https://wa.me/923277004471?text=Assalam-o-Alaikum%20Dadu%20Food!%20Mera%20WhatsApp%20order%20list%20ye%20hai:"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="min-h-[82px] text-left p-3.5 rounded-2xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#25D366]/60 shadow-2xs transition-all cursor-pointer active:scale-[0.98] flex items-center justify-between gap-2"
+                    >
+                      <div className="min-w-0">
+                        <span className="block text-sm font-black text-[#14141A] dark:text-white leading-tight">
+                          WhatsApp List
+                        </span>
+                        <span className="block text-[11px] font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-1">
+                          Send list directly
+                        </span>
+                      </div>
+                      <span className="w-11 h-11 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center text-2xl shrink-0">
+                        💬
+                      </span>
+                    </a>
+                  </div>
+                </section>
+
+                {/* Promo Carousel & Hero */}
                 <BannerCarousel
                   bannerVersion={deliverySettings.bannerVersion}
                   deliveryFee={deliverySettings?.deliveryFee || 50}
+                  onOpenGrocery={handleGoToGroceryHome}
                 />
-                {/* Billboard / category selectors */}
+
+                {/* Floating Promo Banner with Live Countdown */}
+                {!promoBannerDismissed && (
+                  <div className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-3">
+                    <div className="bg-gradient-to-r from-[#D70F64] to-[#FF2B85] text-white rounded-2xl px-4 py-3 shadow-sm flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center text-lg shrink-0">
+                          🎉
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-xs sm:text-sm font-black leading-tight truncate">
+                            Free Delivery on Orders Above Rs. 1,000!
+                          </p>
+                          <p className="text-[10.5px] text-pink-100 font-medium truncate mt-0.5">
+                            Standard Rs. {deliverySettings?.deliveryFee || 50} delivery fee · Cash on Delivery &amp; Easypaisa
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="bg-white/20 px-2.5 py-1 rounded-lg font-mono text-xs font-black tabular-nums">
+                          {String(Math.floor(promoCountdownSec / 60)).padStart(2, "0")}:
+                          {String(promoCountdownSec % 60).padStart(2, "0")}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setPromoBannerDismissed(true)}
+                          aria-label="Dismiss promo banner"
+                          className="w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white cursor-pointer transition"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Order Again Horizontal Row (Only if user has past completed/delivered orders) */}
+                {(() => {
+                  if (!currentUser) return null;
+                  const pastOrders = orders
+                    .filter(
+                      (o) =>
+                        o.userId === currentUser.uid &&
+                        (o.status === "delivered" || o.status === "completed") &&
+                        Array.isArray(o.items) &&
+                        o.items.length > 0
+                    )
+                    .slice(0, 6);
+                  if (pastOrders.length === 0) return null;
+                  return (
+                    <section className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h2 className="text-sm sm:text-base font-extrabold tracking-tight text-[#14141A] dark:text-[#F5F5F8]">
+                          Order Again
+                        </h2>
+                        <button
+                          type="button"
+                          onClick={() => setIsHistoryDrawerOpen(true)}
+                          className="text-xs font-extrabold text-[#D70F64] hover:underline cursor-pointer"
+                        >
+                          See All
+                        </button>
+                      </div>
+                      <div className="flex items-stretch gap-3 overflow-x-auto pb-1 scrollbar-none touch-pan-x overscroll-x-contain">
+                        {pastOrders.map((past) => (
+                          <div
+                            key={`reorder-${past.id}`}
+                            className="shrink-0 w-[230px] bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl p-3 flex flex-col justify-between gap-2 shadow-2xs"
+                          >
+                            <div>
+                              <div className="flex items-center justify-between gap-1">
+                                <span className="text-xs font-extrabold text-[#14141A] dark:text-white truncate">
+                                  {past.items[0]?.restaurantName || "Dadu Food"}
+                                </span>
+                                <span className="text-[10px] font-mono font-bold text-[#6E6E80] shrink-0">
+                                  {formatOrderId(past.id)}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-[#5A5A6B] dark:text-[#A1A1B2] line-clamp-1 mt-1">
+                                {past.items.map((i) => `${i.quantity}x ${i.name}`).join(", ")}
+                              </p>
+                            </div>
+                            <div className="flex items-center justify-between pt-1.5 border-t border-[#F2F2F6] dark:border-[#272733]">
+                              <span className="text-xs font-mono font-black text-[#D70F64] tabular-nums">
+                                Rs. {past.grandTotal}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleReorder(past)}
+                                className="px-3 py-1.5 rounded-xl bg-[#D70F64] hover:bg-[#B80C54] text-white text-[11px] font-extrabold cursor-pointer transition active:scale-95"
+                              >
+                                Reorder
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  );
+                })()}
+
+                {/* Cuisines Row & Partner Restaurants Strip */}
                 <FoodpandaHero
                   activeCategory={activeCategory}
                   setActiveCategory={setActiveCategory}
@@ -4005,11 +4386,11 @@ export default function App() {
                   foodCategories={normalizedFoodCategories}
                   heroBgUrl={heroBgUrl}
                 >
-                <div className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-4 mb-2">
+                <div className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-3 mb-2">
                   <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-3.5 border border-[#E6E6EE] dark:border-[#272733] shadow-xs">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-xl bg-[#E21B70] flex items-center justify-center text-white shrink-0">
+                        <div className="w-9 h-9 rounded-xl bg-[#D70F64] flex items-center justify-center text-white shrink-0">
                           <Compass className="w-4.5 h-4.5" />
                         </div>
                         <div>
@@ -4017,7 +4398,7 @@ export default function App() {
                             Partner Restaurants in Dadu
                           </h2>
                           <p className="text-xs text-[#5A5A6B] dark:text-[#A3A3B5]">
-                            Tap any kitchen to browse full menu & live hours
+                            Tap any kitchen to browse full menu &amp; live hours
                           </p>
                         </div>
                       </div>
@@ -4025,7 +4406,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => setSelectedRestaurant("All Restaurants")}
-                          className="min-h-[44px] px-3.5 rounded-xl text-xs font-extrabold text-[#E21B70] dark:text-[#FF4D94] border border-[#E21B70]/30 hover:bg-[#E21B70]/10 transition-colors cursor-pointer shrink-0"
+                          className="min-h-[44px] px-3.5 rounded-xl text-xs font-extrabold text-[#D70F64] dark:text-[#FF5C9E] border border-[#D70F64]/30 hover:bg-[#D70F64]/10 transition-colors cursor-pointer shrink-0"
                         >
                           All Shops
                         </button>
@@ -4038,8 +4419,8 @@ export default function App() {
                         onClick={() => setSelectedRestaurant("All Restaurants")}
                         className={`w-[96px] min-h-[108px] rounded-2xl flex flex-col items-center justify-center p-2 font-bold transition-colors shrink-0 cursor-pointer border ${
                           selectedRestaurant === "All Restaurants"
-                            ? "bg-[#E21B70] text-white border-[#E21B70] shadow-xs"
-                            : "bg-[#F9F9FB] dark:bg-[#1D1D26] text-[#111118] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733] hover:border-[#E21B70]/50"
+                            ? "bg-[#D70F64] text-white border-[#D70F64] shadow-xs"
+                            : "bg-[#F9F9FB] dark:bg-[#1D1D26] text-[#111118] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50"
                         }`}
                       >
                         <span className="text-2xl mb-1" aria-hidden="true">🍽️</span>
@@ -4051,7 +4432,7 @@ export default function App() {
                         ? Array.from({ length: 5 }).map((_, idx) => (
                             <div
                               key={`sk-${idx}`}
-                              className="w-[104px] h-[108px] rounded-2xl bg-[#EFEFF5] dark:bg-[#1D1D26] shrink-0"
+                              className="w-[104px] h-[108px] rounded-2xl skeleton-box shrink-0"
                             />
                           ))
                         : uniqueRestaurants.map((vendor) => {
@@ -4070,8 +4451,8 @@ export default function App() {
                                 onClick={() => handleRestaurantClick(vendor)}
                                 className={`w-[106px] min-h-[108px] rounded-2xl flex flex-col items-center justify-between p-1.5 transition-colors shrink-0 cursor-pointer border overflow-hidden ${
                                   selectedRestaurant === vendor
-                                    ? "bg-[#E21B70] text-white border-[#E21B70] shadow-xs"
-                                    : "bg-[#F9F9FB] dark:bg-[#1D1D26] text-[#111118] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733] hover:border-[#E21B70]/50"
+                                    ? "bg-[#D70F64] text-white border-[#D70F64] shadow-xs"
+                                    : "bg-[#F9F9FB] dark:bg-[#1D1D26] text-[#111118] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50"
                                 }`}
                                 title={`${vendor} · ${openStatus.label}`}
                               >
@@ -4166,7 +4547,7 @@ export default function App() {
                       return (
                         <div
                           key={activeOrderForBanner.id}
-                          className="shrink-0 w-[90vw] sm:w-[580px] max-w-full snap-center bg-white dark:bg-[#14141A] border-2 border-[#E21B70] rounded-2xl shadow-sm overflow-hidden transition-colors"
+                          className="shrink-0 w-[90vw] sm:w-[580px] max-w-full snap-center bg-white dark:bg-[#14141A] border-2 border-[#D70F64] rounded-2xl shadow-sm overflow-hidden transition-colors"
                         >
                           {/* Banner Header: Tap-to-track details */}
                           <div
@@ -4177,11 +4558,11 @@ export default function App() {
                             className="p-3.5 sm:p-4 flex items-center justify-between gap-3 cursor-pointer hover:bg-[#F9F9FB] dark:hover:bg-[#1D1D26] transition border-b border-[#E6E6EE] dark:border-[#272733]"
                           >
                             <div className="flex items-center gap-3 min-w-0 flex-1">
-                              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#E21B70]/10 border border-[#E21B70]/25 flex items-center justify-center text-xl shrink-0">
+                              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#D70F64]/10 border border-[#D70F64]/25 flex items-center justify-center text-xl shrink-0">
                                 🛵
                               </div>
                               <div className="flex-1 min-w-0">
-                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#E21B70] dark:text-[#FF4D94] flex items-center gap-1.5">
+                                <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#D70F64] dark:text-[#FF4D94] flex items-center gap-1.5">
                                   <CheckCircle2 className="w-3.5 h-3.5 text-[#15803D] dark:text-[#4ADE80]" />
                                   Live Order Tracking
                                 </span>
@@ -4191,8 +4572,10 @@ export default function App() {
                                     {formatOrderId(activeOrderForBanner.id)}
                                   </span>{" "}
                                   •{" "}
-                                  <span className="text-[#E21B70] dark:text-[#FF4D94] uppercase font-bold">
-                                    {activeOrderForBanner.status === "out_for_delivery"
+                                  <span className="text-[#D70F64] dark:text-[#FF5C9E] uppercase font-bold">
+                                    {activeOrderForBanner.status === "payment_verification_pending"
+                                      ? "Payment Verification Pending"
+                                      : activeOrderForBanner.status === "out_for_delivery"
                                       ? "On Way"
                                       : activeOrderForBanner.status === "preparing"
                                         ? "Cooking"
@@ -4203,8 +4586,10 @@ export default function App() {
                                             : "Accepted"}
                                   </span>
                                 </h4>
-                                <span className="text-[10px] text-zinc-600 font-bold block mt-0.5 truncate">
-                                  {activeOrderForBanner.status === "out_for_delivery"
+                                <span className="text-[10px] text-zinc-600 dark:text-zinc-300 font-bold block mt-0.5 truncate">
+                                  {activeOrderForBanner.status === "payment_verification_pending"
+                                    ? "💳 Easypaisa receipt received — admin verification in progress"
+                                    : activeOrderForBanner.status === "out_for_delivery"
                                     ? "🛵 Rider aapka order pick kar chuka hai aur raste me hai!"
                                     : activeOrderForBanner.status === "preparing"
                                       ? "🍳 Chef aapka khana fresh tayar kar raha hai"
@@ -4220,7 +4605,7 @@ export default function App() {
                                   <div className="flex items-center gap-1 mt-0.5">
                                     <span className="text-[9.5px] text-zinc-500 font-extrabold truncate">
                                       Rider:{" "}
-                                      <span className="text-[#E21B70] font-black">
+                                      <span className="text-[#D70F64] font-black">
                                         {activeOrderForBanner.riderName}
                                       </span>
                                     </span>
@@ -4234,7 +4619,7 @@ export default function App() {
                             </div>
 
                             {/* Rider ETA Box */}
-                            <div className="shrink-0 bg-gradient-to-r from-[#E21B70] to-pink-600 text-white px-3 py-1.5 rounded-2xl text-center shadow-md border border-pink-400/30">
+                            <div className="shrink-0 bg-gradient-to-r from-[#D70F64] to-pink-600 text-white px-3 py-1.5 rounded-2xl text-center shadow-md border border-pink-400/30">
                               <span className="text-[8px] uppercase tracking-wider font-extrabold text-pink-100 block leading-none">
                                 Est. Arrival
                               </span>
@@ -4251,7 +4636,7 @@ export default function App() {
                               <div className="absolute left-3 right-3 top-1/2 -translate-y-1/2 h-1 bg-zinc-200 -z-10 rounded-full" />
                               {/* Animated active filled line */}
                               <div
-                                className="absolute left-3 top-1/2 -translate-y-1/2 h-1 bg-gradient-to-r from-pink-500 to-[#E21B70] -z-10 rounded-full transition-all duration-500"
+                                className="absolute left-3 top-1/2 -translate-y-1/2 h-1 bg-gradient-to-r from-pink-500 to-[#D70F64] -z-10 rounded-full transition-all duration-500"
                                 style={{ width: `${((currentStep - 1) / 4) * 100}%` }}
                               />
 
@@ -4265,7 +4650,7 @@ export default function App() {
                                     <div
                                       className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-black transition-all duration-300 shadow-sm ${
                                         isPassed
-                                          ? "bg-[#E21B70] text-white ring-2 ring-pink-100"
+                                          ? "bg-[#D70F64] text-white ring-2 ring-pink-100"
                                           : "bg-white text-zinc-400 border border-zinc-200"
                                       } ${isCurrent ? "animate-pulse scale-110" : ""}`}
                                     >
@@ -4273,7 +4658,7 @@ export default function App() {
                                     </div>
                                     <span
                                       className={`text-[8.5px] sm:text-[9px] font-black uppercase tracking-wider mt-1 ${
-                                        isCurrent ? "text-[#E21B70]" : isPassed ? "text-zinc-700" : "text-zinc-400"
+                                        isCurrent ? "text-[#D70F64]" : isPassed ? "text-zinc-700" : "text-zinc-400"
                                       }`}
                                     >
                                       {step.label}
@@ -4348,8 +4733,8 @@ export default function App() {
                             onClick={() => setQuickFilter(chip.id as typeof quickFilter)}
                             className={`shrink-0 min-h-[44px] px-4 rounded-xl text-xs font-extrabold tracking-tight transition-colors cursor-pointer border ${
                               active
-                                ? "bg-[#E21B70] text-white border-[#E21B70] shadow-xs"
-                                : "bg-white dark:bg-[#14141A] text-[#111118] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733] hover:border-[#E21B70]/60 hover:text-[#E21B70] dark:hover:text-[#FF4D94]"
+                                ? "bg-[#D70F64] text-white border-[#D70F64] shadow-xs"
+                                : "bg-white dark:bg-[#14141A] text-[#111118] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/60 hover:text-[#D70F64] dark:hover:text-[#FF4D94]"
                             }`}
                           >
                             {chip.label}
@@ -4386,7 +4771,7 @@ export default function App() {
                           <button
                             type="button"
                             onClick={() => setQuickFilter("all")}
-                            className="min-h-[36px] px-2.5 text-xs font-extrabold text-[#E21B70] dark:text-[#FF4D94] hover:underline cursor-pointer"
+                            className="min-h-[36px] px-2.5 text-xs font-extrabold text-[#D70F64] dark:text-[#FF4D94] hover:underline cursor-pointer"
                           >
                             Clear Filter ✕
                           </button>
@@ -4405,7 +4790,11 @@ export default function App() {
                             const vendorAllDishes = catalogDishes.filter(
                               (d) =>
                                 (d.restaurantName?.trim() || "Dadu Fast Food & Kitchen") ===
-                                  vendor && d.isAvailable !== false,
+                                  vendor &&
+                                d.isAvailable !== false &&
+                                !d.id.startsWith("drink_") &&
+                                d.category !== "Drinks" &&
+                                d.category !== "Beverages",
                             );
                             const vendorDishes = [...vendorAllDishes]
                               .sort((a, b) => {
@@ -4449,7 +4838,7 @@ export default function App() {
                               <article
                                 key={vendor}
                                 onClick={() => handleRestaurantClick(vendor)}
-                                className={`bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs hover:shadow-md hover:border-[#E21B70]/40 transition-all cursor-pointer group flex flex-col ${!openStatus.isOpen ? "opacity-85" : ""}`}
+                                className={`bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs hover:shadow-md hover:border-[#D70F64]/40 transition-all cursor-pointer group flex flex-col ${!openStatus.isOpen ? "opacity-85" : ""}`}
                               >
                                 <div className="h-44 bg-[#1D1D26] relative overflow-hidden shrink-0">
                                   {vendorImageUrl ? (
@@ -4547,7 +4936,7 @@ export default function App() {
                                       <span className="text-[11px] font-bold text-[#111118] dark:text-[#F5F5F8] line-clamp-1">
                                         {d.name}
                                       </span>
-                                      <span className="text-[11px] text-[#E21B70] dark:text-[#FF4D94] font-extrabold leading-none tabular-nums">
+                                      <span className="text-[11px] text-[#D70F64] dark:text-[#FF4D94] font-extrabold leading-none tabular-nums">
                                         Rs. {d.discountPrice || d.price}
                                       </span>
                                     </div>
@@ -4557,7 +4946,7 @@ export default function App() {
                                       e.stopPropagation();
                                       handleRestaurantClick(vendor);
                                     }}
-                                    className="w-16 h-20 flex flex-col items-center justify-center gap-1 shrink-0 bg-[#E21B70]/10 dark:bg-[#E21B70]/15 rounded-xl text-[#E21B70] dark:text-[#FF4D94] hover:bg-[#E21B70]/20 transition-colors border border-[#E21B70]/25 cursor-pointer"
+                                    className="w-16 h-20 flex flex-col items-center justify-center gap-1 shrink-0 bg-[#D70F64]/10 dark:bg-[#D70F64]/15 rounded-xl text-[#D70F64] dark:text-[#FF4D94] hover:bg-[#D70F64]/20 transition-colors border border-[#D70F64]/25 cursor-pointer"
                                   >
                                     <ChevronRight className="w-5 h-5" />
                                     <span className="text-[10px] font-extrabold uppercase tabular-nums">
@@ -4645,7 +5034,7 @@ export default function App() {
 
                     {!isLoadingDishes && filteredDishes.length === 0 && (
                       <div className="bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] p-8 sm:p-10 rounded-3xl text-center space-y-4 shadow-xs max-w-md mx-auto">
-                        <div className="w-14 h-14 bg-[#E21B70]/10 rounded-2xl flex items-center justify-center mx-auto text-2xl">
+                        <div className="w-14 h-14 bg-[#D70F64]/10 rounded-2xl flex items-center justify-center mx-auto text-2xl">
                           {showFavoritesOnly ? "💔" : "🍛"}
                         </div>
                         <div>
@@ -4670,7 +5059,7 @@ export default function App() {
                             setQuickFilter("all");
                             setShowFavoritesOnly(false);
                           }}
-                          className="min-h-[44px] bg-[#E21B70] hover:bg-[#C2145E] text-white font-extrabold py-2.5 px-6 text-xs uppercase tracking-wider rounded-xl cursor-pointer transition-colors"
+                          className="min-h-[44px] bg-[#D70F64] hover:bg-[#B80C54] text-white font-extrabold py-2.5 px-6 text-xs uppercase tracking-wider rounded-xl cursor-pointer transition-colors"
                         >
                           Show All Kitchens
                         </button>
@@ -4744,7 +5133,7 @@ export default function App() {
       {cartCountTotal > 0 && selectedRestaurant === "All Restaurants" && (
         <div className="fixed bottom-[68px] left-3.5 right-3.5 z-40 md:hidden bg-[#14141A]/95 border border-[#272733] px-3.5 py-2 rounded-2xl shadow-xl flex items-center justify-between gap-3 backdrop-blur-md">
           <div className="flex items-center gap-2.5">
-            <div className="bg-[#E21B70] text-white px-2.5 rounded-lg font-extrabold text-xs h-8 flex items-center justify-center min-w-[30px] tabular-nums">
+            <div className="bg-[#D70F64] text-white px-2.5 rounded-lg font-extrabold text-xs h-8 flex items-center justify-center min-w-[30px] tabular-nums">
               {cartCountTotal}
             </div>
             <div className="text-left">
@@ -4759,7 +5148,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => setIsCartOpen(true)}
-            className="min-h-[44px] bg-[#E21B70] hover:bg-[#C2145E] text-white font-extrabold text-xs uppercase tracking-wider px-4 rounded-xl transition-colors active:scale-95 flex items-center gap-1.5 shrink-0 cursor-pointer"
+            className="min-h-[44px] bg-[#D70F64] hover:bg-[#B80C54] text-white font-extrabold text-xs uppercase tracking-wider px-4 rounded-xl transition-colors active:scale-95 flex items-center gap-1.5 shrink-0 cursor-pointer"
           >
             View Cart
           </button>
@@ -4783,27 +5172,27 @@ export default function App() {
             </h4>
             <ul className="space-y-1 text-xs font-semibold">
               <li>
-                <button type="button" onClick={() => navigateToInfoPage("about")} className="min-h-[36px] py-1 hover:text-[#E21B70] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
+                <button type="button" onClick={() => navigateToInfoPage("about")} className="min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
                   About Us
                 </button>
               </li>
               <li>
-                <button type="button" onClick={() => navigateToInfoPage("contact")} className="min-h-[36px] py-1 hover:text-[#E21B70] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
+                <button type="button" onClick={() => navigateToInfoPage("contact")} className="min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
                   Contact & Helpline
                 </button>
               </li>
               <li>
-                <button type="button" onClick={() => navigateToInfoPage("terms")} className="min-h-[36px] py-1 hover:text-[#E21B70] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
+                <button type="button" onClick={() => navigateToInfoPage("terms")} className="min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
                   Terms & Conditions
                 </button>
               </li>
               <li>
-                <button type="button" onClick={() => navigateToInfoPage("privacy-policy")} className="min-h-[36px] py-1 hover:text-[#E21B70] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
+                <button type="button" onClick={() => navigateToInfoPage("privacy-policy")} className="min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
                   Privacy Policy
                 </button>
               </li>
               <li>
-                <button type="button" onClick={() => navigateToInfoPage("refund-policy")} className="min-h-[36px] py-1 hover:text-[#E21B70] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
+                <button type="button" onClick={() => navigateToInfoPage("refund-policy")} className="min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
                   Refund & Cancellation Policy
                 </button>
               </li>
@@ -4815,12 +5204,12 @@ export default function App() {
             </h4>
             <ul className="space-y-1 text-xs font-semibold">
               <li>
-                <button type="button" onClick={() => navigateToInfoPage("partner-with-us")} className="min-h-[36px] py-1 hover:text-[#E21B70] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
+                <button type="button" onClick={() => navigateToInfoPage("partner-with-us")} className="min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
                   Register Your Restaurant
                 </button>
               </li>
               <li>
-                <button type="button" onClick={() => navigateToInfoPage("become-a-rider")} className="min-h-[36px] py-1 hover:text-[#E21B70] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
+                <button type="button" onClick={() => navigateToInfoPage("become-a-rider")} className="min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
                   Become a Delivery Rider
                 </button>
               </li>
@@ -4840,7 +5229,7 @@ export default function App() {
                 href="https://wa.me/923277004471"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[#E21B70] dark:text-[#FF4D94] hover:underline font-bold"
+                className="text-[#D70F64] dark:text-[#FF4D94] hover:underline font-bold"
               >
                 {DADU_FOOD_BUSINESS.phoneDisplay} (Call / WhatsApp)
               </a>
@@ -4999,12 +5388,15 @@ export default function App() {
       </AnimatePresence>
       <AnimatePresence>
         {showLocationPrompt && (
-          <LocationPermissionModal 
-            onAllow={requestLocation} 
+          <LocationPermissionModal
+            onAllow={requestLocation}
             onLater={() => {
               setShowLocationPrompt(false);
               setLocationPromptDismissed(true);
-            }} 
+              setLocationRequiredForOrder(false);
+            }}
+            onManualAddressSave={handleManualAddressSave}
+            requireForOrder={locationRequiredForOrder}
           />
         )}
       </AnimatePresence>
