@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { UserProfile, AppNotification, Order } from "../types";
-import { Search, ShoppingBag, User, LogOut, Bell, ShieldAlert, BadgeCheck, History, Heart, RotateCcw, Sun, Moon, X, Settings, MapPin, ChevronDown, Mic } from "lucide-react";
+import { Search, ShoppingBag, User, LogOut, Bell, ShieldAlert, BadgeCheck, History, Heart, RotateCcw, Sun, Moon, X, Settings, MapPin, ChevronDown, Mic, Menu } from "lucide-react";
 import daduLogo from "../assets/images/dadu_food_logo_new_1782333467889.jpg";
 import { formatOrderId } from "../utils/catalogNormalizer";
 
@@ -38,6 +38,7 @@ interface FoodpandaHeaderProps {
   onToggleTheme?: () => void;
   onOpenSettings?: () => void;
   onOpenLocation?: () => void;
+  onOpenMenu?: () => void;
   locationLabel?: string;
   hasLocation?: boolean;
 }
@@ -74,6 +75,7 @@ export default function FoodpandaHeader({
   onToggleTheme,
   onOpenSettings,
   onOpenLocation,
+  onOpenMenu,
   locationLabel,
   hasLocation = false,
 }: FoodpandaHeaderProps) {
@@ -151,6 +153,15 @@ export default function FoodpandaHeader({
         <div className="max-w-7xl mx-auto px-3.5 sm:px-4 h-[60px] flex items-center justify-between gap-2 sm:gap-3.5">
           {/* Logo + Mobile Location Trigger */}
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 sm:flex-initial">
+            <button
+              type="button"
+              onClick={() => onOpenMenu?.()}
+              aria-label="Open menu"
+              title="Menu"
+              className="min-h-[44px] w-11 flex items-center justify-center text-white hover:bg-white/15 active:scale-95 rounded-xl transition-all shrink-0 cursor-pointer"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
             <button
               type="button"
               onClick={() => {
