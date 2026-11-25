@@ -262,7 +262,7 @@ export default function GroceryModule({
 
         <div className="p-2.5 sm:p-3 flex-1 flex flex-col justify-between gap-2">
           <div>
-            <h4 className="font-bold text-[#14141A] dark:text-[#F5F5F8] text-xs sm:text-sm leading-snug line-clamp-2">
+            <h4 className="font-bold text-[#14141A] dark:text-[#F5F5F8] text-[13px] sm:text-sm leading-snug line-clamp-2">
               {p.name}
             </h4>
             <span className="block text-[11px] font-medium text-[#5A5A6B] dark:text-[#A1A1B2] mt-0.5 line-clamp-1">
@@ -272,7 +272,7 @@ export default function GroceryModule({
 
           <div className="flex items-center justify-between gap-1.5">
             <div className="flex items-baseline gap-1 min-w-0">
-              <span className="text-[13px] sm:text-sm font-extrabold text-[#D70F64] dark:text-[#FF4D94] font-mono tabular-nums truncate">
+              <span className="text-sm sm:text-[15px] font-extrabold text-[#D70F64] dark:text-[#FF4D94] font-mono tabular-nums truncate">
                 {`Rs. ${displayPrice}`}
               </span>
               {hasDiscount && (
@@ -323,7 +323,7 @@ export default function GroceryModule({
   };
 
   return (
-    <div className="bg-[#F7F7FA] dark:bg-[#0B0B0F] text-[#14141A] dark:text-[#F5F5F8] min-h-screen py-4 sm:py-6 transition-colors duration-200 animate-slide-screen">
+    <div className="bg-white dark:bg-[#0B0B0F] text-[#14141A] dark:text-[#F5F5F8] min-h-screen py-4 sm:py-6 transition-colors duration-200 animate-slide-screen">
       <div className="max-w-7xl mx-auto px-3.5 sm:px-4 space-y-5 sm:space-y-6">
         {/* Dadu Express Mart Hero (design: dark banner, basket photo, yellow headline) */}
         <div className="relative overflow-hidden rounded-[28px] shadow-[0_12px_28px_rgba(215,15,100,0.25)] min-h-[210px] sm:min-h-[230px]">
@@ -373,13 +373,13 @@ export default function GroceryModule({
                 setShowAllInCategory(false);
                 setShowAllCatalog(false);
               }}
-              className={`w-[104px] shrink-0 rounded-2xl border p-2 text-left transition-all cursor-pointer ${
+              className={`w-[110px] shrink-0 rounded-2xl border p-2 text-left transition-all cursor-pointer ${
                 selectedCategoryId === "All" && !showAllCatalog
                   ? "bg-[#FFE4EF] border-[#D70F64] ring-2 ring-[#D70F64]/40 shadow-md"
                   : "bg-[#FFF0F5] dark:bg-[#2A101B] border-[#F9A8C9]/40 dark:border-[#D70F64]/25 hover:border-[#D70F64]/60"
               }`}
             >
-              <div className="h-14 rounded-xl overflow-hidden bg-[#FFE4EF] dark:bg-[#1B1B23] mb-1.5">
+              <div className="h-[60px] rounded-xl overflow-hidden bg-[#FFE4EF] dark:bg-[#1B1B23] mb-1.5">
                 <img
                   src="/images/home/grocery-basket.jpg"
                   alt="All grocery items"
@@ -405,13 +405,13 @@ export default function GroceryModule({
                     setShowAllInCategory(true);
                     setShowAllCatalog(false);
                   }}
-                  className={`w-[104px] shrink-0 rounded-2xl border p-2 text-left transition-all cursor-pointer ${
+                  className={`w-[110px] shrink-0 rounded-2xl border p-2 text-left transition-all cursor-pointer ${
                     isActive
                       ? "bg-[#FFE4EF] border-[#D70F64] ring-2 ring-[#D70F64]/40 shadow-md"
                       : "bg-[#FFF0F5] dark:bg-[#2A101B] border-[#F9A8C9]/40 dark:border-[#D70F64]/25 hover:border-[#D70F64]/60"
                   }`}
                 >
-                  <div className="h-14 rounded-xl overflow-hidden bg-[#FFE4EF] dark:bg-[#1B1B23] mb-1.5 flex items-center justify-center">
+                  <div className="h-[60px] rounded-xl overflow-hidden bg-[#FFE4EF] dark:bg-[#1B1B23] mb-1.5 flex items-center justify-center">
                     {thumb ? (
                       <CategoryTileThumb src={thumb} alt={cat.name} />
                     ) : (
