@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import fs from 'fs';
 import {defineConfig} from 'vite';
+import {prerenderPlugin} from './scripts/prerender-plugin.mjs';
 
 export default defineConfig(() => {
   // Self-healing: if .env is missing, recreate it from process.env
@@ -42,7 +43,7 @@ export default defineConfig(() => {
     '';
 
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [react(), tailwindcss(), prerenderPlugin()],
     define: mapsApiKey
       ? {
           'import.meta.env.VITE_GOOGLE_MAPS_API_KEY': JSON.stringify(mapsApiKey),
