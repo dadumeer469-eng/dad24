@@ -151,9 +151,10 @@ export default function FoodpandaHeader({
         <div className="relative max-w-7xl mx-auto px-3.5 sm:px-4 h-[60px] flex items-center justify-between gap-2 sm:gap-3.5">
           {/* Logo + Mobile Location Trigger */}
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 sm:flex-initial">
-            <button
-              type="button"
-              onClick={() => {
+            <a
+              href="/"
+              onClick={(e) => {
+                e.preventDefault();
                 if (activeModule === "grocery" && onResetGroceryHome) {
                   onResetGroceryHome();
                 } else if (onResetFoodHome) {
@@ -186,7 +187,7 @@ export default function FoodpandaHeader({
                   Food &amp; Grocery
                 </span>
               </span>
-            </button>
+            </a>
 
             {/* Tappable Delivery Location Pill (Mobile & Desktop) */}
             <button
@@ -218,7 +219,7 @@ export default function FoodpandaHeader({
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={
                 activeModule === "grocery"
-                  ? "Search 100 Dadu Mart groceries..."
+                  ? "Search 297 Dadu Mart groceries..."
                   : "Search shops, dishes & groceries..."
               }
               className="w-full min-h-[42px] pl-10 pr-10 py-2 bg-white text-[#14141A] placeholder-[#6E6E80] rounded-full text-sm outline-none shadow-xs focus:ring-2 focus:ring-white/60 transition-all font-medium"
@@ -685,7 +686,7 @@ export default function FoodpandaHeader({
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={
               activeModule === "grocery"
-                ? "Search 100 Dadu Mart groceries..."
+                ? "Search 297 Dadu Mart groceries..."
                 : "Search shops, dishes & groceries"
             }
             className="w-full min-h-[44px] pl-10 pr-10 py-2.5 bg-white text-[#14141A] placeholder-[#6E6E80] rounded-full text-sm outline-none shadow-xs focus:ring-2 focus:ring-white/60 transition-all font-medium glossy-sheen"

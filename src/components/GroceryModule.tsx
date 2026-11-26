@@ -14,6 +14,9 @@ interface GroceryModuleProps {
   onUpdateCartQuantity: (productId: string, quantity: number) => void;
   onRemoveFromCart: (productId: string) => void;
   searchQuery: string;
+  // Deep-link / route support: e.g. /pharmacy opens with the Medicine &
+  // Pharmacy category (gcat_medicine) pre-selected.
+  initialCategoryId?: string;
 }
 
 function GroceryProductImage({
@@ -108,9 +111,10 @@ export default function GroceryModule({
   cartItems = [],
   onUpdateCartQuantity,
   searchQuery = "",
+  initialCategoryId,
 }: GroceryModuleProps) {
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("All");
-  const [showAllInCategory, setShowAllInCategory] = useState<boolean>(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>(initialCategoryId || "All");
+  const [showAllInCategory, setShowAllInCategory] = useState<boolean>(Boolean(initialCategoryId));
   const [showAllCatalog, setShowAllCatalog] = useState<boolean>(false);
   const [favIds, setFavIds] = useState<string[]>(() => {
     try {
@@ -131,6 +135,13 @@ export default function GroceryModule({
       return next;
     });
   };
+
+  // Follow route changes (e.g. /grocery -> /pharmacy) while the module stays mounted.
+  React.useEffect(() => {
+    setSelectedCategoryId(initialCategoryId || "All");
+    setShowAllInCategory(Boolean(initialCategoryId));
+    setShowAllCatalog(false);
+  }, [initialCategoryId]);
 
   const activeCategories = useMemo(
     () =>

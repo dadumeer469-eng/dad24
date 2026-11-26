@@ -27,6 +27,7 @@ import { getDefaultRestaurantImage } from "../data";
 import { LazyImage } from "./LazyImage";
 import FoodDetailModal from "./FoodDetailModal";
 import { getShopOpenStatus, getShopProfile, isDishVeg } from "../utils/catalogNormalizer";
+import { slugifyShop } from "../utils/seoManager";
 
 interface FoodpandaRestaurantPageProps {
   restaurantName: string;
@@ -51,6 +52,7 @@ interface FoodpandaRestaurantPageProps {
   cartCountTotal: number;
   cartPriceTotal: number;
   onViewCart: () => void;
+  onOpenShop?: (restaurantName: string) => void;
   toggleFavorite: (dishId: string) => void;
   favoriteDishIds: string[];
   isRiderRangeExceeded?: boolean;
@@ -142,6 +144,7 @@ export default function FoodpandaRestaurantPage({
   cartCountTotal,
   cartPriceTotal,
   onViewCart,
+  onOpenShop,
   toggleFavorite,
   favoriteDishIds,
   isRiderRangeExceeded,
@@ -149,6 +152,26 @@ export default function FoodpandaRestaurantPage({
 }: FoodpandaRestaurantPageProps) {
   const shopProfile = getShopProfile(restaurantName, deliverySettings, dishes, orders);
   const openStatus = getShopOpenStatus(restaurantName, deliverySettings, isRestaurantClosed);
+
+  // SEO intro per shop — dish keywords only, using each shop's real menu
+  // (see SHOP_DESCRIPTIONS in catalogNormalizer.ts).
+  const shopIntro = (() => {
+    const n = restaurantName.toLowerCase();
+    if (n.includes("bilal"))
+      return "S M Bilal Hotel is the place for chicken karahi Dadu and BBQ Dadu — mutton karahi, seekh kababs and fresh tandoori naan, delivered hot across Dadu city in 20–35 minutes. Delivery is Rs 50 and you can pay by Cash on Delivery or Easypaisa.";
+    if (n.includes("tasty"))
+      return "Tasty Bites Dadu serves pizza in Dadu — creamy pastas, loaded lasagna, grilled sandwiches and fresh pizzas — along with chicken shawarma Dadu orders. Everything is delivered hot in 20–35 minutes for Rs 50, with Cash on Delivery or Easypaisa.";
+    if (n.includes("dadu fast food"))
+      return "Looking for chicken biryani Dadu or a crispy zinger burger Dadu? Dadu Fast Food & Kitchen serves freshly baked pizzas, zinger burgers and crispy broast across Dadu city, delivered hot in 20–35 minutes for Rs 50. Pay by Cash on Delivery or Easypaisa.";
+    return `Order fresh food from ${restaurantName} in Dadu — delivered hot across Dadu city in 20–35 minutes for Rs 50. Pay by Cash on Delivery or Easypaisa.`;
+  })();
+
+  // The other Dadu Food partner restaurants, for crawlable cross-links.
+  const otherShops = [
+    { name: "Dadu Fast Food & Kitchen", label: "Dadu Fast Food & Kitchen — zinger burgers & biryani in Dadu" },
+    { name: "S M Bilal Hotel", label: "S M Bilal Hotel — BBQ & karahi in Dadu" },
+    { name: "Tasty Bites Dadu", label: "Tasty Bites Dadu — fast food in Dadu" },
+  ].filter((s) => s.name !== restaurantName);
 
   const categories = Array.from(new Set(dishes.map((d) => d.category)));
   const explicitBestsellers = dishes.filter((d) => Boolean(d.isBestseller));
@@ -422,7 +445,7 @@ export default function FoodpandaRestaurantPage({
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#14141A] dark:text-[#F5F5F8] leading-tight">
-                  {restaurantName}
+                  {restaurantName.includes("Dadu") ? restaurantName : `${restaurantName} — Dadu`}
                 </h1>
                 <BadgeCheck className="w-5 h-5 fill-[#D70F64] text-white shrink-0 mt-0.5" />
                 {openStatus.isOpen ? (
@@ -448,6 +471,9 @@ export default function FoodpandaRestaurantPage({
               </div>
               <p className="speakable-summary text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A1A1B2] font-medium mt-1 leading-relaxed">
                 {shopProfile.oneLineDescription}
+              </p>
+              <p className="text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A1A1B2] leading-relaxed mt-2">
+                {shopIntro}
               </p>
             </div>
           </div>
@@ -789,6 +815,45 @@ export default function FoodpandaRestaurantPage({
           </>
         )}
       </div>
+
+      {/* More restaurants in Dadu — crawlable cross-links */}
+      <nav aria-label="More restaurants in Dadu" className="max-w-4xl mx-auto px-3.5 sm:px-4 mt-6">
+        <div className="bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl p-4 shadow-xs">
+          <h2 className="text-sm font-extrabold text-[#14141A] dark:text-white tracking-tight">
+            More restaurants in Dadu
+          </h2>
+          <ul className="mt-2 space-y-1.5 text-sm">
+            {otherShops.map((shop) => (
+              <li key={shop.name}>
+                <a
+                  href={`/shop/${slugifyShop(shop.name)}`}
+                  onClick={(e) => {
+                    if (onOpenShop) {
+                      e.preventDefault();
+                      onOpenShop(shop.name);
+                    }
+                  }}
+                  className="text-[#D70F64] dark:text-[#FF4D94] font-bold hover:underline"
+                >
+                  {shop.label}
+                </a>
+              </li>
+            ))}
+            <li>
+              <a
+                href="/"
+                onClick={(e) => {
+                  e.preventDefault();
+                  onBack();
+                }}
+                className="text-[#D70F64] dark:text-[#FF4D94] font-bold hover:underline"
+              >
+                Back to all restaurants in Dadu
+              </a>
+            </li>
+          </ul>
+        </div>
+      </nav>
 
       {/* Floating Sticky Cart Bar (Compact <=15% mobile sticky cap, >=48px touch target) */}
       {cartCountTotal > 0 && (
