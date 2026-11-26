@@ -1,6 +1,6 @@
 import LocationPermissionModal from "./components/LocationPermissionModal";
 import MapLocationPickerModal from "./components/MapLocationPickerModal";
-import React, { useState, useEffect, useRef, Suspense, useCallback } from "react";
+import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
 import { DashboardMenuItemCard } from "./components/DashboardMenuItemCard";
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from "firebase/auth";
 import {
@@ -54,6 +54,7 @@ import { applyCatalogDelta } from "./utils/catalogDelta";
 import FoodpandaHeader from "./components/FoodpandaHeader";
 import FoodpandaHero from "./components/FoodpandaHero";
 import CartDrawer from "./components/CartDrawer";
+import VoiceOrderModal, { type VoiceOrder, type VoiceOrderResult } from "./components/VoiceOrderModal";
 import OrderTracker from "./components/OrderTracker";
 import AuthModal from "./components/AuthModal";
 // Staff-only panels load on demand so the first paint stays fast for customers
@@ -3192,6 +3193,235 @@ export default function App() {
     }
   }, [currentUser, cartItems, deliverySettings, deviceId]);
 
+  // ===== Voice Order Assistant (AI Studio Gemini, Sindhi) =====
+  const [isVoiceOrderOpen, setIsVoiceOrderOpen] = useState(false);
+  const [voiceFoodDetails, setVoiceFoodDetails] = useState<Parameters<
+    typeof handlePlaceOrderSubmit
+  >[0] | null>(null);
+  const [voiceFoodExpected, setVoiceFoodExpected] = useState<string[] | null>(null);
+  const voiceOrderDeferredRef = useRef<{
+    resolve: (r: VoiceOrderResult) => void;
+  } | null>(null);
+
+  // Compact menu text for the voice agent (name — price — type).
+  const voiceMenuText = useMemo(() => {
+    const foodLines = dishes
+      .filter((d) => d.isAvailable && d.type === "food")
+      .map(
+        (d) =>
+          `${d.name} — Rs ${d.discountPrice && d.discountPrice < d.price ? d.discountPrice : d.price} — food`,
+      );
+    const groceryLines = groceryProducts
+      .filter((p) => p.isAvailable)
+      .map(
+        (p) =>
+          `${p.name} — Rs ${p.discountPrice && p.discountPrice < p.price ? p.discountPrice : p.price} — grocery`,
+      );
+    return [...foodLines, ...groceryLines].join("\n");
+  }, [dishes, groceryProducts]);
+
+  const normalizeName = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  const findDish = useCallback(
+    (name: string): Dish | null => {
+      const n = normalizeName(name);
+      if (!n) return null;
+      return (
+        dishes.find((d) => normalizeName(d.name) === n) ||
+        dishes.find(
+          (d) => normalizeName(d.name).startsWith(n) || n.startsWith(normalizeName(d.name)),
+        ) ||
+        dishes.find(
+          (d) => normalizeName(d.name).includes(n) || n.includes(normalizeName(d.name)),
+        ) ||
+        null
+      );
+    },
+    [dishes],
+  );
+
+  const findGrocery = useCallback(
+    (name: string): GroceryProduct | null => {
+      const n = normalizeName(name);
+      if (!n) return null;
+      return (
+        groceryProducts.find((p) => normalizeName(p.name) === n) ||
+        groceryProducts.find(
+          (p) => normalizeName(p.name).startsWith(n) || n.startsWith(normalizeName(p.name)),
+        ) ||
+        groceryProducts.find(
+          (p) => normalizeName(p.name).includes(n) || n.includes(normalizeName(p.name)),
+        ) ||
+        null
+      );
+    },
+    [groceryProducts],
+  );
+
+  // Places a voice-collected order. Resolves only after the order is placed.
+  const handleVoiceOrderReady = useCallback(
+    async (order: VoiceOrder): Promise<VoiceOrderResult> => {
+      if (!currentUser) {
+        return { ok: false, needsSignIn: true };
+      }
+      if (currentUser.status === "locked" || currentUser.status === "blocked") {
+        return { ok: false, message: "Account restricted aahe. Verification pending aahe." };
+      }
+      const name = currentUser.name || "Customer";
+      const phone = currentUser.phone || "";
+      const location = {
+        area: order.address.area || "Dadu",
+        street: order.address.street || "",
+      };
+      const paymentMethod: "COD" | "Easypaisa" =
+        order.payment === "Easypaisa" ? "Easypaisa" : "COD";
+
+      // Match spoken items to the catalogue (fall back to the other catalogue
+      // when the agent's type hint does not match).
+      const foodDishes: { dish: Dish; qty: number }[] = [];
+      const groceryProds: { product: GroceryProduct; qty: number }[] = [];
+      for (const it of order.items) {
+        const qty = Math.max(1, Math.round(it.qty) || 1);
+        if (it.type === "food") {
+          const dish = findDish(it.name);
+          if (dish) foodDishes.push({ dish, qty });
+          else {
+            const g = findGrocery(it.name);
+            if (g) groceryProds.push({ product: g, qty });
+          }
+        } else {
+          const g = findGrocery(it.name);
+          if (g) groceryProds.push({ product: g, qty });
+          else {
+            const dish = findDish(it.name);
+            if (dish) foodDishes.push({ dish, qty });
+          }
+        }
+      }
+      if (foodDishes.length === 0 && groceryProds.length === 0) {
+        return { ok: false, message: "Koi item menu mein na milyo. Mehrbani kare wari koshish kayo." };
+      }
+
+      // Grocery: place directly (handlePlaceGroceryOrder takes items as a param).
+      if (groceryProds.length > 0) {
+        const items: GroceryOrderItem[] = groceryProds.map(({ product, qty }) => ({
+          productId: product.id,
+          name: product.name,
+          price:
+            product.discountPrice && product.discountPrice < product.price
+              ? product.discountPrice
+              : product.price,
+          discountPrice: product.discountPrice,
+          quantity: qty,
+          unit: product.unit,
+          imageUrl: product.imageUrl,
+          commission: product.commission || 0,
+        }));
+        const totalPrice = items.reduce((a, i) => a + i.price * i.quantity, 0);
+        const hasMedicine = groceryProds.some(
+          ({ product }) => product.categoryId === "gcat_medicine",
+        );
+        const medicineFee =
+          (groceryDeliveryConfig?.medicineDeliveryFee || 0) > 0
+            ? groceryDeliveryConfig.medicineDeliveryFee!
+            : 30;
+        const baseFee = hasMedicine
+          ? medicineFee
+          : (groceryDeliveryConfig?.baseDeliveryFee || 0) > 0
+            ? groceryDeliveryConfig.baseDeliveryFee!
+            : 50;
+        const freeThreshold = Number(groceryDeliveryConfig?.freeDeliveryAboveAmount || 1000);
+        const doubleBelow = Number(deliverySettings?.doubleFeeBelowAmount ?? 500);
+        const isFree = totalPrice >= freeThreshold;
+        const isDouble = doubleBelow > 0 && totalPrice > 0 && totalPrice < doubleBelow;
+        const deliveryFee = !isFree && totalPrice > 0 ? (isDouble ? baseFee * 2 : baseFee) : 0;
+        await handlePlaceGroceryOrder({
+          name,
+          phone,
+          location,
+          items,
+          totalPrice,
+          deliveryFee,
+          grandTotal: totalPrice + deliveryFee,
+          paymentMethod,
+          userCoords: globalCoords || undefined,
+        });
+      }
+
+      // Food: build the cart, then the effect below places the order once the
+      // cart reflects the voice items (state updates are async).
+      if (foodDishes.length > 0) {
+        const cartItemsForVoice: OrderItem[] = foodDishes.map(({ dish, qty }) => ({
+          dishId: dish.id,
+          name: dish.name,
+          price:
+            dish.discountPrice && dish.discountPrice < dish.price
+              ? dish.discountPrice
+              : dish.price,
+          quantity: qty,
+          type: dish.type,
+          serviceDuration: dish.serviceDuration,
+          restaurantName: dish.restaurantName || "Dadu Fast Food & Kitchen",
+          commission: dish.commission || 0,
+          selectedSize: undefined,
+          selectedFlavor: undefined,
+          selectedAddOns: undefined,
+          specialInstructions: undefined,
+        }));
+        const details: Parameters<typeof handlePlaceOrderSubmit>[0] = {
+          name,
+          phone,
+          location,
+          paymentMethod,
+          orderType: "food",
+          userCoords: globalCoords || undefined,
+        };
+        const done = new Promise<VoiceOrderResult>((resolve) => {
+          voiceOrderDeferredRef.current = { resolve };
+        });
+        setGroceryCartItems([]);
+        setCartItems(cartItemsForVoice);
+        setVoiceFoodExpected(cartItemsForVoice.map((c) => c.dishId));
+        setVoiceFoodDetails(details);
+        return done;
+      }
+      return { ok: true };
+    },
+    [
+      currentUser,
+      findDish,
+      findGrocery,
+      groceryDeliveryConfig,
+      deliverySettings,
+      globalCoords,
+      handlePlaceGroceryOrder,
+    ],
+  );
+
+  // Places the pending voice food order once the cart reflects the voice items.
+  useEffect(() => {
+    if (!voiceFoodDetails || !voiceFoodExpected) return;
+    const ready = voiceFoodExpected.every((id) =>
+      cartItems.some((c) => c.dishId === id),
+    );
+    if (!ready || cartItems.length === 0) return;
+    const details = voiceFoodDetails;
+    setVoiceFoodDetails(null);
+    setVoiceFoodExpected(null);
+    handlePlaceOrderSubmit(details)
+      .then(() => {
+        voiceOrderDeferredRef.current?.resolve({ ok: true });
+        voiceOrderDeferredRef.current = null;
+      })
+      .catch(() => {
+        voiceOrderDeferredRef.current?.resolve({
+          ok: false,
+          message: "Order place na thiyo. Mehrbani kare wari koshish kayo.",
+        });
+        voiceOrderDeferredRef.current = null;
+      });
+  }, [cartItems, voiceFoodDetails, voiceFoodExpected, handlePlaceOrderSubmit]);
+
   const handleClearNotificationsAll = async () => {
     try {
       await Promise.all(
@@ -4685,15 +4915,25 @@ export default function App() {
       {/* Offline & Slow-Internet Smart Shield Banner */}
       <NetworkStatusBanner />
 
-      {/* Dynamic Floating Call Button (Bottom corner) — taps to call the store */}
-      <a
-        href={`tel:+${deliverySettings?.whatsappNumber || "923277004471"}`}
+      {/* Dynamic Floating Voice Assistant Button (Bottom corner) — opens the AI voice order assistant */}
+      <button
+        onClick={() => setIsVoiceOrderOpen(true)}
         className={`fixed bottom-32 right-4 z-40 bg-[#E21B70] hover:bg-[#C2145E] text-white p-2 rounded-full shadow-lg active:scale-[0.97] transition-[color,background-color,border-color,transform,opacity] duration-180 cursor-pointer flex items-center justify-center border border-white/20 ${isScrolling ? "opacity-0 pointer-events-none translate-y-3" : "opacity-100"}`}
-        title="Call Dadu Food"
-        aria-label="Call Dadu Food"
+        title="Voice Assistant — Sindhi mein order karein"
+        aria-label="Voice Assistant"
       >
         <Phone className="w-6 h-6 text-white" />
-      </a>
+      </button>
+
+      {/* AI Voice Order Assistant (Sindhi) */}
+      <VoiceOrderModal
+        isOpen={isVoiceOrderOpen}
+        onClose={() => setIsVoiceOrderOpen(false)}
+        menuText={voiceMenuText}
+        isSignedIn={!!currentUser}
+        onOpenAuth={() => setIsAuthOpen(true)}
+        onOrderReady={handleVoiceOrderReady}
+      />
 
       {/* Primary Navigation System */}
       {!(isMaintenanceActive && !isUserAdmin) && (
