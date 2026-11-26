@@ -290,6 +290,7 @@ function pickFallbackPhotoByName(name: string): string {
   if (name.includes("steak") || name.includes("ribeye") || name.includes("tenderloin")) return DISH_IMAGE_MAP.steak;
   if (name.includes("green tea") || name.includes("kehwa") || name.includes("kahwa")) return DISH_IMAGE_MAP.greenTea;
   if (name.includes("chai") || name.includes("tea")) return DISH_IMAGE_MAP.chai;
+  if (name.includes("coffee")) return DISH_IMAGE_MAP.chai;
   if (name.includes("paratha")) return DISH_IMAGE_MAP.paratha;
   if (name.includes("naan") || name.includes("roti") || name.includes("chapati")) return DISH_IMAGE_MAP.naan;
   if (name.includes("biryani") || name.includes("pulao")) return DISH_IMAGE_MAP.biryani;
@@ -304,9 +305,11 @@ function pickFallbackPhotoByName(name: string): string {
   if (name.includes("broast") || name.includes("fried chicken") || name.includes("wings") || name.includes("nuggets")) return DISH_IMAGE_MAP.broast;
   if (name.includes("zinger")) return DISH_IMAGE_MAP.zinger;
   if (name.includes("burger")) return DISH_IMAGE_MAP.burger;
+  if (name.includes("samosa") || name.includes("pakora")) return DISH_IMAGE_MAP.fries;
   if (name.includes("fries")) return DISH_IMAGE_MAP.fries;
+  if (name.includes("raita") || name.includes("dahi")) return DISH_IMAGE_MAP.salad;
   if (name.includes("salad")) return DISH_IMAGE_MAP.salad;
-  if (name.includes("cheesecake") || name.includes("cake") || name.includes("dessert") || name.includes("brownie")) return DISH_IMAGE_MAP.cheesecake;
+  if (name.includes("cheesecake") || name.includes("cake") || name.includes("dessert") || name.includes("brownie") || name.includes("kheer") || name.includes("gulab jamun") || name.includes("ice cream") || name.includes("halwa") || name.includes("sweet")) return DISH_IMAGE_MAP.cheesecake;
   if (name.includes("shake") || name.includes("lassi")) return DISH_IMAGE_MAP.shake;
   return DISH_IMAGE_MAP.pizza;
 }
@@ -314,6 +317,12 @@ function pickFallbackPhotoByName(name: string): string {
 export function resolveAccurateDishImage(dish: Partial<Dish>): string {
   const name = `${dish.name || ""} ${dish.category || ""}`.toLowerCase();
   const img = (dish.imageUrl || "").trim();
+
+  // Blanket rule: never serve an Unsplash photo — the allow-list below
+  // cannot cover every Unsplash URL. Fall back to a local dish photo.
+  if (img.includes("unsplash.com")) {
+    return pickFallbackPhotoByName(name);
+  }
 
   if (name.includes("mountain dew") || name.includes("dew")) {
     if (!img || img.includes("photo-1534080564583") || img.includes("pizza") || img.includes("1622483767028")) {
@@ -430,15 +439,9 @@ export function normalizePrice(dish: Dish, normalizedCat: string): number {
   }
 
   if (price <= 0) {
-    if (normalizedCat === "Tea & Chai") return 80;
-    if (normalizedCat === "Pizza") return 690;
-    if (normalizedCat === "Desi Food") return 450;
-    return 250;
-  }
-  if (normalizedCat === "Pizza" && price === 350 && (!dish.sizes || dish.sizes.length === 0)) {
-    const hash = Array.from(dish.name || "").reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
-    const tiers = [590, 650, 690, 750, 790];
-    return tiers[hash % tiers.length];
+    // No price on file — never invent one. Returns 0; normalizeDish hides
+    // the dish from the menu and warns the admin to price it.
+    return 0;
   }
   return Math.round(price);
 }
@@ -459,7 +462,15 @@ export function normalizeDish(raw: Dish): Dish {
       : undefined;
 
   const isSmBilal = cleanRestaurant.toLowerCase().includes("bilal");
-  const isAvailable = isSmBilal ? true : raw.isAvailable !== false;
+  // A dish with no price (and no priced size) cannot be ordered — hide it
+  // instead of showing a fabricated price. Sized dishes (e.g. pizzas with
+  // Small/Medium/Large prices) stay available through their sizes.
+  const hasPricedSize = raw.sizes?.some((s) => Number(s.price) > 0) ?? false;
+  const isAvailable =
+    (price > 0 || hasPricedSize) && (isSmBilal ? true : raw.isAvailable !== false);
+  if (price <= 0 && !hasPricedSize) {
+    console.warn(`[Dadu Food] Dish has no price, hidden from menu: ${cleanName}`);
+  }
 
   const normalizedSizes = raw.sizes?.map((s) => ({
     ...s,

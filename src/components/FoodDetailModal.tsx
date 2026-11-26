@@ -155,7 +155,7 @@ export default function FoodDetailModal({
             <>
               {/* Header Image */}
               <div className="h-48 sm:h-64 relative shrink-0 bg-zinc-100 dark:bg-zinc-800">
-                <LazyImage src={dish.imageUrl || (isService ? "https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&q=80&w=400" : "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=400")} alt={dish.name} className="w-full h-full" referrerPolicy="no-referrer" />
+                <LazyImage src={dish.imageUrl || "/images/dishes/pizza.jpg"} alt={dish.name} className="w-full h-full" referrerPolicy="no-referrer" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                 
                 <div className="absolute bottom-4 left-5 flex items-center gap-2">

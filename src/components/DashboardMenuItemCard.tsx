@@ -70,7 +70,7 @@ export const DashboardMenuItemCard = React.memo(function DashboardMenuItemCard({
           referrerPolicy="no-referrer"
           src={
             dish.imageUrl ||
-            "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=400"
+            "/images/dishes/pizza.jpg"
           }
           alt={`${dish.name} from ${dishRestaurantName}`}
           className="w-full h-full"

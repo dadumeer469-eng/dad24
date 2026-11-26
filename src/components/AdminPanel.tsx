@@ -2421,9 +2421,7 @@ export default function AdminPanel({
     }
     try {
       const generatedId = `gprod_${Date.now()}`;
-      const defaultImg =
-        newGProdImageUrl.trim() ||
-        "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400";
+      const defaultImg = newGProdImageUrl.trim() || "/logo.png"; // branded tile — no fake product photo
       await setDoc(
         doc(db, "groceryProducts", generatedId),
         cleanObject({
