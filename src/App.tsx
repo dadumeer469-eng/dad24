@@ -4968,6 +4968,8 @@ export default function App() {
         isSignedIn={!!currentUser}
         onOpenAuth={() => setIsAuthOpen(true)}
         onOrderReady={handleVoiceOrderReady}
+        userName={currentUser?.name}
+        userPhone={currentUser?.phone}
       />
 
       {/* Primary Navigation System */}
