@@ -3220,6 +3220,34 @@ export default function App() {
     return [...foodLines, ...groceryLines].join("\n");
   }, [dishes, groceryProducts]);
 
+  // Customer's recent orders for the voice agent, so it can answer
+  // "where is my order?" / "why is it late?" with real information.
+  const voiceOrdersText = useMemo(() => {
+    if (!orders || orders.length === 0) return "";
+    const activeFirst = [...orders].sort((a, b) => {
+      const aActive = a.status !== "delivered" && a.status !== "cancelled" && a.status !== "completed" ? 0 : 1;
+      const bActive = b.status !== "delivered" && b.status !== "cancelled" && b.status !== "completed" ? 0 : 1;
+      if (aActive !== bActive) return aActive - bActive;
+      const aT = a.createdAt?.seconds || 0;
+      const bT = b.createdAt?.seconds || 0;
+      return bT - aT;
+    });
+    return activeFirst.slice(0, 5).map((o) => {
+      const secs = o.createdAt?.seconds || (o.createdAt?.toDate ? Math.floor(o.createdAt.toDate().getTime() / 1000) : 0);
+      const placed = secs
+        ? new Date(secs * 1000).toLocaleTimeString("en-PK", {
+            hour: "numeric",
+            minute: "2-digit",
+            timeZone: "Asia/Karachi",
+          })
+        : "";
+      const items = (o.items || [])
+        .map((i: { name: string; quantity: number }) => `${i.quantity}x ${i.name}`)
+        .join(", ");
+      return `- ${o.id}: ${items} — Rs ${o.grandTotal || o.totalPrice} — status: ${o.status} — placed ${placed} — ${o.paymentMethod} — ${o.deliverySpeed || "standard"}`;
+    }).join("\n");
+  }, [orders]);
+
   const normalizeName = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
 
   const findDish = useCallback(
@@ -4930,6 +4958,7 @@ export default function App() {
         isOpen={isVoiceOrderOpen}
         onClose={() => setIsVoiceOrderOpen(false)}
         menuText={voiceMenuText}
+        ordersText={voiceOrdersText}
         isSignedIn={!!currentUser}
         onOpenAuth={() => setIsAuthOpen(true)}
         onOrderReady={handleVoiceOrderReady}
