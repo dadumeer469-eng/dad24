@@ -82,6 +82,19 @@ export default function FoodpandaHeader({
   const [isListening, setIsListening] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  // Fun: when an item lands in the cart, the badge pops and a "+1" floats up.
+  const displayedCartCount = activeModule === "grocery" ? groceryCartCount : cartCount;
+  const [showPlusOne, setShowPlusOne] = useState(false);
+  const prevCartCountRef = useRef(displayedCartCount);
+  useEffect(() => {
+    if (displayedCartCount > prevCartCountRef.current) {
+      setShowPlusOne(true);
+      const t = window.setTimeout(() => setShowPlusOne(false), 850);
+      prevCartCountRef.current = displayedCartCount;
+      return () => window.clearTimeout(t);
+    }
+    prevCartCountRef.current = displayedCartCount;
+  }, [displayedCartCount]);
 
   // Close the header dropdowns on outside tap / Escape — previously they
   // stayed open until their own toggle was tapped again.
@@ -443,8 +456,16 @@ export default function FoodpandaHeader({
                 <ShoppingCart className="w-5 h-5 text-white" />
               )}
               {(activeModule === "grocery" ? groceryCartCount : cartCount) > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-white text-[#D70F64] text-[10px] font-semibold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center tabular-nums shadow-xs">
+                <span
+                  key={activeModule === "grocery" ? groceryCartCount : cartCount}
+                  className="absolute -top-0.5 -right-0.5 bg-white text-[#D70F64] text-[10px] font-semibold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center tabular-nums shadow-xs animate-cart-pop"
+                >
                   {activeModule === "grocery" ? groceryCartCount : cartCount}
+                </span>
+              )}
+              {showPlusOne && (
+                <span className="absolute -top-1 -right-1 bg-[#FFD23F] text-[#1f1b16] text-[10px] font-bold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center tabular-nums shadow-xs animate-float-up pointer-events-none">
+                  +1
                 </span>
               )}
             </button>

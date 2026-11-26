@@ -43,7 +43,7 @@ export default function OrderSuccessAnimation({
 
       // Generate confetti particles on load
       const colors = ["#E21B70", "#EA580C", "#10B981", "#3B82F6", "#F59E0B", "#EC4899", "#8B5CF6"];
-      const generated = Array.from({ length: 18 }).map((_, i) => ({
+      const generated = Array.from({ length: 40 }).map((_, i) => ({
         id: i,
         x: Math.random() * 100, // percentage of screen width
         y: -10, // start above screen
