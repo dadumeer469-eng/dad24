@@ -210,9 +210,12 @@ async function synthesizeChunk(chunk: string): Promise<Buffer> {
             },
           },
         });
+      // NOTE: rate +15% = brisk, friendly pace (user: "fast bole, robot na lage").
+      // mstts:express-as style='chat' was tried 27 Nov — Edge closes the socket
+      // (ur-PK-AsadNeural does not support it), so style is deliberately NOT used.
       const ssmlMsg =
         `X-RequestId:${requestId}\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:${ts()}\r\nPath:ssml\r\n\r\n` +
-        `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='ur-PK'><voice name='${VOICE}'>${esc(chunk)}</voice></speak>`;
+        `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='ur-PK'><voice name='${VOICE}'><prosody rate='+15%'>${esc(chunk)}</prosody></voice></speak>`;
 
       socket.on("data", (data: Buffer) => {
         if (!handshakeDone) {
