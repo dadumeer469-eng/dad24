@@ -56,28 +56,46 @@ When everything is collected and confirmed, respond:
     parts: [{ text: m.text }],
   }));
 
+  // Try models in order: 3.8-flash first, fall back to 3.6-flash when the
+  // primary model is overloaded (503) or hangs. Each attempt times out
+  // after 20s so a stuck model call fails fast instead of hanging the call.
+  const models = ["gemini-3.8-flash", "gemini-3.6-flash"];
+  const requestBody = JSON.stringify({
+    systemInstruction: { parts: [{ text: systemInstruction }] },
+    contents,
+    generationConfig: {
+      responseMimeType: "application/json",
+      temperature: 0.7,
+    },
+  });
+  let data: any = null;
   try {
-    const resp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemInstruction }] },
-          contents,
-          generationConfig: {
-            responseMimeType: "application/json",
-            temperature: 0.7,
+    for (const model of models) {
+      try {
+        const resp = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: requestBody,
+            signal: AbortSignal.timeout(20000),
           },
-        }),
-      },
-    );
-    if (!resp.ok) {
-      const errText = await resp.text();
-      console.error("Gemini voice-order error:", resp.status, errText.slice(0, 500));
+        );
+        if (!resp.ok) {
+          const errText = await resp.text();
+          console.error("Gemini voice-order error:", model, resp.status, errText.slice(0, 300));
+          continue;
+        }
+        data = await resp.json();
+        break;
+      } catch (err) {
+        console.error("Gemini voice-order error:", model, (err as Error)?.message || err);
+        continue;
+      }
+    }
+    if (!data) {
       return res.status(502).json({ error: "Gemini request failed" });
     }
-    const data = await resp.json();
     const raw =
       data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text || "").join("") || "";
     let parsed: { say: string; done: boolean; order: unknown } | null = null;
