@@ -7,6 +7,9 @@ export interface LocalMenuItem {
   name: string;
   price: number;
   type: "food" | "grocery";
+  // Catalogue photo (dish imageUrl / grocery imageUrl). Used for Munchi's
+  // product frame; may be absent for items without a photo.
+  image?: string;
 }
 
 export interface LocalOrderItem {

@@ -31,6 +31,22 @@ export type MunchiState =
 
 export type MunchiQuality = "high" | "balanced" | "low";
 
+// The face Munchi wears. Activity (listening/thinking/speaking) is the
+// state machine; mood is the expression on top of it.
+export type MunchiMood = "neutral" | "happy" | "thinking" | "funny" | "concerned";
+
+// Guess the face for a reply from its words (Roman Urdu + Urdu script).
+// Default neutral; a joke wins over an apology, an apology over a warm word.
+export function classifyMood(text: string): MunchiMood {
+  const t = text.toLowerCase();
+  if (/\bhaha\b|hehe|mazak|mazaak|\bjoke\b|hansi|ہاہا|مذاق|ہنسی/.test(t)) return "funny";
+  if (/\bmaaf\b|masla|\bafsos\b|pareshani|galti|kharaab|der ho|معاف|مسئلہ|افسوس|پریشانی|غلطی|خراب|دیر/.test(t))
+    return "concerned";
+  if (/shukriya|zaroor|bilkul|mubarak|khushi|behtareen|\bwah\b|zabardast|شکریہ|ضرور|بالکل|مبارک|خوشی|بہترین|واہ|زبردست/.test(t))
+    return "happy";
+  return "neutral";
+}
+
 // Default Balanced. Low-power phones (little RAM / few cores, data-saver,
 // or reduced-motion) skip blinking and head tilt; powerful devices get the
 // full set. The mouth always moves while speaking — that is the core feature.
@@ -48,6 +64,7 @@ function detectQuality(): MunchiQuality {
 
 export class MunchiController {
   state: MunchiState = "idle";
+  mood: MunchiMood = "neutral";
   quality: MunchiQuality = detectQuality();
 
   // Continuous lip-sync values. Plain mutable fields (not React state) so
@@ -55,6 +72,7 @@ export class MunchiController {
   mouth = { open: 0, target: 0 };
 
   private listeners = new Set<(s: MunchiState) => void>();
+  private moodListeners = new Set<(m: MunchiMood) => void>();
   private fallbackTimer: number | null = null;
   private watchdogTimer: number | null = null;
   private boundarySeen = false;
@@ -66,10 +84,23 @@ export class MunchiController {
     };
   }
 
+  subscribeMood(fn: (m: MunchiMood) => void): () => void {
+    this.moodListeners.add(fn);
+    return () => {
+      this.moodListeners.delete(fn);
+    };
+  }
+
   setState(s: MunchiState) {
     if (this.state === s) return;
     this.state = s;
     this.listeners.forEach((fn) => fn(s));
+  }
+
+  setMood(m: MunchiMood) {
+    if (this.mood === m) return;
+    this.mood = m;
+    this.moodListeners.forEach((fn) => fn(m));
   }
 
   // --- lip-sync driver (called from the voice agent's speak()) ---
@@ -105,6 +136,7 @@ export class MunchiController {
     this.mouth.target = 0;
     this.mouth.open = 0;
     this.setState("idle");
+    this.setMood("neutral");
   }
 
   private stopFallback() {
