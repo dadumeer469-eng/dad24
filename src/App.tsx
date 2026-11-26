@@ -53,6 +53,7 @@ import AuthModal from "./components/AuthModal";
 import RiderPanel from "./components/RiderPanel";
 import FoodDetailModal from "./components/FoodDetailModal";
 import GroceryModule from "./components/GroceryModule";
+import DirectoryView, { DIRECTORY_RESTAURANTS } from "./components/DirectoryView";
 import GroceryCartDrawer from "./components/GroceryCartDrawer";
 import OrderSuccessAnimation from "./components/OrderSuccessAnimation";
 import OrderHistoryDrawer from "./components/OrderHistoryDrawer";
@@ -468,12 +469,14 @@ export default function App() {
   // Crawlable /grocery and /pharmacy routes (H6): parsed from the URL on load,
   // exactly like activeInfoPage below. "home" covers / and the /shop/* + info
   // pages (handled by their own state); anything else unknown is "not-found".
-  type SeoRoute = "home" | "grocery" | "pharmacy" | "not-found";
+  type SeoRoute = "home" | "grocery" | "pharmacy" | "restaurants" | "hotels" | "not-found";
   const parseSeoRoute = (): SeoRoute => {
     if (typeof window === "undefined") return "home";
     const p = window.location.pathname.replace(/^\/+|\/+$/g, "");
     if (p === "grocery") return "grocery";
     if (p === "pharmacy") return "pharmacy";
+    if (p === "restaurants") return "restaurants";
+    if (p === "hotels") return "hotels";
     if (p === "") return "home";
     if (p.startsWith("shop/")) return "home";
     const infoSlugs = ["about", "terms", "privacy-policy", "refund-policy", "contact", "partner-with-us", "become-a-rider"];
@@ -556,6 +559,30 @@ export default function App() {
     setSearchQuery("");
     if (typeof window !== "undefined" && window.location.pathname !== "/pharmacy") {
       window.history.pushState({ page: "pharmacy" }, "", "/pharmacy");
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleGoToRestaurantsHome = () => {
+    setActiveInfoPage(null);
+    setActiveRoute("restaurants");
+    setActiveModule("food");
+    setSelectedRestaurant("All Restaurants");
+    setSearchQuery("");
+    if (typeof window !== "undefined" && window.location.pathname !== "/restaurants") {
+      window.history.pushState({ page: "restaurants" }, "", "/restaurants");
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleGoToHotelsHome = () => {
+    setActiveInfoPage(null);
+    setActiveRoute("hotels");
+    setActiveModule("food");
+    setSelectedRestaurant("All Restaurants");
+    setSearchQuery("");
+    if (typeof window !== "undefined" && window.location.pathname !== "/hotels") {
+      window.history.pushState({ page: "hotels" }, "", "/hotels");
     }
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -2134,6 +2161,12 @@ export default function App() {
         return;
       }
 
+      // Directory pages (/restaurants, /hotels): back goes to the homepage.
+      if (activeRoute === "restaurants" || activeRoute === "hotels") {
+        handleGoToFoodHome();
+        return;
+      }
+
       // Priority 3: If on a sub-tab (e.g. Grocery), return to default Home tab
       if (activeModule !== "food") {
         setActiveModule("food");
@@ -2169,6 +2202,7 @@ export default function App() {
     activeCategory,
     searchQuery,
     activeModule,
+    activeRoute,
   ]);
 
   // --- CART CONTROLLER OPERATIONS ---
@@ -3145,6 +3179,17 @@ export default function App() {
     return list;
   }, [catalogDishes, checkIsRestaurantClosed, globalCoords, deliverySettings]);
 
+  // Real dish counts per restaurant for the /restaurants + /hotels directory
+  // pages, grouped from finalDishes by restaurantName. Only shown when > 0.
+  const directoryDishCounts = React.useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const d of finalDishes) {
+      const rName = d.restaurantName?.trim() || "Dadu Fast Food & Kitchen";
+      counts[rName] = (counts[rName] || 0) + 1;
+    }
+    return counts;
+  }, [finalDishes]);
+
   // Resolve deep-linked /shop/:slug routes once restaurants are known
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -3201,6 +3246,22 @@ export default function App() {
     if (activeRoute === "pharmacy") {
       syncPageSeo({
         pageType: "pharmacy",
+        deliverySettings,
+        adminSeoOverride,
+      });
+      return;
+    }
+    if (activeRoute === "restaurants") {
+      syncPageSeo({
+        pageType: "restaurants",
+        deliverySettings,
+        adminSeoOverride,
+      });
+      return;
+    }
+    if (activeRoute === "hotels") {
+      syncPageSeo({
+        pageType: "hotels",
         deliverySettings,
         adminSeoOverride,
       });
@@ -4508,7 +4569,28 @@ export default function App() {
           <div className="flex-1">
           <Suspense fallback={<div className="p-10 text-center text-sm text-[#5A5A6B] dark:text-[#A3A3B5]">Loading…</div>}>
             <AnimatePresence mode="wait">
-              {activeModule === "food" ? (
+              {(activeRoute === "restaurants" || activeRoute === "hotels") ? (
+                <motion.div
+                  key="directory-view"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                >
+                  <DirectoryView
+                    kind={activeRoute === "hotels" ? "hotels" : "restaurants"}
+                    restaurants={
+                      activeRoute === "hotels"
+                        ? DIRECTORY_RESTAURANTS.filter((r) => r.name === "S M Bilal Hotel")
+                        : DIRECTORY_RESTAURANTS
+                    }
+                    dishCounts={directoryDishCounts}
+                    onViewMenu={(restaurantName) => handleRestaurantClick(restaurantName)}
+                    onGoHome={handleGoToFoodHome}
+                    onGoToPartner={() => navigateToInfoPage("partner-with-us")}
+                  />
+                </motion.div>
+              ) : activeModule === "food" ? (
                 <motion.div
                   key="food-module-view"
                   initial={{ opacity: 0, y: 10 }}
@@ -4667,76 +4749,6 @@ export default function App() {
                   </div>
                 </section>
 
-                {/* About Dadu Food — homepage copy (SEO: real local keywords, no FAQ section) */}
-                <section className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-4">
-                  <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-3 border border-[#E6E6EE] dark:border-[#272733] shadow-xs">
-                    <h2 className="text-sm sm:text-base font-extrabold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
-                      About Dadu Food — Dadu City&apos;s Own Delivery Service
-                    </h2>
-                    <p className="text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed">
-                      Dadu Food is Dadu city&apos;s own food delivery in Dadu Sindh. Order biryani, zinger burgers,
-                      pizza, shawarma and karahi from Dadu Fast Food &amp; Kitchen, S M Bilal Hotel and Tasty Bites
-                      Dadu, and get it delivered hot to your door in 20–35 minutes. When you place an online food order Dadu residents can trust, you pay a flat Rs 50 delivery fee and choose Cash on Delivery
-                      or Easypaisa — no hidden charges.
-                    </p>
-                    <p className="text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed">
-                      It is not just food. Our grocery delivery Dadu service brings 297 everyday grocery items in
-                      13 categories — atta, rice, cooking oil, tea, milk, spices and more — to your home from the
-                      morning, and our medicine delivery Dadu service delivers essential medicines with a lower Rs 30
-                      medicine-only delivery fee. We deliver across Dadu city, including Shahani Paro, Moro Road,
-                      Station Road and College Road, and you can track every order live until it arrives. Food is
-                      served from 12:00 PM to 11:00 PM every day.{" "}
-                      <a
-                        href="/grocery"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleGoToGroceryHome();
-                        }}
-                        className="text-[#D70F64] dark:text-[#FF4D94] font-bold hover:underline"
-                      >
-                        Browse groceries
-                      </a>{" "}
-                      or{" "}
-                      <a
-                        href="/pharmacy"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleGoToPharmacyHome();
-                        }}
-                        className="text-[#D70F64] dark:text-[#FF4D94] font-bold hover:underline"
-                      >
-                        order medicines
-                      </a>
-                      .
-                    </p>
-                  </div>
-                </section>
-
-                {/* Delivery areas in Dadu — homepage copy (SEO: real delivery areas, no FAQ section) */}
-                <section className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-4">
-                  <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-3 border border-[#E6E6EE] dark:border-[#272733] shadow-xs">
-                    <h2 className="text-sm sm:text-base font-extrabold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
-                      We Deliver Across Dadu City
-                    </h2>
-                    <p className="text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed">
-                      Our food delivery in Dadu reaches every part of the city — Dadu Food home delivery brings hot
-                      meals, groceries and medicines to your door in 20–35 minutes. Dadu mein khana order karein —
-                      choose your meal, pay by Cash on Delivery or Easypaisa, and track it live until it arrives.
-                      That is why families across the city call Dadu Food the best food delivery in Dadu.
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {["Shahani Paro", "Moro Road", "Station Road", "College Road", "Makhdoom Bilawal Nagar", "Civil Hospital Road", "Degree College Road", "New Bus Stand", "Kacheri Road", "Dadu City Center"].map((area) => (
-                        <span
-                          key={area}
-                          className="rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-2.5 py-1 text-[11px] sm:text-xs font-semibold text-zinc-700 dark:text-zinc-200"
-                        >
-                          {area}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </section>
-
                 {/* Floating Promo Banner with Live Countdown */}
                 {!promoBannerDismissed && (
                   <div className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-3">
@@ -4860,7 +4872,29 @@ export default function App() {
                             Partner Restaurants in Dadu
                           </h2>
                           <p className="text-xs text-[#5A5A6B] dark:text-[#A3A3B5]">
-                            Tap any kitchen to browse full menu &amp; live hours
+                            Tap any kitchen to browse full menu &amp; live hours — or see all{" "}
+                            <a
+                              href="/restaurants"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleGoToRestaurantsHome();
+                              }}
+                              className="text-[#D70F64] dark:text-[#FF4D94] font-bold hover:underline"
+                            >
+                              restaurants in Dadu
+                            </a>{" "}
+                            and{" "}
+                            <a
+                              href="/hotels"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleGoToHotelsHome();
+                              }}
+                              className="text-[#D70F64] dark:text-[#FF4D94] font-bold hover:underline"
+                            >
+                              hotels in Dadu
+                            </a>
+                            .
                           </p>
                         </div>
                       </div>
@@ -5551,6 +5585,76 @@ export default function App() {
                 </div>
               </main>
 
+                {/* About Dadu Food — homepage copy (SEO: real local keywords, no FAQ section) */}
+                <section className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-4">
+                  <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-3 border border-[#E6E6EE] dark:border-[#272733] shadow-xs">
+                    <h2 className="text-sm sm:text-base font-extrabold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
+                      About Dadu Food — Dadu City&apos;s Own Delivery Service
+                    </h2>
+                    <p className="text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed">
+                      Dadu Food is Dadu city&apos;s own food delivery in Dadu Sindh. Order biryani, zinger burgers,
+                      pizza, shawarma and karahi from Dadu Fast Food &amp; Kitchen, S M Bilal Hotel and Tasty Bites
+                      Dadu, and get it delivered hot to your door in 20–35 minutes. When you place an online food order Dadu residents can trust, you pay a flat Rs 50 delivery fee and choose Cash on Delivery
+                      or Easypaisa — no hidden charges.
+                    </p>
+                    <p className="text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed">
+                      It is not just food. Our grocery delivery Dadu service brings 297 everyday grocery items in
+                      13 categories — atta, rice, cooking oil, tea, milk, spices and more — to your home from the
+                      morning, and our medicine delivery Dadu service delivers essential medicines with a lower Rs 30
+                      medicine-only delivery fee. We deliver across Dadu city, including Shahani Paro, Moro Road,
+                      Station Road and College Road, and you can track every order live until it arrives. Food is
+                      served from 12:00 PM to 11:00 PM every day.{" "}
+                      <a
+                        href="/grocery"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleGoToGroceryHome();
+                        }}
+                        className="text-[#D70F64] dark:text-[#FF4D94] font-bold hover:underline"
+                      >
+                        Browse groceries
+                      </a>{" "}
+                      or{" "}
+                      <a
+                        href="/pharmacy"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleGoToPharmacyHome();
+                        }}
+                        className="text-[#D70F64] dark:text-[#FF4D94] font-bold hover:underline"
+                      >
+                        order medicines
+                      </a>
+                      .
+                    </p>
+                  </div>
+                </section>
+
+                {/* Delivery areas in Dadu — homepage copy (SEO: real delivery areas, no FAQ section) */}
+                <section className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-4">
+                  <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-3 border border-[#E6E6EE] dark:border-[#272733] shadow-xs">
+                    <h2 className="text-sm sm:text-base font-extrabold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
+                      We Deliver Across Dadu City
+                    </h2>
+                    <p className="text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed">
+                      Our food delivery in Dadu reaches every part of the city — Dadu Food home delivery brings hot
+                      meals, groceries and medicines to your door in 20–35 minutes. Dadu mein khana order karein —
+                      choose your meal, pay by Cash on Delivery or Easypaisa, and track it live until it arrives.
+                      That is why families across the city call Dadu Food the best food delivery in Dadu.
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {["Shahani Paro", "Moro Road", "Station Road", "College Road", "Makhdoom Bilawal Nagar", "Civil Hospital Road", "Degree College Road", "New Bus Stand", "Kacheri Road", "Dadu City Center"].map((area) => (
+                        <span
+                          key={area}
+                          className="rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-2.5 py-1 text-[11px] sm:text-xs font-semibold text-zinc-700 dark:text-zinc-200"
+                        >
+                          {area}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </section>
+
             </>
           </motion.div>
         ) : (
@@ -5696,6 +5800,16 @@ export default function App() {
               <li>
                 <a href="/refund-policy" onClick={(e) => { e.preventDefault(); navigateToInfoPage("refund-policy"); }} className="inline-block min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
                   Refund & Cancellation Policy
+                </a>
+              </li>
+              <li>
+                <a href="/restaurants" onClick={(e) => { e.preventDefault(); handleGoToRestaurantsHome(); }} className="inline-block min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
+                  Restaurants in Dadu
+                </a>
+              </li>
+              <li>
+                <a href="/hotels" onClick={(e) => { e.preventDefault(); handleGoToHotelsHome(); }} className="inline-block min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
+                  Hotels in Dadu
                 </a>
               </li>
             </ul>
