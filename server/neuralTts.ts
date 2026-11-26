@@ -1,8 +1,9 @@
-// Neural MALE Hindi TTS for the Dadu Food voice agent — Microsoft Edge
-// Read-Aloud voice hi-IN-MadhurNeural (user 27 Nov 03:19: Hindi + Madhur,
-// "poora Hindi"; the agent speaks as a MUSLIM — greeting Assalam-o-Alaikum,
-// never Namaste or Hindu phrasing. Earlier voices: AsadNeural (Urdu male)
-// was rejected by the user as not enjoyable; Asad supports no SSML styles.)
+// Neural MALE Urdu TTS for the Dadu Food voice agent — Microsoft Edge
+// Read-Aloud voice ur-PK-AsadNeural (Munchi is a man, so the voice must
+// be male — the user said "female na lagao, man ki lagao"). User picked
+// Asad 27 Nov 03:40 from 5 samples (Madhur Hindi was tried 03:19–03:32
+// but Asad won). Agent speaks as a MUSLIM — greeting Assalam-o-Alaikum,
+// never Namaste or Hindu phrasing. Asad supports no SSML styles.
 //
 // Free, no API key. The old Edge host (speech.platform.bing.com) is
 // 401/403 since Microsoft moved the voices in Oct 2026; the live host is
@@ -30,11 +31,11 @@ const EDGE_TOKEN = "6A5AA1D4EAFF4E9FB9E31F416D619CBE4B1C7FBBED2B3D3E0E0B8B4C0C6F
 // Pinned Chromium build the service expects in Sec-MS-GEC-Version.
 // If Edge starts 401-ing, this is the first constant to refresh.
 const EDGE_CHROMIUM = "143.0.3650.75";
-const VOICE = "hi-IN-MadhurNeural";
+const VOICE = process.env.EDGE_TTS_VOICE || "ur-PK-AsadNeural";
 // Voice tuning knobs (env-overridable for testing; defaults = current live sound).
 // Rate/pitch are safe SSML prosody. STYLE is only applied when set — most
 // styles are NOT supported by AsadNeural and Edge closes the socket then.
-// (Madhur styles untested — test before setting EDGE_TTS_STYLE in production.)
+// (MadhurNeural also rejected cheerful with the same 502, tested 27 Nov.)
 const TTS_RATE = process.env.EDGE_TTS_RATE || "+10%";
 const TTS_PITCH = process.env.EDGE_TTS_PITCH || "+0%";
 const TTS_STYLE = process.env.EDGE_TTS_STYLE || "";
@@ -48,6 +49,8 @@ function normalizeForSpeech(text: string): string {
     .replace(/[—–]/g, ", ")
     .replace(/!/g, ",")
     .replace(/\?(?=\s*\S)/g, ",") // "?" mid-utterance -> comma (a mid "?" pauses ~1.4s); a trailing "?" stays a question
+    .replace(/؟(?=\s*\S)/g, ",") // Urdu "؟" mid-utterance -> comma (same long pause as "?")
+    .replace(/۔(?=\s*\S)/g, ",") // Urdu "۔" (full stop) mid-utterance -> comma (same ~1s pause as "।")
     .replace(/।(?=\s*\S)/g, ",") // "।" (danda) mid-utterance -> comma (a mid "।" pauses ~1s); a trailing "।" stays
     .replace(/,\s*,/g, ",")
     .replace(/\s+/g, " ")
@@ -236,8 +239,8 @@ async function synthesizeChunk(chunk: string): Promise<Buffer> {
         });
       // NOTE: rate +10% = brisk, friendly pace (user: "fast bole, robot na lage").
       // mstts:express-as styles were tried 27 Nov on AsadNeural (chat, cheerful)
-      // and Edge closed the socket both times — Asad supports no styles.
-      // Madhur styles are untested; test with EDGE_TTS_STYLE before enabling.
+      // and on MadhurNeural (cheerful) — Edge closed the socket every time.
+      // Neither voice supports styles, so style is deliberately NOT used.
       const prosody = `<prosody rate='${TTS_RATE}' pitch='${TTS_PITCH}'>${esc(chunk)}</prosody>`;
       const inner = TTS_STYLE
         ? `<mstts:express-as style='${TTS_STYLE}'>${prosody}</mstts:express-as>`
@@ -340,7 +343,7 @@ async function synthesizeChunk(chunk: string): Promise<Buffer> {
 
 export async function synthesizeSpeech(text: string): Promise<Buffer> {
   const clean = normalizeForSpeech(text);
-  const cacheKey = `${TTS_RATE}|${TTS_PITCH}|${TTS_STYLE}|${clean}`;
+  const cacheKey = `${VOICE}|${TTS_RATE}|${TTS_PITCH}|${TTS_STYLE}|${clean}`;
   const cached = audioCache.get(cacheKey);
   if (cached) return cached;
   const chunks = splitChunks(clean);
