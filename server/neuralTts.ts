@@ -42,13 +42,12 @@ const VOICE =
 // Voice tuning knobs (env-overridable for testing; defaults = current live sound).
 // Rate/pitch are safe SSML prosody. STYLE is only applied when set — most
 // styles are NOT supported by AsadNeural and Edge closes the socket then.
-// (MadhurNeural also rejected cheerful with the same 502, tested 27 Nov.)
 const TTS_RATE = process.env.EDGE_TTS_RATE || "+10%";
 const TTS_PITCH = process.env.EDGE_TTS_PITCH || "+0%";
 const TTS_STYLE = process.env.EDGE_TTS_STYLE || "";
 const MAX_CHUNK = 180;
 // Normalize spoken text BEFORE synthesis: Edge TTS turns "!" and em/en
-// dashes into ~1s dead pauses (measured 27 Nov: Madhur greeting had a
+// dashes into ~1s dead pauses (measured 27 Nov: the test greeting had a
 // 1.24s mid-sentence pause at the "—"). Commas give a short, natural pause.
 // "?" and "।" stay — they belong at sentence ends, where a pause is fine.
 function normalizeForSpeech(text: string): string {
@@ -245,9 +244,9 @@ async function synthesizeChunk(chunk: string): Promise<Buffer> {
           },
         });
       // NOTE: rate +10% = brisk, friendly pace (user: "fast bole, robot na lage").
-      // mstts:express-as styles were tried 27 Nov on AsadNeural (chat, cheerful)
-      // and on MadhurNeural (cheerful) — Edge closed the socket every time.
-      // Neither voice supports styles, so style is deliberately NOT used.
+      // mstts:express-as styles were tried 27 Nov on AsadNeural (chat, cheerful) —
+      // Edge closed the socket every time. Asad does not support styles, so
+      // style is deliberately NOT used.
       const prosody = `<prosody rate='${TTS_RATE}' pitch='${TTS_PITCH}'>${esc(chunk)}</prosody>`;
       const inner = TTS_STYLE
         ? `<mstts:express-as style='${TTS_STYLE}'>${prosody}</mstts:express-as>`
