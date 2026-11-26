@@ -617,6 +617,7 @@ export default function VoiceOrderModal({
       /* noop */
     }
     // Fixed Urdu greeting (no API call) — then listen hands-free.
+    // Ring for 2 seconds first, then the agent picks up and speaks first.
     const t = setTimeout(() => {
       messagesRef.current = [{ role: "assistant" as const, text: GREETING }];
       // The agent answered — she walks in and greets the user.
@@ -624,7 +625,7 @@ export default function VoiceOrderModal({
       speak(GREETING, () => {
         if (openRef.current) startListening();
       });
-    }, 400);
+    }, 2000);
     return () => {
       clearTimeout(t);
       openRef.current = false;
