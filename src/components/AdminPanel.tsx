@@ -1416,6 +1416,13 @@ export default function AdminPanel({
       alert("Owner/admin accounts cannot be unlocked here.");
       return;
     }
+    // Owner's rule: only Raza Khan (03277004427) may be unlocked/approved,
+    // and only on the owner's word. Any other locked user stays locked.
+    // (Address updates for already-verified users are unaffected.)
+    if (unlockingUser.status === "locked" && unlockingUser.phone !== "03277004427") {
+      alert("Sirf Raza Khan (03277004427) ko unlock kiya ja sakta hai — owner ki ijazat se.");
+      return;
+    }
     if (!unlockArea.trim() || !unlockStreet.trim()) {
       alert("Area/Mohalla and Street/Gali fields are required!");
       return;
@@ -3097,6 +3104,33 @@ export default function AdminPanel({
     nextStatus: string,
   ) => {
     try {
+      // Status machine guard: only the listed transitions are allowed.
+      // In particular an Easypaisa order awaiting verification can ONLY
+      // become confirmed via handleVerifyEasypaisaPayment (receipt
+      // checked) — the generic Confirmed button must never confirm it.
+      const currentOrder = orders.find((o) => o.id === orderId);
+      const fromStatus = currentOrder?.status;
+      const ALLOWED_TRANSITIONS: Record<string, string[]> = {
+        placed: ["confirmed", "cancelled"],
+        pending: ["confirmed", "cancelled"],
+        confirmed: ["preparing", "cancelled"],
+        preparing: ["out_for_delivery", "cancelled"],
+        out_for_delivery: ["delivered", "cancelled"],
+        payment_verification_pending: ["cancelled"],
+      };
+      if (
+        fromStatus &&
+        ALLOWED_TRANSITIONS[fromStatus] &&
+        !ALLOWED_TRANSITIONS[fromStatus].includes(nextStatus)
+      ) {
+        if (fromStatus === "payment_verification_pending" && nextStatus === "confirmed") {
+          alert("Easypaisa receipt verify kiye baghair order confirm nahi ho sakta. Pehle receipt verify karein.");
+        } else {
+          alert(`Order ${fromStatus} se ${nextStatus} nahi ho sakta.`);
+        }
+        return;
+      }
+
       let cancelReason = "";
       if (nextStatus === "cancelled") {
         const reason = prompt(
@@ -6557,6 +6591,7 @@ export default function AdminPanel({
                               {/* FOOD SPECIFIC DISPATCH BUTTONS */}
                               {!isSvc && (
                                 <>
+                                  {order.status !== "payment_verification_pending" && (
                                   <button
                                     onClick={() =>
                                       handleUpdateOrderStatus(
@@ -6568,6 +6603,7 @@ export default function AdminPanel({
                                   >
                                     🤝 Confirmed
                                   </button>
+                                  )}
                                   <button
                                     onClick={() =>
                                       handleUpdateOrderStatus(
