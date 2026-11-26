@@ -33,6 +33,7 @@ import {
   increment,
 } from "firebase/firestore";
 import { db, firebaseConfig, databaseId, cleanObject, storage, handleFirestoreError, app } from "../firebase";
+import { recordCatalogChange, recordCatalogFull, clearCatalogDelta } from "../utils/catalogDelta";
 import { compressImageToLowRes, compressImageFile } from "../utils/imageCompressor";
 import { formatOrderId } from "../utils/catalogNormalizer";
 import { DADU_FOOD_BUSINESS } from "../utils/seoManager";
@@ -1067,6 +1068,8 @@ export default function AdminPanel({
           count++;
         }
       }
+      // Bulk migration — tell user pages to re-fetch the whole menu.
+      if (count > 0) recordCatalogFull("menu");
       alert(`Migrated ${count} items!`);
     } catch (err) {
       console.error(err);
@@ -1096,6 +1099,7 @@ export default function AdminPanel({
         ...newFoodCategory,
         id: catId,
       });
+      recordCatalogChange("foodCategories", catId, "upsert");
       setNewFoodCategory({
         name: "",
         subtitle: "",
@@ -1117,6 +1121,7 @@ export default function AdminPanel({
     if (confirm("Are you sure you want to delete this category?")) {
       try {
         await deleteDoc(doc(db, "foodCategories", id));
+        recordCatalogChange("foodCategories", id, "delete");
       } catch (err) {
         console.error(err);
       }
@@ -1129,6 +1134,7 @@ export default function AdminPanel({
       await updateDoc(doc(db, "foodCategories", editingFoodCategory.id), {
         ...editingFoodCategory
       });
+      recordCatalogChange("foodCategories", editingFoodCategory.id, "upsert");
       setEditingFoodCategory(null);
       alert("Category updated successfully!");
     } catch (err) {
@@ -2376,6 +2382,10 @@ export default function AdminPanel({
         { updatedAt: Date.now(), triggeredBy: "admin" },
         { merge: true },
       );
+      // Also clear the catalogue delta so pages that were closed (and
+      // missed the refresh signal) full re-fetch on their next load
+      // instead of trusting a pre-Refresh cache.
+      await clearCatalogDelta();
       alert("Done! Har user ke page par naya menu aur prices refresh ho jayenge.");
     } catch (err) {
       console.error("Failed to send refresh signal:", err);
@@ -2479,6 +2489,7 @@ export default function AdminPanel({
         isAvailable: true,
         position: Number(newCatPosition),
       });
+      recordCatalogChange("groceryCategories", generatedId, "upsert");
       setNewCatName("");
       setNewCatImageUrl("");
       setNewCatPosition((prev) => prev + 1);
@@ -2518,6 +2529,7 @@ export default function AdminPanel({
           commission: Number(newGProdCommission),
         }),
       );
+      recordCatalogChange("groceryProducts", generatedId, "upsert");
       setNewGProdName("");
       setNewGProdImageUrl("");
       setNewGProdPrice(100);
@@ -2539,6 +2551,7 @@ export default function AdminPanel({
       await updateDoc(doc(db, "groceryCategories", catId), {
         isAvailable: !current,
       });
+      recordCatalogChange("groceryCategories", catId, "upsert");
     } catch (err) {
       console.error(err);
     }
@@ -2549,6 +2562,7 @@ export default function AdminPanel({
       await updateDoc(doc(db, "groceryCategories", id), {
         imageUrl: editingCategoryImageUrl.trim(),
       });
+      recordCatalogChange("groceryCategories", id, "upsert");
       setEditingCategoryId(null);
     } catch (err) {
       console.error("Failed to update category image", err);
@@ -2568,6 +2582,9 @@ export default function AdminPanel({
           );
           await Promise.all(prods.docs.map((d) => deleteDoc(d.ref)));
           await deleteDoc(doc(db, "groceryCategories", catId));
+          recordCatalogChange("groceryCategories", catId, "delete");
+          // Bulk product delete — user pages re-fetch the whole collection.
+          recordCatalogFull("groceryProducts");
         } catch (err) {
           console.error(err);
         }
@@ -2583,6 +2600,7 @@ export default function AdminPanel({
       await updateDoc(doc(db, "groceryProducts", prodId), {
         isAvailable: !current,
       });
+      recordCatalogChange("groceryProducts", prodId, "upsert");
     } catch (err) {
       console.error(err);
     }
@@ -2595,6 +2613,7 @@ export default function AdminPanel({
       onConfirm: async () => {
         try {
           await deleteDoc(doc(db, "groceryProducts", prodId));
+          recordCatalogChange("groceryProducts", prodId, "delete");
         } catch (err) {
           console.error(err);
         }
@@ -2609,6 +2628,7 @@ export default function AdminPanel({
         stock: Number(editingGProdStockInput),
         commission: Number(editingGProdCommissionInput),
       });
+      recordCatalogChange("groceryProducts", prodId, "upsert");
       setEditingGProductId(null);
     } catch (err) {
       console.error(err);
@@ -2657,6 +2677,7 @@ export default function AdminPanel({
 
     try {
       await setDoc(doc(db, "menu", uniqueId), cleanObject(dishModel));
+      recordCatalogChange("menu", uniqueId, "upsert");
       alert(`Dish "${newItemName}" added successfully!`);
       setNewItemName("");
       setNewItemDescription("");
@@ -2682,6 +2703,7 @@ export default function AdminPanel({
       await updateDoc(doc(db, "menu", dish.id), {
         isFeatured: !dish.isFeatured,
       });
+      recordCatalogChange("menu", dish.id, "upsert");
     } catch (err) {
       console.error(err);
     }
@@ -2692,6 +2714,7 @@ export default function AdminPanel({
       await updateDoc(doc(db, "menu", dish.id), {
         isBestseller: !dish.isBestseller,
       });
+      recordCatalogChange("menu", dish.id, "upsert");
     } catch (err) {
       console.error(err);
     }
@@ -2980,6 +3003,8 @@ export default function AdminPanel({
         await setDoc(doc(db, "menu", docId), cleanObject(item));
         setImportProgressTasty(Math.round(((i + 1) / menuData.length) * 100));
       }
+      // Bulk import — user pages re-fetch the whole menu once.
+      recordCatalogFull("menu");
       
       console.log("Tasty Bites Menu imported successfully!");
       setImportProgressTasty(100);
@@ -2996,6 +3021,7 @@ export default function AdminPanel({
       await updateDoc(doc(db, "menu", dish.id), {
         isAvailable: !dish.isAvailable,
       });
+      recordCatalogChange("menu", dish.id, "upsert");
     } catch (err) {
       console.error(err);
     }
@@ -3032,6 +3058,7 @@ export default function AdminPanel({
         updates.imageUrl = editingImageUrl;
       }
       await updateDoc(doc(db, "menu", dish.id), updates);
+      recordCatalogChange("menu", dish.id, "upsert");
       setEditingPriceDishId(null);
     } catch (err) {
       console.error(err);
@@ -3046,6 +3073,7 @@ export default function AdminPanel({
       onConfirm: async () => {
         try {
           await deleteDoc(doc(db, "menu", dishId));
+          recordCatalogChange("menu", dishId, "delete");
         } catch (err) {
           console.error(err);
         }
@@ -3079,6 +3107,8 @@ export default function AdminPanel({
             deleteDoc(doc(db, "menu", d.id)),
           );
           await Promise.all(deletePromises);
+          // Bulk delete — user pages re-fetch the whole menu once.
+          recordCatalogFull("menu");
 
           if (selectedScheduleRestaurant === restaurantName) {
             setSelectedScheduleRestaurant(
@@ -3138,6 +3168,8 @@ export default function AdminPanel({
             updateDoc(doc(db, "menu", d.id), { restaurantName: finalNewName }),
           );
           await Promise.all(updatePromises);
+          // Bulk rename — user pages re-fetch the whole menu once.
+          recordCatalogFull("menu");
 
           setSelectedScheduleRestaurant(finalNewName);
           alert(`Restaurant successfully renamed to "${finalNewName}".`);
@@ -4812,6 +4844,8 @@ export default function AdminPanel({
                           const snapshot = await getDocs(menuRef);
                           const deletePromises = snapshot.docs.map(document => deleteDoc(doc(db, "menu", document.id)));
                           await Promise.all(deletePromises);
+                          // Entire menu wiped — user pages re-fetch the whole menu once.
+                          recordCatalogFull("menu");
                           console.log("Menu database has been completely wiped.");
                           if (btn) {
                               btn.innerText = "✅ CLEARED";
