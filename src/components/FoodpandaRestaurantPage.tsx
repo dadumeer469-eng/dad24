@@ -604,7 +604,7 @@ export default function FoodpandaRestaurantPage({
 
       {/* Free Delivery Banner (design: rider + stopwatch) */}
       <div className="max-w-4xl mx-auto px-3.5 sm:px-4 mt-4">
-        <div className="relative overflow-hidden rounded-[28px] bg-gradient-to-r from-[#D70F64] via-[#E21B70] to-[#FF2B85] text-white shadow-[0_12px_28px_rgba(215,15,100,0.35)]">
+        <div className="relative overflow-hidden rounded-[28px] bg-[#E21B70] text-white shadow-[0_12px_28px_rgba(215,15,100,0.35)]">
           <img
             src="/images/home/rider-scooter.jpg"
             alt="Dadu Food rider on a pink scooter"
@@ -612,14 +612,14 @@ export default function FoodpandaRestaurantPage({
             loading="lazy"
             decoding="async"
             onError={(e) => {
-              // Keep the pink gradient banner intact if the photo is missing.
+              // Keep the pink banner intact if the photo is missing.
               e.currentTarget.style.display = "none";
             }}
           />
           <div className="absolute inset-y-0 left-0 w-[42%] sm:w-[32%] bg-gradient-to-l from-[#E21B70] via-[#E21B70]/30 to-transparent pointer-events-none" aria-hidden="true" />
           <div className="relative z-10 pl-[44%] sm:pl-[34%] pr-4 py-4 flex items-center justify-between gap-3 min-h-[96px]">
-            <p className="text-lg sm:text-2xl font-black italic leading-tight tracking-tight">
-              Free Delivery <span className="text-[#FFD500]">on Orders</span> Above Rs. 1,000
+            <p className="text-lg sm:text-2xl font-semibold leading-tight tracking-tight">
+              Free delivery <span className="text-[#FFD500]">on orders</span> above Rs. 1,000
             </p>
             <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/15 border border-white/25 flex items-center justify-center shrink-0">
               <Timer className="w-7 h-7 sm:w-8 sm:h-8" />
@@ -661,7 +661,7 @@ export default function FoodpandaRestaurantPage({
               aria-pressed={filterType === "all"}
               className={`min-h-[44px] px-4 py-2 rounded-full text-xs font-bold transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 flex items-center gap-1.5 shrink-0 cursor-pointer border ${
                 filterType === "all"
-                  ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
+                  ? "bg-[#E21B70] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
                   : "bg-white dark:bg-[#14141A] text-[#14141A] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733]"
               }`}
             >
@@ -674,7 +674,7 @@ export default function FoodpandaRestaurantPage({
               aria-pressed={filterType === "bestsellers"}
               className={`min-h-[44px] px-4 py-2 rounded-full text-xs font-bold transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 flex items-center gap-1.5 shrink-0 cursor-pointer border ${
                 filterType === "bestsellers"
-                  ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
+                  ? "bg-[#E21B70] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
                   : "bg-white dark:bg-[#14141A] text-[#14141A] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733]"
               }`}
             >
@@ -691,7 +691,7 @@ export default function FoodpandaRestaurantPage({
               aria-pressed={filterType === "top_rated"}
               className={`min-h-[44px] px-4 py-2 rounded-full text-xs font-bold transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 flex items-center gap-1.5 shrink-0 cursor-pointer border ${
                 filterType === "top_rated"
-                  ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
+                  ? "bg-[#E21B70] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
                   : "bg-white dark:bg-[#14141A] text-[#14141A] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733]"
               }`}
             >
@@ -731,7 +731,7 @@ export default function FoodpandaRestaurantPage({
                     aria-current={isActive ? "true" : undefined}
                     className={`min-h-[44px] whitespace-nowrap px-3.5 py-2 rounded-full text-xs font-bold transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 flex items-center gap-2 cursor-pointer select-none border ${
                       isActive
-                        ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
+                        ? "bg-[#E21B70] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
                         : "bg-[#F9F9FB] dark:bg-[#1D1D26] text-[#14141A] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733]"
                     }`}
                   >

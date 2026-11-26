@@ -154,12 +154,12 @@ export default function FoodpandaHeader({
 
   // Food / Groceries segmented switch (Foodpanda-style, with grocery basket badge)
   const moduleSwitch = (
-    <div className="bg-white rounded-full p-1 flex shadow-lg shadow-[#D70F64]/20 glossy-sheen">
+    <div className="bg-white rounded-full p-1 flex shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
       <button
         type="button"
         onClick={() => switchModule("food")}
         aria-pressed={activeModule === "food"}
-        className={`flex-1 min-h-[40px] rounded-full text-[13px] sm:text-sm font-medium flex items-center justify-center gap-1.5 transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer ${activeModule === "food" ? "bg-gradient-to-r from-[#FF2B85] via-[#E21B70] to-[#D70F64] text-white glossy-edge" : "text-[#14141A]"}`}
+        className={`flex-1 min-h-[40px] rounded-full text-[13px] sm:text-sm font-medium flex items-center justify-center gap-1.5 transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer ${activeModule === "food" ? "bg-[#E21B70] text-white" : "text-[#5e554a]"}`}
       >
         <UtensilsCrossed className="w-4 h-4 shrink-0 stroke-[1.5]" /> Food Delivery
       </button>
@@ -167,7 +167,7 @@ export default function FoodpandaHeader({
         type="button"
         onClick={() => switchModule("grocery")}
         aria-pressed={activeModule === "grocery"}
-        className={`flex-1 min-h-[40px] rounded-full text-[13px] sm:text-sm font-medium flex items-center justify-center gap-1.5 transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer ${activeModule === "grocery" ? "bg-gradient-to-r from-[#FF2B85] via-[#E21B70] to-[#D70F64] text-white glossy-edge" : "text-[#14141A]"}`}
+        className={`flex-1 min-h-[40px] rounded-full text-[13px] sm:text-sm font-medium flex items-center justify-center gap-1.5 transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer ${activeModule === "grocery" ? "bg-[#E21B70] text-white" : "text-[#5e554a]"}`}
       >
         <ShoppingCart className="w-4 h-4 shrink-0 stroke-[1.5]" /> Groceries
         {groceryCartCount > 0 && (
@@ -188,8 +188,7 @@ export default function FoodpandaHeader({
   return (
     <>
       {/* Foodpanda Signature Pink Header */}
-      <header className="relative z-40 bg-gradient-to-b from-[#FF2B85] via-[#E21B70] to-[#D70F64] text-white shadow-[0_4px_20px_rgba(215,15,100,0.35)]">
-        <div className="absolute inset-0 bg-gradient-to-b from-white/25 via-white/5 to-transparent pointer-events-none" aria-hidden="true" />
+      <header className="relative z-40 bg-[#E21B70] text-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
         <div className="relative max-w-7xl mx-auto px-3.5 sm:px-4 h-[60px] flex items-center justify-between gap-2 sm:gap-3.5">
           {/* Logo + Mobile Location Trigger */}
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 sm:flex-initial">
@@ -235,7 +234,7 @@ export default function FoodpandaHeader({
             <button
               type="button"
               onClick={() => onOpenLocation?.()}
-              className="min-h-[44px] flex items-center gap-1 px-2 py-1.5 rounded-full bg-white/20 hover:bg-white/25 transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 text-left min-w-0 max-w-[280px] sm:max-w-[320px] cursor-pointer glossy-sheen glossy-edge"
+              className="min-h-[44px] flex items-center gap-1 px-2 py-1.5 rounded-full bg-white/20 hover:bg-white/25 transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 text-left min-w-0 max-w-[280px] sm:max-w-[320px] cursor-pointer"
               title="Change delivery location"
             >
               <MapPin className="w-3.5 h-3.5 text-white shrink-0" />
@@ -300,7 +299,7 @@ export default function FoodpandaHeader({
                 onClick={onToggleTheme}
                 aria-label={theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"}
                 title={theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"}
-                className="min-h-[44px] min-w-[44px] flex items-center justify-center gap-1.5 px-2.5 bg-white/15 hover:bg-white/25 text-white rounded-full transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer text-xs font-bold shrink-0 glossy-sheen glossy-edge"
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center gap-1.5 px-2.5 bg-white/15 hover:bg-white/25 text-white rounded-full transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer text-xs font-bold shrink-0"
               >
                 {theme === "light" ? (
                   <>
@@ -327,7 +326,7 @@ export default function FoodpandaHeader({
                   setShowNotifications(!showNotifications);
                   setShowUserMenu(false);
                 }}
-                className="min-h-[44px] min-w-[44px] flex items-center justify-center bg-white/15 hover:bg-white/25 text-white rounded-full transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer relative glossy-sheen glossy-edge"
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center bg-white/15 hover:bg-white/25 text-white rounded-full transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer relative"
               >
                 <Bell className="w-5 h-5 text-white" />
                 {unreadNotifications.length > 0 && (
@@ -436,7 +435,7 @@ export default function FoodpandaHeader({
                   ? `Open cart, ${activeModule === "grocery" ? groceryCartCount : cartCount} items`
                   : "Open cart, empty"
               }
-              className="min-h-[44px] min-w-[44px] flex items-center justify-center bg-white/15 hover:bg-white/25 text-white rounded-full transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer relative shrink-0 glossy-sheen glossy-edge"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center bg-white/15 hover:bg-white/25 text-white rounded-full transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer relative shrink-0"
             >
               {isLocked ? (
                 <Lock className="w-5 h-5 text-white" aria-label="Account locked" />
@@ -543,7 +542,7 @@ export default function FoodpandaHeader({
                       {user.phone ? `Phone: ${user.phone}` : user.email || "Verified Customer"}
                     </span>
 
-                    <div className="mt-2 w-full bg-gradient-to-r from-[#D70F64] to-[#FF2B85] rounded-xl p-2 text-white flex items-center justify-between text-[10px] font-sans">
+                    <div className="mt-2 w-full bg-[#E21B70] rounded-xl p-2 text-white flex items-center justify-between text-[10px] font-sans">
                       <span className="font-medium flex items-center gap-1"><Coins className="w-3 h-3 shrink-0" /> Coin Benefit Wallet:</span>
                       <span className="font-semibold bg-white text-[#D70F64] px-1.5 py-0.5 rounded-md text-[9px]">
                         Rs. {user.loyaltyCoins ?? (user.ordersCount || 0) * 15}
@@ -733,8 +732,7 @@ export default function FoodpandaHeader({
       </header>
 
       {/* Mobile Foodpanda Pink Sticky Pill Search Bar */}
-      <div className="sticky top-0 z-30 bg-gradient-to-b from-[#FF2B85] via-[#E21B70] to-[#D70F64] block sm:hidden px-3.5 pb-3 pt-0.5 shadow-sm">
-        <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-white/5 to-transparent pointer-events-none" aria-hidden="true" />
+      <div className="sticky top-0 z-30 bg-[#E21B70] block sm:hidden px-3.5 pb-3 pt-0.5 shadow-sm">
         <div className="relative flex items-center transition-[color,background-color,border-color,transform,opacity] duration-180">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#D70F64] pointer-events-none" />
           <input
@@ -778,7 +776,7 @@ export default function FoodpandaHeader({
       </div>
 
       {/* Desktop Food / Groceries segmented switch */}
-      <div className="hidden sm:block bg-gradient-to-b from-[#FF2B85] via-[#E21B70] to-[#D70F64] px-4 pb-3">
+      <div className="hidden sm:block bg-[#E21B70] px-4 pb-3">
         <div className="max-w-7xl mx-auto">
           <div className="mx-auto max-w-lg">{moduleSwitch}</div>
         </div>

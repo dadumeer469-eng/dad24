@@ -30,7 +30,7 @@ function GroceryProductImage({
 }) {
   const [imgFailed, setImgFailed] = useState(false);
   const visual = GROCERY_CATEGORY_VISUALS[product.categoryId] || {
-    accentBg: "from-[#D70F64]/15 to-pink-500/10",
+    accentBg: "",
     accentText: "text-[#D70F64] dark:text-pink-300",
     badge: categoryName || "Mart",
   };
@@ -49,9 +49,8 @@ function GroceryProductImage({
   
   return (
       <div
-        className={`w-full h-full bg-gradient-to-br ${visual.accentBg} bg-[#FFF5F8] dark:bg-[#191922] flex flex-col items-center justify-center p-3 text-center relative overflow-hidden select-none`}
+        className="w-full h-full bg-[#efe9df] dark:bg-[#191922] flex flex-col items-center justify-center p-3 text-center relative overflow-hidden select-none"
       >
-        <div className="absolute -right-4 -bottom-4 w-20 h-20 rounded-full bg-[#D70F64]/10 blur-xl pointer-events-none" />
         <div className="w-12 h-12 rounded-2xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] shadow-xs flex items-center justify-center mb-1.5 relative">
           <Package className="w-6 h-6 text-[#5e554a] dark:text-[#A1A1B2]" strokeWidth={1.5} aria-hidden="true" />
           <span className="absolute -bottom-1 -right-1 bg-[#D70F64] text-white text-[8px] font-semibold px-1 py-0.5 rounded leading-none">
@@ -368,9 +367,9 @@ export default function GroceryModule({
             aria-hidden="true"
           />
           <div className="relative z-10 p-5 sm:p-7 max-w-[56%] sm:max-w-[58%]">
-            <h2 className="text-[24px] sm:text-4xl font-black tracking-tight text-white leading-[1.08] mt-2.5">
+            <h2 className="text-[24px] sm:text-4xl font-medium tracking-tight text-white leading-[1.08] mt-2.5">
               Daily Groceries Delivered{" "}
-              <span className="text-[#FFD500] italic">Fast in Dadu</span>
+              <span className="text-white">Fast in Dadu</span>
             </h2>
             <p className="flex items-center gap-3 text-xs sm:text-sm text-white font-semibold mt-2.5 flex-wrap">
               <span className="inline-flex items-center gap-1">
