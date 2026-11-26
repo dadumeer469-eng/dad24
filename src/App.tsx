@@ -4915,7 +4915,7 @@ export default function App() {
                       <img
                         src="/images/home/rider-scooter.jpg"
                         alt="Dadu Food rider delivering fast on a pink scooter"
-                        className="absolute right-0 top-0 h-full w-[56%] sm:w-[48%] lg:w-[38%] object-contain"
+                        className="absolute right-0 top-0 h-full w-[56%] sm:w-[48%] lg:w-[38%] object-contain animate-rider-bob"
                         loading="eager"
                         decoding="async"
                       />

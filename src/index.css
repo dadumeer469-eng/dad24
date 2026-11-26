@@ -210,6 +210,69 @@
   }
 }
 
+/* Fun animations — the rider rides, the cart pops, a +1 floats up.
+   Gentle and purposeful: the rider bobs like it is on the road, the cart
+   badge springs when an item lands, the +1 floats away. */
+@keyframes rider-bob {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate3d(0, -5px, 0) rotate(-0.8deg);
+  }
+  50% {
+    transform: translate3d(0, 1px, 0) rotate(0.6deg);
+  }
+  75% {
+    transform: translate3d(0, -3px, 0) rotate(-0.4deg);
+  }
+}
+
+@keyframes cart-pop {
+  0% {
+    transform: scale(0.4);
+  }
+  45% {
+    transform: scale(1.35);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes float-up {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0) scale(0.8);
+  }
+  25% {
+    opacity: 1;
+    transform: translate3d(0, -6px, 0) scale(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, -30px, 0) scale(1);
+  }
+}
+
+.animate-rider-bob {
+  animation: rider-bob 2.4s ease-in-out infinite;
+  will-change: transform;
+}
+
+.animate-cart-pop {
+  animation: cart-pop 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform;
+}
+
+.animate-float-up {
+  animation: float-up 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity;
+}
+
 .animate-slide-in {
   animation: slide-in-right 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   will-change: transform, opacity;
