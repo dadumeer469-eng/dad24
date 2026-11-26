@@ -3,4 +3,4 @@ Allow: /
 Disallow: /admin
 Disallow: /api/
 
-Sitemap: https://dadufood.store/sitemap.xml
+Sitemap: https://www.dadufood.store/sitemap.xml
