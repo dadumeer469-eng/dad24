@@ -215,16 +215,16 @@
    badge springs when an item lands, the +1 floats away. */
 @keyframes rider-bob {
   0%, 100% {
-    transform: translate3d(0, 0, 0) rotate(0deg);
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(0.92);
   }
   25% {
-    transform: translate3d(0, -5px, 0) rotate(-0.8deg);
+    transform: translate3d(0, -4px, 0) rotate(-0.6deg) scale(0.92);
   }
   50% {
-    transform: translate3d(0, 1px, 0) rotate(0.6deg);
+    transform: translate3d(0, 1px, 0) rotate(0.5deg) scale(0.92);
   }
   75% {
-    transform: translate3d(0, -3px, 0) rotate(-0.4deg);
+    transform: translate3d(0, -2px, 0) rotate(-0.3deg) scale(0.92);
   }
 }
 
