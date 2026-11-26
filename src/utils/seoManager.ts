@@ -187,7 +187,7 @@ const INFO_PAGE_META: Record<InfoPageSlug, { title: string; description: string 
 };
 
 export function syncPageSeo(params: {
-  pageType: "home" | "shop" | "info" | "grocery" | "pharmacy";
+  pageType: "home" | "shop" | "info" | "grocery" | "pharmacy" | "restaurants" | "hotels";
   shopName?: string;
   shopDishes?: Dish[];
   infoSlug?: InfoPageSlug;
@@ -329,6 +329,16 @@ export function syncPageSeo(params: {
     description =
       "Medicine delivery in Dadu — 12 medicines delivered to your home for Rs 30. Cash on Delivery & Easypaisa. Order from the morning. Call 03277004471.";
     canonicalPath = "/pharmacy";
+  } else if (params.pageType === "restaurants") {
+    title = "Restaurants in Dadu — Order Food Online | Dadu Food";
+    description =
+      "Restaurants in Dadu — order food online from Dadu Fast Food & Kitchen, S M Bilal Hotel and Tasty Bites Dadu. Biryani, zinger burgers, pizza, karahi and BBQ delivered in 20–35 min for Rs 50. Cash on Delivery & Easypaisa. Call 03277004471.";
+    canonicalPath = "/restaurants";
+  } else if (params.pageType === "hotels") {
+    title = "Hotels in Dadu — Order Food Online | Dadu Food";
+    description =
+      "Hotels in Dadu — S M Bilal Hotel is listed on Dadu Food for BBQ, mutton karahi, seekh kababs and tandoori naan, delivered in 20–35 min for Rs 50. More hotels in Dadu joining soon — list your hotel. Cash on Delivery & Easypaisa. Call 03277004471.";
+    canonicalPath = "/hotels";
   } else {
     // Homepage: apply admin override only if it's meaningful Dadu content (not generic placeholder)
     if (params.adminSeoOverride?.siteTitle && params.adminSeoOverride.siteTitle.toLowerCase().includes("dadu")) {
@@ -354,7 +364,7 @@ export function syncPageSeo(params: {
     });
   }
 
-  // BreadcrumbList: Home > current page (shop / info / grocery / pharmacy).
+  // BreadcrumbList: Home > current page (shop / info / grocery / pharmacy / restaurants / hotels).
   // Home itself has no breadcrumb node (the static JSON-LD block that used to
   // carry one was removed from index.html; seoManager is the only source).
   if (canonicalPath !== "/") {
@@ -367,7 +377,11 @@ export function syncPageSeo(params: {
             ? "Grocery Delivery in Dadu"
             : params.pageType === "pharmacy"
               ? "Medicine Delivery in Dadu"
-              : "Home";
+              : params.pageType === "restaurants"
+                ? "Restaurants in Dadu"
+                : params.pageType === "hotels"
+                  ? "Hotels in Dadu"
+                  : "Home";
     graphNodes.push({
       "@type": "BreadcrumbList",
       itemListElement: [
