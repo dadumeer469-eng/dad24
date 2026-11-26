@@ -42,10 +42,10 @@ export type MunchiMood = "neutral" | "happy" | "thinking" | "funny" | "concerned
 // Default neutral; a joke wins over an apology, an apology over a warm word.
 export function classifyMood(text: string): MunchiMood {
   const t = text.toLowerCase();
-  if (/\bhaha\b|hehe|mazak|mazaak|\bjoke\b|hansi|ہاہا|مذاق|ہنسی/.test(t)) return "funny";
-  if (/\bmaaf\b|masla|\bafsos\b|pareshani|galti|kharaab|der ho|معاف|مسئلہ|افسوس|پریشانی|غلطی|خراب|دیر/.test(t))
+  if (/\bhaha\b|hehe|mazak|mazaak|\bjoke\b|hansi|ہاہا|مذاق|ہنسی|हाहा|मजाक|हंसी|जोक/.test(t)) return "funny";
+  if (/\bmaaf\b|masla|\bafsos\b|pareshani|galti|kharaab|der ho|معاف|مسئلہ|افسوس|پریشانی|غلطی|خراب|دیر|माफ़|माफ|मसला|अफ़सोस|परेशानी|गलती|खराब|देर/.test(t))
     return "concerned";
-  if (/shukriya|zaroor|bilkul|mubarak|khushi|behtareen|\bwah\b|zabardast|شکریہ|ضرور|بالکل|مبارک|خوشی|بہترین|واہ|زبردست/.test(t))
+  if (/shukriya|zaroor|bilkul|mubarak|khushi|behtareen|\bwah\b|zabardast|شکریہ|ضرور|بالکل|مبارک|خوشی|بہترین|واہ|زبردست|शुक्रिया|ज़रूर|बिल्कुल|मुबारक|खुशी|बेहतरीन|वाह|ज़बरदस्त/.test(t))
     return "happy";
   return "neutral";
 }
