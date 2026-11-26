@@ -80,10 +80,10 @@ ${ordersText && ordersText.trim() ? ordersText : "The customer has no orders."}
 MENU (name — price in Rs — type):
 ${menuText}
 YOUR JOB — take the order step by step:
-1. Welcome the customer warmly and ask what they would like to eat.
+1. FIRST check the location: if NO location is known (see CUSTOMER'S CURRENT LOCATION above), ask for location FIRST — before taking any order. If location IS known, welcome the customer warmly and ask what they would like to eat.
 2. Understand the food item and ask the quantity. Use the EXACT item names from the menu. If the customer asks for something not on the menu, say it is not available and suggest the closest menu item. If no quantity is given, assume 1. Suggest a complementary item naturally when it fits.
 3. Tell the actual prices from the menu and calculate the total.
-4. Confirm the delivery location: if NO location is known, ask for location first (see CUSTOMER'S CURRENT LOCATION above); if location IS known, ask the presence question in the DELIVERY LOCATION RULE above (never ask for the address itself).
+4. Confirm the delivery location: if location IS known, ask the presence question in the DELIVERY LOCATION RULE above (never ask for the address itself). (If location was NOT known, step 1 already handled it.)
 5. Ask the payment method: Cash on Delivery (COD) or Easypaisa. If the customer is NOT at the delivery place, payment must be Easypaisa first (see the rule above).
 6. If the customer's phone number is not known, ask for the 11-digit mobile number now (PHONE RULE above) — before reading back the order.
 7. Read back the FULL order (items, quantities, total price, delivery place, payment) and ask them to confirm it is correct.
@@ -108,6 +108,10 @@ export interface ChatOrder {
 export interface ChatResult {
   reply: string;
   order: ChatOrder | null;
+  // The model returned an order, but it failed validation (e.g. empty
+  // items) — the caller must NOT speak the thank-you reply; it should
+  // ask the customer to repeat the details instead.
+  orderInvalid?: boolean;
 }
 
 function validateOrder(raw: unknown): ChatOrder | null {
@@ -125,12 +129,25 @@ function validateOrder(raw: unknown): ChatOrder | null {
     items.push({ name: item.name.trim(), qty: Math.floor(qty), type: item.type });
   }
   const addr = o.address as Record<string, unknown> | undefined;
-  if (!addr || typeof addr.area !== "string" || !addr.area.trim() || typeof addr.street !== "string" || !addr.street.trim()) return null;
+  if (!addr || typeof addr.area !== "string" || !addr.area.trim()) return null;
+  // Street may be empty (many Dadu customers have no street on file) —
+  // fall back to the area so a valid order is never silently dropped.
+  const street = typeof addr.street === "string" ? addr.street.trim() : "";
   if (o.payment !== "COD" && o.payment !== "Easypaisa") return null;
-  return { items, address: { area: addr.area.trim(), street: addr.street.trim() }, payment: o.payment };
+  return { items, address: { area: addr.area.trim(), street: street || addr.area.trim() }, payment: o.payment };
 }
 
 export class GroqQuotaError extends Error {}
+
+// A request Groq rejected for a reason retrying cannot fix (bad model,
+// malformed body, bad audio) — rotating keys only burns quota.
+export class GroqBadRequestError extends Error {}
+
+// Only these statuses are worth rotating keys for: auth/quota problems
+// and server errors. Anything else (400, 403, 404) fails fast.
+function isRetryableGroqStatus(status: number): boolean {
+  return status === 401 || status === 429 || status >= 500;
+}
 
 async function callGroqChat(
   apiKey: string,
@@ -150,7 +167,10 @@ async function callGroqChat(
     }),
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
-  if (!resp.ok) throw new GroqQuotaError(`Groq chat failed: ${resp.status}`);
+  if (!resp.ok) {
+    if (isRetryableGroqStatus(resp.status)) throw new GroqQuotaError(`Groq chat failed: ${resp.status}`);
+    throw new GroqBadRequestError(`Groq chat failed: ${resp.status}`);
+  }
   const data = (await resp.json()) as { choices?: { message?: { content?: string } }[] };
   const raw = data?.choices?.[0]?.message?.content || "";
   let parsed: { reply?: unknown; order?: unknown } | null = null;
@@ -162,7 +182,9 @@ async function callGroqChat(
   if (!parsed || typeof parsed.reply !== "string" || !parsed.reply.trim()) {
     return { reply: raw.trim() || "معاف کیجیے، سمجھ نہیں آیا — دوبارہ بولیں۔", order: null };
   }
-  return { reply: parsed.reply.trim(), order: validateOrder(parsed.order) };
+  const order = validateOrder(parsed.order);
+  const orderGiven = parsed.order !== null && parsed.order !== undefined;
+  return { reply: parsed.reply.trim(), order, orderInvalid: orderGiven && !order };
 }
 
 export async function handleVoiceChat(
@@ -198,8 +220,12 @@ export async function handleVoiceChat(
   for (const key of keys) {
     try {
       const result = await callGroqChat(key, model, systemPrompt, messages);
-      return { status: 200, body: { reply: result.reply, order: result.order } };
+      return { status: 200, body: { reply: result.reply, order: result.order, orderInvalid: result.orderInvalid || false } };
     } catch (err) {
+      if (err instanceof GroqBadRequestError) {
+        // Rotating keys cannot fix a bad request — fail fast with 400.
+        return { status: 400, body: { error: "bad_request", message: "Groq rejected the request." } };
+      }
       console.error("Groq chat error (rotating key):", err instanceof GroqQuotaError ? err.message : "network error");
       continue;
     }
@@ -226,7 +252,10 @@ export async function transcribeWithGroq(
     body: Buffer.concat([head, audio, tail]),
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
-  if (!resp.ok) throw new GroqQuotaError(`Groq transcribe failed: ${resp.status}`);
+  if (!resp.ok) {
+    if (isRetryableGroqStatus(resp.status)) throw new GroqQuotaError(`Groq transcribe failed: ${resp.status}`);
+    throw new GroqBadRequestError(`Groq transcribe failed: ${resp.status}`);
+  }
   const data = (await resp.json()) as { text?: string; language?: string };
   return { text: (data.text || "").trim(), language: typeof data.language === "string" ? data.language : null };
 }
@@ -295,6 +324,10 @@ export async function handleVoiceTranscribe(
       const result = await transcribeWithGroq(key, audio.data, audio.filename, audio.mimeType);
       return { status: 200, body: { text: result.text, language: result.language } };
     } catch (err) {
+      if (err instanceof GroqBadRequestError) {
+        // A bad audio file fails identically on every key — fail fast.
+        return { status: 400, body: { error: "bad_request", message: "Groq rejected the audio." } };
+      }
       console.error("Groq transcribe error (rotating key):", err instanceof GroqQuotaError ? err.message : "network error");
       continue;
     }

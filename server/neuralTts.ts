@@ -1,9 +1,9 @@
 // Neural MALE Urdu TTS for the Dadu Food voice agent — Microsoft Edge
 // Read-Aloud voice ur-PK-AsadNeural (Munchi is a man, so the voice must
-// be male — the user said "female na lagao, man ki lagao"). User picked
-// Asad 27 Nov 03:40 from 5 samples (Madhur Hindi was tried 03:19–03:32
-// but Asad won). Agent speaks as a MUSLIM — greeting Assalam-o-Alaikum,
-// never Namaste or Hindu phrasing. Asad supports no SSML styles.
+// be male — the user said "female na lagao, man ki lagao"). Asad is the
+// ONLY voice: picked by the user 27 Nov 03:40, rate +10%, pitch +0%.
+// Agent speaks Urdu as a MUSLIM — greeting Assalam-o-Alaikum, never
+// Namaste or Hindu phrasing. Asad supports no SSML styles.
 //
 // Free, no API key. The old Edge host (speech.platform.bing.com) is
 // 401/403 since Microsoft moved the voices in Oct 2026; the live host is
@@ -31,7 +31,14 @@ const EDGE_TOKEN = "6A5AA1D4EAFF4E9FB9E31F416D619CBE4B1C7FBBED2B3D3E0E0B8B4C0C6F
 // Pinned Chromium build the service expects in Sec-MS-GEC-Version.
 // If Edge starts 401-ing, this is the first constant to refresh.
 const EDGE_CHROMIUM = "143.0.3650.75";
-const VOICE = process.env.EDGE_TTS_VOICE || "ur-PK-AsadNeural";
+const ASAD_VOICE = "ur-PK-AsadNeural";
+// Voice allowlist: the user picked Asad (male Urdu) and forbade female
+// voices outright. An EDGE_TTS_VOICE env value of anything else (e.g. a
+// leftover female voice) is ignored and falls back to Asad.
+const VOICE =
+  process.env.EDGE_TTS_VOICE && process.env.EDGE_TTS_VOICE !== ASAD_VOICE
+    ? (console.warn(`[neuralTts] EDGE_TTS_VOICE ${process.env.EDGE_TTS_VOICE} not allowed — using ${ASAD_VOICE}.`), ASAD_VOICE)
+    : process.env.EDGE_TTS_VOICE || ASAD_VOICE;
 // Voice tuning knobs (env-overridable for testing; defaults = current live sound).
 // Rate/pitch are safe SSML prosody. STYLE is only applied when set — most
 // styles are NOT supported by AsadNeural and Edge closes the socket then.
@@ -246,8 +253,8 @@ async function synthesizeChunk(chunk: string): Promise<Buffer> {
         ? `<mstts:express-as style='${TTS_STYLE}'>${prosody}</mstts:express-as>`
         : prosody;
       const speakOpen = TTS_STYLE
-        ? `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xmlns:mstts='http://www.w3.org/2001/mstts' xml:lang='hi-IN'>`
-        : `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='hi-IN'>`;
+        ? `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xmlns:mstts='http://www.w3.org/2001/mstts' xml:lang='ur-PK'>`
+        : `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='ur-PK'>`;
       const ssmlMsg =
         `X-RequestId:${requestId}\r\nContent-Type:application/ssml+xml\r\nX-Timestamp:${ts()}\r\nPath:ssml\r\n\r\n` +
         `${speakOpen}<voice name='${VOICE}'>${inner}</voice></speak>`;
