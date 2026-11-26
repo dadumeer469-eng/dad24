@@ -40,6 +40,7 @@ import {
   GroceryDeliveryConfig,
   GroceryOrder,
   Voucher,
+  calculateVoucherDiscount,
 } from "./types";
 import { INITIAL_MENU_ITEMS, DEFAULT_FOOD_CATEGORIES, getDefaultRestaurantImage } from "./data";
 import {
@@ -48,7 +49,7 @@ import {
   writeCatalogCache,
   invalidateCatalogCache,
 } from "./utils/catalogCache";
-import { applyCatalogDelta } from "./utils/catalogDelta";
+import { applyCatalogDelta, getCatalogDelta } from "./utils/catalogDelta";
 
 // Import modules
 import FoodpandaHeader from "./components/FoodpandaHeader";
@@ -1689,7 +1690,18 @@ export default function App() {
         });
         // Merge owner catalogue in so new products (e.g. medicines) show
         // immediately even if Firestore still holds the older list.
-        const displayList = mergeOwnerFirst(OWNER_GROCERY_PRODUCTS, list);
+        // Tombstones: an owner product the admin deleted must NOT
+        // resurrect here or in the seed below — filter it out first.
+        const delta = await getCatalogDelta();
+        const tombstones = new Set(
+          Object.values(delta?.changes || {})
+            .filter((e) => e && e.c === "groceryProducts" && e.a === "delete")
+            .map((e) => e.id),
+        );
+        const liveOwnerProducts = OWNER_GROCERY_PRODUCTS.filter(
+          (p) => !tombstones.has(p.id),
+        );
+        const displayList = mergeOwnerFirst(liveOwnerProducts, list);
         setGroceryProducts(displayList);
         setCachedData("dadu_cached_grocery_products", displayList);
         writeCatalogCache("groceryProducts", displayList);
@@ -1699,7 +1711,7 @@ export default function App() {
         if (!grocerySeedAttemptedRef.current) {
           grocerySeedAttemptedRef.current = true;
           const existingIds = new Set(list.map((p) => p.id));
-          const missing = OWNER_GROCERY_PRODUCTS.filter(
+          const missing = liveOwnerProducts.filter(
             (p) => !existingIds.has(p.id),
           );
           if (missing.length > 0) {
@@ -1719,8 +1731,18 @@ export default function App() {
         console.warn("Grocery products notice:", handleFirestoreError(err));
         // Offline fallback: merge the built-in catalogue in so new products
         // (e.g. medicines) still show when Firestore can't be read (quota).
+        // Tombstones still apply when the delta doc is readable.
+        const delta = await getCatalogDelta();
+        const tombstones = new Set(
+          Object.values(delta?.changes || {})
+            .filter((e) => e && e.c === "groceryProducts" && e.a === "delete")
+            .map((e) => e.id),
+        );
+        const liveOwnerProducts = OWNER_GROCERY_PRODUCTS.filter(
+          (p) => !tombstones.has(p.id),
+        );
         setGroceryProducts((prev) => {
-          const fallback = mergeOwnerFirst(OWNER_GROCERY_PRODUCTS, prev);
+          const fallback = mergeOwnerFirst(liveOwnerProducts, prev);
           setCachedData("dadu_cached_grocery_products", fallback);
           return fallback;
         });
@@ -2602,6 +2624,7 @@ export default function App() {
             stock: product.stock,
             quantity: quantity,
             commission: product.commission || 0,
+            categoryId: product.categoryId,
           },
         ];
       }
@@ -2777,6 +2800,9 @@ export default function App() {
       return;
     }
 
+    // The live voucher doc, hoisted so the writer below can recompute
+    // the discount from it instead of trusting the client's amount (M21).
+    let voucherDoc: Voucher | null = null;
     if (details.voucher) {
       const vRef = doc(db, "vouchers", details.voucher.code);
       const vSnap = await getDoc(vRef);
@@ -2786,6 +2812,7 @@ export default function App() {
           setToastNotification({ title: "Voucher Unavailable", message: "The applied voucher is no longer valid or reached its usage limit." });
           return;
         }
+        voucherDoc = vData as Voucher;
       } else {
         setToastNotification({ title: "Invalid Voucher", message: "Invalid voucher code." });
         return;
@@ -2810,13 +2837,18 @@ export default function App() {
         0,
       );
 
-      // Enforce exact total = items + deliveryFee + riderTip - voucher - coins
+      // Enforce exact total = items + deliveryFee + riderTip - voucher - coins.
+      // The voucher discount is recomputed from the live voucher doc —
+      // never trust the discount amount the client sent (M21).
+      const recomputedDiscount = voucherDoc
+        ? calculateVoucherDiscount(voucherDoc, details.totalPrice)
+        : 0;
       const computedGrandTotal = Math.max(
         0,
         details.totalPrice +
           details.deliveryFee +
           (details.riderTip || 0) -
-          (details.voucher?.discountAmount || 0) -
+          recomputedDiscount -
           (details.coinsUsed || 0),
       );
 
@@ -2847,7 +2879,9 @@ export default function App() {
         createdAt: { seconds: Math.floor(Date.now() / 1000) },
         userCoords: details.userCoords || null,
         totalCommission,
-        voucher: details.voucher || undefined,
+        voucher: details.voucher
+          ? { code: details.voucher.code, discountAmount: recomputedDiscount }
+          : undefined,
         coinsUsed: details.coinsUsed || undefined,
         riderTip: details.riderTip || undefined,
         isScheduled: details.isScheduled || undefined,
@@ -2999,8 +3033,11 @@ export default function App() {
       }
     }
 
+    // The matched live voucher, hoisted so the total below can recompute
+    // the discount from it instead of trusting the client's amount (M21).
+    let matchedVoucher: Voucher | undefined;
     if (details.voucher) {
-      const matchedVoucher = vouchers.find(
+      matchedVoucher = vouchers.find(
         (v) => v.code.toUpperCase() === details.voucher!.code.toUpperCase() || v.id === details.voucher!.code
       );
       if (matchedVoucher) {
@@ -3066,8 +3103,19 @@ export default function App() {
     const riderTip = Math.max(0, Number(details.riderTip || 0));
 
     let finalGrandTotal = itemsTotal + finalFee + riderTip;
+    // Recompute the voucher discount from the live voucher — never trust
+    // the discount amount the client sent. If the voucher is not in the
+    // local list, fall back to the drawer's live-checked amount.
+    let trustedVoucher: { code: string; discountAmount: number } | undefined;
     if (details.voucher) {
-      finalGrandTotal = Math.max(0, finalGrandTotal - details.voucher.discountAmount);
+      if (matchedVoucher) {
+        const recomputed = calculateVoucherDiscount(matchedVoucher, itemsTotal);
+        trustedVoucher = { code: details.voucher.code, discountAmount: recomputed };
+        finalGrandTotal = Math.max(0, finalGrandTotal - recomputed);
+      } else {
+        trustedVoucher = details.voucher;
+        finalGrandTotal = Math.max(0, finalGrandTotal - details.voucher.discountAmount);
+      }
     }
     if (details.coinsUsed) {
       finalGrandTotal = Math.max(0, finalGrandTotal - details.coinsUsed);
@@ -3128,7 +3176,7 @@ export default function App() {
       createdAt: { seconds: Math.floor(Date.now() / 1000) },
       userCoords: details.userCoords || undefined,
       totalCommission,
-      voucher: details.voucher,
+      voucher: trustedVoucher,
       coinsUsed: details.coinsUsed || undefined,
     };
 
@@ -3228,6 +3276,9 @@ export default function App() {
   const voiceOrderDeferredRef = useRef<{
     resolve: (r: VoiceOrderResult) => void;
   } | null>(null);
+  // Note carried from handleVoiceOrderReady to the deferred food-order
+  // resolution (unmatched items / split-order warning, spoken on success).
+  const voiceOrderNoteRef = useRef<string | undefined>(undefined);
 
   // Structured menu for the local voice agent (no API): name, price, type.
   const voiceMenuItems = useMemo(() => {
@@ -3343,6 +3394,7 @@ export default function App() {
       // when the agent's type hint does not match).
       const foodDishes: { dish: Dish; qty: number }[] = [];
       const groceryProds: { product: GroceryProduct; qty: number }[] = [];
+      const unmatched: string[] = [];
       for (const it of order.items) {
         const qty = Math.max(1, Math.round(it.qty) || 1);
         if (it.type === "food") {
@@ -3351,6 +3403,7 @@ export default function App() {
           else {
             const g = findGrocery(it.name);
             if (g) groceryProds.push({ product: g, qty });
+            else unmatched.push(it.name);
           }
         } else {
           const g = findGrocery(it.name);
@@ -3358,12 +3411,23 @@ export default function App() {
           else {
             const dish = findDish(it.name);
             if (dish) foodDishes.push({ dish, qty });
+            else unmatched.push(it.name);
           }
         }
       }
       if (foodDishes.length === 0 && groceryProds.length === 0) {
         return { ok: false, message: "Koi item menu mein na milyo. Mehrbani kare wari koshish kayo." };
       }
+      // Never silently drop items or split an order: the customer must be
+      // told what was left out and that food+grocery means two orders.
+      const noteParts: string[] = [];
+      if (unmatched.length > 0) {
+        noteParts.push(`نوٹ: ${unmatched.join("، ")} مینیو میں نہیں ملے، اس لیے آرڈر میں شامل نہیں ہوئے۔`);
+      }
+      if (foodDishes.length > 0 && groceryProds.length > 0) {
+        noteParts.push("کھانا اور گروسری دو الگ آرڈر بنیں گے، ڈیلیوری فیس دو دفعہ لگے گی۔");
+      }
+      const orderNote = noteParts.length > 0 ? noteParts.join(" ") : undefined;
 
       // Grocery: place directly (handlePlaceGroceryOrder takes items as a param).
       if (groceryProds.length > 0) {
@@ -3442,13 +3506,14 @@ export default function App() {
         const done = new Promise<VoiceOrderResult>((resolve) => {
           voiceOrderDeferredRef.current = { resolve };
         });
+        voiceOrderNoteRef.current = orderNote;
         setGroceryCartItems([]);
         setCartItems(cartItemsForVoice);
         setVoiceFoodExpected(cartItemsForVoice.map((c) => c.dishId));
         setVoiceFoodDetails(details);
         return done;
       }
-      return { ok: true };
+      return { ok: true, note: orderNote };
     },
     [
       currentUser,
@@ -3473,8 +3538,9 @@ export default function App() {
     setVoiceFoodExpected(null);
     handlePlaceOrderSubmit(details)
       .then(() => {
-        voiceOrderDeferredRef.current?.resolve({ ok: true });
+        voiceOrderDeferredRef.current?.resolve({ ok: true, note: voiceOrderNoteRef.current ?? undefined });
         voiceOrderDeferredRef.current = null;
+        voiceOrderNoteRef.current = undefined;
       })
       .catch(() => {
         voiceOrderDeferredRef.current?.resolve({

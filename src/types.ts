@@ -267,6 +267,9 @@ export interface GroceryOrderItem {
   unit: string;
   imageUrl: string;
   commission?: number;
+  // Attached by the cart builder so the drawer can tell a medicine's
+  // category without a catalogue lookup (M24).
+  categoryId?: string;
 }
 
 export interface GroceryOrder {
