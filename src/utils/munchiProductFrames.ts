@@ -29,6 +29,17 @@ const URDU_ALIASES: Record<string, string> = {
   "کڑاہی": "chicken karahi",
 };
 
+// Hindi (Devanagari) aliases — the agent now speaks Hindi, so its replies
+// and the Hindi transcriptions name dishes in Devanagari.
+const HINDI_ALIASES: Record<string, string> = {
+  "ज़िंगर": "crispy zinger burger",
+  "जिंगर": "crispy zinger burger",
+  "बर्गर": "crispy zinger burger",
+  "बिरयानी": "chicken biryani",
+  "शवारमा": "chicken shawarma",
+  "कड़ाही": "chicken karahi",
+};
+
 // Words too generic to identify a dish on their own.
 const GENERIC = new Set([
   "chicken",
@@ -69,6 +80,12 @@ export function findProductInText(text: string, items: LocalMenuItem[]): Product
   if (!text) return null;
   // Urdu-script alias first (hero dishes only).
   for (const [alias, key] of Object.entries(URDU_ALIASES)) {
+    if (text.includes(alias)) {
+      const item = items.find((i) => norm(i.name) === key);
+      if (item) return { name: item.name, price: item.price, image: HERO_FRAMES[key], hero: true };
+    }
+  }
+  for (const [alias, key] of Object.entries(HINDI_ALIASES)) {
     if (text.includes(alias)) {
       const item = items.find((i) => norm(i.name) === key);
       if (item) return { name: item.name, price: item.price, image: HERO_FRAMES[key], hero: true };
