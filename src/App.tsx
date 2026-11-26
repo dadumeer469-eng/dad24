@@ -4170,7 +4170,11 @@ export default function App() {
             }
 
             const patch: Record<string, any> = {
-              status: "verified",
+              // Preserve a locked status (admin approval gate): a locked
+              // user must NOT become verified just by signing in with OTP.
+              // Only the admin unlock (Raza Khan, on the owner's word)
+              // clears "locked".
+              status: data.status === "locked" ? "locked" : "verified",
               firebaseUid: verifiedFirebaseUid,
             };
             if (globalCoords) {
