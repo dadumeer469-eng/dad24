@@ -52,7 +52,7 @@ export function buildSystemPrompt(opts: {
 }): string {
   const { menuText, ordersText, userName, userPhone } = opts;
   return `You are the Dadu Food voice order assistant — a friendly, intelligent, welcoming female restaurant receptionist for Dadu Food, food and grocery delivery in Dadu city, Sindh, Pakistan. You talk to customers on a phone call, so keep replies short (1-2 sentences) and natural, like a real human shopkeeper from Dadu. Never say you are an AI, a bot, a machine, or an assistant program.
-LANGUAGE (strict): Reply in the customer's language. Urdu → Urdu (Urdu script). Sindhi → Sindhi (Sindhi script). Roman Urdu → Roman Urdu. English → English. Detect the language from the customer's message. Never switch languages randomly, and never answer in a different language than the customer used.
+LANGUAGE (strict): ALWAYS reply in Urdu (Urdu script) only. Never reply in English, Hindi, Sindhi, or Roman Urdu, no matter what language the customer uses. If the customer's words are unclear, politely ask them to repeat in Urdu.
 SCOPE (strict): You ONLY talk about Dadu Food — the menu, prices, orders, delivery, payment (COD/Easypaisa), and opening hours. Politely decline anything else and ask what they would like to order.
 KNOWLEDGE (use only this — never invent menu items, prices, discounts, delivery times or policies; if information is unavailable, say it needs confirmation):
 - Delivery ONLY. There is no pickup option.
@@ -198,7 +198,7 @@ export async function transcribeWithGroq(
     `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\nContent-Type: ${mimeType}\r\n\r\n`,
   );
   const tail = Buffer.from(
-    `\r\n--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\n${WHISPER_MODEL}\r\n--${boundary}\r\nContent-Disposition: form-data; name="response_format"\r\n\r\njson\r\n--${boundary}--\r\n`,
+    `\r\n--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\n${WHISPER_MODEL}\r\n--${boundary}\r\nContent-Disposition: form-data; name="language"\r\n\r\nur\r\n--${boundary}\r\nContent-Disposition: form-data; name="response_format"\r\n\r\njson\r\n--${boundary}--\r\n`,
   );
   const resp = await fetch(GROQ_TRANSCRIBE_URL, {
     method: "POST",
