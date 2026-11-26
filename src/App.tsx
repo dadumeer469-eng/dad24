@@ -499,7 +499,13 @@ export default function App() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isAdminConsoleOpen, setIsAdminConsoleOpen] = useState(false);
+  const [isAdminConsoleOpen, setIsAdminConsoleOpen] = useState(() =>
+    // /admin opens the admin console directly (same state the in-app
+    // Admin buttons set). The console itself still gates on isUserAdmin,
+    // so a non-admin visitor just sees the home view with staff login.
+    typeof window !== "undefined" &&
+    window.location.pathname.replace(/^\/+|\/+$/g, "") === "admin",
+  );
   const [activeDetailDish, setActiveDetailDish] = useState<Dish | null>(null);
   const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
   const [isDirectChatOpen, setIsDirectChatOpen] = useState(false);
@@ -516,6 +522,10 @@ export default function App() {
     if (p === "pharmacy") return "pharmacy";
     if (p === "restaurants") return "restaurants";
     if (p === "hotels") return "hotels";
+    // /admin is not a page — it opens the staff-login/admin console
+    // (isAdminConsoleOpen, initialised from the URL above), so it must
+    // never render the 404 view.
+    if (p === "admin") return "home";
     if (p === "") return "home";
     if (p.startsWith("shop/")) return "home";
     const infoSlugs = ["about", "terms", "privacy-policy", "refund-policy", "contact", "partner-with-us", "become-a-rider"];
