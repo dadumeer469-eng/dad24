@@ -156,7 +156,9 @@ export const InfoPagesView: React.FC<InfoPagesViewProps> = ({ page, onBack, onNa
                 travel to the bazaar for everyday items. Dadu Food brings the city&apos;s own restaurants, grocery
                 shelves and pharmacy essentials together on one website, with one rider, one delivery fee and live
                 tracking from the kitchen to your door. Our grand opening is on Tuesday, 15 December 2026, and from
-                that day food, grocery and medicine delivery will run across Dadu city every day.
+                that day food, grocery and medicine delivery will run across Dadu city every day. That is what
+                food delivery in Dadu Sindh should feel like — local kitchens, local riders, and one honest
+                delivery fee.
               </p>
               <p className="text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed">
                 We are a local team, not a faraway call centre. The restaurants on Dadu Food are Dadu&apos;s own
@@ -468,7 +470,7 @@ export const InfoPagesView: React.FC<InfoPagesViewProps> = ({ page, onBack, onNa
                   <li><strong className="text-zinc-900 dark:text-white">Your own restaurant panel:</strong> see incoming orders live, accept or manage them, update your menu and prices, and set your opening hours and delivery settings yourself.</li>
                   <li><strong className="text-zinc-900 dark:text-white">Our rider panel and delivery fleet:</strong> you do not need your own delivery boys. Our local Dadu riders pick up from your shop and deliver to the customer, with live tracking the customer can follow.</li>
                   <li><strong className="text-zinc-900 dark:text-white">Live order tracking:</strong> you, the rider and the customer all see the same order status — placed, accepted, preparing, picked up and delivered — so there are fewer phone calls and fewer mistakes.</li>
-                  <li><strong className="text-zinc-900 dark:text-white">Marketing across Dadu city:</strong> your restaurant is listed on the Dadu Food home page and in search results for Dadu food delivery, and we promote partner restaurants to our customers. More restaurants are being added before our grand opening on Tuesday, 15 December 2026, so early partners get the most visibility.</li>
+                  <li><strong className="text-zinc-900 dark:text-white">Marketing across Dadu city:</strong> your restaurant is listed on the Dadu Food home page and in search results for Dadu food delivery, and we promote partner restaurants to our customers. More restaurants are being added before our grand opening on Tuesday, 15 December 2026, so early partners get the most visibility. Dadu Fast Food &amp; Kitchen, S M Bilal Hotel and Tasty Bites Dadu already list with us, and every online food order Dadu customers place through the app reaches the kitchen instantly.</li>
                 </ul>
               </section>
               <section>
@@ -584,7 +586,7 @@ export const InfoPagesView: React.FC<InfoPagesViewProps> = ({ page, onBack, onNa
               </section>
               <section>
                 <h2 className="font-bold text-zinc-900 dark:text-white text-base mb-1">How a Delivery Works</h2>
-                <p>When a customer orders, the restaurant prepares the food and the order appears in the rider panel. You accept it, ride to the restaurant, pick up the order, and deliver it to the customer&apos;s address — the app shows you the route, and the customer can track you live. For Cash on Delivery orders you collect the cash from the customer; for Easypaisa orders the payment is already handled. If you cannot find an address or the customer does not answer, call them on the number in the order, and if you still cannot deliver, contact our support on 03277004471 instead of leaving the order unattended. Ride safely, follow traffic rules, and keep the food upright and protected — a careful rider is a rider customers ask for again.</p>
+                <p>When a customer orders, the restaurant prepares the food and the order appears in the rider panel. You accept it, ride to the restaurant, pick up the order, and deliver it to the customer&apos;s address — the app shows you the route, and the customer can track you live. For Cash on Delivery orders you collect the cash from the customer; for Easypaisa orders the payment is already handled. If you cannot find an address or the customer does not answer, call them on the number in the order, and if you still cannot deliver, contact our support on 03277004471 instead of leaving the order unattended. Ride safely, follow traffic rules, and keep the food upright and protected — a careful rider is a rider customers ask for again. Deliveries run across Dadu city, including Shahani Paro, Moro Road, Station Road and College Road.</p>
               </section>
             </div>
 
