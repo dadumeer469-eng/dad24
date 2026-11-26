@@ -187,16 +187,7 @@
   }
 }
 
-/* Home hero animations — rider bobbing, headline slide-in, tiles staggered fade-up */
-@keyframes float-soft {
-  0%, 100% {
-    transform: translate3d(0, 0, 0);
-  }
-  50% {
-    transform: translate3d(0, -6px, 0);
-  }
-}
-
+/* Home hero animations — headline slide-in, tiles staggered fade-up */
 @keyframes fade-up {
   from {
     opacity: 0;
@@ -538,11 +529,6 @@
   opacity: 1;
   transform: scale(1.4);
   transition: opacity 0.1s ease, transform 0.1s ease;
-}
-
-.animate-float-soft {
-  animation: float-soft 3.2s ease-in-out infinite;
-  will-change: transform;
 }
 
 .animate-fade-up {

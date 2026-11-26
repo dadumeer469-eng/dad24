@@ -104,6 +104,12 @@ import {
   Wrench,
   HeartHandshake,
   UtensilsCrossed,
+  Flame,
+  Zap,
+  Sandwich,
+  Pizza,
+  ChefHat,
+  Coffee,
   Compass,
   MapPin,
   Heart,
@@ -184,9 +190,9 @@ function BannerLiveChatButton({
     <button
       type="button"
       onClick={onClick}
-      className="btn-pink text-white min-h-[36px] px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider text-center transition-all duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer flex items-center gap-1.5 relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
+      className="btn-pink text-white min-h-[36px] px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider text-center transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer flex items-center gap-1.5 relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-[opacity,transform] after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
     >
-      <span>💬 Live Chat</span>
+      <span>Live Chat</span>
       {unreadCount > 0 && (
         <span className="relative flex h-2.5 w-2.5 shrink-0">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-80"></span>
@@ -958,6 +964,13 @@ export default function App() {
     };
   }, []);
 
+  // Auto-hide the install bubble after 8s so it never permanently covers content
+  useEffect(() => {
+    if (!showInstallBubble) return;
+    const t = window.setTimeout(() => setShowInstallBubble(false), 8000);
+    return () => window.clearTimeout(t);
+  }, [showInstallBubble]);
+
   const handleInstallClick = async () => {
     if (deferredPrompt) {
       deferredPrompt.prompt();
@@ -1121,7 +1134,7 @@ export default function App() {
   useEffect(() => {
     if (currentUser) {
       if (prevUserStatusRef.current === "locked" && currentUser.status === "verified") {
-        alert("Aapka number verify ho gaya! Ab aap order kar sakte hain! 🎉");
+        alert("Aapka number verify ho gaya! Ab aap order kar sakte hain!");
       }
       prevUserStatusRef.current = currentUser.status;
     } else {
@@ -2051,11 +2064,11 @@ export default function App() {
                     message: `${o.riderName ? `${o.riderName} aapka` : "Rider aapka"} order #${o.id.substring(0, 5)} le kar nikal chuka hai!`,
                   },
                   delivered: {
-                    title: "🎉 Order Deliver Ho Gaya!",
+                    title: "Order Deliver Ho Gaya!",
                     message: `Order #${o.id.substring(0, 5)} pohanch chuka hai. Enjoy your meal!`,
                   },
                   completed: {
-                    title: "🎉 Order Mukammal Ho Gaya!",
+                    title: "Order Mukammal Ho Gaya!",
                     message: `Order #${o.id.substring(0, 5)} complete ho gaya hai. Shukriya!`,
                   },
                 };
@@ -2371,7 +2384,7 @@ export default function App() {
     // Check if mixed cart is allowed
     if (!groceryDeliveryConfig?.allowMixedCart && groceryCartItems.length > 0) {
       const clearGrocery = window.confirm(
-        "🛒 DISALLOW MIXED BASKET!\n\nYour basket currently contains Grocery products. Dadu Food requires separate delivery runs for hot kitchen meals and retail groceries.\n\nWould you like to auto-clear your Grocery Basket to start your Food order?",
+        "DISALLOW MIXED BASKET!\n\nYour basket currently contains Grocery products. Dadu Food requires separate delivery runs for hot kitchen meals and retail groceries.\n\nWould you like to auto-clear your Grocery Basket to start your Food order?",
       );
       if (clearGrocery) {
         setGroceryCartItems([]);
@@ -2511,7 +2524,7 @@ export default function App() {
     // Check if mixed cart is allowed
     if (!groceryDeliveryConfig?.allowMixedCart && cartItems.length > 0) {
       const clearFood = window.confirm(
-        "🛒 DISALLOW MIXED BASKET!\n\nYour basket currently contains Food items. Dadu Food requires separate delivery runs for hot kitchen meals and retail groceries.\n\nWould you like to auto-clear your Food Cart to start your Grocery purchase?",
+        "DISALLOW MIXED BASKET!\n\nYour basket currently contains Food items. Dadu Food requires separate delivery runs for hot kitchen meals and retail groceries.\n\nWould you like to auto-clear your Food Cart to start your Grocery purchase?",
       );
       if (clearFood) {
         setCartItems([]);
@@ -2578,7 +2591,7 @@ export default function App() {
       // It's a grocery order
       if (cartItems.length > 0 && !groceryDeliveryConfig?.allowMixedCart) {
         const clearFood = window.confirm(
-          "🛒 DISALLOW MIXED BASKET!\n\nYour basket currently contains Food items. Dadu Food requires separate delivery runs for hot kitchen meals and retail groceries.\n\nWould you like to auto-clear your Food Cart to start your Grocery purchase?",
+          "DISALLOW MIXED BASKET!\n\nYour basket currently contains Food items. Dadu Food requires separate delivery runs for hot kitchen meals and retail groceries.\n\nWould you like to auto-clear your Food Cart to start your Grocery purchase?",
         );
         if (clearFood) {
           setCartItems([]);
@@ -2633,7 +2646,7 @@ export default function App() {
         !groceryDeliveryConfig?.allowMixedCart
       ) {
         const clearGrocery = window.confirm(
-          "🛒 DISALLOW MIXED BASKET!\n\nYour basket currently contains Grocery products. Dadu Food requires separate delivery runs for hot kitchen meals and retail groceries.\n\nWould you like to auto-clear your Grocery Basket to start your Food order?",
+          "DISALLOW MIXED BASKET!\n\nYour basket currently contains Grocery products. Dadu Food requires separate delivery runs for hot kitchen meals and retail groceries.\n\nWould you like to auto-clear your Grocery Basket to start your Food order?",
         );
         if (clearGrocery) {
           setGroceryCartItems([]);
@@ -2667,7 +2680,7 @@ export default function App() {
       });
 
       setToastNotification({
-        title: "Food Items Restored! 🍔",
+        title: "Food Items Restored!",
         message: "Previous dishes have been successfully added to your cart.",
         durationMs: 4000,
       });
@@ -3664,21 +3677,21 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => performLogout(false)}
-                  className="w-full min-h-[48px] py-3.5 px-4 rounded-xl bg-[#D70F64] hover:bg-[#B80C54] text-white text-xs font-black uppercase tracking-wider cursor-pointer transition-all duration-180 active:scale-[0.97] active:brightness-110 relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
+                  className="w-full min-h-[48px] py-3.5 px-4 rounded-xl bg-[#D70F64] hover:bg-[#B80C54] text-white text-xs font-black uppercase tracking-wider cursor-pointer transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-[opacity,transform] after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
                 >
                   Keep Cart & Sign Out
                 </button>
                 <button
                   type="button"
                   onClick={() => performLogout(true)}
-                  className="w-full min-h-[48px] py-3.5 px-4 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 text-xs font-bold uppercase tracking-wider cursor-pointer transition-all duration-180 active:scale-[0.97] active:brightness-110"
+                  className="w-full min-h-[48px] py-3.5 px-4 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 text-xs font-bold uppercase tracking-wider cursor-pointer transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110"
                 >
                   Clear Cart & Sign Out
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsSignOutConfirmOpen(false)}
-                  className="w-full min-h-[48px] py-3 px-4 rounded-xl text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white text-xs font-bold cursor-pointer transition-all duration-180 active:scale-[0.97]"
+                  className="w-full min-h-[48px] py-3 px-4 rounded-xl text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white text-xs font-bold cursor-pointer transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97]"
                 >
                   Cancel
                 </button>
@@ -3720,8 +3733,8 @@ export default function App() {
               className="relative w-full max-w-sm bg-zinc-900 rounded-3xl overflow-hidden shadow-2xl border border-zinc-800 text-center"
             >
               <div className="bg-[#D70F64] p-6 text-center">
-                <div className="w-16 h-16 rounded-2xl mx-auto shadow-xl border-2 border-white/20 mb-3 bg-white flex items-center justify-center text-3xl animate-pulse">
-                  📞
+                <div className="w-16 h-16 rounded-2xl mx-auto shadow-xl border-2 border-white/20 mb-3 bg-white flex items-center justify-center animate-pulse">
+                  <Phone className="w-8 h-8 text-[#D70F64]" aria-hidden="true" />
                 </div>
                 <h2 className="text-2xl font-black text-white tracking-tight">
                   Verification Pending
@@ -3733,7 +3746,7 @@ export default function App() {
                 </p>
                 <button
                   onClick={() => setIsVerificationModalOpen(false)}
-                  className="w-full bg-[#D70F64] hover:bg-[#B80C54] text-white font-black tracking-wide shadow-md transition-all duration-180 active:scale-[0.97] active:brightness-110 py-3.5 rounded-2xl text-sm uppercase cursor-pointer relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
+                  className="w-full bg-[#D70F64] hover:bg-[#B80C54] text-white font-black tracking-wide shadow-md transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 py-3.5 rounded-2xl text-sm uppercase cursor-pointer relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-[opacity,transform] after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
                 >
                   Theek Hai
                 </button>
@@ -4084,7 +4097,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setIsExitConfirmationOpen(false)}
-                  className="w-full min-h-[48px] bg-[#D70F64] hover:bg-[#B80C54] text-white py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider transition-all duration-180 active:scale-[0.97] active:brightness-110 shadow-md flex items-center justify-center gap-2 cursor-pointer relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
+                  className="w-full min-h-[48px] bg-[#D70F64] hover:bg-[#B80C54] text-white py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 shadow-md flex items-center justify-center gap-2 cursor-pointer relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-[opacity,transform] after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
                 >
                   <UtensilsCrossed className="w-4 h-4" />
                   Keep Ordering
@@ -4103,7 +4116,7 @@ export default function App() {
                       isExitingRef.current = false;
                     }, 1000);
                   }}
-                  className="w-full min-h-[48px] py-3 px-4 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-xs font-bold uppercase tracking-wider cursor-pointer transition-all duration-180 active:scale-[0.97] active:brightness-110"
+                  className="w-full min-h-[48px] py-3 px-4 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-xs font-bold uppercase tracking-wider cursor-pointer transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110"
                 >
                   Exit App
                 </button>
@@ -4154,7 +4167,7 @@ export default function App() {
                   src={deliverySettings.announcement.imageUrl}
                   alt={deliverySettings.announcement.title || "Special Offer Announcement"}
                   referrerPolicy="no-referrer"
-                  className="w-full h-auto max-h-[60vh] object-contain transition-transform duration-700 group-hover:scale-105"
+                  className="w-full h-auto max-h-[60vh] object-contain transition-transform duration-700"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/10 pointer-events-none" />
               </div>
@@ -4184,7 +4197,7 @@ export default function App() {
                     localStorage.setItem(`seen_announcement_${annId}`, "true");
                     setShowAnnouncementPopup(false);
                   }}
-                  className="w-full bg-[#D70F64] hover:bg-[#B80C54] text-white py-3.5 sm:py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all duration-180 active:scale-[0.97] active:brightness-110 shadow-lg shadow-[#D70F64]/10 hover:shadow-[#D70F64]/20 flex items-center justify-center gap-2 cursor-pointer relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
+                  className="w-full bg-[#D70F64] hover:bg-[#B80C54] text-white py-3.5 sm:py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 shadow-lg shadow-[#D70F64]/10 hover:shadow-[#D70F64]/20 flex items-center justify-center gap-2 cursor-pointer relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-[opacity,transform] after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
                 >
                   <span>Maza Aa Gaya! (Explore Now)</span>
                 </button>
@@ -4333,9 +4346,9 @@ export default function App() {
               href={`https://wa.me/${deliverySettings?.whatsappNumber || "923277004471"}?text=${encodeURIComponent(contactText)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full bg-[#25D366] hover:bg-[#20ba5a] text-white font-black py-4.5 px-4 rounded-2xl transition-all duration-180 active:scale-[0.97] active:brightness-110 flex items-center justify-center gap-2.5 cursor-pointer text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/10"
+              className="w-full bg-[#25D366] hover:bg-[#20ba5a] text-white font-black py-4.5 px-4 rounded-2xl transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 flex items-center justify-center gap-2.5 cursor-pointer text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/10"
             >
-              <span>💬 Contact on WhatsApp</span>
+              <span>Contact on WhatsApp</span>
               <span className="font-mono text-[10px] bg-white/20 px-2 py-0.5 rounded-md">03277004471</span>
             </a>
           </div>
@@ -4343,7 +4356,7 @@ export default function App() {
           <button
             type="button"
             onClick={handleLogout}
-            className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-black py-3.5 px-4 rounded-2xl transition-all duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer text-xs uppercase tracking-wider border border-zinc-700"
+            className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-black py-3.5 px-4 rounded-2xl transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer text-xs uppercase tracking-wider border border-zinc-700"
           >
             Sign Out (Logout Karein)
           </button>
@@ -4579,7 +4592,7 @@ export default function App() {
         href={`https://wa.me/${deliverySettings?.whatsappNumber || "923277004471"}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-32 right-4 z-40 bg-[#25D366] text-white p-2 rounded-full shadow-lg hover:scale-110 active:scale-[0.97] transition-transform duration-300 cursor-pointer flex items-center justify-center border border-white/20"
+        className="fixed bottom-32 right-4 z-40 bg-[#25D366] hover:bg-[#20ba5a] text-white p-2 rounded-full shadow-lg active:scale-[0.97] transition-[color,background-color,border-color,transform,opacity] duration-180 cursor-pointer flex items-center justify-center border border-white/20"
         title="WhatsApp live support helpline"
       >
         <svg viewBox="0 0 24 24" className="w-6 h-6 fill-current text-white">
@@ -4699,15 +4712,15 @@ export default function App() {
                 href={`https://wa.me/${deliverySettings?.whatsappNumber || "923277004471"}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full bg-[#25D366] hover:bg-[#20ba5a] text-white font-black py-3.5 px-4 rounded-2xl shadow-lg hover:scale-[1.01] active:scale-[0.97] active:brightness-110 transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer text-xs uppercase tracking-wider"
+                className="w-full bg-[#25D366] hover:bg-[#20ba5a] text-white font-black py-3.5 px-4 rounded-2xl shadow-lg active:scale-[0.97] active:brightness-110 transition-[color,background-color,border-color,transform,opacity] duration-180 flex items-center justify-center gap-2 cursor-pointer text-xs uppercase tracking-wider"
               >
-                💬 WhatsApp Helpline
+                WhatsApp Helpline
               </a>
 
               <button
                 type="button"
                 onClick={() => setIsAuthOpen(true)}
-                className="w-full bg-zinc-100 dark:bg-zinc-850 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-black py-3.5 px-4 rounded-2xl transition-all duration-300 active:scale-[0.97] active:brightness-110 flex items-center justify-center gap-2 cursor-pointer text-xs uppercase tracking-wider border border-zinc-200/60 dark:border-zinc-750"
+                className="w-full bg-zinc-100 dark:bg-zinc-850 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-black py-3.5 px-4 rounded-2xl transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 flex items-center justify-center gap-2 cursor-pointer text-xs uppercase tracking-wider border border-zinc-200/60 dark:border-zinc-750"
               >
                 🔑 Admin / Staff Login
               </button>
@@ -4734,7 +4747,7 @@ export default function App() {
                   e.preventDefault();
                   handleGoToFoodHome();
                 }}
-                className="w-full bg-[#D70F64] hover:bg-[#B80C54] text-white font-black py-3.5 px-4 rounded-2xl shadow-lg hover:scale-[1.01] active:scale-[0.97] active:brightness-110 transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer text-xs uppercase tracking-wider relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
+                className="w-full bg-[#D70F64] hover:bg-[#B80C54] text-white font-black py-3.5 px-4 rounded-2xl shadow-lg active:scale-[0.97] active:brightness-110 transition-[color,background-color,border-color,transform,opacity] duration-180 flex items-center justify-center gap-2 cursor-pointer text-xs uppercase tracking-wider relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-[opacity,transform] after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
               >
                 Back to Dadu Food Home
               </a>
@@ -4833,11 +4846,11 @@ export default function App() {
                         setActiveCategory("All");
                         document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth" });
                       }}
-                      className="min-h-[124px] text-left p-3 rounded-3xl bg-gradient-to-br from-white via-white to-[#FFF0F5] dark:from-[#1C1C26] dark:via-[#14141A] dark:to-[#1C1C26] border border-white dark:border-[#272733] hover:border-[#D70F64]/50 shadow-[0_12px_28px_rgba(215,15,100,0.30),inset_0_1px_0_rgba(255,255,255,0.9)] transition-all duration-300 md:hover:-translate-y-0.5 cursor-pointer active:scale-[0.97] active:brightness-110 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "60ms" }}
+                      className="min-h-[124px] text-left p-4 rounded-2xl bg-gradient-to-br from-white via-white to-[#FFF0F5] dark:from-[#1C1C26] dark:via-[#14141A] dark:to-[#1C1C26] border border-white dark:border-[#272733] hover:border-[#D70F64]/50 shadow-[0_12px_28px_rgba(215,15,100,0.30),inset_0_1px_0_rgba(255,255,255,0.9)] transition-[color,background-color,border-color,transform,opacity] duration-180 cursor-pointer active:scale-[0.97] active:brightness-110 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "60ms" }}
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
-                          <span className="block text-sm sm:text-[15px] font-black text-[#14141A] dark:text-white leading-tight">
+                          <span className="block text-sm sm:text-[15px] font-semibold text-[#14141A] dark:text-white leading-tight">
                             Food<br />Delivery
                           </span>
                           <span className="block text-[11px] font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-1 leading-snug">
@@ -4851,7 +4864,7 @@ export default function App() {
                       <img
                         src="/images/home/burger-3d.jpg"
                         alt="Crispy burger"
-                        className="w-[68px] h-[68px] sm:w-[96px] sm:h-[96px] rounded-2xl object-contain shrink-0 animate-float-soft" style={{ animationDelay: "0s" }}
+                        className="w-[68px] h-[68px] sm:w-[96px] sm:h-[96px] rounded-2xl object-contain shrink-0" style={{ animationDelay: "0s" }}
                         loading="lazy"
                         decoding="async"
                       />
@@ -4860,11 +4873,11 @@ export default function App() {
                     <button
                       type="button"
                       onClick={handleGoToGroceryHome}
-                      className="min-h-[124px] text-left p-3 rounded-3xl bg-gradient-to-br from-white via-white to-[#FFF0F5] dark:from-[#1C1C26] dark:via-[#14141A] dark:to-[#1C1C26] border border-white dark:border-[#272733] hover:border-[#D70F64]/50 shadow-[0_12px_28px_rgba(215,15,100,0.30),inset_0_1px_0_rgba(255,255,255,0.9)] transition-all duration-300 md:hover:-translate-y-0.5 cursor-pointer active:scale-[0.97] active:brightness-110 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "120ms" }}
+                      className="min-h-[124px] text-left p-4 rounded-2xl bg-gradient-to-br from-white via-white to-[#FFF0F5] dark:from-[#1C1C26] dark:via-[#14141A] dark:to-[#1C1C26] border border-white dark:border-[#272733] hover:border-[#D70F64]/50 shadow-[0_12px_28px_rgba(215,15,100,0.30),inset_0_1px_0_rgba(255,255,255,0.9)] transition-[color,background-color,border-color,transform,opacity] duration-180 cursor-pointer active:scale-[0.97] active:brightness-110 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "120ms" }}
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
-                          <span className="block text-sm sm:text-[15px] font-black text-[#14141A] dark:text-white leading-tight">
+                          <span className="block text-sm sm:text-[15px] font-semibold text-[#14141A] dark:text-white leading-tight">
                             Dadu<br />Mart
                           </span>
                           <span className="block text-[11px] font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-1 leading-snug">
@@ -4878,7 +4891,7 @@ export default function App() {
                       <img
                         src="/images/home/grocery-cart-3d.jpg"
                         alt="Grocery cart full of fresh groceries"
-                        className="w-[68px] h-[68px] sm:w-[96px] sm:h-[96px] rounded-2xl object-contain shrink-0 animate-float-soft" style={{ animationDelay: "0.5s" }}
+                        className="w-[68px] h-[68px] sm:w-[96px] sm:h-[96px] rounded-2xl object-contain shrink-0" style={{ animationDelay: "0.5s" }}
                         loading="lazy"
                         decoding="async"
                       />
@@ -4891,11 +4904,11 @@ export default function App() {
                         setQuickFilter("under_300");
                         document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth" });
                       }}
-                      className="min-h-[124px] text-left p-3 rounded-3xl bg-gradient-to-br from-white via-white to-[#FFF0F5] dark:from-[#1C1C26] dark:via-[#14141A] dark:to-[#1C1C26] border border-white dark:border-[#272733] hover:border-[#D70F64]/50 shadow-[0_12px_28px_rgba(215,15,100,0.30),inset_0_1px_0_rgba(255,255,255,0.9)] transition-all duration-300 md:hover:-translate-y-0.5 cursor-pointer active:scale-[0.97] active:brightness-110 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "180ms" }}
+                      className="min-h-[124px] text-left p-4 rounded-2xl bg-gradient-to-br from-white via-white to-[#FFF0F5] dark:from-[#1C1C26] dark:via-[#14141A] dark:to-[#1C1C26] border border-white dark:border-[#272733] hover:border-[#D70F64]/50 shadow-[0_12px_28px_rgba(215,15,100,0.30),inset_0_1px_0_rgba(255,255,255,0.9)] transition-[color,background-color,border-color,transform,opacity] duration-180 cursor-pointer active:scale-[0.97] active:brightness-110 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "180ms" }}
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
-                          <span className="block text-sm sm:text-[15px] font-black text-[#14141A] dark:text-white leading-tight">
+                          <span className="block text-sm sm:text-[15px] font-semibold text-[#14141A] dark:text-white leading-tight">
                             Budget<br />Deals
                           </span>
                           <span className="block text-[11px] font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-1 leading-snug">
@@ -4909,7 +4922,7 @@ export default function App() {
                       <img
                         src="/images/home/price-tag-3d.jpg"
                         alt="Discount price tag"
-                        className="w-[68px] h-[68px] sm:w-[96px] sm:h-[96px] rounded-2xl object-contain shrink-0 animate-float-soft" style={{ animationDelay: "1s" }}
+                        className="w-[68px] h-[68px] sm:w-[96px] sm:h-[96px] rounded-2xl object-contain shrink-0" style={{ animationDelay: "1s" }}
                         loading="lazy"
                         decoding="async"
                       />
@@ -4919,11 +4932,11 @@ export default function App() {
                       href={`https://wa.me/${deliverySettings?.whatsappNumber || "923277004471"}?text=Assalam-o-Alaikum%20Dadu%20Food!%20Mera%20WhatsApp%20order%20list%20ye%20hai:`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="min-h-[124px] text-left p-3 rounded-3xl bg-gradient-to-br from-white via-white to-[#FFF0F5] dark:from-[#1C1C26] dark:via-[#14141A] dark:to-[#1C1C26] border border-white dark:border-[#272733] hover:border-[#25D366]/60 shadow-[0_12px_28px_rgba(215,15,100,0.30),inset_0_1px_0_rgba(255,255,255,0.9)] transition-all duration-300 md:hover:-translate-y-0.5 cursor-pointer active:scale-[0.97] active:brightness-110 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "240ms" }}
+                      className="min-h-[124px] text-left p-4 rounded-2xl bg-gradient-to-br from-white via-white to-[#FFF0F5] dark:from-[#1C1C26] dark:via-[#14141A] dark:to-[#1C1C26] border border-white dark:border-[#272733] hover:border-[#25D366]/60 shadow-[0_12px_28px_rgba(215,15,100,0.30),inset_0_1px_0_rgba(255,255,255,0.9)] transition-[color,background-color,border-color,transform,opacity] duration-180 cursor-pointer active:scale-[0.97] active:brightness-110 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "240ms" }}
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
-                          <span className="block text-sm sm:text-[15px] font-black text-[#14141A] dark:text-white leading-tight">
+                          <span className="block text-sm sm:text-[15px] font-semibold text-[#14141A] dark:text-white leading-tight">
                             WhatsApp<br />List
                           </span>
                           <span className="block text-[11px] font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-1 leading-snug">
@@ -4937,7 +4950,7 @@ export default function App() {
                       <img
                         src="/images/home/whatsapp-logo.jpg"
                         alt="WhatsApp"
-                        className="w-[68px] h-[68px] sm:w-[96px] sm:h-[96px] rounded-2xl object-contain shrink-0 animate-float-soft" style={{ animationDelay: "1.5s" }}
+                        className="w-[68px] h-[68px] sm:w-[96px] sm:h-[96px] rounded-2xl object-contain shrink-0" style={{ animationDelay: "1.5s" }}
                         loading="lazy"
                         decoding="async"
                       />
@@ -4946,19 +4959,21 @@ export default function App() {
                   </div>
                 </section>
 
+                {/* Thin pink route line — the delivery journey in one line */}
+                <div aria-hidden="true" className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-3">
+                  <div className="border-t-2 border-dotted border-[#E21B70]/40" />
+                </div>
+
                 {/* Floating Promo Banner with Live Countdown */}
                 {!promoBannerDismissed && (
                   <div className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-3">
                     <div className="bg-gradient-to-r from-[#D70F64] to-[#FF2B85] text-white rounded-2xl px-4 py-3 shadow-sm flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center text-lg shrink-0">
-                          🎉
-                        </span>
                         <div className="min-w-0">
-                          <p className="text-xs sm:text-sm font-black leading-tight truncate">
-                            Free Delivery on Orders Above Rs. 1,000!
+                          <p className="text-xs sm:text-sm font-semibold leading-tight">
+                            Free delivery over Rs. 1,000
                           </p>
-                          <p className="text-[10.5px] text-pink-100 font-medium truncate mt-0.5">
+                          <p className="text-[10.5px] text-pink-100 font-medium mt-0.5">
                             Standard Rs. {deliverySettings?.deliveryFee || 50} delivery fee · Cash on Delivery &amp; Easypaisa
                           </p>
                         </div>
@@ -4973,7 +4988,7 @@ export default function App() {
                           type="button"
                           onClick={() => setPromoBannerDismissed(true)}
                           aria-label="Dismiss promo banner"
-                          className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white cursor-pointer transition-all duration-180 active:scale-[0.97] active:brightness-110"
+                          className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white cursor-pointer transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110"
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -4997,7 +5012,7 @@ export default function App() {
                     .slice(0, 6);
                   if (pastOrders.length === 0) return null;
                   return (
-                    <section className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-4">
+                    <section className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-6">
                       <div className="flex items-center justify-between mb-2">
                         <h2 className="text-sm sm:text-base font-extrabold tracking-tight text-[#14141A] dark:text-[#F5F5F8]">
                           Order Again
@@ -5014,7 +5029,7 @@ export default function App() {
                         {pastOrders.map((past) => (
                           <div
                             key={`reorder-${past.id}`}
-                            className="shrink-0 w-[230px] bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl p-3 flex flex-col justify-between gap-2 shadow-md hover:shadow-lg md:hover:-translate-y-0.5 transition-all duration-300"
+                            className="shrink-0 w-[230px] bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl p-3 flex flex-col justify-between gap-2 shadow-md hover:shadow-lg transition-[color,background-color,border-color,transform,opacity] duration-180"
                           >
                             <div>
                               <div className="flex items-center justify-between gap-1">
@@ -5037,7 +5052,7 @@ export default function App() {
                                 type="button"
                                 onClick={() => handleReorder(past)}
                                 aria-label={`Reorder ${past.items[0]?.name || "previous order"}`}
-                                className="min-h-[44px] px-4 py-2.5 rounded-xl bg-[#D70F64] hover:bg-[#B80C54] text-white text-[11px] font-extrabold cursor-pointer transition-all duration-180 active:scale-[0.97] active:brightness-110 relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
+                                className="min-h-[44px] px-4 py-2.5 rounded-xl bg-[#D70F64] hover:bg-[#B80C54] text-white text-[11px] font-extrabold cursor-pointer transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-[opacity,transform] after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
                               >
                                 Reorder
                               </button>
@@ -5058,15 +5073,15 @@ export default function App() {
                   foodCategories={normalizedFoodCategories}
                   heroBgUrl={heroBgUrl}
                 >
-                <div className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-2 mb-1">
-                  <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-3.5 border border-[#E6E6EE] dark:border-[#272733] shadow-xs">
+                <div className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-6 mb-4">
+                  <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-4 border border-[#E6E6EE] dark:border-[#272733] shadow-xs">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2.5">
                         <div className="w-9 h-9 rounded-xl bg-[#D70F64] flex items-center justify-center text-white shrink-0">
                           <Compass className="w-4.5 h-4.5" />
                         </div>
                         <div>
-                          <h2 className="text-sm font-extrabold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
+                          <h2 className="text-sm font-semibold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
                             Partner Restaurants in Dadu
                           </h2>
                           <p className="text-xs text-[#5A5A6B] dark:text-[#A3A3B5]">
@@ -5100,7 +5115,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => setSelectedRestaurant("All Restaurants")}
-                          className="min-h-[44px] px-3.5 rounded-xl text-xs font-extrabold text-[#D70F64] dark:text-[#FF5C9E] border border-[#D70F64]/30 hover:bg-[#D70F64]/10 transition-all duration-300 active:scale-[0.97] cursor-pointer shrink-0"
+                          className="min-h-[44px] px-3.5 rounded-xl text-xs font-extrabold text-[#D70F64] dark:text-[#FF5C9E] border border-[#D70F64]/30 hover:bg-[#D70F64]/10 transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] cursor-pointer shrink-0"
                         >
                           All Shops
                         </button>
@@ -5111,13 +5126,13 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => setSelectedRestaurant("All Restaurants")}
-                        className={`w-[96px] min-h-[108px] rounded-2xl flex flex-col items-center justify-center p-2 font-bold transition-all duration-300 md:hover:-translate-y-0.5 active:scale-[0.97] shrink-0 cursor-pointer border ${
+                        className={`w-[96px] min-h-[96px] rounded-2xl flex flex-col items-center justify-center p-2 font-semibold transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] shrink-0 cursor-pointer border ${
                           selectedRestaurant === "All Restaurants"
                             ? "bg-[#D70F64] text-white border-[#D70F64] shadow-xs"
                             : "bg-[#F9F9FB] dark:bg-[#1D1D26] text-[#111118] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50"
                         }`}
                       >
-                        <span className="text-2xl mb-1" aria-hidden="true">🍽️</span>
+                        <UtensilsCrossed className="w-5 h-5 mb-1" aria-hidden="true" />
                         <span className="text-[11px] text-center font-extrabold leading-tight">
                           All Shops
                         </span>
@@ -5146,7 +5161,7 @@ export default function App() {
                                   e.preventDefault();
                                   handleRestaurantClick(vendor);
                                 }}
-                                className={`w-[106px] min-h-[116px] rounded-2xl flex flex-col items-center justify-between p-1.5 transition-all duration-300 md:hover:-translate-y-0.5 active:scale-[0.97] shrink-0 cursor-pointer border overflow-hidden ${
+                                className={`w-[106px] min-h-[116px] rounded-2xl flex flex-col items-center justify-between p-1.5 transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] shrink-0 cursor-pointer border overflow-hidden ${
                                   selectedRestaurant === vendor
                                     ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
                                     : "bg-[#F9F9FB] dark:bg-[#1D1D26] text-[#111118] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50"
@@ -5162,7 +5177,7 @@ export default function App() {
                                       imgClassName={`object-cover w-full h-full ${!openStatus.isOpen ? "grayscale-[35%] opacity-80" : ""}`}
                                     />
                                   ) : (
-                                    <span className="text-2xl" aria-hidden="true">🍔</span>
+                                    <UtensilsCrossed className="w-6 h-6 text-white/80" aria-hidden="true" />
                                   )}
                                   <span
                                     className={`absolute top-1 left-1 px-1.5 py-0.5 rounded-md text-[9px] font-extrabold leading-none flex items-center gap-0.5 shadow-xs ${
@@ -5231,20 +5246,20 @@ export default function App() {
                             { label: "Accepted", emoji: "✅" },
                             { label: "Travel", emoji: "🏍️" },
                             { label: "Repair", emoji: "🛠️" },
-                            { label: "Done", emoji: "🎉" },
+                            { label: "Done", emoji: "" },
                           ]
                         : [
                             { label: "Placed", emoji: "📝" },
                             { label: "Confirmed", emoji: "👍" },
                             { label: "Preparing", emoji: "🍳" },
                             { label: "Dispatch", emoji: "🛵" },
-                            { label: "Enjoy", emoji: "🍔" },
+                            { label: "Enjoy", emoji: "" },
                           ];
 
                       return (
                         <div
                           key={activeOrderForBanner.id}
-                          className="shrink-0 w-[90vw] sm:w-[580px] max-w-full snap-center bg-white dark:bg-[#14141A] border-2 border-[#D70F64] rounded-2xl shadow-sm overflow-hidden transition-all duration-300 md:hover:-translate-y-0.5"
+                          className="shrink-0 w-[90vw] sm:w-[580px] max-w-full snap-center bg-white dark:bg-[#14141A] border-2 border-[#D70F64] rounded-2xl shadow-sm overflow-hidden transition-[color,background-color,border-color,transform,opacity] duration-180"
                         >
                           {/* Banner Header: Tap-to-track details */}
                           <div
@@ -5345,13 +5360,13 @@ export default function App() {
                                 return (
                                   <div key={idx} className="flex flex-col items-center relative z-10">
                                     <div
-                                      className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-black transition-all duration-300 shadow-sm ${
+                                      className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-black transition-[color,background-color,border-color,transform,opacity] duration-180 shadow-sm ${
                                         isPassed
                                           ? "bg-[#D70F64] text-white ring-2 ring-pink-100"
                                           : "bg-white text-zinc-400 border border-zinc-200"
                                       } ${isCurrent ? "animate-pulse scale-110" : ""}`}
                                     >
-                                      {step.emoji}
+                                      {step.emoji || stepNum}
                                     </div>
                                     <span
                                       className={`text-[8.5px] sm:text-[9px] font-black uppercase tracking-wider mt-1 ${
@@ -5383,17 +5398,17 @@ export default function App() {
                                 />
                                 <a
                                   href={`tel:${activeOrderForBanner.riderPhone}`}
-                                  className="bg-white hover:bg-zinc-50 text-zinc-800 border border-zinc-300 px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider text-center transition-all duration-180 active:scale-[0.97] cursor-pointer"
+                                  className="bg-white hover:bg-zinc-50 text-zinc-800 border border-zinc-300 px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider text-center transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] cursor-pointer"
                                 >
-                                  📞 Call
+                                  Call
                                 </a>
                                 <a
                                   href={`https://wa.me/${activeOrderForBanner.riderPhone.replace(/\D/g, "")}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider text-center transition-all duration-180 active:scale-[0.97] cursor-pointer shadow-2xs"
+                                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider text-center transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] cursor-pointer shadow-2xs"
                                 >
-                                  💬 Chat
+                                  Chat
                                 </a>
                               </div>
                             </div>
@@ -5414,13 +5429,13 @@ export default function App() {
                     {/* 1-Tap Quick Filter Chips Bar (44px+ touch targets) */}
                     <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1 pr-4 touch-pan-both">
                       {[
-                        { id: "all", label: "🍽️ All Kitchens" },
-                        { id: "top_rated", label: "🔥 Featured" },
-                        { id: "under_300", label: "⚡ Under Rs. 300" },
-                        { id: "fast_food", label: "🍔 Burgers & Fast Food" },
-                        { id: "desi", label: "🍛 Biryani & Karahi" },
-                        { id: "pizza", label: "🍕 Pizzas & Pasta" },
-                        { id: "chai_sweets", label: "🥤 Chai & Sweets" },
+                        { id: "all", label: "All Kitchens", icon: UtensilsCrossed },
+                        { id: "top_rated", label: "Featured", icon: Flame },
+                        { id: "under_300", label: "Under Rs. 300", icon: Zap },
+                        { id: "fast_food", label: "Burgers & Fast Food", icon: Sandwich },
+                        { id: "desi", label: "Biryani & Karahi", icon: ChefHat },
+                        { id: "pizza", label: "Pizzas & Pasta", icon: Pizza },
+                        { id: "chai_sweets", label: "Chai & Sweets", icon: Coffee },
                       ].map((chip) => {
                         const active = quickFilter === chip.id;
                         return (
@@ -5428,12 +5443,13 @@ export default function App() {
                             key={chip.id}
                             type="button"
                             onClick={() => setQuickFilter(chip.id as typeof quickFilter)}
-                            className={`shrink-0 min-h-[44px] px-4 rounded-full text-xs font-extrabold tracking-tight transition-all duration-300 active:scale-[0.97] cursor-pointer border ${
+                            className={`inline-flex items-center justify-center gap-1.5 shrink-0 min-h-[44px] px-4 rounded-full text-xs font-semibold tracking-tight transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] cursor-pointer border ${
                               active
                                 ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
                                 : "bg-white dark:bg-[#14141A] text-[#111118] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/60 hover:text-[#D70F64] dark:hover:text-[#FF4D94]"
                             }`}
                           >
+                            <chip.icon className="w-4 h-4 shrink-0" aria-hidden="true" />
                             {chip.label}
                           </button>
                         );
@@ -5441,7 +5457,7 @@ export default function App() {
                     </div>
 
                     <div className="flex items-center justify-between gap-2 flex-wrap border-b border-[#E6E6EE] dark:border-[#272733] pb-2.5">
-                      <h2 className="text-base sm:text-lg font-extrabold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
+                      <h2 className="text-base sm:text-lg font-semibold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
                         {quickFilter !== "all"
                           ? quickFilter === "top_rated"
                             ? "Featured Picks"
@@ -5552,7 +5568,7 @@ export default function App() {
                                   e.preventDefault();
                                   handleRestaurantClick(vendor);
                                 }}
-                                className={`bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs hover:shadow-md hover:border-[#D70F64]/40 transition-all duration-300 md:hover:-translate-y-0.5 cursor-pointer group flex flex-col ${!openStatus.isOpen ? "opacity-85" : ""}`}
+                                className={`bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs hover:shadow-md hover:border-[#D70F64]/40 transition-[color,background-color,border-color,transform,opacity] duration-180 cursor-pointer group flex flex-col ${!openStatus.isOpen ? "opacity-85" : ""}`}
                               >
                                 <div className="h-44 bg-[#1D1D26] relative overflow-hidden shrink-0">
                                   {vendorImageUrl ? (
@@ -5560,11 +5576,11 @@ export default function App() {
                                       src={vendorImageUrl}
                                       alt={`${vendor} restaurant in Dadu`}
                                       className="w-full h-full"
-                                      imgClassName={`object-cover group-hover:scale-105 transition-transform duration-300 ${!openStatus.isOpen ? "grayscale-[35%]" : ""}`}
+                                      imgClassName={`object-cover transition-transform duration-300 ${!openStatus.isOpen ? "grayscale-[35%]" : ""}`}
                                     />
                                   ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-[#1D1D26] text-4xl">
-                                      🍔
+                                    <div className="w-full h-full flex items-center justify-center bg-[#1D1D26]">
+                                      <UtensilsCrossed className="w-8 h-8 text-white/70" aria-hidden="true" />
                                     </div>
                                   )}
                                   <div className="absolute inset-0 bg-gradient-to-t from-[#0B0B0F]/90 via-[#0B0B0F]/35 to-transparent" />
@@ -5631,7 +5647,7 @@ export default function App() {
                                       role="button"
                                       tabIndex={isClosed || d.isAvailable === false ? -1 : 0}
                                       aria-label={`${d.name} at ${vendor} — view menu`}
-                                      className="flex flex-col gap-1 w-20 shrink-0 cursor-pointer hover:opacity-85 transition-all duration-300 md:hover:-translate-y-0.5 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-[#D70F64] rounded-xl"
+                                      className="flex flex-col gap-1 w-20 shrink-0 cursor-pointer hover:opacity-85 transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-[#D70F64] rounded-xl"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         if (!isClosed && d.isAvailable !== false) {
@@ -5669,7 +5685,7 @@ export default function App() {
                                       e.stopPropagation();
                                       handleRestaurantClick(vendor);
                                     }}
-                                    className="w-16 h-20 flex flex-col items-center justify-center gap-1 shrink-0 bg-[#D70F64]/10 dark:bg-[#D70F64]/15 rounded-xl text-[#D70F64] dark:text-[#FF4D94] hover:bg-[#D70F64]/20 transition-all duration-300 active:scale-[0.97] border border-[#D70F64]/25 cursor-pointer"
+                                    className="w-16 h-20 flex flex-col items-center justify-center gap-1 shrink-0 bg-[#D70F64]/10 dark:bg-[#D70F64]/15 rounded-xl text-[#D70F64] dark:text-[#FF4D94] hover:bg-[#D70F64]/20 transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] border border-[#D70F64]/25 cursor-pointer"
                                   >
                                     <ChevronRight className="w-5 h-5" />
                                     <span className="text-[10px] font-extrabold uppercase tabular-nums">
@@ -5757,14 +5773,18 @@ export default function App() {
 
                     {!isLoadingDishes && filteredDishes.length === 0 && (
                       <div className="bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] p-8 sm:p-10 rounded-3xl text-center space-y-4 shadow-xs max-w-md mx-auto">
-                        <div className="w-14 h-14 bg-[#D70F64]/10 rounded-2xl flex items-center justify-center mx-auto text-2xl">
-                          {showFavoritesOnly ? "💔" : "🍛"}
+                        <div className="w-14 h-14 bg-[#D70F64]/10 rounded-2xl flex items-center justify-center mx-auto">
+                          {showFavoritesOnly ? (
+                            <Heart className="w-6 h-6 text-[#D70F64]" aria-hidden="true" />
+                          ) : (
+                            <UtensilsCrossed className="w-6 h-6 text-[#D70F64]" aria-hidden="true" />
+                          )}
                         </div>
                         <div>
-                          <h3 className="font-extrabold text-base text-[#111118] dark:text-[#F5F5F8]">
+                          <h3 className="font-semibold text-base text-[#111118] dark:text-[#F5F5F8]">
                             {showFavoritesOnly
-                              ? "No Favorites Yet"
-                              : "No Matching Dishes Found"}
+                              ? "No favorites yet"
+                              : "No matching dishes found"}
                           </h3>
                           <p className="text-xs text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed mt-1.5 px-2">
                             {showFavoritesOnly
@@ -5782,9 +5802,9 @@ export default function App() {
                             setQuickFilter("all");
                             setShowFavoritesOnly(false);
                           }}
-                          className="min-h-[44px] bg-[#D70F64] hover:bg-[#B80C54] text-white font-extrabold py-2.5 px-6 text-xs uppercase tracking-wider rounded-xl cursor-pointer transition-all duration-180 active:scale-[0.97] active:brightness-110 relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
+                          className="min-h-[44px] bg-[#D70F64] hover:bg-[#B80C54] text-white font-medium py-2.5 px-6 text-xs rounded-xl cursor-pointer transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-[opacity,transform] after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
                         >
-                          Show All Kitchens
+                          Show all kitchens
                         </button>
                       </div>
                     )}
@@ -5793,9 +5813,9 @@ export default function App() {
               </main>
 
                 {/* About Dadu Food — homepage copy (SEO: real local keywords, no FAQ section) */}
-                <section className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-4">
-                  <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-3 border border-[#E6E6EE] dark:border-[#272733] shadow-xs">
-                    <h2 className="text-sm sm:text-base font-extrabold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
+                <section className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-6">
+                  <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-4 border border-[#E6E6EE] dark:border-[#272733] shadow-xs">
+                    <h2 className="text-sm sm:text-base font-semibold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
                       About Dadu Food — Dadu City&apos;s Own Delivery Service
                     </h2>
                     <p className="text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed">
@@ -5838,9 +5858,9 @@ export default function App() {
                 </section>
 
                 {/* Delivery areas in Dadu — homepage copy (SEO: real delivery areas, no FAQ section) */}
-                <section className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-4">
-                  <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-3 border border-[#E6E6EE] dark:border-[#272733] shadow-xs">
-                    <h2 className="text-sm sm:text-base font-extrabold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
+                <section className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-6">
+                  <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-4 border border-[#E6E6EE] dark:border-[#272733] shadow-xs">
+                    <h2 className="text-sm sm:text-base font-semibold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
                       We Deliver Across Dadu City
                     </h2>
                     <p className="text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed">
@@ -5969,7 +5989,7 @@ export default function App() {
       {/* Floating View Cart bar lives in BottomNavBar (single source — do not add a second one here) */}
 
       {/* Footer with Company, Legal, Partner & Contact Links + Consistent Business Facts */}
-      <footer className="max-w-7xl mx-auto w-full px-3.5 sm:px-4 mt-10 pt-8 pb-24 md:pb-10 border-t border-[#E6E6EE] dark:border-[#272733] text-xs text-[#5A5A6B] dark:text-[#A3A3B5]">
+      <footer className="max-w-7xl mx-auto w-full px-3.5 sm:px-4 mt-6 pt-8 pb-24 md:pb-10 border-t border-[#E6E6EE] dark:border-[#272733] text-xs text-[#5A5A6B] dark:text-[#A3A3B5]">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-left mb-6">
           <div className="space-y-2">
             <h3 className="font-extrabold text-sm text-[#111118] dark:text-[#F5F5F8] tracking-tight">
@@ -6195,18 +6215,31 @@ export default function App() {
       {/* PWA Install Bubble (Very Small) */}
       <AnimatePresence>
         {showInstallBubble && (
-          <motion.button
+          <motion.div
             initial={{ opacity: 0, scale: 0.8, x: -50 }}
             animate={{ opacity: 1, scale: 1, x: 0 }}
             exit={{ opacity: 0, scale: 0.8, x: -50 }}
-            onClick={handleInstallClick}
-            className={`fixed ${cartCountTotal > 0 ? 'bottom-[136px]' : 'bottom-[72px]'} left-4 z-40 md:hidden bg-zinc-900/90 backdrop-blur-md border border-zinc-800 shadow-xl rounded-full p-1.5 flex items-center gap-1.5 hover:bg-zinc-800 transition-all duration-180 active:scale-[0.97] active:brightness-110 group`}
+            className={`fixed ${cartCountTotal > 0 ? 'bottom-[136px]' : 'bottom-[72px]'} left-4 z-40 md:hidden bg-zinc-900/90 backdrop-blur-md border border-zinc-800 shadow-xl rounded-full p-1.5 flex items-center gap-1 hover:bg-zinc-800 transition-[color,background-color,border-color,transform,opacity] duration-180`}
           >
-            <div className="w-5 h-5 rounded-md overflow-hidden shrink-0">
-              <img src={daduLogo} alt="Logo" className="w-full h-full object-cover" />
-            </div>
-            <span className="text-zinc-200 font-bold text-[9px] uppercase tracking-wider pr-1">Install</span>
-          </motion.button>
+            <button
+              type="button"
+              onClick={handleInstallClick}
+              className="flex items-center gap-1.5 cursor-pointer active:scale-[0.97]"
+            >
+              <span className="w-5 h-5 rounded-md overflow-hidden shrink-0">
+                <img src={daduLogo} alt="Logo" className="w-full h-full object-cover" />
+              </span>
+              <span className="text-zinc-200 font-medium text-[11px] pr-1">Install</span>
+            </button>
+            <button
+              type="button"
+              aria-label="Dismiss install prompt"
+              onClick={() => setShowInstallBubble(false)}
+              className="w-7 h-7 min-w-[28px] min-h-[28px] rounded-full flex items-center justify-center text-zinc-400 hover:text-white hover:bg-white/10 cursor-pointer transition-[color,background-color] duration-180"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </motion.div>
         )}
       </AnimatePresence>
       <AnimatePresence>
