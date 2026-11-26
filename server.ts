@@ -2,6 +2,7 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
+import { handleVoiceChat, handleVoiceTranscribe, readRawBody } from "./server/groqVoice";
 
 dotenv.config();
 
@@ -123,6 +124,21 @@ When everything is collected and confirmed, respond:
       console.error("Voice-order endpoint error:", err);
       return res.status(500).json({ error: "Voice order failed" });
     }
+  });
+
+  // Groq voice agent — chat + Whisper transcription (local dev mirror of
+  // api/voice-chat.ts and api/voice-transcribe.ts). Same shared logic.
+  app.post("/api/voice-chat", async (req, res) => {
+    const ip = req.ip || req.socket?.remoteAddress || "unknown";
+    const result = await handleVoiceChat(req.body || {}, ip);
+    res.status(result.status).json(result.body);
+  });
+
+  app.post("/api/voice-transcribe", async (req, res) => {
+    const ip = req.ip || req.socket?.remoteAddress || "unknown";
+    const raw = await readRawBody(req as unknown as AsyncIterable<Buffer>);
+    const result = await handleVoiceTranscribe(req.headers["content-type"], raw, ip);
+    res.status(result.status).json(result.body);
   });
 
   // Health check
