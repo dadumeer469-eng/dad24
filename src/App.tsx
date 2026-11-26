@@ -403,6 +403,14 @@ export default function App() {
   const [initialRestaurantCategory, setInitialRestaurantCategory] = useState<string | undefined>(undefined);
   
   const [animatingRestaurant, setAnimatingRestaurant] = useState<{name: string, imageUrl?: string} | null>(null);
+  // Timers driving the restaurant-open animation; cleared on every new tap
+  // (and on unmount) so a rapid second tap can't be overridden by the first
+  // tap's stale timeout firing later and opening the wrong restaurant.
+  const restaurantNavTimersRef = useRef<number[]>([]);
+  useEffect(() => {
+    const timers = restaurantNavTimersRef.current;
+    return () => timers.forEach((t) => window.clearTimeout(t));
+  }, []);
 
   const handleRestaurantClick = (vendor: string, category?: string) => {
     if (vendor === "All Restaurants") {
@@ -417,16 +425,22 @@ export default function App() {
       dishes.find(d => (d.restaurantName || "Dadu Fast Food & Kitchen") === vendor && d.imageUrl)?.imageUrl ||
       getDefaultRestaurantImage(vendor);
     
+    restaurantNavTimersRef.current.forEach((t) => window.clearTimeout(t));
+    restaurantNavTimersRef.current = [];
     setAnimatingRestaurant({ name: vendor, imageUrl: vendorImageUrl });
-    
-    setTimeout(() => {
-      if (category) setInitialRestaurantCategory(category);
-      setSelectedRestaurant(vendor);
-      window.scrollTo({ top: 0, behavior: "instant" });
-      setTimeout(() => {
-        setAnimatingRestaurant(null);
-      }, 150);
-    }, 380);
+
+    restaurantNavTimersRef.current.push(
+      window.setTimeout(() => {
+        if (category) setInitialRestaurantCategory(category);
+        setSelectedRestaurant(vendor);
+        window.scrollTo({ top: 0, behavior: "instant" });
+        restaurantNavTimersRef.current.push(
+          window.setTimeout(() => {
+            setAnimatingRestaurant(null);
+          }, 150),
+        );
+      }, 380),
+    );
   };
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -597,13 +611,21 @@ export default function App() {
   const [toastNotification, setToastNotification] = useState<{
     title: string;
     message: string;
+    /** Auto-dismiss delay in ms; defaults to 3000. */
+    durationMs?: number;
   } | null>(null);
 
   // Every bottom alert auto-dismisses after a few seconds and is tap-to-dismiss,
   // so no alert ever lingers over the cart / submit button.
+  // This effect is the ONLY owner of the dismiss timer: previously several
+  // call sites also armed their own setTimeout(() => setToastNotification(null)),
+  // and a stale one could wipe a *newer* toast that appeared in the meantime.
   useEffect(() => {
     if (!toastNotification) return;
-    const t = window.setTimeout(() => setToastNotification(null), 3000);
+    const t = window.setTimeout(
+      () => setToastNotification(null),
+      toastNotification.durationMs ?? 3000,
+    );
     return () => window.clearTimeout(t);
   }, [toastNotification]);
 
@@ -756,8 +778,6 @@ export default function App() {
           message:
             "Browser ki settings mein is site ke liye Location Allow karein, phir dobara koshish karein.",
         });
-        // Useless messages must not linger: clear after 2 seconds
-        setTimeout(() => setToastNotification(null), 2000);
         return;
       }
     } catch {}
@@ -780,8 +800,6 @@ export default function App() {
             message:
               "Browser ki settings mein is site ke liye Location Allow karein, phir dobara koshish karein.",
           });
-          // Useless messages must not linger: clear after 2 seconds
-          setTimeout(() => setToastNotification(null), 2000);
         }
       },
       // Fast resolve: accept a cached fix up to 60s old, 5s max wait
@@ -1776,7 +1794,6 @@ export default function App() {
             title: "Updated!",
             message: "Menu aur prices refresh ho gaye.",
           });
-          setTimeout(() => setToastNotification(null), 2000);
         }
       },
       (err) => {
@@ -1910,11 +1927,9 @@ export default function App() {
 
                 const info = statusToastMap[o.status];
                 if (info) {
-                  setToastNotification(info);
+                  // Longer read time for a status change; the toast effect owns the timer.
+                  setToastNotification({ ...info, durationMs: 5500 });
                   playChimeSound();
-                  setTimeout(() => {
-                    setToastNotification(null);
-                  }, 5500);
                   break;
                 }
               }
@@ -1982,13 +1997,9 @@ export default function App() {
           setToastNotification({
             title: currentUnread[0].title,
             message: currentUnread[0].message,
+            durationMs: 5000,
           });
           playChimeSound(); // Synthesis alarm beeper
-
-          // Hide toast window in 5 seconds
-          setTimeout(() => {
-            setToastNotification(null);
-          }, 5000);
         }
 
         prevUnreadCountRef.current = currentUnread.length;
@@ -2203,6 +2214,7 @@ export default function App() {
     searchQuery,
     activeModule,
     activeRoute,
+    activeInfoPage,
   ]);
 
   // --- CART CONTROLLER OPERATIONS ---
@@ -2403,7 +2415,6 @@ export default function App() {
       title: "Grocery Basket Updated! 🍏",
       message: `${product.name} successfully packed into your cart.`,
     });
-    setTimeout(() => setToastNotification(null), 3000);
   };
 
   const handleUpdateGroceryCartQuantity = (
@@ -2453,7 +2464,10 @@ export default function App() {
             (gi) => gi.productId === item.dishId,
           );
           if (existingIdx > -1) {
-            updated[existingIdx].quantity += item.quantity;
+            updated[existingIdx] = {
+              ...updated[existingIdx],
+              quantity: updated[existingIdx].quantity + item.quantity,
+            };
           } else {
             updated.push({
               productId: item.dishId,
@@ -2473,8 +2487,8 @@ export default function App() {
         title: "Grocery Items Restored! 🍏",
         message:
           "Items from your previous order have been added to your basket.",
+        durationMs: 4000,
       });
-      setTimeout(() => setToastNotification(null), 4000);
       setIsGroceryCartOpen(true);
       setActiveModule("grocery");
     } else {
@@ -2496,9 +2510,12 @@ export default function App() {
       setCartItems((prev) => {
         const updated = [...prev];
         order.items.forEach((item) => {
-          const existing = updated.find((fi) => fi.dishId === item.dishId);
-          if (existing) {
-            existing.quantity += item.quantity;
+          const existingIdx = updated.findIndex((fi) => fi.dishId === item.dishId);
+          if (existingIdx > -1) {
+            updated[existingIdx] = {
+              ...updated[existingIdx],
+              quantity: updated[existingIdx].quantity + item.quantity,
+            };
           } else {
             updated.push({
               dishId: item.dishId,
@@ -2517,8 +2534,8 @@ export default function App() {
       setToastNotification({
         title: "Food Items Restored! 🍔",
         message: "Previous dishes have been successfully added to your cart.",
+        durationMs: 4000,
       });
-      setTimeout(() => setToastNotification(null), 4000);
       setIsCartOpen(true);
       setActiveModule("food");
     }
@@ -3512,21 +3529,21 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => performLogout(false)}
-                  className="w-full py-2.5 px-4 rounded-xl bg-[#D70F64] hover:bg-[#B80C54] text-white text-xs font-black uppercase tracking-wider cursor-pointer transition"
+                  className="w-full min-h-[48px] py-3.5 px-4 rounded-xl bg-[#D70F64] hover:bg-[#B80C54] text-white text-xs font-black uppercase tracking-wider cursor-pointer transition"
                 >
                   Keep Cart & Sign Out
                 </button>
                 <button
                   type="button"
                   onClick={() => performLogout(true)}
-                  className="w-full py-2.5 px-4 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 text-xs font-bold uppercase tracking-wider cursor-pointer transition"
+                  className="w-full min-h-[48px] py-3.5 px-4 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 text-xs font-bold uppercase tracking-wider cursor-pointer transition"
                 >
                   Clear Cart & Sign Out
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsSignOutConfirmOpen(false)}
-                  className="w-full py-2 px-4 rounded-xl text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white text-xs font-bold cursor-pointer transition"
+                  className="w-full min-h-[48px] py-3 px-4 rounded-xl text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white text-xs font-bold cursor-pointer transition"
                 >
                   Cancel
                 </button>
@@ -3871,9 +3888,17 @@ export default function App() {
       {toastNotification && (
         <div
           onClick={() => setToastNotification(null)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === "Escape" || e.key === " ") {
+              e.preventDefault();
+              setToastNotification(null);
+            }
+          }}
           role="button"
+          tabIndex={0}
           aria-label="Dismiss notification"
-          className="fixed bottom-6 right-6 z-50 p-4 max-w-sm bg-zinc-900 border-2 border-[#D70F64]/40 text-zinc-100 rounded-2xl shadow-2xl flex items-start gap-3 animate-slide-in cursor-pointer"
+          aria-live="polite"
+          className="fixed left-4 right-4 bottom-24 sm:left-auto sm:right-6 sm:bottom-6 sm:w-[380px] sm:max-w-[calc(100vw-3rem)] z-50 p-4 bg-zinc-900 border-2 border-[#D70F64]/40 text-zinc-100 rounded-2xl shadow-2xl flex items-start gap-3 animate-slide-in cursor-pointer"
         >
           <div className="bg-[#D70F64] text-white p-2.5 rounded-xl shrink-0">
             <MessageSquare className="w-5 h-5" />
@@ -3882,7 +3907,7 @@ export default function App() {
             <h5 className="font-extrabold text-xs text-zinc-100 uppercase tracking-wider">
               {toastNotification.title}
             </h5>
-            <p className="text-[11px] text-zinc-400 mt-1 leading-normal font-semibold">
+            <p className="text-[11px] text-zinc-300 mt-1 leading-normal font-semibold">
               {toastNotification.message}
             </p>
           </div>
@@ -3890,7 +3915,7 @@ export default function App() {
             type="button"
             onClick={() => setToastNotification(null)}
             aria-label="Close notification"
-            className="shrink-0 p-1 -m-1 text-zinc-400 hover:text-white rounded-full"
+            className="shrink-0 w-11 h-11 -m-2 flex items-center justify-center text-zinc-300 hover:text-white rounded-full"
           >
             <X className="w-4 h-4" />
           </button>
@@ -3898,7 +3923,13 @@ export default function App() {
       )}
 
       {isExitConfirmationOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fade-in">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fade-in"
+          role="alertdialog"
+          aria-modal="true"
+          aria-label="Exit Dadu Food?"
+          onClick={() => setIsExitConfirmationOpen(false)}
+        >
           <div className="bg-zinc-900 border-2 border-[#D70F64]/30 rounded-[32px] max-w-sm w-full overflow-hidden shadow-2xl text-zinc-100 relative">
             <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#D70F64] to-transparent" />
             <div className="p-6 text-center space-y-5">
@@ -3914,14 +3945,32 @@ export default function App() {
                   delicious meals, fresh groceries, or trusted local services!
                 </p>
               </div>
-              <div className="flex flex-col gap-2 pt-2">
+              <div className="flex flex-col gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
                 <button
                   type="button"
                   onClick={() => setIsExitConfirmationOpen(false)}
-                  className="w-full bg-[#D70F64] hover:bg-[#B80C54] text-white py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider transition active:scale-95 shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full min-h-[48px] bg-[#D70F64] hover:bg-[#B80C54] text-white py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider transition active:scale-95 shadow-md flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <UtensilsCrossed className="w-4 h-4" />
                   Keep Ordering
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Let the next Back press actually leave: mark the exit as
+                    // intentional so the popstate guard does not trap it, then
+                    // step back out of the trapped history entry. If the
+                    // browser does not leave within a second, re-arm the trap.
+                    isExitingRef.current = true;
+                    setIsExitConfirmationOpen(false);
+                    window.history.back();
+                    window.setTimeout(() => {
+                      isExitingRef.current = false;
+                    }, 1000);
+                  }}
+                  className="w-full min-h-[48px] py-3 px-4 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-xs font-bold uppercase tracking-wider cursor-pointer transition"
+                >
+                  Exit App
                 </button>
               </div>
             </div>
@@ -4789,9 +4838,9 @@ export default function App() {
                           type="button"
                           onClick={() => setPromoBannerDismissed(true)}
                           aria-label="Dismiss promo banner"
-                          className="w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white cursor-pointer transition"
+                          className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white cursor-pointer transition"
                         >
-                          <X className="w-3.5 h-3.5" />
+                          <X className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
@@ -4821,12 +4870,12 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => setIsHistoryDrawerOpen(true)}
-                          className="text-xs font-extrabold text-[#D70F64] hover:underline cursor-pointer"
+                          className="min-h-[44px] px-2 flex items-center text-xs font-extrabold text-[#D70F64] hover:underline cursor-pointer"
                         >
                           See All
                         </button>
                       </div>
-                      <div className="flex items-stretch gap-3 overflow-x-auto pb-1 scrollbar-none touch-pan-both overscroll-x-contain">
+                      <div className="flex items-stretch gap-3 overflow-x-auto pb-1 pr-3 scrollbar-none touch-pan-both overscroll-x-contain">
                         {pastOrders.map((past) => (
                           <div
                             key={`reorder-${past.id}`}
@@ -4852,7 +4901,8 @@ export default function App() {
                               <button
                                 type="button"
                                 onClick={() => handleReorder(past)}
-                                className="px-3 py-1.5 rounded-xl bg-[#D70F64] hover:bg-[#B80C54] text-white text-[11px] font-extrabold cursor-pointer transition active:scale-95"
+                                aria-label={`Reorder ${past.items[0]?.name || "previous order"}`}
+                                className="min-h-[44px] px-4 py-2.5 rounded-xl bg-[#D70F64] hover:bg-[#B80C54] text-white text-[11px] font-extrabold cursor-pointer transition active:scale-95"
                               >
                                 Reorder
                               </button>
@@ -5441,12 +5491,21 @@ export default function App() {
                                 </div>
                                 <div className="p-3 bg-white dark:bg-[#14141A] flex items-center gap-2.5 overflow-x-auto scrollbar-none border-t border-[#E6E6EE] dark:border-[#272733] touch-pan-both overscroll-x-contain pr-3">
                                   {vendorDishes.map((d) => (
-                                    <div
+                                      <div
                                       key={d.id}
-                                      className="flex flex-col gap-1 w-20 shrink-0 cursor-pointer hover:opacity-85 transition-opacity"
+                                      role="button"
+                                      tabIndex={isClosed || d.isAvailable === false ? -1 : 0}
+                                      aria-label={`${d.name} at ${vendor} — view menu`}
+                                      className="flex flex-col gap-1 w-20 shrink-0 cursor-pointer hover:opacity-85 transition-opacity focus-visible:outline-2 focus-visible:outline-[#D70F64] rounded-xl"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         if (!isClosed && d.isAvailable !== false) {
+                                          handleRestaurantClick(vendor, d.category);
+                                        }
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if ((e.key === "Enter" || e.key === " ") && !isClosed && d.isAvailable !== false) {
+                                          e.preventDefault();
                                           handleRestaurantClick(vendor, d.category);
                                         }
                                       }}
