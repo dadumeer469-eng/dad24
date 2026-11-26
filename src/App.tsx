@@ -306,6 +306,7 @@ export default function App() {
   const [favoriteDishIds, setFavoriteDishIds] = useState<string[]>([]);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [isExitConfirmationOpen, setIsExitConfirmationOpen] = useState(false);
+  const [showGoodbye, setShowGoodbye] = useState(false);
   const isExitingRef = useRef(false);
   const isProgrammaticBackRef = useRef(false);
   const lastPushedScreenRef = useRef<string>("home");
@@ -2201,6 +2202,7 @@ export default function App() {
   // Helper to determine current screen key for routing history stack
   const getCurrentScreenKey = (): string => {
     // Priority 1: Active Modals & Drawers
+    if (showGoodbye) return "goodbye";
     if (isExitConfirmationOpen) return "exit_confirm";
     if (activeDetailDish) return `item_detail:${activeDetailDish.id}`;
     if (isDirectChatOpen) return "chat_modal";
@@ -2250,6 +2252,10 @@ export default function App() {
       }
 
       // Priority 1: If any active Modal or Cart Drawer is open, CLOSE the modal/drawer first
+      if (showGoodbye) {
+        setShowGoodbye(false);
+        return;
+      }
       if (isExitConfirmationOpen) {
         setIsExitConfirmationOpen(false);
         return;
@@ -4110,16 +4116,24 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => {
-                    // Let the next Back press actually leave: mark the exit as
-                    // intentional so the popstate guard does not trap it, then
-                    // step back out of the trapped history entry. If the
-                    // browser does not leave within a second, re-arm the trap.
+                    // A website cannot force-close a normal browser tab
+                    // (window.close only works for script-opened windows /
+                    // installed PWAs), and history.back() has nowhere to go
+                    // when the user opened the site directly — so it used
+                    // to do nothing. Try to close first; if the tab is
+                    // still open shortly after, show the goodbye screen so
+                    // the store is clearly exited.
                     isExitingRef.current = true;
                     setIsExitConfirmationOpen(false);
-                    window.history.back();
+                    try {
+                      window.close();
+                    } catch {
+                      /* window.close is blocked for normal tabs — fall through to goodbye */
+                    }
                     window.setTimeout(() => {
                       isExitingRef.current = false;
-                    }, 1000);
+                      setShowGoodbye(true);
+                    }, 400);
                   }}
                   className="w-full min-h-[48px] py-3 px-4 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-xs font-bold uppercase tracking-wider cursor-pointer transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110"
                 >
@@ -4128,6 +4142,36 @@ export default function App() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Goodbye screen — shown after EXIT APP. A normal browser tab cannot
+          be closed by a website, so this is the visible exit: the store is
+          gone and the user can come back with one tap. Back button returns
+          to the store (handled in the popstate guard above). */}
+      {showGoodbye && (
+        <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-[#f7f4ee] dark:bg-[#0B0B0F] p-6 text-center animate-fade-in">
+          <div className="w-20 h-20 rounded-3xl bg-white p-2 shadow-lg flex items-center justify-center overflow-hidden mb-5">
+            <img
+              src={daduLogo}
+              alt="Dadu Food Logo"
+              className="w-full h-full object-cover rounded-2xl"
+            />
+          </div>
+          <h2 className="text-xl font-extrabold text-[#1f1b16] dark:text-[#F5F5F8]">
+            Thanks for visiting!
+          </h2>
+          <p className="mt-2 text-sm text-[#5e554a] dark:text-[#A3A3B5] leading-relaxed max-w-xs">
+            You have exited Dadu Food. Your cart and orders are safe — come back
+            anytime for hot food and fresh groceries.
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowGoodbye(false)}
+            className="mt-6 min-h-[48px] px-6 rounded-2xl bg-[#E21B70] hover:bg-[#C2145E] text-white text-sm font-bold shadow-md active:scale-[0.97] transition-[color,background-color,transform] duration-180 cursor-pointer"
+          >
+            Back to Dadu Food
+          </button>
         </div>
       )}
 
