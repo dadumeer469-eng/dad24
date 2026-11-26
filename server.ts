@@ -3,6 +3,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import { handleVoiceChat, handleVoiceTranscribe, readRawBody } from "./server/groqVoice";
+import { handleVoiceSpeak } from "./server/neuralTts";
 
 dotenv.config();
 
@@ -138,6 +139,17 @@ When everything is collected and confirmed, respond:
     const ip = req.ip || req.socket?.remoteAddress || "unknown";
     const raw = await readRawBody(req as unknown as AsyncIterable<Buffer>);
     const result = await handleVoiceTranscribe(req.headers["content-type"], raw, ip);
+    res.status(result.status).json(result.body);
+  });
+
+  // Neural Urdu TTS (local dev mirror of api/voice-speak.ts). Same shared logic.
+  app.post("/api/voice-speak", async (req, res) => {
+    const ip = req.ip || req.socket?.remoteAddress || "unknown";
+    const result = await handleVoiceSpeak(req.body || {}, ip);
+    if (result.status === 200 && Buffer.isBuffer(result.body)) {
+      res.setHeader("Content-Type", "audio/mpeg");
+      return res.status(200).send(result.body);
+    }
     res.status(result.status).json(result.body);
   });
 
