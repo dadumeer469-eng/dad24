@@ -90,7 +90,7 @@ function breadcrumbNode(crumbName, canonical) {
 }
 
 // ---------------------------------------------------------------------------
-// Route table — exactly the 13 sitemap URLs. /admin is NOT prerendered.
+// Route table — exactly the 15 sitemap URLs. /admin is NOT prerendered.
 // Each route: path (URL), title, description, canonical, breadcrumb name
 // (null = home, no breadcrumb node), jsonLd kind, noscript content.
 // noscript: null means "keep the homepage noscript already in index.html"
@@ -236,6 +236,51 @@ export const ROUTES = [
         {
           h2: "Payment & contact",
           p: "Pay by Cash on Delivery or Easypaisa. Call or WhatsApp 03277004471. Address: Station Road, Dadu, Sindh 76200.",
+        },
+      ],
+    },
+  },
+
+  {
+    path: "/restaurants",
+    title: "Restaurants in Dadu — Order Food Online | Dadu Food",
+    description:
+      "Restaurants in Dadu — order food online from Dadu Fast Food & Kitchen, S M Bilal Hotel and Tasty Bites Dadu. Biryani, zinger burgers, pizza, karahi and BBQ delivered in 20–35 min for Rs 50. Cash on Delivery & Easypaisa. Call 03277004471.",
+    canonical: `${ORIGIN}/restaurants`,
+    breadcrumb: "Restaurants in Dadu",
+    jsonLd: "standard",
+    noscript: {
+      h1: "Restaurants in Dadu",
+      sections: [
+        {
+          h2: "Restaurants in Dadu — order food online",
+          p: "Order food online in Dadu from Dadu Fast Food & Kitchen, S M Bilal Hotel and Tasty Bites Dadu. Dadu Fast Food & Kitchen serves freshly baked pizzas, zinger burgers and crispy broast; S M Bilal Hotel serves Dadu BBQ, mutton karahi, seekh kababs and fresh tandoori naan; Tasty Bites Dadu serves creamy pastas, loaded lasagna, grilled sandwiches and pizzas. Biryani, zinger burgers, pizza, karahi and BBQ are delivered hot across Dadu city in 20–35 minutes for Rs 50. Pay by Cash on Delivery or Easypaisa.",
+        },
+        {
+          h2: "Delivery hours & payment",
+          p: "Food delivery runs daily from 12:00 PM to 11:00 PM. Delivery fee Rs 50. Pay by Cash on Delivery or Easypaisa. Call or WhatsApp 03277004471. Address: Station Road, Dadu, Sindh 76200.",
+        },
+      ],
+    },
+  },
+  {
+    path: "/hotels",
+    title: "Hotels in Dadu — Order Food Online | Dadu Food",
+    description:
+      "Hotels in Dadu — S M Bilal Hotel is listed on Dadu Food for BBQ, mutton karahi, seekh kababs and tandoori naan, delivered in 20–35 min for Rs 50. More hotels in Dadu joining soon — list your hotel. Cash on Delivery & Easypaisa. Call 03277004471.",
+    canonical: `${ORIGIN}/hotels`,
+    breadcrumb: "Hotels in Dadu",
+    jsonLd: "standard",
+    noscript: {
+      h1: "Hotels in Dadu",
+      sections: [
+        {
+          h2: "Hotels in Dadu — S M Bilal Hotel",
+          p: "S M Bilal Hotel is the only hotel listed on Dadu Food so far. It serves Dadu BBQ, mutton karahi, seekh kababs and fresh tandoori naan, delivered hot across Dadu city in 20–35 minutes for Rs 50. Pay by Cash on Delivery or Easypaisa.",
+        },
+        {
+          h2: "More hotels joining soon",
+          p: "More hotels in Dadu are joining Dadu Food soon. If you run a hotel in Dadu, list your hotel with us — apply at /partner-with-us or call or WhatsApp 03277004471. Food delivery runs daily from 12:00 PM to 11:00 PM. Address: Station Road, Dadu, Sindh 76200.",
         },
       ],
     },
