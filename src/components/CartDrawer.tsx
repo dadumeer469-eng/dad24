@@ -1,4 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import { UserProfile, OrderItem, Dish, getUserCoins, Voucher, calculateVoucherDiscount, isVoucherExpired, canUserUseVoucher } from "../types";
 import { X, ShoppingBag, MapPin, Phone, User, AlertTriangle, ShieldCheck, Heart, Edit2, Compass, Coins, Ticket, CheckCircle, Tag, ChevronDown, Gift, Check, Loader2, Info } from "lucide-react";
 import { CHECKOUT_DRINKS } from "../data";
@@ -8,6 +11,28 @@ import { doc, setDoc } from "firebase/firestore";
 import { db, handleFirestoreError } from "../firebase";
 import { getSavedAddresses, saveRecentAddress, SavedAddressEntry } from "../utils/savedAddresses";
 import EasypaisaPaymentBox from "./EasypaisaPaymentBox";
+
+const OSM_TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+const OSM_ATTRIBUTION =
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+
+const CART_PIN_ICON = L.divIcon({
+  html: `<div style="width:32px;height:32px;background:#E21B70;border-radius:9999px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px rgba(0,0,0,.3);border:2px solid #fff"><svg style="width:18px;height:18px;fill:#fff" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg></div>`,
+  className: "",
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
+});
+
+// The cart slides in with an animation; re-measure the map once it settles
+// so Leaflet tiles fill the box instead of rendering blank/grey.
+function InvalidateSizeOnMount() {
+  const map = useMap();
+  useEffect(() => {
+    const t = window.setTimeout(() => map.invalidateSize(), 350);
+    return () => window.clearTimeout(t);
+  }, [map]);
+  return null;
+}
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -985,18 +1010,23 @@ export default function CartDrawer({
 
                 {userCoords ? (
                   <div className="bg-white dark:bg-zinc-950 border border-emerald-500/30 rounded-xl overflow-hidden relative">
-                    {/* Simulated Map Background */}
-                    <div className="h-24 w-full bg-white dark:bg-zinc-900 relative overflow-hidden">
-                      <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-emerald-500 via-white dark:via-zinc-900 to-white dark:to-zinc-900"></div>
-                      {/* Grid pattern */}
-                      <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(#3f3f46 1px, transparent 1px), linear-gradient(90deg, #3f3f46 1px, transparent 1px)', backgroundSize: '20px 20px', opacity: 0.2 }}></div>
-                      {/* Pin */}
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center animate-bounce">
-                        <div className="bg-[#E21B70] text-white p-1.5 rounded-full shadow-lg">
-                          <MapPin className="w-4 h-4" />
-                        </div>
-                        <div className="w-1.5 h-1.5 bg-black/40 rounded-full mt-1 blur-[1px]"></div>
-                      </div>
+                    {/* Real Map Preview (Leaflet + OpenStreetMap) */}
+                    <div className="h-24 w-full relative overflow-hidden">
+                      <MapContainer
+                        center={[userCoords.latitude, userCoords.longitude]}
+                        zoom={15}
+                        zoomControl={false}
+                        dragging={false}
+                        scrollWheelZoom={false}
+                        doubleClickZoom={false}
+                        touchZoom={false}
+                        keyboard={false}
+                        style={{ width: "100%", height: "100%", zIndex: 0 }}
+                      >
+                        <TileLayer url={OSM_TILE_URL} attribution={OSM_ATTRIBUTION} />
+                        <Marker position={[userCoords.latitude, userCoords.longitude]} icon={CART_PIN_ICON} />
+                        <InvalidateSizeOnMount />
+                      </MapContainer>
                     </div>
                     <div className="p-3">
                       <div className="flex items-start justify-between gap-2">
