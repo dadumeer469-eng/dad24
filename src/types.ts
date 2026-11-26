@@ -116,7 +116,7 @@ export interface Order {
   riderTip?: number;
   isScheduled?: boolean;
   scheduledTime?: string;
-  deliverySpeed?: "saver" | "standard" | "priority";
+  deliverySpeed?: "standard" | "priority";
   leaveAtDoor?: boolean;
   messageUponArrival?: boolean;
   cutlery?: boolean;
@@ -197,9 +197,7 @@ export interface SystemSettings {
   easypaisaNumber?: string; // Easypaisa account number shown at checkout (default "03277004471")
   whatsappNumber?: string; // Support/WhatsApp number, international format without "+" (default "923277004471")
   tipOptions?: number[]; // Rider tip chips shown in cart (default [0, 50, 100, 200, 300])
-  saverDiscount?: number; // Rs off the standard fee for Saver delivery (default 20)
   priorityFee?: number; // Rs extra over the standard fee for Priority delivery (default 30)
-  saverEnabled?: boolean; // show Saver speed option (default true)
   priorityEnabled?: boolean; // show Priority speed option (default true)
   freeDeliveryAboveAmount?: number; // food orders at/above this subtotal get FREE delivery (default 1000)
   doubleFeeBelowAmount?: number; // delivery fee doubles below this food subtotal; 0 = disabled (default 500)
