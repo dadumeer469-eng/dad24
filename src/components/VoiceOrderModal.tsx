@@ -88,13 +88,70 @@ export default function VoiceOrderModal({
   const statusRef = useRef<Status>("idle");
   const openRef = useRef(false);
   const callStartRef = useRef(0);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const ringStopRef = useRef(false);
+  const ringTimerRef = useRef<number | null>(null);
 
   const setStatusBoth = (s: Status) => {
     statusRef.current = s;
     setStatus(s);
   };
 
+  // Phone-ring tone while the call is connecting: a classic dual-tone
+  // ring (440 Hz + 480 Hz), 1s ring + 2s pause, repeating until the agent
+  // answers. Built with Web Audio so no sound file is needed.
+  const stopRinging = useCallback(() => {
+    ringStopRef.current = true;
+    if (ringTimerRef.current !== null) {
+      clearTimeout(ringTimerRef.current);
+      ringTimerRef.current = null;
+    }
+    try {
+      void audioCtxRef.current?.close();
+    } catch {
+      /* noop */
+    }
+    audioCtxRef.current = null;
+  }, []);
+
+  const startRinging = useCallback(() => {
+    try {
+      const Ctx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!Ctx) return;
+      const ctx = new Ctx();
+      audioCtxRef.current = ctx;
+      ringStopRef.current = false;
+      if (ctx.state === "suspended") void ctx.resume();
+      const ringCycle = () => {
+        if (ringStopRef.current || !openRef.current) return;
+        // One ring burst with a soft fade in/out to avoid clicks.
+        const gain = ctx.createGain();
+        gain.connect(ctx.destination);
+        const now = ctx.currentTime;
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(0.12, now + 0.05);
+        gain.gain.setValueAtTime(0.12, now + 0.95);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 1);
+        [440, 480].forEach((freq) => {
+          const osc = ctx.createOscillator();
+          osc.type = "sine";
+          osc.frequency.value = freq;
+          osc.connect(gain);
+          osc.start(now);
+          osc.stop(now + 1);
+        });
+        ringTimerRef.current = window.setTimeout(ringCycle, 3000);
+      };
+      ringCycle();
+    } catch {
+      /* noop */
+    }
+  }, []);
+
   const stopAll = useCallback(() => {
+    stopRinging();
     try {
       recogRef.current?.abort();
     } catch {
@@ -106,38 +163,79 @@ export default function VoiceOrderModal({
     } catch {
       /* noop */
     }
-  }, []);
+  }, [stopRinging]);
 
   const endCall = useCallback(() => {
     stopAll();
     onClose();
   }, [stopAll, onClose]);
 
+  // Wait until the phone has loaded its TTS voices (on Android they arrive
+  // asynchronously — speaking before that can stay silent). Gives up after 1s.
+  const ensureVoices = useCallback(async () => {
+    if (!("speechSynthesis" in window)) return;
+    if (window.speechSynthesis.getVoices().length > 0) return;
+    await new Promise<void>((resolve) => {
+      let done = false;
+      const finish = () => {
+        if (!done) {
+          done = true;
+          resolve();
+        }
+      };
+      try {
+        window.speechSynthesis.addEventListener("voiceschanged", finish, { once: true });
+      } catch {
+        /* noop */
+      }
+      setTimeout(finish, 1000);
+    });
+  }, []);
+
   const speak = useCallback(
-    (text: string, onEnd?: () => void) => {
+    async (text: string, onEnd?: () => void) => {
+      // The agent is answering — stop the ring tone first.
+      stopRinging();
       if (!("speechSynthesis" in window)) {
         onEnd?.();
         return;
       }
+      await ensureVoices();
+      if (!openRef.current) return;
       window.speechSynthesis.cancel();
+      const finish = () => {
+        if (openRef.current) setStatusBoth("idle");
+        onEnd?.();
+      };
       const u = new SpeechSynthesisUtterance(text);
       const voice = pickVoice();
       if (voice) u.voice = voice;
       u.lang = voice?.lang || "sd-PK";
       u.rate = 1;
       u.pitch = 1;
-      u.onend = () => {
-        if (openRef.current) setStatusBoth("idle");
-        onEnd?.();
-      };
+      let retried = false;
+      u.onend = finish;
       u.onerror = () => {
-        if (openRef.current) setStatusBoth("idle");
-        onEnd?.();
+        if (!retried) {
+          // Some phones stay silent when a Sindhi/Urdu voice is requested
+          // but not installed — retry once with the default voice.
+          retried = true;
+          const u2 = new SpeechSynthesisUtterance(text);
+          u2.lang = "ur-PK";
+          u2.rate = 1;
+          u2.pitch = 1;
+          u2.onend = finish;
+          u2.onerror = finish;
+          setStatusBoth("speaking");
+          window.speechSynthesis.speak(u2);
+          return;
+        }
+        finish();
       };
       setStatusBoth("speaking");
       window.speechSynthesis.speak(u);
     },
-    [],
+    [ensureVoices, stopRinging],
   );
 
   const sendToAgent = useCallback(
@@ -148,6 +246,8 @@ export default function VoiceOrderModal({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ messages: history, menu: menuText, orders: ordersText }),
+          // Fail fast instead of hanging silently while the model is slow.
+          signal: AbortSignal.timeout(45000),
         });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const data = await resp.json();
@@ -270,6 +370,8 @@ export default function VoiceOrderModal({
     setCallSeconds(0);
     callStartRef.current = Date.now();
     setStatusBoth("calling");
+    // Ring like a real phone call until the agent answers.
+    startRinging();
     try {
       window.speechSynthesis?.getVoices();
     } catch {
@@ -293,6 +395,8 @@ export default function VoiceOrderModal({
             menu: menuText,
             orders: ordersText,
           }),
+          // Fail fast instead of hanging silently while the model is slow.
+          signal: AbortSignal.timeout(45000),
         });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const data = await resp.json();
@@ -323,7 +427,7 @@ export default function VoiceOrderModal({
 
   const statusLine =
     status === "calling"
-      ? "Calling..."
+      ? "Ringing..."
       : status === "listening"
         ? "Sunn raha hoon..."
         : status === "thinking"
