@@ -2662,7 +2662,7 @@ export default function AdminPanel({
             { name: "Mexican Pizza", price: 0 },
             { name: "Veggie Lover Pizza", price: 0 },
           ],
-          imageUrl: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&q=80",
+          imageUrl: "/images/dishes/pizza.jpg",
           isAvailable: true, type: "food", restaurantName
         },
         {
@@ -2681,7 +2681,7 @@ export default function AdminPanel({
             { name: "Chilli Garlic Cream", price: 0 },
             { name: "Bihari Boti Pizza", price: 0 },
           ],
-          imageUrl: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&q=80",
+          imageUrl: "/images/dishes/pizza.jpg",
           isAvailable: true, type: "food", restaurantName
         },
         {
@@ -2698,7 +2698,7 @@ export default function AdminPanel({
             { name: "Kabab Delight", price: 0 },
             { name: "Mughlai Beast Pizza", price: 0 },
           ],
-          imageUrl: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=800&q=80",
+          imageUrl: "/images/dishes/pizza.jpg",
           isAvailable: true, type: "food", restaurantName
         },
         {
@@ -2717,7 +2717,7 @@ export default function AdminPanel({
             { name: "Cheese Crust Pizza", price: 0 },
             { name: "Cheese Stick Pizza", price: 0 },
           ],
-          imageUrl: "https://images.unsplash.com/photo-1604382354936-07c5d9983bd3?w=800&q=80",
+          imageUrl: "/images/dishes/pizza.jpg",
           isAvailable: true, type: "food", restaurantName
         },
         {
@@ -2739,7 +2739,7 @@ export default function AdminPanel({
             { name: "MAC Burger", price: 350 },
             { name: "Tasty's Signature", price: 550 },
           ],
-          imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&q=80",
+          imageUrl: "/images/dishes/burger.jpg",
           isAvailable: true, type: "food", restaurantName
         },
         {
@@ -2755,7 +2755,7 @@ export default function AdminPanel({
             { name: "Cheese Beef Burger", price: 300 },
             { name: "Lava Beef Burger", price: 500 },
           ],
-          imageUrl: "https://images.unsplash.com/photo-1550547660-d9450f859349?w=800&q=80",
+          imageUrl: "/images/dishes/burger.jpg",
           isAvailable: true, type: "food", restaurantName
         },
         {
@@ -2768,7 +2768,7 @@ export default function AdminPanel({
             { name: "Grilled Charcoal Burger", price: 0 },
             { name: "Grilled Jalapeno Burger", price: 50 },
           ],
-          imageUrl: "https://images.unsplash.com/photo-1594212691516-436ad271c591?w=800&q=80",
+          imageUrl: "/images/dishes/burger.jpg",
           isAvailable: true, type: "food", restaurantName
         },
         {
@@ -2783,7 +2783,7 @@ export default function AdminPanel({
             { name: "Injected Broast 2Pc with Bun", price: 350 },
             { name: "Nuggets 10Pc", price: 300 },
           ],
-          imageUrl: "https://images.unsplash.com/photo-1626082927389-6cd097cdc6ec?w=800&q=80",
+          imageUrl: "/images/dishes/broast.jpg",
           isAvailable: true, type: "food", restaurantName
         },
         {
@@ -2799,7 +2799,7 @@ export default function AdminPanel({
             { name: "Peri Peri Wings 8Pc", price: 100 },
             { name: "Honey Mustard Wings 8Pc", price: 100 },
           ],
-          imageUrl: "https://images.unsplash.com/photo-1524114664604-cd8133cd67ad?w=800&q=80",
+          imageUrl: "/images/dishes/broast.jpg",
           isAvailable: true, type: "food", restaurantName
         },
         {
@@ -2815,7 +2815,7 @@ export default function AdminPanel({
             { name: "Zingratha Roll", price: 100 },
             { name: "Twister Roll", price: 150 },
           ],
-          imageUrl: "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=800&q=80",
+          imageUrl: "/images/dishes/roll.jpg",
           isAvailable: true, type: "food", restaurantName
         },
         {
@@ -2828,7 +2828,7 @@ export default function AdminPanel({
             { name: "Burrito Wrap", price: 0 },
             { name: "Grilled Wrap", price: 0 },
           ],
-          imageUrl: "https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=800&q=80",
+          imageUrl: "/images/dishes/roll.jpg",
           isAvailable: true, type: "food", restaurantName
         },
         {
@@ -2846,7 +2846,7 @@ export default function AdminPanel({
             { name: "Crispy Lasagna - Small", price: 600 },
             { name: "Crispy Lasagna - Large", price: 750 },
           ],
-          imageUrl: "https://images.unsplash.com/photo-1574894709920-11b28e7367e3?w=800&q=80",
+          imageUrl: "/images/dishes/lasagna.jpg",
           isAvailable: true, type: "food", restaurantName
         },
         {
@@ -2866,7 +2866,7 @@ export default function AdminPanel({
             { name: "Alfredo Pasta - Small", price: 600 },
             { name: "Alfredo Pasta - Large", price: 750 },
           ],
-          imageUrl: "https://images.unsplash.com/photo-1621996311239-f9c3eb7b2253?w=800&q=80",
+          imageUrl: "/images/dishes/pasta.jpg",
           isAvailable: true, type: "food", restaurantName
         },
         {
@@ -2882,7 +2882,7 @@ export default function AdminPanel({
             { name: "Crispy Pizza Fries", price: 400 },
             { name: "Crispy Loaded Fries", price: 500 },
           ],
-          imageUrl: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=800&q=80",
+          imageUrl: "/images/dishes/fries.jpg",
           isAvailable: true, type: "food", restaurantName
         },
         {
@@ -2897,7 +2897,7 @@ export default function AdminPanel({
             { name: "Chocolate Paratha", price: 300 },
             { name: "Malai Boti Pizza Paratha", price: 400 },
           ],
-          imageUrl: "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=800&q=80",
+          imageUrl: "/images/dishes/paratha.jpg",
           isAvailable: true, type: "food", restaurantName
         },
         {
@@ -2909,7 +2909,7 @@ export default function AdminPanel({
             { name: "Malai Boti Sandwich", price: 0 },
             { name: "Grilled Sandwich", price: 50 },
           ],
-          imageUrl: "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=800&q=80",
+          imageUrl: "/images/dishes/sandwich.jpg",
           isAvailable: true, type: "food", restaurantName
         }
       ];
@@ -9444,7 +9444,7 @@ export default function AdminPanel({
                       type="text"
                       value={heroBgUrl}
                       onChange={(e) => setHeroBgUrl(e.target.value)}
-                      placeholder="e.g. https://images.unsplash.com/..."
+                      placeholder="e.g. /images/dishes/pizza.jpg"
                       className="w-full p-3 glass-input border border-white/10 rounded-2xl text-xs sm:text-sm outline-none text-white focus:border-[#E21B70]/60 transition"
                     />
                   </div>
@@ -9458,7 +9458,7 @@ export default function AdminPanel({
                         type="text"
                         value={partnerShopsBgUrl}
                         onChange={(e) => setPartnerShopsBgUrl(e.target.value)}
-                        placeholder="e.g. https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=1200"
+                        placeholder="e.g. /images/dishes/pizza.jpg"
                         className="flex-1 p-3 glass-input border border-white/10 rounded-2xl text-xs sm:text-sm outline-none text-white focus:border-[#E21B70]/60 transition"
                       />
                       {partnerShopsBgUrl && (
