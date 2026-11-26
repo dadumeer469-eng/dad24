@@ -27,11 +27,6 @@ export function isQuotaOrAuthMapsError(_err: unknown): boolean {
 
 export const isQuotaOrRateLimitError = isQuotaOrAuthMapsError;
 
-// No-op: nothing to notify about anymore.
-export function notifyGmpQuotaExceeded() {}
-
-export const notifyMapsQuotaExceeded = notifyGmpQuotaExceeded;
-
 interface GoogleMapsProviderProps {
   children: React.ReactNode;
   fallback?: React.ReactNode;

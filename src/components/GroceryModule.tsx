@@ -17,6 +17,13 @@ interface GroceryModuleProps {
   // Deep-link / route support: e.g. /pharmacy opens with the Medicine &
   // Pharmacy category (gcat_medicine) pre-selected.
   initialCategoryId?: string;
+  // Controlled category / catalog state (lifted to App so the mobile
+  // back-button controller can step back out of a grocery category
+  // instead of jumping straight to the homepage).
+  selectedCategoryId: string;
+  onSelectCategory: (id: string) => void;
+  showAllCatalog: boolean;
+  onSetShowAllCatalog: (v: boolean) => void;
 }
 
 function GroceryProductImage({
@@ -108,10 +115,15 @@ export default function GroceryModule({
   onUpdateCartQuantity,
   searchQuery = "",
   initialCategoryId,
+  selectedCategoryId,
+  onSelectCategory,
+  showAllCatalog,
+  onSetShowAllCatalog,
 }: GroceryModuleProps) {
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>(initialCategoryId || "All");
+  // Batch limit for the product grid (24 vs all). Kept internal: it is a
+  // display concern (e.g. "Show all N items" while searching), not a
+  // navigation sub-view, so the back-button controller does not need it.
   const [showAllInCategory, setShowAllInCategory] = useState<boolean>(Boolean(initialCategoryId));
-  const [showAllCatalog, setShowAllCatalog] = useState<boolean>(false);
   const [favIds, setFavIds] = useState<string[]>(() => {
     try {
       const parsed = JSON.parse(localStorage.getItem("dadu_grocery_favs") || "[]");
@@ -134,9 +146,9 @@ export default function GroceryModule({
 
   // Follow route changes (e.g. /grocery -> /pharmacy) while the module stays mounted.
   React.useEffect(() => {
-    setSelectedCategoryId(initialCategoryId || "All");
+    onSelectCategory(initialCategoryId || "All");
     setShowAllInCategory(Boolean(initialCategoryId));
-    setShowAllCatalog(false);
+    onSetShowAllCatalog(false);
   }, [initialCategoryId]);
 
   const activeCategories = useMemo(
@@ -401,9 +413,9 @@ export default function GroceryModule({
               type="button"
               aria-pressed={selectedCategoryId === "All" && !showAllCatalog}
               onClick={() => {
-                setSelectedCategoryId("All");
+                onSelectCategory("All");
                 setShowAllInCategory(false);
-                setShowAllCatalog(false);
+                onSetShowAllCatalog(false);
               }}
               className={`w-[110px] shrink-0 rounded-2xl border p-2 text-left transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer ${
                 selectedCategoryId === "All" && !showAllCatalog
@@ -434,9 +446,9 @@ export default function GroceryModule({
                   type="button"
                   aria-pressed={isActive}
                   onClick={() => {
-                    setSelectedCategoryId(cat.id);
+                    onSelectCategory(cat.id);
                     setShowAllInCategory(true);
-                    setShowAllCatalog(false);
+                    onSetShowAllCatalog(false);
                   }}
                   className={`w-[110px] shrink-0 rounded-2xl border p-2 text-left transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer ${
                     isActive
@@ -482,7 +494,7 @@ export default function GroceryModule({
                 <button
                   type="button"
                   onClick={() => {
-                    setShowAllCatalog(true);
+                    onSetShowAllCatalog(true);
                     setShowAllInCategory(true);
                   }}
                   className="text-xs font-semibold text-[#D70F64] dark:text-[#FF4D94] hover:underline shrink-0 cursor-pointer min-h-[44px] px-2 transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110"
@@ -537,7 +549,7 @@ export default function GroceryModule({
                       <button
                         type="button"
                         onClick={() => {
-                          setSelectedCategoryId(section.id);
+                          onSelectCategory(section.id);
                           setShowAllInCategory(true);
                         }}
                         className="text-xs font-semibold text-[#D70F64] dark:text-[#FF4D94] hover:underline shrink-0 cursor-pointer min-h-[44px] px-2 transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110"
