@@ -55,7 +55,7 @@ interface CartDrawerProps {
     riderTip?: number;
     isScheduled?: boolean;
     scheduledTime?: string;
-    deliverySpeed?: "saver" | "standard" | "priority";
+    deliverySpeed?: "standard" | "priority";
     leaveAtDoor?: boolean;
     messageUponArrival?: boolean;
     cutlery?: boolean;
@@ -108,7 +108,7 @@ export default function CartDrawer({
   const [isScheduled, setIsScheduled] = useState<boolean>(false);
   const [scheduledTime, setScheduledTime] = useState<string>("Today, +1 Hour");
   // Foodpanda-style delivery speed + delivery preferences
-  const [deliverySpeed, setDeliverySpeed] = useState<"saver" | "standard" | "priority">("standard");
+  const [deliverySpeed, setDeliverySpeed] = useState<"standard" | "priority">("standard");
   const [leaveAtDoor, setLeaveAtDoor] = useState<boolean>(false);
   const [messageUponArrival, setMessageUponArrival] = useState<boolean>(false);
   const [cutlery, setCutlery] = useState<boolean>(false);
@@ -260,13 +260,11 @@ export default function CartDrawer({
   // - Otherwise: Standard delivery fee
   const freeDeliveryAbove = Number(systemSettings?.freeDeliveryAboveAmount ?? 1000);
   const doubleFeeBelow = Number(systemSettings?.doubleFeeBelowAmount ?? 500);
-  const saverDiscount = Number(systemSettings?.saverDiscount ?? 20);
   const priorityFee = Number(systemSettings?.priorityFee ?? 30);
   const tipOptions = (Array.isArray(systemSettings?.tipOptions) && systemSettings.tipOptions.length > 0
     ? systemSettings.tipOptions
     : [0, 50, 100, 200, 300]) as number[];
   const speedOptions = [
-    { id: "saver" as const, label: "Saver", eta: "45–60 min", feeNote: `−Rs. ${saverDiscount}`, enabled: systemSettings?.saverEnabled !== false },
     { id: "standard" as const, label: "Standard", eta: "25–35 min", feeNote: "Standard", enabled: true },
     { id: "priority" as const, label: "Priority", eta: "15–25 min", feeNote: `+Rs. ${priorityFee}`, enabled: systemSettings?.priorityEnabled !== false },
   ].filter((o) => o.enabled);
@@ -287,13 +285,11 @@ export default function CartDrawer({
     : isDoubleFee
     ? standardFee * 2
     : standardFee;
-  // Delivery speed adjustment (admin-controlled): Saver -saverDiscount, Priority +priorityFee
+  // Delivery speed adjustment (admin-controlled): Priority +priorityFee
   const speedFeeAdjustment =
     !hasFood || effectiveSpeed === "standard"
       ? 0
-      : effectiveSpeed === "saver"
-        ? -saverDiscount
-        : priorityFee;
+      : priorityFee;
   const finalDeliveryFee = Math.max(0, baseDeliveryFee + speedFeeAdjustment);
 
   // Base total before any discounts (items + delivery + optional rider tip)
@@ -1155,7 +1151,7 @@ export default function CartDrawer({
                   )}
                 </div>
 
-                {/* Delivery Speed: Saver / Standard / Priority */}
+                {/* Delivery Speed: Standard / Priority */}
                 {hasFood && (
                   <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-xl space-y-2">
                     <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block">

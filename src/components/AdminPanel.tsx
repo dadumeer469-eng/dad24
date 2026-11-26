@@ -681,9 +681,6 @@ export default function AdminPanel({
   const [tipOptionsInput, setTipOptionsInput] = useState(
     (deliverySettings?.tipOptions || [0, 50, 100, 200, 300]).join(","),
   );
-  const [saverDiscountInput, setSaverDiscountInput] = useState(
-    deliverySettings?.saverDiscount ?? 20,
-  );
   const [priorityFeeInput, setPriorityFeeInput] = useState(
     deliverySettings?.priorityFee ?? 30,
   );
@@ -692,9 +689,6 @@ export default function AdminPanel({
   );
   const [doubleFeeBelowInput, setDoubleFeeBelowInput] = useState(
     deliverySettings?.doubleFeeBelowAmount ?? 500,
-  );
-  const [saverEnabledInput, setSaverEnabledInput] = useState(
-    deliverySettings?.saverEnabled !== false,
   );
   const [priorityEnabledInput, setPriorityEnabledInput] = useState(
     deliverySettings?.priorityEnabled !== false,
@@ -829,11 +823,9 @@ export default function AdminPanel({
       setEasypaisaNumberInput(deliverySettings.easypaisaNumber || "03277004471");
       setWhatsappNumberInput(deliverySettings.whatsappNumber || "923277004471");
       setTipOptionsInput((deliverySettings.tipOptions || [0, 50, 100, 200, 300]).join(","));
-      setSaverDiscountInput(deliverySettings.saverDiscount ?? 20);
       setPriorityFeeInput(deliverySettings.priorityFee ?? 30);
       setFreeDeliveryAboveInput(deliverySettings.freeDeliveryAboveAmount ?? 1000);
       setDoubleFeeBelowInput(deliverySettings.doubleFeeBelowAmount ?? 500);
-      setSaverEnabledInput(deliverySettings.saverEnabled !== false);
       setPriorityEnabledInput(deliverySettings.priorityEnabled !== false);
       setCutleryEnabledInput(deliverySettings.cutleryEnabled !== false);
       setLeaveAtDoorEnabledInput(deliverySettings.leaveAtDoorEnabled !== false);
@@ -2306,11 +2298,9 @@ export default function AdminPanel({
         easypaisaNumber: easypaisaNumberInput.trim() || "03277004471",
         whatsappNumber: whatsappNumberInput.trim().replace(/[^0-9]/g, "") || "923277004471",
         tipOptions: tipOptionsInput.split(",").map((v) => Number(v.trim())).filter((n) => !isNaN(n) && n >= 0),
-        saverDiscount: Number(saverDiscountInput) || 0,
         priorityFee: Number(priorityFeeInput) || 0,
         freeDeliveryAboveAmount: Number(freeDeliveryAboveInput) || 1000,
         doubleFeeBelowAmount: Number(doubleFeeBelowInput) || 0,
-        saverEnabled: saverEnabledInput,
         priorityEnabled: priorityEnabledInput,
         cutleryEnabled: cutleryEnabledInput,
         leaveAtDoorEnabled: leaveAtDoorEnabledInput,
@@ -6672,10 +6662,6 @@ export default function AdminPanel({
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Saver Discount (Rs. off)</span>
-                          <input type="number" min="0" value={saverDiscountInput} onChange={(e) => setSaverDiscountInput(Number(e.target.value))} className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none text-slate-900 font-extrabold focus:border-[#E21B70] transition text-xs" />
-                        </div>
-                        <div>
                           <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">Priority Extra Fee (Rs.)</span>
                           <input type="number" min="0" value={priorityFeeInput} onChange={(e) => setPriorityFeeInput(Number(e.target.value))} className="w-full p-3 bg-white border border-slate-200 rounded-xl outline-none text-slate-900 font-extrabold focus:border-[#E21B70] transition text-xs" />
                         </div>
@@ -6690,7 +6676,6 @@ export default function AdminPanel({
                       </div>
                       <div className="grid grid-cols-2 gap-2 pt-1">
                         {([
-                          { label: "Saver speed dikhao", value: saverEnabledInput, set: setSaverEnabledInput },
                           { label: "Priority speed dikhao", value: priorityEnabledInput, set: setPriorityEnabledInput },
                           { label: "Cutlery option dikhao", value: cutleryEnabledInput, set: setCutleryEnabledInput },
                           { label: "Leave at door dikhao", value: leaveAtDoorEnabledInput, set: setLeaveAtDoorEnabledInput },
