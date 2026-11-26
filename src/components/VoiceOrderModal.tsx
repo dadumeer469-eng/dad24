@@ -1,11 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Phone, PhoneOff, X } from "lucide-react";
-import {
-  createLocalVoiceAgent,
-  type LocalMenuItem,
-  type LocalOrder,
-  type LocalVoiceAgent,
-} from "../utils/voiceAgentLocal";
+import type { LocalMenuItem, LocalOrder } from "../utils/voiceAgentLocal";
 import { getAudioContext, primeAudio } from "../utils/primeAudio";
 
 export interface VoiceOrderItem {
@@ -35,6 +30,8 @@ interface VoiceOrderModalProps {
   isSignedIn: boolean;
   onOpenAuth: () => void;
   onOrderReady: (order: VoiceOrder) => Promise<VoiceOrderResult>;
+  userName?: string;
+  userPhone?: string;
 }
 
 type Status = "idle" | "calling" | "listening" | "thinking" | "speaking" | "done" | "error";
@@ -44,19 +41,15 @@ interface ChatMsg {
   text: string;
 }
 
-// Minimal SpeechRecognition typings (not in the standard TS lib).
-type Recog = {
-  lang: string;
-  interimResults: boolean;
-  continuous: boolean;
-  maxAlternatives: number;
-  onresult: ((e: { results: { [i: number]: { [j: number]: { transcript: string } } } }) => void) | null;
-  onerror: ((e: { error: string }) => void) | null;
-  onend: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-  abort: () => void;
-};
+const GREETING = "السلام علیکم! میں دادو فوڈ کی وائس اسسٹنٹ ہوں۔ آپ کیا آرڈر کرنا چاہیں گے؟";
+const UNCLEAR_SPEECH = "معاف کیجیے، پھر سے بولیں۔";
+const MIC_DENIED = "مائیکروفون کی اجازت دیں — براؤزر کی ایڈریس بار میں مائیک آئیکن پر ٹیپ کریں۔";
+const NO_VOICE_INPUT = "آپ کا فون وائس ان پٹ سپورٹ نہیں کرتا۔ کروم استعمال کریں۔";
+const NETWORK_PROBLEM = "انٹرنیٹ کا مسئلہ لگتا ہے — دوبارہ کوشش کریں۔";
+const LINE_BUSY = "معاف کیجیے، لائن ابھی مصروف ہے — تھوڑی دیر بعد دوبارہ کوشش کریں۔";
+const MAX_RECORD_MS = 15000;
+const SILENCE_MS = 1200;
+const SILENCE_RMS = 0.02;
 
 function pickVoice(): SpeechSynthesisVoice | null {
   if (!("speechSynthesis" in window)) return null;
@@ -80,19 +73,16 @@ export default function VoiceOrderModal({
   isSignedIn,
   onOpenAuth,
   onOrderReady,
+  userName,
+  userPhone,
 }: VoiceOrderModalProps) {
   const [status, setStatus] = useState<Status>("idle");
-  // Urdu speech recognition — the phone's built-in Urdu voice, no API key.
-  const [recogLang, setRecogLang] = useState("ur-PK");
   const [placedOrder, setPlacedOrder] = useState<VoiceOrder | null>(null);
-  // The local voice agent (no API): all site knowledge lives in the code.
-  const agentRef = useRef<LocalVoiceAgent | null>(null);
   // The agent girl stays hidden while the call connects; she walks in the
   // moment the agent answers, then talks with a nod and a waving hand.
   const [agentVisible, setAgentVisible] = useState(false);
   const [walkInDone, setWalkInDone] = useState(false);
 
-  const recogRef = useRef<Recog | null>(null);
   const messagesRef = useRef<ChatMsg[]>([]);
   const statusRef = useRef<Status>("idle");
   const openRef = useRef(false);
@@ -100,6 +90,35 @@ export default function VoiceOrderModal({
   const ringStopRef = useRef(false);
   const ringTimerRef = useRef<number | null>(null);
   const walkInTimerRef = useRef<number | null>(null);
+  const turnRef = useRef(0);
+
+  // Groq flow: MediaRecorder + Whisper, no SpeechRecognition.
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const analysisCtxRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const silenceRafRef = useRef<number | null>(null);
+  const maxRecTimerRef = useRef<number | null>(null);
+  const startListeningRef = useRef<() => void>(() => {});
+  const transcribeAndChatRef = useRef<(blob: Blob, turn: number) => void>(() => {});
+
+  // Menu + orders as text for the Groq system prompt (source of truth —
+  // the model never invents prices; it only uses these lines).
+  const menuText = useMemo(
+    () => menuItems.map((i) => `${i.name} — Rs ${i.price} — ${i.type}`).join("\n"),
+    [menuItems],
+  );
+  const ordersText = useMemo(() => {
+    if (recentOrders.length === 0) return "";
+    return recentOrders
+      .map((o) => {
+        const items = o.items.map((i) => `${i.qty} ${i.name}`).join(", ");
+        const mins = Math.max(0, Math.floor((Date.now() - o.placedAtMs) / 60000));
+        return `Order ${o.id}: ${items} — Rs ${o.total} — status ${o.status} — placed ${mins} min ago — payment ${o.payment} — ${o.speed}`;
+      })
+      .join("\n");
+  }, [recentOrders]);
 
   // Reveal the agent: she walks in, then settles into her idle/talking loop.
   const revealAgent = useCallback(() => {
@@ -177,17 +196,43 @@ export default function VoiceOrderModal({
   }, []);
 
   const stopAll = useCallback(() => {
+    // Invalidate any in-flight turn so late fetch/recorder callbacks stop.
+    turnRef.current += 1;
     stopRinging();
     if (walkInTimerRef.current !== null) {
       clearTimeout(walkInTimerRef.current);
       walkInTimerRef.current = null;
     }
+    if (maxRecTimerRef.current !== null) {
+      clearTimeout(maxRecTimerRef.current);
+      maxRecTimerRef.current = null;
+    }
+    if (silenceRafRef.current !== null) {
+      cancelAnimationFrame(silenceRafRef.current);
+      silenceRafRef.current = null;
+    }
     try {
-      recogRef.current?.abort();
+      if (recorderRef.current && recorderRef.current.state !== "inactive") recorderRef.current.stop();
     } catch {
       /* noop */
     }
-    recogRef.current = null;
+    recorderRef.current = null;
+    audioChunksRef.current = [];
+    mediaStreamRef.current?.getTracks().forEach((t) => {
+      try {
+        t.stop();
+      } catch {
+        /* noop */
+      }
+    });
+    mediaStreamRef.current = null;
+    try {
+      void analysisCtxRef.current?.close();
+    } catch {
+      /* noop */
+    }
+    analysisCtxRef.current = null;
+    analyserRef.current = null;
     try {
       window.speechSynthesis?.cancel();
     } catch {
@@ -274,101 +319,6 @@ export default function VoiceOrderModal({
     [ensureVoices, stopRinging],
   );
 
-  // Ask the LOCAL agent (no API key, no network): the answer comes from
-  // the site's own menu, orders and knowledge, built into the code.
-  const sendToAgent = useCallback(
-    (history: ChatMsg[]) => {
-      setStatusBoth("thinking");
-      const lastUser = [...history].reverse().find((m) => m.role === "user");
-      const text = lastUser?.text ?? "";
-      // A short human-like pause before answering (and it lets the
-      // agent's walk-in animation play).
-      window.setTimeout(() => {
-        if (!openRef.current) return;
-        const agent = agentRef.current;
-        if (!agent) return;
-        const data = agent.reply(text);
-        const say: string = data.say || "";
-        const next = [...history, { role: "assistant" as const, text: say }];
-        messagesRef.current = next;
-        // The agent answered — she walks in and starts talking.
-        revealAgent();
-        if (data.done && data.order) {
-          speak(say, () => finishOrder(data.order as VoiceOrder));
-        } else {
-          speak(say, () => {
-            if (openRef.current && statusRef.current !== "done") startListening();
-          });
-        }
-      }, 700);
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [speak],
-  );
-
-  const startListening = useCallback(() => {
-    const SR =
-      (window as unknown as { SpeechRecognition?: new () => Recog; webkitSpeechRecognition?: new () => Recog })
-        .SpeechRecognition ||
-      (window as unknown as { webkitSpeechRecognition?: new () => Recog }).webkitSpeechRecognition;
-    if (!SR) {
-      setStatusBoth("error");
-      speak("آپ کا فون وائس ان پٹ سپورٹ نہیں کرتا۔ کروم استعمال کریں۔", () => {
-        if (openRef.current) setStatusBoth("idle");
-      });
-      return;
-    }
-    try {
-      recogRef.current?.abort();
-    } catch {
-      /* noop */
-    }
-    const rec = new SR() as Recog;
-    recogRef.current = rec;
-    rec.lang = recogLang;
-    rec.interimResults = false;
-    rec.continuous = false;
-    rec.maxAlternatives = 1;
-    rec.onresult = (e) => {
-      const text = e.results?.[0]?.[0]?.transcript || "";
-      recogRef.current = null;
-      if (text.trim()) {
-        const next = [...messagesRef.current, { role: "user" as const, text: text.trim() }];
-        messagesRef.current = next;
-        sendToAgent(next);
-      } else {
-        startListening();
-      }
-    };
-    rec.onerror = (e) => {
-      recogRef.current = null;
-      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
-        setStatusBoth("error");
-        speak("مائیکروفون کی اجازت دیں — براؤزر کی ایڈریس بار میں مائیک آئیکن پر ٹیپ کریں۔", () => {
-          if (openRef.current) setStatusBoth("idle");
-        });
-      } else if (e.error === "language-not-supported" && recogLang === "ur-PK") {
-        // Urdu recognition is not on this phone — fall back to the
-        // browser's default speech language and try again.
-        setRecogLang("");
-        setTimeout(() => startListening(), 300);
-      } else if (e.error === "no-speech" || e.error === "aborted") {
-        if (openRef.current) setStatusBoth("idle");
-      } else {
-        if (openRef.current) setStatusBoth("idle");
-      }
-    };
-    rec.onend = () => {
-      recogRef.current = null;
-    };
-    setStatusBoth("listening");
-    try {
-      rec.start();
-    } catch {
-      setStatusBoth("idle");
-    }
-  }, [recogLang, sendToAgent, speak]);
-
   const finishOrder = useCallback(
     async (order: VoiceOrder) => {
       setStatusBoth("done");
@@ -395,6 +345,260 @@ export default function VoiceOrderModal({
     [onOrderReady, speak, endCall, onClose, onOpenAuth],
   );
 
+  // All Groq keys exhausted (or not configured): tell the customer the
+  // line is busy, then end the call — there is no retry button on screen.
+  const speakBusyAndEnd = useCallback(() => {
+    speak(LINE_BUSY, () => {
+      if (openRef.current) {
+        window.setTimeout(() => {
+          if (openRef.current) endCall();
+        }, 1200);
+      }
+    });
+  }, [speak, endCall]);
+
+  // Ask GROQ (chat): the reply comes from the real menu + orders, sent
+  // with every request so the model never invents prices.
+  const sendToGroq = useCallback(
+    async (history: ChatMsg[], turn: number) => {
+      setStatusBoth("thinking");
+      try {
+        const res = await fetch("/api/voice-chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: history.map((m) => ({ role: m.role, content: m.text })),
+            menuText,
+            ordersText,
+            userName: userName || undefined,
+            userPhone: userPhone || undefined,
+          }),
+          signal: AbortSignal.timeout(30000),
+        });
+        if (!openRef.current || turn !== turnRef.current) return;
+        if (res.status === 503) {
+          speakBusyAndEnd();
+          return;
+        }
+        if (!res.ok) throw new Error(`voice-chat failed: ${res.status}`);
+        const data = await res.json();
+        const say = typeof data?.reply === "string" ? data.reply.trim() : "";
+        if (!say) {
+          speak(UNCLEAR_SPEECH, () => {
+            if (openRef.current) startListeningRef.current();
+          });
+          return;
+        }
+        const next = [...history, { role: "assistant" as const, text: say }];
+        messagesRef.current = next.slice(-12);
+        // The agent answered — she walks in and starts talking.
+        revealAgent();
+        // A short human-like pause before answering (and it lets the
+        // agent's walk-in animation play).
+        window.setTimeout(() => {
+          if (!openRef.current || turn !== turnRef.current) return;
+          if (data?.order) {
+            speak(say, () => finishOrder(data.order as VoiceOrder));
+          } else {
+            speak(say, () => {
+              if (openRef.current && statusRef.current !== "done") startListeningRef.current();
+            });
+          }
+        }, 700);
+      } catch {
+        if (!openRef.current || turn !== turnRef.current) return;
+        speak(NETWORK_PROBLEM, () => {
+          if (openRef.current) setStatusBoth("idle");
+        });
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [menuText, ordersText, userName, userPhone, speak, revealAgent, speakBusyAndEnd],
+  );
+
+  // Transcribe the recorded audio (Groq Whisper), then chat with Groq.
+  const transcribeAndChat = useCallback(
+    async (blob: Blob, turn: number) => {
+      setStatusBoth("thinking");
+      try {
+        const fd = new FormData();
+        fd.append("audio", blob, "voice.webm");
+        const tRes = await fetch("/api/voice-transcribe", {
+          method: "POST",
+          body: fd,
+          signal: AbortSignal.timeout(30000),
+        });
+        if (!openRef.current || turn !== turnRef.current) return;
+        if (tRes.status === 503) {
+          speakBusyAndEnd();
+          return;
+        }
+        if (!tRes.ok) throw new Error(`voice-transcribe failed: ${tRes.status}`);
+        const tData = await tRes.json();
+        const text = typeof tData?.text === "string" ? tData.text.trim() : "";
+        if (!text) {
+          speak(UNCLEAR_SPEECH, () => {
+            if (openRef.current) startListeningRef.current();
+          });
+          return;
+        }
+        const next = [...messagesRef.current, { role: "user" as const, text }];
+        messagesRef.current = next.slice(-12);
+        await sendToGroq(messagesRef.current, turn);
+      } catch {
+        if (!openRef.current || turn !== turnRef.current) return;
+        speak(NETWORK_PROBLEM, () => {
+          if (openRef.current) setStatusBoth("idle");
+        });
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [speak, sendToGroq, speakBusyAndEnd],
+  );
+
+  // Silence watch (best-effort): stop the recording after ~1.2s of quiet.
+  // The analyser context may stay suspended on some phones — then the
+  // 15s hard cap ends the turn instead.
+  const startSilenceWatch = (stream: MediaStream, onSilence: () => void): void => {
+    try {
+      const AC =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AC) return;
+      let ctx = analysisCtxRef.current;
+      if (!ctx) {
+        ctx = new AC();
+        analysisCtxRef.current = ctx;
+      }
+      void ctx.resume().catch(() => undefined);
+      window.setTimeout(() => {
+        if (!openRef.current || !recorderRef.current || !analysisCtxRef.current) return;
+        const runningCtx = analysisCtxRef.current;
+        if (runningCtx.state !== "running") return;
+        try {
+          const source = runningCtx.createMediaStreamSource(stream);
+          const analyser = runningCtx.createAnalyser();
+          analyser.fftSize = 512;
+          source.connect(analyser);
+          analyserRef.current = analyser;
+          const data = new Uint8Array(analyser.fftSize);
+          let silenceSince: number | null = null;
+          const tick = () => {
+            if (!openRef.current || !recorderRef.current) return;
+            analyser.getByteTimeDomainData(data);
+            let sum = 0;
+            for (let i = 0; i < data.length; i++) {
+              const v = (data[i] - 128) / 128;
+              sum += v * v;
+            }
+            const rms = Math.sqrt(sum / data.length);
+            const now = performance.now();
+            if (rms < SILENCE_RMS) {
+              if (silenceSince === null) silenceSince = now;
+              else if (now - silenceSince > SILENCE_MS) {
+                onSilence();
+                return;
+              }
+            } else {
+              silenceSince = null;
+            }
+            silenceRafRef.current = requestAnimationFrame(tick);
+          };
+          silenceRafRef.current = requestAnimationFrame(tick);
+        } catch {
+          /* silence watch is best-effort */
+        }
+      }, 300);
+    } catch {
+      /* silence watch is best-effort */
+    }
+  };
+
+  // Listen with the microphone: MediaRecorder captures audio (NOT
+  // window.SpeechRecognition). Stops on ~1.2s silence or after 15s.
+  const startListening = useCallback(async () => {
+    if (!openRef.current) return;
+    const turn = ++turnRef.current;
+    if (!("MediaRecorder" in window) || !navigator.mediaDevices?.getUserMedia) {
+      setStatusBoth("error");
+      speak(NO_VOICE_INPUT, () => {
+        if (openRef.current) setStatusBoth("idle");
+      });
+      return;
+    }
+    try {
+      let stream = mediaStreamRef.current;
+      if (!stream || stream.getAudioTracks().every((t) => t.readyState === "ended")) {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaStreamRef.current = stream;
+      }
+      if (!openRef.current || turn !== turnRef.current) return;
+      const mimeType =
+        ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", ""].find(
+          (m) => m === "" || MediaRecorder.isTypeSupported(m),
+        ) ?? "";
+      const rec = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      recorderRef.current = rec;
+      audioChunksRef.current = [];
+      rec.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+      rec.onstop = () => {
+        if (maxRecTimerRef.current !== null) {
+          clearTimeout(maxRecTimerRef.current);
+          maxRecTimerRef.current = null;
+        }
+        if (silenceRafRef.current !== null) {
+          cancelAnimationFrame(silenceRafRef.current);
+          silenceRafRef.current = null;
+        }
+        if (!openRef.current || turn !== turnRef.current) return;
+        const blob = new Blob(audioChunksRef.current, { type: rec.mimeType || "audio/webm" });
+        audioChunksRef.current = [];
+        if (blob.size < 1000) {
+          speak(UNCLEAR_SPEECH, () => {
+            if (openRef.current) startListeningRef.current();
+          });
+          return;
+        }
+        transcribeAndChatRef.current(blob, turn);
+      };
+      setStatusBoth("listening");
+      rec.start(250);
+      startSilenceWatch(stream, () => {
+        try {
+          if (rec.state !== "inactive") rec.stop();
+        } catch {
+          /* noop */
+        }
+      });
+      maxRecTimerRef.current = window.setTimeout(() => {
+        try {
+          if (rec.state !== "inactive") rec.stop();
+        } catch {
+          /* noop */
+        }
+      }, MAX_RECORD_MS);
+    } catch (err) {
+      if (!openRef.current || turn !== turnRef.current) return;
+      const name = (err as { name?: string })?.name || "";
+      if (name === "NotAllowedError" || name === "SecurityError") {
+        setStatusBoth("error");
+        speak(MIC_DENIED, () => {
+          if (openRef.current) setStatusBoth("idle");
+        });
+      } else {
+        speak(NETWORK_PROBLEM, () => {
+          if (openRef.current) setStatusBoth("idle");
+        });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [speak]);
+
+  transcribeAndChatRef.current = transcribeAndChat;
+  startListeningRef.current = startListening;
+
   // Start the call when the modal opens: greet, then listen (hands-free).
   useEffect(() => {
     if (!isOpen) return;
@@ -412,20 +616,15 @@ export default function VoiceOrderModal({
     } catch {
       /* noop */
     }
-    // No API, no waiting on a server: the local agent greets at once.
-    const greet = () => {
-      const agent = createLocalVoiceAgent(menuItems, recentOrders);
-      agentRef.current = agent;
-      const data = agent.greet();
-      const next = [{ role: "assistant" as const, text: data.say }];
-      messagesRef.current = next;
+    // Fixed Urdu greeting (no API call) — then listen hands-free.
+    const t = setTimeout(() => {
+      messagesRef.current = [{ role: "assistant" as const, text: GREETING }];
       // The agent answered — she walks in and greets the user.
       revealAgent();
-      speak(data.say, () => {
+      speak(GREETING, () => {
         if (openRef.current) startListening();
       });
-    };
-    const t = setTimeout(greet, 400);
+    }, 400);
     return () => {
       clearTimeout(t);
       openRef.current = false;
