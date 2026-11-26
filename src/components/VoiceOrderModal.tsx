@@ -35,6 +35,7 @@ interface VoiceOrderModalProps {
   isOpen: boolean;
   onClose: () => void;
   menuText: string;
+  ordersText: string;
   isSignedIn: boolean;
   onOpenAuth: () => void;
   onOrderReady: (order: VoiceOrder) => Promise<VoiceOrderResult>;
@@ -77,6 +78,7 @@ export default function VoiceOrderModal({
   isOpen,
   onClose,
   menuText,
+  ordersText,
   isSignedIn,
   onOpenAuth,
   onOrderReady,
@@ -150,7 +152,7 @@ export default function VoiceOrderModal({
         const resp = await fetch("/api/voice-order", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: history, menu: menuText }),
+          body: JSON.stringify({ messages: history, menu: menuText, orders: ordersText }),
         });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const data = await resp.json();
@@ -303,6 +305,7 @@ export default function VoiceOrderModal({
               },
             ],
             menu: menuText,
+            orders: ordersText,
           }),
         });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
