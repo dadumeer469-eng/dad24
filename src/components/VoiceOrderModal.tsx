@@ -102,6 +102,14 @@ export default function VoiceOrderModal({
   const analysisCtxRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const silenceRafRef = useRef<number | null>(null);
+  // Neural TTS playback: a real <audio> element + an AnalyserNode so
+  // Munchi's jaw follows the true voice volume.
+  const ttsAudioRef = useRef<HTMLAudioElement | null>(null);
+  const ttsUrlRef = useRef<string | null>(null);
+  const ttsCtxRef = useRef<AudioContext | null>(null);
+  const ttsSourceRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const ttsAnalyserRef = useRef<AnalyserNode | null>(null);
+  const ttsRafRef = useRef<number | null>(null);
   const maxRecTimerRef = useRef<number | null>(null);
   const startListeningRef = useRef<() => void>(() => {});
   const transcribeAndChatRef = useRef<(blob: Blob, turn: number) => void>(() => {});
@@ -219,10 +227,54 @@ export default function VoiceOrderModal({
     }
   }, []);
 
+  // Stop neural-voice playback for one utterance (keeps the TTS context
+  // alive for the next utterance in the same call).
+  const cleanupTtsAudio = useCallback(() => {
+    if (ttsRafRef.current !== null) {
+      cancelAnimationFrame(ttsRafRef.current);
+      ttsRafRef.current = null;
+    }
+    try {
+      ttsSourceRef.current?.disconnect();
+    } catch {
+      /* noop */
+    }
+    ttsSourceRef.current = null;
+    ttsAnalyserRef.current = null;
+    const audio = ttsAudioRef.current;
+    ttsAudioRef.current = null;
+    if (audio) {
+      try {
+        audio.pause();
+      } catch {
+        /* noop */
+      }
+      audio.src = "";
+    }
+    if (ttsUrlRef.current) {
+      try {
+        URL.revokeObjectURL(ttsUrlRef.current);
+      } catch {
+        /* noop */
+      }
+      ttsUrlRef.current = null;
+    }
+    const hook = (window as unknown as { __voiceSpeak?: { mode: string; playing: boolean } })
+      .__voiceSpeak;
+    if (hook) hook.playing = false;
+  }, []);
+
   const stopAll = useCallback(() => {
     // Invalidate any in-flight turn so late fetch/recorder callbacks stop.
     turnRef.current += 1;
     stopRinging();
+    cleanupTtsAudio();
+    try {
+      if (ttsCtxRef.current && ttsCtxRef.current.state !== "closed") void ttsCtxRef.current.close();
+    } catch {
+      /* noop */
+    }
+    ttsCtxRef.current = null;
     munchiRef.current?.reset();
     setProductFrame(null);
     if (maxRecTimerRef.current !== null) {
@@ -260,7 +312,7 @@ export default function VoiceOrderModal({
     } catch {
       /* noop */
     }
-  }, [stopRinging]);
+  }, [stopRinging, cleanupTtsAudio]);
 
   const endCall = useCallback(() => {
     stopAll();
@@ -289,12 +341,13 @@ export default function VoiceOrderModal({
     });
   }, []);
 
-  const speak = useCallback(
-    async (text: string, onEnd?: () => void) => {
-      // The agent is answering — stop the ring tone first.
-      stopRinging();
+  // Fallback voice: the phone's own speechSynthesis (robotic on many
+  // Android phones, but always available). Used only when the neural
+  // voice endpoint fails. `finish` is the shared guarded completion.
+  const speakWithPhoneVoice = useCallback(
+    async (text: string, finish: () => void) => {
       if (!("speechSynthesis" in window)) {
-        onEnd?.();
+        finish();
         return;
       }
       await ensureVoices();
@@ -306,11 +359,10 @@ export default function VoiceOrderModal({
         await new Promise((r) => setTimeout(r, 120));
         if (!openRef.current) return;
       }
-      const finish = () => {
-        munchiRef.current?.noteSpeechEnd();
-        if (openRef.current) setStatusBoth("idle");
-        onEnd?.();
-      };
+      const hook = ((window as unknown as { __voiceSpeak?: { mode: string; playing: boolean } })
+        .__voiceSpeak ||= { mode: "phone", playing: false });
+      hook.mode = "phone";
+      hook.playing = true;
       const u = new SpeechSynthesisUtterance(text);
       const voice = pickVoice();
       if (voice) u.voice = voice;
@@ -349,7 +401,128 @@ export default function VoiceOrderModal({
       munchiRef.current?.noteSpeechStart();
       window.speechSynthesis.speak(u);
     },
-    [ensureVoices, stopRinging],
+    [ensureVoices],
+  );
+
+  // Speak a reply with the NEURAL voice: the text is synthesised to real
+  // audio by /api/voice-speak (Google TTS Urdu — natural, human-like) and
+  // played back as a file. Munchi's jaw follows the TRUE volume through
+  // an AnalyserNode (driveMouth), not a guess. If the endpoint fails for
+  // any reason, the phone voice above takes over so the call never goes
+  // silent mid-sentence.
+  const speak = useCallback(
+    async (text: string, onEnd?: () => void) => {
+      // The agent is answering — stop the ring tone first.
+      stopRinging();
+      if (!openRef.current) return;
+      const turnAtStart = turnRef.current;
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        cleanupTtsAudio();
+        munchiRef.current?.noteSpeechEnd();
+        if (openRef.current) setStatusBoth("idle");
+        onEnd?.();
+      };
+      setStatusBoth("speaking");
+      munchiRef.current?.noteSpeechStart();
+      try {
+        const res = await fetch("/api/voice-speak", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text }),
+        });
+        if (!res.ok) throw new Error(`voice-speak failed: ${res.status}`);
+        if (!openRef.current || turnRef.current !== turnAtStart) return;
+        const blob = await res.blob();
+        if (!blob || blob.size < 100) throw new Error("empty speech audio");
+        if (!openRef.current || turnRef.current !== turnAtStart) return;
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        ttsAudioRef.current = audio;
+        ttsUrlRef.current = url;
+        // Route the audio through an analyser when the context runs; if
+        // the browser keeps it suspended, play plainly and let the
+        // word-paced fallback pulse (noteSpeechStart) move the jaw.
+        let analyserOn = false;
+        try {
+          const Ctx =
+            window.AudioContext ||
+            (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+          if (Ctx) {
+            let ctx = ttsCtxRef.current;
+            if (!ctx || ctx.state === "closed") {
+              ctx = new Ctx();
+              ttsCtxRef.current = ctx;
+            }
+            if (ctx.state === "suspended") {
+              try {
+                await ctx.resume();
+              } catch {
+                /* noop */
+              }
+            }
+            if (ctx.state === "running") {
+              const analyser = ctx.createAnalyser();
+              analyser.fftSize = 2048;
+              const src = ctx.createMediaElementSource(audio);
+              src.connect(analyser);
+              analyser.connect(ctx.destination);
+              ttsSourceRef.current = src;
+              ttsAnalyserRef.current = analyser;
+              analyserOn = true;
+            }
+          }
+        } catch {
+          analyserOn = false;
+        }
+        const hook = ((window as unknown as { __voiceSpeak?: { mode: string; playing: boolean } })
+          .__voiceSpeak ||= { mode: "neural", playing: false });
+        hook.mode = "neural";
+        hook.playing = true;
+        (hook as { analyser?: boolean }).analyser = analyserOn;
+        audio.onended = finish;
+        audio.onerror = () => {
+          if (!done) {
+            cleanupTtsAudio();
+            speakWithPhoneVoice(text, finish);
+          }
+        };
+        if (analyserOn) {
+          const data = new Uint8Array(2048);
+          const tick = () => {
+            const analyser = ttsAnalyserRef.current;
+            if (!analyser || done) return;
+            analyser.getByteTimeDomainData(data);
+            let sum = 0;
+            for (let i = 0; i < data.length; i++) {
+              const v = (data[i] - 128) / 128;
+              sum += v * v;
+            }
+            const rms = Math.sqrt(sum / data.length);
+            const target = rms < 0.006 ? 0 : Math.min(0.95, 0.12 + rms * 9);
+            munchiRef.current?.driveMouth(target);
+            ttsRafRef.current = requestAnimationFrame(tick);
+          };
+          ttsRafRef.current = requestAnimationFrame(tick);
+        }
+        try {
+          await audio.play();
+        } catch {
+          if (!done) {
+            cleanupTtsAudio();
+            speakWithPhoneVoice(text, finish);
+          }
+        }
+        return; // finish() fires when the audio ends
+      } catch {
+        // Neural voice unavailable — fall through to the phone voice.
+      }
+      if (!openRef.current || turnRef.current !== turnAtStart) return;
+      speakWithPhoneVoice(text, finish);
+    },
+    [stopRinging, speakWithPhoneVoice, cleanupTtsAudio],
   );
 
   const finishOrder = useCallback(
