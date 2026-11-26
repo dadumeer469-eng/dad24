@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import OrderReceiptModal from "./OrderReceiptModal";
 import { 
   collection, query, where, onSnapshot, doc, updateDoc, Timestamp, addDoc, serverTimestamp
@@ -9,7 +9,7 @@ import { awardLoyaltyCoinsForOrder, creditRiderCoinsForOrder } from "../lib/loya
 import { 
   CheckCircle2, Compass, Coins, CalendarDays, TrendingUp, History, User, 
   MapPin, PhoneCall, LogOut, ArrowRight, ClipboardList, DollarSign, Clock, Check, Store, XCircle, Star,
-  Ticket, Wallet, Banknote, ShieldCheck, Info
+  Ticket, Wallet
 } from "lucide-react";
 import OrderChat from "./OrderChat";
 import { useRiderLocationTracker } from "../lib/riderLocationTracker";
@@ -43,16 +43,17 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
   });
 
   const handleToggleOnline = () => {
-    setIsOnline((prev) => {
-      const next = !prev;
-      localStorage.setItem(`rider_online_${currentUser.uid}`, String(next));
-      // Sync to Firestore so the admin can see who is actually on duty.
-      updateDoc(doc(db, "users", currentUser.uid), {
-        isOnline: next,
-        lastSeenAt: serverTimestamp(),
-      }).catch((e) => console.error("Failed to sync rider online status", e));
-      return next;
-    });
+    // Compute next from current state (not inside a setState updater):
+    // updaters must stay pure — side effects inside them can run twice
+    // under StrictMode and double-write the Firestore sync.
+    const next = !isOnline;
+    setIsOnline(next);
+    localStorage.setItem(`rider_online_${currentUser.uid}`, String(next));
+    // Sync to Firestore so the admin can see who is actually on duty.
+    updateDoc(doc(db, "users", currentUser.uid), {
+      isOnline: next,
+      lastSeenAt: serverTimestamp(),
+    }).catch((e) => console.error("Failed to sync rider online status", e));
   };
   const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
   const [myOrders, setMyOrders] = useState<Order[]>([]);
@@ -60,7 +61,6 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
   const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [etaInputs, setEtaInputs] = useState<{ [orderId: string]: string }>({});
-  const [autoPinnedOrderId, setAutoPinnedOrderId] = useState<string>("");
 
   // Persistent AudioContext ref for mobile browsers
   const audioCtxRef = React.useRef<AudioContext | null>(null);
@@ -153,7 +153,8 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
 
   // Continuous loop ringtone siren effect for available pending orders
   useEffect(() => {
-    if (availableOrders.length === 0 || !isOnline) return;
+    // Muted means fully silent: no ringtone AND no vibration.
+    if (availableOrders.length === 0 || !isOnline || isMuted) return;
 
     playContinuousAlarm();
     triggerVibration();
@@ -166,8 +167,12 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
     return () => clearInterval(interval);
   }, [availableOrders.length, isMuted, isOnline]);
 
-  // Get active accepted orders
-  const riderActiveOrders = myOrders.filter((o) => o.status === "accepted" || o.status === "preparing" || o.status === "out_for_delivery");
+  // Get active accepted orders (memoised so the unread-messages listener
+  // below doesn't resubscribe on every render from a fresh array identity).
+  const riderActiveOrders = useMemo(
+    () => myOrders.filter((o) => o.status === "accepted" || o.status === "preparing" || o.status === "out_for_delivery"),
+    [myOrders]
+  );
   const [focusedActiveOrderId, setFocusedActiveOrderId] = useState<string | null>(null);
   const [showLiveChat, setShowLiveChat] = useState(false);
   const [riderUnreadCount, setRiderUnreadCount] = useState(0);
@@ -281,12 +286,9 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
       });
       list.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
       
-      setAvailableOrders((prev) => {
-        if (list.length > prev.length) {
-          playContinuousAlarm();
-        }
-        return list;
-      });
+      // The ringtone interval effect (on availableOrders.length) already
+      // rings when a new order arrives — no side effect inside setState.
+      setAvailableOrders(list);
     }, (err) => {
       console.error("Firestore listening available orders error:", handleFirestoreError(err));
     });
@@ -304,7 +306,11 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const list: Order[] = [];
       snapshot.forEach((doc) => {
-        list.push(doc.data() as Order);
+        // BUG FIX: doc.data() does NOT include the document id — without
+        // `id: doc.id` every rider action on "my orders" (prepare / out for
+        // delivery / delivered / cancel / chat / receipt) received
+        // undefined as the order id, and focused-order matching never worked.
+        list.push({ ...(doc.data() as Order), id: doc.id });
       });
       list.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
       setMyOrders(list);
@@ -470,6 +476,14 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
   // Sort dates descending
   const sortedDates = Object.keys(historyGroupedByDate).sort((a, b) => b.localeCompare(a));
 
+  // Auto-select the most recent delivery date so the history tab opens on
+  // real data instead of an empty "select a date" placeholder.
+  useEffect(() => {
+    if (sortedDates.length > 0 && (!selectedHistoryDate || !historyGroupedByDate[selectedHistoryDate])) {
+      setSelectedHistoryDate(sortedDates[0]);
+    }
+  }, [sortedDates, selectedHistoryDate, historyGroupedByDate]);
+
   // Rider Action: Accept Order (Cap to 3 orders)
   const handleAcceptOrder = async (orderId: string) => {
     if (riderActiveOrders.length >= 3) {
@@ -615,6 +629,8 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
         {/* Left: Clean Duty Switch */}
         <button
           onClick={handleToggleOnline}
+          aria-label="Toggle duty status"
+          aria-pressed={isOnline}
           className={`py-1 px-3 rounded-full text-[10.5px] font-black tracking-wider uppercase transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 border ${
             isOnline
               ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30 shadow-xs shadow-emerald-500/10"
@@ -636,6 +652,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
         {/* Right: Small Logout Button */}
         <button
           onClick={onLogout}
+          aria-label="Sign out"
           className="bg-zinc-950 text-zinc-400 hover:text-pink-400 border border-zinc-800 px-2.5 py-1 rounded-xl transition cursor-pointer active:scale-95 flex items-center gap-1 text-[10px] font-black uppercase tracking-wider"
           title="Sign Out"
         >
@@ -742,7 +759,10 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
               </div>
             )}
             
-            {/* Active Order Pipeline & Available Orders Grid */}
+            {/* Active Order Pipeline & Available Orders Grid — hidden while
+                offline: the banner above says new requests are paused, so
+                the accept buttons must not stay live in rest mode. */}
+            {isOnline && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
               
               {/* Left Column: Active Order Assignment */}
@@ -827,7 +847,10 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                           </span>
                         </div>
                         <p className="text-[11px] text-zinc-400 font-semibold">
-                          Accepted at: {riderActiveOrder.createdAt?.seconds ? new Date(riderActiveOrder.createdAt.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Just now"}
+                          Accepted at: {(() => {
+                            const ts = (riderActiveOrder as any).acceptedAt?.seconds || riderActiveOrder.createdAt?.seconds;
+                            return ts ? new Date(ts * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Just now";
+                          })()}
                         </p>
                       </div>
 
@@ -849,7 +872,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                           Rs. {riderActiveOrder.grandTotal}
                         </span>
                         <span className="text-[9.5px] text-zinc-400 font-bold block mt-0.5 uppercase">
-                          Payment: {riderActiveOrder.paymentMethod === "cod" ? "Cash on Delivery" : riderActiveOrder.paymentMethod}
+                          Payment: {riderActiveOrder.paymentMethod === "cod" || riderActiveOrder.paymentMethod === "COD" ? "Cash on Delivery" : riderActiveOrder.paymentMethod === "easypaisa" ? "Easypaisa" : riderActiveOrder.paymentMethod}
                         </span>
                       </div>
                       <div className="text-right border-l border-emerald-800/50 pl-3">
@@ -868,7 +891,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                       if (totalSubsidy <= 0) return null;
 
                       return (
-                        <div className="bg-gradient-to-r from-amber-950/70 via-zinc-900 to-amber-950/70 border border-amber-500/40 p-3.5 sm:p-4 rounded-2xl flex items-center justify-between gap-3 shadow-md text-amber-200 animate-fadeIn">
+                        <div className="bg-gradient-to-r from-amber-950/70 via-zinc-900 to-amber-950/70 border border-amber-500/40 p-3.5 sm:p-4 rounded-2xl flex items-center justify-between gap-3 shadow-md text-amber-200 animate-fade-in">
                           <div className="flex items-center gap-3">
                             <div className="p-2.5 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30 shrink-0">
                               {vDisc > 0 ? <Ticket className="w-5 h-5 animate-pulse" /> : <Coins className="w-5 h-5 animate-bounce" />}
@@ -902,7 +925,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                     })()}
                     
                     {/* Interactive Milestones Shipment Progress Pipeline */}
-                    <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 space-y-3 animate-fadeIn">
+                    <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 space-y-3 animate-fade-in">
                       <span className="text-[9.5px] font-black text-zinc-400 uppercase tracking-widest block pb-1 border-b border-zinc-900 flex items-center justify-between">
                         <span>⏱️ Delivery Progress</span>
                         <span className="text-[9px] text-pink-400 font-mono">Step {
@@ -947,6 +970,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                               }
                             }}
                             disabled={loadingActionId !== null || riderActiveOrder.status !== "accepted"}
+                            aria-label="Mark order as preparing"
                             className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black transition-all border ${
                               ["preparing", "out_for_delivery", "delivered"].includes(riderActiveOrder.status)
                                 ? "bg-[#E21B70] text-white border-[#E21B70] shadow-md shadow-pink-500/20 cursor-default"
@@ -969,6 +993,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                               }
                             }}
                             disabled={loadingActionId !== null || !["accepted", "preparing"].includes(riderActiveOrder.status)}
+                            aria-label="Mark order as out for delivery"
                             className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black transition-all border ${
                               ["out_for_delivery", "delivered"].includes(riderActiveOrder.status)
                                 ? "bg-[#E21B70] text-white border-[#E21B70] shadow-md shadow-pink-500/20 cursor-default"
@@ -1059,7 +1084,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                             onClick={() => setShowLiveChat(!showLiveChat)}
                             className={`py-2 sm:py-2.5 px-2 rounded-xl transition text-center font-black text-[10.5px] sm:text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer active:scale-95 truncate relative ${
                               showLiveChat 
-                                ? "bg-zinc-800 border border-[#E21B70] text-white hover:bg-zinc-750 ring-2 ring-[#E21B70]/30" 
+                                ? "bg-zinc-800 border border-[#E21B70] text-white hover:bg-zinc-800 ring-2 ring-[#E21B70]/30" 
                                 : "bg-gradient-to-r from-[#E21B70] to-pink-600 text-white hover:from-[#C2145E] hover:to-pink-700"
                             }`}
                           >
@@ -1220,7 +1245,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                             key={preset}
                             type="button"
                             onClick={() => setEtaInputs({ ...etaInputs, [riderActiveOrder.id]: preset })}
-                            className="bg-zinc-900 hover:bg-[#E21B70]/20 border border-zinc-700 hover:border-[#E21B70] text-zinc-300 hover:text-pink-300 text-[10px] font-bold px-2.5 py-1 rounded-lg transition cursor-pointer"
+                            className="bg-zinc-900 hover:bg-[#E21B70]/20 border border-zinc-700 hover:border-[#E21B70] text-zinc-300 hover:text-pink-300 text-[10px] font-bold px-3 py-2 min-h-[40px] rounded-lg transition cursor-pointer"
                           >
                             ⏱️ {preset}
                           </button>
@@ -1372,7 +1397,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                   {availableOrders.length === 0 ? (
                     <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 sm:p-10 text-center space-y-3 shadow-sm text-zinc-500">
                       <span className="text-3xl block">⏳</span>
-                      <p className="text-xs font-black uppercase text-zinc-550 tracking-widest">No available orders currently</p>
+                      <p className="text-xs font-black uppercase text-zinc-400 tracking-widest">No available orders currently</p>
                       <p className="text-[10.5px] mt-1 text-zinc-500 font-semibold">We will alert you instantly with sound chime when buyers place orders!</p>
                     </div>
                   ) : (
@@ -1531,11 +1556,11 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                                   ⚠️ No GPS Pin
                                 </span>
                               )}
-                              <span className="text-amber-550 font-extrabold uppercase">COD</span>
+                              <span className="text-amber-500 font-extrabold uppercase">COD</span>
                             </div>
                             
                             <div className="flex items-center justify-between text-[10px] text-zinc-400 font-bold border-t border-zinc-900 pt-1.5 mt-1.5">
-                              <span>Items: Rs. {order.totalPrice}</span>
+                              <span>Items: Rs. {order.totalPrice ?? order.items?.reduce((s, i) => s + (i.price || 0) * (i.quantity || 1), 0) ?? 0}</span>
                               <span className="text-[#E21B70] font-black">Total: Rs. {order.grandTotal}</span>
                             </div>
                           </div>
@@ -1582,6 +1607,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
               </section>
 
             </div>
+            )}
 
 
 
@@ -1627,7 +1653,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
               {sortedDates.length === 0 ? (
                 <div className="text-center p-8 sm:p-12 text-zinc-500 space-y-2">
                   <span className="text-3xl block">📚</span>
-                  <p className="text-xs font-black uppercase text-zinc-455 tracking-wider">No delivered package history yet</p>
+                  <p className="text-xs font-black uppercase text-zinc-400 tracking-wider">No delivered package history yet</p>
                   <p className="text-[10.5px] text-zinc-600 font-semibold leading-tight">Complete your current package deliveries inside the main dashboard panel to register logs.</p>
                 </div>
               ) : (
@@ -1872,7 +1898,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                         className={`px-3 py-1.5 rounded-lg text-[9.5px] font-black uppercase tracking-wider transition cursor-pointer ${
                           timeframe === item.id
                             ? "bg-[#E21B70] text-white"
-                            : "text-zinc-350 hover:text-zinc-100"
+                            : "text-zinc-300 hover:text-zinc-100"
                         }`}
                       >
                         {item.label}
@@ -2102,7 +2128,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                 {ratedOrders.length === 0 ? (
                   <div className="text-center p-8 sm:p-12 text-zinc-500 space-y-2">
                     <span className="text-3xl block">⭐</span>
-                    <p className="text-xs font-black uppercase text-zinc-450 tracking-wider">No reviews received yet</p>
+                    <p className="text-xs font-black uppercase text-zinc-400 tracking-wider">No reviews received yet</p>
                     <p className="text-[10.5px] text-zinc-600 font-semibold leading-tight">Once buyers complete your deliveries and submit star feedback, they will display instantly here.</p>
                   </div>
                 ) : (
@@ -2120,15 +2146,15 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                         </div>
 
                         {order.ratingComment ? (
-                          <p className="text-xs text-zinc-350 italic bg-zinc-900/50 p-2.5 rounded-xl border border-zinc-850/40">
+                          <p className="text-xs text-zinc-300 italic bg-zinc-900/50 p-2.5 rounded-xl border border-zinc-850/40">
                             "{order.ratingComment}"
                           </p>
                         ) : (
-                          <p className="text-xs text-zinc-650 italic">No comment shared.</p>
+                          <p className="text-xs text-zinc-500 italic">No comment shared.</p>
                         )}
 
                         <div className="flex justify-between items-center text-[10px] text-zinc-500 font-semibold border-t border-zinc-900 pt-2 mt-1">
-                          <span>Payment: {order.paymentMethod.toUpperCase()}</span>
+                          <span>Payment: {(order.paymentMethod || "COD").toUpperCase()}</span>
                           <span>
                             {order.deliveryCompletedAt?.seconds
                               ? new Date(order.deliveryCompletedAt.seconds * 1000).toLocaleDateString()

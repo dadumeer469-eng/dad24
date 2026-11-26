@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   ChevronLeft,
   Heart,
@@ -77,6 +77,16 @@ function CategoryDishGridBatch({
   setActiveDetailDish: (dish: Dish) => void;
 }) {
   const [visibleCount, setVisibleCount] = useState(24);
+  // Reset the "Show more" pagination when a different dish set is shown
+  // (category / search / filter change) instead of carrying the old count over.
+  const dishSignature = dishes.map((d) => d.id).join("|");
+  const firstSignatureRef = useRef(dishSignature);
+  useEffect(() => {
+    if (firstSignatureRef.current !== dishSignature) {
+      firstSignatureRef.current = dishSignature;
+      setVisibleCount(24);
+    }
+  }, [dishSignature]);
   const visibleItems = dishes.slice(0, visibleCount);
   const remaining = dishes.length - visibleItems.length;
 
@@ -173,11 +183,17 @@ export default function FoodpandaRestaurantPage({
     { name: "Tasty Bites Dadu", label: "Tasty Bites Dadu — fast food in Dadu" },
   ].filter((s) => s.name !== restaurantName);
 
-  const categories = Array.from(new Set(dishes.map((d) => d.category)));
-  const explicitBestsellers = dishes.filter((d) => Boolean(d.isBestseller));
-  const bestsellerDishes = (() => {
+  // Memoized so the scroll-spy / centering effects below don't re-subscribe
+  // on every render (these arrays previously got a new identity each render).
+  const categories = useMemo(
+    () => Array.from(new Set(dishes.map((d) => d.category))),
+    [dishes]
+  );
+  const bestsellerDishes = useMemo(() => {
     const picked = new Map<string, Dish>();
-    for (const d of explicitBestsellers) picked.set(d.id, d);
+    for (const d of dishes) {
+      if (d.isBestseller) picked.set(d.id, d);
+    }
     if (picked.size < 4 && dishes.length > 4) {
       for (const cat of categories) {
         if (picked.size >= 6) break;
@@ -188,13 +204,20 @@ export default function FoodpandaRestaurantPage({
       }
     }
     return Array.from(picked.values()).slice(0, 6);
-  })();
+  }, [dishes, categories]);
   const hasBestsellers = bestsellerDishes.length >= 3;
-  const allNavCategories = hasBestsellers ? ["🔥 Bestsellers", ...categories] : categories;
+  const allNavCategories = useMemo(
+    () => (hasBestsellers ? ["🔥 Bestsellers", ...categories] : categories),
+    [hasBestsellers, categories]
+  );
 
   const [searchQuery, setSearchQuery] = useState("");
+  // Ignore an initial category this shop doesn't serve (e.g. a cuisine the
+  // shop has no dishes for) instead of leaving no tab active.
   const [activeCategory, setActiveCategory] = useState<string>(
-    initialCategory || allNavCategories[0] || ""
+    initialCategory && allNavCategories.includes(initialCategory)
+      ? initialCategory
+      : allNavCategories[0] || ""
   );
   const [activeDetailDish, setActiveDetailDish] = useState<Dish | null>(null);
   const [filterType, setFilterType] = useState<"all" | "bestsellers" | "top_rated">("all");
@@ -225,13 +248,17 @@ export default function FoodpandaRestaurantPage({
     }, 700);
   };
 
+  const initialScrollDoneRef = useRef(false);
   useEffect(() => {
+    if (initialScrollDoneRef.current) return;
     if (initialCategory && allNavCategories.includes(initialCategory)) {
-      setTimeout(() => {
+      initialScrollDoneRef.current = true;
+      const timer = setTimeout(() => {
         scrollToCategory(initialCategory);
       }, 280);
+      return () => clearTimeout(timer);
     }
-  }, []);
+  }, [initialCategory, allNavCategories]);
 
   useEffect(() => {
     let requestRunning = false;
@@ -296,6 +323,11 @@ export default function FoodpandaRestaurantPage({
     }
   }, [activeCategory]);
 
+  const bestsellerDishIds = useMemo(
+    () => new Set(bestsellerDishes.map((d) => d.id)),
+    [bestsellerDishes]
+  );
+
   const filteredDishes = dishes.filter((d) => {
     const q = (searchQuery || "").trim().toLowerCase();
     const matchesSearch =
@@ -307,7 +339,10 @@ export default function FoodpandaRestaurantPage({
     if (!matchesSearch) return false;
 
     if (filterType === "bestsellers") {
-      return Boolean(d.isBestseller);
+      // Match the Bestsellers section (explicit bestsellers + one popular
+      // pick per category), not just the explicit flag — otherwise the
+      // filter could return 0 items while the section shows dishes.
+      return bestsellerDishIds.has(d.id);
     }
     if (filterType === "top_rated") {
       return Boolean(d.isFeatured);
@@ -338,9 +373,13 @@ export default function FoodpandaRestaurantPage({
         })
         .catch(() => {});
     } else if (navigator.clipboard) {
-      navigator.clipboard.writeText(window.location.href);
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2000);
+      navigator.clipboard
+        .writeText(window.location.href)
+        .then(() => {
+          setCopiedLink(true);
+          setTimeout(() => setCopiedLink(false), 2000);
+        })
+        .catch(() => {});
     }
   };
 
@@ -426,7 +465,8 @@ export default function FoodpandaRestaurantPage({
                 <LazyImage
                   src={restaurantImageUrl}
                   alt={restaurantName}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full"
+                  imgClassName="object-cover"
                 />
               ) : (
                 <div className="w-full h-full bg-[#D70F64] flex items-center justify-center text-white font-extrabold text-xl">
@@ -558,6 +598,10 @@ export default function FoodpandaRestaurantPage({
             className="absolute left-0 top-0 h-full w-[42%] sm:w-[32%] object-cover object-center"
             loading="lazy"
             decoding="async"
+            onError={(e) => {
+              // Keep the pink gradient banner intact if the photo is missing.
+              e.currentTarget.style.display = "none";
+            }}
           />
           <div className="absolute inset-y-0 left-0 w-[42%] sm:w-[32%] bg-gradient-to-l from-[#E21B70] via-[#E21B70]/30 to-transparent pointer-events-none" aria-hidden="true" />
           <div className="relative z-10 pl-[44%] sm:pl-[34%] pr-4 py-4 flex items-center justify-between gap-3 min-h-[96px]">
@@ -577,16 +621,19 @@ export default function FoodpandaRestaurantPage({
           <div className="relative flex-1">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#717185]" />
             <input
+              id="restaurant-search-input"
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={`Search in ${restaurantName}...`}
+              aria-label={`Search in ${restaurantName}`}
               className="w-full min-h-[44px] bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-xl py-2.5 pl-10 pr-10 text-sm font-medium outline-none focus:border-[#D70F64] focus:ring-2 focus:ring-[#D70F64]/20 text-[#14141A] dark:text-white transition"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
+                aria-label="Clear search"
                 className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 text-xs text-[#5A5A6B] hover:text-[#14141A] dark:hover:text-white font-bold bg-[#F2F2F6] dark:bg-[#1D1D26] rounded-lg flex items-center justify-center cursor-pointer"
               >
                 ✕
@@ -598,6 +645,7 @@ export default function FoodpandaRestaurantPage({
             <button
               type="button"
               onClick={() => setFilterType("all")}
+              aria-pressed={filterType === "all"}
               className={`min-h-[44px] px-4 py-2 rounded-full text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer border ${
                 filterType === "all"
                   ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
@@ -610,6 +658,7 @@ export default function FoodpandaRestaurantPage({
             <button
               type="button"
               onClick={() => setFilterType(filterType === "bestsellers" ? "all" : "bestsellers")}
+              aria-pressed={filterType === "bestsellers"}
               className={`min-h-[44px] px-4 py-2 rounded-full text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer border ${
                 filterType === "bestsellers"
                   ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
@@ -626,6 +675,7 @@ export default function FoodpandaRestaurantPage({
             <button
               type="button"
               onClick={() => setFilterType(filterType === "top_rated" ? "all" : "top_rated")}
+              aria-pressed={filterType === "top_rated"}
               className={`min-h-[44px] px-4 py-2 rounded-full text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer border ${
                 filterType === "top_rated"
                   ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
@@ -665,6 +715,7 @@ export default function FoodpandaRestaurantPage({
                     type="button"
                     ref={(el) => (categoryButtonRefs.current[cat] = el)}
                     onClick={() => scrollToCategory(cat)}
+                    aria-current={isActive ? "true" : undefined}
                     className={`min-h-[44px] whitespace-nowrap px-3.5 py-2 rounded-full text-xs font-bold transition-colors flex items-center gap-2 cursor-pointer select-none border ${
                       isActive
                         ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
@@ -692,7 +743,23 @@ export default function FoodpandaRestaurantPage({
 
       {/* Menu Categories & Items Grid */}
       <div className="max-w-4xl mx-auto px-3.5 sm:px-4 mt-5">
-        {searchQuery || filterType !== "all" ? (
+        {dishes.length === 0 ? (
+          <div className="py-12 text-center bg-white dark:bg-[#14141A] rounded-2xl border border-[#E6E6EE] dark:border-[#272733] p-6">
+            <p className="text-sm font-bold text-[#14141A] dark:text-white">
+              No items on the menu yet
+            </p>
+            <p className="text-xs text-[#5A5A6B] dark:text-[#A1A1B2] mt-1">
+              {restaurantName} hasn&apos;t added any dishes yet — please check back soon or browse another restaurant.
+            </p>
+            <button
+              type="button"
+              onClick={onBack}
+              className="mt-4 min-h-[44px] px-5 py-2.5 rounded-xl bg-[#D70F64] hover:bg-[#B80C54] text-white font-bold text-xs transition cursor-pointer"
+            >
+              Browse other restaurants
+            </button>
+          </div>
+        ) : searchQuery || filterType !== "all" ? (
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base sm:text-lg font-extrabold text-[#14141A] dark:text-white flex items-center gap-2">
@@ -904,7 +971,6 @@ const DishCard = React.memo(function DishCard({
   onToggleFavorite,
   onQuickAdd,
 }: {
-  key?: React.Key;
   dish: Dish;
   onAdd: () => void;
   isClosed?: boolean;
@@ -937,6 +1003,8 @@ const DishCard = React.memo(function DishCard({
                   : "border-rose-600 bg-rose-50 dark:bg-rose-950/40"
               }`}
               title={veg ? "Vegetarian" : "Non-Vegetarian"}
+              role="img"
+              aria-label={veg ? "Vegetarian" : "Non-Vegetarian"}
             >
               <span
                 className={`w-1.5 h-1.5 rounded-full ${
@@ -951,12 +1019,13 @@ const DishCard = React.memo(function DishCard({
             )}
           </div>
 
-          <h3
+          <button
+            type="button"
             onClick={onAdd}
-            className="font-bold text-[#14141A] dark:text-white text-sm sm:text-[15px] leading-snug group-hover:text-[#D70F64] transition-colors cursor-pointer line-clamp-2"
+            className="font-bold text-[#14141A] dark:text-white text-sm sm:text-[15px] leading-snug group-hover:text-[#D70F64] transition-colors cursor-pointer line-clamp-2 text-left"
           >
             {dish.name}
-          </h3>
+          </button>
 
           {dish.description && (
             <p className="text-xs text-[#5A5A6B] dark:text-[#A1A1B2] mt-1 line-clamp-2 leading-relaxed">
@@ -998,7 +1067,8 @@ const DishCard = React.memo(function DishCard({
             <LazyImage
               src={dish.imageUrl}
               alt={`${dish.name} from ${dish.restaurantName || "Dadu Food"}`}
-              className="w-full h-full object-cover"
+              className="w-full h-full"
+              imgClassName="object-cover"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-[#1D1D26] text-white text-xs font-bold">

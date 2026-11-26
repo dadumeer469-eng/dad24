@@ -93,13 +93,17 @@ export default function FoodpandaHero({
             <button
               type="button"
               onClick={() => setActiveCategory("All")}
-              className="text-xs font-extrabold text-[#D70F64] hover:underline cursor-pointer"
+              className="min-h-[44px] px-2 text-xs font-extrabold text-[#D70F64] hover:underline cursor-pointer"
             >
               Show All
             </button>
           )}
         </div>
-        <div className="flex items-start gap-3 overflow-x-auto pb-2 pr-3.5 scrollbar-none snap-x snap-mandatory touch-pan-both overscroll-x-contain">
+        <div
+          className="flex items-start gap-3 overflow-x-auto pb-2 pr-3.5 scrollbar-none snap-x snap-mandatory touch-pan-both overscroll-x-contain"
+          role="group"
+          aria-label="Cuisine categories"
+        >
           {cleanCategories.map((cat) => {
             const isSelected = activeCategory === cat.name;
             return (
@@ -107,6 +111,8 @@ export default function FoodpandaHero({
                 key={(cat as FoodCategory).id || cat.name}
                 type="button"
                 onClick={() => setActiveCategory(cat.name)}
+                aria-pressed={isSelected}
+                aria-label={`${cat.name} cuisine${isSelected ? ", selected" : ""}`}
                 className="group flex flex-col items-center gap-1.5 shrink-0 w-[76px] sm:w-[86px] snap-start cursor-pointer active:scale-95 transition-transform"
               >
                 <div

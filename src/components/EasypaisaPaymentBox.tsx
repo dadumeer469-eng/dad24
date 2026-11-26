@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useId, useRef, useState } from "react";
 import { Copy, Check, Upload, Trash2, ShieldCheck, Loader2, Camera } from "lucide-react";
 import { compressImageFile } from "../utils/imageCompressor";
 
@@ -30,6 +30,16 @@ export default function EasypaisaPaymentBox({
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Unique input id: the food and grocery checkouts each render a box,
+  // and a hardcoded shared id would be duplicated if both ever mount.
+  const receiptInputId = useId();
+
+  useEffect(() => {
+    return () => {
+      if (copiedTimerRef.current) window.clearTimeout(copiedTimerRef.current);
+    };
+  }, []);
 
   const handleCopyNumber = async () => {
     try {
@@ -46,7 +56,8 @@ export default function EasypaisaPaymentBox({
         document.body.removeChild(ta);
       }
       setCopied(true);
-      setTimeout(() => setCopied(false), 2200);
+      if (copiedTimerRef.current) window.clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = setTimeout(() => setCopied(false), 2200);
     } catch {
       setCopied(false);
     }
@@ -58,6 +69,13 @@ export default function EasypaisaPaymentBox({
     setUploadError(null);
     if (!file.type.startsWith("image/")) {
       setUploadError("Please select a valid screenshot or photo of your Easypaisa receipt.");
+      // Reset so picking the same invalid file again still fires onChange.
+      e.target.value = "";
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError("Receipt photo is too large (max 10 MB). Please take a smaller photo or screenshot.");
+      e.target.value = "";
       return;
     }
     setUploading(true);
@@ -106,7 +124,8 @@ export default function EasypaisaPaymentBox({
         <button
           type="button"
           onClick={handleCopyNumber}
-          className={`min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 active:scale-95 ${
+          aria-label="Copy Easypaisa number"
+          className={`min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 active:scale-95 focus-visible:outline-2 focus-visible:outline-emerald-400 ${
             copied
               ? "bg-emerald-500 text-white"
               : "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40"
@@ -129,7 +148,8 @@ export default function EasypaisaPaymentBox({
           accept="image/*"
           onChange={handleFileSelected}
           className="hidden"
-          id="easypaisa-receipt-input"
+          id={receiptInputId}
+          aria-label="Upload Easypaisa payment receipt"
         />
 
         {receiptUrl ? (
@@ -151,7 +171,7 @@ export default function EasypaisaPaymentBox({
               type="button"
               onClick={() => onReceiptChange(null)}
               aria-label="Remove receipt"
-              className="min-h-[40px] min-w-[40px] rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 flex items-center justify-center cursor-pointer shrink-0"
+              className="min-h-[40px] min-w-[40px] rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 flex items-center justify-center cursor-pointer shrink-0 focus-visible:outline-2 focus-visible:outline-rose-400"
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -161,7 +181,8 @@ export default function EasypaisaPaymentBox({
             type="button"
             disabled={uploading}
             onClick={() => fileInputRef.current?.click()}
-            className="w-full min-h-[48px] px-4 py-3 rounded-xl border-2 border-dashed border-emerald-500/40 hover:border-emerald-400 bg-zinc-950/70 hover:bg-zinc-900 text-emerald-300 text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-60"
+            aria-label="Upload screenshot or take photo of Easypaisa receipt"
+            className="w-full min-h-[48px] px-4 py-3 rounded-xl border-2 border-dashed border-emerald-500/40 hover:border-emerald-400 bg-zinc-950/70 hover:bg-zinc-900 text-emerald-300 text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-emerald-400"
           >
             {uploading ? (
               <>
@@ -179,7 +200,7 @@ export default function EasypaisaPaymentBox({
         )}
 
         {uploadError && (
-          <p className="text-[11px] font-bold text-rose-400">{uploadError}</p>
+          <p role="alert" className="text-[11px] font-bold text-rose-400">{uploadError}</p>
         )}
       </div>
     </div>

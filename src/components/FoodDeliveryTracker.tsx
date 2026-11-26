@@ -86,6 +86,9 @@ function DeliveryRouteLayer({
 
   useEffect(() => {
     if (recenterSignal > 0) {
+      // The map container resizes when the sheet collapses/expands —
+      // Leaflet must re-measure or the newly exposed area stays grey.
+      map.invalidateSize();
       fitBothMarkers();
     }
   }, [recenterSignal, fitBothMarkers]);
@@ -240,6 +243,7 @@ export default function FoodDeliveryTracker({
     normalizedStatus === "dispatched";
   const isDelivered =
     normalizedStatus === "delivered" || normalizedStatus === "completed";
+  const isCancelled = normalizedStatus === "cancelled";
   const isKitchen =
     normalizedStatus === "preparing" ||
     normalizedStatus === "kitchen" ||
@@ -248,7 +252,7 @@ export default function FoodDeliveryTracker({
   const isAccepted =
     normalizedStatus === "accepted" || normalizedStatus === "confirmed";
   const isPlaced =
-    !isOutForDelivery && !isDelivered && !isKitchen && !isAccepted;
+    !isOutForDelivery && !isDelivered && !isKitchen && !isAccepted && !isCancelled;
 
   const restLat = restaurantCoords?.latitude || 26.7323;
   const restLng = restaurantCoords?.longitude || 67.7744;
@@ -281,9 +285,10 @@ export default function FoodDeliveryTracker({
 
   const toggleSheet = () => {
     setIsSheetCollapsed((prev) => !prev);
+    // Recenter after the 300ms sheet transition finishes, not mid-way.
     setTimeout(() => {
       setRecenterSignal((n) => n + 1);
-    }, 220);
+    }, 320);
   };
 
   const isPaymentPending = normalizedStatus === "payment_verification_pending";
@@ -293,7 +298,11 @@ export default function FoodDeliveryTracker({
     : "Waiting for restaurant confirmation";
   let gaugePercent = isPaymentPending ? "12" : "18";
 
-  if (isDelivered) {
+  if (isCancelled) {
+    statusTitle = "Order Cancelled";
+    statusSubtitle = "This order was cancelled — no rider is on the way";
+    gaugePercent = "0";
+  } else if (isDelivered) {
     statusTitle = "Order Delivered!";
     statusSubtitle = "Your Dadu Food rider delivered your meal";
     gaugePercent = "100";
@@ -316,7 +325,7 @@ export default function FoodDeliveryTracker({
 
   // Real-time rider coordinates from Firebase RTDB
   useEffect(() => {
-    if (isDelivered) return;
+    if (isDelivered || isCancelled) return;
     let locationRef: any = null;
     try {
       const rtdb = getDatabase(app);
@@ -341,7 +350,7 @@ export default function FoodDeliveryTracker({
     } catch (err) {
       console.warn("Firebase Realtime DB exception:", err);
     }
-  }, [orderId, isDelivered]);
+  }, [orderId, isDelivered, isCancelled]);
 
   const currentEta = etaMinutes || 12;
   const minEta = Math.max(3, currentEta - 3);
@@ -421,7 +430,9 @@ export default function FoodDeliveryTracker({
             <div className="bg-white/98 backdrop-blur-md shadow-xl rounded-2xl p-2.5 sm:p-3 border border-slate-100/90 flex items-center justify-between transition-all">
               <div className="space-y-0.5">
                 <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-none">
-                  {orderEta
+                  {isCancelled
+                    ? "—"
+                    : orderEta
                     ? orderEta.toLowerCase().includes("min")
                       ? orderEta
                       : `${orderEta} mins`
@@ -444,7 +455,7 @@ export default function FoodDeliveryTracker({
                     d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                   />
                   <path
-                    className="text-[#0f6848] transition-all duration-1000 ease-out"
+                    className="text-[#E21B70] transition-all duration-1000 ease-out"
                     strokeDasharray={`${gaugePercent}, 100`}
                     strokeWidth="3.5"
                     strokeLinecap="round"
@@ -512,7 +523,9 @@ export default function FoodDeliveryTracker({
               </div>
               <div>
                 <h4 className="text-sm font-black text-slate-900 leading-tight">
-                  {orderEta
+                  {isCancelled
+                    ? "—"
+                    : orderEta
                     ? orderEta.toLowerCase().includes("min")
                       ? orderEta
                       : `${orderEta} mins`
@@ -523,7 +536,7 @@ export default function FoodDeliveryTracker({
             </div>
 
             <div className="flex items-center gap-2">
-              {riderPhone && (
+              {riderPhone && !isCancelled && (
                 <a
                   href={`tel:${riderPhone}`}
                   onClick={(e) => e.stopPropagation()}
@@ -540,7 +553,14 @@ export default function FoodDeliveryTracker({
           </div>
         ) : (
           <>
-            {isOutForDelivery || isDelivered ? (
+            {isCancelled ? (
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-4 shadow-sm space-y-2" role="status">
+                <h4 className="text-sm font-extrabold text-red-700">Order Cancelled</h4>
+                <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                  This order was cancelled, so no rider has been dispatched. If you need help, use the Help button above to reach Dadu Food support.
+                </p>
+              </div>
+            ) : isOutForDelivery || isDelivered ? (
               <div className="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm space-y-3.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3.5">
@@ -754,7 +774,7 @@ export default function FoodDeliveryTracker({
             <button
               type="button"
               onClick={() => setShowHelpModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+              className="absolute top-4 right-4 w-11 h-11 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer transition active:scale-95"
               aria-label="Close help modal"
             >
               <X className="w-5 h-5" />

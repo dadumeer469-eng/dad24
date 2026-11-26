@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Dish } from "../types";
 import { AlertTriangle, Clock, Plus, Minus, X, Check } from "lucide-react";
@@ -27,18 +27,42 @@ export default function FoodDetailModal({
   const [sizeError, setSizeError] = useState(false);
   const [flavorError, setFlavorError] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear the toast timer if the modal unmounts mid-toast so onClose()
+  // is never fired on an already-closed modal.
+  React.useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    };
+  }, []);
+
+  const resetSelections = () => {
+    setQuantity(1);
+    setSelectedSizeObj(null);
+    setSelectedFlavorObj(null);
+    setSelectedAddOns([]);
+    setSpecialInstructions("");
+    setSizeError(false);
+    setFlavorError(false);
+    setShowToast(false);
+  };
+
+  // Reset local state on every close, not just when the dish object
+  // changes: reopening the SAME dish passes the same object reference,
+  // so the [dish] effect below would not fire and the previous
+  // quantity/size/flavor would silently carry over.
+  const handleClose = () => {
+    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    resetSelections();
+    onClose();
+  };
 
   React.useEffect(() => {
     if (dish) {
-      setQuantity(1);
-      setSelectedSizeObj(null);
-      setSelectedFlavorObj(null);
-      setSelectedAddOns([]);
-      setSpecialInstructions("");
-      setSizeError(false);
-      setFlavorError(false);
-      setShowToast(false);
+      resetSelections();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dish]);
 
   if (!dish) return null;
@@ -51,8 +75,14 @@ export default function FoodDetailModal({
   const flavorPrice = selectedFlavorObj ? selectedFlavorObj.price : 0;
   const totalPrice = (unitPrice + flavorPrice + addOnsTotal) * quantity;
 
+  // Prices elsewhere show whole rupees ("Rs. 50") — keep option prices
+  // consistent instead of "Rs. 50.00".
+  const fmtRs = (n: number) => (Number.isInteger(n) ? `${n}` : n.toFixed(2));
+
   const handleAdd = () => {
-    if (dish.isAvailable && !isActiveDetailDishClosed) {
+    // Treat a missing flag as available (matches the cart's `!== false`
+    // checks) so legacy dishes without isAvailable set are not blocked.
+    if (dish.isAvailable !== false && !isActiveDetailDishClosed) {
       if (!isService) {
         let hasError = false;
         if (dish.sizes && dish.sizes.length > 0 && !selectedSizeObj) {
@@ -82,9 +112,10 @@ export default function FoodDetailModal({
       );
       
       setShowToast(true);
-      setTimeout(() => {
+      if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = setTimeout(() => {
         setShowToast(false);
-        onClose();
+        handleClose();
       }, 1500);
     }
   };
@@ -97,7 +128,7 @@ export default function FoodDetailModal({
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
         onClick={(e) => {
-          if (e.target === e.currentTarget) onClose();
+          if (e.target === e.currentTarget) handleClose();
         }}
         className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 pb-[76px] sm:p-6"
       >
@@ -109,14 +140,14 @@ export default function FoodDetailModal({
           className="bg-white dark:bg-zinc-900 border-t sm:border border-zinc-100 dark:border-zinc-800 rounded-t-3xl sm:rounded-[32px] max-w-lg w-full overflow-hidden shadow-2xl relative max-h-[calc(92dvh-76px)] sm:max-h-[90dvh] flex flex-col"
         >
           {/* Mobile Bottom-Sheet Drag Handle */}
-          <div className="sm:hidden absolute top-2.5 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full bg-white/80 z-20 pointer-events-none shadow-xs" />
+          <div className="sm:hidden absolute top-2.5 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full bg-zinc-300 dark:bg-zinc-600 z-20 pointer-events-none shadow-xs" />
 
           {/* Close Button */}
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             aria-label="Close dish details"
-            className="absolute top-4 right-4 z-10 w-10 h-10 bg-black/45 hover:bg-black/65 backdrop-blur-md text-white rounded-full flex items-center justify-center transition-colors cursor-pointer"
+            className="absolute top-4 right-4 z-10 w-11 h-11 bg-black/45 hover:bg-black/65 backdrop-blur-md text-white rounded-full flex items-center justify-center transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-white"
           >
             <X className="w-5 h-5" />
           </button>
@@ -171,12 +202,14 @@ export default function FoodDetailModal({
                       {dish.sizes.map((sizeObj, idx) => (
                         <button
                           key={`${sizeObj.name}-${idx}`}
+                          type="button"
                           onClick={() => {
                             setSelectedSizeObj(sizeObj);
                             setSizeError(false);
                           }}
-                          className={`flex flex-col items-center p-3 rounded-xl transition-all border ${
-                            selectedSizeObj === sizeObj 
+                          aria-pressed={selectedSizeObj?.name === sizeObj.name}
+                          className={`min-w-0 min-h-[48px] flex flex-col items-center justify-center p-3 rounded-xl transition-all border focus-visible:outline-2 focus-visible:outline-[#D70F64] ${
+                            selectedSizeObj?.name === sizeObj.name
                               ? "bg-[#D70F64]/10 border-[#D70F64] text-[#D70F64]" 
                               : "bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-600"
                           }`}
@@ -184,7 +217,7 @@ export default function FoodDetailModal({
                           {sizeObj.imageUrl && (
                             <LazyImage src={sizeObj.imageUrl} alt={sizeObj.name} className="w-12 h-12 rounded-full overflow-hidden mb-2" referrerPolicy="no-referrer" />
                           )}
-                          <div className="text-xs font-bold whitespace-nowrap">{sizeObj.name}</div>
+                          <div className="text-xs font-bold truncate max-w-full">{sizeObj.name}</div>
                           <div className="text-[10px] mt-0.5 opacity-80">Rs. {sizeObj.price}</div>
                         </button>
                       ))}
@@ -206,7 +239,7 @@ export default function FoodDetailModal({
                     <p className="text-zinc-500 dark:text-zinc-400 text-sm mb-4">Select one</p>
                     <div className={`flex flex-col ${flavorError ? "p-1 border border-red-500 rounded-2xl bg-red-50/50 dark:bg-red-950/30" : ""}`}>
                       {dish.flavors.map((flavorObj, idx) => {
-                        const isSelected = selectedFlavorObj === flavorObj;
+                        const isSelected = selectedFlavorObj?.name === flavorObj.name;
                         return (
                           <button
                             type="button"
@@ -215,6 +248,7 @@ export default function FoodDetailModal({
                               setSelectedFlavorObj(flavorObj);
                               setFlavorError(false);
                             }}
+                            aria-pressed={isSelected}
                             className={`w-full text-left flex items-center justify-between py-4 cursor-pointer transition-colors ${idx !== dish.flavors!.length - 1 ? 'border-b border-zinc-100 dark:border-zinc-800' : ''} ${isSelected ? 'bg-zinc-50 dark:bg-zinc-800/60' : ''}`}
                           >
                             <div className="flex flex-col px-2">
@@ -230,10 +264,10 @@ export default function FoodDetailModal({
                                 {flavorObj.price === 0 ? (
                                   <span className="text-zinc-500 dark:text-zinc-400 text-sm font-bold">Free</span>
                                 ) : (
-                                  <span className="text-[#D70F64] text-sm font-bold">+ Rs. {flavorObj.price.toFixed(2)}</span>
+                                  <span className="text-[#D70F64] text-sm font-bold">+ Rs. {fmtRs(flavorObj.price)}</span>
                                 )}
                                 {flavorObj.originalPrice && flavorObj.originalPrice > 0 && (
-                                  <span className="text-zinc-400 dark:text-zinc-500 text-xs line-through mt-0.5">Rs. {flavorObj.originalPrice.toFixed(2)}</span>
+                                  <span className="text-zinc-400 dark:text-zinc-500 text-xs line-through mt-0.5">Rs. {fmtRs(flavorObj.originalPrice)}</span>
                                 )}
                               </div>
                               <div className={`w-5 h-5 rounded-full border-[1.5px] flex items-center justify-center ${isSelected ? 'border-[#D70F64] bg-white dark:bg-zinc-900' : 'border-zinc-300 dark:border-zinc-600'}`}>
@@ -273,14 +307,17 @@ export default function FoodDetailModal({
                             </div>
                             <div className="flex items-center gap-4 px-2">
                               <div className="flex flex-col items-end">
-                                <span className="text-[#D70F64] text-sm font-bold">+ Rs. {addOn.price.toFixed(2)}</span>
+                                <span className="text-[#D70F64] text-sm font-bold">+ Rs. {fmtRs(addOn.price)}</span>
                                 {addOn.originalPrice && addOn.originalPrice > 0 && (
-                                  <span className="text-zinc-400 dark:text-zinc-500 text-xs line-through mt-0.5">Rs. {addOn.originalPrice.toFixed(2)}</span>
+                                  <span className="text-zinc-400 dark:text-zinc-500 text-xs line-through mt-0.5">Rs. {fmtRs(addOn.originalPrice)}</span>
                                 )}
                               </div>
-                              <div className="flex items-center bg-zinc-100 dark:bg-zinc-800 rounded-full h-8">
+                              {/* Stepper buttons are 44px tall, so the pill must
+                                  be 44px too — it was h-8, clipping the buttons. */}
+                              <div className="flex items-center bg-zinc-100 dark:bg-zinc-800 rounded-full h-11">
                                 <button
                                   type="button"
+                                  aria-label={`Remove one ${addOn.name}`}
                                   onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
@@ -300,6 +337,7 @@ export default function FoodDetailModal({
                                 <span className="w-6 text-center text-sm font-bold text-zinc-900 dark:text-zinc-100">{addOnCount}</span>
                                 <button
                                   type="button"
+                                  aria-label={`Add one ${addOn.name}`}
                                   onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
@@ -317,7 +355,14 @@ export default function FoodDetailModal({
                     </div>
                   </div>
                 )}
+              </div>
+            )}
 
+            {/* Special Instructions + fallback choice: available for EVERY
+                food dish, not only ones with sizes/flavors/add-ons — they
+                were previously trapped inside that conditional above. */}
+            {!isService && (
+              <div className="space-y-5 mt-6 border-t border-zinc-100 dark:border-zinc-800 pt-5">
                 {/* Special Instructions */}
                 <div>
                   <h4 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 mb-3">Special Instructions</h4>
@@ -325,6 +370,7 @@ export default function FoodDetailModal({
                     value={specialInstructions}
                     onChange={(e) => setSpecialInstructions(e.target.value)}
                     placeholder="e.g. No mayo, extra spicy..."
+                    aria-label="Special instructions for this dish"
                     className="w-full p-3 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-xl text-sm outline-none focus:border-[#D70F64] resize-none h-20 placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
                   />
                 </div>
@@ -335,7 +381,8 @@ export default function FoodDetailModal({
                   <select
                     value={notAvailable}
                     onChange={(e) => setNotAvailable(e.target.value as "refund" | "replace" | "call")}
-                    className="w-full min-h-[44px] p-3 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-xl text-sm outline-none focus:border-[#D70F64]"
+                    aria-label="What to do if this item is not available"
+                    className="w-full min-h-[48px] p-3 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-xl text-sm outline-none focus:border-[#D70F64]"
                   >
                     <option value="refund">Refund my money</option>
                     <option value="replace">Replace with a similar item</option>
@@ -350,15 +397,19 @@ export default function FoodDetailModal({
           <div className="p-4 sm:p-5 bg-white dark:bg-zinc-900 border-t border-zinc-100 dark:border-zinc-800 shrink-0 flex items-center justify-between gap-3 sticky bottom-0 z-10 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
             <div className="flex items-center gap-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-full p-1 shadow-sm shrink-0">
               <button
+                type="button"
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                className="w-10 h-10 rounded-full bg-white dark:bg-zinc-700 shadow-sm flex items-center justify-center text-zinc-600 dark:text-zinc-200 hover:text-[#D70F64] transition-colors"
+                aria-label="Decrease quantity"
+                className="w-12 h-12 rounded-full bg-white dark:bg-zinc-700 shadow-sm flex items-center justify-center text-zinc-600 dark:text-zinc-200 hover:text-[#D70F64] transition-colors focus-visible:outline-2 focus-visible:outline-[#D70F64]"
               >
                 <Minus className="w-5 h-5" />
               </button>
-              <span className="font-black text-base w-4 text-center text-zinc-900 dark:text-zinc-100">{quantity}</span>
+              <span className="font-black text-base min-w-6 text-center text-zinc-900 dark:text-zinc-100">{quantity}</span>
               <button
+                type="button"
                 onClick={() => setQuantity(quantity + 1)}
-                className="w-10 h-10 rounded-full bg-white dark:bg-zinc-700 shadow-sm flex items-center justify-center text-zinc-600 dark:text-zinc-200 hover:text-[#D70F64] transition-colors"
+                aria-label="Increase quantity"
+                className="w-12 h-12 rounded-full bg-white dark:bg-zinc-700 shadow-sm flex items-center justify-center text-zinc-600 dark:text-zinc-200 hover:text-[#D70F64] transition-colors focus-visible:outline-2 focus-visible:outline-[#D70F64]"
               >
                 <Plus className="w-5 h-5" />
               </button>
@@ -366,9 +417,9 @@ export default function FoodDetailModal({
             
             <button
               onClick={handleAdd}
-              disabled={!dish.isAvailable || isActiveDetailDishClosed}
-              className={`flex-1 py-4 rounded-full text-sm font-black capitalize tracking-wide flex items-center justify-between px-6 transition-all shadow-lg ${
-                (!dish.isAvailable || isActiveDetailDishClosed) 
+              disabled={dish.isAvailable === false || isActiveDetailDishClosed}
+              className={`flex-1 min-h-[52px] py-4 rounded-full text-sm font-black capitalize tracking-wide flex items-center justify-between px-6 transition-all shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D70F64] ${
+                (dish.isAvailable === false || isActiveDetailDishClosed) 
                   ? 'cursor-not-allowed opacity-60 bg-zinc-200 text-zinc-500 shadow-none' 
                   : ((dish.sizes && dish.sizes.length > 0 && !selectedSizeObj) || (dish.flavors && dish.flavors.length > 0 && !selectedFlavorObj))
                     ? 'bg-zinc-200 text-zinc-500 shadow-none hover:bg-zinc-300'
@@ -391,7 +442,8 @@ export default function FoodDetailModal({
                initial={{ opacity: 0, y: 20 }} 
                animate={{ opacity: 1, y: 0 }} 
                exit={{ opacity: 0, y: 10 }} 
-               className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-green-500 text-white px-5 py-3 rounded-full shadow-2xl font-bold flex items-center gap-2 z-[60]"
+               className="absolute bottom-24 left-1/2 -translate-x-1/2 bg-green-500 text-white px-5 py-3 rounded-full shadow-2xl font-bold flex items-center gap-2 z-[60]"
+               role="status"
              >
                 <Check className="w-5 h-5" /> Item added to cart!
              </motion.div>

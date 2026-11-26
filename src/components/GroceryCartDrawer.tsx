@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
-import { UserProfile, GroceryOrderItem, GroceryDeliveryConfig, getUserCoins, Voucher, calculateVoucherDiscount, isVoucherExpired, canUserUseVoucher } from "../types";
-import { X, ShoppingBag, MapPin, Phone, User, AlertTriangle, ShieldCheck, Heart, Edit2, Compass, CheckCircle, Coins, Ticket, Tag, ChevronDown, Check, Loader2, Info } from "lucide-react";
+import { UserProfile, GroceryOrderItem, GroceryDeliveryConfig, getUserCoins, Voucher, calculateVoucherDiscount, canUserUseVoucher } from "../types";
+import { X, ShoppingBag, MapPin, Phone, AlertTriangle, ShieldCheck, Edit2, CheckCircle, Coins, Ticket, Tag, ChevronDown, Check, Loader2, Info } from "lucide-react";
 import { LazyImage } from "./LazyImage";
 import UserVouchersModal from "./UserVouchersModal";
 import { doc, setDoc } from "firebase/firestore";
@@ -242,11 +242,37 @@ export default function GroceryCartDrawer({
     }
   }, [isOpen, cartItems.length]);
 
+  // Escape closes the drawer (keyboard / accessibility).
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isOpen, onClose]);
+
+  // Medicine product ids (memoised — the catalogue is ~300 items, no need to
+  // rebuild this set on every render).
+  const medicineProductIds = useMemo(
+    () =>
+      new Set(
+        OWNER_GROCERY_PRODUCTS.filter((p) => p.categoryId === "gcat_medicine").map((p) => p.id),
+      ),
+    [],
+  );
+
   if (!isOpen) return null;
 
   // Totals calculations
+  // Effective per-item price: honour a discount price when one is set, so the
+  // basket charges exactly what the product grid displayed (mirrors food checkout).
+  const effectiveItemPrice = (item: GroceryOrderItem) =>
+    item.discountPrice && item.discountPrice > 0 && item.discountPrice < item.price
+      ? item.discountPrice
+      : item.price;
   const totalGroceryPrice = cartItems.reduce(
-    (acc, item) => acc + (item.price) * item.quantity,
+    (acc, item) => acc + effectiveItemPrice(item) * item.quantity,
     0
   );
 
@@ -257,10 +283,7 @@ export default function GroceryCartDrawer({
   const isFreeDelivery = totalGroceryPrice >= freeThreshold;
   // Medicine has its OWN delivery fee, separate from grocery (user instruction).
   // If the cart contains any medicine item, the medicine fee applies instead.
-  const MEDICINE_PRODUCT_IDS = new Set(
-    OWNER_GROCERY_PRODUCTS.filter((p) => p.categoryId === "gcat_medicine").map((p) => p.id),
-  );
-  const hasMedicine = cartItems.some((item) => MEDICINE_PRODUCT_IDS.has(item.productId));
+  const hasMedicine = cartItems.some((item) => medicineProductIds.has(item.productId));
   const medicineDeliveryFee = (deliveryConfig?.medicineDeliveryFee || 0) > 0 ? deliveryConfig.medicineDeliveryFee : 30;
   const baseDeliveryFee = hasMedicine
     ? medicineDeliveryFee
@@ -529,6 +552,7 @@ export default function GroceryCartDrawer({
       onClose();
     } catch (err) {
       console.error("Order submission fail:", err);
+      setCheckoutError("Order place nahi hua — apna connection check karke dobara try karein.");
     } finally {
       setSubmitting(false);
     }
@@ -539,7 +563,7 @@ export default function GroceryCartDrawer({
       {/* Tap space to slide out drawer */}
       <div className="flex-1" onClick={onClose}></div>
 
-      <div className="w-full max-w-md bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 h-full h-dvh flex flex-col shadow-2xl border-l border-zinc-200 dark:border-zinc-800 animate-slide-in">
+      <div role="dialog" aria-modal="true" aria-label="Grocery basket and checkout" className="w-full max-w-md bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 h-full h-dvh flex flex-col shadow-2xl border-l border-zinc-200 dark:border-zinc-800 animate-slide-in">
 
         {/* Banner with close */}
         <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 flex items-center justify-between shadow-xs">
@@ -550,7 +574,7 @@ export default function GroceryCartDrawer({
           <button
             onClick={onClose}
             aria-label="Close grocery basket"
-            className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-850 rounded-full transition cursor-pointer text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+            className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-850 rounded-full transition cursor-pointer text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70]"
           >
             <X className="w-4 h-4" />
           </button>
@@ -599,8 +623,8 @@ export default function GroceryCartDrawer({
                   <LazyImage src={item.imageUrl} alt={item.name} className="w-12 h-12 rounded-xl overflow-hidden shrink-0" referrerPolicy="no-referrer" />
                   <div className="flex-1 min-w-0">
                     <span className="font-extrabold text-sm text-zinc-900 dark:text-zinc-100 block truncate">{item.name}</span>
-                    <span className="text-xs text-zinc-500 dark:text-zinc-400 font-bold block mt-0.5">Unit: {item.unit} • Rs. {item.price} each</span>
-                    {MEDICINE_PRODUCT_IDS.has(item.productId) && (
+                    <span className="text-xs text-zinc-500 dark:text-zinc-400 font-bold block mt-0.5">Unit: {item.unit} • Rs. {effectiveItemPrice(item)} each{effectiveItemPrice(item) < item.price && (<span className="line-through ml-1">Rs. {item.price}</span>)}</span>
+                    {medicineProductIds.has(item.productId) && (
                       <span className="text-[10px] text-[#E21B70] dark:text-[#FF4D94] font-extrabold tracking-wider uppercase flex items-center gap-1 select-none mt-0.5">
                         <span>💊</span> Medicine
                       </span>
@@ -611,14 +635,16 @@ export default function GroceryCartDrawer({
                   <div className="flex items-center gap-2 select-none shrink-0 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-1 rounded-xl">
                     <button
                       onClick={() => onUpdateQuantity(item.productId, item.quantity - 1)}
-                      className="w-9 h-9 rounded-lg text-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800"
+                      aria-label={`Decrease quantity of ${item.name}`}
+                      className="w-10 h-10 rounded-lg text-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-[#E21B70]"
                     >
                       -
                     </button>
                     <span className="text-xs font-black min-w-4 text-center text-zinc-800 dark:text-zinc-200">{item.quantity}</span>
                     <button
                       onClick={() => onUpdateQuantity(item.productId, item.quantity + 1)}
-                      className="w-9 h-9 rounded-lg text-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800"
+                      aria-label={`Increase quantity of ${item.name}`}
+                      className="w-10 h-10 rounded-lg text-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-[#E21B70]"
                     >
                       +
                     </button>
@@ -626,7 +652,8 @@ export default function GroceryCartDrawer({
 
                   <button
                     onClick={() => onRemoveItem(item.productId)}
-                    className="p-1 text-zinc-500 dark:text-zinc-400 hover:text-[#E21B70] shrink-0 transition cursor-pointer"
+                    aria-label={`Remove ${item.name} from basket`}
+                    className="min-w-[40px] min-h-[40px] p-2 flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:text-[#E21B70] shrink-0 transition cursor-pointer focus-visible:outline-2 focus-visible:outline-[#E21B70] rounded-lg"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -637,7 +664,7 @@ export default function GroceryCartDrawer({
 
           {/* Checkout address inputs flow */}
           {cartItems.length > 0 && (
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-3xl mt-6 space-y-4 shadow-3xs">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-3xl mt-6 space-y-4 shadow-xs">
               <h4 className="text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300 border-b border-zinc-200 dark:border-zinc-800 pb-2 flex items-center gap-1.5">
                 <MapPin className="w-4 h-4 text-[#E21B70]" />
                 Delivery Information Details
@@ -679,14 +706,14 @@ export default function GroceryCartDrawer({
                       </div>
 
                       {addressSaveSuccess && (
-                        <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold flex items-center gap-1.5 animate-fadeIn">
+                        <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold flex items-center gap-1.5 animate-fade-in">
                           <Check className="w-3.5 h-3.5 shrink-0" />
                           Address updated in database successfully!
                         </div>
                       )}
 
                       {isEditingAddress ? (
-                        <div className="space-y-2 pt-1 animate-fadeIn">
+                        <div className="space-y-2 pt-1 animate-fade-in">
                           {/* Quick Address Tag Selector */}
                           <div className="flex items-center gap-1.5 flex-wrap">
                             {(["Ghar", "Dukan / Office", "Hostel", "Other"] as SavedAddressEntry["label"][]).map((tag) => (
@@ -1004,6 +1031,8 @@ export default function GroceryCartDrawer({
                       <button
                         key={pref.key}
                         type="button"
+                        aria-pressed={pref.value}
+                        aria-label={pref.label}
                         onClick={() => pref.set(!pref.value)}
                         className="w-full flex items-center justify-between gap-3 cursor-pointer"
                       >
@@ -1060,12 +1089,12 @@ export default function GroceryCartDrawer({
         {/* Pricing Summary Bottom Card */}
         {cartItems.length > 0 && (
           <div className="p-4 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 space-y-3.5 rounded-t-3xl shadow-2xl shrink-0">
-            {totalGroceryPrice < 500 && (
+            {isDoubleFee && !isFreeDelivery && (
               <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-3 text-[11px] text-amber-600 dark:text-amber-400 flex items-start gap-2.5">
                 <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-extrabold block text-amber-600 dark:text-amber-300">Delivery Charges Doubled (Below Rs. 500)</span>
-                  Rs. 500 se kam order par delivery charges double hain. Add Rs. {500 - totalGroceryPrice} more grocery items to get standard delivery!
+                  <span className="font-extrabold block text-amber-600 dark:text-amber-300">Delivery Charges Doubled (Below Rs. {doubleFeeBelow})</span>
+                  Rs. {doubleFeeBelow} se kam order par delivery charges double hain. Add Rs. {doubleFeeBelow - totalGroceryPrice} more grocery items to get standard delivery!
                 </div>
               </div>
             )}
@@ -1248,7 +1277,7 @@ export default function GroceryCartDrawer({
 
                   {/* Coin Benefit Section - Rendered ONLY if enabled by admin and user has coins */}
                   {isLoyaltyEnabledForGrocery && maxAllowedCoinsByAdmin > 0 && userCoins > 0 && (
-                    <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/15 to-amber-600/10 border border-amber-500/30 rounded-xl p-3 space-y-2.5 animate-fadeIn text-left shadow-sm">
+                    <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/15 to-amber-600/10 border border-amber-500/30 rounded-xl p-3 space-y-2.5 animate-fade-in text-left shadow-sm">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0">
                           <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0 shadow-inner">
@@ -1273,6 +1302,8 @@ export default function GroceryCartDrawer({
                         <button
                           type="button"
                           onClick={handleToggleCoins}
+                          aria-pressed={useCoins && !appliedVoucher}
+                          aria-label="Use coins for discount"
                           className={`w-11 h-6 rounded-full transition-all relative cursor-pointer outline-none shrink-0 border ${
                             useCoins && !appliedVoucher ? "bg-amber-500 border-amber-400 shadow-md shadow-amber-500/20" : "bg-zinc-200 dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700"
                           }`}
@@ -1301,7 +1332,7 @@ export default function GroceryCartDrawer({
 
                   {/* Real-time Loyalty Cashback Earning Banner - Rendered ONLY if enabled by admin */}
                   {loyaltyEarnEnabled && loyaltyEarnVal > 0 && (
-                    <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between text-left text-xs animate-fadeIn shadow-xs">
+                    <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between text-left text-xs animate-fade-in shadow-xs">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/35 flex items-center justify-center shrink-0">
                           <Coins className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 animate-bounce" />
@@ -1390,7 +1421,7 @@ export default function GroceryCartDrawer({
             <button
               onClick={handleCheckoutSubmit}
               disabled={submitting}
-              className="w-full min-h-[48px] btn-pink text-white py-3.5 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75 active:scale-[0.98]"
+              className="w-full min-h-[48px] btn-pink text-white py-3.5 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70]"
             >
               {submitting ? (
                 <>Placing Grocery Order...</>

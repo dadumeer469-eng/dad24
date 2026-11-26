@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { X, Phone, ArrowRight, UserCog, Key, ShieldCheck, RefreshCw, ArrowLeft } from "lucide-react";
+import { X, Phone, ArrowRight, UserCog, Key, ShieldCheck, RefreshCw, ArrowLeft, Loader2 } from "lucide-react";
 import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
@@ -9,7 +9,6 @@ import {
 } from "firebase/auth";
 import { auth } from "../firebase";
 import daduLogo from "../assets/images/dadu_food_logo_new_1782333467889.jpg";
-import DaduLogoLoader from "./DaduLogoLoader";
 
 export interface GoogleAuthPayload {
   uid: string;
@@ -285,7 +284,7 @@ export default function AuthModal({
             setError("");
             setInfoMsg("");
           }}
-          className="absolute top-4 left-4 min-h-[40px] min-w-[40px] flex items-center justify-center bg-black/20 hover:bg-black/35 text-white rounded-full z-10 transition-colors cursor-pointer"
+          className="absolute top-4 left-4 min-h-[48px] min-w-[48px] flex items-center justify-center bg-black/20 hover:bg-black/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 text-white rounded-full z-10 transition-colors cursor-pointer"
           title={isStaffMode ? "Back to Customer Sign-In" : "Staff / Admin Login"}
           aria-label={isStaffMode ? "Switch to customer login" : "Switch to staff login"}
         >
@@ -295,12 +294,12 @@ export default function AuthModal({
           type="button"
           onClick={onClose}
           aria-label="Close sign in dialog"
-          className="absolute top-4 right-4 min-h-[40px] min-w-[40px] flex items-center justify-center bg-black/20 hover:bg-black/35 text-white rounded-full z-10 transition-colors cursor-pointer"
+          className="absolute top-4 right-4 min-h-[48px] min-w-[48px] flex items-center justify-center bg-black/20 hover:bg-black/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 text-white rounded-full z-10 transition-colors cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <div className="bg-[#D70F64] p-6 text-center">
+        <div className="bg-[#E21B70] p-6 text-center">
           <img
             src={daduLogo}
             alt="Dadu Food Logo"
@@ -324,7 +323,7 @@ export default function AuthModal({
 
         <div className="p-6 sm:p-7 space-y-4">
           {error && (
-            <div className="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-xs p-3 rounded-xl font-semibold text-center leading-relaxed">
+            <div role="alert" className="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-xs p-3 rounded-xl font-semibold text-center leading-relaxed">
               {error}
             </div>
           )}
@@ -345,9 +344,11 @@ export default function AuthModal({
                     type="text"
                     required
                     placeholder="Staff Email or Phone"
+                    aria-label="Staff email or phone number"
+                    autoComplete="username"
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-zinc-300 dark:border-zinc-700 outline-none focus:border-[#D70F64] focus:ring-2 focus:ring-[#D70F64]/20 transition bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-bold text-sm"
+                    className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-zinc-300 dark:border-zinc-700 outline-none focus:border-[#E21B70] focus:ring-2 focus:ring-[#E21B70]/20 transition bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-bold text-sm"
                   />
                 </div>
                 <div className="relative">
@@ -356,9 +357,11 @@ export default function AuthModal({
                     type="password"
                     required
                     placeholder="Staff Password"
+                    aria-label="Staff password"
+                    autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-zinc-300 dark:border-zinc-700 outline-none focus:border-[#D70F64] focus:ring-2 focus:ring-[#D70F64]/20 transition bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-bold text-sm"
+                    className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-zinc-300 dark:border-zinc-700 outline-none focus:border-[#E21B70] focus:ring-2 focus:ring-[#E21B70]/20 transition bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-bold text-sm"
                   />
                 </div>
               </div>
@@ -366,9 +369,9 @@ export default function AuthModal({
               <button
                 type="submit"
                 disabled={loading || !phoneNumber.trim() || password.length < 4}
-                className="w-full min-h-[48px] bg-[#D70F64] hover:bg-[#B80C54] text-white font-black tracking-wide shadow-md transition-all flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm uppercase disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-[0.98]"
+                className="w-full min-h-[48px] bg-[#E21B70] hover:bg-[#C2145E] text-white font-black tracking-wide shadow-md transition-all flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm uppercase disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-[0.98]"
               >
-                {loading ? <DaduLogoLoader compact size="sm" /> : <>Verify &amp; Login <ArrowRight className="w-4 h-4" /></>}
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" /> : <>Verify &amp; Login <ArrowRight className="w-4 h-4" /></>}
               </button>
             </form>
           ) : otpStep === "phone" ? (
@@ -381,12 +384,20 @@ export default function AuthModal({
                     inputMode="numeric"
                     required
                     placeholder="03XX-XXXXXXX"
+                    aria-label="Mobile number"
+                    autoComplete="tel-national"
                     value={phoneNumber}
                     onChange={(e) => {
-                      const val = e.target.value.replace(/\D/g, "");
+                      let val = e.target.value.replace(/\D/g, "");
+                      // Pasting "+92 3XX-XXXXXXX" (12 digits) used to get
+                      // sliced to "923..." and then rejected by the 03...
+                      // check with no hint why — normalise it to local form.
+                      if (val.startsWith("92") && val.length >= 12) {
+                        val = "0" + val.slice(2);
+                      }
                       setPhoneNumber(val.slice(0, 11));
                     }}
-                    className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-zinc-300 dark:border-zinc-700 outline-none focus:border-[#D70F64] focus:ring-2 focus:ring-[#D70F64]/20 transition bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-bold text-lg tracking-wide"
+                    className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-zinc-300 dark:border-zinc-700 outline-none focus:border-[#E21B70] focus:ring-2 focus:ring-[#E21B70]/20 transition bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-bold text-lg tracking-wide"
                   />
                 </div>
                 <p className="text-[11px] text-zinc-500 dark:text-zinc-400 text-center">
@@ -395,9 +406,9 @@ export default function AuthModal({
                 <button
                   type="submit"
                   disabled={loading || googleLoading || phoneNumber.length < 11}
-                  className="w-full min-h-[48px] bg-[#D70F64] hover:bg-[#B80C54] text-white font-black tracking-wide shadow-md transition-all flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm uppercase disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-[0.98]"
+                  className="w-full min-h-[48px] bg-[#E21B70] hover:bg-[#C2145E] text-white font-black tracking-wide shadow-md transition-all flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm uppercase disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-[0.98]"
                 >
-                  {loading ? <DaduLogoLoader compact size="sm" /> : <>Send SMS OTP <ArrowRight className="w-4 h-4" /></>}
+                  {loading ? <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" /> : <>Send SMS OTP <ArrowRight className="w-4 h-4" /></>}
                 </button>
               </form>
 
@@ -416,7 +427,7 @@ export default function AuthModal({
                 className="w-full min-h-[48px] bg-white dark:bg-[#1D1D26] hover:bg-zinc-50 dark:hover:bg-[#252530] text-[#14141A] dark:text-white border border-zinc-300 dark:border-zinc-700 font-extrabold text-sm rounded-2xl py-3 px-4 flex items-center justify-center gap-2.5 shadow-2xs transition cursor-pointer disabled:opacity-50 active:scale-[0.98]"
               >
                 {googleLoading ? (
-                  <DaduLogoLoader compact size="sm" />
+                  <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
                 ) : (
                   <>
                     <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
@@ -445,25 +456,26 @@ export default function AuthModal({
           ) : (
             <form onSubmit={handleVerifyOtp} className="space-y-4">
               <div className="relative">
-                <ShieldCheck className="absolute left-4 top-3.5 w-5 h-5 text-[#D70F64]" />
+                <ShieldCheck className="absolute left-4 top-3.5 w-5 h-5 text-[#E21B70]" />
                 <input
                   type="text"
                   inputMode="numeric"
                   autoComplete="one-time-code"
                   required
                   placeholder="Enter 6-digit OTP"
+                  aria-label="6-digit OTP code"
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-zinc-300 dark:border-zinc-700 outline-none focus:border-[#D70F64] focus:ring-2 focus:ring-[#D70F64]/20 transition bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-black text-xl tracking-[0.3em] text-center"
+                  className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-zinc-300 dark:border-zinc-700 outline-none focus:border-[#E21B70] focus:ring-2 focus:ring-[#E21B70]/20 transition bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-black text-xl tracking-[0.3em] text-center"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading || otpCode.length < 6}
-                className="w-full min-h-[48px] bg-[#D70F64] hover:bg-[#B80C54] text-white font-black tracking-wide shadow-md transition-all flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm uppercase disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-[0.98]"
+                className="w-full min-h-[48px] bg-[#E21B70] hover:bg-[#C2145E] text-white font-black tracking-wide shadow-md transition-all flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm uppercase disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-[0.98]"
               >
-                {loading ? <DaduLogoLoader compact size="sm" /> : <>Verify OTP &amp; Continue <ArrowRight className="w-4 h-4" /></>}
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" /> : <>Verify OTP &amp; Continue <ArrowRight className="w-4 h-4" /></>}
               </button>
 
               <div className="flex items-center justify-between pt-1 text-xs">
@@ -474,7 +486,7 @@ export default function AuthModal({
                     setOtpCode("");
                     setError("");
                   }}
-                  className="inline-flex items-center gap-1 font-bold text-zinc-600 dark:text-zinc-300 hover:text-[#D70F64] cursor-pointer"
+                  className="inline-flex items-center gap-1 min-h-[44px] px-2 py-1 font-bold text-zinc-600 dark:text-zinc-300 hover:text-[#E21B70] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70]/50 rounded-lg cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" /> Change Number
                 </button>
@@ -482,7 +494,7 @@ export default function AuthModal({
                   type="button"
                   disabled={resendCooldown > 0 || loading}
                   onClick={() => handleSendOtp()}
-                  className="inline-flex items-center gap-1 font-bold text-[#D70F64] disabled:text-zinc-400 cursor-pointer"
+                  className="inline-flex items-center gap-1 min-h-[44px] px-2 py-1 font-bold text-[#E21B70] disabled:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70]/50 rounded-lg cursor-pointer"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend OTP"}

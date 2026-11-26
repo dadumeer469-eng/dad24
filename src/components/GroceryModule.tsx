@@ -268,7 +268,7 @@ export default function GroceryModule({
               toggleFav(p.id);
             }}
             aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
-            className="absolute top-2 right-2 z-10 w-8 h-8 flex items-center justify-center cursor-pointer active:scale-90 transition"
+            className="absolute top-2 right-2 z-10 w-9 h-9 flex items-center justify-center cursor-pointer active:scale-90 transition rounded-full focus-visible:outline-2 focus-visible:outline-white"
           >
             <Heart
               className={`w-5 h-5 drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)] ${
@@ -305,7 +305,7 @@ export default function GroceryModule({
                   type="button"
                   onClick={() => onUpdateCartQuantity(p.id, qty - 1)}
                   aria-label="Decrease quantity"
-                  className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center cursor-pointer active:scale-90"
+                  className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center cursor-pointer active:scale-90 focus-visible:outline-2 focus-visible:outline-white"
                 >
                   <Minus className="w-3.5 h-3.5" />
                 </button>
@@ -314,7 +314,7 @@ export default function GroceryModule({
                   type="button"
                   onClick={() => onUpdateCartQuantity(p.id, qty + 1)}
                   aria-label="Increase quantity"
-                  className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center cursor-pointer active:scale-90"
+                  className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center cursor-pointer active:scale-90 focus-visible:outline-2 focus-visible:outline-white"
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
@@ -342,7 +342,7 @@ export default function GroceryModule({
                   type="button"
                   onClick={() => onAddToCart(p)}
                   aria-label={`Add ${p.name} to cart`}
-                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full btn-pink text-white flex items-center justify-center cursor-pointer active:scale-90 shrink-0 shadow-md"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full btn-pink text-white flex items-center justify-center cursor-pointer active:scale-90 shrink-0 shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70]"
                 >
                   <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
@@ -389,7 +389,7 @@ export default function GroceryModule({
               onClick={() =>
                 document.getElementById("grocery-products")?.scrollIntoView({ behavior: "smooth", block: "start" })
               }
-              className="mt-3.5 inline-flex items-center gap-1.5 bg-white text-[#14141A] font-extrabold text-xs sm:text-sm px-4 py-2.5 rounded-full shadow-md hover:bg-pink-50 active:scale-95 transition cursor-pointer"
+              className="mt-3.5 inline-flex items-center gap-1.5 bg-white text-[#14141A] font-extrabold text-xs sm:text-sm px-4 py-2.5 min-h-[44px] rounded-full shadow-md hover:bg-pink-50 active:scale-95 transition cursor-pointer"
             >
               Shop Now <ChevronRight className="w-4 h-4" />
             </button>
@@ -401,6 +401,7 @@ export default function GroceryModule({
           <div className="flex items-stretch gap-2.5 overflow-x-auto pb-1 scrollbar-none touch-pan-both overscroll-x-contain -mx-3.5 pl-3.5 pr-5 sm:mx-0 sm:pl-0 sm:pr-3">
             <button
               type="button"
+              aria-pressed={selectedCategoryId === "All" && !showAllCatalog}
               onClick={() => {
                 setSelectedCategoryId("All");
                 setShowAllInCategory(false);
@@ -433,6 +434,7 @@ export default function GroceryModule({
                 <button
                   key={cat.id}
                   type="button"
+                  aria-pressed={isActive}
                   onClick={() => {
                     setSelectedCategoryId(cat.id);
                     setShowAllInCategory(true);
@@ -485,7 +487,7 @@ export default function GroceryModule({
                     setShowAllCatalog(true);
                     setShowAllInCategory(true);
                   }}
-                  className="text-xs font-bold text-[#D70F64] dark:text-[#FF4D94] hover:underline shrink-0 cursor-pointer min-h-[36px] px-2"
+                  className="text-xs font-bold text-[#D70F64] dark:text-[#FF4D94] hover:underline shrink-0 cursor-pointer min-h-[44px] px-2"
                 >
                   See All →
                 </button>
@@ -541,7 +543,7 @@ export default function GroceryModule({
                           setSelectedCategoryId(section.id);
                           setShowAllInCategory(true);
                         }}
-                        className="text-xs font-bold text-[#D70F64] dark:text-[#FF4D94] hover:underline shrink-0 cursor-pointer min-h-[36px] px-2"
+                        className="text-xs font-bold text-[#D70F64] dark:text-[#FF4D94] hover:underline shrink-0 cursor-pointer min-h-[44px] px-2"
                       >
                         See all →
                       </button>

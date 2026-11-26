@@ -66,6 +66,26 @@ async function reverseGeocode(lat: number, lng: number): Promise<string | null> 
   return typeof data?.display_name === "string" ? data.display_name : null;
 }
 
+function MapResizeHandler() {
+  const map = useMap();
+  useEffect(() => {
+    const container = map.getContainer();
+    // The map pane is flex-sized, so its box can change after mount
+    // (error banner appearing, keyboard, rotation). Without this Leaflet
+    // keeps the old size and paints grey tiles over the new area.
+    if (typeof ResizeObserver === "undefined") {
+      map.invalidateSize();
+      return;
+    }
+    const ro = new ResizeObserver(() => {
+      map.invalidateSize();
+    });
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, [map]);
+  return null;
+}
+
 function MapCameraController({
   targetPosition,
   panTrigger,
@@ -117,6 +137,8 @@ function NominatimSearch({
     if (trimmed.length < 2) {
       setSuggestions([]);
       setShowDropdown(false);
+      // A stale "not found" error must not linger once the user starts over.
+      onError("");
       return;
     }
 
@@ -202,6 +224,8 @@ function NominatimSearch({
               if (suggestions.length > 0) setShowDropdown(true);
             }}
             placeholder="Search area, road, or landmark in Dadu..."
+            aria-label="Search area, road, or landmark in Dadu"
+            autoComplete="off"
             className="w-full min-h-[44px] bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl py-2 pl-9 pr-3 text-xs font-bold text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-[#E21B70]/40 transition"
           />
         </div>
@@ -250,6 +274,11 @@ function InteractiveLeafletMapView({
   onPickCoords: (nextLat: number, nextLng: number) => void;
 }) {
   const pinIcon = useMemo(() => makePinIcon(), []);
+  // Memoised so MapCameraController's effect only fires when the pin
+  // actually moves — before this, every parent re-render (e.g. the
+  // reverse-geocode label arriving) rebuilt the object and yanked the
+  // map back to the pin while the user was panning around to look.
+  const targetPosition = useMemo(() => ({ lat, lng }), [lat, lng]);
 
   return (
     <MapContainer
@@ -258,7 +287,8 @@ function InteractiveLeafletMapView({
       style={{ width: "100%", height: "100%" }}
     >
       <TileLayer url={OSM_TILE_URL} attribution={OSM_ATTRIBUTION} />
-      <MapCameraController targetPosition={{ lat, lng }} panTrigger={panTrigger} />
+      <MapResizeHandler />
+      <MapCameraController targetPosition={targetPosition} panTrigger={panTrigger} />
       <MapClickHandler onPick={onPickCoords} />
       <Marker
         position={[lat, lng]}
@@ -307,6 +337,20 @@ export default function MapLocationPickerModal({
       setPanTrigger((n) => n + 1);
     }
   }, [isOpen, initialLat, initialLng]);
+
+  // Escape closes the picker; clear any pending reverse-geocode on unmount
+  // so it never writes state after the modal is gone.
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      if (reverseTimerRef.current) clearTimeout(reverseTimerRef.current);
+    };
+  }, [isOpen, onClose]);
 
   // Best-effort reverse-geocode: fills the address label for pins placed by
   // tapping/dragging/GPS. Never blocks saving; never overwrites a search label.
@@ -384,10 +428,19 @@ export default function MapLocationPickerModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 backdrop-blur-sm p-3 sm:p-5 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[92vh]">
+    <div
+      className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 backdrop-blur-sm p-3 sm:p-5 animate-fade-in"
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      onClick={onClose}
+    >
+      <div
+        className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[92vh] animate-scale-up"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="p-4 sm:p-5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50 dark:bg-zinc-900/80">
+        <div className="p-4 sm:p-5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50 dark:bg-zinc-900/80 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="p-2.5 bg-[#E21B70]/10 text-[#E21B70] rounded-2xl">
               <MapPin className="w-5 h-5 stroke-[2.5]" />
@@ -405,7 +458,7 @@ export default function MapLocationPickerModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-10 h-10 flex items-center justify-center text-zinc-400 hover:text-zinc-600 dark:hover:text-white bg-zinc-100 dark:bg-zinc-800 rounded-full transition cursor-pointer"
+            className="w-12 h-12 min-h-[48px] min-w-[48px] flex items-center justify-center text-zinc-400 hover:text-zinc-600 dark:hover:text-white bg-zinc-100 dark:bg-zinc-800 rounded-full transition cursor-pointer shrink-0"
             title="Close"
             aria-label="Close map picker"
           >
@@ -415,7 +468,7 @@ export default function MapLocationPickerModal({
 
         <GoogleMapsProvider>
           {/* Search & GPS Toolbar */}
-          <div className="p-3 sm:p-4 bg-white dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800/60 space-y-2">
+          <div className="p-3 sm:p-4 bg-white dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800/60 space-y-2 shrink-0">
             <div className="flex gap-2 items-start">
               <NominatimSearch
                 onSelectLocation={handleSelectPosition}
@@ -426,8 +479,9 @@ export default function MapLocationPickerModal({
                 type="button"
                 onClick={handleGetCurrentLocation}
                 disabled={isLocating}
-                className="min-h-[44px] bg-[#FDF2F6] dark:bg-[#2A121D] text-[#E21B70] dark:text-[#FF4D94] hover:opacity-90 px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0 border border-[#E21B70]/25"
+                className="min-h-[44px] bg-[#FDF2F6] dark:bg-[#2A121D] text-[#E21B70] dark:text-[#FF4D94] hover:opacity-90 px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0 border border-[#E21B70]/25 disabled:opacity-60"
                 title="Use current GPS position"
+                aria-label="Use my current GPS location"
               >
                 {isLocating ? (
                   <Loader2 className="w-4 h-4 animate-spin text-[#E21B70]" />
@@ -439,12 +493,14 @@ export default function MapLocationPickerModal({
             </div>
 
             {searchError && (
-              <p className="text-[11px] text-rose-500 font-bold px-1">{searchError}</p>
+              <p role="alert" className="text-[11px] text-rose-500 font-bold px-1">{searchError}</p>
             )}
           </div>
 
-          {/* Leaflet Map View (explicit CSS height to prevent 0x0 collapse) */}
-          <div className="relative w-full h-[320px] sm:h-[380px] bg-zinc-200 dark:bg-zinc-800 shrink-0">
+          {/* Leaflet Map View — flex-sized (not a fixed height) so the footer
+              can never be pushed off-screen on short phones; MapResizeHandler
+              keeps Leaflet's tiles in sync when this box changes size. */}
+          <div className="relative w-full flex-1 min-h-[240px] bg-zinc-200 dark:bg-zinc-800 shrink-0">
             <InteractiveLeafletMapView
               lat={lat}
               lng={lng}
@@ -461,7 +517,7 @@ export default function MapLocationPickerModal({
         </GoogleMapsProvider>
 
         {/* Selected Coordinates Footer & Actions */}
-        <div className="p-4 bg-zinc-50 dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="p-4 bg-zinc-50 dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
           <div className="bg-white dark:bg-zinc-800 p-2.5 rounded-2xl border border-zinc-200 dark:border-zinc-700 flex items-center gap-3 min-w-0">
             <div className="p-1.5 bg-emerald-500/10 text-emerald-500 rounded-xl shrink-0">
               <Check className="w-4 h-4 stroke-[3]" />
@@ -485,7 +541,7 @@ export default function MapLocationPickerModal({
             <button
               type="button"
               onClick={onClose}
-              className="min-h-[44px] px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer"
+              className="min-h-[48px] px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70]/50 transition cursor-pointer"
             >
               Cancel
             </button>
@@ -496,7 +552,7 @@ export default function MapLocationPickerModal({
                 onSaveLocation(lat, lng, selectedLabel);
                 onClose();
               }}
-              className="min-h-[44px] px-5 py-2 rounded-xl bg-[#E21B70] hover:bg-[#C2145E] text-white text-xs font-bold shadow-sm transition flex items-center gap-1.5 cursor-pointer active:scale-95"
+              className="min-h-[48px] px-5 py-2 rounded-xl bg-[#E21B70] hover:bg-[#C2145E] text-white text-xs font-bold shadow-sm transition flex items-center gap-1.5 cursor-pointer active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70]/50"
             >
               <Check className="w-4 h-4 stroke-[2.5]" />
               <span>Save Location</span>

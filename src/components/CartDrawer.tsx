@@ -134,6 +134,16 @@ export default function CartDrawer({
     return () => clearTimeout(timer);
   }, [isOpen, userCoords]);
 
+  // If the user already has a saved address, show it (not the edit form)
+  // when the drawer opens. The initial state is computed once at mount —
+  // usually before the profile has loaded — so without this a logged-in
+  // user with a saved address would always land in edit mode.
+  React.useEffect(() => {
+    if (isOpen && currentUser?.address) {
+      setIsEditingAddress(false);
+    }
+  }, [isOpen, currentUser?.address]);
+
   React.useEffect(() => {
     if (currentUser?.name && !nameInput) {
       setNameInput(currentUser.name);
@@ -549,6 +559,9 @@ export default function CartDrawer({
       setPaymentReceiptUrl(null);
     } catch (err) {
       console.error(err);
+      // Previously the order just silently failed (spinner stopped, no
+      // message) — surface it so the user can retry instead of wondering.
+      setCheckoutError("Order place nahi ho saka. Please dobara try karein.");
     } finally {
       setSubmitting(false);
     }
@@ -570,9 +583,9 @@ export default function CartDrawer({
           <button
             onClick={onClose}
             aria-label="Close cart"
-            className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-850 rounded-full transition cursor-pointer text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+            className="w-11 h-11 shrink-0 flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-850 rounded-full transition cursor-pointer text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 focus-visible:outline-2 focus-visible:outline-[#E21B70]"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -599,7 +612,7 @@ export default function CartDrawer({
         )}
 
         {/* List of items inside the drawer */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white dark:bg-zinc-950">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-4 bg-white dark:bg-zinc-950">
           
           {cartItems.length === 0 ? (
             <div className="text-center py-20 space-y-3">
@@ -648,14 +661,16 @@ export default function CartDrawer({
                   <div className="flex items-center gap-2 select-none shrink-0 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-1 rounded-xl">
                     <button
                       onClick={() => onUpdateQuantity(item.dishId, item.quantity - 1)}
-                      className="w-9 h-9 rounded-lg text-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800"
+                      aria-label={`Decrease quantity of ${item.name}`}
+                      className="w-11 h-11 rounded-lg text-base bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-[#E21B70]"
                     >
                       -
                     </button>
                     <span className="text-xs font-black min-w-4 text-center text-zinc-800 dark:text-zinc-200">{item.quantity}</span>
                     <button
                       onClick={() => onUpdateQuantity(item.dishId, item.quantity + 1)}
-                      className="w-9 h-9 rounded-lg text-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800"
+                      aria-label={`Increase quantity of ${item.name}`}
+                      className="w-11 h-11 rounded-lg text-base bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-[#E21B70]"
                     >
                       +
                     </button>
@@ -663,9 +678,10 @@ export default function CartDrawer({
 
                   <button
                     onClick={() => onRemoveItem(item.dishId)}
-                    className="p-1 text-zinc-500 dark:text-zinc-400 hover:text-[#E21B70] shrink-0 transition cursor-pointer"
+                    aria-label={`Remove ${item.name} from cart`}
+                    className="w-11 h-11 shrink-0 flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:text-[#E21B70] rounded-lg transition cursor-pointer focus-visible:outline-2 focus-visible:outline-[#E21B70]"
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
               ))}
@@ -714,12 +730,12 @@ export default function CartDrawer({
                       </div>
 
                       {alreadyInCart ? (
-                        <div className="flex items-center justify-between bg-[#E21B70]/10 border border-[#E21B70]/20 p-0.5 rounded-xl text-xs">
+                        <div className="flex items-center justify-between bg-[#E21B70]/10 border border-[#E21B70]/20 p-1 rounded-xl text-xs">
                           <button
                             type="button"
                             onClick={() => onUpdateQuantity(dish.id, alreadyInCart.quantity - 1)}
-                            aria-label="Decrease quantity"
-                            className="w-5 h-5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                            aria-label={`Decrease quantity of ${dish.name}`}
+                            className="w-10 h-10 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-[#E21B70]"
                           >
                             -
                           </button>
@@ -727,8 +743,8 @@ export default function CartDrawer({
                           <button
                             type="button"
                             onClick={() => onUpdateQuantity(dish.id, alreadyInCart.quantity + 1)}
-                            aria-label="Increase quantity"
-                            className="w-5 h-5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                            aria-label={`Increase quantity of ${dish.name}`}
+                            className="w-10 h-10 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-[#E21B70]"
                           >
                             +
                           </button>
@@ -737,7 +753,7 @@ export default function CartDrawer({
                         <button
                           type="button"
                           onClick={() => onAddPopularDish(dish)}
-                          className="w-full bg-[#E21B70] hover:bg-[#C2145E] text-white py-1.5 rounded-xl font-black text-[9px] uppercase tracking-wider transition cursor-pointer text-center hover:scale-[1.02] active:scale-95"
+                          className="w-full min-h-[44px] bg-[#E21B70] hover:bg-[#C2145E] text-white py-1.5 rounded-xl font-black text-[9px] uppercase tracking-wider transition cursor-pointer text-center hover:scale-[1.02] active:scale-95"
                         >
                           + Add Dish
                         </button>
@@ -790,11 +806,12 @@ export default function CartDrawer({
                       </div>
 
                       {alreadyInCart ? (
-                        <div className="flex items-center justify-between bg-[#E21B70]/10 border border-[#E21B70]/20 p-0.5 rounded-xl text-xs">
+                        <div className="flex items-center justify-between bg-[#E21B70]/10 border border-[#E21B70]/20 p-1 rounded-xl text-xs">
                           <button
                             type="button"
                             onClick={() => onUpdateQuantity(drink.id, alreadyInCart.quantity - 1)}
-                            className="w-5 h-5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800"
+                            aria-label={`Decrease quantity of ${drink.name}`}
+                            className="w-10 h-10 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-[#E21B70]"
                           >
                             -
                           </button>
@@ -802,7 +819,8 @@ export default function CartDrawer({
                           <button
                             type="button"
                             onClick={() => onUpdateQuantity(drink.id, alreadyInCart.quantity + 1)}
-                            className="w-5 h-5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800"
+                            aria-label={`Increase quantity of ${drink.name}`}
+                            className="w-10 h-10 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-[#E21B70]"
                           >
                             +
                           </button>
@@ -811,7 +829,7 @@ export default function CartDrawer({
                         <button
                           type="button"
                           onClick={() => onAddDrink(drink)}
-                          className="w-full bg-[#E21B70] hover:bg-[#C2145E] text-white py-1.5 rounded-xl font-black text-[9px] uppercase tracking-wider transition cursor-pointer text-center hover:scale-[1.02] active:scale-95"
+                          className="w-full min-h-[44px] bg-[#E21B70] hover:bg-[#C2145E] text-white py-1.5 rounded-xl font-black text-[9px] uppercase tracking-wider transition cursor-pointer text-center hover:scale-[1.02] active:scale-95"
                         >
                           + Add Drink
                         </button>
@@ -867,14 +885,14 @@ export default function CartDrawer({
                       </div>
 
                       {addressSaveSuccess && (
-                        <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold flex items-center gap-1.5 animate-fadeIn">
+                        <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold flex items-center gap-1.5 animate-fade-in">
                           <Check className="w-3.5 h-3.5 shrink-0" />
                           Address updated in database successfully!
                         </div>
                       )}
 
                       {isEditingAddress ? (
-                        <div className="space-y-2 pt-1 animate-fadeIn">
+                        <div className="space-y-2 pt-1 animate-fade-in">
                           {/* Quick Address Tag Selector */}
                           <div className="flex items-center gap-1.5 flex-wrap">
                             {(["Ghar", "Dukan / Office", "Hostel", "Other"] as SavedAddressEntry["label"][]).map((tag) => (
@@ -901,7 +919,6 @@ export default function CartDrawer({
                             placeholder="Enter full delivery address (House/Shop #, Street, Area, Dadu)..."
                             rows={3}
                             className="w-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 focus:border-[#E21B70] rounded-xl p-2.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none resize-none font-medium leading-relaxed"
-                            autoFocus
                           />
                           {addressError && (
                             <p className="text-[10.5px] text-rose-400 font-semibold">{addressError}</p>
@@ -914,7 +931,7 @@ export default function CartDrawer({
                                 setAddressError(null);
                               }}
                               disabled={isSavingAddress}
-                              className="px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 transition cursor-pointer"
+                              className="min-h-[44px] px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 transition cursor-pointer"
                             >
                               Cancel
                             </button>
@@ -922,7 +939,7 @@ export default function CartDrawer({
                               type="button"
                               onClick={handleSaveAddress}
                               disabled={isSavingAddress}
-                              className="px-4 py-1.5 rounded-lg text-xs font-black text-white bg-[#E21B70] hover:bg-[#C2145E] shadow-md shadow-[#E21B70]/20 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                              className="min-h-[44px] px-4 py-1.5 rounded-lg text-xs font-black text-white bg-[#E21B70] hover:bg-[#C2145E] shadow-md shadow-[#E21B70]/20 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                             >
                               {isSavingAddress ? (
                                 <>
@@ -1085,6 +1102,7 @@ export default function CartDrawer({
                           setCheckoutError(null);
                           localStorage.setItem("dadu_preferred_payment", method);
                         }}
+                        aria-pressed={paymentMethod === method}
                         className={`min-h-[44px] py-2.5 px-3 rounded-xl text-xs font-extrabold border transition cursor-pointer ${
                           paymentMethod === method
                             ? "bg-[#D70F64] border-[#D70F64] text-white shadow-sm"
@@ -1115,7 +1133,8 @@ export default function CartDrawer({
                     <button
                       type="button"
                       onClick={() => setIsScheduled(false)}
-                      className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition cursor-pointer ${
+                      aria-pressed={!isScheduled}
+                      className={`min-h-[48px] py-2 px-2.5 rounded-xl text-xs font-bold border transition cursor-pointer ${
                         !isScheduled
                           ? "bg-[#E21B70] border-[#E21B70] text-white"
                           : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"
@@ -1126,7 +1145,8 @@ export default function CartDrawer({
                     <button
                       type="button"
                       onClick={() => setIsScheduled(true)}
-                      className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition cursor-pointer ${
+                      aria-pressed={isScheduled}
+                      className={`min-h-[48px] py-2 px-2.5 rounded-xl text-xs font-bold border transition cursor-pointer ${
                         isScheduled
                           ? "bg-[#E21B70] border-[#E21B70] text-white"
                           : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"
@@ -1163,7 +1183,8 @@ export default function CartDrawer({
                           key={opt.id}
                           type="button"
                           onClick={() => setDeliverySpeed(opt.id)}
-                          className={`py-2 px-2 rounded-xl text-center border transition cursor-pointer ${
+                          aria-pressed={effectiveSpeed === opt.id}
+                          className={`min-h-[48px] py-2 px-2 rounded-xl text-center border transition cursor-pointer ${
                             effectiveSpeed === opt.id
                               ? "bg-[#E21B70] border-[#E21B70] text-white"
                               : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-600"
@@ -1194,8 +1215,11 @@ export default function CartDrawer({
                       <button
                         key={pref.key}
                         type="button"
+                        role="switch"
+                        aria-checked={pref.value}
+                        aria-label={pref.label}
                         onClick={() => pref.set(!pref.value)}
-                        className="w-full flex items-center justify-between gap-3 cursor-pointer"
+                        className="w-full min-h-[44px] flex items-center justify-between gap-3 cursor-pointer"
                       >
                         <span className="text-left">
                           <span className="block text-xs font-bold text-zinc-900 dark:text-zinc-100">{pref.label}</span>
@@ -1224,13 +1248,14 @@ export default function CartDrawer({
                         {riderTip > 0 ? `Rs. ${riderTip}` : "Optional"}
                       </span>
                     </div>
-                    <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${tipOptions.length}, minmax(0, 1fr))` }}>
+                    <div className="flex flex-wrap gap-1.5">
                       {tipOptions.map((amt) => (
                         <button
                           key={amt}
                           type="button"
                           onClick={() => setRiderTip(amt)}
-                          className={`py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer ${
+                          aria-pressed={riderTip === amt}
+                          className={`flex-1 min-w-[60px] min-h-[44px] py-1.5 px-1 rounded-lg text-xs font-bold border transition cursor-pointer ${
                             riderTip === amt
                               ? "bg-[#E21B70] border-[#E21B70] text-white"
                               : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-600"
@@ -1262,15 +1287,16 @@ export default function CartDrawer({
 
         </div>
 
-        {/* Pricing Summary Bottom Card */}
+        {/* Pricing Summary Bottom Card — scrollable so Place Order is always
+            reachable on short phones even with the voucher box expanded. */}
         {cartItems.length > 0 && (
-          <div className="p-4 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 space-y-3.5 rounded-t-3xl shadow-2xl shrink-0">
-            {hasFood && totalFoodItemsPrice < 500 && (
+          <div className="p-4 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 space-y-3.5 rounded-t-3xl shadow-2xl shrink-0 max-h-[58dvh] overflow-y-auto overscroll-contain">
+            {hasFood && isDoubleFee && (
               <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-3 text-[11px] text-amber-600 dark:text-amber-400 flex items-start gap-2.5">
                 <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-extrabold block text-amber-600 dark:text-amber-300">Delivery Charges Doubled (Below Rs. 500)</span>
-                  Rs. 500 se kam order par delivery charges double hain. Add Rs. {500 - totalFoodItemsPrice} more of delicious food to get standard delivery rate!
+                  <span className="font-extrabold block text-amber-600 dark:text-amber-300">Delivery Charges Doubled (Below Rs. {doubleFeeBelow})</span>
+                  Rs. {doubleFeeBelow} se kam order par delivery charges double hain. Add Rs. {doubleFeeBelow - totalFoodItemsPrice} more of delicious food to get standard delivery rate!
                 </div>
               </div>
             )}
@@ -1333,7 +1359,8 @@ export default function CartDrawer({
               <button
                 type="button"
                 onClick={() => setIsBenefitsOpen(!isBenefitsOpen)}
-                className="w-full p-3 flex items-center justify-between gap-2.5 text-left hover:bg-zinc-100/70 dark:hover:bg-zinc-850/60 transition cursor-pointer"
+                aria-expanded={isBenefitsOpen}
+                className="w-full min-h-[48px] p-3 flex items-center justify-between gap-2.5 text-left hover:bg-zinc-100/70 dark:hover:bg-zinc-850/60 transition cursor-pointer"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#E21B70]/20 via-pink-500/10 to-amber-500/20 border border-[#E21B70]/30 flex items-center justify-center shrink-0 shadow-inner">
@@ -1439,7 +1466,7 @@ export default function CartDrawer({
                           <button
                             type="button"
                             onClick={() => handleApplyVoucher(voucherInputCode)}
-                            className="bg-[#E21B70] hover:bg-[#C2145E] text-white text-xs font-black px-3.5 py-2 rounded-xl transition cursor-pointer"
+                            className="min-h-[44px] bg-[#E21B70] hover:bg-[#C2145E] text-white text-xs font-black px-3.5 py-2 rounded-xl transition cursor-pointer"
                           >
                             Apply
                           </button>
@@ -1459,7 +1486,7 @@ export default function CartDrawer({
 
                   {/* Coin Benefit Section - Rendered ONLY if enabled by admin and user has coins */}
                   {isLoyaltyEnabledForFood && maxAllowedCoinsByAdmin > 0 && userCoins > 0 && (
-                    <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/15 to-amber-600/10 border border-amber-500/30 rounded-xl p-3 space-y-2.5 animate-fadeIn text-left shadow-sm">
+                    <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/15 to-amber-600/10 border border-amber-500/30 rounded-xl p-3 space-y-2.5 animate-fade-in text-left shadow-sm">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0">
                           <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0 shadow-inner">
@@ -1484,6 +1511,9 @@ export default function CartDrawer({
                         <button
                           type="button"
                           onClick={handleToggleCoins}
+                          role="switch"
+                          aria-checked={useCoins && !appliedVoucher}
+                          aria-label="Use coins for discount"
                           className={`w-11 h-6 rounded-full transition-all relative cursor-pointer outline-none shrink-0 border ${
                             useCoins && !appliedVoucher ? "bg-amber-500 border-amber-400 shadow-md shadow-amber-500/20" : "bg-zinc-200 dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700"
                           }`}
@@ -1512,7 +1542,7 @@ export default function CartDrawer({
 
                   {/* Real-time Loyalty Cashback Earning Banner - Rendered ONLY if enabled by admin */}
                   {loyaltyEarnEnabled && loyaltyEarnVal > 0 && (
-                    <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between text-left text-xs animate-fadeIn shadow-xs">
+                    <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between text-left text-xs animate-fade-in shadow-xs">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/35 flex items-center justify-center shrink-0">
                           <Coins className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 animate-bounce" />
@@ -1601,10 +1631,14 @@ export default function CartDrawer({
             <button
               onClick={handleSubmitOrder}
               disabled={submitting}
-              className="w-full min-h-[48px] btn-pink text-white py-3.5 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75 active:scale-[0.98]"
+              aria-busy={submitting}
+              className="w-full min-h-[48px] btn-pink text-white py-3.5 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70]"
             >
               {submitting ? (
-                <>Placing Order...</>
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Placing Order...
+                </>
               ) : paymentMethod === "Easypaisa" ? (
                 <>
                   <ShieldCheck className="w-4 h-4" />

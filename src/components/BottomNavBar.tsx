@@ -55,12 +55,19 @@ export default function BottomNavBar({
     } else if (tab === "search") {
       window.scrollTo({ top: 0, behavior: "smooth" });
       setTimeout(() => {
+        // Home header search first; on a restaurant page the header isn't
+        // rendered, so fall back to that page's own search box.
         const mobileInput = document.getElementById("mobile-search-input");
         const desktopInput = document.getElementById("desktop-search-input");
-        if (mobileInput) {
-          mobileInput.focus();
-        } else if (desktopInput) {
-          desktopInput.focus();
+        const restaurantInput = document.getElementById("restaurant-search-input");
+        const target = mobileInput || desktopInput || restaurantInput;
+        if (target) {
+          target.focus();
+          // On the restaurant page the search box sits below the hero, so
+          // bring it into view after focusing.
+          if (target === restaurantInput) {
+            target.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
         }
       }, 260);
     } else if (tab === "account") {
@@ -135,6 +142,7 @@ export default function BottomNavBar({
           <button
             type="button"
             onClick={() => handleTabClick("food")}
+            aria-label="Food delivery home"
             aria-current={activeModule === "food" ? "page" : undefined}
             className="min-h-[48px] flex flex-col items-center justify-center gap-1 text-center relative select-none cursor-pointer active:scale-95 transition-transform"
           >
@@ -163,6 +171,7 @@ export default function BottomNavBar({
           <button
             type="button"
             onClick={() => handleTabClick("grocery")}
+            aria-label="Grocery home"
             aria-current={activeModule === "grocery" ? "page" : undefined}
             className="min-h-[48px] flex flex-col items-center justify-center gap-1 text-center relative select-none cursor-pointer active:scale-95 transition-transform"
           >
@@ -191,6 +200,7 @@ export default function BottomNavBar({
           <button
             type="button"
             onClick={() => handleTabClick("search")}
+            aria-label="Search food and groceries"
             className="min-h-[48px] flex flex-col items-center justify-center gap-1 text-center relative select-none cursor-pointer active:scale-95 transition-transform text-[#5A5A6B] dark:text-[#A1A1B2]"
           >
             <Search className="w-5 h-5 stroke-[2.2]" />
@@ -201,6 +211,7 @@ export default function BottomNavBar({
           <button
             type="button"
             onClick={() => handleTabClick("account")}
+            aria-label={user ? "Open my account" : "Sign in"}
             className="min-h-[48px] flex flex-col items-center justify-center gap-1 text-center relative select-none cursor-pointer active:scale-95 transition-transform text-[#5A5A6B] dark:text-[#A1A1B2]"
           >
             <User className="w-5 h-5 stroke-[2.2]" />

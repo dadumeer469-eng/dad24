@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { UserProfile, AppNotification, Order } from "../types";
-import { Search, ShoppingCart, User, LogOut, Bell, ShieldAlert, BadgeCheck, History, Heart, RotateCcw, Sun, Moon, X, Settings, MapPin, ChevronDown, Mic } from "lucide-react";
+import { Search, ShoppingCart, User, LogOut, Bell, ShieldAlert, BadgeCheck, History, Heart, RotateCcw, Sun, Moon, X, Settings, MapPin, ChevronDown, Mic, Lock } from "lucide-react";
 import { formatOrderId } from "../utils/catalogNormalizer";
 
 interface FoodpandaHeaderProps {
@@ -80,12 +80,52 @@ export default function FoodpandaHeader({
   const [showNotifications, setShowNotifications] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState<AppNotification | null>(null);
   const [isListening, setIsListening] = useState(false);
+  const notificationsRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close the header dropdowns on outside tap / Escape — previously they
+  // stayed open until their own toggle was tapped again.
+  useEffect(() => {
+    if (!showNotifications && !showUserMenu) return;
+    const onPointerDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        showNotifications &&
+        notificationsRef.current &&
+        !notificationsRef.current.contains(target)
+      ) {
+        setShowNotifications(false);
+      }
+      if (
+        showUserMenu &&
+        userMenuRef.current &&
+        !userMenuRef.current.contains(target)
+      ) {
+        setShowUserMenu(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowNotifications(false);
+        setShowUserMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [showNotifications, showUserMenu]);
 
   // Voice search (Web Speech API) — speaks the dish/shop name into the search box
   const voiceSupported =
     typeof window !== "undefined" &&
     !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
   const startVoiceSearch = () => {
+    // Guard against double-start: tapping mic while already listening used
+    // to spawn a second recognition session.
+    if (isListening) return;
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) return;
     try {
@@ -118,6 +158,7 @@ export default function FoodpandaHeader({
       <button
         type="button"
         onClick={() => switchModule("food")}
+        aria-pressed={activeModule === "food"}
         className={`flex-1 min-h-[40px] rounded-full text-[13px] sm:text-sm font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${activeModule === "food" ? "bg-gradient-to-r from-[#FF2B85] via-[#E21B70] to-[#D70F64] text-white glossy-edge" : "text-[#14141A]"}`}
       >
         🍔 FOOD DELIVERY
@@ -125,6 +166,7 @@ export default function FoodpandaHeader({
       <button
         type="button"
         onClick={() => switchModule("grocery")}
+        aria-pressed={activeModule === "grocery"}
         className={`flex-1 min-h-[40px] rounded-full text-[13px] sm:text-sm font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${activeModule === "grocery" ? "bg-gradient-to-r from-[#FF2B85] via-[#E21B70] to-[#D70F64] text-white glossy-edge" : "text-[#14141A]"}`}
       >
         🛒 GROCERIES
@@ -219,7 +261,7 @@ export default function FoodpandaHeader({
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={
                 activeModule === "grocery"
-                  ? "Search 297 Dadu Mart groceries..."
+                  ? "Search Dadu Mart groceries..."
                   : "Search shops, dishes & groceries..."
               }
               className="w-full min-h-[42px] pl-10 pr-10 py-2 bg-white text-[#14141A] placeholder-[#6E6E80] rounded-full text-sm outline-none shadow-xs focus:ring-2 focus:ring-white/60 transition-all font-medium"
@@ -228,7 +270,8 @@ export default function FoodpandaHeader({
               <button
                 type="button"
                 onClick={startVoiceSearch}
-                aria-label="Voice search"
+                aria-label={isListening ? "Listening for voice search" : "Voice search"}
+                aria-pressed={isListening}
                 title="Voice search"
                 className={`absolute ${searchQuery ? "right-10" : "right-2"} top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full transition cursor-pointer ${isListening ? "bg-[#D70F64] text-white animate-pulse" : "text-[#D70F64] hover:bg-pink-50"}`}
               >
@@ -239,6 +282,7 @@ export default function FoodpandaHeader({
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
+                aria-label="Clear search"
                 className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-[#5A5A6B] hover:text-[#14141A] rounded-full transition cursor-pointer"
                 title="Clear search"
               >
@@ -273,10 +317,12 @@ export default function FoodpandaHeader({
             )}
 
             {/* Notifications Dropdown */}
-            <div className="relative">
+            <div className="relative" ref={notificationsRef}>
               <button
                 type="button"
-                aria-label="Notifications"
+                aria-label={unreadNotifications.length > 0 ? `Notifications, ${unreadNotifications.length} unread` : "Notifications"}
+                aria-expanded={showNotifications}
+                aria-haspopup="true"
                 onClick={() => {
                   setShowNotifications(!showNotifications);
                   setShowUserMenu(false);
@@ -339,6 +385,7 @@ export default function FoodpandaHeader({
                             if (!notif.read && onMarkNotificationAsRead) {
                               onMarkNotificationAsRead(notif.id);
                             }
+                            setShowNotifications(false);
                             setSelectedNotification(notif);
                           }}
                           className={`p-3.5 transition text-xs cursor-pointer group flex items-start gap-2.5 ${
@@ -384,11 +431,15 @@ export default function FoodpandaHeader({
             <button
               type="button"
               onClick={activeModule === "grocery" ? onOpenGroceryCart : onOpenCart}
-              aria-label="Open Cart"
+              aria-label={
+                (activeModule === "grocery" ? groceryCartCount : cartCount) > 0
+                  ? `Open cart, ${activeModule === "grocery" ? groceryCartCount : cartCount} items`
+                  : "Open cart, empty"
+              }
               className="min-h-[44px] min-w-[44px] flex items-center justify-center bg-white/15 hover:bg-white/25 text-white rounded-full transition cursor-pointer relative shrink-0 glossy-sheen glossy-edge"
             >
               {isLocked ? (
-                <span className="text-sm">🔒</span>
+                <Lock className="w-5 h-5 text-white" aria-label="Account locked" />
               ) : (
                 <ShoppingCart className="w-5 h-5 text-white" />
               )}
@@ -400,21 +451,27 @@ export default function FoodpandaHeader({
             </button>
 
             {/* Desktop User Account Dropdown */}
-            <div className="relative hidden lg:block">
+            <div className="relative hidden lg:block" ref={userMenuRef}>
               {user ? (
                 <button
                   type="button"
+                  aria-label="Account menu"
+                  aria-expanded={showUserMenu}
+                  aria-haspopup="true"
                   onClick={() => {
                     setShowUserMenu(!showUserMenu);
                     setShowNotifications(false);
                   }}
                   className="flex items-center justify-center w-11 h-11 rounded-full bg-white text-[#D70F64] font-black text-sm shadow-xs hover:bg-pink-50 cursor-pointer transition"
                 >
-                  {user.name.charAt(0).toUpperCase()}
+                  {(user.name || "D").charAt(0).toUpperCase()}
                 </button>
               ) : (
                 <button
                   type="button"
+                  aria-label="Sign in menu"
+                  aria-expanded={showUserMenu}
+                  aria-haspopup="true"
                   onClick={() => {
                     setShowUserMenu(!showUserMenu);
                     setShowNotifications(false);
@@ -447,6 +504,7 @@ export default function FoodpandaHeader({
 
                     <button
                       onClick={() => {
+                        setShowUserMenu(false);
                         if (onToggleTheme) onToggleTheme();
                       }}
                       className="w-full text-left font-bold text-xs text-zinc-700 dark:text-zinc-300 px-3.5 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-xl transition flex items-center justify-between cursor-pointer"
@@ -600,7 +658,7 @@ export default function FoodpandaHeader({
                         setShowUserMenu(false);
                         if (onToggleFavorites) onToggleFavorites();
                       }}
-                      className={`flex-1 min-w-[100px] font-bold text-xs px-2.5 py-2 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer border ${showFavoritesOnly ? 'text-[#D70F64] bg-[#D70F64]/10 border-[#D70F64]/20' : 'text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-800/80 border-zinc-100 dark:border-zinc-750 hover:bg-zinc-100'}`}
+                      className={`flex-1 min-w-[100px] font-bold text-xs px-2.5 py-2 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer border ${showFavoritesOnly ? 'text-[#D70F64] bg-[#D70F64]/10 border-[#D70F64]/20' : 'text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-800/80 border-zinc-100 dark:border-zinc-700 hover:bg-zinc-100'}`}
                     >
                       <Heart className={`w-3.5 h-3.5 shrink-0 ${showFavoritesOnly ? 'fill-[#D70F64] text-[#D70F64]' : 'text-[#D70F64]'}`} />
                       <span>Favorites</span>
@@ -611,7 +669,7 @@ export default function FoodpandaHeader({
                         setShowUserMenu(false);
                         if (onOpenHistory) onOpenHistory();
                       }}
-                      className="flex-1 min-w-[100px] font-bold text-xs text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-100 dark:border-zinc-750 px-2.5 py-2 hover:bg-zinc-100 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="flex-1 min-w-[100px] font-bold text-xs text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-100 dark:border-zinc-700 px-2.5 py-2 hover:bg-zinc-100 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
                       id="history-menu-btn"
                     >
                       <History className="w-3.5 h-3.5 text-[#D70F64] shrink-0" />
@@ -686,7 +744,7 @@ export default function FoodpandaHeader({
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={
               activeModule === "grocery"
-                ? "Search 297 Dadu Mart groceries..."
+                ? "Search Dadu Mart groceries..."
                 : "Search shops, dishes & groceries"
             }
             className="w-full min-h-[44px] pl-10 pr-10 py-2.5 bg-white text-[#14141A] placeholder-[#6E6E80] rounded-full text-sm outline-none shadow-xs focus:ring-2 focus:ring-white/60 transition-all font-medium glossy-sheen"
@@ -695,7 +753,8 @@ export default function FoodpandaHeader({
             <button
               type="button"
               onClick={startVoiceSearch}
-              aria-label="Voice search"
+              aria-label={isListening ? "Listening for voice search" : "Voice search"}
+              aria-pressed={isListening}
               title="Voice search"
               className={`absolute ${searchQuery ? "right-11" : "right-1.5"} top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full transition cursor-pointer ${isListening ? "bg-[#D70F64] text-white animate-pulse" : "text-[#D70F64] hover:bg-pink-50"}`}
             >
@@ -706,6 +765,7 @@ export default function FoodpandaHeader({
             <button
               type="button"
               onClick={() => setSearchQuery("")}
+              aria-label="Clear search"
               className="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center text-[#5A5A6B] hover:text-[#14141A] rounded-full transition cursor-pointer"
               title="Clear search"
             >
@@ -747,6 +807,7 @@ export default function FoodpandaHeader({
               </div>
               <button
                 onClick={() => setSelectedNotification(null)}
+                aria-label="Close message"
                 className="p-2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-full bg-zinc-100 dark:bg-zinc-800 transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
@@ -757,7 +818,7 @@ export default function FoodpandaHeader({
               <h3 className="text-base font-black text-zinc-900 dark:text-white leading-snug">
                 {selectedNotification.title}
               </h3>
-              <div className="text-xs sm:text-sm text-zinc-700 dark:text-zinc-200 mt-3 font-normal leading-relaxed whitespace-pre-line bg-zinc-50 dark:bg-zinc-800/60 p-4 rounded-2xl border border-zinc-150 dark:border-zinc-750 max-h-60 overflow-y-auto">
+              <div className="text-xs sm:text-sm text-zinc-700 dark:text-zinc-200 mt-3 font-normal leading-relaxed whitespace-pre-line bg-zinc-50 dark:bg-zinc-800/60 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 max-h-60 overflow-y-auto">
                 {selectedNotification.message}
               </div>
             </div>

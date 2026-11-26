@@ -38,14 +38,6 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
   }, [order?.id, currentUser?.uid]);
 
   const statusLower = (order.status || "").toLowerCase().trim();
-  const isDispatched = !isService && (
-    statusLower === "out_for_delivery" || 
-    statusLower === "out_for_delivery_active" || 
-    statusLower === "dispatched" || 
-    statusLower === "delivered" ||
-    statusLower === "completed" ||
-    (!!order.riderName && statusLower !== "cancelled")
-  );
 
   const restaurantCoords =
     (order as any).restaurantCoords ||
@@ -148,7 +140,7 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
       preparing: { bg: "bg-purple-500/10 border-purple-500/20", text: "text-purple-400", label: "Cooking" },
       out_for_delivery: { bg: "bg-pink-500/10 border-pink-500/20", text: "text-pink-400", label: "Out For Delivery" },
       delivered: { bg: "bg-emerald-500/10 border-emerald-500/20", text: "text-emerald-400", label: "Delivered" },
-      cancelled: { bg: "bg-pink-500/10 border-red-500/20", text: "text-pink-400", label: "Cancelled" },
+      cancelled: { bg: "bg-red-500/10 border-red-500/30", text: "text-red-400", label: "Cancelled" },
       
       booked: { bg: "bg-yellow-500/10 border-yellow-500/20", text: "text-yellow-500", label: "Booked" },
       diagnostic_on_way: { bg: "bg-[#D70F64]/10 border-[#D70F64]/20", text: "text-[#D70F64]", label: "Traveling" },
@@ -227,7 +219,7 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
                 {order.riderPhone ? (
                   <a
                     href={`tel:${order.riderPhone}`}
-                    className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-750 text-zinc-100 py-2 sm:py-2.5 px-2 rounded-xl transition text-center font-black text-[10.5px] sm:text-xs flex items-center justify-center gap-1 shadow-xs cursor-pointer truncate active:scale-95"
+                    className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-100 py-2 sm:py-2.5 px-2 rounded-xl transition text-center font-black text-[10.5px] sm:text-xs flex items-center justify-center gap-1 shadow-xs cursor-pointer truncate active:scale-95"
                   >
                     📞 Call
                   </a>
@@ -242,7 +234,7 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
                   onClick={() => setShowLiveChat(!showLiveChat)}
                   className={`py-2 sm:py-2.5 px-2 rounded-xl transition text-center font-black text-[10.5px] sm:text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer active:scale-95 truncate relative ${
                     showLiveChat 
-                      ? "bg-zinc-800 border border-[#E21B70] text-white hover:bg-zinc-750 ring-2 ring-[#E21B70]/30" 
+                      ? "bg-zinc-800 border border-[#E21B70] text-white hover:bg-zinc-800 ring-2 ring-[#E21B70]/30" 
                       : "bg-gradient-to-r from-[#E21B70] to-pink-600 text-white hover:from-[#C2145E] hover:to-pink-700"
                   }`}
                 >
@@ -295,7 +287,7 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
               <MapPin className="w-5 h-5" />
             </div>
             <div>
-              <span className="text-xs font-black text-zinc-350 block uppercase tracking-wide">Assigning Premier Rider...</span>
+              <span className="text-xs font-black text-zinc-300 block uppercase tracking-wide">Assigning Premier Rider...</span>
               <span className="text-[10px] text-zinc-400 font-semibold block mt-1 leading-relaxed">
                 Your order is currently cooking hot inside the kitchen. A Dadu Food captain is standing by to accept dispatch instantly!
               </span>
@@ -355,7 +347,7 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
   };
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-3.5xl p-5 sm:p-6 shadow-xs relative overflow-hidden text-zinc-100">
+    <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 sm:p-6 shadow-xs relative overflow-hidden text-zinc-100">
       
       {/* Background Decorative Neon Light */}
       <div className={`absolute top-0 right-0 w-44 h-44 rounded-full blur-3xl pointer-events-none -mt-10 -mr-10 ${
@@ -384,7 +376,7 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
             ? "bg-amber-950/20 border border-amber-900/40 text-amber-500" 
             : "bg-[#E21B70]/10 border border-[#E21B70]/20 text-[#E21B70]"
         }`}>
-          <Clock className={`w-4 h-4 shrink-0 ${isService ? "text-amber-550" : "text-[#E21B70]"}`} />
+          <Clock className={`w-4 h-4 shrink-0 ${isService ? "text-amber-500" : "text-[#E21B70]"}`} />
           <div>
             <span className="text-[9px] uppercase tracking-wider font-extrabold text-zinc-400 block leading-none">
               {isService ? "Service Timing" : "Est. Delivery"}
@@ -407,12 +399,16 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
           </div>
         ) : (
           <div className="relative flex items-center justify-between w-full overflow-x-auto pb-1 space-x-2 scrollbar-none">
-            {/* Background connecting bar */}
-            <div className="absolute left-4 right-4 top-4 h-1 bg-zinc-800 -z-0 rounded-full" />
-            <div
-              className="absolute left-4 top-4 h-1 bg-gradient-to-r from-pink-500 to-[#E21B70] z-0 rounded-full transition-all duration-500"
-              style={{ width: `${Math.max(0, (activeIndex / (steps.length - 1)) * 100)}%` }}
-            />
+            {/* Connecting bars: both live inside one left-4/right-4 wrapper
+                so the fill's % is measured against the span between the
+                first and last dots (before, width:100% overshot 16px right). */}
+            <div className="absolute left-4 right-4 top-4 h-1 z-0">
+              <div className="absolute inset-0 bg-zinc-800 rounded-full" />
+              <div
+                className="absolute left-0 top-0 h-1 bg-gradient-to-r from-pink-500 to-[#E21B70] rounded-full transition-all duration-500"
+                style={{ width: `${Math.max(0, (activeIndex / (steps.length - 1)) * 100)}%` }}
+              />
+            </div>
 
             {steps.map((step, idx) => {
               const isPast = idx < activeIndex;
@@ -428,7 +424,7 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
                         ? isService 
                           ? "bg-amber-500 text-neutral-950 border-amber-500 scale-110 shadow-amber-500/30" 
                           : "bg-[#E21B70] text-white border-[#E21B70] scale-110 shadow-pink-500/30 animate-pulse"
-                        : "bg-zinc-900 text-zinc-500 border-zinc-750"
+                        : "bg-zinc-900 text-zinc-500 border-zinc-800"
                   }`}>
                     {isPast ? (
                       <Check className="w-3 h-3 stroke-[3.5]" />
@@ -551,33 +547,15 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
         )}
       </div>
 
-      {/* Delivery Pinpoint Leaflet Live Tracker */}
-      {!isService && (
-        <div className="mt-4">
-          <FoodDeliveryTracker
-            orderId={order.id}
-            orderStatus={order.status}
-            destinationCoords={
-              order.userCoords || {
-                latitude: 26.7323,
-                longitude: 67.7744,
-              }
-            }
-            riderName={order.riderName || "Assigning Rider"}
-            riderPhone={order.riderPhone}
-            restaurantName={order.restaurantName || "Dadu Food Kitchen"}
-            items={order.items}
-            grandTotal={order.grandTotal}
-            currentUser={currentUser}
-            onClose={onClose}
-          />
-        </div>
-      )}
+      {/* NOTE: the live map tracker is rendered by FoodDeliveryTracker via
+          the early return above for non-service orders — a second copy here
+          was unreachable (guarded by !isService in the service-only branch)
+          and has been removed to avoid a duplicate map mount. */}
 
       {onClose && (
         <button
           onClick={onClose}
-          className="w-full mt-4 bg-zinc-800 hover:bg-zinc-750 border border-zinc-700 transition text-zinc-200 text-xs font-extrabold py-2 px-4 rounded-xl cursor-pointer shadow-xs"
+          className="w-full mt-4 bg-zinc-800 hover:bg-zinc-800 border border-zinc-700 transition text-zinc-200 text-xs font-extrabold py-2 px-4 rounded-xl cursor-pointer shadow-xs"
         >
           Track Another Order
         </button>

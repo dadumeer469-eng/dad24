@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { MapPin, Navigation, Edit3, CheckCircle2, Map } from "lucide-react";
 
 interface LocationPermissionModalProps {
@@ -22,6 +22,12 @@ export default function LocationPermissionModal({
   const [manualAddress, setManualAddress] = useState(initialAddress);
   const [manualError, setManualError] = useState("");
 
+  // Keep the draft in sync if the parent hands us a saved address later
+  // (e.g. reopening the prompt after a previous manual entry).
+  useEffect(() => {
+    setManualAddress(initialAddress);
+  }, [initialAddress]);
+
   const handleSaveManual = (e: React.FormEvent) => {
     e.preventDefault();
     const cleaned = manualAddress.trim();
@@ -43,8 +49,8 @@ export default function LocationPermissionModal({
       <div className="bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-t-3xl sm:rounded-3xl p-6 max-w-sm w-full shadow-2xl relative animate-sheet-up sm:animate-scale-up space-y-5">
         <div className="w-10 h-1 rounded-full bg-zinc-300 dark:bg-zinc-700 mx-auto sm:hidden" />
 
-        <div className="w-16 h-16 bg-[#FFF0F5] dark:bg-[#2A101B] rounded-2xl flex items-center justify-center mx-auto border border-[#D70F64]/20">
-          <MapPin className="w-8 h-8 text-[#D70F64]" />
+        <div className="w-16 h-16 bg-[#FFF0F5] dark:bg-[#2A101B] rounded-2xl flex items-center justify-center mx-auto border border-[#E21B70]/20">
+          <MapPin className="w-8 h-8 text-[#E21B70]" />
         </div>
 
         <div className="space-y-2 text-center">
@@ -63,9 +69,9 @@ export default function LocationPermissionModal({
           <button
             type="button"
             onClick={onAllow}
-            className="w-full min-h-[48px] bg-[#D70F64] hover:bg-[#B80C54] text-white font-extrabold py-3.5 px-4 rounded-2xl text-sm transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-sm active:scale-[0.98]"
+            className="w-full min-h-[48px] bg-[#E21B70] hover:bg-[#C2145E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70]/50 text-white font-extrabold py-3.5 px-4 rounded-2xl text-sm transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-sm active:scale-[0.98]"
           >
-            <Navigation className="w-4 h-4" />
+            <Navigation className="w-4 h-4" aria-hidden="true" />
             <span>Allow Location</span>
           </button>
 
@@ -75,18 +81,18 @@ export default function LocationPermissionModal({
                 <button
                   type="button"
                   onClick={onPickOnMap}
-                  className="w-full min-h-[44px] bg-[#FFF0F5] dark:bg-[#2A101B] hover:bg-[#FFE4EF] dark:hover:bg-[#3A1424] border border-[#D70F64]/25 text-[#14141A] dark:text-[#F5F5F8] font-bold py-3 px-3 rounded-2xl text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                  className="w-full min-h-[48px] bg-[#FFF0F5] dark:bg-[#2A101B] hover:bg-[#FFE4EF] dark:hover:bg-[#3A1424] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70]/50 border border-[#E21B70]/25 text-[#14141A] dark:text-[#F5F5F8] font-bold py-3 px-3 rounded-2xl text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5"
                 >
-                  <Map className="w-4 h-4 text-[#D70F64]" />
+                  <Map className="w-4 h-4 text-[#E21B70]" aria-hidden="true" />
                   <span>Pick on Map</span>
                 </button>
               )}
               <button
                 type="button"
                 onClick={() => setShowManualInput(true)}
-                className="w-full min-h-[44px] bg-[#F7F7FA] dark:bg-[#1B1B23] hover:bg-[#EFEFF5] dark:hover:bg-[#252530] border border-[#E6E6EE] dark:border-[#272733] text-[#14141A] dark:text-[#F5F5F8] font-bold py-3 px-3 rounded-2xl text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                className="w-full min-h-[48px] bg-[#F7F7FA] dark:bg-[#1B1B23] hover:bg-[#EFEFF5] dark:hover:bg-[#252530] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70]/50 border border-[#E6E6EE] dark:border-[#272733] text-[#14141A] dark:text-[#F5F5F8] font-bold py-3 px-3 rounded-2xl text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5"
               >
-                <Edit3 className="w-3.5 h-3.5 text-[#D70F64]" />
+                <Edit3 className="w-3.5 h-3.5 text-[#E21B70]" aria-hidden="true" />
                 <span>{onPickOnMap ? "Type Address" : "Enter Manual Dadu Address Instead"}</span>
               </button>
             </div>
@@ -98,19 +104,33 @@ export default function LocationPermissionModal({
                 rows={2}
                 value={manualAddress}
                 onChange={(e) => setManualAddress(e.target.value)}
+                maxLength={200}
                 placeholder="House/Shop #, Street, Mohalla / Road (e.g., Station Road, Dadu)"
-                className="w-full rounded-xl bg-[#F7F7FA] dark:bg-[#1B1B23] border border-[#E6E6EE] dark:border-[#272733] px-3 py-2.5 text-xs font-medium text-[#14141A] dark:text-white focus:outline-none focus:border-[#D70F64]"
+                aria-label="Delivery address"
+                aria-invalid={manualError ? true : undefined}
+                aria-describedby={manualError ? "manual-address-error" : undefined}
+                className="w-full rounded-xl bg-[#F7F7FA] dark:bg-[#1B1B23] border border-[#E6E6EE] dark:border-[#272733] px-3 py-2.5 text-xs font-medium text-[#14141A] dark:text-white focus:outline-none focus:border-[#E21B70] focus:ring-2 focus:ring-[#E21B70]/20 resize-none"
               />
               {manualError && (
-                <p className="text-[11px] font-semibold text-rose-500">{manualError}</p>
+                <p id="manual-address-error" role="alert" className="text-[11px] font-semibold text-rose-500">{manualError}</p>
               )}
               <button
                 type="submit"
-                className="w-full min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                className="w-full min-h-[48px] bg-[#E21B70] hover:bg-[#C2145E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70]/50 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5 active:scale-[0.98]"
               >
-                <CheckCircle2 className="w-4 h-4" />
+                <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
                 <span>Save Delivery Address</span>
               </button>
+              {onPickOnMap && (
+                <button
+                  type="button"
+                  onClick={() => setShowManualInput(false)}
+                  className="w-full min-h-[44px] text-[#E21B70] hover:text-[#C2145E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70]/50 font-bold py-2 rounded-xl text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Map className="w-4 h-4" aria-hidden="true" />
+                  <span>Pick on Map instead</span>
+                </button>
+              )}
             </form>
           )}
 
@@ -118,7 +138,7 @@ export default function LocationPermissionModal({
             <button
               type="button"
               onClick={onLater}
-              className="w-full min-h-[44px] text-[#5A5A6B] dark:text-[#A1A1B2] hover:text-[#14141A] dark:hover:text-white font-bold py-2.5 rounded-xl text-xs transition-colors cursor-pointer"
+              className="w-full min-h-[48px] text-[#5A5A6B] dark:text-[#A1A1B2] hover:text-[#14141A] dark:hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70]/50 font-bold py-2.5 rounded-xl text-xs transition-colors cursor-pointer"
             >
               Browse Menu First
             </button>
