@@ -351,7 +351,12 @@ export default function App() {
   const initialGroceryProducts = getCachedData<GroceryProduct[]>("dadu_cached_grocery_products", []).filter(
     (item) => item && !String(item.id || "").startsWith("gprod_"),
   );
-  const [activeModule, setActiveModule] = useState<"food" | "grocery">("food");
+  const [activeModule, setActiveModule] = useState<"food" | "grocery">(() => {
+    // Direct landing on /grocery or /pharmacy opens the grocery module.
+    if (typeof window === "undefined") return "food";
+    const p = window.location.pathname.replace(/^\/+|\/+$/g, "");
+    return p === "grocery" || p === "pharmacy" ? "grocery" : "food";
+  });
   // Admin "Refresh All Users" — bumped when the admin presses Refresh; re-runs the fetch-once effects below.
   const [catalogRefreshTick, setCatalogRefreshTick] = useState(0);
   const lastRefreshSignalRef = useRef<number>(0);
@@ -447,6 +452,22 @@ export default function App() {
   const [isDirectChatOpen, setIsDirectChatOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isSignOutConfirmOpen, setIsSignOutConfirmOpen] = useState(false);
+  // Crawlable /grocery and /pharmacy routes (H6): parsed from the URL on load,
+  // exactly like activeInfoPage below. "home" covers / and the /shop/* + info
+  // pages (handled by their own state); anything else unknown is "not-found".
+  type SeoRoute = "home" | "grocery" | "pharmacy" | "not-found";
+  const parseSeoRoute = (): SeoRoute => {
+    if (typeof window === "undefined") return "home";
+    const p = window.location.pathname.replace(/^\/+|\/+$/g, "");
+    if (p === "grocery") return "grocery";
+    if (p === "pharmacy") return "pharmacy";
+    if (p === "") return "home";
+    if (p.startsWith("shop/")) return "home";
+    const infoSlugs = ["about", "terms", "privacy-policy", "refund-policy", "contact", "partner-with-us", "become-a-rider"];
+    if (infoSlugs.includes(p)) return "home";
+    return "not-found";
+  };
+  const [activeRoute, setActiveRoute] = useState<SeoRoute>(() => parseSeoRoute());
   const [activeInfoPage, setActiveInfoPage] = useState<InfoPageSlug | null>(() => {
     if (typeof window === "undefined") return null;
     const p = window.location.pathname.replace(/^\/+|\/+$/g, "");
@@ -476,6 +497,7 @@ export default function App() {
 
   const navigateToInfoPage = (slug: InfoPageSlug | null) => {
     setActiveInfoPage(slug);
+    setActiveRoute("home");
     setSelectedRestaurant("All Restaurants");
     if (typeof window !== "undefined") {
       const targetUrl = slug ? `/${slug}` : "/";
@@ -489,6 +511,7 @@ export default function App() {
   // Navigation Home Resetters
   const handleGoToFoodHome = () => {
     setActiveInfoPage(null);
+    setActiveRoute("home");
     setActiveModule("food");
     setSelectedRestaurant("All Restaurants");
     setInitialRestaurantCategory(undefined);
@@ -504,8 +527,23 @@ export default function App() {
 
   const handleGoToGroceryHome = () => {
     setActiveInfoPage(null);
+    setActiveRoute("grocery");
     setActiveModule("grocery");
     setSearchQuery("");
+    if (typeof window !== "undefined" && window.location.pathname !== "/grocery") {
+      window.history.pushState({ page: "grocery" }, "", "/grocery");
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleGoToPharmacyHome = () => {
+    setActiveInfoPage(null);
+    setActiveRoute("pharmacy");
+    setActiveModule("grocery");
+    setSearchQuery("");
+    if (typeof window !== "undefined" && window.location.pathname !== "/pharmacy") {
+      window.history.pushState({ page: "pharmacy" }, "", "/pharmacy");
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
   const [successAnimationOrder, setSuccessAnimationOrder] =
@@ -1353,7 +1391,7 @@ export default function App() {
   }, [catalogRefreshTick]);
 
   // One-time client-side seed guards for the owner grocery catalog
-  // (100 items + 12 categories with branded photos in public/images/grocery/).
+  // (297 items + 13 categories with branded photos in public/images/grocery/).
   // Firestore rules allow client-side seeding; the guard makes it idempotent.
   const grocerySeedAttemptedRef = useRef(false);
   const groceryCategorySeedAttemptedRef = useRef(false);
@@ -1449,7 +1487,7 @@ export default function App() {
         setCachedData("dadu_cached_grocery_products", displayList);
         setIsLoadingGrocery(false);
         preloadImages(displayList.slice(0, 20).map((p) => p.imageUrl));
-        // Seed the 100 owner grocery items once if any are missing from Firestore.
+        // Seed the 297 owner grocery items once if any are missing from Firestore.
         if (!grocerySeedAttemptedRef.current) {
           grocerySeedAttemptedRef.current = true;
           const existingIds = new Set(list.map((p) => p.id));
@@ -3139,12 +3177,34 @@ export default function App() {
     if (typeof window !== "undefined" && window.location.pathname.startsWith("/shop/")) {
       window.history.replaceState({ page: "home" }, "", "/");
     }
+    if (activeRoute === "grocery") {
+      syncPageSeo({
+        pageType: "grocery",
+        deliverySettings,
+        adminSeoOverride,
+      });
+      return;
+    }
+    if (activeRoute === "pharmacy") {
+      syncPageSeo({
+        pageType: "pharmacy",
+        deliverySettings,
+        adminSeoOverride,
+      });
+      return;
+    }
+    if (activeRoute === "not-found") {
+      // No syncPageSeo pageType exists for a 404 view; keep it out of the
+      // index by title alone (Worker A serves the real 404 status).
+      document.title = "Page Not Found | Dadu Food";
+      return;
+    }
     syncPageSeo({
       pageType: "home",
       deliverySettings,
       adminSeoOverride,
     });
-  }, [activeInfoPage, selectedRestaurant, finalDishes, deliverySettings, adminSeoOverride]);
+  }, [activeInfoPage, selectedRestaurant, activeRoute, finalDishes, deliverySettings, adminSeoOverride]);
 
   const filteredDishes = React.useMemo(() => {
     const q = (searchQuery || "").trim();
@@ -3897,7 +3957,7 @@ export default function App() {
             dadu<span className="font-extrabold text-pink-100">food</span>
           </h1>
           <p className="text-xs font-bold text-white/90 tracking-wide">
-            Fresh Food &amp; 100 Groceries Delivered Fast in Dadu
+            Fresh Food &amp; 297 Groceries Delivered Fast in Dadu
           </p>
         </motion.div>
       </div>
@@ -4058,6 +4118,13 @@ export default function App() {
           onBack={() => {
             setSelectedRestaurant("All Restaurants");
             setInitialRestaurantCategory(undefined);
+            setActiveRoute("home");
+            setActiveModule("food");
+          }}
+          onOpenShop={(shopName) => {
+            setSelectedRestaurant(shopName);
+            setInitialRestaurantCategory(undefined);
+            window.scrollTo({ top: 0, behavior: "instant" });
           }}
           onAddToCart={handleAddToCart}
           cartItems={cartItems}
@@ -4375,6 +4442,55 @@ export default function App() {
               </button>
             </div>
           </div>
+        ) : activeRoute === "not-found" ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center z-10 max-w-lg mx-auto my-auto min-h-[70vh] gap-6 relative animate-fade-in">
+            <div className="w-16 h-16 bg-[#FDF2F6] dark:bg-[#2A121D] rounded-2xl flex items-center justify-center border border-[#F9A8C9]/50 dark:border-[#D70F64]/25 shadow-md">
+              <span className="text-2xl font-black text-[#D70F64] dark:text-[#FF4D94]">404</span>
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-3xl font-black tracking-tight text-zinc-900 dark:text-zinc-50">
+                Page not found
+              </h1>
+              <p className="text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed">
+                This page doesn&apos;t exist, or it may have moved. Check the link, or head back home to order
+                food, groceries and medicines in Dadu.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 w-full">
+              <a
+                href="/"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleGoToFoodHome();
+                }}
+                className="w-full bg-[#D70F64] hover:bg-[#B80C54] text-white font-black py-3.5 px-4 rounded-2xl shadow-lg hover:scale-[1.01] transition-all flex items-center justify-center gap-2 cursor-pointer text-xs uppercase tracking-wider"
+              >
+                Back to Dadu Food Home
+              </a>
+              <div className="flex items-center justify-center gap-4 text-xs font-bold">
+                <a
+                  href="/grocery"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleGoToGroceryHome();
+                  }}
+                  className="text-[#D70F64] dark:text-[#FF4D94] hover:underline"
+                >
+                  Grocery Delivery in Dadu
+                </a>
+                <a
+                  href="/pharmacy"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleGoToPharmacyHome();
+                  }}
+                  className="text-[#D70F64] dark:text-[#FF4D94] hover:underline"
+                >
+                  Medicine Delivery in Dadu
+                </a>
+              </div>
+            </div>
+          </div>
         ) : (
           <div className="flex-1">
           <Suspense fallback={<div className="p-10 text-center text-sm text-[#5A5A6B] dark:text-[#A3A3B5]">Loading…</div>}>
@@ -4402,14 +4518,14 @@ export default function App() {
                       />
                       <div className="absolute inset-y-0 right-0 w-[56%] sm:w-[48%] lg:w-[26%] bg-gradient-to-r from-[#E21B70] via-[#E21B70]/20 to-transparent pointer-events-none" aria-hidden="true" />
                       <div className="relative z-10 px-4 sm:px-6 pt-5 sm:pt-7 pb-4 max-w-[62%] sm:max-w-[58%] animate-slide-in-left">
-                        <h2 className="text-[27px] sm:text-4xl font-black italic leading-[1.05] text-white tracking-tight drop-shadow-[0_2px_6px_rgba(0,0,0,0.25)]">
+                        <h1 className="text-[27px] sm:text-4xl font-black italic leading-[1.05] text-white tracking-tight drop-shadow-[0_2px_6px_rgba(0,0,0,0.25)]">
                           DADU FOOD - <span className="text-[#FFD500]">FAST</span>
                           <br />
                           <span className="relative inline-block">
                             DELIVERY
                             <span className="absolute left-0 -bottom-1 h-[5px] w-full bg-[#FFD500] rounded-full -rotate-1" />
                           </span>
-                        </h2>
+                        </h1>
                         <p className="mt-3 flex items-center gap-1.5 text-[12px] sm:text-sm font-bold text-white/95">
                           <Clock className="w-4 h-4 shrink-0" />
                           25–35 min • COD &amp; Easypaisa
@@ -4460,7 +4576,7 @@ export default function App() {
                             Dadu<br />Mart
                           </span>
                           <span className="block text-[11px] font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-1 leading-snug">
-                            100 groceries &amp; rashan
+                            297 groceries &amp; rashan
                           </span>
                         </div>
                         <span className="mt-2 inline-flex w-7 h-7 rounded-full bg-gradient-to-br from-[#FF2B85] to-[#D70F64] text-white items-center justify-center shrink-0 shadow-md shadow-[#D70F64]/40">
@@ -4535,6 +4651,51 @@ export default function App() {
                       />
                     </a>
                     </div>
+                  </div>
+                </section>
+
+                {/* About Dadu Food — homepage copy (SEO: real local keywords, no FAQ section) */}
+                <section className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-4">
+                  <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-3 border border-[#E6E6EE] dark:border-[#272733] shadow-xs">
+                    <h2 className="text-sm sm:text-base font-extrabold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
+                      About Dadu Food — Dadu City&apos;s Own Delivery Service
+                    </h2>
+                    <p className="text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed">
+                      Dadu Food is Dadu city&apos;s own food delivery in Dadu Sindh. Order biryani, zinger burgers,
+                      pizza, shawarma and karahi from Dadu Fast Food &amp; Kitchen, S M Bilal Hotel and Tasty Bites
+                      Dadu, and get it delivered hot to your door in 20–35 minutes. When you place an online food order Dadu residents can trust, you pay a flat Rs 50 delivery fee and choose Cash on Delivery
+                      or Easypaisa — no hidden charges.
+                    </p>
+                    <p className="text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed">
+                      It is not just food. Our grocery delivery Dadu service brings 297 everyday grocery items in
+                      13 categories — atta, rice, cooking oil, tea, milk, spices and more — to your home from the
+                      morning, and our medicine delivery Dadu service delivers essential medicines with a lower Rs 30
+                      medicine-only delivery fee. We deliver across Dadu city, including Shahani Paro, Moro Road,
+                      Station Road and College Road, and you can track every order live until it arrives. Food is
+                      served from 12:00 PM to 11:00 PM every day.{" "}
+                      <a
+                        href="/grocery"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleGoToGroceryHome();
+                        }}
+                        className="text-[#D70F64] dark:text-[#FF4D94] font-bold hover:underline"
+                      >
+                        Browse groceries
+                      </a>{" "}
+                      or{" "}
+                      <a
+                        href="/pharmacy"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleGoToPharmacyHome();
+                        }}
+                        className="text-[#D70F64] dark:text-[#FF4D94] font-bold hover:underline"
+                      >
+                        order medicines
+                      </a>
+                      .
+                    </p>
                   </div>
                 </section>
 
@@ -4708,10 +4869,13 @@ export default function App() {
                             const openStatus = getShopOpenStatus(vendor, deliverySettings, vendorIsClosed);
 
                             return (
-                              <button
+                              <a
                                 key={vendor}
-                                type="button"
-                                onClick={() => handleRestaurantClick(vendor)}
+                                href={`/shop/${slugifyShop(vendor)}`}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handleRestaurantClick(vendor);
+                                }}
                                 className={`w-[106px] min-h-[116px] rounded-2xl flex flex-col items-center justify-between p-1.5 transition-colors shrink-0 cursor-pointer border overflow-hidden ${
                                   selectedRestaurant === vendor
                                     ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
@@ -4743,7 +4907,7 @@ export default function App() {
                                 <span className={`text-[11px] font-bold text-center line-clamp-2 leading-tight w-full px-0.5 mt-1 ${selectedRestaurant === vendor ? "text-white" : "text-[#111118] dark:text-[#F5F5F8]"}`}>
                                   {vendor}
                                 </span>
-                              </button>
+                              </a>
                             );
                           })}
                     </div>
@@ -5111,9 +5275,13 @@ export default function App() {
                               : `Rs. ${shopProfile.deliveryFee}`;
 
                             return (
-                              <article
+                              <a
                                 key={vendor}
-                                onClick={() => handleRestaurantClick(vendor)}
+                                href={`/shop/${slugifyShop(vendor)}`}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handleRestaurantClick(vendor);
+                                }}
                                 className={`bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs hover:shadow-md hover:border-[#D70F64]/40 transition-all cursor-pointer group flex flex-col ${!openStatus.isOpen ? "opacity-85" : ""}`}
                               >
                                 <div className="h-44 bg-[#1D1D26] relative overflow-hidden shrink-0">
@@ -5230,7 +5398,7 @@ export default function App() {
                                     </span>
                                   </div>
                                 </div>
-                              </article>
+                              </a>
                             );
                           })}
                       </div>
@@ -5355,6 +5523,58 @@ export default function App() {
             exit={{ opacity: 0, y: -14, scale: 0.995 }}
             transition={{ duration: 0.24, ease: [0.25, 0.1, 0.25, 1.0] }}
           >
+            {activeRoute === "grocery" && (
+              <section className="max-w-7xl mx-auto px-3.5 sm:px-4 pt-3.5">
+                <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-2 border border-[#E6E6EE] dark:border-[#272733] shadow-xs">
+                  <h1 className="text-lg sm:text-2xl font-extrabold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
+                    Grocery Delivery in Dadu
+                  </h1>
+                  <p className="text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed">
+                    Order grocery delivery in Dadu from Dadu Food — 297 grocery items in 13 categories, including
+                    atta, rice, cooking oil, tea, milk, spices, snacks, personal care, cleaning products and
+                    household items. Grocery orders can be placed from the morning, delivery is a flat Rs 50 across
+                    Dadu city, and you can pay by Cash on Delivery or Easypaisa. Need medicines instead?{" "}
+                    <a
+                      href="/pharmacy"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleGoToPharmacyHome();
+                      }}
+                      className="text-[#D70F64] dark:text-[#FF4D94] font-bold hover:underline"
+                    >
+                      Order medicine delivery in Dadu
+                    </a>
+                    .
+                  </p>
+                </div>
+              </section>
+            )}
+            {activeRoute === "pharmacy" && (
+              <section className="max-w-7xl mx-auto px-3.5 sm:px-4 pt-3.5">
+                <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-2 border border-[#E6E6EE] dark:border-[#272733] shadow-xs">
+                  <h1 className="text-lg sm:text-2xl font-extrabold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
+                    Medicine Delivery in Dadu
+                  </h1>
+                  <p className="text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed">
+                    Order medicine delivery in Dadu from Dadu Food — 12 essential medicines in our Medicine &amp;
+                    Pharmacy category, delivered to your home across Dadu city. Medicine-only orders have a lower
+                    delivery fee of Rs 30, and you can pay by Cash on Delivery or Easypaisa. Medicine orders can be
+                    placed from the morning. For everyday household shopping, see our{" "}
+                    <a
+                      href="/grocery"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleGoToGroceryHome();
+                      }}
+                      className="text-[#D70F64] dark:text-[#FF4D94] font-bold hover:underline"
+                    >
+                      grocery delivery in Dadu
+                    </a>
+                    .
+                  </p>
+                </div>
+              </section>
+            )}
             <GroceryModule
               categories={groceryCategories}
               products={groceryProducts}
@@ -5364,6 +5584,7 @@ export default function App() {
               onUpdateCartQuantity={handleUpdateGroceryCartQuantity}
               onRemoveFromCart={handleRemoveFromGroceryCart}
               searchQuery={searchQuery}
+              initialCategoryId={activeRoute === "pharmacy" ? "gcat_medicine" : undefined}
             />
           </motion.div>
         )}
@@ -5415,29 +5636,29 @@ export default function App() {
             </h4>
             <ul className="space-y-1 text-xs font-semibold">
               <li>
-                <button type="button" onClick={() => navigateToInfoPage("about")} className="min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
+                <a href="/about" onClick={(e) => { e.preventDefault(); navigateToInfoPage("about"); }} className="inline-block min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
                   About Us
-                </button>
+                </a>
               </li>
               <li>
-                <button type="button" onClick={() => navigateToInfoPage("contact")} className="min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
+                <a href="/contact" onClick={(e) => { e.preventDefault(); navigateToInfoPage("contact"); }} className="inline-block min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
                   Contact & Helpline
-                </button>
+                </a>
               </li>
               <li>
-                <button type="button" onClick={() => navigateToInfoPage("terms")} className="min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
+                <a href="/terms" onClick={(e) => { e.preventDefault(); navigateToInfoPage("terms"); }} className="inline-block min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
                   Terms & Conditions
-                </button>
+                </a>
               </li>
               <li>
-                <button type="button" onClick={() => navigateToInfoPage("privacy-policy")} className="min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
+                <a href="/privacy-policy" onClick={(e) => { e.preventDefault(); navigateToInfoPage("privacy-policy"); }} className="inline-block min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
                   Privacy Policy
-                </button>
+                </a>
               </li>
               <li>
-                <button type="button" onClick={() => navigateToInfoPage("refund-policy")} className="min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
+                <a href="/refund-policy" onClick={(e) => { e.preventDefault(); navigateToInfoPage("refund-policy"); }} className="inline-block min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
                   Refund & Cancellation Policy
-                </button>
+                </a>
               </li>
             </ul>
           </div>
@@ -5447,14 +5668,14 @@ export default function App() {
             </h4>
             <ul className="space-y-1 text-xs font-semibold">
               <li>
-                <button type="button" onClick={() => navigateToInfoPage("partner-with-us")} className="min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
+                <a href="/partner-with-us" onClick={(e) => { e.preventDefault(); navigateToInfoPage("partner-with-us"); }} className="inline-block min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
                   Register Your Restaurant
-                </button>
+                </a>
               </li>
               <li>
-                <button type="button" onClick={() => navigateToInfoPage("become-a-rider")} className="min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
+                <a href="/become-a-rider" onClick={(e) => { e.preventDefault(); navigateToInfoPage("become-a-rider"); }} className="inline-block min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
                   Become a Delivery Rider
-                </button>
+                </a>
               </li>
             </ul>
           </div>
