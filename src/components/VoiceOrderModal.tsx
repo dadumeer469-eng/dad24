@@ -6,6 +6,7 @@ import {
   type LocalOrder,
   type LocalVoiceAgent,
 } from "../utils/voiceAgentLocal";
+import { getAudioContext, primeAudio } from "../utils/primeAudio";
 
 export interface VoiceOrderItem {
   name: string;
@@ -131,14 +132,24 @@ export default function VoiceOrderModal({
 
   const startRinging = useCallback(() => {
     try {
-      const Ctx =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!Ctx) return;
-      const ctx = new Ctx();
+      // Reuse the context primed by the call button tap (a real gesture) —
+      // a fresh context created here would start suspended and stay silent.
+      let ctx = getAudioContext();
+      if (!ctx) {
+        primeAudio();
+        ctx = getAudioContext();
+      }
+      if (!ctx) return;
       audioCtxRef.current = ctx;
       ringStopRef.current = false;
-      if (ctx.state === "suspended") void ctx.resume();
+      if (ctx.state === "suspended") {
+        void ctx.resume();
+        // If the browser still blocks sound, resume on the next tap.
+        const kick = () => {
+          void ctx.resume();
+        };
+        window.addEventListener("pointerdown", kick, { once: true });
+      }
       const ringCycle = () => {
         if (ringStopRef.current || !openRef.current) return;
         // One ring burst with a soft fade in/out to avoid clicks.
@@ -221,7 +232,13 @@ export default function VoiceOrderModal({
       }
       await ensureVoices();
       if (!openRef.current) return;
-      window.speechSynthesis.cancel();
+      // On Android, cancel() right before speak() can swallow the new
+      // utterance — only cancel if something is speaking, then wait a beat.
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+        await new Promise((r) => setTimeout(r, 120));
+        if (!openRef.current) return;
+      }
       const finish = () => {
         if (openRef.current) setStatusBoth("idle");
         onEnd?.();
@@ -237,10 +254,10 @@ export default function VoiceOrderModal({
       u.onerror = () => {
         if (!retried) {
           // Some phones stay silent when an Urdu voice is requested
-          // but not installed — retry once with the default voice.
+          // but not installed — retry once with the browser's default
+          // voice and no language set, so *some* voice is heard.
           retried = true;
           const u2 = new SpeechSynthesisUtterance(text);
-          u2.lang = "ur-PK";
           u2.rate = 1;
           u2.pitch = 1;
           u2.onend = finish;
