@@ -40,8 +40,12 @@ export class RiderLocationTracker {
   private lastSentTime: number = 0;
   private onLocationChange?: (coords: LocationCoords) => void;
 
-  // Throttling thresholds
-  private readonly TIME_THRESHOLD_MS = 20000; // 20 seconds
+  // Throttling thresholds — the rider's live pin updates AT MOST once a
+  // minute, and only if the rider actually moved. The customer's map
+  // (FoodDeliveryTracker) listens to RTDB and shows the new position
+  // every minute while the rider is moving. Writing more often would
+  // burn the free Firebase limits for no visible benefit.
+  private readonly TIME_THRESHOLD_MS = 60000; // 60 seconds = 1 minute
   private readonly DISTANCE_THRESHOLD_METERS = 25; // 25 meters
 
   constructor(orderId: string, onLocationChange?: (coords: LocationCoords) => void) {
@@ -99,8 +103,11 @@ export class RiderLocationTracker {
     const timeConditionMet = timeElapsedMs >= this.TIME_THRESHOLD_MS;
     const distanceConditionMet = distanceMovedMeters >= this.DISTANCE_THRESHOLD_METERS;
 
-    // Smart Throttling Filter: Write ONLY if 20s elapsed OR moved > 25 meters
-    if (isFirstWrite || timeConditionMet || distanceConditionMet) {
+    // 1-minute throttle: write ONLY if a full minute passed AND the rider
+    // moved at least 25m since the last write (distance is measured from
+    // the last SENT position, so slow crawling still reports within a
+    // couple of minutes). A parked rider writes nothing at all.
+    if (isFirstWrite || (timeConditionMet && distanceConditionMet)) {
       console.log(
         `[RiderLocationTracker] Pushing position update for order #${this.orderId} (Time elapsed: ${Math.round(
           timeElapsedMs / 1000
