@@ -3299,7 +3299,7 @@ export default function App() {
         return { ok: false, message: "Account restricted aahe. Verification pending aahe." };
       }
       const name = currentUser.name || "Customer";
-      const phone = currentUser.phone || "";
+      const phone = order.phone || currentUser.phone || "";
       const location = {
         area: order.address.area || "Dadu",
         street: order.address.street || "",
@@ -4970,6 +4970,7 @@ export default function App() {
         isSignedIn={!!currentUser}
         onOpenAuth={() => setIsAuthOpen(true)}
         onOrderReady={handleVoiceOrderReady}
+        onRequestLocation={requestLocation}
         userName={currentUser?.name}
         userPhone={currentUser?.phone}
         deliveryLocation={
