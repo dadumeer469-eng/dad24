@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Phone, PhoneOff, X } from "lucide-react";
 import type { LocalMenuItem, LocalOrder } from "../utils/voiceAgentLocal";
 import { getAudioContext, primeAudio } from "../utils/primeAudio";
+import MunchiCharacter from "./MunchiCharacter";
+import { MunchiController } from "../utils/munchiController";
 
 export interface VoiceOrderItem {
   name: string;
@@ -81,7 +83,6 @@ export default function VoiceOrderModal({
   // The agent girl stays hidden while the call connects; she walks in the
   // moment the agent answers, then talks with a nod and a waving hand.
   const [agentVisible, setAgentVisible] = useState(false);
-  const [walkInDone, setWalkInDone] = useState(false);
 
   const messagesRef = useRef<ChatMsg[]>([]);
   const statusRef = useRef<Status>("idle");
@@ -89,7 +90,6 @@ export default function VoiceOrderModal({
   const audioCtxRef = useRef<AudioContext | null>(null);
   const ringStopRef = useRef(false);
   const ringTimerRef = useRef<number | null>(null);
-  const walkInTimerRef = useRef<number | null>(null);
   const turnRef = useRef(0);
 
   // Groq flow: MediaRecorder + Whisper, no SpeechRecognition.
@@ -102,6 +102,10 @@ export default function VoiceOrderModal({
   const maxRecTimerRef = useRef<number | null>(null);
   const startListeningRef = useRef<() => void>(() => {});
   const transcribeAndChatRef = useRef<(blob: Blob, turn: number) => void>(() => {});
+
+  // Munchi — the character controller (state machine + lip-sync driver).
+  const munchiRef = useRef<MunchiController | null>(null);
+  if (munchiRef.current === null) munchiRef.current = new MunchiController();
 
   // Menu + orders as text for the Groq system prompt (source of truth —
   // the model never invents prices; it only uses these lines).
@@ -120,16 +124,24 @@ export default function VoiceOrderModal({
       .join("\n");
   }, [recentOrders]);
 
-  // Reveal the agent: she walks in, then settles into her idle/talking loop.
+  // Reveal the agent: Munchi walks in once the call is answered.
   const revealAgent = useCallback(() => {
     setAgentVisible(true);
-    if (walkInTimerRef.current !== null) clearTimeout(walkInTimerRef.current);
-    walkInTimerRef.current = window.setTimeout(() => setWalkInDone(true), 1400);
   }, []);
 
   const setStatusBoth = (s: Status) => {
     statusRef.current = s;
     setStatus(s);
+    // Drive Munchi's expressions from the same status funnel.
+    const m = munchiRef.current;
+    if (!m) return;
+    if (s === "listening") m.setState("listening");
+    else if (s === "thinking") m.setState("thinking");
+    else if (s === "speaking") m.setState("speaking");
+    else if (s === "error") m.setState("error");
+    else if (s === "idle") m.setState("idle");
+    // "calling" keeps Munchi hidden; "done" is handled in finishOrder
+    // (celebrate only when the order really placed).
   };
 
   // Phone-ring tone while the call is connecting: a classic dual-tone
@@ -199,10 +211,7 @@ export default function VoiceOrderModal({
     // Invalidate any in-flight turn so late fetch/recorder callbacks stop.
     turnRef.current += 1;
     stopRinging();
-    if (walkInTimerRef.current !== null) {
-      clearTimeout(walkInTimerRef.current);
-      walkInTimerRef.current = null;
-    }
+    munchiRef.current?.reset();
     if (maxRecTimerRef.current !== null) {
       clearTimeout(maxRecTimerRef.current);
       maxRecTimerRef.current = null;
@@ -285,6 +294,7 @@ export default function VoiceOrderModal({
         if (!openRef.current) return;
       }
       const finish = () => {
+        munchiRef.current?.noteSpeechEnd();
         if (openRef.current) setStatusBoth("idle");
         onEnd?.();
       };
@@ -295,6 +305,11 @@ export default function VoiceOrderModal({
       u.rate = 1;
       u.pitch = 1;
       let retried = false;
+      // Real lip-sync: Chrome fires onboundary once per spoken word — each
+      // word pulses Munchi's jaw open (see munchiController.ts).
+      u.onboundary = (e) => {
+        if (e.name === "word") munchiRef.current?.noteWord(e.charLength ?? 4);
+      };
       u.onend = finish;
       u.onerror = () => {
         if (!retried) {
@@ -305,15 +320,20 @@ export default function VoiceOrderModal({
           const u2 = new SpeechSynthesisUtterance(text);
           u2.rate = 1;
           u2.pitch = 1;
+          u2.onboundary = (e) => {
+            if (e.name === "word") munchiRef.current?.noteWord(e.charLength ?? 4);
+          };
           u2.onend = finish;
           u2.onerror = finish;
           setStatusBoth("speaking");
+          munchiRef.current?.noteSpeechStart();
           window.speechSynthesis.speak(u2);
           return;
         }
         finish();
       };
       setStatusBoth("speaking");
+      munchiRef.current?.noteSpeechStart();
       window.speechSynthesis.speak(u);
     },
     [ensureVoices, stopRinging],
@@ -325,6 +345,8 @@ export default function VoiceOrderModal({
       const result = await onOrderReady(order);
       if (result.ok) {
         setPlacedOrder(order);
+        // Order confirmed — Munchi celebrates (thumbs-up is baked into his photo).
+        munchiRef.current?.setState("order_confirmed");
         // Let the agent's spoken confirmation finish, then end the call.
         setTimeout(() => {
           if (openRef.current) endCall();
@@ -603,11 +625,12 @@ export default function VoiceOrderModal({
   useEffect(() => {
     if (!isOpen) return;
     openRef.current = true;
+    // Test/debug hook: lets Playwright drive Munchi's lip-sync directly.
+    (window as unknown as { __munchi?: MunchiController }).__munchi = munchiRef.current ?? undefined;
     messagesRef.current = [];
     setPlacedOrder(null);
-    // The agent is absent until she answers — then she walks in.
+    // Munchi is absent until he answers — then he walks in.
     setAgentVisible(false);
-    setWalkInDone(false);
     setStatusBoth("calling");
     // Ring like a real phone call until the agent answers.
     startRinging();
@@ -657,24 +680,16 @@ export default function VoiceOrderModal({
     status === "calling"
       ? "Please wait, our agent will be with you shortly..."
       : status === "listening"
-        ? "Bolo — main sunn raha hoon"
+        ? "Munchi is listening..."
         : status === "thinking"
-          ? "Agent jawab soch raha hai..."
+          ? "Munchi is thinking..."
           : status === "speaking"
-            ? "Agent bol raha hai — suno"
+            ? "Munchi is speaking..."
             : status === "done"
               ? "Shukriya! Order place ho gaya."
               : status === "error"
                 ? "Dobara koshish karo — main yahin hoon"
                 : "";
-
-  // Agent motion: walks in once the API answers, then nods while talking
-  // and breathes gently while listening.
-  const agentMotionClass = !walkInDone
-    ? "animate-agent-walk-in"
-    : status === "speaking"
-      ? "animate-agent-talk"
-      : "animate-agent-breathe";
 
   return (
     <div
@@ -708,36 +723,11 @@ export default function VoiceOrderModal({
         </div>
       </div>
 
-      {/* Middle: the agent girl — absent while connecting, walks in once
-          the API answers, then talks with a nod and a waving hand. */}
+      {/* Middle: Munchi — absent while connecting, walks in once the
+          agent answers, then listens, thinks and talks with a live jaw. */}
       <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-4">
-        {agentVisible && (
-          <div className={`relative w-full max-w-[400px] ${agentMotionClass}`}>
-            <div className="relative aspect-[710/637] w-full overflow-hidden rounded-[28px]">
-              <img
-                src="/images/voice-agent.jpg"
-                alt="Dadu Food voice agent"
-                className="h-full w-full object-cover"
-                draggable={false}
-              />
-              {/* Waving hand layer, aligned exactly over the hand in the photo. */}
-              <img
-                src="/images/voice-agent-hand.png"
-                alt=""
-                aria-hidden="true"
-                draggable={false}
-                className={status === "speaking" && walkInDone ? "animate-hand-wave" : undefined}
-                style={{
-                  position: "absolute",
-                  left: "78.2%",
-                  top: "46.6%",
-                  width: "21.8%",
-                  height: "42.4%",
-                  transformOrigin: "35% 76%",
-                }}
-              />
-            </div>
-          </div>
+        {agentVisible && munchiRef.current && (
+          <MunchiCharacter controller={munchiRef.current} visible={agentVisible} />
         )}
 
         {/* Status card */}
