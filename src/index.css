@@ -242,6 +242,88 @@
   height: 8px;
 }
 
+/* Voice call agent: walks in when the API connects, talks with a nod,
+   breathes while listening, and waves her hand while speaking. */
+@keyframes agent-walk-in {
+  0% {
+    opacity: 0;
+    transform: translate3d(70%, 26px, 0) scale(0.92) rotate(2deg);
+  }
+  35% {
+    opacity: 1;
+    transform: translate3d(38%, -6px, 0) scale(0.96) rotate(-1deg);
+  }
+  60% {
+    transform: translate3d(16%, 4px, 0) scale(0.98) rotate(0.8deg);
+  }
+  80% {
+    transform: translate3d(4%, -3px, 0) scale(1) rotate(-0.4deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+  }
+}
+.animate-agent-walk-in {
+  animation: agent-walk-in 1.4s cubic-bezier(0.22, 0.9, 0.3, 1) both;
+}
+
+@keyframes agent-talk {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+  }
+  25% {
+    transform: translate3d(0, -3px, 0) rotate(-0.5deg) scale(1.01);
+  }
+  50% {
+    transform: translate3d(0, 1px, 0) rotate(0.4deg) scale(1);
+  }
+  75% {
+    transform: translate3d(0, -2px, 0) rotate(-0.3deg) scale(1.01);
+  }
+}
+.animate-agent-talk {
+  animation: agent-talk 0.55s ease-in-out infinite;
+}
+
+@keyframes agent-breathe {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, -3px, 0) scale(1.012);
+  }
+}
+.animate-agent-breathe {
+  animation: agent-breathe 3s ease-in-out infinite;
+}
+
+@keyframes hand-wave {
+  0%, 100% {
+    transform: rotate(-4deg);
+  }
+  50% {
+    transform: rotate(6deg);
+  }
+}
+.animate-hand-wave {
+  animation: hand-wave 0.9s ease-in-out infinite;
+}
+
+@keyframes dot-bounce {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+  50% {
+    transform: translateY(-5px);
+    opacity: 1;
+  }
+}
+.animate-dot-bounce {
+  animation: dot-bounce 1s ease-in-out infinite;
+}
+
 @keyframes cart-pop {
   0% {
     transform: scale(0.4);
