@@ -153,7 +153,11 @@ export default function AuthModal({
         setError("reCAPTCHA verification failed. Please tap Send OTP again.");
       } else if (code === "auth/billing-not-enabled" || code === "auth/quota-exceeded") {
         setError(
-          "Server is busy right now, please try again later."
+          "Daily SMS limit reached. Please try again tomorrow."
+        );
+      } else if (code === "resource-exhausted" || /quota/i.test(err?.message || "")) {
+        setError(
+          "Dadu Food's daily limit is reached. Please try again after 1:00 PM tomorrow."
         );
       } else if (code === "auth/network-request-failed") {
         setError("Network error while sending SMS OTP. Please check your connection and try again.");
@@ -191,6 +195,8 @@ export default function AuthModal({
         setError("Incorrect 6-digit OTP code. Please check your SMS and try again.");
       } else if (code === "auth/code-expired") {
         setError("This OTP code has expired. Tap Resend OTP to receive a new one.");
+      } else if (code === "resource-exhausted" || /quota/i.test(err?.message || "")) {
+        setError("Dadu Food's daily limit is reached. Please try again after 1:00 PM tomorrow.");
       } else {
         setError("Server is busy right now, please try again later.");
       }
@@ -234,6 +240,8 @@ export default function AuthModal({
         setError("Browser blocked the Google Sign-In popup. Please allow popups for this site and try again.");
       } else if (code === "auth/network-request-failed") {
         setError("Network error during Google Sign-In. Check your internet connection and retry.");
+      } else if (code === "resource-exhausted" || /quota/i.test(err?.message || "")) {
+        setError("Dadu Food's daily limit is reached. Please try again after 1:00 PM tomorrow.");
       } else {
         setError("Server is busy right now, please try again later.");
       }
@@ -260,7 +268,12 @@ export default function AuthModal({
     try {
       await onAuthSuccess(cleanIdentifier, true, password);
     } catch (err: any) {
-      setError("Staff authentication failed. Please check your details and try again.");
+      const code = err?.code || "";
+      if (code === "resource-exhausted" || /quota/i.test(err?.message || "")) {
+        setError("Dadu Food's daily limit is reached. Please try again after 1:00 PM tomorrow.");
+      } else {
+        setError("Staff authentication failed. Please check your details and try again.");
+      }
     } finally {
       setLoading(false);
     }
