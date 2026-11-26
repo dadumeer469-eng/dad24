@@ -16,6 +16,7 @@ export interface VoiceOrder {
   items: VoiceOrderItem[];
   address: { area: string; street: string };
   payment: "COD" | "Easypaisa";
+  phone?: string;
 }
 
 export interface VoiceOrderResult {
@@ -33,6 +34,7 @@ interface VoiceOrderModalProps {
   isSignedIn: boolean;
   onOpenAuth: () => void;
   onOrderReady: (order: VoiceOrder) => Promise<VoiceOrderResult>;
+  onRequestLocation: () => void;
   userName?: string;
   userPhone?: string;
   deliveryLocation?: { area: string; street: string };
@@ -77,6 +79,7 @@ export default function VoiceOrderModal({
   isSignedIn,
   onOpenAuth,
   onOrderReady,
+  onRequestLocation,
   userName,
   userPhone,
   deliveryLocation,
@@ -85,9 +88,19 @@ export default function VoiceOrderModal({
   const [placedOrder, setPlacedOrder] = useState<VoiceOrder | null>(null);
   // The product being talked about, shown in Munchi's hand.
   const [productFrame, setProductFrame] = useState<ProductFrame | null>(null);
-  // The agent girl stays hidden while the call connects; she walks in the
+  // Munchi stays hidden while the call connects; he walks in the
   // moment the agent answers, then talks with a nod and a waving hand.
   const [agentVisible, setAgentVisible] = useState(false);
+  // Phone-number popup (shown when the agent asks for the number and none
+  // is on file): the typed digits, the error line, and the open/closing
+  // states that drive its spring-in / spring-out animation.
+  const [enteredPhone, setEnteredPhone] = useState("");
+  const [showPhonePopup, setShowPhonePopup] = useState(false);
+  const [phonePopupClosing, setPhonePopupClosing] = useState(false);
+  const [phoneInput, setPhoneInput] = useState("");
+  const [phoneError, setPhoneError] = useState("");
+  const [shakeKey, setShakeKey] = useState(0);
+  const pendingOrderRef = useRef<VoiceOrder | null>(null);
 
   const messagesRef = useRef<ChatMsg[]>([]);
   const statusRef = useRef<Status>("idle");
@@ -407,8 +420,8 @@ export default function VoiceOrderModal({
   );
 
   // Speak a reply with the NEURAL voice: the text is synthesised to real
-  // audio by /api/voice-speak (Google TTS Urdu — natural, human-like) and
-  // played back as a file. Munchi's jaw follows the TRUE volume through
+  // audio by /api/voice-speak (Edge neural TTS, male Urdu voice Asad — the
+  // user picked Asad; no female voice anywhere) and played back as a file. Munchi's jaw follows the TRUE volume through
   // an AnalyserNode (driveMouth), not a guess. If the endpoint fails for
   // any reason, the phone voice above takes over so the call never goes
   // silent mid-sentence.
@@ -529,8 +542,16 @@ export default function VoiceOrderModal({
 
   const finishOrder = useCallback(
     async (order: VoiceOrder) => {
+      // No phone number on file yet — show the number popup first; the
+      // order is placed once the 11-digit number is entered (submitPhone).
+      const phone = userPhone || enteredPhone || "";
+      if (!phone) {
+        pendingOrderRef.current = order;
+        setShowPhonePopup(true);
+        return;
+      }
       setStatusBoth("done");
-      const result = await onOrderReady(order);
+      const result = await onOrderReady({ ...order, phone });
       if (result.ok) {
         setPlacedOrder(order);
         // Order confirmed — Munchi celebrates (thumbs-up is baked into his photo).
@@ -559,8 +580,34 @@ export default function VoiceOrderModal({
         });
       }
     },
-    [onOrderReady, speak, endCall, onClose, onOpenAuth, menuItems],
+    [onOrderReady, speak, endCall, onClose, onOpenAuth, menuItems, userPhone, enteredPhone],
   );
+
+  // Phone popup OK: a full 11-digit number (03xxxxxxxxx) dismisses the
+  // popup with an animation, then the pending order is placed. An
+  // incomplete number shakes the popup, shows the error, and the voice
+  // asks for the complete number.
+  const submitPhone = useCallback(() => {
+    const digits = phoneInput.replace(/\D/g, "").slice(0, 11);
+    if (digits.length !== 11 || !digits.startsWith("03")) {
+      setPhoneError("Poora 11-digit number likhein, sir.");
+      setShakeKey((k) => k + 1);
+      speak("Poora number batayein, sir.", () => {
+        if (openRef.current) startListeningRef.current();
+      });
+      return;
+    }
+    setEnteredPhone(digits);
+    setPhoneError("");
+    setPhonePopupClosing(true);
+    window.setTimeout(() => {
+      setShowPhonePopup(false);
+      setPhonePopupClosing(false);
+      const order = pendingOrderRef.current;
+      pendingOrderRef.current = null;
+      if (order) finishOrder({ ...order, phone: digits });
+    }, 280);
+  }, [phoneInput, speak, finishOrder]);
 
   // All Groq keys exhausted (or not configured): tell the customer the
   // line is busy, then end the call — there is no retry button on screen.
@@ -588,7 +635,7 @@ export default function VoiceOrderModal({
             menuText,
             ordersText,
             userName: userName || undefined,
-            userPhone: userPhone || undefined,
+            userPhone: userPhone || enteredPhone || undefined,
             locationText: deliveryLocation
               ? deliveryLocation.street
                 ? `${deliveryLocation.area}, ${deliveryLocation.street}`
@@ -618,6 +665,18 @@ export default function VoiceOrderModal({
         // The agent's reply named a dish — frame that one in Munchi's hand.
         const hit = findProductInText(say, menuItems);
         if (hit) setProductFrame(hit);
+        // Location missing and the agent just asked for it — open the
+        // browser's location popup (the native dialog appears on top of
+        // the call). Fires at most once per turn, only while location is
+        // still missing. The agent's line contains "لوکیشن".
+        if (!deliveryLocation && /لوکیشن|location/i.test(say)) {
+          onRequestLocation();
+        }
+        // Phone missing and the agent just asked for the number — show the
+        // stylish number popup right here in the call.
+        if (!userPhone && !enteredPhone && /نمبر|number/i.test(say)) {
+          setShowPhonePopup(true);
+        }
         // The agent answered — she walks in and starts talking.
         revealAgent();
         // A short human-like pause before answering (and it lets the
@@ -640,7 +699,7 @@ export default function VoiceOrderModal({
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [menuText, ordersText, userName, userPhone, deliveryLocation, speak, revealAgent, speakBusyAndEnd, menuItems],
+    [menuText, ordersText, userName, userPhone, enteredPhone, deliveryLocation, speak, revealAgent, speakBusyAndEnd, menuItems, onRequestLocation],
   );
 
   // Transcribe the recorded audio (Groq Whisper), then chat with Groq.
@@ -970,6 +1029,70 @@ export default function VoiceOrderModal({
           <PhoneOff className="h-9 w-9 text-white" />
         </button>
       </div>
+
+      {/* Phone-number popup: stylish spring-in card. OK with a full
+          11-digit number springs out; an incomplete number shakes and
+          the voice asks for the complete number. */}
+      {showPhonePopup && (
+        <>
+          <style>{`
+            @keyframes phone-popup-in { from { opacity: 0; transform: translateY(24px) scale(.92); } to { opacity: 1; transform: translateY(0) scale(1); } }
+            @keyframes phone-popup-out { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(16px) scale(.94); } }
+            @keyframes phone-shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-8px); } 40% { transform: translateX(8px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(5px); } }
+          `}</style>
+          <div
+            className="absolute inset-x-0 bottom-32 z-20 flex justify-center px-5"
+            style={{ animation: phonePopupClosing ? "phone-popup-out .28s ease-in both" : "phone-popup-in .35s cubic-bezier(.34,1.56,.64,1) both" }}
+          >
+            <div
+              key={shakeKey}
+              style={shakeKey > 0 ? { animation: "phone-shake .4s ease-in-out" } : undefined}
+              className="w-full max-w-[400px] rounded-[28px] bg-white/95 px-6 py-5 text-center shadow-[0_16px_40px_rgba(0,0,0,0.4)] ring-2 ring-[#E21B70]/40"
+            >
+              <div className="flex items-center justify-center gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#E21B70]">
+                  <Phone className="h-6 w-6 text-white" aria-hidden="true" />
+                </span>
+                <span className="text-[20px] font-bold leading-tight text-[#1e293b]">
+                  Apna mobile number likhein
+                </span>
+              </div>
+              <p className="mt-1 text-[14px] leading-snug text-[#334155]">
+                Order confirm karne ke liye 11-digit number zaroori hai.
+              </p>
+              <input
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel"
+                autoFocus
+                value={phoneInput}
+                onChange={(e) => {
+                  setPhoneInput(e.target.value.replace(/\D/g, "").slice(0, 11));
+                  if (phoneError) setPhoneError("");
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") submitPhone();
+                }}
+                placeholder="03xx-xxxxxxx"
+                className="mt-4 w-full rounded-2xl border-2 border-[#E21B70]/30 bg-white px-4 py-3 text-center text-[24px] font-bold tracking-[0.2em] text-[#1e293b] outline-none placeholder:text-[#94a3b8] focus:border-[#E21B70]"
+                aria-label="Mobile number, 11 digits"
+              />
+              <div className="mt-1 flex items-center justify-between px-1 text-[13px] font-semibold">
+                <span className={phoneError ? "text-[#e11d48]" : "text-[#64748b]"}>
+                  {phoneError || "11 digits, 03 se shuru"}
+                </span>
+                <span className="text-[#64748b]">{phoneInput.replace(/\D/g, "").length}/11</span>
+              </div>
+              <button
+                onClick={submitPhone}
+                className="mt-3 w-full rounded-full bg-[#E21B70] py-3 text-[18px] font-bold text-white shadow-[0_8px_20px_rgba(226,27,112,0.45)] transition-transform active:scale-95"
+              >
+                OK — Confirm karein
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
