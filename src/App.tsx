@@ -55,6 +55,7 @@ import FoodpandaHeader from "./components/FoodpandaHeader";
 import FoodpandaHero from "./components/FoodpandaHero";
 import CartDrawer from "./components/CartDrawer";
 import VoiceOrderModal, { type VoiceOrder, type VoiceOrderResult } from "./components/VoiceOrderModal";
+import { primeAudio } from "./utils/primeAudio";
 import OrderTracker from "./components/OrderTracker";
 import AuthModal from "./components/AuthModal";
 // Staff-only panels load on demand so the first paint stays fast for customers
@@ -4945,7 +4946,12 @@ export default function App() {
 
       {/* Dynamic Floating Voice Assistant Button (Bottom corner) — opens the AI voice order assistant */}
       <button
-        onClick={() => setIsVoiceOrderOpen(true)}
+        onClick={() => {
+          // Prime the phone's audio inside this tap (a real gesture) —
+          // otherwise the ring and the voice start silent on mobile.
+          primeAudio();
+          setIsVoiceOrderOpen(true);
+        }}
         className={`fixed bottom-32 right-4 z-40 bg-[#E21B70] hover:bg-[#C2145E] text-white p-2 rounded-full shadow-lg active:scale-[0.97] transition-[color,background-color,border-color,transform,opacity] duration-180 cursor-pointer flex items-center justify-center border border-white/20 ${isScrolling ? "opacity-0 pointer-events-none translate-y-3" : "opacity-100"}`}
         title="Voice Assistant — Urdu mein order karein"
         aria-label="Voice Assistant"
