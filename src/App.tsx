@@ -680,15 +680,17 @@ export default function App() {
   }, []);
 
   // Global Location State
-  // Location persists for 30 minutes so a returning visit never re-prompts:
+  // Location persists for 2 hours so a returning visit never re-prompts:
   // if location is already on, the prompt/modal goes away instantly.
+  // The location is saved ONCE when the site opens and reused for 2 hours
+  // — it is NOT re-fetched on every visit, so Firebase stays within limits.
   const [globalCoords, setGlobalCoords] = useState<{ latitude: number; longitude: number } | null>(() => {
     try {
       const raw = typeof window !== "undefined" ? localStorage.getItem("dadu_coords") : null;
       if (!raw) return null;
       const saved = JSON.parse(raw) as { latitude: number; longitude: number; at?: number };
       if (!saved || typeof saved.latitude !== "number" || typeof saved.longitude !== "number") return null;
-      if (saved.at && Date.now() - saved.at > 30 * 60 * 1000) return null;
+      if (saved.at && Date.now() - saved.at > 2 * 60 * 60 * 1000) return null;
       return { latitude: saved.latitude, longitude: saved.longitude };
     } catch {
       return null;
@@ -762,7 +764,7 @@ export default function App() {
 
   const nativeLocationRequestedRef = useRef(false);
 
-  // Save coords to state + localStorage (30-min freshness) in one place
+  // Save coords to state + localStorage (2-hour freshness) in one place
   const saveCoords = (coords: { latitude: number; longitude: number }) => {
     setGlobalCoords(coords);
     try {
@@ -903,41 +905,18 @@ export default function App() {
     setIsUserMapPickerOpen(false);
   };
 
-  // Continuous real-time geolocation watch to keep globalCoords updated
-  useEffect(() => {
-    if (showSplash) return;
-    
-    let watchId: number | null = null;
-    
-    if (navigator.geolocation) {
-      watchId = navigator.geolocation.watchPosition(
-        (pos) => {
-          const newLat = pos.coords.latitude;
-          const newLng = pos.coords.longitude;
-          
-          setGlobalCoords((prev) => {
-            if (!prev) return { latitude: newLat, longitude: newLng };
-            const distKm = calculateDistanceKm(prev.latitude, prev.longitude, newLat, newLng);
-            // Only update state if position moved at least 10 meters (0.01 km) to avoid unnecessary re-renders
-            if (distKm >= 0.01) {
-              return { latitude: newLat, longitude: newLng };
-            }
-            return prev;
-          });
-        },
-        (err) => console.log("Real-time watch location error:", err),
-        { enableHighAccuracy: false, timeout: 20000, maximumAge: 10000 }
-      );
-    }
-    
-    return () => {
-      if (watchId !== null) {
-        navigator.geolocation.clearWatch(watchId);
-      }
-    };
-  }, [showSplash]);
+  // NOTE: there is deliberately NO continuous watchPosition here. The
+  // customer's location is saved once when the site opens and reused for
+  // 2 hours (see the dadu_coords cache above). A live watch would keep
+  // firing GPS updates and Firestore writes all session long and burn
+  // the free Firebase quota. Only the rider is live-tracked (see
+  // src/lib/riderLocationTracker.ts, once a minute while delivering).
 
-  // Synchronize live GPS pinpoint coordinates to Firestore when they change
+  // Synchronize live GPS pinpoint coordinates to Firestore when they change.
+  // Firebase quota guard: the saved location is written AT MOST once every
+  // 2 hours. The customer's location is saved once when the site opens and
+  // reused from localStorage for 2 hours — it must NOT write to Firestore
+  // on every GPS change or every visit, or the free quota runs out.
   useEffect(() => {
     if (!currentUser?.uid || currentUser.role === "rider" || currentUser.role === "admin" || !globalCoords) return;
 
@@ -960,6 +939,11 @@ export default function App() {
     }
 
     if (hasNoCoordinates || distanceChanged) {
+      try {
+        const lastWritten = Number(localStorage.getItem("dadu_loc_written_at") || 0);
+        if (lastWritten && Date.now() - lastWritten < 2 * 60 * 60 * 1000) return;
+        localStorage.setItem("dadu_loc_written_at", String(Date.now()));
+      } catch {}
       const userRef = doc(db, "users", currentUser.uid);
       updateDoc(userRef, {
         "savedLocation.lat": globalCoords.latitude,
