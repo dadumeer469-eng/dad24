@@ -21,6 +21,19 @@ import {
   ClipboardCheck,
   Timer,
   LayoutGrid,
+  Sandwich,
+  Pizza,
+  Soup,
+  Drumstick,
+  Croissant,
+  Coffee,
+  CupSoda,
+  IceCreamCone,
+  Popcorn,
+  Tag,
+  Wheat,
+  UtensilsCrossed,
+  type LucideIcon,
 } from "lucide-react";
 import { Dish, Order, OrderItem, SystemSettings } from "../types";
 import { getDefaultRestaurantImage } from "../data";
@@ -112,9 +125,9 @@ function CategoryDishGridBatch({
           <button
             type="button"
             onClick={() => setVisibleCount((c) => c + 24)}
-            className="min-h-[44px] px-5 py-2.5 rounded-xl bg-white dark:bg-[#14141A] border border-[#D70F64]/45 text-[#D70F64] dark:text-[#FF4D94] hover:bg-[#D70F64] hover:text-white font-bold text-xs transition-all duration-300 transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer"
+            className="min-h-[44px] px-5 py-2.5 rounded-xl bg-white dark:bg-[#14141A] border border-[#D70F64]/45 text-[#D70F64] dark:text-[#FF4D94] hover:bg-[#D70F64] hover:text-white font-bold text-xs transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer"
           >
-            Show {Math.min(remaining, 24)} More Items ({remaining} remaining)
+            Show {Math.min(remaining, 24)} more items ({remaining} remaining)
           </button>
         </div>
       )}
@@ -122,22 +135,22 @@ function CategoryDishGridBatch({
   );
 }
 
-const getCategoryEmoji = (category: string) => {
+const getCategoryIcon = (category: string): LucideIcon => {
   const cat = (category || "").toLowerCase();
-  if (cat.includes("burger") || cat.includes("fast food")) return "🍔";
-  if (cat.includes("pizza")) return "🍕";
-  if (cat.includes("drink") || cat.includes("beverage") || cat.includes("shake")) return "🥤";
-  if (cat.includes("biryani") || cat.includes("rice") || cat.includes("pulao") || cat.includes("desi")) return "🍛";
-  if (cat.includes("chicken") || cat.includes("karahi") || cat.includes("barbecue") || cat.includes("bbq") || cat.includes("broast")) return "🍗";
-  if (cat.includes("roll") || cat.includes("shawarma") || cat.includes("wrap")) return "🌯";
-  if (cat.includes("dessert") || cat.includes("sweet") || cat.includes("ice cream")) return "🍦";
-  if (cat.includes("deal") || cat.includes("combo") || cat.includes("offer") || cat.includes("special")) return "⭐";
-  if (cat.includes("fries") || cat.includes("side") || cat.includes("snack")) return "🍟";
-  if (cat.includes("tea") || cat.includes("coffee") || cat.includes("chai")) return "☕";
-  if (cat.includes("pasta") || cat.includes("lasagna")) return "🍝";
-  if (cat.includes("sandwich")) return "🥪";
-  if (cat.includes("paratha")) return "🫓";
-  return "🍽️";
+  if (cat.includes("burger") || cat.includes("fast food")) return Sandwich;
+  if (cat.includes("pizza")) return Pizza;
+  if (cat.includes("drink") || cat.includes("beverage") || cat.includes("shake")) return CupSoda;
+  if (cat.includes("biryani") || cat.includes("rice") || cat.includes("pulao") || cat.includes("desi")) return Soup;
+  if (cat.includes("chicken") || cat.includes("karahi") || cat.includes("barbecue") || cat.includes("bbq") || cat.includes("broast")) return Drumstick;
+  if (cat.includes("roll") || cat.includes("shawarma") || cat.includes("wrap")) return Croissant;
+  if (cat.includes("dessert") || cat.includes("sweet") || cat.includes("ice cream")) return IceCreamCone;
+  if (cat.includes("deal") || cat.includes("combo") || cat.includes("offer") || cat.includes("special")) return Tag;
+  if (cat.includes("fries") || cat.includes("side") || cat.includes("snack")) return Popcorn;
+  if (cat.includes("tea") || cat.includes("coffee") || cat.includes("chai")) return Coffee;
+  if (cat.includes("pasta") || cat.includes("lasagna")) return UtensilsCrossed;
+  if (cat.includes("sandwich")) return Sandwich;
+  if (cat.includes("paratha")) return Wheat;
+  return UtensilsCrossed;
 };
 
 export default function FoodpandaRestaurantPage({
@@ -207,7 +220,7 @@ export default function FoodpandaRestaurantPage({
   }, [dishes, categories]);
   const hasBestsellers = bestsellerDishes.length >= 3;
   const allNavCategories = useMemo(
-    () => (hasBestsellers ? ["🔥 Bestsellers", ...categories] : categories),
+    () => (hasBestsellers ? ["Bestsellers", ...categories] : categories),
     [hasBestsellers, categories]
   );
 
@@ -469,7 +482,7 @@ export default function FoodpandaRestaurantPage({
                   imgClassName="object-cover"
                 />
               ) : (
-                <div className="w-full h-full bg-[#D70F64] flex items-center justify-center text-white font-extrabold text-xl">
+                <div className="w-full h-full bg-[#D70F64] flex items-center justify-center text-white font-semibold text-xl">
                   {restaurantName.substring(0, 2).toUpperCase()}
                 </div>
               )}
@@ -484,7 +497,7 @@ export default function FoodpandaRestaurantPage({
             {/* Info + Live Open/Closed Status */}
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#14141A] dark:text-[#F5F5F8] leading-tight">
+                <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-[#14141A] dark:text-[#F5F5F8] leading-tight">
                   {restaurantName.includes("Dadu") ? restaurantName : `${restaurantName} — Dadu`}
                 </h1>
                 <BadgeCheck className="w-5 h-5 fill-[#D70F64] text-white shrink-0 mt-0.5" />
@@ -503,7 +516,7 @@ export default function FoodpandaRestaurantPage({
                   <span className="inline-flex flex-col items-center bg-[#FDF2F6] dark:bg-[#2A121D] border border-[#D70F64]/25 rounded-xl px-2.5 py-1 leading-none shrink-0 ml-auto">
                     <span className="flex items-center gap-1">
                       <Star className="w-3.5 h-3.5 text-amber-400 fill-current" />
-                      <span className="text-sm font-extrabold text-[#14141A] dark:text-white tabular-nums">{shopProfile.rating}</span>
+                      <span className="text-sm font-semibold text-[#14141A] dark:text-white tabular-nums">{shopProfile.rating}</span>
                     </span>
                     <span className="text-[10px] font-bold text-[#D70F64] dark:text-[#FF4D94]">({shopProfile.reviewCount})</span>
                   </span>
@@ -526,7 +539,7 @@ export default function FoodpandaRestaurantPage({
                 <ChefHat className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <span className="block text-[13px] font-extrabold text-[#14141A] dark:text-white truncate tabular-nums">
+                <span className="block text-[13px] font-semibold text-[#14141A] dark:text-white truncate tabular-nums">
                   {dishes.length} {dishes.length === 1 ? "Item" : "Items"}
                 </span>
                 <span className="block text-[11px] text-[#5A5A6B] dark:text-[#A1A1B2] font-medium truncate">
@@ -540,7 +553,7 @@ export default function FoodpandaRestaurantPage({
                 <Clock className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <span className="block text-[13px] font-extrabold text-[#14141A] dark:text-white truncate tabular-nums">
+                <span className="block text-[13px] font-semibold text-[#14141A] dark:text-white truncate tabular-nums">
                   {shopProfile.deliveryTime}
                 </span>
                 <span className="block text-[11px] text-[#5A5A6B] dark:text-[#A1A1B2] font-medium truncate">
@@ -554,7 +567,7 @@ export default function FoodpandaRestaurantPage({
                 <MapPin className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <span className="block text-[13px] font-extrabold text-[#14141A] dark:text-white truncate tabular-nums">
+                <span className="block text-[13px] font-semibold text-[#14141A] dark:text-white truncate tabular-nums">
                   {deliveryFeeString}
                 </span>
                 <span className="block text-[11px] text-[#5A5A6B] dark:text-[#A1A1B2] font-medium truncate">
@@ -568,7 +581,7 @@ export default function FoodpandaRestaurantPage({
                 <ClipboardCheck className="w-5 h-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <span className="block text-[13px] font-extrabold text-[#14141A] dark:text-white truncate tabular-nums">
+                <span className="block text-[13px] font-semibold text-[#14141A] dark:text-white truncate tabular-nums">
                   {shopProfile.minOrder ? `Rs. ${shopProfile.minOrder}` : "No Minimum"}
                 </span>
                 <span className="block text-[11px] text-[#5A5A6B] dark:text-[#A1A1B2] font-medium truncate">
@@ -627,7 +640,7 @@ export default function FoodpandaRestaurantPage({
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={`Search in ${restaurantName}...`}
               aria-label={`Search in ${restaurantName}`}
-              className="w-full min-h-[44px] bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-xl py-2.5 pl-10 pr-10 text-sm font-medium outline-none focus:border-[#D70F64] focus:ring-2 focus:ring-[#D70F64]/20 focus:shadow-[0_8px_24px_rgba(215,15,100,0.12)] text-[#14141A] dark:text-white transition-all duration-300"
+              className="w-full min-h-[44px] bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-xl py-2.5 pl-10 pr-10 text-sm font-medium outline-none focus:border-[#D70F64] focus:ring-2 focus:ring-[#D70F64]/20 focus:shadow-[0_8px_24px_rgba(215,15,100,0.12)] text-[#14141A] dark:text-white transition-[color,background-color,border-color,transform,opacity] duration-180"
             />
             {searchQuery && (
               <button
@@ -646,20 +659,20 @@ export default function FoodpandaRestaurantPage({
               type="button"
               onClick={() => setFilterType("all")}
               aria-pressed={filterType === "all"}
-              className={`min-h-[44px] px-4 py-2 rounded-full text-xs font-bold transition-all duration-300 transition-transform duration-180 active:scale-[0.97] active:brightness-110 flex items-center gap-1.5 shrink-0 cursor-pointer border ${
+              className={`min-h-[44px] px-4 py-2 rounded-full text-xs font-bold transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 flex items-center gap-1.5 shrink-0 cursor-pointer border ${
                 filterType === "all"
                   ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
                   : "bg-white dark:bg-[#14141A] text-[#14141A] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733]"
               }`}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
-              <span>All Items ({dishes.length})</span>
+              <span>All items ({dishes.length})</span>
             </button>
             <button
               type="button"
               onClick={() => setFilterType(filterType === "bestsellers" ? "all" : "bestsellers")}
               aria-pressed={filterType === "bestsellers"}
-              className={`min-h-[44px] px-4 py-2 rounded-full text-xs font-bold transition-all duration-300 transition-transform duration-180 active:scale-[0.97] active:brightness-110 flex items-center gap-1.5 shrink-0 cursor-pointer border ${
+              className={`min-h-[44px] px-4 py-2 rounded-full text-xs font-bold transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 flex items-center gap-1.5 shrink-0 cursor-pointer border ${
                 filterType === "bestsellers"
                   ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
                   : "bg-white dark:bg-[#14141A] text-[#14141A] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733]"
@@ -676,7 +689,7 @@ export default function FoodpandaRestaurantPage({
               type="button"
               onClick={() => setFilterType(filterType === "top_rated" ? "all" : "top_rated")}
               aria-pressed={filterType === "top_rated"}
-              className={`min-h-[44px] px-4 py-2 rounded-full text-xs font-bold transition-all duration-300 transition-transform duration-180 active:scale-[0.97] active:brightness-110 flex items-center gap-1.5 shrink-0 cursor-pointer border ${
+              className={`min-h-[44px] px-4 py-2 rounded-full text-xs font-bold transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 flex items-center gap-1.5 shrink-0 cursor-pointer border ${
                 filterType === "top_rated"
                   ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
                   : "bg-white dark:bg-[#14141A] text-[#14141A] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733]"
@@ -687,7 +700,7 @@ export default function FoodpandaRestaurantPage({
                   filterType === "top_rated" ? "text-white fill-current" : "text-amber-400 fill-current"
                 }`}
               />
-              <span>Top Rated</span>
+              <span>Top rated</span>
             </button>
           </div>
         </div>
@@ -702,12 +715,12 @@ export default function FoodpandaRestaurantPage({
               ref={scrollRef}
             >
               {allNavCategories.map((cat) => {
-                const isBestsellerTab = cat === "🔥 Bestsellers";
+                const isBestsellerTab = cat === "Bestsellers";
                 const count = isBestsellerTab
                   ? bestsellerDishes.length
                   : dishes.filter((d) => d.category === cat).length;
                 const isActive = activeCategory === cat;
-                const emoji = isBestsellerTab ? "🔥" : getCategoryEmoji(cat);
+                const CategoryIcon = isBestsellerTab ? Flame : getCategoryIcon(cat);
 
                 return (
                   <button
@@ -716,13 +729,13 @@ export default function FoodpandaRestaurantPage({
                     ref={(el) => (categoryButtonRefs.current[cat] = el)}
                     onClick={() => scrollToCategory(cat)}
                     aria-current={isActive ? "true" : undefined}
-                    className={`min-h-[44px] whitespace-nowrap px-3.5 py-2 rounded-full text-xs font-bold transition-all duration-300 transition-transform duration-180 active:scale-[0.97] active:brightness-110 flex items-center gap-2 cursor-pointer select-none border ${
+                    className={`min-h-[44px] whitespace-nowrap px-3.5 py-2 rounded-full text-xs font-bold transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 flex items-center gap-2 cursor-pointer select-none border ${
                       isActive
                         ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
                         : "bg-[#F9F9FB] dark:bg-[#1D1D26] text-[#14141A] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733]"
                     }`}
                   >
-                    <span className="text-sm">{emoji}</span>
+                    <CategoryIcon className="w-4 h-4" />
                     <span>{isBestsellerTab ? "Bestsellers" : cat}</span>
                     <span
                       className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold tabular-nums ${
@@ -754,7 +767,7 @@ export default function FoodpandaRestaurantPage({
             <button
               type="button"
               onClick={onBack}
-              className="mt-4 min-h-[44px] px-5 py-2.5 rounded-xl bg-[#D70F64] hover:bg-[#B80C54] text-white font-bold text-xs transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
+              className="mt-4 min-h-[44px] px-5 py-2.5 rounded-xl bg-[#D70F64] hover:bg-[#B80C54] text-white font-bold text-xs transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-[opacity,transform] after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
             >
               Browse other restaurants
             </button>
@@ -762,9 +775,9 @@ export default function FoodpandaRestaurantPage({
         ) : searchQuery || filterType !== "all" ? (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base sm:text-lg font-extrabold text-[#14141A] dark:text-white flex items-center gap-2">
+              <h2 className="text-base sm:text-lg font-semibold text-[#14141A] dark:text-white flex items-center gap-2">
                 <Star className="w-4 h-4 text-[#D70F64]" />
-                <span>Filtered Items ({filteredDishes.length})</span>
+                <span>Filtered items ({filteredDishes.length})</span>
               </h2>
               <button
                 type="button"
@@ -803,16 +816,16 @@ export default function FoodpandaRestaurantPage({
           <>
             {hasBestsellers && (
               <div
-                ref={(el) => (categoryRefs.current["🔥 Bestsellers"] = el)}
+                ref={(el) => (categoryRefs.current["Bestsellers"] = el)}
                 className="mb-8 scroll-mt-28"
               >
                 <div className="flex items-center gap-2.5 mb-3.5 pb-2 border-b border-[#E6E6EE] dark:border-[#272733]">
-                  <span className="text-xl w-10 h-10 flex items-center justify-center bg-[#FDF2F6] dark:bg-[#2A121D] rounded-xl">
-                    🔥
+                  <span className="text-xl w-10 h-10 flex items-center justify-center bg-[#FDF2F6] dark:bg-[#2A121D] rounded-xl text-[#D70F64] dark:text-[#FF4D94]">
+                    <Flame className="w-5 h-5" />
                   </span>
                   <div>
-                    <h2 className="text-base sm:text-lg font-extrabold text-[#14141A] dark:text-white tracking-tight">
-                      Popular Bestsellers
+                    <h2 className="text-base sm:text-lg font-semibold text-[#14141A] dark:text-white tracking-tight">
+                      Popular bestsellers
                     </h2>
                     <p className="text-xs text-[#5A5A6B] dark:text-[#A1A1B2] font-medium">
                       {bestsellerDishes.length} popular{" "}
@@ -845,7 +858,7 @@ export default function FoodpandaRestaurantPage({
             {categories.map((cat) => {
               const catDishes = dishes.filter((d) => d.category === cat);
               if (catDishes.length === 0) return null;
-              const emoji = getCategoryEmoji(cat);
+              const CategoryIcon = getCategoryIcon(cat);
 
               return (
                 <div
@@ -854,11 +867,11 @@ export default function FoodpandaRestaurantPage({
                   className="mb-8 scroll-mt-28"
                 >
                   <div className="flex items-center gap-2.5 mb-3.5 pb-2 border-b border-[#E6E6EE] dark:border-[#272733]">
-                    <span className="text-xl w-10 h-10 flex items-center justify-center bg-[#FDF2F6] dark:bg-[#2A121D] rounded-xl">
-                      {emoji}
+                    <span className="text-xl w-10 h-10 flex items-center justify-center bg-[#FDF2F6] dark:bg-[#2A121D] rounded-xl text-[#D70F64] dark:text-[#FF4D94]">
+                      <CategoryIcon className="w-5 h-5" />
                     </span>
                     <div>
-                      <h2 className="text-base sm:text-lg font-extrabold text-[#14141A] dark:text-white tracking-tight">
+                      <h2 className="text-base sm:text-lg font-semibold text-[#14141A] dark:text-white tracking-tight">
                         {cat}
                       </h2>
                       <p className="text-xs text-[#5A5A6B] dark:text-[#A1A1B2] font-medium tabular-nums">
@@ -886,7 +899,7 @@ export default function FoodpandaRestaurantPage({
       {/* More restaurants in Dadu — crawlable cross-links */}
       <nav aria-label="More restaurants in Dadu" className="max-w-4xl mx-auto px-3.5 sm:px-4 mt-6">
         <div className="bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl p-4 shadow-xs">
-          <h2 className="text-sm font-extrabold text-[#14141A] dark:text-white tracking-tight">
+          <h2 className="text-sm font-semibold text-[#14141A] dark:text-white tracking-tight">
             More restaurants in Dadu
           </h2>
           <ul className="mt-2 space-y-1.5 text-sm">
@@ -928,20 +941,20 @@ export default function FoodpandaRestaurantPage({
           <button
             type="button"
             onClick={onViewCart}
-            className="w-full min-h-[52px] bg-[#D70F64] hover:bg-[#B80C54] text-white px-4 py-3 rounded-2xl font-bold text-sm shadow-lg transition-transform duration-180 active:scale-[0.97] active:brightness-110 flex items-center justify-between cursor-pointer group relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
+            className="w-full min-h-[52px] bg-[#D70F64] hover:bg-[#B80C54] text-white px-4 py-3 rounded-2xl font-bold text-sm shadow-lg transition-transform duration-180 active:scale-[0.97] active:brightness-110 flex items-center justify-between cursor-pointer group relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-[opacity,transform] after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
           >
             <div className="flex items-center gap-2.5">
               <span className="bg-white/20 px-2.5 py-1 rounded-lg text-xs font-bold tabular-nums">
                 {cartCountTotal} {cartCountTotal === 1 ? "Item" : "Items"}
               </span>
-              <span className="font-mono text-sm sm:text-base font-extrabold tabular-nums">
+              <span className="font-mono text-sm sm:text-base font-semibold tabular-nums">
                 Rs. {cartPriceTotal}
               </span>
             </div>
 
             <div className="flex items-center gap-1 font-bold text-xs sm:text-sm">
-              <span>View Cart</span>
-              <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+              <span>View cart</span>
+              <ChevronRight className="w-4 h-4" />
             </div>
           </button>
         </div>
@@ -988,7 +1001,7 @@ const DishCard = React.memo(function DishCard({
 
   return (
     <div
-      className={`group relative flex gap-3 p-3.5 bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl shadow-2xs hover:shadow-sm transition-all duration-300 md:hover:-translate-y-0.5 ${
+      className={`group relative flex gap-3 p-3.5 bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl shadow-2xs hover:shadow-sm transition-[color,background-color,border-color,transform,opacity] duration-180 ${
         !isAvailable ? "opacity-65 grayscale-[15%]" : "hover:border-[#D70F64]/45"
       }`}
     >
@@ -1036,7 +1049,7 @@ const DishCard = React.memo(function DishCard({
 
         <div className="mt-2.5 flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-baseline gap-1.5">
-            <span className="font-mono font-extrabold text-[#D70F64] dark:text-[#FF4D94] text-sm tabular-nums">
+            <span className="font-mono font-semibold text-[#D70F64] dark:text-[#FF4D94] text-sm tabular-nums">
               Rs.{" "}
               {dish.discountPrice && dish.discountPrice < dish.price
                 ? dish.discountPrice
@@ -1077,8 +1090,8 @@ const DishCard = React.memo(function DishCard({
           )}
 
           {(dish.isBestseller || dish.isFeatured) && (
-            <span className="absolute top-2 left-2 bg-[#D70F64] text-white text-[10px] font-extrabold px-2 py-1 rounded-full shadow-md z-10">
-              {dish.isBestseller ? "Best Seller" : "Popular"}
+            <span className="absolute top-2 left-2 bg-[#D70F64] text-white text-[10px] font-semibold px-2 py-1 rounded-full shadow-md z-10">
+              {dish.isBestseller ? "Bestseller" : "Popular"}
             </span>
           )}
 
@@ -1121,7 +1134,7 @@ const DishCard = React.memo(function DishCard({
                 >
                   <Minus className="w-3.5 h-3.5 stroke-[2.8]" />
                 </button>
-                <span className="font-mono text-xs font-bold tabular-nums px-1 transition-all duration-200">
+                <span className="font-mono text-xs font-bold tabular-nums px-1 transition-[color,background-color,border-color,transform,opacity] duration-180">
                   {quantityInCart}
                 </span>
                 <button

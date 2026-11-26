@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { UserProfile, AppNotification, Order } from "../types";
-import { Search, ShoppingCart, User, LogOut, Bell, ShieldAlert, BadgeCheck, History, Heart, RotateCcw, Sun, Moon, X, Settings, MapPin, ChevronDown, Mic, Lock } from "lucide-react";
+import { Search, ShoppingCart, User, LogOut, Bell, ShieldAlert, BadgeCheck, History, Heart, RotateCcw, Sun, Moon, X, Settings, MapPin, ChevronDown, Mic, Lock, Coins, UtensilsCrossed } from "lucide-react";
 import { formatOrderId } from "../utils/catalogNormalizer";
 
 interface FoodpandaHeaderProps {
@@ -159,19 +159,19 @@ export default function FoodpandaHeader({
         type="button"
         onClick={() => switchModule("food")}
         aria-pressed={activeModule === "food"}
-        className={`flex-1 min-h-[40px] rounded-full text-[13px] sm:text-sm font-black flex items-center justify-center gap-1.5 transition-all duration-300 transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer ${activeModule === "food" ? "bg-gradient-to-r from-[#FF2B85] via-[#E21B70] to-[#D70F64] text-white glossy-edge" : "text-[#14141A]"}`}
+        className={`flex-1 min-h-[40px] rounded-full text-[13px] sm:text-sm font-medium flex items-center justify-center gap-1.5 transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer ${activeModule === "food" ? "bg-gradient-to-r from-[#FF2B85] via-[#E21B70] to-[#D70F64] text-white glossy-edge" : "text-[#14141A]"}`}
       >
-        🍔 FOOD DELIVERY
+        <UtensilsCrossed className="w-4 h-4 shrink-0 stroke-[1.5]" /> Food Delivery
       </button>
       <button
         type="button"
         onClick={() => switchModule("grocery")}
         aria-pressed={activeModule === "grocery"}
-        className={`flex-1 min-h-[40px] rounded-full text-[13px] sm:text-sm font-black flex items-center justify-center gap-1.5 transition-all duration-300 transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer ${activeModule === "grocery" ? "bg-gradient-to-r from-[#FF2B85] via-[#E21B70] to-[#D70F64] text-white glossy-edge" : "text-[#14141A]"}`}
+        className={`flex-1 min-h-[40px] rounded-full text-[13px] sm:text-sm font-medium flex items-center justify-center gap-1.5 transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer ${activeModule === "grocery" ? "bg-gradient-to-r from-[#FF2B85] via-[#E21B70] to-[#D70F64] text-white glossy-edge" : "text-[#14141A]"}`}
       >
-        🛒 GROCERIES
+        <ShoppingCart className="w-4 h-4 shrink-0 stroke-[1.5]" /> Groceries
         {groceryCartCount > 0 && (
-          <span className={`text-[10px] font-black min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center tabular-nums ${activeModule === "grocery" ? "bg-white text-[#D70F64]" : "bg-[#D70F64] text-white"}`}>
+          <span className={`text-[10px] font-semibold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center tabular-nums ${activeModule === "grocery" ? "bg-white text-[#D70F64]" : "bg-[#D70F64] text-white"}`}>
             {groceryCartCount}
           </span>
         )}
@@ -183,7 +183,7 @@ export default function FoodpandaHeader({
   const resolvedLocationText =
     (locationLabel && locationLabel.trim()) ||
     (user?.address && user.address.trim()) ||
-    "Set your location";
+    "Set location";
 
   return (
     <>
@@ -208,7 +208,7 @@ export default function FoodpandaHeader({
               className="min-h-[44px] flex items-center gap-2 shrink-0 cursor-pointer group select-none text-left"
               title="Dadu Food Home"
             >
-              <span className="flex flex-col items-center leading-none shrink-0 group-hover:scale-105 active:scale-95 transition-transform">
+              <span className="flex flex-col items-center leading-none shrink-0 active:scale-95 transition-transform">
                 <svg
                   viewBox="0 0 24 24"
                   className="w-7 h-7 text-white"
@@ -235,24 +235,24 @@ export default function FoodpandaHeader({
             <button
               type="button"
               onClick={() => onOpenLocation?.()}
-              className="min-h-[44px] flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/20 hover:bg-white/25 transition-transform duration-180 active:scale-[0.97] active:brightness-110 text-left min-w-0 max-w-[210px] sm:max-w-[240px] cursor-pointer glossy-sheen glossy-edge"
+              className="min-h-[44px] flex items-center gap-1 px-2 py-1.5 rounded-full bg-white/20 hover:bg-white/25 transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 text-left min-w-0 max-w-[280px] sm:max-w-[320px] cursor-pointer glossy-sheen glossy-edge"
               title="Change delivery location"
             >
-              <MapPin className="w-5 h-5 text-white shrink-0" />
+              <MapPin className="w-3.5 h-3.5 text-white shrink-0" />
               <div className="min-w-0 flex-1">
                 <span className="block text-[11px] font-semibold text-white/90 leading-none">
                   {hasLocation ? "Delivering to" : "Location required"}
                 </span>
-                <span className="flex items-center gap-1 text-[15px] font-extrabold text-white truncate mt-0.5">
+                <span className="flex items-center gap-1 text-[13px] font-semibold text-white truncate mt-0.5">
                   <span className="truncate">{resolvedLocationText}</span>
-                  <ChevronDown className="w-4 h-4 shrink-0 opacity-85" />
+                  <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-85" />
                 </span>
               </div>
             </button>
           </div>
 
           {/* Desktop White Pill Search Bar inside Pink Header */}
-          <div className="relative flex-1 max-w-md hidden sm:block transition-all duration-300">
+          <div className="relative flex-1 max-w-md hidden sm:block transition-[color,background-color,border-color,transform,opacity] duration-180">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#D70F64] pointer-events-none" />
             <input
               id="desktop-search-input"
@@ -261,10 +261,10 @@ export default function FoodpandaHeader({
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={
                 activeModule === "grocery"
-                  ? "Search Dadu Mart groceries..."
+                  ? "Search groceries"
                   : "Search shops, dishes & groceries..."
               }
-              className="w-full min-h-[42px] pl-10 pr-10 py-2 bg-white text-[#14141A] placeholder-[#6E6E80] rounded-full text-sm outline-none shadow-xs focus:ring-2 focus:ring-white/60 focus:shadow-[0_8px_24px_rgba(0,0,0,0.18)] transition-all duration-300 font-medium"
+              className="w-full min-h-[42px] pl-10 pr-10 py-2 bg-white text-[#14141A] placeholder-[#6E6E80] rounded-full text-sm outline-none shadow-xs focus:ring-2 focus:ring-white/60 focus:shadow-[0_8px_24px_rgba(0,0,0,0.18)] transition-[color,background-color,border-color,transform,opacity] duration-180 font-medium"
             />
             {voiceSupported && (
               <button
@@ -331,7 +331,7 @@ export default function FoodpandaHeader({
               >
                 <Bell className="w-5 h-5 text-white" />
                 {unreadNotifications.length > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 bg-white text-[#D70F64] text-[10px] font-black min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center tabular-nums shadow-xs">
+                  <span className="absolute -top-0.5 -right-0.5 bg-white text-[#D70F64] text-[10px] font-semibold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center tabular-nums shadow-xs">
                     {unreadNotifications.length}
                   </span>
                 )}
@@ -341,9 +341,9 @@ export default function FoodpandaHeader({
                 <div className="absolute right-0 mt-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-800 dark:text-zinc-100 rounded-2xl shadow-xl w-80 max-sm:fixed max-sm:top-16 max-sm:left-4 max-sm:right-4 max-sm:w-auto overflow-hidden z-50 animate-fade-in">
                   <div className="p-3.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50 dark:bg-zinc-950">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-xs tracking-wide uppercase text-zinc-600 dark:text-zinc-300">Notifications</span>
+                      <span className="font-medium text-xs text-zinc-600 dark:text-zinc-300">Notifications</span>
                       {unreadNotifications.length > 0 && (
-                        <span className="bg-[#D70F64] text-white text-[9px] font-black px-2 py-0.5 rounded-full">
+                        <span className="bg-[#D70F64] text-white text-[9px] font-semibold px-2 py-0.5 rounded-full">
                           {unreadNotifications.length} unread
                         </span>
                       )}
@@ -388,7 +388,7 @@ export default function FoodpandaHeader({
                             setShowNotifications(false);
                             setSelectedNotification(notif);
                           }}
-                          className={`p-3.5 transition text-xs cursor-pointer group flex items-start gap-2.5 ${
+                          className={`p-3.5 transition-[background-color,border-color] text-xs cursor-pointer group flex items-start gap-2.5 ${
                             !notif.read
                               ? "bg-pink-50/70 dark:bg-pink-950/20 hover:bg-pink-100/70 dark:hover:bg-pink-950/40 border-l-4 border-l-[#D70F64]"
                               : "hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
@@ -407,8 +407,8 @@ export default function FoodpandaHeader({
                                 {notif.title}
                               </span>
                               {!notif.read && (
-                                <span className="text-[9px] font-black uppercase text-[#D70F64] bg-pink-100 dark:bg-pink-900/40 px-1.5 py-0.2 rounded shrink-0">
-                                  NEW
+                                <span className="text-[9px] font-semibold text-[#D70F64] bg-pink-100 dark:bg-pink-900/40 px-1.5 py-0.2 rounded shrink-0">
+                                  New
                                 </span>
                               )}
                             </div>
@@ -444,7 +444,7 @@ export default function FoodpandaHeader({
                 <ShoppingCart className="w-5 h-5 text-white" />
               )}
               {(activeModule === "grocery" ? groceryCartCount : cartCount) > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-white text-[#D70F64] text-[10px] font-black min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center tabular-nums shadow-xs">
+                <span className="absolute -top-0.5 -right-0.5 bg-white text-[#D70F64] text-[10px] font-semibold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center tabular-nums shadow-xs">
                   {activeModule === "grocery" ? groceryCartCount : cartCount}
                 </span>
               )}
@@ -462,7 +462,7 @@ export default function FoodpandaHeader({
                     setShowUserMenu(!showUserMenu);
                     setShowNotifications(false);
                   }}
-                  className="flex items-center justify-center w-11 h-11 rounded-full bg-white text-[#D70F64] font-black text-sm shadow-xs hover:bg-pink-50 cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110"
+                  className="flex items-center justify-center w-11 h-11 rounded-full bg-white text-[#D70F64] font-semibold text-sm shadow-xs hover:bg-pink-50 cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110"
                 >
                   {(user.name || "D").charAt(0).toUpperCase()}
                 </button>
@@ -486,7 +486,7 @@ export default function FoodpandaHeader({
               {!user && showUserMenu && (
                 <div className="absolute right-0 mt-2 bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] text-[#14141A] dark:text-[#F5F5F8] rounded-2xl shadow-xl w-56 max-sm:fixed max-sm:top-16 max-sm:left-4 max-sm:right-4 max-sm:w-auto overflow-hidden z-50 animate-fade-in">
                   <div className="p-3.5 border-b border-[#E6E6EE] dark:border-[#272733] bg-[#F9F9FB] dark:bg-[#0B0B0F] flex flex-col items-start">
-                    <span className="font-bold text-[10px] text-[#14141A] dark:text-white uppercase tracking-wider">Guest Options</span>
+                    <span className="font-medium text-[10px] text-[#14141A] dark:text-white">Guest Options</span>
                     <span className="text-[11px] text-[#5A5A6B] dark:text-[#A1A1B2] font-medium mt-1">Sign in to order fresh food &amp; groceries in Dadu</span>
                   </div>
 
@@ -496,7 +496,7 @@ export default function FoodpandaHeader({
                         setShowUserMenu(false);
                         onOpenAuth();
                       }}
-                      className="w-full text-left font-bold text-xs text-[#D70F64] px-3.5 py-2 hover:bg-pink-50 dark:hover:bg-zinc-800/60 rounded-xl transition flex items-center gap-2 cursor-pointer"
+                      className="w-full text-left font-bold text-xs text-[#D70F64] px-3.5 py-2 hover:bg-pink-50 dark:hover:bg-zinc-800/60 rounded-xl transition-[color,background-color] flex items-center gap-2 cursor-pointer"
                     >
                       <User className="w-4 h-4 shrink-0 text-[#D70F64]" />
                       Sign In / Register
@@ -507,7 +507,7 @@ export default function FoodpandaHeader({
                         setShowUserMenu(false);
                         if (onToggleTheme) onToggleTheme();
                       }}
-                      className="w-full text-left font-bold text-xs text-zinc-700 dark:text-zinc-300 px-3.5 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-xl transition flex items-center justify-between cursor-pointer"
+                      className="w-full text-left font-bold text-xs text-zinc-700 dark:text-zinc-300 px-3.5 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded-xl transition-[color,background-color] flex items-center justify-between cursor-pointer"
                     >
                       <span className="flex items-center gap-2">
                         {theme === "light" ? (
@@ -535,7 +535,7 @@ export default function FoodpandaHeader({
                           <BadgeCheck className="w-4 h-4 text-[#D70F64] shrink-0" />
                         )}
                       </div>
-                      <div className="bg-[#D70F64]/10 border border-[#D70F64]/20 text-[#D70F64] px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-widest rounded-md">
+                      <div className="bg-[#D70F64]/10 border border-[#D70F64]/20 text-[#D70F64] px-1.5 py-0.5 text-[9px] font-medium rounded-md">
                         {user.ordersCount || 0} Orders
                       </div>
                     </div>
@@ -544,8 +544,8 @@ export default function FoodpandaHeader({
                     </span>
 
                     <div className="mt-2 w-full bg-gradient-to-r from-[#D70F64] to-[#FF2B85] rounded-xl p-2 text-white flex items-center justify-between text-[10px] font-sans">
-                      <span className="font-extrabold flex items-center gap-1">👑 Coin Benefit Wallet:</span>
-                      <span className="font-black bg-white text-[#D70F64] px-1.5 py-0.5 rounded-md text-[9px]">
+                      <span className="font-medium flex items-center gap-1"><Coins className="w-3 h-3 shrink-0" /> Coin Benefit Wallet:</span>
+                      <span className="font-semibold bg-white text-[#D70F64] px-1.5 py-0.5 rounded-md text-[9px]">
                         Rs. {user.loyaltyCoins ?? (user.ordersCount || 0) * 15}
                       </span>
                     </div>
@@ -554,7 +554,7 @@ export default function FoodpandaHeader({
                   {/* Active Placed Orders */}
                   {orders && orders.length > 0 && (
                     <div className="p-2 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/50">
-                      <span className="text-[8.5px] uppercase font-black tracking-widest text-[#D70F64] px-1.5 block mb-1">
+                      <span className="text-[8.5px] font-medium text-[#D70F64] px-1.5 block mb-1">
                         Live Delivery Tracker
                       </span>
                       <div className="flex overflow-x-auto gap-1.5 pb-1 scrollbar-none">
@@ -565,12 +565,12 @@ export default function FoodpandaHeader({
                               setShowUserMenu(false);
                               if (onTrackOrder) onTrackOrder(o);
                             }}
-                            className="shrink-0 min-w-[140px] p-1.5 rounded-xl bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition text-[10.5px] font-bold flex items-center justify-between gap-1.5 border border-zinc-200 dark:border-zinc-800 cursor-pointer text-zinc-700 dark:text-zinc-300"
+                            className="shrink-0 min-w-[140px] p-1.5 rounded-xl bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-[background-color,border-color] text-[10.5px] font-bold flex items-center justify-between gap-1.5 border border-zinc-200 dark:border-zinc-800 cursor-pointer text-zinc-700 dark:text-zinc-300"
                           >
                             <span className="truncate max-w-[85px] text-zinc-800 dark:text-zinc-200 font-mono">
                               {formatOrderId(o.id)}
                             </span>
-                            <span className="text-[8px] font-black uppercase text-[#D70F64] bg-[#D70F64]/10 px-1.5 py-0.5 rounded leading-none shrink-0 border border-[#D70F64]/20">
+                            <span className="text-[8px] font-semibold text-[#D70F64] bg-[#D70F64]/10 px-1.5 py-0.5 rounded leading-none shrink-0 border border-[#D70F64]/20">
                               {o.status === "payment_verification_pending"
                                 ? "Verify Pay"
                                 : o.status === "out_for_delivery"
@@ -595,20 +595,20 @@ export default function FoodpandaHeader({
                     if (recentUserOrders.length === 0) return null;
                     return (
                       <div className="p-2 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/30 dark:bg-zinc-950/30">
-                        <span className="text-[8.5px] uppercase font-black tracking-widest text-zinc-500 dark:text-zinc-400 px-1.5 block mb-1.5">
+                        <span className="text-[8.5px] font-medium text-zinc-500 dark:text-zinc-400 px-1.5 block mb-1.5">
                           Recent Orders
                         </span>
                         <div className="flex overflow-x-auto gap-2 pb-1 scrollbar-none">
                           {recentUserOrders.map((o) => (
                             <div
                               key={o.id}
-                              className="shrink-0 w-44 p-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-[#D70F64]/30 transition-all text-[10.5px] font-bold space-y-1 shadow-2xs"
+                              className="shrink-0 w-44 p-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-[#D70F64]/30 transition-[color,background-color,border-color,transform,opacity] text-[10.5px] font-bold space-y-1 shadow-2xs"
                             >
                               <div className="flex items-center justify-between">
-                                <span className="text-zinc-700 dark:text-zinc-300 font-extrabold text-[10px]">
+                                <span className="text-zinc-700 dark:text-zinc-300 font-semibold text-[10px]">
                                   {formatOrderId(o.id)}
                                 </span>
-                                <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded leading-none shrink-0 border ${
+                                <span className={`text-[8px] font-semibold px-1.5 py-0.5 rounded leading-none shrink-0 border ${
                                   o.status === "delivered" || o.status === "completed"
                                     ? "text-emerald-700 bg-emerald-50 border-emerald-200"
                                     : o.status === "cancelled"
@@ -628,7 +628,7 @@ export default function FoodpandaHeader({
                                 {o.items.map((i) => `${i.quantity}x ${i.name}`).join(", ")}
                               </div>
                               <div className="flex items-center justify-between pt-1 border-t border-zinc-100 dark:border-zinc-800">
-                                <span className="text-[#D70F64] font-black text-[9.5px]">
+                                <span className="text-[#D70F64] font-semibold text-[9.5px]">
                                   Rs. {o.grandTotal}
                                 </span>
                                 {onReorder && (
@@ -637,7 +637,7 @@ export default function FoodpandaHeader({
                                       setShowUserMenu(false);
                                       onReorder(o);
                                     }}
-                                    className="text-[8.5px] text-white bg-[#D70F64] hover:bg-[#B80C54] px-2 py-0.5 rounded-md flex items-center gap-0.5 font-black cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110 uppercase relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
+                                    className="text-[8.5px] text-white bg-[#D70F64] hover:bg-[#B80C54] px-2 py-0.5 rounded-md flex items-center gap-0.5 font-medium cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110 relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-[opacity,transform] after:duration-180 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
                                   >
                                     <RotateCcw className="w-2.5 h-2.5 stroke-[3]" />
                                     Reorder
@@ -735,7 +735,7 @@ export default function FoodpandaHeader({
       {/* Mobile Foodpanda Pink Sticky Pill Search Bar */}
       <div className="sticky top-0 z-30 bg-gradient-to-b from-[#FF2B85] via-[#E21B70] to-[#D70F64] block sm:hidden px-3.5 pb-3 pt-0.5 shadow-sm">
         <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-white/5 to-transparent pointer-events-none" aria-hidden="true" />
-        <div className="relative flex items-center transition-all duration-300">
+        <div className="relative flex items-center transition-[color,background-color,border-color,transform,opacity] duration-180">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#D70F64] pointer-events-none" />
           <input
             id="mobile-search-input"
@@ -744,10 +744,10 @@ export default function FoodpandaHeader({
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={
               activeModule === "grocery"
-                ? "Search Dadu Mart groceries..."
+                ? "Search groceries"
                 : "Search shops, dishes & groceries"
             }
-            className="w-full min-h-[44px] pl-10 pr-10 py-2.5 bg-white text-[#14141A] placeholder-[#6E6E80] rounded-full text-sm outline-none shadow-xs focus:ring-2 focus:ring-white/60 focus:shadow-[0_8px_24px_rgba(0,0,0,0.18)] transition-all duration-300 font-medium glossy-sheen"
+            className="w-full min-h-[44px] pl-10 pr-10 py-2.5 bg-white text-[#14141A] placeholder-[#6E6E80] rounded-full text-sm outline-none shadow-xs focus:ring-2 focus:ring-white/60 focus:shadow-[0_8px_24px_rgba(0,0,0,0.18)] transition-[color,background-color,border-color,transform,opacity] duration-180 font-medium"
           />
           {voiceSupported && (
             <button
@@ -794,7 +794,7 @@ export default function FoodpandaHeader({
                   <Bell className="w-5 h-5" />
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider block">Message Detail</span>
+                  <span className="text-[10px] font-medium text-zinc-400 dark:text-zinc-500 block">Message Detail</span>
                   <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
                     {selectedNotification.createdAt?.seconds
                       ? new Date(selectedNotification.createdAt.seconds * 1000).toLocaleString([], {
@@ -808,14 +808,14 @@ export default function FoodpandaHeader({
               <button
                 onClick={() => setSelectedNotification(null)}
                 aria-label="Close message"
-                className="p-2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-full bg-zinc-100 dark:bg-zinc-800 transition cursor-pointer"
+                className="p-2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-full bg-zinc-100 dark:bg-zinc-800 transition-[color,background-color] cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="py-4">
-              <h3 className="text-base font-black text-zinc-900 dark:text-white leading-snug">
+              <h3 className="text-base font-semibold text-zinc-900 dark:text-white leading-snug">
                 {selectedNotification.title}
               </h3>
               <div className="text-xs sm:text-sm text-zinc-700 dark:text-zinc-200 mt-3 font-normal leading-relaxed whitespace-pre-line bg-zinc-50 dark:bg-zinc-800/60 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 max-h-60 overflow-y-auto">
@@ -829,7 +829,7 @@ export default function FoodpandaHeader({
               </span>
               <button
                 onClick={() => setSelectedNotification(null)}
-                className="px-5 py-2.5 bg-[#D70F64] text-white text-xs font-bold rounded-xl hover:bg-[#B80C54] transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer shadow-md relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
+                className="px-5 py-2.5 bg-[#D70F64] text-white text-xs font-bold rounded-xl hover:bg-[#B80C54] transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer shadow-md relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-[opacity,transform] after:duration-180 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
               >
                 Close
               </button>

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { GroceryCategory, GroceryProduct, GroceryOrderItem } from "../types";
-import { Package, Plus, Minus, ChevronDown, ChevronRight, Heart } from "lucide-react";
+import { Check, Package, Plus, Minus, ChevronDown, ChevronRight, Heart } from "lucide-react";
 import { LazyImage } from "./LazyImage";
 import useLazyBatchLoad from "../hooks/useLazyBatchLoad";
 import { GROCERY_CATEGORY_VISUALS } from "../data/ownerGroceryCatalog";
@@ -30,7 +30,6 @@ function GroceryProductImage({
 }) {
   const [imgFailed, setImgFailed] = useState(false);
   const visual = GROCERY_CATEGORY_VISUALS[product.categoryId] || {
-    emoji: "🛒",
     accentBg: "from-[#D70F64]/15 to-pink-500/10",
     accentText: "text-[#D70F64] dark:text-pink-300",
     badge: categoryName || "Mart",
@@ -54,17 +53,15 @@ function GroceryProductImage({
       >
         <div className="absolute -right-4 -bottom-4 w-20 h-20 rounded-full bg-[#D70F64]/10 blur-xl pointer-events-none" />
         <div className="w-12 h-12 rounded-2xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] shadow-xs flex items-center justify-center mb-1.5 relative">
-          <span className="text-2xl leading-none" role="img" aria-label={categoryName}>
-            {visual.emoji}
-          </span>
-          <span className="absolute -bottom-1 -right-1 bg-[#D70F64] text-white text-[8px] font-black px-1 py-0.5 rounded leading-none">
+          <Package className="w-6 h-6 text-[#5e554a] dark:text-[#A1A1B2]" strokeWidth={1.5} aria-hidden="true" />
+          <span className="absolute -bottom-1 -right-1 bg-[#D70F64] text-white text-[8px] font-semibold px-1 py-0.5 rounded leading-none">
             {initials || "DF"}
           </span>
         </div>
-        <span className={`text-[9.5px] font-extrabold uppercase tracking-wider line-clamp-1 ${visual.accentText}`}>
+        <span className={`text-[9.5px] font-semibold tracking-wider line-clamp-1 ${visual.accentText}`}>
           {visual.badge}
         </span>
-        <span className="text-[9px] font-bold text-[#5A5A6B] dark:text-[#A1A1B2] mt-0.5">
+        <span className="text-[9px] font-medium text-[#5A5A6B] dark:text-[#A1A1B2] mt-0.5">
           Dadu Mart · {packLabel}
         </span>
       </div>
@@ -80,7 +77,7 @@ function GroceryProductImage({
       decoding="async"
       referrerPolicy="no-referrer"
       onError={() => setImgFailed(true)}
-      className="relative w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+      className="relative w-full h-full object-cover transition-transform duration-180"
     />
   );
 }
@@ -90,7 +87,7 @@ const GROCERY_BESTSELLER_IDS = new Set(["og_001", "og_007", "og_008", "og_016", 
 
 function CategoryTileThumb({ src, alt }: { src: string; alt: string }) {
   const [failed, setFailed] = useState(false);
-  if (failed) return <span className="text-2xl leading-none">🛒</span>;
+  if (failed) return <Package className="w-6 h-6 text-[#5e554a] dark:text-[#A1A1B2]" strokeWidth={1.5} aria-hidden="true" />;
   return (
     <img
       src={src}
@@ -209,14 +206,13 @@ export default function GroceryModule({
   // Grouped category view for "All": each category gets its own section (no mixed list).
   const isGroupedView = selectedCategoryId === "All" && !(searchQuery || "").trim() && !showAllCatalog;
   const groupedSections = useMemo(() => {
-    if (!isGroupedView) return [] as { id: string; name: string; emoji?: string; count: number; items: GroceryProduct[] }[];
+    if (!isGroupedView) return [] as { id: string; name: string; count: number; items: GroceryProduct[] }[];
     return activeCategories
       .map((cat) => {
         const items = products.filter((p) => p.categoryId === cat.id);
         return {
           id: cat.id,
           name: cat.name,
-          emoji: GROCERY_CATEGORY_VISUALS[cat.id]?.emoji,
           count: items.length,
           items: items.slice(0, 8),
         };
@@ -236,7 +232,7 @@ export default function GroceryModule({
     return (
       <div
         key={p.id}
-        className="bg-[#FFF0F5] dark:bg-[#2A101B] border border-[#F9A8C9]/40 dark:border-[#D70F64]/25 rounded-2xl overflow-hidden shadow-xs hover:shadow-md hover:border-[#D70F64]/50 transition-all duration-300 md:hover:-translate-y-0.5 flex flex-col relative group"
+        className="bg-[#FFF0F5] dark:bg-[#2A101B] border border-[#F9A8C9]/40 dark:border-[#D70F64]/25 rounded-2xl overflow-hidden shadow-xs hover:shadow-md hover:border-[#D70F64]/50 transition-[color,background-color,border-color,transform,opacity] duration-180 flex flex-col relative group"
       >
         <div className="relative h-[104px] sm:h-32 md:h-36 bg-[#FFF0F5] dark:bg-[#2A101B] shrink-0 select-none overflow-hidden">
           {/* Loading shimmer so the tile never looks blank pink while the photo loads */}
@@ -245,19 +241,19 @@ export default function GroceryModule({
           </div>
           <GroceryProductImage product={p} categoryName={categoryNameMap[p.categoryId] || "Grocery"} eager={eager} />
           {isOutOfStock ? (
-            <div className="absolute bottom-2 left-2 z-10 bg-zinc-900/90 text-white font-bold text-[10px] uppercase tracking-wider py-0.5 px-2 rounded-full border border-white/15">
-              Out of Stock
+            <div className="absolute bottom-2 left-2 z-10 bg-zinc-900/90 text-white font-semibold text-[10px] tracking-wider py-0.5 px-2 rounded-full border border-white/15">
+              Out of stock
             </div>
           ) : hasDiscount ? (
-            <div className="absolute bottom-2 left-2 z-10 bg-[#D70F64] text-white font-bold text-[10px] uppercase tracking-wider py-0.5 px-2 rounded-full shadow-sm">
-              {`${Math.round(((p.price - p.discountPrice!) / p.price) * 100)}% OFF`}
+            <div className="absolute bottom-2 left-2 z-10 bg-[#D70F64] text-white font-semibold text-[10px] tracking-wider py-0.5 px-2 rounded-full shadow-sm">
+              {`${Math.round(((p.price - p.discountPrice!) / p.price) * 100)}% off`}
             </div>
           ) : isBestSeller ? (
-            <div className="absolute bottom-2 left-2 z-10 bg-[#16A34A] text-white font-bold text-[10px] py-0.5 px-2 rounded-full shadow-sm">
-              Best Seller
+            <div className="absolute bottom-2 left-2 z-10 bg-[#16A34A] text-white font-semibold text-[10px] py-0.5 px-2 rounded-full shadow-sm">
+              Best seller
             </div>
           ) : (
-            <div className="absolute bottom-2 left-2 z-10 bg-[#16A34A] text-white font-bold text-[10px] py-0.5 px-2 rounded-full shadow-sm">
+            <div className="absolute bottom-2 left-2 z-10 bg-[#16A34A] text-white font-semibold text-[10px] py-0.5 px-2 rounded-full shadow-sm">
               Fresh
             </div>
           )}
@@ -280,7 +276,7 @@ export default function GroceryModule({
 
         <div className="p-2 sm:p-3 flex-1 flex flex-col justify-between gap-2">
           <div>
-            <h4 className="font-bold text-[#14141A] dark:text-[#F5F5F8] text-[13px] sm:text-sm leading-snug line-clamp-2">
+            <h4 className="font-semibold text-[#14141A] dark:text-[#F5F5F8] text-[13px] sm:text-sm leading-snug line-clamp-2">
               {p.name}
             </h4>
             <span className="block text-[11px] font-medium text-[#5A5A6B] dark:text-[#A1A1B2] mt-0.5 line-clamp-1">
@@ -291,7 +287,7 @@ export default function GroceryModule({
           {qty > 0 && !isOutOfStock ? (
             <div className="flex flex-col gap-1.5">
               <div className="flex items-baseline gap-1 min-w-0 overflow-hidden">
-                <span className="text-[13px] font-extrabold text-[#D70F64] dark:text-[#FF4D94] whitespace-nowrap">
+                <span className="text-[13px] font-semibold text-[#D70F64] dark:text-[#FF4D94] whitespace-nowrap">
                   {`Rs. ${displayPrice}`}
                 </span>
                 {hasDiscount && (
@@ -309,7 +305,7 @@ export default function GroceryModule({
                 >
                   <Minus className="w-3.5 h-3.5" />
                 </button>
-                <span className="text-xs font-extrabold px-1 min-w-[18px] text-center transition-all duration-200">{qty}</span>
+                <span className="text-xs font-semibold px-1 min-w-[18px] text-center transition-[color,background-color,border-color,transform,opacity] duration-180">{qty}</span>
                 <button
                   type="button"
                   onClick={() => onUpdateCartQuantity(p.id, qty + 1)}
@@ -323,7 +319,7 @@ export default function GroceryModule({
           ) : (
             <div className="flex items-center justify-between gap-1">
               <div className="flex items-baseline gap-1 min-w-0 overflow-hidden">
-                <span className="text-xs sm:text-sm font-extrabold text-[#D70F64] dark:text-[#FF4D94] whitespace-nowrap">
+                <span className="text-xs sm:text-sm font-semibold text-[#D70F64] dark:text-[#FF4D94] whitespace-nowrap">
                   {`Rs. ${displayPrice}`}
                 </span>
                 {hasDiscount && (
@@ -334,15 +330,15 @@ export default function GroceryModule({
               </div>
 
               {isOutOfStock ? (
-                <span className="text-[9px] font-bold uppercase text-[#717185] px-1.5 py-1 rounded-full bg-white/70 dark:bg-white/10 shrink-0">
-                  Out of Stock
+                <span className="text-[9px] font-semibold text-[#717185] px-1.5 py-1 rounded-full bg-white/70 dark:bg-white/10 shrink-0">
+                  Out of stock
                 </span>
               ) : (
                 <button
                   type="button"
                   onClick={() => onAddToCart(p)}
                   aria-label={`Add ${p.name} to cart`}
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full btn-pink text-white flex items-center justify-center cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110 shrink-0 shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70] relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full btn-pink text-white flex items-center justify-center cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110 shrink-0 shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70] relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-[opacity,transform] after:duration-180 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
                 >
                   <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
@@ -372,26 +368,29 @@ export default function GroceryModule({
             aria-hidden="true"
           />
           <div className="relative z-10 p-5 sm:p-7 max-w-[56%] sm:max-w-[58%]">
-            <span className="inline-flex items-center gap-1.5 bg-[#D70F64] text-white py-1 px-3 rounded-full text-[11px] font-black uppercase tracking-wider shadow-md">
-              DADU EXPRESS MART
-            </span>
             <h2 className="text-[24px] sm:text-4xl font-black tracking-tight text-white leading-[1.08] mt-2.5">
               Daily Groceries Delivered{" "}
               <span className="text-[#FFD500] italic">Fast in Dadu</span>
             </h2>
-            <p className="flex items-center gap-3 text-xs sm:text-sm text-white font-bold mt-2.5 flex-wrap">
-              <span>✓ Fresh</span>
-              <span>✓ Quality</span>
-              <span>✓ Affordable</span>
+            <p className="flex items-center gap-3 text-xs sm:text-sm text-white font-semibold mt-2.5 flex-wrap">
+              <span className="inline-flex items-center gap-1">
+                <Check className="w-4 h-4 text-white" strokeWidth={1.5} aria-hidden="true" /> Fresh
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <Check className="w-4 h-4 text-white" strokeWidth={1.5} aria-hidden="true" /> Quality
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <Check className="w-4 h-4 text-white" strokeWidth={1.5} aria-hidden="true" /> Affordable
+              </span>
             </p>
             <button
               type="button"
               onClick={() =>
                 document.getElementById("grocery-products")?.scrollIntoView({ behavior: "smooth", block: "start" })
               }
-              className="mt-3.5 inline-flex items-center gap-1.5 bg-white text-[#14141A] font-extrabold text-xs sm:text-sm px-4 py-2.5 min-h-[44px] rounded-full shadow-md hover:bg-pink-50 transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer"
+              className="mt-3.5 inline-flex items-center gap-1.5 bg-white text-[#14141A] font-semibold text-xs sm:text-sm px-4 py-2.5 min-h-[44px] rounded-full shadow-md hover:bg-pink-50 transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer"
             >
-              Shop Now <ChevronRight className="w-4 h-4" />
+              Shop now <ChevronRight className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -407,7 +406,7 @@ export default function GroceryModule({
                 setShowAllInCategory(false);
                 setShowAllCatalog(false);
               }}
-              className={`w-[110px] shrink-0 rounded-2xl border p-2 text-left transition-all duration-300 active:scale-[0.97] active:brightness-110 cursor-pointer ${
+              className={`w-[110px] shrink-0 rounded-2xl border p-2 text-left transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer ${
                 selectedCategoryId === "All" && !showAllCatalog
                   ? "bg-[#FFE4EF] border-[#D70F64] ring-2 ring-[#D70F64]/40 shadow-md"
                   : "bg-[#FFF0F5] dark:bg-[#2A101B] border-[#F9A8C9]/40 dark:border-[#D70F64]/25 hover:border-[#D70F64]/60"
@@ -422,8 +421,8 @@ export default function GroceryModule({
                   decoding="async"
                 />
               </div>
-              <span className="block text-xs font-extrabold text-[#14141A] dark:text-white leading-tight">All Items</span>
-              <span className="block text-[11px] font-bold text-[#5A5A6B] dark:text-[#A1A1B2]">({products.length})</span>
+              <span className="block text-xs font-semibold text-[#14141A] dark:text-white leading-tight">All items</span>
+              <span className="block text-[11px] font-medium text-[#5A5A6B] dark:text-[#A1A1B2]">({products.length})</span>
             </button>
 
             {activeCategories.map((cat) => {
@@ -440,7 +439,7 @@ export default function GroceryModule({
                     setShowAllInCategory(true);
                     setShowAllCatalog(false);
                   }}
-                  className={`w-[110px] shrink-0 rounded-2xl border p-2 text-left transition-all duration-300 active:scale-[0.97] active:brightness-110 cursor-pointer ${
+                  className={`w-[110px] shrink-0 rounded-2xl border p-2 text-left transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer ${
                     isActive
                       ? "bg-[#FFE4EF] border-[#D70F64] ring-2 ring-[#D70F64]/40 shadow-md"
                       : "bg-[#FFF0F5] dark:bg-[#2A101B] border-[#F9A8C9]/40 dark:border-[#D70F64]/25 hover:border-[#D70F64]/60"
@@ -450,13 +449,13 @@ export default function GroceryModule({
                     {thumb ? (
                       <CategoryTileThumb src={thumb} alt={cat.name} />
                     ) : (
-                      <span className="text-2xl leading-none">{GROCERY_CATEGORY_VISUALS[cat.id]?.emoji || "📦"}</span>
+                      <Package className="w-6 h-6 text-[#5e554a] dark:text-[#A1A1B2]" strokeWidth={1.5} aria-hidden="true" />
                     )}
                   </div>
-                  <span className="block text-xs font-extrabold text-[#14141A] dark:text-white leading-tight line-clamp-1">
+                  <span className="block text-xs font-semibold text-[#14141A] dark:text-white leading-tight line-clamp-1">
                     {cat.name}
                   </span>
-                  <span className="block text-[11px] font-bold text-[#5A5A6B] dark:text-[#A1A1B2]">({catCount})</span>
+                  <span className="block text-[11px] font-medium text-[#5A5A6B] dark:text-[#A1A1B2]">({catCount})</span>
                 </button>
               );
             })}
@@ -467,16 +466,16 @@ export default function GroceryModule({
         <div id="grocery-products" className="scroll-mt-28">
           {filteredProducts.length > 0 && (
             <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-              <h3 className="text-sm sm:text-base font-extrabold text-[#14141A] dark:text-[#F5F5F8]">
+              <h3 className="text-sm sm:text-base font-semibold text-[#14141A] dark:text-[#F5F5F8]">
                 {selectedCategoryId === "All"
-                  ? "All Grocery Essentials"
+                  ? "All grocery essentials"
                   : categoryNameMap[selectedCategoryId] || "Groceries"}{" "}
                 <span className="text-xs text-[#5A5A6B] dark:text-[#A1A1B2] font-semibold tabular-nums">
                   {`(${filteredProducts.length} ${filteredProducts.length === 1 ? "item" : "items"})`}
                 </span>
               </h3>
               {searchQuery && (
-                <span className="text-xs text-[#D70F64] dark:text-[#FF4D94] font-bold">
+                <span className="text-xs text-[#D70F64] dark:text-[#FF4D94] font-semibold">
                   {`Search: "${searchQuery}"`}
                 </span>
               )}
@@ -487,9 +486,9 @@ export default function GroceryModule({
                     setShowAllCatalog(true);
                     setShowAllInCategory(true);
                   }}
-                  className="text-xs font-bold text-[#D70F64] dark:text-[#FF4D94] hover:underline shrink-0 cursor-pointer min-h-[44px] px-2 transition-all duration-300 active:scale-[0.97] active:brightness-110"
+                  className="text-xs font-semibold text-[#D70F64] dark:text-[#FF4D94] hover:underline shrink-0 cursor-pointer min-h-[44px] px-2 transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110"
                 >
-                  See All →
+                  See all →
                 </button>
               )}
             </div>
@@ -515,7 +514,7 @@ export default function GroceryModule({
                 <div className="w-14 h-14 rounded-2xl bg-[#FFF0F5] dark:bg-[#2A101B] text-[#D70F64] dark:text-[#FF4D94] flex items-center justify-center">
                   <Package className="w-7 h-7" />
                 </div>
-                <h3 className="font-extrabold text-base text-[#14141A] dark:text-[#F5F5F8]">
+                <h3 className="font-semibold text-base text-[#14141A] dark:text-[#F5F5F8]">
                   {searchQuery
                     ? `No grocery items match "${searchQuery}"`
                     : "No items in this category yet"}
@@ -530,8 +529,7 @@ export default function GroceryModule({
                 {groupedSections.map((section) => (
                   <section key={section.id}>
                     <div className="flex items-center justify-between gap-2 mb-3">
-                      <h4 className="text-sm sm:text-base font-extrabold text-[#14141A] dark:text-[#F5F5F8] flex items-center gap-2">
-                        {section.emoji ? <span className="text-base leading-none">{section.emoji}</span> : null}
+                      <h4 className="text-sm sm:text-base font-semibold text-[#14141A] dark:text-[#F5F5F8] flex items-center gap-2">
                         <span>{section.name}</span>
                         <span className="text-xs text-[#5A5A6B] dark:text-[#A1A1B2] font-semibold tabular-nums">
                           {`(${section.count} ${section.count === 1 ? "item" : "items"})`}
@@ -543,7 +541,7 @@ export default function GroceryModule({
                           setSelectedCategoryId(section.id);
                           setShowAllInCategory(true);
                         }}
-                        className="text-xs font-bold text-[#D70F64] dark:text-[#FF4D94] hover:underline shrink-0 cursor-pointer min-h-[44px] px-2 transition-all duration-300 active:scale-[0.97] active:brightness-110"
+                        className="text-xs font-semibold text-[#D70F64] dark:text-[#FF4D94] hover:underline shrink-0 cursor-pointer min-h-[44px] px-2 transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110"
                       >
                         See all →
                       </button>
@@ -566,9 +564,9 @@ export default function GroceryModule({
                     <button
                       type="button"
                       onClick={() => setShowAllInCategory(true)}
-                      className="min-h-[44px] px-6 py-2.5 rounded-xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64] text-xs font-bold text-[#14141A] dark:text-white flex items-center gap-1.5 cursor-pointer transition-all duration-300 active:scale-[0.97] active:brightness-110"
+                      className="min-h-[44px] px-6 py-2.5 rounded-xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64] text-xs font-semibold text-[#14141A] dark:text-white flex items-center gap-1.5 cursor-pointer transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110"
                     >
-                      <span>{`Show All ${filteredProducts.length} Items`}</span>
+                      <span>{`Show all ${filteredProducts.length} items`}</span>
                       <ChevronDown className="w-4 h-4 text-[#D70F64]" />
                     </button>
                   </div>

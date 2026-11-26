@@ -89,13 +89,13 @@ export default function BottomNavBar({
               <button
                 type="button"
                 onClick={onOpenGroceryCart}
-                className="flex items-center gap-2 min-w-0 cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110"
+                className="flex items-center gap-2 min-w-0 cursor-pointer transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110"
               >
                 <span className="bg-white/20 px-2 py-0.5 rounded-lg text-xs font-black tabular-nums flex items-center gap-1 shrink-0">
                   <ShoppingBag className="w-3.5 h-3.5" />
                   {currentCartCount}
                 </span>
-                <span className="text-xs font-extrabold tracking-tight whitespace-nowrap">View Cart</span>
+                <span className="text-xs font-medium tracking-tight whitespace-nowrap">View Cart</span>
                 {currentCartTotal > 0 && (
                   <span className="font-mono text-xs font-black tabular-nums whitespace-nowrap">
                     • Rs. {currentCartTotal}
@@ -105,7 +105,7 @@ export default function BottomNavBar({
               <button
                 type="button"
                 onClick={onOpenGroceryCart}
-                className="bg-white text-[#D70F64] text-xs font-extrabold px-3.5 py-2 rounded-full shadow-sm flex items-center gap-1 shrink-0 cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110"
+                className="bg-white text-[#D70F64] text-xs font-extrabold px-3.5 py-2 rounded-full shadow-sm flex items-center gap-1 shrink-0 cursor-pointer transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110"
               >
                 Checkout <ChevronRight className="w-3.5 h-3.5" />
               </button>
@@ -114,14 +114,14 @@ export default function BottomNavBar({
             <button
               type="button"
               onClick={onOpenCart}
-              className="w-full min-h-[48px] btn-pink text-white px-4 py-2.5 rounded-2xl shadow-lg flex items-center justify-between gap-2 cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110 relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
+              className="w-full min-h-[48px] btn-pink text-white px-4 py-2.5 rounded-2xl shadow-lg flex items-center justify-between gap-2 cursor-pointer transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-[opacity,transform] after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
             >
               <div className="flex items-center gap-2.5">
                 <span className="bg-white/20 px-2 py-0.5 rounded-lg text-xs font-black tabular-nums flex items-center gap-1">
                   <ShoppingBag className="w-3.5 h-3.5" />
                   {currentCartCount}
                 </span>
-                <span className="text-xs font-extrabold tracking-tight">View Your Cart</span>
+                <span className="text-xs font-medium tracking-tight">View Your Cart</span>
               </div>
               <div className="flex items-center gap-1 font-mono text-xs font-black tabular-nums">
                 {currentCartTotal > 0 && <span>Rs. {currentCartTotal}</span>}
@@ -148,17 +148,17 @@ export default function BottomNavBar({
           >
             <span
               aria-hidden="true"
-              className={`absolute top-0 left-1/2 -translate-x-1/2 w-10 h-[3px] rounded-b-full bg-[#D70F64] transition-all duration-300 ${activeModule === "food" ? "opacity-100 scale-x-100" : "opacity-0 scale-x-50"}`}
+              className={`absolute top-0 left-1/2 -translate-x-1/2 w-10 h-[3px] rounded-b-full bg-[#D70F64] transition-[opacity,transform] duration-300 ${activeModule === "food" ? "opacity-100 scale-x-100" : "opacity-0 scale-x-50"}`}
             />
             <Utensils
-              className={`w-5 h-5 stroke-[2.2] transition-all duration-300 ${
+              className={`w-5 h-5 stroke-[1.5] transition-[color,background-color,border-color,transform,opacity] duration-300 ${
                 activeModule === "food"
                   ? "text-[#D70F64] dark:text-[#FF5C9E]"
                   : "text-[#5A5A6B] dark:text-[#A1A1B2]"
               }`}
             />
             <span
-              className={`text-[10.5px] leading-none font-bold transition-all duration-300 ${
+              className={`text-[10.5px] leading-none font-medium transition-[color,background-color,border-color,transform,opacity] duration-300 ${
                 activeModule === "food"
                   ? "text-[#D70F64] dark:text-[#FF5C9E]"
                   : "text-[#5A5A6B] dark:text-[#A1A1B2]"
@@ -178,17 +178,17 @@ export default function BottomNavBar({
           >
             <span
               aria-hidden="true"
-              className={`absolute top-0 left-1/2 -translate-x-1/2 w-10 h-[3px] rounded-b-full bg-[#D70F64] transition-all duration-300 ${activeModule === "grocery" ? "opacity-100 scale-x-100" : "opacity-0 scale-x-50"}`}
+              className={`absolute top-0 left-1/2 -translate-x-1/2 w-10 h-[3px] rounded-b-full bg-[#D70F64] transition-[opacity,transform] duration-300 ${activeModule === "grocery" ? "opacity-100 scale-x-100" : "opacity-0 scale-x-50"}`}
             />
             <Store
-              className={`w-5 h-5 stroke-[2.2] transition-all duration-300 ${
+              className={`w-5 h-5 stroke-[1.5] transition-[color,background-color,border-color,transform,opacity] duration-300 ${
                 activeModule === "grocery"
                   ? "text-[#D70F64] dark:text-[#FF5C9E]"
                   : "text-[#5A5A6B] dark:text-[#A1A1B2]"
               }`}
             />
             <span
-              className={`text-[10.5px] leading-none font-bold transition-all duration-300 ${
+              className={`text-[10.5px] leading-none font-medium transition-[color,background-color,border-color,transform,opacity] duration-300 ${
                 activeModule === "grocery"
                   ? "text-[#D70F64] dark:text-[#FF5C9E]"
                   : "text-[#5A5A6B] dark:text-[#A1A1B2]"
@@ -205,8 +205,8 @@ export default function BottomNavBar({
             aria-label="Search food and groceries"
             className="min-h-[48px] flex flex-col items-center justify-center gap-1 text-center relative select-none cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110 text-[#5A5A6B] dark:text-[#A1A1B2]"
           >
-            <Search className="w-5 h-5 stroke-[2.2]" />
-            <span className="text-[10.5px] leading-none font-bold">Search</span>
+            <Search className="w-5 h-5 stroke-[1.5]" />
+            <span className="text-[10.5px] leading-none font-medium">Search</span>
           </button>
 
           {/* Account Tab */}
@@ -216,8 +216,8 @@ export default function BottomNavBar({
             aria-label={user ? "Open my account" : "Sign in"}
             className="min-h-[48px] flex flex-col items-center justify-center gap-1 text-center relative select-none cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110 text-[#5A5A6B] dark:text-[#A1A1B2]"
           >
-            <User className="w-5 h-5 stroke-[2.2]" />
-            <span className="text-[10.5px] leading-none font-bold">
+            <User className="w-5 h-5 stroke-[1.5]" />
+            <span className="text-[10.5px] leading-none font-medium">
               {user ? (user.name?.split(" ")[0] || "Account") : "Account"}
             </span>
           </button>
