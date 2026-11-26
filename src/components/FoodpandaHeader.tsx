@@ -823,7 +823,8 @@ export default function FoodpandaHeader({
 
             <div className="flex items-center justify-between pt-2 border-t border-zinc-100 dark:border-zinc-800">
               <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                ✓ Marked as Read
+                <BadgeCheck className="w-3.5 h-3.5 shrink-0" />
+                Marked as Read
               </span>
               <button
                 onClick={() => setSelectedNotification(null)}

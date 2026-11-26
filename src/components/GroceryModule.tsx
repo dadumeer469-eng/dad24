@@ -58,7 +58,7 @@ function GroceryProductImage({
       <div
         className="w-full h-full bg-[#efe9df] dark:bg-[#191922] flex flex-col items-center justify-center p-3 text-center relative overflow-hidden select-none"
       >
-        <div className="w-12 h-12 rounded-2xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] shadow-xs flex items-center justify-center mb-1.5 relative">
+        <div className="w-12 h-12 rounded-2xl bg-[#fdfbf7] dark:bg-[#14141A] border border-[#e8e2d6] dark:border-[#272733] shadow-xs flex items-center justify-center mb-1.5 relative">
           <Package className="w-6 h-6 text-[#5e554a] dark:text-[#A1A1B2]" strokeWidth={1.5} aria-hidden="true" />
           <span className="absolute -bottom-1 -right-1 bg-[#D70F64] text-white text-[8px] font-semibold px-1 py-0.5 rounded leading-none">
             {initials || "DF"}
@@ -243,9 +243,9 @@ export default function GroceryModule({
     return (
       <div
         key={p.id}
-        className="bg-[#FFF0F5] dark:bg-[#2A101B] border border-[#F9A8C9]/40 dark:border-[#D70F64]/25 rounded-2xl overflow-hidden shadow-xs hover:shadow-md hover:border-[#D70F64]/50 transition-[color,background-color,border-color,transform,opacity] duration-180 flex flex-col relative group"
+        className="bg-[#fdfbf7] dark:bg-[#2A101B] border border-[#e8e2d6] dark:border-[#D70F64]/25 rounded-2xl overflow-hidden shadow-xs hover:shadow-md hover:border-[#D70F64]/50 transition-[color,background-color,border-color,transform,opacity] duration-180 flex flex-col relative group"
       >
-        <div className="relative h-[104px] sm:h-32 md:h-36 bg-[#FFF0F5] dark:bg-[#2A101B] shrink-0 select-none overflow-hidden">
+        <div className="relative h-[104px] sm:h-32 md:h-36 bg-[#fdfbf7] dark:bg-[#2A101B] shrink-0 select-none overflow-hidden">
           {/* Loading shimmer so the tile never looks blank pink while the photo loads */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 dark:via-white/10 to-transparent animate-shimmer-sweep" />
@@ -362,10 +362,10 @@ export default function GroceryModule({
   };
 
   return (
-    <div className="bg-white dark:bg-[#0B0B0F] text-[#14141A] dark:text-[#F5F5F8] min-h-screen py-3 sm:py-4 transition-colors duration-200 animate-slide-screen">
+    <div className="bg-transparent dark:bg-[#0B0B0F] text-[#14141A] dark:text-[#F5F5F8] min-h-screen py-3 sm:py-4 transition-colors duration-200 animate-slide-screen">
       <div className="max-w-7xl mx-auto px-3.5 sm:px-4 space-y-4 sm:space-y-5">
         {/* Dadu Express Mart Hero (design: dark banner, basket photo, yellow headline) */}
-        <div className="relative overflow-hidden rounded-[28px] shadow-[0_12px_28px_rgba(215,15,100,0.25)] min-h-[210px] sm:min-h-[230px]">
+        <div className="relative overflow-hidden rounded-[28px] shadow-[0_12px_28px_rgba(0,0,0,0.10)] min-h-[210px] sm:min-h-[230px]">
           <img
             src="/images/home/grocery-basket.jpg"
             alt="Fresh groceries in a Dadu Food basket"
@@ -419,11 +419,11 @@ export default function GroceryModule({
               }}
               className={`w-[110px] shrink-0 rounded-2xl border p-2 text-left transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer ${
                 selectedCategoryId === "All" && !showAllCatalog
-                  ? "bg-[#FFE4EF] border-[#D70F64] ring-2 ring-[#D70F64]/40 shadow-md"
-                  : "bg-[#FFF0F5] dark:bg-[#2A101B] border-[#F9A8C9]/40 dark:border-[#D70F64]/25 hover:border-[#D70F64]/60"
+                  ? "bg-[#fdfbf7] border-[#D70F64] ring-2 ring-[#D70F64]/40 shadow-md"
+                  : "bg-[#fdfbf7] dark:bg-[#2A101B] border-[#e8e2d6] dark:border-[#D70F64]/25 hover:border-[#D70F64]/60"
               }`}
             >
-              <div className="h-[60px] rounded-xl overflow-hidden bg-[#FFE4EF] dark:bg-[#1B1B23] mb-1.5">
+              <div className="h-[60px] rounded-xl overflow-hidden bg-[#efe9df] dark:bg-[#1B1B23] mb-1.5">
                 <img
                   src="/images/home/grocery-basket.jpg"
                   alt="All grocery items"
@@ -452,11 +452,11 @@ export default function GroceryModule({
                   }}
                   className={`w-[110px] shrink-0 rounded-2xl border p-2 text-left transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer ${
                     isActive
-                      ? "bg-[#FFE4EF] border-[#D70F64] ring-2 ring-[#D70F64]/40 shadow-md"
-                      : "bg-[#FFF0F5] dark:bg-[#2A101B] border-[#F9A8C9]/40 dark:border-[#D70F64]/25 hover:border-[#D70F64]/60"
+                      ? "bg-[#fdfbf7] border-[#D70F64] ring-2 ring-[#D70F64]/40 shadow-md"
+                      : "bg-[#fdfbf7] dark:bg-[#2A101B] border-[#e8e2d6] dark:border-[#D70F64]/25 hover:border-[#D70F64]/60"
                   }`}
                 >
-                  <div className="h-[60px] rounded-xl overflow-hidden bg-[#FFE4EF] dark:bg-[#1B1B23] mb-1.5 flex items-center justify-center">
+                  <div className="h-[60px] rounded-xl overflow-hidden bg-[#efe9df] dark:bg-[#1B1B23] mb-1.5 flex items-center justify-center">
                     {thumb ? (
                       <CategoryTileThumb src={thumb} alt={cat.name} />
                     ) : (
@@ -510,7 +510,7 @@ export default function GroceryModule({
               {Array.from({ length: 8 }).map((_, idx) => (
                 <div
                   key={idx}
-                  className="bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl overflow-hidden p-3 space-y-3"
+                  className="bg-[#fdfbf7] dark:bg-[#14141A] border border-[#e8e2d6] dark:border-[#272733] rounded-2xl overflow-hidden p-3 space-y-3"
                 >
                   <div className="h-32 sm:h-36 rounded-xl skeleton-box" />
                   <div className="h-3 w-1/3 rounded skeleton-box" />
@@ -521,8 +521,8 @@ export default function GroceryModule({
             </div>
           ) : filteredProducts.length === 0 ? (
             <div className="space-y-5">
-              <div className="py-10 px-5 bg-white dark:bg-[#14141A] rounded-2xl sm:rounded-3xl border border-[#E6E6EE] dark:border-[#272733] flex flex-col items-center justify-center text-center space-y-2.5">
-                <div className="w-14 h-14 rounded-2xl bg-[#FFF0F5] dark:bg-[#2A101B] text-[#D70F64] dark:text-[#FF4D94] flex items-center justify-center">
+              <div className="py-10 px-5 bg-[#fdfbf7] dark:bg-[#14141A] rounded-2xl sm:rounded-3xl border border-[#e8e2d6] dark:border-[#272733] flex flex-col items-center justify-center text-center space-y-2.5">
+                <div className="w-14 h-14 rounded-2xl bg-[#efe9df] dark:bg-[#2A101B] text-[#D70F64] dark:text-[#FF4D94] flex items-center justify-center">
                   <Package className="w-7 h-7" />
                 </div>
                 <h3 className="font-semibold text-base text-[#14141A] dark:text-[#F5F5F8]">
