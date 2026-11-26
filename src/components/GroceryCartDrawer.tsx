@@ -1,6 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import { UserProfile, GroceryOrderItem, GroceryDeliveryConfig, getUserCoins, Voucher, calculateVoucherDiscount, isVoucherExpired, canUserUseVoucher } from "../types";
-import { X, ShoppingBag, MapPin, Phone, User, AlertTriangle, ShieldCheck, Heart, Edit2, Compass, Trash2, CheckCircle, Coins, Ticket, Tag, ChevronDown, Check, Loader2, Info } from "lucide-react";
+import { X, ShoppingBag, MapPin, Phone, User, AlertTriangle, ShieldCheck, Heart, Edit2, Compass, CheckCircle, Coins, Ticket, Tag, ChevronDown, Check, Loader2, Info } from "lucide-react";
 import { LazyImage } from "./LazyImage";
 import UserVouchersModal from "./UserVouchersModal";
 import { doc, setDoc } from "firebase/firestore";
@@ -8,6 +11,28 @@ import { db, handleFirestoreError } from "../firebase";
 import { getSavedAddresses, saveRecentAddress, SavedAddressEntry } from "../utils/savedAddresses";
 import EasypaisaPaymentBox from "./EasypaisaPaymentBox";
 import { OWNER_GROCERY_PRODUCTS } from "../data/ownerGroceryCatalog";
+
+const OSM_TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+const OSM_ATTRIBUTION =
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+
+const CART_PIN_ICON = L.divIcon({
+  html: `<div style="width:32px;height:32px;background:#E21B70;border-radius:9999px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px rgba(0,0,0,.3);border:2px solid #fff"><svg style="width:18px;height:18px;fill:#fff" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg></div>`,
+  className: "",
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
+});
+
+// The cart slides in with an animation; re-measure the map once it settles
+// so Leaflet tiles fill the box instead of rendering blank/grey.
+function InvalidateSizeOnMount() {
+  const map = useMap();
+  useEffect(() => {
+    const t = window.setTimeout(() => map.invalidateSize(), 350);
+    return () => window.clearTimeout(t);
+  }, [map]);
+  return null;
+}
 
 interface GroceryCartDrawerProps {
   isOpen: boolean;
@@ -31,6 +56,13 @@ interface GroceryCartDrawerProps {
     userCoords?: { latitude: number; longitude: number };
     coinsUsed?: number;
     voucher?: { code: string; discountAmount: number };
+    riderTip?: number;
+    isScheduled?: boolean;
+    scheduledTime?: string;
+    deliverySpeed?: "standard" | "priority";
+    leaveAtDoor?: boolean;
+    messageUponArrival?: boolean;
+    cutlery?: boolean;
   }) => Promise<void>;
   userCoords?: { latitude: number; longitude: number } | null;
   systemSettings?: any;
@@ -55,14 +87,13 @@ export default function GroceryCartDrawer({
 }: GroceryCartDrawerProps) {
   const [submitting, setSubmitting] = useState(false);
   const [useCoins, setUseCoins] = useState(false);
-  const [activeDiscountTab, setActiveDiscountTab] = useState<'none' | 'coins'>('none');
   const [appliedVoucher, setAppliedVoucher] = useState<Voucher | null>(null);
   const [voucherInputCode, setVoucherInputCode] = useState("");
   const [voucherError, setVoucherError] = useState<string | null>(null);
   const [isVouchersModalOpen, setIsVouchersModalOpen] = useState(false);
   const [isBenefitsOpen, setIsBenefitsOpen] = useState(false);
 
-  // Customer Name, Phone, Payment & Address editing states
+  // Customer Name, Phone, Payment, Schedule, Tip & Address states (mirrors food checkout)
   const [nameInput, setNameInput] = useState(currentUser?.name || "");
   const [phoneInput, setPhoneInput] = useState(currentUser?.phone || "");
   const [paymentMethod, setPaymentMethod] = useState<"COD" | "Easypaisa">(() => {
@@ -70,6 +101,15 @@ export default function GroceryCartDrawer({
     return saved === "Easypaisa" ? "Easypaisa" : "COD";
   });
   const [paymentReceiptUrl, setPaymentReceiptUrl] = useState<string | null>(null);
+  const [riderTip, setRiderTip] = useState<number>(0);
+  const [isScheduled, setIsScheduled] = useState<boolean>(false);
+  const [scheduledTime, setScheduledTime] = useState<string>("Today, +1 Hour");
+  // Foodpanda-style delivery speed + delivery preferences (Standard / Priority only — no Saver)
+  const [deliverySpeed, setDeliverySpeed] = useState<"standard" | "priority">("standard");
+  const [leaveAtDoor, setLeaveAtDoor] = useState<boolean>(false);
+  const [messageUponArrival, setMessageUponArrival] = useState<boolean>(false);
+  const [cutlery, setCutlery] = useState<boolean>(false);
+  const [locationTimedOut, setLocationTimedOut] = useState<boolean>(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [isEditingAddress, setIsEditingAddress] = useState(!currentUser?.address);
   const [addressInput, setAddressInput] = useState(currentUser?.address || "");
@@ -78,6 +118,18 @@ export default function GroceryCartDrawer({
   const [addressError, setAddressError] = useState<string | null>(null);
   const [addressLabel, setAddressLabel] = useState<SavedAddressEntry["label"]>("Ghar");
   const [savedAddresses, setSavedAddresses] = useState<SavedAddressEntry[]>([]);
+
+  // Geolocation timeout fallback (never stay stuck on "Locating...")
+  React.useEffect(() => {
+    if (!isOpen || userCoords) {
+      setLocationTimedOut(false);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setLocationTimedOut(true);
+    }, 3500);
+    return () => clearTimeout(timer);
+  }, [isOpen, userCoords]);
 
   React.useEffect(() => {
     if (currentUser?.name && !nameInput) {
@@ -183,7 +235,6 @@ export default function GroceryCartDrawer({
   React.useEffect(() => {
     if (!isOpen || cartItems.length === 0) {
       setUseCoins(false);
-      setActiveDiscountTab('none');
       setAppliedVoucher(null);
       setVoucherInputCode("");
       setVoucherError(null);
@@ -216,16 +267,34 @@ export default function GroceryCartDrawer({
     : (deliveryConfig?.baseDeliveryFee || 0) > 0 ? deliveryConfig.baseDeliveryFee : 50;
   const isDoubleFee = doubleFeeBelow > 0 && totalGroceryPrice < doubleFeeBelow;
   const deliveryFeeRate = isDoubleFee ? baseDeliveryFee * 2 : baseDeliveryFee;
-  const finalDeliveryFee = !deliveryRequired
+  const deliveryBaseFee = !deliveryRequired
     ? 0
     : isFreeDelivery
     ? 0
     : deliveryFeeRate;
+  // Delivery speed (mirrors food checkout — Standard / Priority only, no Saver)
+  const priorityFee = Number(systemSettings?.priorityFee ?? 30);
+  const tipOptions = (Array.isArray(systemSettings?.tipOptions) && systemSettings.tipOptions.length > 0
+    ? systemSettings.tipOptions
+    : [0, 50, 100, 200, 300]) as number[];
+  const speedOptions = [
+    { id: "standard" as const, label: "Standard", eta: "25–35 min", feeNote: "Standard", enabled: true },
+    { id: "priority" as const, label: "Priority", eta: "15–25 min", feeNote: `+Rs. ${priorityFee}`, enabled: systemSettings?.priorityEnabled !== false },
+  ].filter((o) => o.enabled);
+  const effectiveSpeed = speedOptions.some((o) => o.id === deliverySpeed) ? deliverySpeed : "standard";
+  const speedFeeAdjustment = effectiveSpeed === "priority" ? priorityFee : 0;
+  const finalDeliveryFee = Math.max(0, deliveryBaseFee + speedFeeAdjustment);
+  const showDeliveryPreferences =
+    systemSettings?.leaveAtDoorEnabled !== false ||
+    systemSettings?.messageOnArrivalEnabled !== false ||
+    systemSettings?.cutleryEnabled !== false;
+  const easypaisaTitle = systemSettings?.easypaisaTitle || "Ghulam Murtaza";
+  const easypaisaNumber = systemSettings?.easypaisaNumber || "03277004471";
 
   const taxesAmount = 0; // Transparent pricing: total = items + delivery fee - discount
-  
-  // Base Grocery Total before benefits
-  const baseOrderTotal = totalGroceryPrice + finalDeliveryFee;
+
+  // Base Grocery Total before benefits (items + delivery + optional rider tip, mirrors food)
+  const baseOrderTotal = totalGroceryPrice + finalDeliveryFee + riderTip;
 
   // Voucher Discount
   let voucherDiscount = 0;
@@ -448,6 +517,13 @@ export default function GroceryCartDrawer({
           code: appliedVoucher.code,
           discountAmount: voucherDiscount,
         } : undefined,
+        riderTip: riderTip > 0 ? riderTip : undefined,
+        isScheduled: isScheduled || undefined,
+        scheduledTime: isScheduled ? scheduledTime : undefined,
+        deliverySpeed: effectiveSpeed,
+        leaveAtDoor: leaveAtDoor || undefined,
+        messageUponArrival: messageUponArrival || undefined,
+        cutlery: cutlery || undefined,
       });
       setPaymentReceiptUrl(null);
       onClose();
@@ -459,130 +535,118 @@ export default function GroceryCartDrawer({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden font-sans">
-      <div className="absolute inset-0 bg-black/80 transition-opacity" onClick={onClose} />
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/75">
+      {/* Tap space to slide out drawer */}
+      <div className="flex-1" onClick={onClose}></div>
 
-      <div className="absolute inset-y-0 right-0 max-w-full flex sm:pl-10">
-        <div className="w-screen max-w-md bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 border-l border-zinc-200 dark:border-zinc-900 shadow-2xl flex flex-col h-full h-dvh animate-slide-in">
-          
-          {/* Header */}
-          <div className="p-4 border-b border-zinc-200 dark:border-zinc-900 flex items-center justify-between bg-zinc-200/50 dark:bg-zinc-900/40">
-            <div className="flex items-center gap-2">
-              <ShoppingBag className="w-5 h-5 text-[#D70F64]" />
-              <div>
-                <h3 className="text-sm font-black uppercase tracking-wider text-zinc-900 dark:text-zinc-100">Dadu Grocery Basket</h3>
-                <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-widest mt-0.5">Express Mart Checkout</p>
+      <div className="w-full max-w-md bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 h-full h-dvh flex flex-col shadow-2xl border-l border-zinc-200 dark:border-zinc-800 animate-slide-in">
+
+        {/* Banner with close */}
+        <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 flex items-center justify-between shadow-xs">
+          <div className="flex items-center gap-2">
+            <ShoppingBag className="w-5 h-5 text-[#D70F64]" />
+            <h3 className="font-extrabold text-sm tracking-wide text-zinc-900 dark:text-zinc-100 uppercase">Your Grocery Cart</h3>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close grocery basket"
+            className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-850 rounded-full transition cursor-pointer text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Foodpanda 3-Step Cart Progress Bar */}
+        {cartItems.length > 0 && (
+          <div className="px-4 py-2.5 bg-white dark:bg-zinc-950 border-b border-zinc-200/80 dark:border-zinc-800/80">
+            <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wider">
+              <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                <span className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px]">✓</span>
+                <span>1. Mart</span>
+              </div>
+              <div className="flex-1 h-[2px] mx-2 bg-[#D70F64]" />
+              <div className="flex items-center gap-1.5 text-[#FF4D94]">
+                <span className="w-5 h-5 rounded-full bg-[#D70F64] text-white flex items-center justify-center text-[10px]">2</span>
+                <span>2. Basket</span>
+              </div>
+              <div className="flex-1 h-[2px] mx-2 bg-zinc-300 dark:bg-zinc-700" />
+              <div className="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300">
+                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${currentUser && (userCoords || addressInput.trim().length >= 6) ? "bg-[#D70F64] text-white" : "bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400"}`}>3</span>
+                <span>3. Checkout</span>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              aria-label="Close grocery basket"
-              className="p-2 -mr-2 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/70 dark:hover:bg-zinc-900/60 transition cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
           </div>
+        )}
 
-          {/* Foodpanda 3-Step Progress Bar */}
-          {cartItems.length > 0 && (
-            <div className="px-4 py-2.5 bg-white dark:bg-zinc-950 border-b border-zinc-200/80 dark:border-zinc-800/80">
-              <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wider">
-                <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-                  <span className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px]">✓</span>
-                  <span>1. Mart</span>
+        {/* List of items inside the drawer */}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y p-4 space-y-4 bg-white dark:bg-zinc-950">
+
+          {cartItems.length === 0 ? (
+            <div className="text-center py-20 space-y-3">
+              <span className="text-4xl block animate-bounce">🛒</span>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-wider">Your Grocery Basket is empty!</p>
+              <button
+                onClick={onClose}
+                className="bg-[#E21B70] hover:bg-[#C2145E] transition text-white font-black text-xs uppercase tracking-wider py-3 px-6 rounded-xl cursor-pointer shadow-xs"
+              >
+                Go Add Groceries
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {cartItems.map((item) => (
+                <div key={item.productId} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-2xl flex items-center justify-between gap-3 shadow-xs">
+                  <LazyImage src={item.imageUrl} alt={item.name} className="w-12 h-12 rounded-xl overflow-hidden shrink-0" referrerPolicy="no-referrer" />
+                  <div className="flex-1 min-w-0">
+                    <span className="font-extrabold text-sm text-zinc-900 dark:text-zinc-100 block truncate">{item.name}</span>
+                    <span className="text-xs text-zinc-500 dark:text-zinc-400 font-bold block mt-0.5">Unit: {item.unit} • Rs. {item.price} each</span>
+                    {MEDICINE_PRODUCT_IDS.has(item.productId) && (
+                      <span className="text-[10px] text-[#E21B70] dark:text-[#FF4D94] font-extrabold tracking-wider uppercase flex items-center gap-1 select-none mt-0.5">
+                        <span>💊</span> Medicine
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Quantity adjustments */}
+                  <div className="flex items-center gap-2 select-none shrink-0 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-1 rounded-xl">
+                    <button
+                      onClick={() => onUpdateQuantity(item.productId, item.quantity - 1)}
+                      className="w-9 h-9 rounded-lg text-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800"
+                    >
+                      -
+                    </button>
+                    <span className="text-xs font-black min-w-4 text-center text-zinc-800 dark:text-zinc-200">{item.quantity}</span>
+                    <button
+                      onClick={() => onUpdateQuantity(item.productId, item.quantity + 1)}
+                      className="w-9 h-9 rounded-lg text-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800"
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => onRemoveItem(item.productId)}
+                    className="p-1 text-zinc-500 dark:text-zinc-400 hover:text-[#E21B70] shrink-0 transition cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
                 </div>
-                <div className="flex-1 h-[2px] mx-2 bg-[#D70F64]" />
-                <div className="flex items-center gap-1.5 text-[#FF4D94]">
-                  <span className="w-5 h-5 rounded-full bg-[#D70F64] text-white flex items-center justify-center text-[10px]">2</span>
-                  <span>2. Basket</span>
-                </div>
-                <div className="flex-1 h-[2px] mx-2 bg-zinc-300 dark:bg-zinc-700" />
-                <div className="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300">
-                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${currentUser && (userCoords || addressInput.trim().length >= 6) ? "bg-[#D70F64] text-white" : "bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400"}`}>3</span>
-                  <span>3. Checkout</span>
-                </div>
-              </div>
+              ))}
             </div>
           )}
 
-          {/* Cart items list */}
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y p-5 space-y-4">
-            {cartItems.length === 0 ? (
-              <div className="flex flex-col items-center justify-center text-center py-20 space-y-4">
-                <div className="w-16 h-16 bg-pink-600/10 border border-orange-500/20 rounded-full flex items-center justify-center text-orange-500">
-                  <ShoppingBag className="w-8 h-8" />
-                </div>
-                <div className="space-y-1">
-                  <h4 className="text-xs font-black uppercase tracking-wider text-zinc-800 dark:text-zinc-200">Your basket is empty</h4>
-                  <p className="text-[10.5px] text-zinc-500 dark:text-zinc-500 font-semibold max-w-xs leading-normal">
-                    Browse our ultra fresh categories and tap "Add To Grocery Cart" to populate your express shipping!
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <span className="text-[10px] font-black uppercase text-orange-500 tracking-widest block mb-2">Itemized List ({cartItems.length})</span>
-                {cartItems.map((item) => (
-                  <div
-                    key={item.productId}
-                    className="bg-zinc-200/50 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-900/80 p-3 rounded-2xl flex items-center gap-3"
-                  >
-                    <LazyImage src={item.imageUrl} alt={item.name} className="w-12 h-12 rounded-xl overflow-hidden shrink-0" referrerPolicy="no-referrer" />
-                    <div className="flex-1 min-w-0">
-                      <h5 className="font-bold text-xs text-zinc-900 dark:text-zinc-100 truncate">{item.name}</h5>
-                      <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block font-semibold">Unit: {item.unit} • Price: Rs. {item.price}</span>
-                    </div>
+          {/* Checkout address inputs flow */}
+          {cartItems.length > 0 && (
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-3xl mt-6 space-y-4 shadow-3xs">
+              <h4 className="text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300 border-b border-zinc-200 dark:border-zinc-800 pb-2 flex items-center gap-1.5">
+                <MapPin className="w-4 h-4 text-[#E21B70]" />
+                Delivery Information Details
+              </h4>
 
-                    {/* Quantity Selector */}
-                    <div className="flex items-center gap-2 border border-zinc-200 dark:border-zinc-800 p-1 rounded-xl bg-zinc-100 dark:bg-zinc-950">
-                      <button
-                        onClick={() => onUpdateQuantity(item.productId, item.quantity - 1)}
-                        className="w-9 h-9 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 font-bold flex items-center justify-center text-sm active:scale-90"
-                      >
-                        -
-                      </button>
-                      <span className="text-[11px] font-mono font-black text-zinc-900 dark:text-white px-0.5">{item.quantity}</span>
-                      <button
-                        onClick={() => onUpdateQuantity(item.productId, item.quantity + 1)}
-                        className="w-9 h-9 rounded-lg btn-pink text-white font-bold flex items-center justify-center text-sm active:scale-90"
-                      >
-                        +
-                      </button>
-                    </div>
-
-                    <button
-                      onClick={() => onRemoveItem(item.productId)}
-                      className="p-1.5 bg-pink-100 dark:bg-pink-950/20 hover:bg-pink-200 dark:hover:bg-pink-950 text-pink-600 dark:text-pink-400 rounded-lg hover:text-pink-600 dark:hover:text-pink-300 transition shrink-0 cursor-pointer"
-                      title="Remove product"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Address Form or Credentials Check */}
-            {cartItems.length > 0 && (
-              <div className="bg-zinc-200/60 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-900 p-4.5 rounded-2.5xl space-y-4">
-                <span className="text-[10px] font-black uppercase text-orange-500 tracking-widest block">Recipient and Shipping info</span>
-
-                {!currentUser ? (
-                  <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-850 p-4 rounded-xl text-center space-y-2">
-                    <p className="text-[10.5px] text-orange-700 dark:text-orange-200 font-semibold leading-relaxed">
-                      💡 Sign in to automatically map your pre-configured address info and track deliveries instantly!
-                    </p>
-                    <button
-                      type="button"
-                      onClick={onOpenAuth}
-                      className="text-xs bg-orange-600 text-white py-1.5 px-4 rounded-lg font-black uppercase tracking-wider hover:bg-orange-700 transition cursor-pointer"
-                    >
-                      Sign In Now
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-2 text-xs">
-                    <div className="space-y-1">
+              <div className="space-y-2.5 pt-2">
+                {currentUser ? (
+                  <div className="space-y-3">
+                    <div className="bg-white dark:bg-zinc-950 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-1.5">
                       <span className="text-[10px] font-black uppercase text-zinc-500 dark:text-zinc-400 tracking-wider block">Customer Name</span>
                       <input
                         type="text"
@@ -592,25 +656,21 @@ export default function GroceryCartDrawer({
                           if (checkoutError) setCheckoutError(null);
                         }}
                         placeholder="Apna naam likhein (e.g. Ali Ahmed)..."
-                        className="w-full bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 focus:border-orange-500 rounded-lg px-2.5 py-1.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none font-bold"
+                        className="w-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 focus:border-[#E21B70] rounded-lg px-2.5 py-1.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none font-bold"
                       />
                     </div>
-                    <div className="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300">
-                      <Phone className="w-4 h-4 text-orange-600 dark:text-orange-400 shrink-0" />
-                      <span className="font-semibold font-mono">{currentUser.phone}</span>
-                    </div>
 
-                    <div className="border-t border-zinc-200 dark:border-zinc-850 pt-2.5 mt-2 space-y-2">
+                    <div className="bg-white dark:bg-zinc-950 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] font-black uppercase text-zinc-500 dark:text-zinc-400 tracking-wider flex items-center gap-1.5">
-                          <MapPin className="w-3.5 h-3.5 text-orange-500" />
-                          Shipment Destination Address
+                          <MapPin className="w-3.5 h-3.5 text-[#E21B70]" />
+                          Delivery Address
                         </span>
                         {!isEditingAddress && (
                           <button
                             type="button"
                             onClick={handleStartEditAddress}
-                            className="flex items-center gap-1 text-[11px] font-black text-orange-600 dark:text-orange-400 hover:text-orange-500 dark:hover:text-orange-300 hover:underline transition cursor-pointer"
+                            className="flex items-center gap-1 text-[11px] font-black text-[#E21B70] hover:text-[#ff2b7f] hover:underline transition cursor-pointer"
                           >
                             <Edit2 className="w-3 h-3" />
                             {currentUser.address ? "Change Address" : "Add Address"}
@@ -636,8 +696,8 @@ export default function GroceryCartDrawer({
                                 onClick={() => setAddressLabel(tag)}
                                 className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition cursor-pointer border ${
                                   addressLabel === tag
-                                    ? "bg-orange-600 text-white border-orange-500"
-                                    : "bg-white dark:bg-zinc-950 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:text-zinc-900 dark:hover:text-white"
+                                    ? "bg-[#E21B70] text-white border-[#E21B70]"
+                                    : "bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:text-zinc-900 dark:hover:text-white"
                                 }`}
                               >
                                 {tag === "Ghar" ? "🏠 Ghar" : tag === "Dukan / Office" ? "🏪 Dukan / Office" : tag === "Hostel" ? "🎓 Hostel" : "📍 Other"}
@@ -652,7 +712,7 @@ export default function GroceryCartDrawer({
                             }}
                             placeholder="Enter full delivery address (House/Shop #, Street, Area, Dadu)..."
                             rows={3}
-                            className="w-full bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 focus:border-orange-500 rounded-xl p-2.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none resize-none font-medium leading-relaxed"
+                            className="w-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 focus:border-[#E21B70] rounded-xl p-2.5 text-xs text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none resize-none font-medium leading-relaxed"
                             autoFocus
                           />
                           {addressError && (
@@ -674,7 +734,7 @@ export default function GroceryCartDrawer({
                               type="button"
                               onClick={handleSaveAddress}
                               disabled={isSavingAddress}
-                              className="px-4 py-1.5 rounded-lg text-xs font-black text-white bg-orange-600 hover:bg-orange-700 shadow-md shadow-orange-600/20 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                              className="px-4 py-1.5 rounded-lg text-xs font-black text-white bg-[#E21B70] hover:bg-[#C2145E] shadow-md shadow-[#E21B70]/20 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                             >
                               {isSavingAddress ? (
                                 <>
@@ -691,7 +751,7 @@ export default function GroceryCartDrawer({
                           </div>
                         </div>
                       ) : currentUser.address ? (
-                        <p className="bg-white dark:bg-zinc-950 p-2.5 rounded-xl text-[11px] text-zinc-700 dark:text-zinc-300 font-bold leading-normal border border-zinc-200 dark:border-zinc-850">
+                        <p className="text-xs text-zinc-800 dark:text-zinc-200 font-bold leading-normal bg-zinc-200/70 dark:bg-zinc-900/60 p-2 rounded-lg border border-zinc-200 dark:border-zinc-850">
                           {currentUser.address}
                         </p>
                       ) : (
@@ -735,8 +795,8 @@ export default function GroceryCartDrawer({
                                   title={entry.address}
                                   className={`max-w-full text-left px-2.5 py-1.5 rounded-xl text-[10.5px] font-bold transition cursor-pointer flex items-center gap-1.5 border ${
                                     isActive
-                                      ? "bg-orange-500/15 border-orange-500/60 text-orange-700 dark:text-orange-200"
-                                      : "bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-600"
+                                      ? "bg-[#E21B70]/15 border-[#E21B70]/60 text-pink-700 dark:text-pink-200"
+                                      : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-600"
                                   }`}
                                 >
                                   <span>{icon}</span>
@@ -750,15 +810,267 @@ export default function GroceryCartDrawer({
                       )}
                     </div>
                   </div>
+                ) : (
+                  <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-4 rounded-xl text-center">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 font-semibold">Please sign in to place your order</p>
+                  </div>
                 )}
+
+                {userCoords ? (
+                  <div className="bg-white dark:bg-zinc-950 border border-emerald-500/30 rounded-xl overflow-hidden relative">
+                    {/* Real Map Preview (Leaflet + OpenStreetMap) */}
+                    <div className="h-24 w-full relative overflow-hidden">
+                      <MapContainer
+                        center={[userCoords.latitude, userCoords.longitude]}
+                        zoom={15}
+                        zoomControl={false}
+                        dragging={false}
+                        scrollWheelZoom={false}
+                        doubleClickZoom={false}
+                        touchZoom={false}
+                        keyboard={false}
+                        style={{ width: "100%", height: "100%", zIndex: 0 }}
+                      >
+                        <TileLayer url={OSM_TILE_URL} attribution={OSM_ATTRIBUTION} />
+                        <Marker position={[userCoords.latitude, userCoords.longitude]} icon={CART_PIN_ICON} />
+                        <InvalidateSizeOnMount />
+                      </MapContainer>
+                    </div>
+                    <div className="p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] uppercase tracking-wider mb-1">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                            Location coordinates attached
+                          </div>
+                          <p className="text-zinc-800 dark:text-zinc-200 text-xs font-bold">{currentUser?.savedLocation?.area || currentUser?.address?.split(',')[0]?.trim() || "Location detected"}</p>
+                          <p className="text-zinc-500 dark:text-zinc-400 text-[10px]">{currentUser?.savedLocation?.street || currentUser?.address?.split(',')[1]?.trim() || "Auto-filled"}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-xl flex flex-col items-center text-center gap-2">
+                    <MapPin className={`w-5 h-5 ${locationTimedOut ? "text-[#E21B70]" : "text-zinc-500 dark:text-zinc-400 animate-pulse"}`} />
+                    <p className="text-zinc-800 dark:text-zinc-200 text-xs font-bold">
+                      {locationTimedOut
+                        ? "GPS unavailable — proceed smoothly with your manual Dadu address!"
+                        : "Checking optional GPS signal..."}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleStartEditAddress}
+                      className="text-[11px] font-black text-[#E21B70] hover:underline cursor-pointer"
+                    >
+                      Enter / Edit Delivery Address Manually
+                    </button>
+                  </div>
+                )}
+
+                {/* Editable Contact Phone Number */}
+                <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-xl space-y-2">
+                  <label className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
+                    <Phone className="w-3.5 h-3.5 text-[#E21B70]" /> Contact Phone Number *
+                  </label>
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    value={phoneInput}
+                    onChange={(e) => setPhoneInput(e.target.value.replace(/\D/g, "").slice(0, 11))}
+                    placeholder="03XX-XXXXXXX"
+                    className="w-full px-3 py-2 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 text-xs font-bold focus:outline-none focus:border-[#E21B70]"
+                  />
+                </div>
+
+                {/* Payment Method Selector (ONLY Cash on Delivery & Easypaisa) */}
+                <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-xl space-y-2">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block">
+                    Payment Method
+                  </span>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(["COD", "Easypaisa"] as const).map((method) => (
+                      <button
+                        key={method}
+                        type="button"
+                        onClick={() => {
+                          setPaymentMethod(method);
+                          setCheckoutError(null);
+                          localStorage.setItem("dadu_preferred_payment", method);
+                        }}
+                        className={`min-h-[44px] py-2.5 px-3 rounded-xl text-xs font-extrabold border transition cursor-pointer ${
+                          paymentMethod === method
+                            ? "bg-[#D70F64] border-[#D70F64] text-white shadow-sm"
+                            : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-600"
+                        }`}
+                      >
+                        {method === "COD" ? "💵 Cash on Delivery" : "📱 Easypaisa"}
+                      </button>
+                    ))}
+                  </div>
+                  {paymentMethod === "Easypaisa" && (
+                    <EasypaisaPaymentBox
+                      receiptUrl={paymentReceiptUrl}
+                      onReceiptChange={setPaymentReceiptUrl}
+                      amount={grandTotal}
+                      accountTitle={easypaisaTitle}
+                      accountNumber={easypaisaNumber}
+                    />
+                  )}
+                </div>
+
+                {/* Delivery Timing: Deliver Now vs Scheduled Pre-Order */}
+                <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-xl space-y-2">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block">
+                    Delivery Timing
+                  </span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsScheduled(false)}
+                      className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition cursor-pointer ${
+                        !isScheduled
+                          ? "bg-[#E21B70] border-[#E21B70] text-white"
+                          : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"
+                      }`}
+                    >
+                      Deliver Now (ASAP)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsScheduled(true)}
+                      className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition cursor-pointer ${
+                        isScheduled
+                          ? "bg-[#E21B70] border-[#E21B70] text-white"
+                          : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"
+                      }`}
+                    >
+                      Schedule Pre-Order
+                    </button>
+                  </div>
+                  {isScheduled && (
+                    <select
+                      value={scheduledTime}
+                      onChange={(e) => setScheduledTime(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 text-xs font-bold"
+                    >
+                      <option value="Today, +45 Mins">Today, in 45 Minutes</option>
+                      <option value="Today, +1 Hour">Today, in 1 Hour</option>
+                      <option value="Today, +2 Hours">Today, in 2 Hours</option>
+                      <option value="Tonight, 8:00 PM">Tonight, 8:00 PM (Dinner)</option>
+                      <option value="Tonight, 9:30 PM">Tonight, 9:30 PM</option>
+                      <option value="Tomorrow, 1:00 PM">Tomorrow, 1:00 PM (Lunch)</option>
+                    </select>
+                  )}
+                </div>
+
+                {/* Delivery Speed: Standard / Priority (no Saver) */}
+                <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-xl space-y-2">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block">
+                    Delivery Speed
+                  </span>
+                  <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${speedOptions.length}, minmax(0, 1fr))` }}>
+                    {speedOptions.map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setDeliverySpeed(opt.id)}
+                        className={`py-2 px-2 rounded-xl text-center border transition cursor-pointer ${
+                          effectiveSpeed === opt.id
+                            ? "bg-[#E21B70] border-[#E21B70] text-white"
+                            : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-600"
+                        }`}
+                      >
+                        <span className="block text-xs font-extrabold">{opt.label}</span>
+                        <span className="block text-[10px] font-bold opacity-80">{opt.eta}</span>
+                        <span className="block text-[10px] font-bold opacity-80">{opt.feeNote}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Delivery Preferences: Leave at door / Message upon arrival / Cutlery */}
+                {showDeliveryPreferences && (
+                  <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-xl space-y-3">
+                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block">
+                      Delivery Preferences
+                    </span>
+                    {(
+                      [
+                        { key: "leaveAtDoor", label: "Leave at door", desc: "Rider order darwaze par chhor dega", value: leaveAtDoor, set: setLeaveAtDoor, enabled: systemSettings?.leaveAtDoorEnabled !== false },
+                        { key: "messageUponArrival", label: "Message upon arrival", desc: "Pahunchne par rider message karega", value: messageUponArrival, set: setMessageUponArrival, enabled: systemSettings?.messageOnArrivalEnabled !== false },
+                        { key: "cutlery", label: "Cutlery", desc: "Chammach / kaanta saath chahiye", value: cutlery, set: setCutlery, enabled: systemSettings?.cutleryEnabled !== false },
+                      ] as const
+                    ).filter((pref) => pref.enabled).map((pref) => (
+                      <button
+                        key={pref.key}
+                        type="button"
+                        onClick={() => pref.set(!pref.value)}
+                        className="w-full flex items-center justify-between gap-3 cursor-pointer"
+                      >
+                        <span className="text-left">
+                          <span className="block text-xs font-bold text-zinc-900 dark:text-zinc-100">{pref.label}</span>
+                          <span className="block text-[10px] text-zinc-500 dark:text-zinc-400">{pref.desc}</span>
+                        </span>
+                        <span
+                          className={`shrink-0 w-11 h-6 rounded-full p-0.5 transition ${pref.value ? "bg-[#E21B70]" : "bg-zinc-300 dark:bg-zinc-700"}`}
+                        >
+                          <span
+                            className={`block w-5 h-5 rounded-full bg-white shadow transition ${pref.value ? "translate-x-5" : "translate-x-0"}`}
+                          />
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Optional Rider Tip */}
+                <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                      Rider Tip (100% goes to rider)
+                    </span>
+                    <span className="text-[11px] font-black text-[#E21B70]">
+                      {riderTip > 0 ? `Rs. ${riderTip}` : "Optional"}
+                    </span>
+                  </div>
+                  <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${tipOptions.length}, minmax(0, 1fr))` }}>
+                    {tipOptions.map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setRiderTip(amt)}
+                        className={`py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer ${
+                          riderTip === amt
+                            ? "bg-[#E21B70] border-[#E21B70] text-white"
+                            : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-600"
+                        }`}
+                      >
+                        {amt === 0 ? "None" : `Rs. ${amt}`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+        </div>
+
+        {/* Pricing Summary Bottom Card */}
+        {cartItems.length > 0 && (
+          <div className="p-4 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 space-y-3.5 rounded-t-3xl shadow-2xl shrink-0">
+            {totalGroceryPrice < 500 && (
+              <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-3 text-[11px] text-amber-600 dark:text-amber-400 flex items-start gap-2.5">
+                <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-extrabold block text-amber-600 dark:text-amber-300">Delivery Charges Doubled (Below Rs. 500)</span>
+                  Rs. 500 se kam order par delivery charges double hain. Add Rs. {500 - totalGroceryPrice} more grocery items to get standard delivery!
+                </div>
               </div>
             )}
-          </div>
 
-          {/* Pricing & Checkout Panel */}
-          {cartItems.length > 0 && (
-            <div className="p-5 border-t border-zinc-200 dark:border-zinc-900 bg-zinc-200/70 dark:bg-zinc-900/60 space-y-4">
-            {/* 1-TAP AUTO-APPLY BEST GROCERY VOUCHER BANNER */}
+            {/* 1-TAP AUTO-APPLY BEST VOUCHER BANNER */}
             {!appliedVoucher && (() => {
               const eligibleGroceryVouchers = allVouchers
                 .filter((v) => {
@@ -779,14 +1091,14 @@ export default function GroceryCartDrawer({
               const bestSave = calculateVoucherDiscount(bestVoucher, totalGroceryPrice);
 
               return (
-                <div className="bg-gradient-to-r from-orange-500/20 via-amber-500/15 to-emerald-500/15 border border-orange-500/40 rounded-2xl p-2.5 flex items-center justify-between gap-2">
+                <div className="bg-gradient-to-r from-[#E21B70]/20 via-pink-600/15 to-amber-500/15 border border-[#E21B70]/40 rounded-2xl p-2.5 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-7 h-7 rounded-xl bg-orange-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                    <div className="w-7 h-7 rounded-xl bg-[#E21B70] text-white flex items-center justify-center shrink-0 shadow-sm">
                       <Ticket className="w-3.5 h-3.5" />
                     </div>
                     <div className="min-w-0">
                       <p className="text-[11px] font-black text-zinc-900 dark:text-white truncate">
-                        Save Rs. {bestSave} with <span className="font-mono text-orange-600 dark:text-orange-300">{bestVoucher.code}</span>
+                        Save Rs. {bestSave} with <span className="font-mono text-[#D70F64] dark:text-pink-300">{bestVoucher.code}</span>
                       </p>
                       <p className="text-[9.5px] text-zinc-700 dark:text-zinc-300 truncate">
                         {bestVoucher.successMessage || "Instant grocery discount available!"}
@@ -796,7 +1108,7 @@ export default function GroceryCartDrawer({
                   <button
                     type="button"
                     onClick={() => handleApplyVoucher(bestVoucher)}
-                    className="bg-orange-600 hover:bg-orange-700 text-white text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-xl shrink-0 shadow-md shadow-orange-600/25 cursor-pointer transition active:scale-95"
+                    className="bg-[#E21B70] hover:bg-[#C2145E] text-white text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-xl shrink-0 shadow-md shadow-[#E21B70]/25 cursor-pointer transition active:scale-95"
                   >
                     1-Tap Apply
                   </button>
@@ -813,8 +1125,8 @@ export default function GroceryCartDrawer({
                 className="w-full p-3 flex items-center justify-between gap-2.5 text-left hover:bg-zinc-100/70 dark:hover:bg-zinc-850/60 transition cursor-pointer"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-500/20 via-amber-500/10 to-emerald-500/20 border border-orange-500/30 flex items-center justify-center shrink-0 shadow-inner">
-                    <Tag className="w-4 h-4 text-orange-500" />
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#E21B70]/20 via-pink-500/10 to-amber-500/20 border border-[#E21B70]/30 flex items-center justify-center shrink-0 shadow-inner">
+                    <Tag className="w-4 h-4 text-[#E21B70]" />
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
@@ -826,7 +1138,7 @@ export default function GroceryCartDrawer({
                           Rs. {voucherDiscount + coinsDeducted} Saved
                         </span>
                       ) : (
-                        <span className="bg-orange-500/15 border border-orange-500/25 text-orange-600 dark:text-orange-400 text-[9px] font-extrabold px-1.5 py-0.5 rounded-md">
+                        <span className="bg-[#E21B70]/15 border border-[#E21B70]/25 text-[#D70F64] dark:text-pink-400 text-[9px] font-extrabold px-1.5 py-0.5 rounded-md">
                           Vouchers & Coins
                         </span>
                       )}
@@ -847,7 +1159,7 @@ export default function GroceryCartDrawer({
                   <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 hidden sm:inline">
                     {isBenefitsOpen ? "Close" : "Open"}
                   </span>
-                  <div className={`w-6 h-6 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 dark:text-zinc-400 transition-transform duration-300 ${isBenefitsOpen ? "rotate-180 text-white bg-orange-600" : ""}`}>
+                  <div className={`w-6 h-6 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 dark:text-zinc-400 transition-transform duration-300 ${isBenefitsOpen ? "rotate-180 text-white bg-[#E21B70]" : ""}`}>
                     <ChevronDown className="w-3.5 h-3.5" />
                   </div>
                 </div>
@@ -859,27 +1171,27 @@ export default function GroceryCartDrawer({
                   {/* VOUCHER / PROMO CODE SECTION */}
                   <div className="bg-zinc-50 dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 space-y-2">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-xs font-black text-orange-600 dark:text-orange-400">
-                        <Ticket className="w-3.5 h-3.5 text-orange-500" />
-                        <span>Grocery Voucher</span>
+                      <div className="flex items-center gap-1.5 text-xs font-black text-[#D70F64] dark:text-pink-400">
+                        <Ticket className="w-3.5 h-3.5 text-[#E21B70]" />
+                        <span>Promo Voucher</span>
                       </div>
                       <button
                         type="button"
                         onClick={() => setIsVouchersModalOpen(true)}
-                        className="text-[10.5px] font-black text-orange-600 dark:text-orange-400 hover:text-orange-500 dark:hover:text-orange-300 underline cursor-pointer"
+                        className="text-[10.5px] font-black text-[#E21B70] hover:text-[#C2145E] dark:hover:text-pink-300 underline cursor-pointer"
                       >
                         View My Vouchers 🎟️
                       </button>
                     </div>
 
                     {appliedVoucher ? (
-                      <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-2.5 flex items-center justify-between">
+                      <div className="bg-pink-500/10 border border-[#E21B70]/30 rounded-xl p-2.5 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                           <div>
                             <div className="flex items-center gap-1.5">
                               <span className="font-mono font-black text-xs text-zinc-900 dark:text-white">{appliedVoucher.code}</span>
-                              <span className="bg-orange-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-md">
+                              <span className="bg-[#E21B70] text-white text-[9px] font-black px-1.5 py-0.2 rounded-md">
                                 Rs. {voucherDiscount} OFF
                               </span>
                             </div>
@@ -910,13 +1222,13 @@ export default function GroceryCartDrawer({
                                   handleApplyVoucher(voucherInputCode);
                                 }
                               }}
-                              className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl pl-8 pr-3 py-2 text-xs font-mono font-bold text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-orange-500 uppercase"
+                              className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl pl-8 pr-3 py-2 text-xs font-mono font-bold text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-[#E21B70] uppercase"
                             />
                           </div>
                           <button
                             type="button"
                             onClick={() => handleApplyVoucher(voucherInputCode)}
-                            className="bg-orange-600 hover:bg-orange-700 text-white text-xs font-black px-3.5 py-2 rounded-xl transition cursor-pointer"
+                            className="bg-[#E21B70] hover:bg-[#C2145E] text-white text-xs font-black px-3.5 py-2 rounded-xl transition cursor-pointer"
                           >
                             Apply
                           </button>
@@ -930,7 +1242,7 @@ export default function GroceryCartDrawer({
 
                   {/* Policy banner for 1 offer limit */}
                   <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-[9.5px] text-zinc-500 dark:text-zinc-400">
-                    <Info className="w-3 h-3 text-orange-600 dark:text-orange-400 shrink-0" />
+                    <Info className="w-3 h-3 text-[#D70F64] dark:text-pink-400 shrink-0" />
                     <span>Ek order par sirf 1 offer lag sakti hai (Voucher <strong>ya</strong> Coin Discount).</span>
                   </div>
 
@@ -1001,8 +1313,8 @@ export default function GroceryCartDrawer({
                                 🎉 Cashback: <span className="text-emerald-700 dark:text-emerald-200 font-mono font-black">+{estimatedCoinsEarned} Coins</span>
                               </span>
                               <span className="text-[10px] text-emerald-600/90 dark:text-emerald-400/90 font-medium block mt-0.5">
-                                {loyaltyEarnType === "fixed" 
-                                  ? `Flat ${loyaltyEarnVal} Coins (Rs. ${estimatedCoinsEarned} Cashback)` 
+                                {loyaltyEarnType === "fixed"
+                                  ? `Flat ${loyaltyEarnVal} Coins (Rs. ${estimatedCoinsEarned} Cashback)`
                                   : `${loyaltyEarnVal}% Cashback on Order (Rs. ${estimatedCoinsEarned})`}
                               </span>
                             </>
@@ -1024,125 +1336,84 @@ export default function GroceryCartDrawer({
               )}
             </div>
 
-              <div className="space-y-1.5 text-xs">
-                {totalGroceryPrice < 500 && (
-                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-2.5 text-[10.5px] text-amber-600 dark:text-amber-400 flex items-start gap-2 mb-2">
-                    <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-extrabold block text-amber-600 dark:text-amber-300">Delivery Charges Doubled (Below Rs. 500)</span>
-                      Rs. 500 se kam order par delivery charges double hain. Add Rs. {500 - totalGroceryPrice} more grocery items to get standard delivery!
-                    </div>
-                  </div>
-                )}
-                <div className="flex justify-between text-zinc-500 dark:text-zinc-400 font-semibold">
-                  <span>Cart Subtotal</span>
-                  <span>Rs. {totalGroceryPrice}</span>
-                </div>
-
-                {appliedVoucher && voucherDiscount > 0 && (
-                  <div className="flex justify-between text-orange-600 dark:text-orange-400 font-bold">
-                    <span>Voucher Discount ({appliedVoucher.code})</span>
-                    <span>- Rs. {voucherDiscount}</span>
-                  </div>
-                )}
-                
-                {/* Delivery fee checkout representation */}
-                <div className="flex justify-between text-zinc-500 dark:text-zinc-400 font-semibold">
-                  <span>{hasMedicine ? "Medicine Delivery Fee" : "Grocery Delivery Fee"}</span>
-                  <span>
-                    {isFreeDelivery ? (
-                      <span className="text-emerald-600 dark:text-emerald-400 font-black uppercase">FREE (≥ Rs. {freeThreshold})</span>
-                    ) : (
-                      `Rs. ${finalDeliveryFee}`
-                    )}
-                  </span>
-                </div>
-
-                {useCoins && coinsDeducted > 0 && (
-                  <div className="flex justify-between text-amber-500 font-bold">
-                    <span>Coins Benefit Applied</span>
-                    <span>- Rs. {coinsDeducted}</span>
-                  </div>
-                )}
-
-                {!isFreeDelivery && (
-                  <div className="text-[10px] bg-[#E21B70]/15 text-pink-300 border border-[#E21B70]/30 p-2 rounded-lg font-bold text-center">
-                    Add Rs. {Math.max(0, freeThreshold - totalGroceryPrice)} more to get FREE delivery!
-                  </div>
-                )}
-
-                <div className="border-t border-zinc-200 dark:border-zinc-800 my-2.5 pt-2 flex justify-between text-zinc-900 dark:text-white font-black text-sm">
-                  <span>TOTAL BILLING</span>
-                  <span className="font-mono text-[#D70F64]">Rs. {grandTotal}</span>
-                </div>
+            <div className="space-y-1.5 text-xs text-zinc-500 dark:text-zinc-400 font-semibold mt-4">
+              <div className="flex justify-between">
+                <span>Items Subtotal:</span>
+                <span className="text-zinc-900 dark:text-zinc-100 font-extrabold font-mono">Rs. {totalGroceryPrice}</span>
               </div>
 
-              {/* Phone + Payment Method (ONLY COD & Easypaisa) */}
-              <div className="bg-white dark:bg-zinc-950 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 space-y-2.5">
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-zinc-500 dark:text-zinc-400 block mb-1">Contact Phone (03XXXXXXXXX)</label>
-                  <input
-                    type="tel"
-                    inputMode="numeric"
-                    value={phoneInput}
-                    onChange={(e) => setPhoneInput(e.target.value.replace(/\D/g, "").slice(0, 11))}
-                    placeholder="03XX-XXXXXXX"
-                    className="w-full px-3 py-2 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 text-xs font-bold"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {(["COD", "Easypaisa"] as const).map((m) => (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => {
-                        setPaymentMethod(m);
-                        setCheckoutError(null);
-                        localStorage.setItem("dadu_preferred_payment", m);
-                      }}
-                      className={`min-h-[44px] py-2 rounded-xl text-xs font-extrabold border transition cursor-pointer ${
-                        paymentMethod === m
-                          ? "btn-pink border-[#D70F64] text-white shadow-sm"
-                          : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"
-                      }`}
-                    >
-                      {m === "COD" ? "💵 Cash on Delivery" : "📱 Easypaisa"}
-                    </button>
-                  ))}
-                </div>
-                {paymentMethod === "Easypaisa" && (
-                  <EasypaisaPaymentBox
-                    receiptUrl={paymentReceiptUrl}
-                    onReceiptChange={setPaymentReceiptUrl}
-                    amount={grandTotal}
-                    accountTitle={systemSettings?.easypaisaTitle || "Ghulam Murtaza"}
-                    accountNumber={systemSettings?.easypaisaNumber || "03277004471"}
-                  />
-                )}
-              </div>
-
-              {checkoutError && (
-                <div className="p-3 bg-rose-500/15 border border-rose-500/30 rounded-xl text-xs text-rose-500 dark:text-rose-300 font-bold flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
-                  <span>{checkoutError}</span>
+              {appliedVoucher && voucherDiscount > 0 && (
+                <div className="flex justify-between text-[#D70F64] dark:text-pink-400">
+                  <span>Voucher Discount ({appliedVoucher.code}):</span>
+                  <span className="font-extrabold font-mono">- Rs. {voucherDiscount}</span>
                 </div>
               )}
 
-              <button
-                onClick={handleCheckoutSubmit}
-                disabled={submitting}
-                className="w-full min-h-[48px] py-3.5 btn-pink disabled:opacity-60 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl transition active:scale-[0.98] flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                {submitting ? (
-                  <>Placing Grocery Order...</>
-                ) : (
-                  <>Place Grocery Order ({paymentMethod}) • Rs. {grandTotal}</>
-                )}
-              </button>
-            </div>
-          )}
+              {useCoins && coinsDeducted > 0 && (
+                <div className="flex justify-between text-amber-600 dark:text-amber-400">
+                  <span>Coin Benefit Discount:</span>
+                  <span className="font-extrabold font-mono">- Rs. {coinsDeducted}</span>
+                </div>
+              )}
 
-        </div>
+              <div className="flex justify-between">
+                <span>{hasMedicine ? "Medicine Delivery Fee" : "Grocery Delivery Fee"}:</span>
+                <span className="text-zinc-900 dark:text-zinc-100 font-extrabold">
+                  {isFreeDelivery ? (
+                    <span className="text-emerald-600 dark:text-emerald-400 font-black">
+                      FREE (Order ≥ Rs. {freeThreshold.toLocaleString()})
+                    </span>
+                  ) : (
+                    <span className="font-mono">Rs. {finalDeliveryFee}</span>
+                  )}
+                </span>
+              </div>
+              {riderTip > 0 && (
+                <div className="flex justify-between">
+                  <span>Rider Tip:</span>
+                  <span className="text-zinc-900 dark:text-zinc-100 font-extrabold font-mono">Rs. {riderTip}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-zinc-900 dark:text-zinc-100 text-sm font-black border-t border-zinc-200 dark:border-zinc-800 pt-2.5">
+                <span>Grand Total ({paymentMethod}):</span>
+                <span className="text-[#D70F64] text-base font-bold font-mono">Rs. {grandTotal}</span>
+              </div>
+            </div>
+
+            {checkoutError && (
+              <div className="p-3 bg-rose-500/15 border border-rose-500/30 rounded-xl text-xs text-rose-500 dark:text-rose-300 font-bold flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span>{checkoutError}</span>
+              </div>
+            )}
+
+            <button
+              onClick={handleCheckoutSubmit}
+              disabled={submitting}
+              className="w-full min-h-[48px] btn-pink text-white py-3.5 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75 active:scale-[0.98]"
+            >
+              {submitting ? (
+                <>Placing Grocery Order...</>
+              ) : paymentMethod === "Easypaisa" ? (
+                <>
+                  <ShieldCheck className="w-4 h-4" />
+                  Submit Easypaisa Order • Rs. {grandTotal}
+                </>
+              ) : isScheduled ? (
+                <>
+                  <ShieldCheck className="w-4 h-4" />
+                  Schedule Order • Rs. {grandTotal}
+                </>
+              ) : (
+                <>
+                  <ShieldCheck className="w-4 h-4" />
+                  Place Grocery Order • Rs. {grandTotal}
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
       </div>
 
       {/* USER VOUCHERS MODAL */}
