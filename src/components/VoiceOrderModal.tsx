@@ -60,13 +60,14 @@ const SILENCE_RMS = 0.02;
 function pickVoice(): SpeechSynthesisVoice | null {
   if (!("speechSynthesis" in window)) return null;
   const voices = window.speechSynthesis.getVoices();
-  // Urdu first (natural Urdu voice), then Sindhi, then English, then default.
+  // Urdu first, then Sindhi. There is deliberately NO English / default
+  // fallback: the user said male Urdu only, no female voice anywhere —
+  // a browser default (often a female English voice) must never speak
+  // Urdu text. Returning null lets the utterance stay silent instead.
   return (
     voices.find((v) => v.lang?.toLowerCase() === "ur-pk") ||
     voices.find((v) => v.lang?.toLowerCase().startsWith("ur")) ||
     voices.find((v) => v.lang?.toLowerCase().startsWith("sd")) ||
-    voices.find((v) => v.lang?.toLowerCase().startsWith("en")) ||
-    voices[0] ||
     null
   );
 }
@@ -101,6 +102,13 @@ export default function VoiceOrderModal({
   const [phoneError, setPhoneError] = useState("");
   const [shakeKey, setShakeKey] = useState(0);
   const pendingOrderRef = useRef<VoiceOrder | null>(null);
+  // Location popup guard: the agent's location line fires the browser
+  // popup at most once per call — it resets when a location arrives or
+  // the call ends, so a denied prompt is never re-shown every turn.
+  const locationPromptFiredRef = useRef(false);
+  // Silence-watch audio nodes (disconnected before each new turn so no
+  // node leaks across turns).
+  const silenceSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
 
   const messagesRef = useRef<ChatMsg[]>([]);
   const statusRef = useRef<Status>("idle");
@@ -284,6 +292,15 @@ export default function VoiceOrderModal({
     turnRef.current += 1;
     stopRinging();
     cleanupTtsAudio();
+    // Reset the phone popup completely: a stale pending order or entered
+    // number must never leak into the NEXT call and place the old order.
+    setShowPhonePopup(false);
+    setPhonePopupClosing(false);
+    setEnteredPhone("");
+    setPhoneInput("");
+    setPhoneError("");
+    pendingOrderRef.current = null;
+    locationPromptFiredRef.current = false;
     try {
       if (ttsCtxRef.current && ttsCtxRef.current.state !== "closed") void ttsCtxRef.current.close();
     } catch {
@@ -393,11 +410,18 @@ export default function VoiceOrderModal({
       u.onend = finish;
       u.onerror = () => {
         if (!retried) {
-          // Some phones stay silent when an Urdu voice is requested
-          // but not installed — retry once with the browser's default
-          // voice and no language set, so *some* voice is heard.
+          // Retry once with the same male Urdu voice. Never fall back
+          // to the browser default — on many phones that is a female
+          // English voice, which the user forbade.
           retried = true;
+          const retryVoice = pickVoice();
+          if (!retryVoice) {
+            finish();
+            return;
+          }
           const u2 = new SpeechSynthesisUtterance(text);
+          u2.voice = retryVoice;
+          u2.lang = "ur-PK";
           u2.rate = 1;
           u2.pitch = 1;
           u2.onboundary = (e) => {
@@ -432,9 +456,14 @@ export default function VoiceOrderModal({
       if (!openRef.current) return;
       const turnAtStart = turnRef.current;
       let done = false;
+      let watchdog: number | null = null;
       const finish = () => {
         if (done) return;
         done = true;
+        if (watchdog !== null) {
+          clearTimeout(watchdog);
+          watchdog = null;
+        }
         cleanupTtsAudio();
         munchiRef.current?.noteSpeechEnd();
         if (openRef.current) setStatusBoth("idle");
@@ -442,11 +471,18 @@ export default function VoiceOrderModal({
       };
       setStatusBoth("speaking");
       munchiRef.current?.noteSpeechStart();
+      // Watchdog: if the utterance never finishes (hung fetch, silent
+      // audio, speechSynthesis stall), force completion after 30s so the
+      // call never freezes in "speaking".
+      watchdog = window.setTimeout(() => {
+        if (!done) finish();
+      }, 30000);
       try {
         const res = await fetch("/api/voice-speak", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text }),
+          signal: AbortSignal.timeout(20000),
         });
         if (!res.ok) throw new Error(`voice-speak failed: ${res.status}`);
         if (!openRef.current || turnRef.current !== turnAtStart) return;
@@ -544,15 +580,29 @@ export default function VoiceOrderModal({
     async (order: VoiceOrder) => {
       // No phone number on file yet — show the number popup first; the
       // order is placed once the 11-digit number is entered (submitPhone).
-      const phone = userPhone || enteredPhone || "";
+      // Prefer the phone passed with the order (submitPhone's validated
+      // digits) — state updates are async and enteredPhone may not have
+      // flushed yet when this runs.
+      const phone = order.phone || userPhone || enteredPhone || "";
       if (!phone) {
         pendingOrderRef.current = order;
         setShowPhonePopup(true);
         return;
       }
-      setStatusBoth("done");
-      const result = await onOrderReady({ ...order, phone });
+      let result: VoiceOrderResult;
+      try {
+        result = await onOrderReady({ ...order, phone });
+      } catch {
+        // A failed order (e.g. Firestore/quota error) must never strand
+        // the call screen on "done" — say so and let the user retry.
+        speak("معاف کیجیے، آرڈر پلیس نہیں ہوا۔ دوبارہ کوشش کریں۔", () => {
+          if (openRef.current) setStatusBoth("idle");
+        });
+        return;
+      }
       if (result.ok) {
+        // "done" only once the order really placed.
+        setStatusBoth("done");
         setPlacedOrder(order);
         // Order confirmed — Munchi celebrates (thumbs-up is baked into his photo).
         munchiRef.current?.setState("order_confirmed");
@@ -651,7 +701,14 @@ export default function VoiceOrderModal({
         }
         if (!res.ok) throw new Error(`voice-chat failed: ${res.status}`);
         const data = await res.json();
-        const say = typeof data?.reply === "string" ? data.reply.trim() : "";
+        // The model returned an order that failed validation — never speak
+        // its thank-you reply (the order was NOT placed). Ask for the
+        // details again instead.
+        const say = data?.orderInvalid
+          ? "معاف کیجیے، آرڈر کی تفصیل پوری نہیں ہوئی — دوبارہ بتائیں، میں نوٹ کر لوں گا۔"
+          : typeof data?.reply === "string"
+            ? data.reply.trim()
+            : "";
         if (!say) {
           speak(UNCLEAR_SPEECH, () => {
             if (openRef.current) startListeningRef.current();
@@ -665,11 +722,16 @@ export default function VoiceOrderModal({
         // The agent's reply named a dish — frame that one in Munchi's hand.
         const hit = findProductInText(say, menuItems);
         if (hit) setProductFrame(hit);
-        // Location missing and the agent just asked for it — open the
-        // browser's location popup (the native dialog appears on top of
-        // the call). Fires at most once per turn, only while location is
-        // still missing. The agent's line contains "لوکیشن".
-        if (!deliveryLocation && /لوکیشن|location/i.test(say)) {
+        // Location missing and the agent just asked for it with the exact
+        // ask line — open the browser's location popup (the native dialog
+        // appears on top of the call). Fires at most once per call, so a
+        // denied prompt is never re-shown on every turn.
+        if (
+          !deliveryLocation &&
+          !locationPromptFiredRef.current &&
+          say.includes("مہربانی کر کے اپنی لوکیشن آن کر دیں")
+        ) {
+          locationPromptFiredRef.current = true;
           onRequestLocation();
         }
         // Phone missing and the agent just asked for the number — show the
@@ -677,7 +739,7 @@ export default function VoiceOrderModal({
         if (!userPhone && !enteredPhone && /نمبر|number/i.test(say)) {
           setShowPhonePopup(true);
         }
-        // The agent answered — she walks in and starts talking.
+        // The agent answered — he walks in and starts talking.
         revealAgent();
         // A short human-like pause before answering (and it lets the
         // agent's walk-in animation play).
@@ -708,7 +770,11 @@ export default function VoiceOrderModal({
       setStatusBoth("thinking");
       try {
         const fd = new FormData();
-        fd.append("audio", blob, "voice.webm");
+        // Name the file from the actual recording format: Safari records
+        // MP4, and Groq/Whisper detects the format from the extension —
+        // MP4 bytes named .webm fail transcription on every iPhone.
+        const ext = blob.type.includes("mp4") ? "voice.mp4" : "voice.webm";
+        fd.append("audio", blob, ext);
         const tRes = await fetch("/api/voice-transcribe", {
           method: "POST",
           body: fd,
@@ -728,6 +794,19 @@ export default function VoiceOrderModal({
           });
           return;
         }
+        // Spoken phone number: on a voice call the user naturally SAYS
+        // the digits. Capture an 11-digit 03 number from the transcript
+        // so a voice-first user is never stuck on the typing popup.
+        if (!userPhone && !enteredPhone) {
+          const spoken = text.replace(/[\s-]/g, "").match(/0?3\d{9}/);
+          if (spoken) {
+            const digits = spoken[0].startsWith("03") ? spoken[0] : `0${spoken[0]}`;
+            if (digits.length === 11) {
+              setEnteredPhone(digits);
+              setPhoneInput(digits);
+            }
+          }
+        }
         const next = [...messagesRef.current, { role: "user" as const, text }];
         messagesRef.current = next.slice(-12);
         // The customer named a dish — frame it in Munchi's hand right away.
@@ -742,7 +821,7 @@ export default function VoiceOrderModal({
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [speak, sendToGroq, speakBusyAndEnd, menuItems],
+    [speak, sendToGroq, speakBusyAndEnd, menuItems, userPhone, enteredPhone],
   );
 
   // Silence watch (best-effort): stop the recording after ~1.2s of quiet.
@@ -765,10 +844,23 @@ export default function VoiceOrderModal({
         const runningCtx = analysisCtxRef.current;
         if (runningCtx.state !== "running") return;
         try {
+          // Disconnect the previous turn's nodes first — a new source is
+          // created every listening turn and the old ones never went away.
+          try {
+            silenceSourceRef.current?.disconnect();
+          } catch {
+            /* noop */
+          }
+          try {
+            analyserRef.current?.disconnect();
+          } catch {
+            /* noop */
+          }
           const source = runningCtx.createMediaStreamSource(stream);
           const analyser = runningCtx.createAnalyser();
           analyser.fftSize = 512;
           source.connect(analyser);
+          silenceSourceRef.current = source;
           analyserRef.current = analyser;
           const data = new Uint8Array(analyser.fftSize);
           let silenceSince: number | null = null;
@@ -888,6 +980,12 @@ export default function VoiceOrderModal({
   transcribeAndChatRef.current = transcribeAndChat;
   startListeningRef.current = startListening;
 
+  // A location arrived (user allowed it) — the agent may ask again on a
+  // later call if it ever goes missing again.
+  useEffect(() => {
+    if (deliveryLocation) locationPromptFiredRef.current = false;
+  }, [deliveryLocation]);
+
   // Start the call when the modal opens: greet, then listen (hands-free).
   useEffect(() => {
     if (!isOpen) return;
@@ -896,6 +994,14 @@ export default function VoiceOrderModal({
     (window as unknown as { __munchi?: MunchiController }).__munchi = munchiRef.current ?? undefined;
     messagesRef.current = [];
     setPlacedOrder(null);
+    // Fresh call, fresh phone state — nothing from a previous call leaks in.
+    setShowPhonePopup(false);
+    setPhonePopupClosing(false);
+    setEnteredPhone("");
+    setPhoneInput("");
+    setPhoneError("");
+    pendingOrderRef.current = null;
+    locationPromptFiredRef.current = false;
     // Munchi is absent until he answers — then he walks in.
     setAgentVisible(false);
     setStatusBoth("calling");
@@ -1088,6 +1194,16 @@ export default function VoiceOrderModal({
                 className="mt-3 w-full rounded-full bg-[#E21B70] py-3 text-[18px] font-bold text-white shadow-[0_8px_20px_rgba(226,27,112,0.45)] transition-transform active:scale-95"
               >
                 OK — Confirm karein
+              </button>
+              <button
+                onClick={() => {
+                  pendingOrderRef.current = null;
+                  setShowPhonePopup(false);
+                  setPhoneError("");
+                }}
+                className="mt-2 w-full py-1 text-[15px] font-semibold text-[#64748b]"
+              >
+                Order cancel karein
               </button>
             </div>
           </div>
