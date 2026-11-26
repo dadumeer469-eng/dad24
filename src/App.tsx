@@ -5082,7 +5082,7 @@ export default function App() {
                   heroBgUrl={heroBgUrl}
                 >
                 <div className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-6 mb-4">
-                  <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-4 border border-[#E6E6EE] dark:border-[#272733] shadow-xs">
+                  <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-4 border border-[#e8e2d6] dark:border-[#272733] shadow-xs">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2.5">
                         <div className="w-9 h-9 rounded-xl bg-[#D70F64] flex items-center justify-center text-white shrink-0">
@@ -5822,7 +5822,7 @@ export default function App() {
 
                 {/* About Dadu Food — homepage copy (SEO: real local keywords, no FAQ section) */}
                 <section className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-6">
-                  <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-4 border border-[#E6E6EE] dark:border-[#272733] shadow-xs">
+                  <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-4 border border-[#e8e2d6] dark:border-[#272733] shadow-xs">
                     <h2 className="text-sm sm:text-base font-semibold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
                       About Dadu Food — Dadu City&apos;s Own Delivery Service
                     </h2>
@@ -5867,7 +5867,7 @@ export default function App() {
 
                 {/* Delivery areas in Dadu — homepage copy (SEO: real delivery areas, no FAQ section) */}
                 <section className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-6">
-                  <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-4 border border-[#E6E6EE] dark:border-[#272733] shadow-xs">
+                  <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-4 border border-[#e8e2d6] dark:border-[#272733] shadow-xs">
                     <h2 className="text-sm sm:text-base font-semibold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
                       We Deliver Across Dadu City
                     </h2>
@@ -6011,40 +6011,47 @@ export default function App() {
             <h4 className="font-extrabold text-[11px] uppercase tracking-wider text-[#111118] dark:text-[#F5F5F8] mb-2">
               Company & Legal
             </h4>
-            <ul className="space-y-1 text-xs font-semibold">
+            <ul className="divide-y divide-[#e8e2d6] dark:divide-[#272733] text-xs font-semibold">
               <li>
-                <a href="/about" onClick={(e) => { e.preventDefault(); navigateToInfoPage("about"); }} className="inline-block min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
+                <a href="/about" onClick={(e) => { e.preventDefault(); navigateToInfoPage("about"); }} className="flex min-h-[44px] items-center justify-between gap-2 py-2 hover:text-[#D70F64] dark:hover:text-[#FF4D94] active:scale-[0.98] transition-[color,transform] cursor-pointer">
                   About Us
+                  <ChevronRight className="w-4 h-4 shrink-0 opacity-50" />
                 </a>
               </li>
               <li>
-                <a href="/contact" onClick={(e) => { e.preventDefault(); navigateToInfoPage("contact"); }} className="inline-block min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
+                <a href="/contact" onClick={(e) => { e.preventDefault(); navigateToInfoPage("contact"); }} className="flex min-h-[44px] items-center justify-between gap-2 py-2 hover:text-[#D70F64] dark:hover:text-[#FF4D94] active:scale-[0.98] transition-[color,transform] cursor-pointer">
                   Contact & Helpline
+                  <ChevronRight className="w-4 h-4 shrink-0 opacity-50" />
                 </a>
               </li>
               <li>
-                <a href="/terms" onClick={(e) => { e.preventDefault(); navigateToInfoPage("terms"); }} className="inline-block min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
+                <a href="/terms" onClick={(e) => { e.preventDefault(); navigateToInfoPage("terms"); }} className="flex min-h-[44px] items-center justify-between gap-2 py-2 hover:text-[#D70F64] dark:hover:text-[#FF4D94] active:scale-[0.98] transition-[color,transform] cursor-pointer">
                   Terms & Conditions
+                  <ChevronRight className="w-4 h-4 shrink-0 opacity-50" />
                 </a>
               </li>
               <li>
-                <a href="/privacy-policy" onClick={(e) => { e.preventDefault(); navigateToInfoPage("privacy-policy"); }} className="inline-block min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
+                <a href="/privacy-policy" onClick={(e) => { e.preventDefault(); navigateToInfoPage("privacy-policy"); }} className="flex min-h-[44px] items-center justify-between gap-2 py-2 hover:text-[#D70F64] dark:hover:text-[#FF4D94] active:scale-[0.98] transition-[color,transform] cursor-pointer">
                   Privacy Policy
+                  <ChevronRight className="w-4 h-4 shrink-0 opacity-50" />
                 </a>
               </li>
               <li>
-                <a href="/refund-policy" onClick={(e) => { e.preventDefault(); navigateToInfoPage("refund-policy"); }} className="inline-block min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
+                <a href="/refund-policy" onClick={(e) => { e.preventDefault(); navigateToInfoPage("refund-policy"); }} className="flex min-h-[44px] items-center justify-between gap-2 py-2 hover:text-[#D70F64] dark:hover:text-[#FF4D94] active:scale-[0.98] transition-[color,transform] cursor-pointer">
                   Refund & Cancellation Policy
+                  <ChevronRight className="w-4 h-4 shrink-0 opacity-50" />
                 </a>
               </li>
               <li>
-                <a href="/restaurants" onClick={(e) => { e.preventDefault(); handleGoToRestaurantsHome(); }} className="inline-block min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
+                <a href="/restaurants" onClick={(e) => { e.preventDefault(); handleGoToRestaurantsHome(); }} className="flex min-h-[44px] items-center justify-between gap-2 py-2 hover:text-[#D70F64] dark:hover:text-[#FF4D94] active:scale-[0.98] transition-[color,transform] cursor-pointer">
                   Restaurants in Dadu
+                  <ChevronRight className="w-4 h-4 shrink-0 opacity-50" />
                 </a>
               </li>
               <li>
-                <a href="/hotels" onClick={(e) => { e.preventDefault(); handleGoToHotelsHome(); }} className="inline-block min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
+                <a href="/hotels" onClick={(e) => { e.preventDefault(); handleGoToHotelsHome(); }} className="flex min-h-[44px] items-center justify-between gap-2 py-2 hover:text-[#D70F64] dark:hover:text-[#FF4D94] active:scale-[0.98] transition-[color,transform] cursor-pointer">
                   Hotels in Dadu
+                  <ChevronRight className="w-4 h-4 shrink-0 opacity-50" />
                 </a>
               </li>
             </ul>
@@ -6053,15 +6060,17 @@ export default function App() {
             <h4 className="font-extrabold text-[11px] uppercase tracking-wider text-[#111118] dark:text-[#F5F5F8] mb-2">
               Grow With Dadu Food
             </h4>
-            <ul className="space-y-1 text-xs font-semibold">
+            <ul className="divide-y divide-[#e8e2d6] dark:divide-[#272733] text-xs font-semibold">
               <li>
-                <a href="/partner-with-us" onClick={(e) => { e.preventDefault(); navigateToInfoPage("partner-with-us"); }} className="inline-block min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
+                <a href="/partner-with-us" onClick={(e) => { e.preventDefault(); navigateToInfoPage("partner-with-us"); }} className="flex min-h-[44px] items-center justify-between gap-2 py-2 hover:text-[#D70F64] dark:hover:text-[#FF4D94] active:scale-[0.98] transition-[color,transform] cursor-pointer">
                   Register Your Restaurant
+                  <ChevronRight className="w-4 h-4 shrink-0 opacity-50" />
                 </a>
               </li>
               <li>
-                <a href="/become-a-rider" onClick={(e) => { e.preventDefault(); navigateToInfoPage("become-a-rider"); }} className="inline-block min-h-[36px] py-1 hover:text-[#D70F64] dark:hover:text-[#FF4D94] transition-colors cursor-pointer">
+                <a href="/become-a-rider" onClick={(e) => { e.preventDefault(); navigateToInfoPage("become-a-rider"); }} className="flex min-h-[44px] items-center justify-between gap-2 py-2 hover:text-[#D70F64] dark:hover:text-[#FF4D94] active:scale-[0.98] transition-[color,transform] cursor-pointer">
                   Become a Delivery Rider
+                  <ChevronRight className="w-4 h-4 shrink-0 opacity-50" />
                 </a>
               </li>
             </ul>
