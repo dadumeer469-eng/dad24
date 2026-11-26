@@ -746,7 +746,7 @@ export function getShopProfile(
   const configuredMin = Number(specific?.minOrder || 0);
   const minOrder = configuredMin > 0 ? configuredMin : null;
 
-  const deliveryTime = specific?.deliveryTime?.trim() || "25–35 min";
+  const deliveryTime = specific?.deliveryTime?.trim() || "20–35 min";
 
   const openStatus = getShopOpenStatus(shopName, systemSettings, false);
 
