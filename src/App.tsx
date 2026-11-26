@@ -2537,6 +2537,13 @@ export default function App() {
     userCoords?: { latitude: number; longitude: number };
     voucher?: { code: string; discountAmount: number };
     coinsUsed?: number;
+    riderTip?: number;
+    isScheduled?: boolean;
+    scheduledTime?: string;
+    deliverySpeed?: "standard" | "priority";
+    leaveAtDoor?: boolean;
+    messageUponArrival?: boolean;
+    cutlery?: boolean;
   }) => {
     if (currentUser?.status === 'locked' || currentUser?.status === 'blocked') {
       setToastNotification({ title: "Account Restricted", message: "Verification pending or account blocked. Cannot place order." });
@@ -2576,11 +2583,12 @@ export default function App() {
         0,
       );
 
-      // Enforce exact total = items + deliveryFee - voucher - coins
+      // Enforce exact total = items + deliveryFee + riderTip - voucher - coins
       const computedGrandTotal = Math.max(
         0,
         details.totalPrice +
-          details.deliveryFee -
+          details.deliveryFee +
+          (details.riderTip || 0) -
           (details.voucher?.discountAmount || 0) -
           (details.coinsUsed || 0),
       );
@@ -2614,6 +2622,13 @@ export default function App() {
         totalCommission,
         voucher: details.voucher || undefined,
         coinsUsed: details.coinsUsed || undefined,
+        riderTip: details.riderTip || undefined,
+        isScheduled: details.isScheduled || undefined,
+        scheduledTime: details.scheduledTime || undefined,
+        deliverySpeed: details.deliverySpeed || undefined,
+        leaveAtDoor: details.leaveAtDoor || undefined,
+        messageUponArrival: details.messageUponArrival || undefined,
+        cutlery: details.cutlery || undefined,
       };
 
       await setDoc(doc(db, "orders", generatedOrderId), cleanObject(orderDoc));
@@ -2726,7 +2741,7 @@ export default function App() {
     riderTip?: number;
     isScheduled?: boolean;
     scheduledTime?: string;
-    deliverySpeed?: "saver" | "standard" | "priority";
+    deliverySpeed?: "standard" | "priority";
     leaveAtDoor?: boolean;
     messageUponArrival?: boolean;
     cutlery?: boolean;
@@ -2796,11 +2811,9 @@ export default function App() {
     // Delivery speed adjustment (admin-controlled, matches CartDrawer display)
     const speedFeeAdjustment =
       details.orderType === "food"
-        ? details.deliverySpeed === "saver"
-          ? -(deliverySettings?.saverDiscount ?? 20)
-          : details.deliverySpeed === "priority"
-            ? (deliverySettings?.priorityFee ?? 30)
-            : 0
+        ? details.deliverySpeed === "priority"
+          ? (deliverySettings?.priorityFee ?? 30)
+          : 0
         : 0;
     const finalFee = Math.max(
       0,
