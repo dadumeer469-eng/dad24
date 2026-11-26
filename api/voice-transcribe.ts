@@ -1,7 +1,7 @@
 // Vercel serverless function — Groq Whisper transcription for the call agent.
 // POST multipart/form-data with an "audio" file (MediaRecorder webm).
 // Returns {text, language}. No audio is stored.
-import { handleVoiceTranscribe, readRawBody } from "../server/groqVoice";
+import { handleVoiceTranscribe, readRawBody } from "../server/groqVoice.js";
 
 export const config = { api: { bodyParser: false } };
 
