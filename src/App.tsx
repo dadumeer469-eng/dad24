@@ -655,6 +655,27 @@ export default function App() {
   // PWA Install State
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallBubble, setShowInstallBubble] = useState(false);
+  // Floating buttons (WhatsApp FAB + Install pill) hide while the user is
+  // actively scrolling — otherwise they cover content mid-scroll — and
+  // reappear shortly after scrolling stops.
+  const [isScrolling, setIsScrolling] = useState(false);
+  const scrollIdleTimerRef = useRef<number | null>(null);
+  useEffect(() => {
+    const onScroll = () => {
+      setIsScrolling((prev) => (prev ? prev : true));
+      if (scrollIdleTimerRef.current) window.clearTimeout(scrollIdleTimerRef.current);
+      scrollIdleTimerRef.current = window.setTimeout(() => setIsScrolling(false), 700);
+      // The Install pill is a top-of-page promo: once the user scrolls into
+      // content, dismiss it for this session so it never covers the promo
+      // bar, product cards, or section text.
+      if (window.scrollY > 300) setShowInstallBubble(false);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (scrollIdleTimerRef.current) window.clearTimeout(scrollIdleTimerRef.current);
+    };
+  }, []);
 
   // Global Location State
   // Location persists for 30 minutes so a returning visit never re-prompts:
@@ -2059,19 +2080,19 @@ export default function App() {
               if (oldStatus && oldStatus !== o.status) {
                 const statusToastMap: Record<string, { title: string; message: string }> = {
                   accepted: {
-                    title: "✅ Order Accept Ho Gaya!",
+                    title: "Order Accept Ho Gaya!",
                     message: `Aapka order #${o.id.substring(0, 5)} confirm ho gaya hai.`,
                   },
                   confirmed: {
-                    title: "✅ Order Confirm Ho Gaya!",
+                    title: "Order Confirm Ho Gaya!",
                     message: `Restaurant ne aapka order #${o.id.substring(0, 5)} accept kar liya hai.`,
                   },
                   preparing: {
-                    title: "🍳 Khana Tayar Ho Raha Hai!",
+                    title: "Khana Tayar Ho Raha Hai!",
                     message: `Chef aapka order #${o.id.substring(0, 5)} fresh tayar kar raha hai.`,
                   },
                   out_for_delivery: {
-                    title: "🛵 Rider Raste Me Hai!",
+                    title: "Rider Raste Me Hai!",
                     message: `${o.riderName ? `${o.riderName} aapka` : "Rider aapka"} order #${o.id.substring(0, 5)} le kar nikal chuka hai!`,
                   },
                   delivered: {
@@ -2591,7 +2612,7 @@ export default function App() {
     });
 
     setToastNotification({
-      title: "Grocery Basket Updated! 🍏",
+      title: "Grocery Basket Updated!",
       message: `${product.name} successfully packed into your cart.`,
     });
   };
@@ -2663,7 +2684,7 @@ export default function App() {
       });
 
       setToastNotification({
-        title: "Grocery Items Restored! 🍏",
+        title: "Grocery Items Restored!",
         message:
           "Items from your previous order have been added to your basket.",
         durationMs: 4000,
@@ -4363,7 +4384,7 @@ export default function App() {
 
   const lockedBanner = currentUser?.status === 'locked' ? (
     <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-[#D70F64] text-white p-4 rounded-2xl shadow-2xl z-[999] flex items-start gap-4">
-      <div className="text-3xl animate-pulse">⏳</div>
+      <Clock className="w-8 h-8 animate-pulse shrink-0" />
       <div>
         <h3 className="font-black text-lg mb-1 uppercase tracking-tight">Number Under Verification</h3>
         <p className="text-xs font-medium leading-relaxed opacity-90">
@@ -4384,8 +4405,8 @@ export default function App() {
         <div className="max-w-md w-full bg-zinc-900 border-2 border-red-500/30 rounded-3xl p-6 text-center space-y-6 shadow-2xl animate-fade-in relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-500 via-orange-500 to-red-500"></div>
           
-          <div className="mx-auto w-16 h-16 bg-red-500/10 border border-red-500/20 rounded-full flex items-center justify-center text-3xl">
-            🚫
+          <div className="mx-auto w-16 h-16 bg-red-500/10 border border-red-500/20 rounded-full flex items-center justify-center">
+            <ShieldAlert className="w-8 h-8 text-red-500" />
           </div>
           
           <div className="space-y-2">
@@ -4630,7 +4651,7 @@ export default function App() {
               >
                 <div className="h-1.5 w-full bg-white/25 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-white rounded-full shadow-[0_0_12px_rgba(255,255,255,0.9)] transition-all ease-linear"
+                    className="h-full bg-white rounded-full shadow-[0_0_12px_rgba(255,255,255,0.9)] transition-[width] ease-linear"
                     style={{ width: `${splashProgress}%` }}
                   />
                 </div>
@@ -4669,7 +4690,7 @@ export default function App() {
         href={`https://wa.me/${deliverySettings?.whatsappNumber || "923277004471"}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-32 right-4 z-40 bg-[#25D366] hover:bg-[#20ba5a] text-white p-2 rounded-full shadow-lg active:scale-[0.97] transition-[color,background-color,border-color,transform,opacity] duration-180 cursor-pointer flex items-center justify-center border border-white/20"
+        className={`fixed bottom-32 right-4 z-40 bg-[#25D366] hover:bg-[#20ba5a] text-white p-2 rounded-full shadow-lg active:scale-[0.97] transition-[color,background-color,border-color,transform,opacity] duration-180 cursor-pointer flex items-center justify-center border border-white/20 ${isScrolling ? "opacity-0 pointer-events-none translate-y-3" : "opacity-100"}`}
         title="WhatsApp live support helpline"
       >
         <svg viewBox="0 0 24 24" className="w-6 h-6 fill-current text-white">
@@ -4744,7 +4765,7 @@ export default function App() {
 
       {isUserAdmin && isMaintenanceActive && (
         <div className="bg-amber-500 text-amber-950 px-4 py-2 text-center text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 z-50 relative border-b border-amber-600/30">
-          <span>⚠️ SYSTEM IS CURRENTLY IN MAINTENANCE MODE (General users are blocked from ordering)</span>
+          <span>SYSTEM IS CURRENTLY IN MAINTENANCE MODE (General users are blocked from ordering)</span>
         </div>
       )}
 
@@ -4799,7 +4820,7 @@ export default function App() {
                 onClick={() => setIsAuthOpen(true)}
                 className="w-full bg-zinc-100 dark:bg-zinc-850 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-black py-3.5 px-4 rounded-2xl transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 flex items-center justify-center gap-2 cursor-pointer text-xs uppercase tracking-wider border border-zinc-200/60 dark:border-zinc-750"
               >
-                🔑 Admin / Staff Login
+                Admin / Staff Login
               </button>
             </div>
           </div>
@@ -4953,7 +4974,7 @@ export default function App() {
                             Dadu<br />Mart
                           </span>
                           <span className="block text-[11px] font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-1 leading-snug">
-                            297 groceries &amp; rashan
+                            297 groceries
                           </span>
                         </div>
                         <span className="mt-2 inline-flex w-7 h-7 rounded-full bg-[#D70F64] text-white items-center justify-center shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
@@ -5314,18 +5335,18 @@ export default function App() {
 
                       const stepsList = isService
                         ? [
-                            { label: "Booked", emoji: "📅" },
-                            { label: "Accepted", emoji: "✅" },
-                            { label: "Travel", emoji: "🏍️" },
-                            { label: "Repair", emoji: "🛠️" },
-                            { label: "Done", emoji: "" },
+                            { label: "Booked" },
+                            { label: "Accepted" },
+                            { label: "Travel" },
+                            { label: "Repair" },
+                            { label: "Done" },
                           ]
                         : [
-                            { label: "Placed", emoji: "📝" },
-                            { label: "Confirmed", emoji: "👍" },
-                            { label: "Preparing", emoji: "🍳" },
-                            { label: "Dispatch", emoji: "🛵" },
-                            { label: "Enjoy", emoji: "" },
+                            { label: "Placed" },
+                            { label: "Confirmed" },
+                            { label: "Preparing" },
+                            { label: "Dispatch" },
+                            { label: "Enjoy" },
                           ];
 
                       return (
@@ -5342,8 +5363,8 @@ export default function App() {
                             className="p-3.5 sm:p-4 flex items-center justify-between gap-3 cursor-pointer hover:bg-[#F9F9FB] dark:hover:bg-[#1D1D26] transition-colors duration-300 border-b border-[#E6E6EE] dark:border-[#272733]"
                           >
                             <div className="flex items-center gap-3 min-w-0 flex-1">
-                              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#D70F64]/10 border border-[#D70F64]/25 flex items-center justify-center text-xl shrink-0">
-                                🛵
+                              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#D70F64]/10 border border-[#D70F64]/25 flex items-center justify-center shrink-0">
+                                <Bike className="w-5 h-5 text-[#D70F64]" />
                               </div>
                               <div className="flex-1 min-w-0">
                                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#D70F64] dark:text-[#FF4D94] flex items-center gap-1.5">
@@ -5372,18 +5393,18 @@ export default function App() {
                                 </h4>
                                 <span className="text-[10px] text-zinc-600 dark:text-zinc-300 font-bold block mt-0.5 truncate">
                                   {activeOrderForBanner.status === "payment_verification_pending"
-                                    ? "💳 Easypaisa receipt received — admin verification in progress"
+                                    ? "Easypaisa receipt received — admin verification in progress"
                                     : activeOrderForBanner.status === "out_for_delivery"
-                                    ? "🛵 Rider aapka order pick kar chuka hai aur raste me hai!"
+                                    ? "Rider aapka order pick kar chuka hai aur raste me hai!"
                                     : activeOrderForBanner.status === "preparing"
-                                      ? "🍳 Chef aapka khana fresh tayar kar raha hai"
+                                      ? "Chef aapka khana fresh tayar kar raha hai"
                                       : activeOrderForBanner.status === "accepted" || activeOrderForBanner.status === "confirmed"
-                                        ? "✅ Restaurant ne order confirm kar diya hai"
+                                        ? "Restaurant ne order confirm kar diya hai"
                                         : activeOrderForBanner.status === "diagnostic_on_way"
-                                          ? "🏍️ Technician aapke ghar ki taraf aa raha hai"
+                                          ? "Technician aapke ghar ki taraf aa raha hai"
                                           : activeOrderForBanner.status === "diagnostic_underway"
-                                            ? "🛠️ Technician kaam kar raha hai"
-                                            : "⏳ Order receive ho gaya, jald confirm hoga"}
+                                            ? "Technician kaam kar raha hai"
+                                            : "Order receive ho gaya, jald confirm hoga"}
                                 </span>
                                 {activeOrderForBanner.riderName ? (
                                   <div className="flex items-center gap-1 mt-0.5">
@@ -5396,7 +5417,7 @@ export default function App() {
                                   </div>
                                 ) : (
                                   <span className="text-[9.5px] text-zinc-400 font-bold block mt-0.5 truncate">
-                                    ⏳ Assigning rider...
+                                    Assigning rider...
                                   </span>
                                 )}
                               </div>
@@ -5438,7 +5459,7 @@ export default function App() {
                                           : "bg-white text-zinc-400 border border-zinc-200"
                                       } ${isCurrent ? "animate-pulse scale-110" : ""}`}
                                     >
-                                      {step.emoji || stepNum}
+                                      {stepNum}
                                     </div>
                                     <span
                                       className={`text-[8.5px] sm:text-[9px] font-black uppercase tracking-wider mt-1 ${
@@ -5966,8 +5987,8 @@ export default function App() {
           >
             {activeRoute === "grocery" && (
               <section className="max-w-7xl mx-auto px-3.5 sm:px-4 pt-3.5">
-                <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-2 border border-[#E6E6EE] dark:border-[#272733] shadow-xs">
-                  <h1 className="text-lg sm:text-2xl font-extrabold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
+                <div className="bg-[#fdfbf7] dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-2 border border-[#e8e2d6] dark:border-[#272733] shadow-xs">
+                  <h1 className="text-lg sm:text-2xl font-semibold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
                     Grocery Delivery in Dadu
                   </h1>
                   <p className="text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed">
@@ -6076,7 +6097,7 @@ export default function App() {
             </p>
           </div>
           <div className="space-y-1.5">
-            <h4 className="font-extrabold text-[11px] uppercase tracking-wider text-[#111118] dark:text-[#F5F5F8] mb-2">
+            <h4 className="font-semibold text-[11px] tracking-wide text-[#111118] dark:text-[#F5F5F8] mb-2">
               Company & Legal
             </h4>
             <ul className="divide-y divide-[#e8e2d6] dark:divide-[#272733] text-xs font-semibold">
@@ -6125,7 +6146,7 @@ export default function App() {
             </ul>
           </div>
           <div className="space-y-1.5">
-            <h4 className="font-extrabold text-[11px] uppercase tracking-wider text-[#111118] dark:text-[#F5F5F8] mb-2">
+            <h4 className="font-semibold text-[11px] tracking-wide text-[#111118] dark:text-[#F5F5F8] mb-2">
               Grow With Dadu Food
             </h4>
             <ul className="divide-y divide-[#e8e2d6] dark:divide-[#272733] text-xs font-semibold">
@@ -6144,7 +6165,7 @@ export default function App() {
             </ul>
           </div>
           <div className="space-y-1.5 text-xs">
-            <h4 className="font-extrabold text-[11px] uppercase tracking-wider text-[#111118] dark:text-[#F5F5F8] mb-2">
+            <h4 className="font-semibold text-[11px] tracking-wide text-[#111118] dark:text-[#F5F5F8] mb-2">
               Dadu City Support
             </h4>
             <p className="font-semibold text-[#111118] dark:text-[#F5F5F8]">
@@ -6239,13 +6260,12 @@ export default function App() {
                 
                 {/* 3D Glassmorphic Frame */}
                 <motion.div 
-                   whileHover={{ scale: 1.1, rotateY: 10, rotateX: 5 }}
                    transition={{ type: "spring", bounce: 0.5 }}
                    className="w-40 h-40 rounded-[2.5rem] overflow-hidden bg-white/10 backdrop-blur-xl shadow-[0_30px_80px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.4)] relative z-10 border border-white/30 p-2 transform-gpu"
                 >
                   <div className="w-full h-full rounded-[2rem] overflow-hidden bg-white relative">
                     {animatingRestaurant.imageUrl ? (
-                      <img src={animatingRestaurant.imageUrl} alt={animatingRestaurant.name} className="w-full h-full object-cover transform scale-105 transition-transform duration-300 group-hover:scale-100" />
+                      <img src={animatingRestaurant.imageUrl} alt={animatingRestaurant.name} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-pink-50 to-pink-100 flex items-center justify-center text-7xl font-black text-[#E21B70] shadow-inner">
                         {animatingRestaurant.name.charAt(0)}
@@ -6302,8 +6322,9 @@ export default function App() {
         {showInstallBubble && (
           <motion.div
             initial={{ opacity: 0, scale: 0.8, x: -50 }}
-            animate={{ opacity: 1, scale: 1, x: 0 }}
+            animate={{ opacity: isScrolling ? 0 : 1, scale: 1, x: 0 }}
             exit={{ opacity: 0, scale: 0.8, x: -50 }}
+            style={{ pointerEvents: isScrolling ? "none" : "auto" }}
             className={`fixed ${cartCountTotal > 0 ? 'bottom-[136px]' : 'bottom-[72px]'} left-4 z-40 md:hidden bg-zinc-900/90 backdrop-blur-md border border-zinc-800 shadow-xl rounded-full p-1.5 flex items-center gap-1 hover:bg-zinc-800 transition-[color,background-color,border-color,transform,opacity] duration-180`}
           >
             <button
