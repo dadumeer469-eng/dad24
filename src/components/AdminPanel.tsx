@@ -586,6 +586,46 @@ const parseDateToMillis = (val: any): number => {
   return 0;
 };
 
+/* Smooth count-up for stat values — counts from the previous value to the
+   real value once on mount (~850ms, ease-out cubic) and animates smoothly
+   between values on live updates instead of jumping. Respects
+   prefers-reduced-motion (shows the final value immediately). */
+function CountUp({ value, prefix = "" }: { value: number; prefix?: string }) {
+  const [display, setDisplay] = React.useState(0);
+  const displayRef = React.useRef(0);
+  const rafRef = React.useRef<number | null>(null);
+  React.useEffect(() => {
+    const target = Number(value) || 0;
+    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      displayRef.current = target;
+      setDisplay(target);
+      return;
+    }
+    const from = displayRef.current;
+    if (from === target) return;
+    const start = performance.now();
+    const duration = 850;
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - p, 3);
+      const v = Math.round(from + (target - from) * eased);
+      displayRef.current = v;
+      setDisplay(v);
+      if (p < 1) rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [value]);
+  return (
+    <>
+      {prefix}
+      {display}
+    </>
+  );
+}
+
 export default function AdminPanel({
   dishes,
   orders,
@@ -3877,52 +3917,52 @@ export default function AdminPanel({
                 Financial Coordinates
               </span>
               <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="glass-tile glass-tile-pink rounded-xl p-2.5 transition-all duration-300 hover:-translate-y-1">
+                <div className="glass-tile glass-tile-pink admin-anim-in rounded-xl p-2.5 transition-all duration-300 hover:-translate-y-1" style={{ animationDelay: "0ms" }}>
                   <div className="relative z-10">
                     <span className="inline-block bg-black/25 text-white/90 text-[8.5px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full">
                       Gross Rev
                     </span>
                     <span className="text-[12.5px] font-black text-white mt-1 block leading-tight">
-                      Rs. {totalRevenue}
+                      Rs. <CountUp value={totalRevenue} />
                     </span>
                   </div>
                   <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
                     <DollarSign className="w-3.5 h-3.5 text-white" />
                   </div>
                 </div>
-                <div className="glass-tile glass-tile-green rounded-xl p-2.5 transition-all duration-300 hover:-translate-y-1">
+                <div className="glass-tile glass-tile-green admin-anim-in rounded-xl p-2.5 transition-all duration-300 hover:-translate-y-1" style={{ animationDelay: "70ms" }}>
                   <div className="relative z-10">
                     <span className="inline-block bg-black/25 text-white/90 text-[8.5px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full">
                       Comm
                     </span>
                     <span className="text-[12.5px] font-black text-white mt-1 block leading-tight">
-                      Rs. {totalCommissionSum}
+                      Rs. <CountUp value={totalCommissionSum} />
                     </span>
                   </div>
                   <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
                     <Percent className="w-3.5 h-3.5 text-white" />
                   </div>
                 </div>
-                <div className="glass-tile glass-tile-blue rounded-xl p-2.5 transition-all duration-300 hover:-translate-y-1">
+                <div className="glass-tile glass-tile-blue admin-anim-in rounded-xl p-2.5 transition-all duration-300 hover:-translate-y-1" style={{ animationDelay: "140ms" }}>
                   <div className="relative z-10">
                     <span className="inline-block bg-black/25 text-white/90 text-[8.5px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full">
                       Completed
                     </span>
                     <span className="text-[12.5px] font-black text-white mt-1 block leading-tight">
-                      {totalCompletedCount}
+                      <CountUp value={totalCompletedCount} />
                     </span>
                   </div>
                   <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
                     <CheckCheck className="w-3.5 h-3.5 text-white" />
                   </div>
                 </div>
-                <div className="glass-tile glass-tile-violet rounded-xl p-2.5 transition-all duration-300 hover:-translate-y-1">
+                <div className="glass-tile glass-tile-violet admin-anim-in rounded-xl p-2.5 transition-all duration-300 hover:-translate-y-1" style={{ animationDelay: "210ms" }}>
                   <div className="relative z-10">
                     <span className="inline-block bg-black/25 text-white/90 text-[8.5px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full">
                       Active
                     </span>
                     <span className="text-[12.5px] font-black text-white mt-1 block leading-tight">
-                      {totalActiveCount}
+                      <CountUp value={totalActiveCount} />
                     </span>
                   </div>
                   <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
@@ -3941,11 +3981,11 @@ export default function AdminPanel({
             <div className="space-y-8 animate-fade-in">
               {/* Glassy Stats Row — real admin stats (no invented numbers) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
-                <div className="glass-dark rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1.5">
+                <div className="glass-dark admin-anim-in glass-sheen-sweep rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1.5" style={{ animationDelay: "0ms" }}>
                   <div className="flex items-start justify-between">
                     <div>
                       <span className="text-sm text-white/60 font-medium block">Total Revenue</span>
-                      <span className="text-2xl font-bold text-white block mt-1.5">Rs. {totalRevenue}</span>
+                      <span className="text-2xl font-bold text-white block mt-1.5">Rs. <CountUp value={totalRevenue} /></span>
                       <span className="text-emerald-400 text-xs font-bold flex items-center gap-1 mt-2">
                         <ArrowUpRight className="w-3.5 h-3.5" /> {totalCompletedCount} completed orders
                       </span>
@@ -3955,11 +3995,11 @@ export default function AdminPanel({
                     </div>
                   </div>
                 </div>
-                <div className="glass-dark rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1.5">
+                <div className="glass-dark admin-anim-in glass-sheen-sweep rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1.5" style={{ animationDelay: "70ms" }}>
                   <div className="flex items-start justify-between">
                     <div>
                       <span className="text-sm text-white/60 font-medium block">Active Orders</span>
-                      <span className="text-2xl font-bold text-white block mt-1.5">{totalActiveCount}</span>
+                      <span className="text-2xl font-bold text-white block mt-1.5"><CountUp value={totalActiveCount} /></span>
                       <span className="text-emerald-400 text-xs font-bold flex items-center gap-1 mt-2">
                         <ArrowUpRight className="w-3.5 h-3.5" /> live fulfilment queue
                       </span>
@@ -3969,11 +4009,11 @@ export default function AdminPanel({
                     </div>
                   </div>
                 </div>
-                <div className="glass-dark rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1.5">
+                <div className="glass-dark admin-anim-in glass-sheen-sweep rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1.5" style={{ animationDelay: "140ms" }}>
                   <div className="flex items-start justify-between">
                     <div>
                       <span className="text-sm text-white/60 font-medium block">Completed Orders</span>
-                      <span className="text-2xl font-bold text-white block mt-1.5">{totalCompletedCount}</span>
+                      <span className="text-2xl font-bold text-white block mt-1.5"><CountUp value={totalCompletedCount} /></span>
                       <span className="text-emerald-400 text-xs font-bold flex items-center gap-1 mt-2">
                         <ArrowUpRight className="w-3.5 h-3.5" /> Rs. {totalCommissionSum} commission earned
                       </span>
@@ -3983,11 +4023,11 @@ export default function AdminPanel({
                     </div>
                   </div>
                 </div>
-                <div className="glass-dark rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1.5">
+                <div className="glass-dark admin-anim-in glass-sheen-sweep rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1.5" style={{ animationDelay: "210ms" }}>
                   <div className="flex items-start justify-between">
                     <div>
                       <span className="text-sm text-white/60 font-medium block">Total Users</span>
-                      <span className="text-2xl font-bold text-white block mt-1.5">{allUsersList.length}</span>
+                      <span className="text-2xl font-bold text-white block mt-1.5"><CountUp value={allUsersList.length} /></span>
                       <span className="text-emerald-400 text-xs font-bold flex items-center gap-1 mt-2">
                         <ArrowUpRight className="w-3.5 h-3.5" /> {ridersSubset.length} riders onboard
                       </span>
@@ -4000,7 +4040,7 @@ export default function AdminPanel({
               </div>
 
               {/* Sales Summary last 7 days of order volume and total revenue */}
-              <div className="glass-dark glass-glow border border-white/10 p-6 rounded-2xl shadow-sm relative">
+              <div className="glass-dark glass-glow admin-anim-in glass-sheen-sweep border border-white/10 p-6 rounded-2xl shadow-sm relative" style={{ animationDelay: "280ms" }}>
                 <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#E21B70]/20 to-transparent" />
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                   <div>
@@ -4074,6 +4114,9 @@ export default function AdminPanel({
                       <Bar
                         yAxisId="left"
                         dataKey="revenue"
+                        animationDuration={900}
+                        animationBegin={0}
+                        animationEasing="ease-out"
                         fill="#E21B70"
                         name="Total Revenue (Rs.)"
                         radius={[6, 6, 0, 0]}
@@ -4082,6 +4125,9 @@ export default function AdminPanel({
                       <Bar
                         yAxisId="right"
                         dataKey="volume"
+                        animationDuration={900}
+                        animationBegin={150}
+                        animationEasing="ease-out"
                         fill="#10b981"
                         name="Order Volume"
                         radius={[6, 6, 0, 0]}
@@ -4095,7 +4141,7 @@ export default function AdminPanel({
               {/* Graphical Recharts Visual Analytics blocks */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Gross revenue timeline Recharts Area scale */}
-                <div className="glass-dark border border-white/10 p-6 rounded-2xl shadow-sm relative">
+                <div className="glass-dark admin-anim-in border border-white/10 p-6 rounded-2xl shadow-sm relative" style={{ animationDelay: "350ms" }}>
                   <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#E21B70]/10 to-transparent" />
                   <div className="flex items-center justify-between mb-6">
                     <div>
@@ -4155,6 +4201,8 @@ export default function AdminPanel({
                         <Area
                           type="monotone"
                           dataKey="revenue"
+                          animationDuration={900}
+                          animationEasing="ease-out"
                           stroke="#f59e0b"
                           strokeWidth={2.5}
                           fillOpacity={1}
@@ -4166,7 +4214,7 @@ export default function AdminPanel({
                 </div>
 
                 {/* Categories demand distribution Recharts bar plot */}
-                <div className="glass-dark border border-white/10 p-6 rounded-2xl shadow-sm relative">
+                <div className="glass-dark admin-anim-in border border-white/10 p-6 rounded-2xl shadow-sm relative" style={{ animationDelay: "420ms" }}>
                   <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-pink-500/10 to-transparent" />
                   <div className="flex items-center justify-between mb-6">
                     <div>
@@ -4205,6 +4253,9 @@ export default function AdminPanel({
                         />
                         <Bar
                           dataKey="sales"
+                          animationDuration={900}
+                          animationBegin={100}
+                          animationEasing="ease-out"
                           fill="#E21B70"
                           radius={[6, 6, 0, 0]}
                         />
