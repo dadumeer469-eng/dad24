@@ -581,6 +581,7 @@
 
 html {
   scroll-behavior: smooth;
+  overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;
   max-width: 100vw;
   overflow-x: clip;

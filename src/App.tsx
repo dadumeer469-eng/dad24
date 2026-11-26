@@ -55,9 +55,10 @@ import FoodpandaHeader from "./components/FoodpandaHeader";
 import FoodpandaHero from "./components/FoodpandaHero";
 import CartDrawer from "./components/CartDrawer";
 import OrderTracker from "./components/OrderTracker";
-import AdminPanel from "./components/AdminPanel";
 import AuthModal from "./components/AuthModal";
-import RiderPanel from "./components/RiderPanel";
+// Staff-only panels load on demand so the first paint stays fast for customers
+const AdminPanel = React.lazy(() => import("./components/AdminPanel"));
+const RiderPanel = React.lazy(() => import("./components/RiderPanel"));
 import FoodDetailModal from "./components/FoodDetailModal";
 import GroceryModule from "./components/GroceryModule";
 import DirectoryView, { DIRECTORY_RESTAURANTS } from "./components/DirectoryView";
@@ -252,6 +253,7 @@ export default function App() {
   const [showSplash, setShowSplash] = useState(() => {
     return typeof window !== "undefined" && !sessionStorage.getItem("dadu_splash_seen");
   });
+  const [splashExiting, setSplashExiting] = useState(false);
   const [splashProgress, setSplashProgress] = useState(0);
   const initialUser = getCachedData<UserProfile | null>("dadu_cached_user", null);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => initialUser);
@@ -1151,10 +1153,11 @@ export default function App() {
 
     setShowSplash(true);
     setSplashProgress(0);
+    setSplashExiting(false);
 
     let animationFrameId: number;
     const startTime = performance.now();
-    const duration = 1400; // ~1.4s so the pink ripple opening is actually seen
+    const duration = 900; // ~0.9s — fast open, ripple still seen
 
     const updateProgress = (currentTime: number) => {
       const elapsed = currentTime - startTime;
@@ -1165,9 +1168,11 @@ export default function App() {
         animationFrameId = requestAnimationFrame(updateProgress);
       } else {
         sessionStorage.setItem("dadu_splash_seen", "1");
+        // Smooth fade-out instead of an abrupt cut
+        setSplashExiting(true);
         setTimeout(() => {
           setShowSplash(false);
-        }, 50);
+        }, 300);
       }
     };
 
@@ -4212,7 +4217,7 @@ export default function App() {
 
   if (showSplash) {
     return (
-      <div className="min-h-screen bg-[#FF2B85] text-white flex flex-col items-center justify-center p-6 text-center select-none font-sans relative overflow-hidden">
+      <div className={`min-h-screen bg-[#FF2B85] text-white flex flex-col items-center justify-center p-6 text-center select-none font-sans relative overflow-hidden transition-opacity duration-300 ${splashExiting ? "opacity-0" : "opacity-100"}`}>
         <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-white/15 blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-[#D70F64]/60 blur-3xl pointer-events-none" />
 
@@ -4367,11 +4372,19 @@ export default function App() {
 
   if (currentUser?.role === "rider") {
     return (
-      <RiderPanel
-        currentUser={currentUser}
-        onLogout={handleLogout}
-        deliverySettings={deliverySettings}
-      />
+      <Suspense
+        fallback={
+          <div className="min-h-screen flex items-center justify-center bg-[#f7f4ee] text-[#5e554a] font-bold tracking-widest text-sm uppercase">
+            Loading Rider Panel...
+          </div>
+        }
+      >
+        <RiderPanel
+          currentUser={currentUser}
+          onLogout={handleLogout}
+          deliverySettings={deliverySettings}
+        />
+      </Suspense>
     );
   }
 
