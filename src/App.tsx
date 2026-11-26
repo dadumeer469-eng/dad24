@@ -184,7 +184,7 @@ function BannerLiveChatButton({
     <button
       type="button"
       onClick={onClick}
-      className="btn-pink text-white min-h-[36px] px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider text-center transition cursor-pointer active:scale-95 flex items-center gap-1.5 relative"
+      className="btn-pink text-white min-h-[36px] px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider text-center transition-all duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer flex items-center gap-1.5 relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
     >
       <span>💬 Live Chat</span>
       {unreadCount > 0 && (
@@ -3664,21 +3664,21 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => performLogout(false)}
-                  className="w-full min-h-[48px] py-3.5 px-4 rounded-xl bg-[#D70F64] hover:bg-[#B80C54] text-white text-xs font-black uppercase tracking-wider cursor-pointer transition"
+                  className="w-full min-h-[48px] py-3.5 px-4 rounded-xl bg-[#D70F64] hover:bg-[#B80C54] text-white text-xs font-black uppercase tracking-wider cursor-pointer transition-all duration-180 active:scale-[0.97] active:brightness-110 relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
                 >
                   Keep Cart & Sign Out
                 </button>
                 <button
                   type="button"
                   onClick={() => performLogout(true)}
-                  className="w-full min-h-[48px] py-3.5 px-4 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 text-xs font-bold uppercase tracking-wider cursor-pointer transition"
+                  className="w-full min-h-[48px] py-3.5 px-4 rounded-xl bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 text-xs font-bold uppercase tracking-wider cursor-pointer transition-all duration-180 active:scale-[0.97] active:brightness-110"
                 >
                   Clear Cart & Sign Out
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsSignOutConfirmOpen(false)}
-                  className="w-full min-h-[48px] py-3 px-4 rounded-xl text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white text-xs font-bold cursor-pointer transition"
+                  className="w-full min-h-[48px] py-3 px-4 rounded-xl text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white text-xs font-bold cursor-pointer transition-all duration-180 active:scale-[0.97]"
                 >
                   Cancel
                 </button>
@@ -3733,7 +3733,7 @@ export default function App() {
                 </p>
                 <button
                   onClick={() => setIsVerificationModalOpen(false)}
-                  className="w-full bg-[#D70F64] hover:bg-[#B80C54] text-white font-black tracking-wide shadow-md transition-all py-3.5 rounded-2xl text-sm uppercase cursor-pointer"
+                  className="w-full bg-[#D70F64] hover:bg-[#B80C54] text-white font-black tracking-wide shadow-md transition-all duration-180 active:scale-[0.97] active:brightness-110 py-3.5 rounded-2xl text-sm uppercase cursor-pointer relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
                 >
                   Theek Hai
                 </button>
@@ -4033,7 +4033,7 @@ export default function App() {
           tabIndex={0}
           aria-label="Dismiss notification"
           aria-live="polite"
-          className="fixed left-4 right-4 bottom-24 sm:left-auto sm:right-6 sm:bottom-6 sm:w-[380px] sm:max-w-[calc(100vw-3rem)] z-50 p-4 bg-zinc-900 border-2 border-[#D70F64]/40 text-zinc-100 rounded-2xl shadow-2xl flex items-start gap-3 animate-slide-in cursor-pointer"
+          className="fixed left-4 right-4 bottom-24 sm:left-auto sm:right-6 sm:bottom-6 sm:w-[380px] sm:max-w-[calc(100vw-3rem)] z-50 p-4 bg-zinc-900 border-2 border-[#D70F64]/40 text-zinc-100 rounded-2xl shadow-2xl flex items-start gap-3 micro-toast-in cursor-pointer"
         >
           <div className="bg-[#D70F64] text-white p-2.5 rounded-xl shrink-0">
             <MessageSquare className="w-5 h-5" />
@@ -4050,7 +4050,7 @@ export default function App() {
             type="button"
             onClick={() => setToastNotification(null)}
             aria-label="Close notification"
-            className="shrink-0 w-11 h-11 -m-2 flex items-center justify-center text-zinc-300 hover:text-white rounded-full"
+            className="shrink-0 w-11 h-11 -m-2 flex items-center justify-center text-zinc-300 hover:text-white rounded-full transition-transform duration-180 active:scale-[0.97]"
           >
             <X className="w-4 h-4" />
           </button>
@@ -4065,7 +4065,7 @@ export default function App() {
           aria-label="Exit Dadu Food?"
           onClick={() => setIsExitConfirmationOpen(false)}
         >
-          <div className="bg-zinc-900 border-2 border-[#D70F64]/30 rounded-[32px] max-w-sm w-full overflow-hidden shadow-2xl text-zinc-100 relative">
+          <div className="bg-zinc-900 border-2 border-[#D70F64]/30 rounded-[32px] max-w-sm w-full overflow-hidden shadow-2xl text-zinc-100 relative animate-scale-up">
             <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#D70F64] to-transparent" />
             <div className="p-6 text-center space-y-5">
               <div className="mx-auto w-16 h-16 rounded-full bg-[#D70F64]/10 border border-[#D70F64]/20 flex items-center justify-center text-[#D70F64]">
@@ -4084,7 +4084,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setIsExitConfirmationOpen(false)}
-                  className="w-full min-h-[48px] bg-[#D70F64] hover:bg-[#B80C54] text-white py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider transition active:scale-95 shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full min-h-[48px] bg-[#D70F64] hover:bg-[#B80C54] text-white py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider transition-all duration-180 active:scale-[0.97] active:brightness-110 shadow-md flex items-center justify-center gap-2 cursor-pointer relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
                 >
                   <UtensilsCrossed className="w-4 h-4" />
                   Keep Ordering
@@ -4103,7 +4103,7 @@ export default function App() {
                       isExitingRef.current = false;
                     }, 1000);
                   }}
-                  className="w-full min-h-[48px] py-3 px-4 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-xs font-bold uppercase tracking-wider cursor-pointer transition"
+                  className="w-full min-h-[48px] py-3 px-4 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-xs font-bold uppercase tracking-wider cursor-pointer transition-all duration-180 active:scale-[0.97] active:brightness-110"
                 >
                   Exit App
                 </button>
@@ -4143,7 +4143,7 @@ export default function App() {
                   localStorage.setItem(`seen_announcement_${annId}`, "true");
                   setShowAnnouncementPopup(false);
                 }}
-                className="absolute top-4 right-4 z-50 p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white/90 hover:text-white backdrop-blur-sm shadow border border-white/5 transition active:scale-90"
+                className="absolute top-4 right-4 z-50 p-2.5 rounded-full bg-black/60 hover:bg-black/80 text-white/90 hover:text-white backdrop-blur-sm shadow border border-white/5 transition-transform duration-180 active:scale-[0.97] active:brightness-110"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -4184,7 +4184,7 @@ export default function App() {
                     localStorage.setItem(`seen_announcement_${annId}`, "true");
                     setShowAnnouncementPopup(false);
                   }}
-                  className="w-full bg-[#D70F64] hover:bg-[#B80C54] text-white py-3.5 sm:py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition active:scale-95 shadow-lg shadow-[#D70F64]/10 hover:shadow-[#D70F64]/20 flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full bg-[#D70F64] hover:bg-[#B80C54] text-white py-3.5 sm:py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all duration-180 active:scale-[0.97] active:brightness-110 shadow-lg shadow-[#D70F64]/10 hover:shadow-[#D70F64]/20 flex items-center justify-center gap-2 cursor-pointer relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
                 >
                   <span>Maza Aa Gaya! (Explore Now)</span>
                 </button>
@@ -4333,7 +4333,7 @@ export default function App() {
               href={`https://wa.me/${deliverySettings?.whatsappNumber || "923277004471"}?text=${encodeURIComponent(contactText)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full bg-[#25D366] hover:bg-[#20ba5a] text-white font-black py-4.5 px-4 rounded-2xl transition-all flex items-center justify-center gap-2.5 cursor-pointer text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/10"
+              className="w-full bg-[#25D366] hover:bg-[#20ba5a] text-white font-black py-4.5 px-4 rounded-2xl transition-all duration-180 active:scale-[0.97] active:brightness-110 flex items-center justify-center gap-2.5 cursor-pointer text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/10"
             >
               <span>💬 Contact on WhatsApp</span>
               <span className="font-mono text-[10px] bg-white/20 px-2 py-0.5 rounded-md">03277004471</span>
@@ -4343,7 +4343,7 @@ export default function App() {
           <button
             type="button"
             onClick={handleLogout}
-            className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-black py-3.5 px-4 rounded-2xl transition-all cursor-pointer text-xs uppercase tracking-wider border border-zinc-700"
+            className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-black py-3.5 px-4 rounded-2xl transition-all duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer text-xs uppercase tracking-wider border border-zinc-700"
           >
             Sign Out (Logout Karein)
           </button>
@@ -4579,7 +4579,7 @@ export default function App() {
         href={`https://wa.me/${deliverySettings?.whatsappNumber || "923277004471"}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-32 right-4 z-40 bg-[#25D366] text-white p-2 rounded-full shadow-lg hover:scale-110 transition-transform cursor-pointer flex items-center justify-center border border-white/20"
+        className="fixed bottom-32 right-4 z-40 bg-[#25D366] text-white p-2 rounded-full shadow-lg hover:scale-110 active:scale-[0.97] transition-transform duration-300 cursor-pointer flex items-center justify-center border border-white/20"
         title="WhatsApp live support helpline"
       >
         <svg viewBox="0 0 24 24" className="w-6 h-6 fill-current text-white">
@@ -4699,7 +4699,7 @@ export default function App() {
                 href={`https://wa.me/${deliverySettings?.whatsappNumber || "923277004471"}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full bg-[#25D366] hover:bg-[#20ba5a] text-white font-black py-3.5 px-4 rounded-2xl shadow-lg hover:scale-[1.01] transition-all flex items-center justify-center gap-2 cursor-pointer text-xs uppercase tracking-wider"
+                className="w-full bg-[#25D366] hover:bg-[#20ba5a] text-white font-black py-3.5 px-4 rounded-2xl shadow-lg hover:scale-[1.01] active:scale-[0.97] active:brightness-110 transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer text-xs uppercase tracking-wider"
               >
                 💬 WhatsApp Helpline
               </a>
@@ -4707,7 +4707,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setIsAuthOpen(true)}
-                className="w-full bg-zinc-100 dark:bg-zinc-850 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-black py-3.5 px-4 rounded-2xl transition-all flex items-center justify-center gap-2 cursor-pointer text-xs uppercase tracking-wider border border-zinc-200/60 dark:border-zinc-750"
+                className="w-full bg-zinc-100 dark:bg-zinc-850 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-black py-3.5 px-4 rounded-2xl transition-all duration-300 active:scale-[0.97] active:brightness-110 flex items-center justify-center gap-2 cursor-pointer text-xs uppercase tracking-wider border border-zinc-200/60 dark:border-zinc-750"
               >
                 🔑 Admin / Staff Login
               </button>
@@ -4734,7 +4734,7 @@ export default function App() {
                   e.preventDefault();
                   handleGoToFoodHome();
                 }}
-                className="w-full bg-[#D70F64] hover:bg-[#B80C54] text-white font-black py-3.5 px-4 rounded-2xl shadow-lg hover:scale-[1.01] transition-all flex items-center justify-center gap-2 cursor-pointer text-xs uppercase tracking-wider"
+                className="w-full bg-[#D70F64] hover:bg-[#B80C54] text-white font-black py-3.5 px-4 rounded-2xl shadow-lg hover:scale-[1.01] active:scale-[0.97] active:brightness-110 transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer text-xs uppercase tracking-wider relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
               >
                 Back to Dadu Food Home
               </a>
@@ -4833,7 +4833,7 @@ export default function App() {
                         setActiveCategory("All");
                         document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth" });
                       }}
-                      className="min-h-[124px] text-left p-3 rounded-3xl bg-gradient-to-br from-white via-white to-[#FFF0F5] dark:from-[#1C1C26] dark:via-[#14141A] dark:to-[#1C1C26] border border-white dark:border-[#272733] hover:border-[#D70F64]/50 shadow-[0_12px_28px_rgba(215,15,100,0.30),inset_0_1px_0_rgba(255,255,255,0.9)] transition-all cursor-pointer active:scale-[0.98] hover:-translate-y-0.5 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "60ms" }}
+                      className="min-h-[124px] text-left p-3 rounded-3xl bg-gradient-to-br from-white via-white to-[#FFF0F5] dark:from-[#1C1C26] dark:via-[#14141A] dark:to-[#1C1C26] border border-white dark:border-[#272733] hover:border-[#D70F64]/50 shadow-[0_12px_28px_rgba(215,15,100,0.30),inset_0_1px_0_rgba(255,255,255,0.9)] transition-all duration-300 md:hover:-translate-y-0.5 cursor-pointer active:scale-[0.97] active:brightness-110 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "60ms" }}
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
@@ -4860,7 +4860,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={handleGoToGroceryHome}
-                      className="min-h-[124px] text-left p-3 rounded-3xl bg-gradient-to-br from-white via-white to-[#FFF0F5] dark:from-[#1C1C26] dark:via-[#14141A] dark:to-[#1C1C26] border border-white dark:border-[#272733] hover:border-[#D70F64]/50 shadow-[0_12px_28px_rgba(215,15,100,0.30),inset_0_1px_0_rgba(255,255,255,0.9)] transition-all cursor-pointer active:scale-[0.98] hover:-translate-y-0.5 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "120ms" }}
+                      className="min-h-[124px] text-left p-3 rounded-3xl bg-gradient-to-br from-white via-white to-[#FFF0F5] dark:from-[#1C1C26] dark:via-[#14141A] dark:to-[#1C1C26] border border-white dark:border-[#272733] hover:border-[#D70F64]/50 shadow-[0_12px_28px_rgba(215,15,100,0.30),inset_0_1px_0_rgba(255,255,255,0.9)] transition-all duration-300 md:hover:-translate-y-0.5 cursor-pointer active:scale-[0.97] active:brightness-110 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "120ms" }}
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
@@ -4891,7 +4891,7 @@ export default function App() {
                         setQuickFilter("under_300");
                         document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth" });
                       }}
-                      className="min-h-[124px] text-left p-3 rounded-3xl bg-gradient-to-br from-white via-white to-[#FFF0F5] dark:from-[#1C1C26] dark:via-[#14141A] dark:to-[#1C1C26] border border-white dark:border-[#272733] hover:border-[#D70F64]/50 shadow-[0_12px_28px_rgba(215,15,100,0.30),inset_0_1px_0_rgba(255,255,255,0.9)] transition-all cursor-pointer active:scale-[0.98] hover:-translate-y-0.5 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "180ms" }}
+                      className="min-h-[124px] text-left p-3 rounded-3xl bg-gradient-to-br from-white via-white to-[#FFF0F5] dark:from-[#1C1C26] dark:via-[#14141A] dark:to-[#1C1C26] border border-white dark:border-[#272733] hover:border-[#D70F64]/50 shadow-[0_12px_28px_rgba(215,15,100,0.30),inset_0_1px_0_rgba(255,255,255,0.9)] transition-all duration-300 md:hover:-translate-y-0.5 cursor-pointer active:scale-[0.97] active:brightness-110 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "180ms" }}
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
@@ -4919,7 +4919,7 @@ export default function App() {
                       href={`https://wa.me/${deliverySettings?.whatsappNumber || "923277004471"}?text=Assalam-o-Alaikum%20Dadu%20Food!%20Mera%20WhatsApp%20order%20list%20ye%20hai:`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="min-h-[124px] text-left p-3 rounded-3xl bg-gradient-to-br from-white via-white to-[#FFF0F5] dark:from-[#1C1C26] dark:via-[#14141A] dark:to-[#1C1C26] border border-white dark:border-[#272733] hover:border-[#25D366]/60 shadow-[0_12px_28px_rgba(215,15,100,0.30),inset_0_1px_0_rgba(255,255,255,0.9)] transition-all cursor-pointer active:scale-[0.98] hover:-translate-y-0.5 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "240ms" }}
+                      className="min-h-[124px] text-left p-3 rounded-3xl bg-gradient-to-br from-white via-white to-[#FFF0F5] dark:from-[#1C1C26] dark:via-[#14141A] dark:to-[#1C1C26] border border-white dark:border-[#272733] hover:border-[#25D366]/60 shadow-[0_12px_28px_rgba(215,15,100,0.30),inset_0_1px_0_rgba(255,255,255,0.9)] transition-all duration-300 md:hover:-translate-y-0.5 cursor-pointer active:scale-[0.97] active:brightness-110 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "240ms" }}
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
@@ -4973,7 +4973,7 @@ export default function App() {
                           type="button"
                           onClick={() => setPromoBannerDismissed(true)}
                           aria-label="Dismiss promo banner"
-                          className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white cursor-pointer transition"
+                          className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white cursor-pointer transition-all duration-180 active:scale-[0.97] active:brightness-110"
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -5014,7 +5014,7 @@ export default function App() {
                         {pastOrders.map((past) => (
                           <div
                             key={`reorder-${past.id}`}
-                            className="shrink-0 w-[230px] bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl p-3 flex flex-col justify-between gap-2 shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all"
+                            className="shrink-0 w-[230px] bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl p-3 flex flex-col justify-between gap-2 shadow-md hover:shadow-lg md:hover:-translate-y-0.5 transition-all duration-300"
                           >
                             <div>
                               <div className="flex items-center justify-between gap-1">
@@ -5037,7 +5037,7 @@ export default function App() {
                                 type="button"
                                 onClick={() => handleReorder(past)}
                                 aria-label={`Reorder ${past.items[0]?.name || "previous order"}`}
-                                className="min-h-[44px] px-4 py-2.5 rounded-xl bg-[#D70F64] hover:bg-[#B80C54] text-white text-[11px] font-extrabold cursor-pointer transition active:scale-95"
+                                className="min-h-[44px] px-4 py-2.5 rounded-xl bg-[#D70F64] hover:bg-[#B80C54] text-white text-[11px] font-extrabold cursor-pointer transition-all duration-180 active:scale-[0.97] active:brightness-110 relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
                               >
                                 Reorder
                               </button>
@@ -5100,7 +5100,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => setSelectedRestaurant("All Restaurants")}
-                          className="min-h-[44px] px-3.5 rounded-xl text-xs font-extrabold text-[#D70F64] dark:text-[#FF5C9E] border border-[#D70F64]/30 hover:bg-[#D70F64]/10 transition-colors cursor-pointer shrink-0"
+                          className="min-h-[44px] px-3.5 rounded-xl text-xs font-extrabold text-[#D70F64] dark:text-[#FF5C9E] border border-[#D70F64]/30 hover:bg-[#D70F64]/10 transition-all duration-300 active:scale-[0.97] cursor-pointer shrink-0"
                         >
                           All Shops
                         </button>
@@ -5111,7 +5111,7 @@ export default function App() {
                       <button
                         type="button"
                         onClick={() => setSelectedRestaurant("All Restaurants")}
-                        className={`w-[96px] min-h-[108px] rounded-2xl flex flex-col items-center justify-center p-2 font-bold transition-colors shrink-0 cursor-pointer border ${
+                        className={`w-[96px] min-h-[108px] rounded-2xl flex flex-col items-center justify-center p-2 font-bold transition-all duration-300 md:hover:-translate-y-0.5 active:scale-[0.97] shrink-0 cursor-pointer border ${
                           selectedRestaurant === "All Restaurants"
                             ? "bg-[#D70F64] text-white border-[#D70F64] shadow-xs"
                             : "bg-[#F9F9FB] dark:bg-[#1D1D26] text-[#111118] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50"
@@ -5146,7 +5146,7 @@ export default function App() {
                                   e.preventDefault();
                                   handleRestaurantClick(vendor);
                                 }}
-                                className={`w-[106px] min-h-[116px] rounded-2xl flex flex-col items-center justify-between p-1.5 transition-colors shrink-0 cursor-pointer border overflow-hidden ${
+                                className={`w-[106px] min-h-[116px] rounded-2xl flex flex-col items-center justify-between p-1.5 transition-all duration-300 md:hover:-translate-y-0.5 active:scale-[0.97] shrink-0 cursor-pointer border overflow-hidden ${
                                   selectedRestaurant === vendor
                                     ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
                                     : "bg-[#F9F9FB] dark:bg-[#1D1D26] text-[#111118] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50"
@@ -5244,7 +5244,7 @@ export default function App() {
                       return (
                         <div
                           key={activeOrderForBanner.id}
-                          className="shrink-0 w-[90vw] sm:w-[580px] max-w-full snap-center bg-white dark:bg-[#14141A] border-2 border-[#D70F64] rounded-2xl shadow-sm overflow-hidden transition-colors"
+                          className="shrink-0 w-[90vw] sm:w-[580px] max-w-full snap-center bg-white dark:bg-[#14141A] border-2 border-[#D70F64] rounded-2xl shadow-sm overflow-hidden transition-all duration-300 md:hover:-translate-y-0.5"
                         >
                           {/* Banner Header: Tap-to-track details */}
                           <div
@@ -5252,7 +5252,7 @@ export default function App() {
                               setActiveTrackingOrder(activeOrderForBanner);
                               setIsTrackingModalOpen(true);
                             }}
-                            className="p-3.5 sm:p-4 flex items-center justify-between gap-3 cursor-pointer hover:bg-[#F9F9FB] dark:hover:bg-[#1D1D26] transition border-b border-[#E6E6EE] dark:border-[#272733]"
+                            className="p-3.5 sm:p-4 flex items-center justify-between gap-3 cursor-pointer hover:bg-[#F9F9FB] dark:hover:bg-[#1D1D26] transition-colors duration-300 border-b border-[#E6E6EE] dark:border-[#272733]"
                           >
                             <div className="flex items-center gap-3 min-w-0 flex-1">
                               <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#D70F64]/10 border border-[#D70F64]/25 flex items-center justify-center text-xl shrink-0">
@@ -5333,7 +5333,7 @@ export default function App() {
                               <div className="absolute left-3 right-3 top-1/2 -translate-y-1/2 h-1 bg-zinc-200 -z-10 rounded-full" />
                               {/* Animated active filled line */}
                               <div
-                                className="absolute left-3 top-1/2 -translate-y-1/2 h-1 bg-gradient-to-r from-pink-500 to-[#D70F64] -z-10 rounded-full transition-all duration-500"
+                                className="absolute left-3 top-1/2 -translate-y-1/2 h-1 bg-gradient-to-r from-pink-500 to-[#D70F64] -z-10 rounded-full transition-[width] duration-300 ease-out"
                                 style={{ width: `${((currentStep - 1) / 4) * 100}%` }}
                               />
 
@@ -5383,7 +5383,7 @@ export default function App() {
                                 />
                                 <a
                                   href={`tel:${activeOrderForBanner.riderPhone}`}
-                                  className="bg-white hover:bg-zinc-50 text-zinc-800 border border-zinc-300 px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider text-center transition cursor-pointer"
+                                  className="bg-white hover:bg-zinc-50 text-zinc-800 border border-zinc-300 px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider text-center transition-all duration-180 active:scale-[0.97] cursor-pointer"
                                 >
                                   📞 Call
                                 </a>
@@ -5391,7 +5391,7 @@ export default function App() {
                                   href={`https://wa.me/${activeOrderForBanner.riderPhone.replace(/\D/g, "")}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider text-center transition cursor-pointer shadow-2xs"
+                                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider text-center transition-all duration-180 active:scale-[0.97] cursor-pointer shadow-2xs"
                                 >
                                   💬 Chat
                                 </a>
@@ -5428,7 +5428,7 @@ export default function App() {
                             key={chip.id}
                             type="button"
                             onClick={() => setQuickFilter(chip.id as typeof quickFilter)}
-                            className={`shrink-0 min-h-[44px] px-4 rounded-full text-xs font-extrabold tracking-tight transition-colors cursor-pointer border ${
+                            className={`shrink-0 min-h-[44px] px-4 rounded-full text-xs font-extrabold tracking-tight transition-all duration-300 active:scale-[0.97] cursor-pointer border ${
                               active
                                 ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
                                 : "bg-white dark:bg-[#14141A] text-[#111118] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/60 hover:text-[#D70F64] dark:hover:text-[#FF4D94]"
@@ -5552,7 +5552,7 @@ export default function App() {
                                   e.preventDefault();
                                   handleRestaurantClick(vendor);
                                 }}
-                                className={`bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs hover:shadow-md hover:border-[#D70F64]/40 transition-all cursor-pointer group flex flex-col ${!openStatus.isOpen ? "opacity-85" : ""}`}
+                                className={`bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs hover:shadow-md hover:border-[#D70F64]/40 transition-all duration-300 md:hover:-translate-y-0.5 cursor-pointer group flex flex-col ${!openStatus.isOpen ? "opacity-85" : ""}`}
                               >
                                 <div className="h-44 bg-[#1D1D26] relative overflow-hidden shrink-0">
                                   {vendorImageUrl ? (
@@ -5631,7 +5631,7 @@ export default function App() {
                                       role="button"
                                       tabIndex={isClosed || d.isAvailable === false ? -1 : 0}
                                       aria-label={`${d.name} at ${vendor} — view menu`}
-                                      className="flex flex-col gap-1 w-20 shrink-0 cursor-pointer hover:opacity-85 transition-opacity focus-visible:outline-2 focus-visible:outline-[#D70F64] rounded-xl"
+                                      className="flex flex-col gap-1 w-20 shrink-0 cursor-pointer hover:opacity-85 transition-all duration-300 md:hover:-translate-y-0.5 active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-[#D70F64] rounded-xl"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         if (!isClosed && d.isAvailable !== false) {
@@ -5669,7 +5669,7 @@ export default function App() {
                                       e.stopPropagation();
                                       handleRestaurantClick(vendor);
                                     }}
-                                    className="w-16 h-20 flex flex-col items-center justify-center gap-1 shrink-0 bg-[#D70F64]/10 dark:bg-[#D70F64]/15 rounded-xl text-[#D70F64] dark:text-[#FF4D94] hover:bg-[#D70F64]/20 transition-colors border border-[#D70F64]/25 cursor-pointer"
+                                    className="w-16 h-20 flex flex-col items-center justify-center gap-1 shrink-0 bg-[#D70F64]/10 dark:bg-[#D70F64]/15 rounded-xl text-[#D70F64] dark:text-[#FF4D94] hover:bg-[#D70F64]/20 transition-all duration-300 active:scale-[0.97] border border-[#D70F64]/25 cursor-pointer"
                                   >
                                     <ChevronRight className="w-5 h-5" />
                                     <span className="text-[10px] font-extrabold uppercase tabular-nums">
@@ -5689,13 +5689,13 @@ export default function App() {
                               key={idx}
                               className="bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl overflow-hidden flex flex-col h-full"
                             >
-                              <div className="h-28 sm:h-44 bg-[#EFEFF5] dark:bg-[#1D1D26] shrink-0" />
+                              <div className="h-28 sm:h-44 skeleton-box shrink-0" />
                               <div className="p-3 sm:p-4 flex-1 flex flex-col gap-3">
-                                <div className="h-3 w-1/3 bg-[#EFEFF5] dark:bg-[#1D1D26] rounded-full" />
-                                <div className="h-4 w-3/4 bg-[#EFEFF5] dark:bg-[#1D1D26] rounded-full" />
+                                <div className="h-3 w-1/3 skeleton-box rounded-full" />
+                                <div className="h-4 w-3/4 skeleton-box rounded-full" />
                                 <div className="mt-auto flex justify-between items-center pt-2">
-                                  <div className="h-4 w-1/4 bg-[#EFEFF5] dark:bg-[#1D1D26] rounded-full" />
-                                  <div className="h-10 w-10 bg-[#EFEFF5] dark:bg-[#1D1D26] rounded-xl" />
+                                  <div className="h-4 w-1/4 skeleton-box rounded-full" />
+                                  <div className="h-10 w-10 skeleton-box rounded-xl" />
                                 </div>
                               </div>
                             </div>
@@ -5782,7 +5782,7 @@ export default function App() {
                             setQuickFilter("all");
                             setShowFavoritesOnly(false);
                           }}
-                          className="min-h-[44px] bg-[#D70F64] hover:bg-[#B80C54] text-white font-extrabold py-2.5 px-6 text-xs uppercase tracking-wider rounded-xl cursor-pointer transition-colors"
+                          className="min-h-[44px] bg-[#D70F64] hover:bg-[#B80C54] text-white font-extrabold py-2.5 px-6 text-xs uppercase tracking-wider rounded-xl cursor-pointer transition-all duration-180 active:scale-[0.97] active:brightness-110 relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
                         >
                           Show All Kitchens
                         </button>
@@ -6200,7 +6200,7 @@ export default function App() {
             animate={{ opacity: 1, scale: 1, x: 0 }}
             exit={{ opacity: 0, scale: 0.8, x: -50 }}
             onClick={handleInstallClick}
-            className={`fixed ${cartCountTotal > 0 ? 'bottom-[136px]' : 'bottom-[72px]'} left-4 z-40 md:hidden bg-zinc-900/90 backdrop-blur-md border border-zinc-800 shadow-xl rounded-full p-1.5 flex items-center gap-1.5 hover:bg-zinc-800 transition active:scale-95 group`}
+            className={`fixed ${cartCountTotal > 0 ? 'bottom-[136px]' : 'bottom-[72px]'} left-4 z-40 md:hidden bg-zinc-900/90 backdrop-blur-md border border-zinc-800 shadow-xl rounded-full p-1.5 flex items-center gap-1.5 hover:bg-zinc-800 transition-all duration-180 active:scale-[0.97] active:brightness-110 group`}
           >
             <div className="w-5 h-5 rounded-md overflow-hidden shrink-0">
               <img src={daduLogo} alt="Logo" className="w-full h-full object-cover" />
