@@ -20,20 +20,20 @@ export const GROCERY_CATEGORY_VISUALS: Record<
 };
 
 const CAT_IMAGES = {
-  rashan: "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&q=80&w=400",
-  oilGhee: "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&q=80&w=400",
-  spices: "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&q=80&w=400",
-  bakery: "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=400",
+  rashan: "/images/grocery/chawal-rice-johi.jpg",
+  oilGhee: "/images/grocery/mezan-cooking-oil-pouch-1litre.jpg",
+  spices: "/images/grocery/coriander-powder-100g.jpg",
+  bakery: "/images/grocery/dawn-fortified-bread-medium-600gm.jpg",
   // Crisp high-contrast dairy image (replaces faint washed-out milk bottle photo)
-  dairy: "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&q=80&w=400",
-  teaCoffee: "https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&q=80&w=400",
-  cigarettes: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&q=80&w=400",
-  snacks: "https://images.unsplash.com/photo-1621939514649-280e2ee25f60?auto=format&fit=crop&q=80&w=400",
-  personalCare: "https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&q=80&w=400",
-  cleaning: "https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?auto=format&fit=crop&q=80&w=400",
-  motherBaby: "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?auto=format&fit=crop&q=80&w=400",
-  feminineCare: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=400",
-  medicine: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&q=80&w=400",
+  dairy: "/images/grocery/nestle-milkpak-tetra-pack-250ml.jpg",
+  teaCoffee: "/images/grocery/tapal-danedar-black-tea-170g.jpg",
+  cigarettes: "/images/grocery/gold-leaf.jpg",
+  snacks: "/images/grocery/lays-chips-classic-salt.jpg",
+  personalCare: "/images/grocery/dove-shampoo-175ml.jpg",
+  cleaning: "/images/grocery/surf-excel-washing-powder-1kg.jpg",
+  motherBaby: "/images/grocery/bona-papa-baby-diapers-medium-50pcs.jpg",
+  feminineCare: "/images/grocery/butterfly-breathables-sanitary-pads-16pcs.jpg",
+  medicine: "/images/grocery/panadol-500mg-1-strip-10-tablets.jpg",
 };
 
 export const OWNER_GROCERY_CATEGORIES: GroceryCategory[] = [
