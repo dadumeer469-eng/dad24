@@ -45,12 +45,12 @@ interface ChatMsg {
   text: string;
 }
 
-const GREETING = "السلام علیکم! کیا حال ہیں؟ میں منچی ہوں — آج کیا کھلایا جائے آپ کو؟";
-const UNCLEAR_SPEECH = "معاف کیجیے، پھر سے بولیں۔";
-const MIC_DENIED = "مائیکروفون کی اجازت دیں — براؤزر کی ایڈریس بار میں مائیک آئیکن پر ٹیپ کریں۔";
-const NO_VOICE_INPUT = "آپ کا فون وائس ان پٹ سپورٹ نہیں کرتا۔ کروم استعمال کریں۔";
-const NETWORK_PROBLEM = "انٹرنیٹ کا مسئلہ لگتا ہے — دوبارہ کوشش کریں۔";
-const LINE_BUSY = "معاف کیجیے، لائن ابھی مصروف ہے — تھوڑی دیر بعد دوبارہ کوشش کریں۔";
+const GREETING = "अस्सलाम-ओ-अलैकुम! क्या हाल हैं? मैं मंची हूँ — आज क्या खिलाया जाए आपको?";
+const UNCLEAR_SPEECH = "माफ़ कीजिए, फिर से बोलिए।";
+const MIC_DENIED = "माइक्रोफ़ोन की इजाज़त दें — ब्राउज़र की एड्रेस बार में माइक आइकन पर टैप करें।";
+const NO_VOICE_INPUT = "आपका फ़ोन वॉइस इनपुट सपोर्ट नहीं करता। क्रोम इस्तेमाल करें।";
+const NETWORK_PROBLEM = "इंटरनेट का मसला लगता है — दोबारा कोशिश करें।";
+const LINE_BUSY = "माफ़ कीजिए, लाइन अभी व्यस्त है — थोड़ी देर बाद दोबारा कोशिश करें।";
 const MAX_RECORD_MS = 15000;
 const SILENCE_MS = 1200;
 const SILENCE_RMS = 0.02;
@@ -58,11 +58,10 @@ const SILENCE_RMS = 0.02;
 function pickVoice(): SpeechSynthesisVoice | null {
   if (!("speechSynthesis" in window)) return null;
   const voices = window.speechSynthesis.getVoices();
-  // Urdu first (natural Urdu voice), then Sindhi, then English, then default.
+  // Hindi first (natural Hindi voice), then English, then default.
   return (
-    voices.find((v) => v.lang?.toLowerCase() === "ur-pk") ||
-    voices.find((v) => v.lang?.toLowerCase().startsWith("ur")) ||
-    voices.find((v) => v.lang?.toLowerCase().startsWith("sd")) ||
+    voices.find((v) => v.lang?.toLowerCase() === "hi-in") ||
+    voices.find((v) => v.lang?.toLowerCase().startsWith("hi")) ||
     voices.find((v) => v.lang?.toLowerCase().startsWith("en")) ||
     voices[0] ||
     null
@@ -368,7 +367,7 @@ export default function VoiceOrderModal({
       const u = new SpeechSynthesisUtterance(text);
       const voice = pickVoice();
       if (voice) u.voice = voice;
-      u.lang = voice?.lang || "ur-PK";
+      u.lang = voice?.lang || "hi-IN";
       u.rate = 1;
       u.pitch = 1;
       let retried = false;
