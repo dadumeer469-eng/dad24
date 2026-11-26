@@ -347,9 +347,15 @@ export default function App() {
     }
   }, [dealTimeLeft, dealConfig.isActive]);
 
-  // Standalone Grocery Module states (honest empty defaults — never inject invented fallback products)
-  const initialGroceryProducts = getCachedData<GroceryProduct[]>("dadu_cached_grocery_products", []).filter(
-    (item) => item && !String(item.id || "").startsWith("gprod_"),
+  // Standalone Grocery Module states. The owner catalogue is the built-in
+  // default so the grocery/pharmacy grid is correct from first paint (e.g.
+  // the 12 medicines on /pharmacy) even before Firestore responds; cached /
+  // live items win on id conflict, so admin price/availability edits are kept.
+  const initialGroceryProducts = mergeOwnerFirst(
+    OWNER_GROCERY_PRODUCTS,
+    getCachedData<GroceryProduct[]>("dadu_cached_grocery_products", []).filter(
+      (item) => item && !String(item.id || "").startsWith("gprod_"),
+    ),
   );
   const [activeModule, setActiveModule] = useState<"food" | "grocery">(() => {
     // Direct landing on /grocery or /pharmacy opens the grocery module.
@@ -365,8 +371,15 @@ export default function App() {
     getCachedData<FoodCategory[]>("dadu_cached_food_categories", DEFAULT_FOOD_CATEGORIES as any),
   );
   const [groceryCategories, setGroceryCategories] = useState<GroceryCategory[]>(() =>
-    getCachedData<GroceryCategory[]>("dadu_cached_grocery_categories", []).filter(
-      (cat) => cat && !String(cat.id || "").startsWith("gcat_"),
+    // Owner categories are the built-in default (incl. gcat_medicine, available)
+    // so the medicine category is active from first paint. Do NOT strip gcat_*
+    // here — that left the category list empty on cold load, and GroceryModule
+    // hides every product whose category is not in the active list, which is
+    // why /pharmacy rendered "No items in this category yet" until Firestore
+    // responded. Cached/live categories win on id conflict (admin edits kept).
+    mergeOwnerFirst(
+      OWNER_GROCERY_CATEGORIES,
+      getCachedData<GroceryCategory[]>("dadu_cached_grocery_categories", []),
     ),
   );
   const [groceryProducts, setGroceryProducts] = useState<GroceryProduct[]>(() => initialGroceryProducts);
@@ -4699,6 +4712,31 @@ export default function App() {
                   </div>
                 </section>
 
+                {/* Delivery areas in Dadu — homepage copy (SEO: real delivery areas, no FAQ section) */}
+                <section className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-4">
+                  <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-3 border border-[#E6E6EE] dark:border-[#272733] shadow-xs">
+                    <h2 className="text-sm sm:text-base font-extrabold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
+                      We Deliver Across Dadu City
+                    </h2>
+                    <p className="text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed">
+                      Our food delivery in Dadu reaches every part of the city — Dadu Food home delivery brings hot
+                      meals, groceries and medicines to your door in 20–35 minutes. Dadu mein khana order karein —
+                      choose your meal, pay by Cash on Delivery or Easypaisa, and track it live until it arrives.
+                      That is why families across the city call Dadu Food the best food delivery in Dadu.
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {["Shahani Paro", "Moro Road", "Station Road", "College Road", "Makhdoom Bilawal Nagar", "Civil Hospital Road", "Degree College Road", "New Bus Stand", "Kacheri Road", "Dadu City Center"].map((area) => (
+                        <span
+                          key={area}
+                          className="rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-2.5 py-1 text-[11px] sm:text-xs font-semibold text-zinc-700 dark:text-zinc-200"
+                        >
+                          {area}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </section>
+
                 {/* Floating Promo Banner with Live Countdown */}
                 {!promoBannerDismissed && (
                   <div className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-3">
@@ -5530,7 +5568,7 @@ export default function App() {
                     Grocery Delivery in Dadu
                   </h1>
                   <p className="text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed">
-                    Order grocery delivery in Dadu from Dadu Food — 297 grocery items in 13 categories, including
+                    Order from Dadu Food for grocery delivery Dadu families trust — 297 grocery items in 13 categories, including
                     atta, rice, cooking oil, tea, milk, spices, snacks, personal care, cleaning products and
                     household items. Grocery orders can be placed from the morning, delivery is a flat Rs 50 across
                     Dadu city, and you can pay by Cash on Delivery or Easypaisa. Need medicines instead?{" "}
@@ -5556,7 +5594,7 @@ export default function App() {
                     Medicine Delivery in Dadu
                   </h1>
                   <p className="text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed">
-                    Order medicine delivery in Dadu from Dadu Food — 12 essential medicines in our Medicine &amp;
+                    Order from Dadu Food for medicine delivery Dadu families trust — 12 essential medicines in our Medicine &amp;
                     Pharmacy category, delivered to your home across Dadu city. Medicine-only orders have a lower
                     delivery fee of Rs 30, and you can pay by Cash on Delivery or Easypaisa. Medicine orders can be
                     placed from the morning. For everyday household shopping, see our{" "}
