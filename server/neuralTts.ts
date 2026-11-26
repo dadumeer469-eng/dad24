@@ -39,6 +39,21 @@ const TTS_RATE = process.env.EDGE_TTS_RATE || "+10%";
 const TTS_PITCH = process.env.EDGE_TTS_PITCH || "+0%";
 const TTS_STYLE = process.env.EDGE_TTS_STYLE || "";
 const MAX_CHUNK = 180;
+// Normalize spoken text BEFORE synthesis: Edge TTS turns "!" and em/en
+// dashes into ~1s dead pauses (measured 27 Nov: Madhur greeting had a
+// 1.24s mid-sentence pause at the "—"). Commas give a short, natural pause.
+// "?" and "।" stay — they belong at sentence ends, where a pause is fine.
+function normalizeForSpeech(text: string): string {
+  return text
+    .replace(/[—–]/g, ", ")
+    .replace(/!/g, ",")
+    .replace(/\?(?=\s*\S)/g, ",") // "?" mid-utterance -> comma (a mid "?" pauses ~1.4s); a trailing "?" stays a question
+    .replace(/।(?=\s*\S)/g, ",") // "।" (danda) mid-utterance -> comma (a mid "।" pauses ~1s); a trailing "।" stays
+    .replace(/,\s*,/g, ",")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 const MAX_TEXT = 1000;
 const TURN_TIMEOUT_MS = 15000;
 const RATE_LIMIT_PER_MIN = 20;
@@ -324,10 +339,11 @@ async function synthesizeChunk(chunk: string): Promise<Buffer> {
 }
 
 export async function synthesizeSpeech(text: string): Promise<Buffer> {
-  const cacheKey = `${TTS_RATE}|${TTS_PITCH}|${TTS_STYLE}|${text}`;
+  const clean = normalizeForSpeech(text);
+  const cacheKey = `${TTS_RATE}|${TTS_PITCH}|${TTS_STYLE}|${clean}`;
   const cached = audioCache.get(cacheKey);
   if (cached) return cached;
-  const chunks = splitChunks(text);
+  const chunks = splitChunks(clean);
   const parts = await Promise.all(chunks.map((c) => synthesizeChunk(c)));
   const audio = Buffer.concat(parts);
   if (audio.length < 100) throw new Error("Edge TTS returned empty audio");
