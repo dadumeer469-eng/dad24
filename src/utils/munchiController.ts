@@ -12,12 +12,15 @@
 //   - CSS transforms (breathing, head tilt) applied straight to DOM nodes
 //     from one requestAnimationFrame loop — no React re-renders at 60fps.
 // Lip-sync honesty: browser speechSynthesis exposes NO audio stream, so
-// Web Audio amplitude analysis of the TTS voice is impossible. Chrome
+// Web Audio amplitude analysis of the phone voice is impossible. Chrome
 // fires SpeechSynthesisUtterance.onboundary once per spoken word — that is
 // a real sync signal from the actual voice, so each word pulses the jaw
 // open and it decays shut between words. Browsers that never fire
 // onboundary (Safari, some Android voices) get a word-paced fallback pulse
 // (~280ms per word) so the mouth still moves while speaking.
+// The neural voice is different: it plays back as a real <audio> file, so
+// the modal reads its true volume through an AnalyserNode and drives the
+// jaw from the actual amplitude (driveMouth) — the most honest sync there is.
 
 export type MunchiState =
   | "idle"
@@ -123,6 +126,15 @@ export class MunchiController {
     this.stopFallback();
     // Longer words open the jaw wider; clamp so it never looks mechanical.
     this.mouth.target = Math.min(0.95, 0.45 + Math.min(charLength, 10) * 0.05);
+  }
+
+  // Real amplitude lip-sync (neural TTS audio): the modal's analyser reads
+  // the actual playback volume each frame and drives the jaw straight
+  // from it. Stops the word-pulse fallback so the two never fight.
+  driveMouth(level: number) {
+    this.boundarySeen = true;
+    this.stopFallback();
+    this.mouth.target = Math.max(0, Math.min(0.95, level));
   }
 
   noteSpeechEnd() {
