@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Phone, PhoneOff, X } from "lucide-react";
+import {
+  createLocalVoiceAgent,
+  type LocalMenuItem,
+  type LocalOrder,
+  type LocalVoiceAgent,
+} from "../utils/voiceAgentLocal";
 
 export interface VoiceOrderItem {
   name: string;
@@ -23,8 +29,8 @@ export interface VoiceOrderResult {
 interface VoiceOrderModalProps {
   isOpen: boolean;
   onClose: () => void;
-  menuText: string;
-  ordersText: string;
+  menuItems: LocalMenuItem[];
+  recentOrders: LocalOrder[];
   isSignedIn: boolean;
   onOpenAuth: () => void;
   onOrderReady: (order: VoiceOrder) => Promise<VoiceOrderResult>;
@@ -54,9 +60,11 @@ type Recog = {
 function pickVoice(): SpeechSynthesisVoice | null {
   if (!("speechSynthesis" in window)) return null;
   const voices = window.speechSynthesis.getVoices();
+  // Urdu first (natural Urdu voice), then Sindhi, then English, then default.
   return (
-    voices.find((v) => v.lang?.toLowerCase().startsWith("sd")) ||
+    voices.find((v) => v.lang?.toLowerCase() === "ur-pk") ||
     voices.find((v) => v.lang?.toLowerCase().startsWith("ur")) ||
+    voices.find((v) => v.lang?.toLowerCase().startsWith("sd")) ||
     voices.find((v) => v.lang?.toLowerCase().startsWith("en")) ||
     voices[0] ||
     null
@@ -66,17 +74,20 @@ function pickVoice(): SpeechSynthesisVoice | null {
 export default function VoiceOrderModal({
   isOpen,
   onClose,
-  menuText,
-  ordersText,
+  menuItems,
+  recentOrders,
   isSignedIn,
   onOpenAuth,
   onOrderReady,
 }: VoiceOrderModalProps) {
   const [status, setStatus] = useState<Status>("idle");
-  const [recogLang, setRecogLang] = useState("sd-PK");
+  // Urdu speech recognition — the phone's built-in Urdu voice, no API key.
+  const [recogLang, setRecogLang] = useState("ur-PK");
   const [placedOrder, setPlacedOrder] = useState<VoiceOrder | null>(null);
+  // The local voice agent (no API): all site knowledge lives in the code.
+  const agentRef = useRef<LocalVoiceAgent | null>(null);
   // The agent girl stays hidden while the call connects; she walks in the
-  // moment the API answers, then talks with a nod and a waving hand.
+  // moment the agent answers, then talks with a nod and a waving hand.
   const [agentVisible, setAgentVisible] = useState(false);
   const [walkInDone, setWalkInDone] = useState(false);
 
@@ -218,14 +229,14 @@ export default function VoiceOrderModal({
       const u = new SpeechSynthesisUtterance(text);
       const voice = pickVoice();
       if (voice) u.voice = voice;
-      u.lang = voice?.lang || "sd-PK";
+      u.lang = voice?.lang || "ur-PK";
       u.rate = 1;
       u.pitch = 1;
       let retried = false;
       u.onend = finish;
       u.onerror = () => {
         if (!retried) {
-          // Some phones stay silent when a Sindhi/Urdu voice is requested
+          // Some phones stay silent when an Urdu voice is requested
           // but not installed — retry once with the default voice.
           retried = true;
           const u2 = new SpeechSynthesisUtterance(text);
@@ -246,42 +257,36 @@ export default function VoiceOrderModal({
     [ensureVoices, stopRinging],
   );
 
+  // Ask the LOCAL agent (no API key, no network): the answer comes from
+  // the site's own menu, orders and knowledge, built into the code.
   const sendToAgent = useCallback(
-    async (history: ChatMsg[]) => {
+    (history: ChatMsg[]) => {
       setStatusBoth("thinking");
-      try {
-        const resp = await fetch("/api/voice-order", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: history, menu: menuText, orders: ordersText }),
-          // Fail fast instead of hanging silently while the model is slow.
-          signal: AbortSignal.timeout(45000),
-        });
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const data = await resp.json();
-        const say: string = data?.say || "";
+      const lastUser = [...history].reverse().find((m) => m.role === "user");
+      const text = lastUser?.text ?? "";
+      // A short human-like pause before answering (and it lets the
+      // agent's walk-in animation play).
+      window.setTimeout(() => {
+        if (!openRef.current) return;
+        const agent = agentRef.current;
+        if (!agent) return;
+        const data = agent.reply(text);
+        const say: string = data.say || "";
         const next = [...history, { role: "assistant" as const, text: say }];
         messagesRef.current = next;
-        // The API answered — the agent walks in and starts talking.
+        // The agent answered — she walks in and starts talking.
         revealAgent();
-        if (data?.done && data?.order) {
+        if (data.done && data.order) {
           speak(say, () => finishOrder(data.order as VoiceOrder));
         } else {
           speak(say, () => {
             if (openRef.current && statusRef.current !== "done") startListening();
           });
         }
-      } catch {
-        // No message bubbles — say it out loud like a human would, then stay
-        // on the call so the user can try speaking again.
-        setStatusBoth("error");
-        speak("Maaf kajo, connection mein masla aahe. Mehrbani kare wari galhayo.", () => {
-          if (openRef.current) startListening();
-        });
-      }
+      }, 700);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [menuText, ordersText, speak],
+    [speak],
   );
 
   const startListening = useCallback(() => {
@@ -291,7 +296,7 @@ export default function VoiceOrderModal({
       (window as unknown as { webkitSpeechRecognition?: new () => Recog }).webkitSpeechRecognition;
     if (!SR) {
       setStatusBoth("error");
-      speak("Tawhan jo phone voice input support na tho kare. Chrome use kayo.", () => {
+      speak("آپ کا فون وائس ان پٹ سپورٹ نہیں کرتا۔ کروم استعمال کریں۔", () => {
         if (openRef.current) setStatusBoth("idle");
       });
       return;
@@ -322,11 +327,13 @@ export default function VoiceOrderModal({
       recogRef.current = null;
       if (e.error === "not-allowed" || e.error === "service-not-allowed") {
         setStatusBoth("error");
-        speak("Microphone ji permission diyo — browser ji address bar mein mic icon te tap kayo.", () => {
+        speak("مائیکروفون کی اجازت دیں — براؤزر کی ایڈریس بار میں مائیک آئیکن پر ٹیپ کریں۔", () => {
           if (openRef.current) setStatusBoth("idle");
         });
-      } else if (e.error === "language-not-supported" && recogLang === "sd-PK") {
-        setRecogLang("ur-PK");
+      } else if (e.error === "language-not-supported" && recogLang === "ur-PK") {
+        // Urdu recognition is not on this phone — fall back to the
+        // browser's default speech language and try again.
+        setRecogLang("");
         setTimeout(() => startListening(), 300);
       } else if (e.error === "no-speech" || e.error === "aborted") {
         if (openRef.current) setStatusBoth("idle");
@@ -356,14 +363,14 @@ export default function VoiceOrderModal({
           if (openRef.current) endCall();
         }, 2500);
       } else if (result.needsSignIn) {
-        speak("Order place karan lai pehriyan sign in kayo. Main tawhan khe sign in te wathi tho.", () => {
+        speak("آرڈر پلیس کرنے کے لیے پہلے سائن ان کریں۔ میں آپ کو سائن ان پر لے جا رہا ہوں۔", () => {
           if (openRef.current) {
             onClose();
             onOpenAuth();
           }
         });
       } else {
-        speak("Maaf kajo, order place na thiyo. Mehrbani kare wari koshish kayo.", () => {
+        speak("معاف کیجیے، آرڈر پلیس نہیں ہوا۔ دوبارہ کوشش کریں۔", () => {
           if (openRef.current) setStatusBoth("idle");
         });
       }
@@ -377,7 +384,7 @@ export default function VoiceOrderModal({
     openRef.current = true;
     messagesRef.current = [];
     setPlacedOrder(null);
-    // The agent is absent until the API connects — then she walks in.
+    // The agent is absent until she answers — then she walks in.
     setAgentVisible(false);
     setWalkInDone(false);
     setStatusBoth("calling");
@@ -388,40 +395,18 @@ export default function VoiceOrderModal({
     } catch {
       /* noop */
     }
-    const greet = async () => {
-      try {
-        const resp = await fetch("/api/voice-order", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            messages: [
-              {
-                role: "user",
-                text: "(The customer just opened the voice assistant. Greet them warmly in Sindhi, introduce yourself as Dadu Food's voice assistant, and ask what they would like to order.)",
-              },
-            ],
-            menu: menuText,
-            orders: ordersText,
-          }),
-          // Fail fast instead of hanging silently while the model is slow.
-          signal: AbortSignal.timeout(45000),
-        });
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const data = await resp.json();
-        const say: string = data?.say || "Assalam-o-Alaikum! Main Dadu Food jo voice assistant aahiyan.";
-        const next = [{ role: "assistant" as const, text: say }];
-        messagesRef.current = next;
-        // The API answered — the agent walks in and greets the user.
-        revealAgent();
-        speak(say, () => {
-          if (openRef.current) startListening();
-        });
-      } catch {
-        setStatusBoth("error");
-        speak("Maaf kajo, connection mein masla aahe. Mehrbani kare wari koshish kayo.", () => {
-          if (openRef.current) setStatusBoth("idle");
-        });
-      }
+    // No API, no waiting on a server: the local agent greets at once.
+    const greet = () => {
+      const agent = createLocalVoiceAgent(menuItems, recentOrders);
+      agentRef.current = agent;
+      const data = agent.greet();
+      const next = [{ role: "assistant" as const, text: data.say }];
+      messagesRef.current = next;
+      // The agent answered — she walks in and greets the user.
+      revealAgent();
+      speak(data.say, () => {
+        if (openRef.current) startListening();
+      });
     };
     const t = setTimeout(greet, 400);
     return () => {
