@@ -26,12 +26,12 @@
   --df-primary-hover: #B80C54;
   --df-splash: #FF2B85;
   --df-primary-tint: #FFF0F5;
-  --df-canvas: #F7F7FA;
-  --df-surface: #FFFFFF;
-  --df-surface-muted: #F2F2F6;
-  --df-border: #E6E6EE;
-  --df-ink: #14141A;
-  --df-ink-muted: #5A5A6B;
+  --df-canvas: #f7f4ee;
+  --df-surface: #fdfbf7;
+  --df-surface-muted: #efe9df;
+  --df-border: #e8e2d6;
+  --df-ink: #1f1b16;
+  --df-ink-muted: #5e554a;
   --df-open: #059669;
   --df-closed: #DC2626;
 }
@@ -253,21 +253,13 @@
   animation: pulse-subtle 2.2s ease-in-out infinite;
 }
 
-/* Glossy 3D pink primary button (mockup style: gradient + soft pink shadow) */
+/* Solid pink primary button (brand #E21B70, subtle top highlight) */
 .btn-pink {
-  background-image: linear-gradient(135deg, #FF2B85, #E21B70 55%, #D70F64);
-  box-shadow: 0 8px 20px rgba(215, 15, 100, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  background-color: #E21B70;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 .btn-pink:hover {
-  filter: brightness(1.05);
-}
-
-/* Glossy 3D shine (design: shiny/glossy like the mockup — bright top sheen + inset highlight) */
-.glossy-sheen {
-  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.14) 38%, rgba(255, 255, 255, 0.03) 62%, rgba(0, 0, 0, 0.05) 100%);
-}
-.glossy-edge {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), inset 0 -2px 4px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(215, 15, 100, 0.28);
+  background-color: #D70F64;
 }
 
 /* Premium 3D + Soft Glass (branding: frosted-glass surfaces, deep 3D lift) */

@@ -4443,7 +4443,7 @@ export default function App() {
 
 
   return (
-    <div className="min-h-screen bg-[#E21B70]/25 glossy-sheen dark:bg-[#0B0B0F] text-[#111118] dark:text-[#F5F5F8] relative pb-28 md:pb-12 flex flex-col font-sans overflow-x-clip">
+    <div className="min-h-screen bg-[#f7f4ee] dark:bg-[#0B0B0F] text-[#1f1b16] dark:text-[#F5F5F8] relative pb-28 md:pb-12 flex flex-col font-sans overflow-x-clip">
 
       {/* Welcome Intro Splash — Pink Ripple Opening (brand splash) */}
       <AnimatePresence mode="wait">
@@ -4811,7 +4811,7 @@ export default function App() {
               <>
                 {/* Dadu Food hero banner — Foodpanda-style, richer: headline + rider + 4 service tiles */}
                 <section className="max-w-7xl mx-auto px-3.5 sm:px-4 pt-3.5 pb-1">
-                  <div className="rounded-[28px] bg-gradient-to-br from-[#FF2B85] via-[#E21B70] to-[#B80C54] shadow-md relative overflow-hidden animate-fade-in">
+                  <div className="rounded-[28px] bg-[#E21B70] shadow-[0_8px_24px_rgba(0,0,0,0.06)] relative overflow-hidden animate-fade-in">
                     {/* Headline + rider row */}
                     <div className="relative min-h-[185px] sm:min-h-[220px]">
                       <img
@@ -4823,15 +4823,10 @@ export default function App() {
                       />
                       <div className="absolute inset-y-0 right-0 w-[56%] sm:w-[48%] lg:w-[26%] bg-gradient-to-r from-[#E21B70] via-[#E21B70]/20 to-transparent pointer-events-none" aria-hidden="true" />
                       <div className="relative z-10 px-4 sm:px-6 pt-5 sm:pt-7 pb-4 max-w-[62%] sm:max-w-[58%] animate-slide-in-left">
-                        <h1 className="text-[27px] sm:text-4xl font-black italic leading-[1.05] text-white tracking-tight drop-shadow-[0_2px_6px_rgba(0,0,0,0.25)]">
-                          DADU FOOD - <span className="text-[#FFD500]">FAST</span>
-                          <br />
-                          <span className="relative inline-block">
-                            DELIVERY
-                            <span className="absolute left-0 -bottom-1 h-[5px] w-full bg-[#FFD500] rounded-full -rotate-1" />
-                          </span>
+                        <h1 className="text-[27px] sm:text-4xl font-medium leading-[1.05] text-white tracking-tight">
+                          Dadu Food — Fast Delivery
                         </h1>
-                        <p className="mt-3 flex items-center gap-1.5 text-[12px] sm:text-sm font-bold text-white/95">
+                        <p className="mt-3 flex items-center gap-1.5 text-[12px] sm:text-sm font-medium text-white/95">
                           <Clock className="w-4 h-4 shrink-0" />
                           25–35 min • COD &amp; Easypaisa
                         </p>
@@ -4846,7 +4841,7 @@ export default function App() {
                         setActiveCategory("All");
                         document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth" });
                       }}
-                      className="min-h-[124px] text-left p-4 rounded-2xl bg-gradient-to-br from-white via-white to-[#FFF0F5] dark:from-[#1C1C26] dark:via-[#14141A] dark:to-[#1C1C26] border border-white dark:border-[#272733] hover:border-[#D70F64]/50 shadow-[0_12px_28px_rgba(215,15,100,0.30),inset_0_1px_0_rgba(255,255,255,0.9)] transition-[color,background-color,border-color,transform,opacity] duration-180 cursor-pointer active:scale-[0.97] active:brightness-110 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "60ms" }}
+                      className="min-h-[124px] text-left p-4 rounded-2xl bg-white dark:bg-[#14141A] border border-white dark:border-[#272733] hover:border-[#D70F64]/50 shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-[color,background-color,border-color,transform,opacity] duration-180 cursor-pointer active:scale-[0.97] active:brightness-110 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "60ms" }}
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
@@ -4857,7 +4852,7 @@ export default function App() {
                             Hot meals in Dadu
                           </span>
                         </div>
-                        <span className="mt-2 inline-flex w-7 h-7 rounded-full bg-gradient-to-br from-[#FF2B85] to-[#D70F64] text-white items-center justify-center shrink-0 shadow-md shadow-[#D70F64]/40">
+                        <span className="mt-2 inline-flex w-7 h-7 rounded-full bg-[#D70F64] text-white items-center justify-center shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
                           <ArrowRight className="w-4 h-4" />
                         </span>
                       </div>
@@ -4873,7 +4868,7 @@ export default function App() {
                     <button
                       type="button"
                       onClick={handleGoToGroceryHome}
-                      className="min-h-[124px] text-left p-4 rounded-2xl bg-gradient-to-br from-white via-white to-[#FFF0F5] dark:from-[#1C1C26] dark:via-[#14141A] dark:to-[#1C1C26] border border-white dark:border-[#272733] hover:border-[#D70F64]/50 shadow-[0_12px_28px_rgba(215,15,100,0.30),inset_0_1px_0_rgba(255,255,255,0.9)] transition-[color,background-color,border-color,transform,opacity] duration-180 cursor-pointer active:scale-[0.97] active:brightness-110 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "120ms" }}
+                      className="min-h-[124px] text-left p-4 rounded-2xl bg-white dark:bg-[#14141A] border border-white dark:border-[#272733] hover:border-[#D70F64]/50 shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-[color,background-color,border-color,transform,opacity] duration-180 cursor-pointer active:scale-[0.97] active:brightness-110 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "120ms" }}
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
@@ -4884,7 +4879,7 @@ export default function App() {
                             297 groceries &amp; rashan
                           </span>
                         </div>
-                        <span className="mt-2 inline-flex w-7 h-7 rounded-full bg-gradient-to-br from-[#FF2B85] to-[#D70F64] text-white items-center justify-center shrink-0 shadow-md shadow-[#D70F64]/40">
+                        <span className="mt-2 inline-flex w-7 h-7 rounded-full bg-[#D70F64] text-white items-center justify-center shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
                           <ArrowRight className="w-4 h-4" />
                         </span>
                       </div>
@@ -4904,7 +4899,7 @@ export default function App() {
                         setQuickFilter("under_300");
                         document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth" });
                       }}
-                      className="min-h-[124px] text-left p-4 rounded-2xl bg-gradient-to-br from-white via-white to-[#FFF0F5] dark:from-[#1C1C26] dark:via-[#14141A] dark:to-[#1C1C26] border border-white dark:border-[#272733] hover:border-[#D70F64]/50 shadow-[0_12px_28px_rgba(215,15,100,0.30),inset_0_1px_0_rgba(255,255,255,0.9)] transition-[color,background-color,border-color,transform,opacity] duration-180 cursor-pointer active:scale-[0.97] active:brightness-110 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "180ms" }}
+                      className="min-h-[124px] text-left p-4 rounded-2xl bg-white dark:bg-[#14141A] border border-white dark:border-[#272733] hover:border-[#D70F64]/50 shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-[color,background-color,border-color,transform,opacity] duration-180 cursor-pointer active:scale-[0.97] active:brightness-110 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "180ms" }}
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
@@ -4915,7 +4910,7 @@ export default function App() {
                             Under Rs. 300 picks
                           </span>
                         </div>
-                        <span className="mt-2 inline-flex w-7 h-7 rounded-full bg-gradient-to-br from-[#FF2B85] to-[#D70F64] text-white items-center justify-center shrink-0 shadow-md shadow-[#D70F64]/40">
+                        <span className="mt-2 inline-flex w-7 h-7 rounded-full bg-[#D70F64] text-white items-center justify-center shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
                           <ArrowRight className="w-4 h-4" />
                         </span>
                       </div>
@@ -4932,7 +4927,7 @@ export default function App() {
                       href={`https://wa.me/${deliverySettings?.whatsappNumber || "923277004471"}?text=Assalam-o-Alaikum%20Dadu%20Food!%20Mera%20WhatsApp%20order%20list%20ye%20hai:`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="min-h-[124px] text-left p-4 rounded-2xl bg-gradient-to-br from-white via-white to-[#FFF0F5] dark:from-[#1C1C26] dark:via-[#14141A] dark:to-[#1C1C26] border border-white dark:border-[#272733] hover:border-[#25D366]/60 shadow-[0_12px_28px_rgba(215,15,100,0.30),inset_0_1px_0_rgba(255,255,255,0.9)] transition-[color,background-color,border-color,transform,opacity] duration-180 cursor-pointer active:scale-[0.97] active:brightness-110 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "240ms" }}
+                      className="min-h-[124px] text-left p-4 rounded-2xl bg-white dark:bg-[#14141A] border border-white dark:border-[#272733] hover:border-[#25D366]/60 shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-[color,background-color,border-color,transform,opacity] duration-180 cursor-pointer active:scale-[0.97] active:brightness-110 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "240ms" }}
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
@@ -4943,7 +4938,7 @@ export default function App() {
                             Send list directly
                           </span>
                         </div>
-                        <span className="mt-2 inline-flex w-7 h-7 rounded-full bg-gradient-to-br from-[#FF2B85] to-[#D70F64] text-white items-center justify-center shrink-0 shadow-md shadow-[#D70F64]/40">
+                        <span className="mt-2 inline-flex w-7 h-7 rounded-full bg-[#D70F64] text-white items-center justify-center shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
                           <ArrowRight className="w-4 h-4" />
                         </span>
                       </div>
@@ -4967,7 +4962,7 @@ export default function App() {
                 {/* Floating Promo Banner with Live Countdown */}
                 {!promoBannerDismissed && (
                   <div className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-3">
-                    <div className="bg-gradient-to-r from-[#D70F64] to-[#FF2B85] text-white rounded-2xl px-4 py-3 shadow-sm flex items-center justify-between gap-3">
+                    <div className="bg-[#E21B70] text-white rounded-2xl px-4 py-3 shadow-sm flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2.5 min-w-0">
                         <div className="min-w-0">
                           <p className="text-xs sm:text-sm font-semibold leading-tight">
@@ -5163,7 +5158,7 @@ export default function App() {
                                 }}
                                 className={`w-[106px] min-h-[116px] rounded-2xl flex flex-col items-center justify-between p-1.5 transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] shrink-0 cursor-pointer border overflow-hidden ${
                                   selectedRestaurant === vendor
-                                    ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
+                                    ? "bg-[#E21B70] text-white border-[#D70F64] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
                                     : "bg-[#F9F9FB] dark:bg-[#1D1D26] text-[#111118] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/50"
                                 }`}
                                 title={`${vendor} · ${openStatus.label}`}
@@ -5331,7 +5326,7 @@ export default function App() {
                             </div>
 
                             {/* Rider ETA Box */}
-                            <div className="shrink-0 bg-gradient-to-r from-[#D70F64] to-pink-600 text-white px-3 py-1.5 rounded-2xl text-center shadow-md border border-pink-400/30">
+                            <div className="shrink-0 bg-[#D70F64] text-white px-3 py-1.5 rounded-2xl text-center shadow-md border border-pink-400/30">
                               <span className="text-[8px] uppercase tracking-wider font-extrabold text-pink-100 block leading-none">
                                 Est. Arrival
                               </span>
@@ -5348,7 +5343,7 @@ export default function App() {
                               <div className="absolute left-3 right-3 top-1/2 -translate-y-1/2 h-1 bg-zinc-200 -z-10 rounded-full" />
                               {/* Animated active filled line */}
                               <div
-                                className="absolute left-3 top-1/2 -translate-y-1/2 h-1 bg-gradient-to-r from-pink-500 to-[#D70F64] -z-10 rounded-full transition-[width] duration-300 ease-out"
+                                className="absolute left-3 top-1/2 -translate-y-1/2 h-1 bg-[#D70F64] -z-10 rounded-full transition-[width] duration-300 ease-out"
                                 style={{ width: `${((currentStep - 1) / 4) * 100}%` }}
                               />
 
@@ -5445,7 +5440,7 @@ export default function App() {
                             onClick={() => setQuickFilter(chip.id as typeof quickFilter)}
                             className={`inline-flex items-center justify-center gap-1.5 shrink-0 min-h-[44px] px-4 rounded-full text-xs font-semibold tracking-tight transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] cursor-pointer border ${
                               active
-                                ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
+                                ? "bg-[#E21B70] text-white border-[#D70F64] shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
                                 : "bg-white dark:bg-[#14141A] text-[#111118] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/60 hover:text-[#D70F64] dark:hover:text-[#FF4D94]"
                             }`}
                           >
