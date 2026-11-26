@@ -1,10 +1,26 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Global default-deny catch-all safety net rule
-    match /{document=**} {
-      allow read, write: if true;
-    }
+    // ================================================================
+    // Dadu Food — Firestore security rules (REWRITTEN 27 Nov 2026)
+    //
+    // WHAT CHANGED: the old catch-all
+    //   match /{document=**} { allow read, write: if true; }
+    // made every rule below it dead code — anyone with the Firebase
+    // config could read/write orders, users and settings directly.
+    // It is DELETED. Rider rules now match the confirmed-only flow.
+    //
+    // !!! NOT LIVE YET: this file only takes effect when deployed
+    // (Firebase console > Firestore > Rules, or `firebase deploy
+    // --only firestore:rules`). DO NOT deploy it until the staff/rider
+    // role lookup is fixed: user docs are keyed by PHONE number
+    // (e.g. "03277004427"), but rules can only look a role up by
+    // Auth UID or by token.phone_number (E.164, "+92..."), so
+    // isAdmin()/isRider() usually resolve false for staff/riders.
+    // The fix is a UID-keyed roles collection written by an admin
+    // (never self-written — a client-chosen role is forgeable).
+    // Until that lands, the app runs on the old open rules.
+    // ================================================================
 
     // Helper function to check if the user is authenticated
     function isAuthenticated() {
@@ -18,58 +34,83 @@ service cloud.firestore {
 
     // Check if the authenticated user has the 'admin' role
     function isAdmin() {
-      return isAuthenticated() && 
+      return isAuthenticated() &&
         (request.auth.uid == 'vL9LpYI3q5e6bFIsAdmInTrUgGer12' ||
          ('email' in request.auth.token && request.auth.token.email == '03277004471@dadu247.com') ||
          ('email' in request.auth.token && request.auth.token.email == 'dadumeer469@gmail.com') ||
-         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
     }
 
-    // Check if the authenticated user has the 'rider' role
+    // Check if the authenticated user has the 'rider' role.
+    // NOTE: user docs are keyed by phone number, so the UID lookup
+    // below usually misses; the phone_number lookup covers docs keyed
+    // by E.164. See the header note — a roles collection is the real fix.
     function isRider() {
-      return isAuthenticated() && 
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'rider');
+      return isAuthenticated() &&
+        ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'rider') ||
+         (('phone_number' in request.auth.token) && request.auth.token.phone_number != null &&
+          exists(/databases/$(database)/documents/users/$(request.auth.token.phone_number)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.token.phone_number)).data.role == 'rider'));
     }
 
     // Users Collection rules
+    // Docs are keyed by phone ("03277004427") or "g_<uid>"; the owner
+    // check below also accepts the firebaseUid field the app writes
+    // at sign-in, so a phone user can create/update their own profile.
     match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId) || isAdmin();
-      allow update: if isOwner(userId) || isAdmin();
+      allow read: if isOwner(userId) || isAdmin() ||
+        (isAuthenticated() && resource.data.firebaseUid == request.auth.uid);
+      allow create: if isAdmin() || isOwner(userId) ||
+        (isAuthenticated() && request.resource.data.firebaseUid == request.auth.uid) ||
+        (isAuthenticated() && userId == ('g_' + request.auth.uid));
+      allow update: if isAdmin() || isOwner(userId) ||
+        (isAuthenticated() && resource.data.firebaseUid == request.auth.uid);
       allow delete: if isAdmin();
     }
 
     // Menu Collection rules
+    // Reads are public. Creates stay open so the client can auto-seed
+    // an empty menu; updates/deletes are admin-only (the old rule
+    // allowed anyone to rewrite dishes).
     match /menu/{dishId} {
       allow read: if true; // Publicly readable for browsing
       allow create: if true; // Allow client-side default auto-seeding if empty
-      allow update, delete: if true; // Strictly restricted to admin
+      allow update, delete: if isAdmin();
     }
 
     // Orders Collection rules
     match /orders/{orderId} {
       allow create: if true; // Allow guest checkout and authenticated users
-      
+
       // Separate allowed reads to guarantee static query safety for Firestore analyzer
       allow read: if isAdmin();
-      allow read: if isRider() && resource.data.status == "pending";
+      // Riders only ever see CONFIRMED orders (the rider panel queries
+      // status == "confirmed"); "pending" here used to 403 every rider.
+      allow read: if isRider() && resource.data.status == "confirmed";
       allow read: if isAuthenticated() && resource.data.riderId == request.auth.uid;
       allow read: if resource.data.userId == "guest"; // Allow guest users tracking their own order
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      
+
       // Separate/clean updates for simplicity
       allow update: if isAdmin();
-      allow update: if isRider() && resource.data.status == "pending" && request.resource.data.riderId == request.auth.uid && request.resource.data.status == "accepted";
+      // Rider accept: only confirmed -> accepted, and the rider must
+      // claim it for themselves.
+      allow update: if isRider() && resource.data.status == "confirmed" && request.resource.data.status == "accepted" && request.resource.data.riderId == request.auth.uid;
       allow update: if isAuthenticated() && resource.data.riderId == request.auth.uid;
       allow update: if (resource.data.userId == "guest" || (isAuthenticated() && resource.data.userId == request.auth.uid)) && request.resource.data.status == resource.data.status;
-      
+
       allow delete: if isAdmin();
 
-      // Messages sub-collection rules for live rider-user chat
+      // Messages sub-collection rules for live rider-user chat.
+      // Only the admin, the customer who placed the order, or the
+      // rider assigned to it may read/write — never the open internet.
       match /messages/{messageId} {
-        allow read, write: if true;
+        allow read, write: if isAdmin() ||
+          (isAuthenticated() &&
+           (get(/databases/$(database)/documents/orders/$(orderId)).data.userId == request.auth.uid ||
+            get(/databases/$(database)/documents/orders/$(orderId)).data.riderId == request.auth.uid));
       }
     }
 
@@ -87,6 +128,10 @@ service cloud.firestore {
     }
 
     // Vouchers Collection rules
+    // NOTE: `allow update: if true` stays for now because the order
+    // writer increments the voucher use-count client-side. A truly
+    // safe version needs a Cloud Function; do not tighten this until
+    // the increment moves server-side, or voucher redemption breaks.
     match /vouchers/{voucherId} {
       allow read: if true;
       allow create, delete: if isAdmin();
@@ -125,13 +170,13 @@ service cloud.firestore {
     // Grocery Orders rules
     match /groceryOrders/{orderId} {
       allow create: if true; // Allow guest and auth checkouts
-      allow read: if isAdmin() || 
-                     (isRider() && resource.data.status == "pending") ||
+      allow read: if isAdmin() ||
+                     (isRider() && resource.data.status == "confirmed") ||
                      (isAuthenticated() && resource.data.riderId == request.auth.uid) ||
                      (resource.data.userId == "guest") ||
                      (isAuthenticated() && resource.data.userId == request.auth.uid);
       allow update: if isAdmin() ||
-                       (isRider() && resource.data.status == "pending" && request.resource.data.riderId == request.auth.uid && request.resource.data.status == "accepted") ||
+                       (isRider() && resource.data.status == "confirmed" && request.resource.data.status == "accepted" && request.resource.data.riderId == request.auth.uid) ||
                        (isAuthenticated() && resource.data.riderId == request.auth.uid) ||
                        ((resource.data.userId == "guest" || (isAuthenticated() && resource.data.userId == request.auth.uid)) && request.resource.data.status == resource.data.status);
       allow delete: if isAdmin();
