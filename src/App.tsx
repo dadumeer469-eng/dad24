@@ -42,6 +42,12 @@ import {
   Voucher,
 } from "./types";
 import { INITIAL_MENU_ITEMS, DEFAULT_FOOD_CATEGORIES, getDefaultRestaurantImage } from "./data";
+import {
+  readFreshCatalogCache,
+  readCatalogForPaint,
+  writeCatalogCache,
+  invalidateCatalogCache,
+} from "./utils/catalogCache";
 
 // Import modules
 import FoodpandaHeader from "./components/FoodpandaHeader";
@@ -271,7 +277,7 @@ export default function App() {
     }
   };
 
-  const initialDishes = getCachedData<Dish[]>("dadu_cached_dishes", INITIAL_MENU_ITEMS);
+  const initialDishes = readCatalogForPaint<Dish[]>("menu", "dadu_cached_dishes", INITIAL_MENU_ITEMS);
   const [dishes, setDishes] = useState<Dish[]>(() => initialDishes && initialDishes.length > 0 ? initialDishes : INITIAL_MENU_ITEMS);
   const [isLoadingDishes, setIsLoadingDishes] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -354,7 +360,7 @@ export default function App() {
   // live items win on id conflict, so admin price/availability edits are kept.
   const initialGroceryProducts = mergeOwnerFirst(
     OWNER_GROCERY_PRODUCTS,
-    getCachedData<GroceryProduct[]>("dadu_cached_grocery_products", []).filter(
+    readCatalogForPaint<GroceryProduct[]>("groceryProducts", "dadu_cached_grocery_products", []).filter(
       (item) => item && !String(item.id || "").startsWith("gprod_"),
     ),
   );
@@ -369,7 +375,7 @@ export default function App() {
   const lastRefreshSignalRef = useRef<number>(0);
   const refreshSignalInitRef = useRef(false);
   const [foodCategories, setFoodCategories] = useState<FoodCategory[]>(() =>
-    getCachedData<FoodCategory[]>("dadu_cached_food_categories", DEFAULT_FOOD_CATEGORIES as any),
+    readCatalogForPaint<FoodCategory[]>("foodCategories", "dadu_cached_food_categories", DEFAULT_FOOD_CATEGORIES as any),
   );
   const [groceryCategories, setGroceryCategories] = useState<GroceryCategory[]>(() =>
     // Owner categories are the built-in default (incl. gcat_medicine, available)
@@ -380,7 +386,7 @@ export default function App() {
     // responded. Cached/live categories win on id conflict (admin edits kept).
     mergeOwnerFirst(
       OWNER_GROCERY_CATEGORIES,
-      getCachedData<GroceryCategory[]>("dadu_cached_grocery_categories", []),
+      readCatalogForPaint<GroceryCategory[]>("groceryCategories", "dadu_cached_grocery_categories", []),
     ),
   );
   const [groceryProducts, setGroceryProducts] = useState<GroceryProduct[]>(() => initialGroceryProducts);
@@ -465,7 +471,9 @@ export default function App() {
       localStorage.setItem("dadu_cart", JSON.stringify(cartItems));
     } catch {}
   }, [cartItems]);
-  const [vouchers, setVouchers] = useState<Voucher[]>([]);
+  const [vouchers, setVouchers] = useState<Voucher[]>(() =>
+    readCatalogForPaint<Voucher[]>("vouchers", "dadu_cached_vouchers", []),
+  );
   const [activeTrackingOrder, setActiveTrackingOrder] = useState<Order | null>(
     null,
   );
@@ -1161,6 +1169,11 @@ export default function App() {
     console.log("Trace: Initializing Menu collection listener...");
     let cancelled = false;
     const fetchMenu = async () => {
+      // TTL catalogue cache: skip Firestore when a fresh cache exists. The UI
+      // already renders from that cache (initial state), so this load costs 0
+      // catalogue reads. Revalidates only when the cache is stale/missing
+      // (or the admin pressed Refresh, which invalidates the cache).
+      if (readFreshCatalogCache<Dish[]>("menu")) return;
       try {
         const snapshot = await getDocs(collection(db, "menu"));
         if (cancelled) return;
@@ -1178,6 +1191,7 @@ export default function App() {
           setDishes(list);
           setIsLoadingDishes(false);
           setCachedData("dadu_cached_dishes", list);
+          writeCatalogCache("menu", list);
           preloadImages(list.slice(0, 20).map((d) => d.imageUrl));
           // One-time menu data corrections (owner-approved): remove implausible
           // luxury items, fix the Biryani/Sada Roti descriptions, move steaks
@@ -1307,6 +1321,8 @@ export default function App() {
   useEffect(() => {
     let cancelled = false;
     const fetchFoodCategories = async () => {
+      // TTL catalogue cache — skip Firestore when a fresh cache exists (see fetchMenu).
+      if (readFreshCatalogCache<FoodCategory[]>("foodCategories")) return;
       try {
         const snapshot = await getDocs(collection(db, "foodCategories"));
         if (cancelled) return;
@@ -1431,6 +1447,7 @@ export default function App() {
           list.sort((a, b) => (a.position || 0) - (b.position || 0));
           setFoodCategories(list);
           setCachedData("dadu_cached_food_categories", list);
+          writeCatalogCache("foodCategories", list);
         }
       } catch (err) {
         if (cancelled) return;
@@ -1461,6 +1478,8 @@ export default function App() {
     console.log("Trace: Initializing GroceryCategories collection listener...");
     let cancelled = false;
     const fetchGroceryCategories = async () => {
+      // TTL catalogue cache — skip Firestore when a fresh cache exists (see fetchMenu).
+      if (readFreshCatalogCache<GroceryCategory[]>("groceryCategories")) return;
       try {
         const snapshot = await getDocs(collection(db, "groceryCategories"));
         if (cancelled) return;
@@ -1478,6 +1497,7 @@ export default function App() {
         const displayCats = mergeOwnerFirst(OWNER_GROCERY_CATEGORIES, list);
         setGroceryCategories(displayCats);
         setCachedData("dadu_cached_grocery_categories", displayCats);
+        writeCatalogCache("groceryCategories", displayCats);
         setIsLoadingGrocery(false);
         // Seed the 12 owner categories once if any are missing from Firestore.
         if (!groceryCategorySeedAttemptedRef.current) {
@@ -1527,6 +1547,8 @@ export default function App() {
     console.log("Trace: Initializing GroceryProducts collection listener...");
     let cancelled = false;
     const fetchGroceryProducts = async () => {
+      // TTL catalogue cache — skip Firestore when a fresh cache exists (see fetchMenu).
+      if (readFreshCatalogCache<GroceryProduct[]>("groceryProducts")) return;
       try {
         const snapshot = await getDocs(collection(db, "groceryProducts"));
         if (cancelled) return;
@@ -1543,6 +1565,7 @@ export default function App() {
         const displayList = mergeOwnerFirst(OWNER_GROCERY_PRODUCTS, list);
         setGroceryProducts(displayList);
         setCachedData("dadu_cached_grocery_products", displayList);
+        writeCatalogCache("groceryProducts", displayList);
         setIsLoadingGrocery(false);
         preloadImages(displayList.slice(0, 20).map((p) => p.imageUrl));
         // Seed the 297 owner grocery items once if any are missing from Firestore.
@@ -1676,6 +1699,10 @@ export default function App() {
   useEffect(() => {
     let cancelled = false;
     const fetchVouchers = async () => {
+      // TTL catalogue cache — skip Firestore when a fresh cache exists (see fetchMenu).
+      // Safe: checkout validates the chosen voucher with a live per-voucher
+      // getDoc, so a stale list can never redeem an expired voucher.
+      if (readFreshCatalogCache<Voucher[]>("vouchers")) return;
       try {
         const snapshot = await getDocs(collection(db, "vouchers"));
         if (cancelled) return;
@@ -1684,6 +1711,7 @@ export default function App() {
           list.push({ id: docSnap.id, ...docSnap.data() } as Voucher);
         });
         setVouchers(list);
+        writeCatalogCache("vouchers", list);
       } catch (err) {
         if (cancelled) return;
         console.warn("Vouchers subscription notice:", handleFirestoreError(err));
@@ -1789,6 +1817,11 @@ export default function App() {
         }
         if (ts && ts !== lastRefreshSignalRef.current) {
           lastRefreshSignalRef.current = ts;
+          // Admin pressed "Refresh All Users": drop the TTL catalogue cache
+          // FIRST so the fetch effects below re-read from Firestore instead
+          // of serving the still-fresh cache (otherwise the admin's price /
+          // product edits would not reach users until the TTL expired).
+          invalidateCatalogCache();
           setCatalogRefreshTick((t) => t + 1);
           setToastNotification({
             title: "Updated!",
