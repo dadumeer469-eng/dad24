@@ -3212,6 +3212,7 @@ export default function App() {
         name: d.name,
         price: d.discountPrice && d.discountPrice < d.price ? d.discountPrice : d.price,
         type: "food" as const,
+        image: d.imageUrl,
       }));
     const grocery = groceryProducts
       .filter((p) => p.isAvailable)
@@ -3219,6 +3220,7 @@ export default function App() {
         name: p.name,
         price: p.discountPrice && p.discountPrice < p.price ? p.discountPrice : p.price,
         type: "grocery" as const,
+        image: p.imageUrl,
       }));
     return [...food, ...grocery];
   }, [dishes, groceryProducts]);
