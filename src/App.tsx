@@ -521,6 +521,14 @@ export default function App() {
     message: string;
   } | null>(null);
 
+  // Every bottom alert auto-dismisses after a few seconds and is tap-to-dismiss,
+  // so no alert ever lingers over the cart / submit button.
+  useEffect(() => {
+    if (!toastNotification) return;
+    const t = window.setTimeout(() => setToastNotification(null), 3000);
+    return () => window.clearTimeout(t);
+  }, [toastNotification]);
+
   // PWA Install State
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallBubble, setShowInstallBubble] = useState(false);
@@ -3714,11 +3722,16 @@ export default function App() {
       />
 
       {toastNotification && (
-        <div className="fixed bottom-6 right-6 z-50 p-4 max-w-sm bg-zinc-900 border-2 border-[#D70F64]/40 text-zinc-100 rounded-2xl shadow-2xl flex items-start gap-3 animate-slide-in">
+        <div
+          onClick={() => setToastNotification(null)}
+          role="button"
+          aria-label="Dismiss notification"
+          className="fixed bottom-6 right-6 z-50 p-4 max-w-sm bg-zinc-900 border-2 border-[#D70F64]/40 text-zinc-100 rounded-2xl shadow-2xl flex items-start gap-3 animate-slide-in cursor-pointer"
+        >
           <div className="bg-[#D70F64] text-white p-2.5 rounded-xl shrink-0">
             <MessageSquare className="w-5 h-5" />
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <h5 className="font-extrabold text-xs text-zinc-100 uppercase tracking-wider">
               {toastNotification.title}
             </h5>
@@ -3726,6 +3739,14 @@ export default function App() {
               {toastNotification.message}
             </p>
           </div>
+          <button
+            type="button"
+            onClick={() => setToastNotification(null)}
+            aria-label="Close notification"
+            className="shrink-0 p-1 -m-1 text-zinc-400 hover:text-white rounded-full"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
