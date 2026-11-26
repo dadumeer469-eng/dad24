@@ -1036,7 +1036,7 @@ export default function App() {
 
     let animationFrameId: number;
     const startTime = performance.now();
-    const duration = 350; // Ultra fast 0.35s
+    const duration = 1400; // ~1.4s so the pink ripple opening is actually seen
 
     const updateProgress = (currentTime: number) => {
       const elapsed = currentTime - startTime;
@@ -4094,267 +4094,121 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#E21B70]/25 glossy-sheen dark:bg-[#0B0B0F] text-[#111118] dark:text-[#F5F5F8] relative pb-28 md:pb-12 flex flex-col font-sans overflow-x-clip">
 
-      {/* Welcome Intro Splash Animation Screen with Site Logo */}
+      {/* Welcome Intro Splash — Pink Ripple Opening (brand splash) */}
       <AnimatePresence mode="wait">
         {showSplash && (
           <motion.div
             initial={{ opacity: 1 }}
             exit={{
               opacity: 0,
-              scale: 1.02,
-              filter: "blur(4px)",
-              transition: { duration: 0.18, ease: "easeOut" },
+              scale: 1.06,
+              filter: "blur(6px)",
+              transition: { duration: 0.22, ease: "easeOut" },
             }}
-            className="fixed inset-0 z-[99999] flex items-center justify-center overflow-hidden bg-black/90 text-white select-none"
-            style={{ perspective: 1500 }}
+            className="fixed inset-0 z-[99999] flex items-center justify-center overflow-hidden select-none"
+            style={{
+              background:
+                "linear-gradient(160deg, #FF2B85 0%, #E21B70 42%, #C40E5B 74%, #A80B4E 100%)",
+            }}
           >
-            {/* Cinematic Dark Glass Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0, transition: { duration: 0.15 } }}
-              className="absolute inset-0 bg-black/70 z-0"
-            />
+            {/* Soft light blobs for depth */}
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute -top-24 -left-24 w-96 h-96 bg-white/15 rounded-full blur-3xl" />
+              <div className="absolute -bottom-32 -right-20 w-[28rem] h-[28rem] bg-[#FF7AB8]/25 rounded-full blur-3xl" />
+              <div className="absolute top-1/3 right-1/4 w-64 h-64 bg-[#FFD166]/20 rounded-full blur-3xl" />
+            </div>
 
-            {/* Animated Mesh/Orb Gradients */}
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 1.2, opacity: 0, transition: { duration: 0.15 } }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              className="absolute inset-0 flex items-center justify-center z-0"
-            >
-              <motion.div
-                animate={{ rotate: 360, scale: [1, 1.1, 1] }}
-                transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                className="absolute w-[80vw] h-[80vw] max-w-[600px] max-h-[600px] bg-gradient-to-tr from-[#D70F64] to-[#7209b7] rounded-full blur-[100px] opacity-60"
-              />
-              <motion.div
-                animate={{ rotate: -360, scale: [1, 1.2, 1] }}
-                transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                className="absolute w-[60vw] h-[60vw] max-w-[400px] max-h-[400px] bg-gradient-to-bl from-[#f72585] to-[#4cc9f0] rounded-full blur-[80px] opacity-50 mix-blend-screen"
-              />
-            </motion.div>
+            {/* Expanding ripple rings (the GIF's signature) */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              {[0, 1, 2].map((i) => (
+                <motion.div
+                  key={i}
+                  initial={{ scale: 0.55, opacity: 0.6 }}
+                  animate={{ scale: 2.1, opacity: 0 }}
+                  transition={{
+                    duration: 1.7,
+                    repeat: Infinity,
+                    delay: i * 0.55,
+                    ease: "easeOut",
+                  }}
+                  className="absolute w-[300px] h-[300px] md:w-[380px] md:h-[380px] rounded-full border-2 border-white/70"
+                />
+              ))}
+              {/* Static faint rings for the layered GIF look */}
+              <div className="absolute w-[300px] h-[300px] md:w-[380px] md:h-[380px] rounded-full border border-white/25" />
+              <div className="absolute w-[220px] h-[220px] md:w-[280px] md:h-[280px] rounded-full border border-white/30" />
+              <div className="absolute w-[150px] h-[150px] md:w-[190px] md:h-[190px] rounded-full border border-white/20" />
+            </div>
 
-            {/* Portal Ring */}
+            {/* Center content */}
             <motion.div
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 1.5, opacity: 0, transition: { duration: 0.15 } }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              className="absolute w-[300px] h-[300px] md:w-[400px] md:h-[400px] rounded-full border border-white/20 shadow-[0_0_80px_rgba(215,15,100,0.5)] z-0"
-              style={{ background: "radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%)" }}
-            />
-
-            {/* Main Content Floating */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
+              initial={{ opacity: 0, scale: 0.85 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.1, transition: { duration: 0.15 } }}
-              transition={{ duration: 0.25, ease: "easeOut" }}
+              exit={{ opacity: 0, scale: 1.12, transition: { duration: 0.18 } }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
               className="relative z-10 flex flex-col items-center justify-center text-white w-full px-4 text-center"
             >
-              {/* Site Logo Presentation Frame */}
+              {/* Logo — pops in with a spring, glossy white ring */}
               <motion.div
-                animate={{ y: [-8, 8, -8], rotateZ: [-2, 2, -2] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                className="relative mb-6 group"
+                initial={{ scale: 0, rotate: -12 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", stiffness: 260, damping: 16, delay: 0.08 }}
+                className="relative mb-6"
               >
-                {/* Glow Behind Logo */}
-                <div className="absolute -inset-4 bg-white/25 blur-2xl rounded-full scale-110 opacity-70 group-hover:opacity-100 transition duration-700 pointer-events-none" />
-
-                {/* 3D Glassmorphic App Icon Frame */}
+                <div className="absolute -inset-3 bg-white/40 blur-2xl rounded-full scale-110 pointer-events-none" />
                 <motion.div
-                  whileHover={{ scale: 1.05, rotateY: 10, rotateX: 5 }}
-                  transition={{ type: "spring", bounce: 0.5 }}
-                  className="w-40 h-40 md:w-48 md:h-48 rounded-[2.5rem] overflow-hidden bg-white/10 backdrop-blur-xl shadow-[0_30px_80px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.4)] relative z-10 border border-white/30 p-2 transform-gpu"
+                  animate={{ y: [0, -6, 0] }}
+                  transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+                  className="relative w-36 h-36 md:w-44 md:h-44 rounded-full overflow-hidden bg-white shadow-[0_20px_60px_rgba(0,0,0,0.35),inset_0_2px_0_rgba(255,255,255,0.9)] border-4 border-white/90 p-1.5"
                 >
-                  <div className="w-full h-full rounded-[2rem] overflow-hidden bg-white relative flex items-center justify-center p-0.5">
-                    <img
-                      src={daduLogo}
-                      alt="Site Logo"
-                      className="w-full h-full object-cover rounded-[1.8rem] transform scale-105 transition-transform duration-700 group-hover:scale-100"
-                    />
-                  </div>
+                  <img
+                    src={daduLogo}
+                    alt="Dadu Food"
+                    className="w-full h-full object-cover rounded-full"
+                  />
+                  {/* Shine sweep across the logo */}
+                  <motion.div
+                    animate={{ x: ["-120%", "120%"] }}
+                    transition={{ duration: 1.6, repeat: Infinity, repeatDelay: 1.4, ease: "easeInOut" }}
+                    className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-white/60 to-transparent pointer-events-none"
+                  />
                 </motion.div>
               </motion.div>
 
-              {/* Brand Title Text matching DADUFOOD branding */}
+              {/* Brand */}
               <motion.h2
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2 }}
-                className="text-3xl md:text-5xl font-black tracking-widest text-white mb-1 text-center drop-shadow-[0_4px_12px_rgba(215,15,100,0.6)] uppercase font-sans"
+                transition={{ duration: 0.3, delay: 0.15 }}
+                className="text-4xl md:text-5xl font-black tracking-[0.18em] text-white drop-shadow-[0_4px_16px_rgba(0,0,0,0.35)] uppercase"
               >
-                DADUFOOD
+                Dadu Food
               </motion.h2>
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ duration: 0.2 }}
-                className="text-[11px] md:text-xs text-pink-300 font-black uppercase tracking-[0.3em] mb-7 flex items-center justify-center gap-1.5"
+                transition={{ duration: 0.3, delay: 0.25 }}
+                className="text-[11px] md:text-xs text-white/85 font-black uppercase tracking-[0.35em] mt-2"
               >
-                <span>⚡</span>
-                <span>FAST RIDER DELIVERY</span>
-                <span>⚡</span>
+                Fast Delivery • Dadu City
               </motion.p>
 
-              {/* High-tech Smooth 60FPS Animated Rider Loading Screen */}
+              {/* Slim progress */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.2 }}
-                className="flex flex-col items-center space-y-4 w-full max-w-[320px]"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3, delay: 0.3 }}
+                className="w-full max-w-[240px] mt-8"
               >
-                {/* Track Container with 60FPS Smooth Rider (Facing Right) */}
-                <div className="relative w-full pt-12 pb-1">
-                  {/* Smooth 60FPS Moving Rider (No CSS transition fight, native frame update) */}
+                <div className="h-1.5 w-full bg-white/25 rounded-full overflow-hidden">
                   <div
-                    className="absolute top-0 z-20 transform -translate-x-1/2 pointer-events-none will-change-transform"
-                    style={{ left: `${Math.max(6, Math.min(splashProgress, 94))}%` }}
-                  >
-                    <motion.div
-                      animate={{ y: [0, -3, 0] }}
-                      transition={{ duration: 0.22, repeat: Infinity, ease: "easeInOut" }}
-                      className="relative flex items-center justify-center"
-                    >
-                      {/* Speed Smoke & Fire Exhaust behind rider */}
-                      <motion.div
-                        animate={{ opacity: [0.3, 1, 0.3], x: [-8, -2, -8], scale: [0.7, 1.2, 0.7] }}
-                        transition={{ duration: 0.2, repeat: Infinity }}
-                        className="absolute -left-6 top-3 text-xs font-bold text-pink-400 drop-shadow-[0_0_8px_rgba(226,27,109,1)]"
-                      >
-                        💨🔥
-                      </motion.div>
-
-                      {/* Premium High-Quality Delivery Bike Rider SVG (Facing Right) */}
-                      <div className="relative filter drop-shadow-[0_6px_16px_rgba(226,27,109,0.9)]">
-                        <svg width="56" height="56" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          {/* Headlight Beam Glowing to the Right */}
-                          <polygon points="85,50 120,42 120,68 85,56" fill="url(#lightBeam)" opacity="0.85" />
-                          <defs>
-                            <linearGradient id="lightBeam" x1="0%" y1="0%" x2="100%" y2="0%">
-                              <stop offset="0%" stopColor="#FFDF00" stopOpacity="0.9" />
-                              <stop offset="100%" stopColor="#FFDF00" stopOpacity="0" />
-                            </linearGradient>
-                          </defs>
-
-                          {/* REAR WHEEL with Spinning Spokes */}
-                          <g>
-                            <circle cx="28" cy="82" r="16" fill="#09090b" stroke="#FFFFFF" strokeWidth="4" />
-                            <circle cx="28" cy="82" r="7" fill="#FFDF00" />
-                            {/* Animated Wheel Spokes */}
-                            <motion.line
-                              x1="28" y1="68" x2="28" y2="96"
-                              stroke="#FFDF00" strokeWidth="2"
-                              animate={{ rotate: 360 }}
-                              transition={{ duration: 0.4, repeat: Infinity, ease: "linear" }}
-                              style={{ transformOrigin: "28px 82px" }}
-                            />
-                          </g>
-
-                          {/* FRONT WHEEL with Spinning Spokes */}
-                          <g>
-                            <circle cx="88" cy="82" r="16" fill="#09090b" stroke="#FFFFFF" strokeWidth="4" />
-                            <circle cx="88" cy="82" r="7" fill="#FFDF00" />
-                            <motion.line
-                              x1="88" y1="68" x2="88" y2="96"
-                              stroke="#FFDF00" strokeWidth="2"
-                              animate={{ rotate: 360 }}
-                              transition={{ duration: 0.4, repeat: Infinity, ease: "linear" }}
-                              style={{ transformOrigin: "88px 82px" }}
-                            />
-                          </g>
-
-                          {/* Sports Scooter Body Structure */}
-                          <path d="M28 82 L48 82 L56 58 L78 58 L88 82 Z" fill="#FFFFFF" />
-                          <path d="M48 80 L70 80 L76 48 L62 48 Z" fill="#E21B6D" />
-
-                          {/* Front Windshield & Bright Gold Headlight Lamp */}
-                          <path d="M76 48 L86 34 L78 32 Z" fill="#FFFFFF" />
-                          <circle cx="85" cy="34" r="5" fill="#FFDF00" stroke="#FFFFFF" strokeWidth="1" />
-
-                          {/* Hot Food Delivery Box on Rear Rack */}
-                          <rect x="10" y="38" width="28" height="28" rx="5" fill="#FFDF00" stroke="#FFFFFF" strokeWidth="2.5" />
-                          {/* Box Logo & Steam Lines */}
-                          <path d="M16 52 L32 52" stroke="#9C0843" strokeWidth="4" strokeLinecap="round" />
-                          <path d="M20 44 C20 40, 24 40, 24 36" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" fill="none" />
-                          <path d="M28 44 C28 40, 32 40, 32 36" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" fill="none" />
-
-                          {/* Rider Cushion Seat */}
-                          <rect x="42" y="56" width="24" height="6" rx="3" fill="#09090b" />
-
-                          {/* Rider Legs & Leather Pants */}
-                          <path d="M44 58 L54 78 L68 78 L58 58 Z" fill="#09090b" />
-
-                          {/* Rider Racing Jacket (Hot Pink & White) */}
-                          <path d="M48 36 L62 36 L72 52 L54 54 Z" fill="#E21B6D" />
-                          <path d="M52 36 L68 46 L70 54" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" />
-
-                          {/* Rider Arms Steering Handlebars */}
-                          <path d="M54 40 L72 44 L82 42" stroke="#FFFFFF" strokeWidth="5.5" strokeLinecap="round" />
-
-                          {/* Rider Helmet facing RIGHT with Dark Visor */}
-                          <circle cx="56" cy="22" r="12" fill="#FFFFFF" stroke="#E21B6D" strokeWidth="2" />
-                          <path d="M60 16 C67 16, 68 25, 60 28 Z" fill="#09090b" />
-                          <circle cx="63" cy="20" r="2" fill="#FFDF00" />
-                        </svg>
-                      </div>
-                    </motion.div>
-                  </div>
-
-                  {/* High-Tech Glowing Progress Bar Track */}
-                  <div className="relative h-4 w-full bg-black/80 rounded-full p-1 backdrop-blur-md border border-white/20 shadow-[0_0_30px_rgba(226,27,109,0.7)]">
-                    <div
-                      className="h-full bg-gradient-to-r from-[#E21B6D] via-pink-400 to-[#FFDF00] rounded-full shadow-[0_0_18px_#FFDF00] transition-all ease-linear"
-                      style={{ width: `${splashProgress}%` }}
-                    />
-                    <motion.div
-                      animate={{ x: ["-100%", "100%"] }}
-                      transition={{ duration: 1.0, repeat: Infinity, ease: "linear" }}
-                      className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-white/80 to-transparent pointer-events-none rounded-full"
-                    />
-                  </div>
+                    className="h-full bg-white rounded-full shadow-[0_0_12px_rgba(255,255,255,0.9)] transition-all ease-linear"
+                    style={{ width: `${splashProgress}%` }}
+                  />
                 </div>
-
-                {/* World-Class Digital Speedometer Counter Badge (0 to 100%) */}
-                <div className="flex flex-col items-center justify-center w-full space-y-2 pt-1">
-                  {/* Glowing Digital Gauge Badge */}
-                  <div className="flex items-center gap-2.5 bg-black/80 border border-pink-500/40 px-5 py-2 rounded-2xl backdrop-blur-xl shadow-[0_4px_25px_rgba(226,27,109,0.5)]">
-                    <span className="text-base animate-pulse">⚡</span>
-                    <span className="text-2xl font-black font-mono tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-[#FFDF00] via-pink-200 to-white drop-shadow-[0_2px_10px_rgba(255,223,0,0.9)]">
-                      {splashProgress.toString().padStart(2, '0')}
-                    </span>
-                    <span className="text-xs font-black text-pink-300 font-mono">%</span>
-                  </div>
-
-                  {/* Dynamic Status Badges with Fast City Messaging */}
-                  <motion.div
-                    key={splashProgress < 30 ? "s1" : splashProgress < 70 ? "s2" : "s3"}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="text-[11px] font-black uppercase tracking-[0.25em] text-pink-200 text-center flex items-center gap-1.5"
-                  >
-                    {splashProgress < 30 && (
-                      <>
-                        <span className="animate-bounce">🏍️</span>
-                        <span>Rider Starting Engine...</span>
-                      </>
-                    )}
-                    {splashProgress >= 30 && splashProgress < 70 && (
-                      <>
-                        <span className="animate-pulse">⚡</span>
-                        <span>Speeding Across Dadu City...</span>
-                      </>
-                    )}
-                    {splashProgress >= 70 && (
-                      <>
-                        <span>🚀</span>
-                        <span className="text-yellow-300">Delivering Fresh & Fast!</span>
-                      </>
-                    )}
-                  </motion.div>
-                </div>
+                <p className="text-white/80 text-[11px] font-bold tracking-[0.25em] mt-2.5">
+                  {splashProgress.toString().padStart(2, "0")}%
+                </p>
               </motion.div>
             </motion.div>
           </motion.div>
