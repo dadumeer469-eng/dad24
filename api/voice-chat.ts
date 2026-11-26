@@ -1,7 +1,7 @@
 // Vercel serverless function — Groq voice chat for the Dadu Food call agent.
 // POST {messages:[{role,content}], menuText, ordersText, userName, userPhone}
 // Returns {reply, order}. Keys come only from env vars (GROQ_API_KEY..._5).
-import { handleVoiceChat } from "../server/groqVoice";
+import { handleVoiceChat } from "../server/groqVoice.js";
 
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
