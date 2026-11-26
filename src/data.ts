@@ -7,7 +7,7 @@ export const INITIAL_MENU_ITEMS: Dish[] = [
     description: "Juicy beef or grilled chicken double patty topped with melted cheese slices, onion rings and signature house sauce.",
     price: 380,
     category: "Burgers",
-    imageUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80&w=400",
+    imageUrl: "/images/dishes/burger.jpg",
     isAvailable: true,
     type: "food",
   },
@@ -17,7 +17,7 @@ export const INITIAL_MENU_ITEMS: Dish[] = [
     description: "Extra crispy chicken fillet coated with spiced batter, served with fresh lettuce and signature garlic mayonnaise.",
     price: 290,
     category: "Burgers",
-    imageUrl: "https://images.unsplash.com/photo-1625813506062-0aeb1d7a094b?auto=format&fit=crop&q=80&w=400",
+    imageUrl: "/images/dishes/zinger.jpg",
     isAvailable: true,
     type: "food",
   },
@@ -27,7 +27,7 @@ export const INITIAL_MENU_ITEMS: Dish[] = [
     description: "Packed with spiced fajita chicken chunks, fresh bell peppers, caramelized onions and melted mozzarella.",
     price: 650,
     category: "Pizza",
-    imageUrl: "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&q=80&w=400",
+    imageUrl: "/images/dishes/pizza.jpg",
     isAvailable: true,
     type: "food",
   },
@@ -37,7 +37,7 @@ export const INITIAL_MENU_ITEMS: Dish[] = [
     description: "Thick double-cheese stuffed crust loaded with seasoned beef slices, black olives, bell pepper, and tomato slices.",
     price: 850,
     category: "Pizza",
-    imageUrl: "https://images.unsplash.com/photo-1590947132387-155cc02f3212?auto=format&fit=crop&q=80&w=400",
+    imageUrl: "/images/dishes/pizza.jpg",
     isAvailable: true,
     type: "food",
   },
@@ -47,7 +47,7 @@ export const INITIAL_MENU_ITEMS: Dish[] = [
     description: "Six skewers of spice-crusted minced beef charcoal barbecued, served with mint raita and fresh naan.",
     price: 750,
     category: "Specials",
-    imageUrl: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&q=80&w=400",
+    imageUrl: "/images/dishes/seekh-kabab.jpg",
     isAvailable: true,
     type: "food",
   },
@@ -66,28 +66,28 @@ export const CHECKOUT_DRINKS: DrinkRecommendation[] = [
     id: "drink_pepsi",
     name: "Chilled Pepsi (345ml)",
     price: 110,
-    imageUrl: "https://images.unsplash.com/photo-1629203851122-3726ecdf080e?auto=format&fit=crop&q=80&w=300",
+    imageUrl: "/images/dishes/cola.jpg",
     description: "Ice cold carbonated cola refresher.",
   },
   {
     id: "drink_dew",
     name: "Ice Cold Mountain Dew (345ml)",
     price: 110,
-    imageUrl: "https://images.unsplash.com/photo-1625772299848-391b6a87d7b3?auto=format&fit=crop&q=80&w=300",
+    imageUrl: "/images/dishes/mountain-dew.jpg",
     description: "Extra carbonated, chilled citrus soft drink.",
   },
   {
     id: "drink_7up",
     name: "Chilled 7Up (345ml)",
     price: 110,
-    imageUrl: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&q=80&w=300",
+    imageUrl: "/images/dishes/seven-up.jpg",
     description: "Crisp and clean lemon-lime chilled soft drink.",
   },
   {
     id: "drink_coke",
     name: "Chilled Coca-Cola (345ml)",
     price: 110,
-    imageUrl: "https://images.unsplash.com/photo-1554866585-cd94860890b7?auto=format&fit=crop&q=80&w=300",
+    imageUrl: "/images/dishes/cola.jpg",
     description: "Classic ice-cold cola refresher.",
   },
 ];
@@ -220,25 +220,25 @@ export {
 } from "./data/ownerGroceryCatalog";
 
 export function getDefaultRestaurantImage(vendorName?: string): string {
-  if (!vendorName) return "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=600";
+  if (!vendorName) return "/images/dishes/pizza.jpg";
   const name = vendorName.toLowerCase();
   if (name.includes("pizza")) {
-    return "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&q=80&w=600";
+    return "/images/dishes/pizza.jpg";
   }
   if (name.includes("burger") || name.includes("fast food") || name.includes("cafe")) {
-    return "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80&w=600";
+    return "/images/dishes/burger.jpg";
   }
   if (name.includes("tasty bites") || name.includes("tasty")) {
-    return "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=600";
+    return "/images/dishes/pizza.jpg";
   }
   if (name.includes("biryani") || name.includes("karahi") || name.includes("bbq") || name.includes("tikka") || name.includes("shinwari") || name.includes("peshawari")) {
-    return "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&q=80&w=600";
+    return "/images/dishes/biryani.jpg";
   }
   if (name.includes("tea") || name.includes("chai") || name.includes("coffee")) {
-    return "https://images.unsplash.com/photo-1541658016709-82535e94bc69?auto=format&fit=crop&q=80&w=600";
+    return "/images/dishes/chai.jpg";
   }
   if (name.includes("sweet") || name.includes("bakers") || name.includes("cake") || name.includes("bakery")) {
-    return "https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&q=80&w=600";
+    return "/images/dishes/cheesecake.jpg";
   }
-  return "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=600";
+  return "/images/dishes/pizza.jpg";
 }
