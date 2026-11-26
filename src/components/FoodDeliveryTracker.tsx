@@ -381,7 +381,7 @@ export default function FoodDeliveryTracker({
               type="button"
               onClick={onClose}
               aria-label="Close tracker"
-              className="w-11 h-11 bg-white hover:bg-slate-100 text-slate-900 rounded-full flex items-center justify-center shadow-lg border border-slate-200/80 pointer-events-auto transition active:scale-95 cursor-pointer"
+              className="w-11 h-11 bg-white hover:bg-slate-100 text-slate-900 rounded-full flex items-center justify-center shadow-lg border border-slate-200/80 pointer-events-auto transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer"
             >
               <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
             </button>
@@ -391,7 +391,7 @@ export default function FoodDeliveryTracker({
             <button
               type="button"
               onClick={toggleSheet}
-              className="min-h-[44px] bg-white/95 backdrop-blur-md hover:bg-slate-100 text-slate-900 text-xs font-extrabold px-3 py-2 rounded-xl shadow-lg border border-slate-200/80 transition active:scale-95 cursor-pointer flex items-center gap-1.5"
+              className="min-h-[44px] bg-white/95 backdrop-blur-md hover:bg-slate-100 text-slate-900 text-xs font-extrabold px-3 py-2 rounded-xl shadow-lg border border-slate-200/80 transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer flex items-center gap-1.5"
             >
               {isSheetCollapsed ? (
                 <Minimize2 className="w-3.5 h-3.5 text-[#E21B70]" />
@@ -404,7 +404,7 @@ export default function FoodDeliveryTracker({
             <button
               type="button"
               onClick={() => setShowHelpModal(true)}
-              className="min-h-[44px] bg-white hover:bg-slate-100 text-slate-900 text-xs font-black px-3.5 py-2 rounded-xl shadow-lg border border-slate-200/80 transition active:scale-95 cursor-pointer"
+              className="min-h-[44px] bg-white hover:bg-slate-100 text-slate-900 text-xs font-black px-3.5 py-2 rounded-xl shadow-lg border border-slate-200/80 transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer"
             >
               Help
             </button>
@@ -415,7 +415,7 @@ export default function FoodDeliveryTracker({
         <button
           type="button"
           onClick={() => setRecenterSignal((n) => n + 1)}
-          className={`absolute z-20 w-11 h-11 bg-white hover:bg-slate-100 text-slate-800 rounded-full flex items-center justify-center shadow-lg border border-slate-200/80 transition active:scale-95 cursor-pointer ${
+          className={`absolute z-20 w-11 h-11 bg-white hover:bg-slate-100 text-slate-800 rounded-full flex items-center justify-center shadow-lg border border-slate-200/80 transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer ${
             isSheetCollapsed ? "bottom-20 right-4" : "bottom-6 right-4"
           }`}
           title="Recenter map"
@@ -455,7 +455,7 @@ export default function FoodDeliveryTracker({
                     d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                   />
                   <path
-                    className="text-[#E21B70] transition-all duration-1000 ease-out"
+                    className="text-[#E21B70] transition-[stroke-dasharray] duration-300 ease-out"
                     strokeDasharray={`${gaugePercent}, 100`}
                     strokeWidth="3.5"
                     strokeLinecap="round"
@@ -489,7 +489,7 @@ export default function FoodDeliveryTracker({
         <button
           type="button"
           onClick={toggleSheet}
-          className="w-full flex flex-col items-center justify-center py-1 cursor-pointer group focus:outline-none"
+          className="w-full flex flex-col items-center justify-center py-1 cursor-pointer group focus:outline-none transition-transform duration-180 active:scale-[0.97] active:brightness-110"
           title={
             isSheetCollapsed
               ? "Tap to view full order details"
@@ -540,7 +540,7 @@ export default function FoodDeliveryTracker({
                 <a
                   href={`tel:${riderPhone}`}
                   onClick={(e) => e.stopPropagation()}
-                  className="w-10 h-10 bg-white border border-slate-200 text-slate-800 rounded-full flex items-center justify-center shadow-xs transition active:scale-95"
+                  className="w-10 h-10 bg-white border border-slate-200 text-slate-800 rounded-full flex items-center justify-center shadow-xs transition-transform duration-180 active:scale-[0.97] active:brightness-110"
                   title="Call Rider"
                 >
                   <Phone className="w-4 h-4 text-[#E21B70]" />
@@ -580,7 +580,7 @@ export default function FoodDeliveryTracker({
                   {riderPhone && (
                     <a
                       href={`tel:${riderPhone}`}
-                      className="w-10 h-10 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-full flex items-center justify-center transition active:scale-95"
+                      className="w-10 h-10 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-full flex items-center justify-center transition-transform duration-180 active:scale-[0.97] active:brightness-110"
                       title="Call Rider"
                     >
                       <Phone className="w-4 h-4" />
@@ -591,7 +591,7 @@ export default function FoodDeliveryTracker({
                 <button
                   type="button"
                   onClick={() => setShowChat(!showChat)}
-                  className="w-full min-h-[44px] bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-extrabold text-xs py-3 px-4 rounded-2xl flex items-center justify-between transition shadow-xs cursor-pointer"
+                  className="w-full min-h-[44px] bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 font-extrabold text-xs py-3 px-4 rounded-2xl flex items-center justify-between transition-transform duration-180 active:scale-[0.97] active:brightness-110 shadow-xs cursor-pointer"
                 >
                   <div className="flex items-center gap-2">
                     <MessageSquare className="w-4 h-4 text-slate-700" />
@@ -769,12 +769,12 @@ export default function FoodDeliveryTracker({
 
       {/* HELP MODAL */}
       {showHelpModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl relative">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl relative animate-scale-up">
             <button
               type="button"
               onClick={() => setShowHelpModal(false)}
-              className="absolute top-4 right-4 w-11 h-11 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer transition active:scale-95"
+              className="absolute top-4 right-4 w-11 h-11 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110"
               aria-label="Close help modal"
             >
               <X className="w-5 h-5" />
@@ -795,14 +795,14 @@ export default function FoodDeliveryTracker({
                 href="https://wa.me/923277004471"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs py-3 px-4 rounded-2xl flex items-center justify-center gap-2 shadow-sm transition active:scale-95"
+                className="w-full min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs py-3 px-4 rounded-2xl flex items-center justify-center gap-2 shadow-sm transition-transform duration-180 active:scale-[0.97] active:brightness-110"
               >
                 <span>WhatsApp Support (03277004471)</span>
               </a>
 
               <a
                 href="tel:03277004471"
-                className="w-full min-h-[44px] bg-[#E21B70] hover:bg-[#C2145E] text-white font-extrabold text-xs py-3 px-4 rounded-2xl flex items-center justify-center gap-2 shadow-sm transition active:scale-95"
+                className="w-full min-h-[44px] bg-[#E21B70] hover:bg-[#C2145E] text-white font-extrabold text-xs py-3 px-4 rounded-2xl flex items-center justify-center gap-2 shadow-sm transition-transform duration-180 active:scale-[0.97] active:brightness-110 relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
               >
                 <span>Call Helpline</span>
               </a>

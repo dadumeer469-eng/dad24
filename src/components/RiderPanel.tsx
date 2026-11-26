@@ -8,7 +8,7 @@ import { Order, UserProfile } from "../types";
 import { awardLoyaltyCoinsForOrder, creditRiderCoinsForOrder } from "../lib/loyalty";
 import { 
   CheckCircle2, Compass, Coins, CalendarDays, TrendingUp, History, User, 
-  MapPin, PhoneCall, LogOut, ArrowRight, ClipboardList, DollarSign, Clock, Check, Store, XCircle, Star,
+  MapPin, PhoneCall, LogOut, ArrowRight, ClipboardList, DollarSign, Clock, Loader2, Check, Store, XCircle, Star,
   Ticket, Wallet
 } from "lucide-react";
 import OrderChat from "./OrderChat";
@@ -631,14 +631,16 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
           onClick={handleToggleOnline}
           aria-label="Toggle duty status"
           aria-pressed={isOnline}
-          className={`py-1 px-3 rounded-full text-[10.5px] font-black tracking-wider uppercase transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 border ${
+          className={`py-1 px-3 rounded-full text-[10.5px] font-black tracking-wider uppercase transition-all duration-300 flex items-center gap-1.5 cursor-pointer active:scale-[0.97] active:brightness-110 border ${
             isOnline
               ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30 shadow-xs shadow-emerald-500/10"
               : "bg-zinc-950 text-zinc-400 border-zinc-800"
           }`}
           title="Tap to toggle Duty Status"
         >
-          <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-emerald-400 animate-pulse" : "bg-zinc-500"}`}></span>
+          <span className={`relative inline-flex h-[18px] w-8 shrink-0 items-center rounded-full transition-colors duration-300 ${isOnline ? "bg-emerald-400" : "bg-zinc-600"}`}>
+            <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${isOnline ? "translate-x-[16px]" : "translate-x-[2px]"}`}></span>
+          </span>
           <span>{isOnline ? "DUTY: ONLINE" : "DUTY: OFFLINE"}</span>
         </button>
 
@@ -653,7 +655,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
         <button
           onClick={onLogout}
           aria-label="Sign out"
-          className="bg-zinc-950 text-zinc-400 hover:text-pink-400 border border-zinc-800 px-2.5 py-1 rounded-xl transition cursor-pointer active:scale-95 flex items-center gap-1 text-[10px] font-black uppercase tracking-wider"
+          className="bg-zinc-950 text-zinc-400 hover:text-pink-400 border border-zinc-800 px-2.5 py-1 rounded-xl transition-transform duration-180 cursor-pointer active:scale-[0.97] active:brightness-110 flex items-center gap-1 text-[10px] font-black uppercase tracking-wider"
           title="Sign Out"
         >
           <LogOut className="w-3.5 h-3.5 text-pink-500 shrink-0" />
@@ -686,14 +688,14 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                 {availableOrders.length > 0 && (
                   <button
                     onClick={() => setIsMuted(prev => !prev)}
-                    className="py-1.5 px-3 rounded-xl text-[10px] font-black uppercase tracking-wider bg-pink-950/60 text-pink-300 border border-pink-800/60 hover:bg-pink-900/60 transition cursor-pointer flex items-center gap-1.5"
+                    className="py-1.5 px-3 rounded-xl text-[10px] font-black uppercase tracking-wider bg-pink-950/60 text-pink-300 border border-pink-800/60 hover:bg-pink-900/60 transition-transform duration-180 cursor-pointer active:scale-[0.97] active:brightness-110 flex items-center gap-1.5"
                   >
                     <span>{isMuted ? "🔇 Alarm Muted" : "🚨 Alarm Active"}</span>
                   </button>
                 )}
                 <button
                   onClick={() => setActiveTab("performance")}
-                  className="py-1.5 px-3 rounded-xl text-[10px] font-black uppercase tracking-wider bg-zinc-800 text-zinc-200 hover:bg-zinc-700 transition cursor-pointer"
+                  className="py-1.5 px-3 rounded-xl text-[10px] font-black uppercase tracking-wider bg-zinc-800 text-zinc-200 hover:bg-zinc-700 transition-transform duration-180 cursor-pointer active:scale-[0.97] active:brightness-110"
                 >
                   Earnings Details →
                 </button>
@@ -714,7 +716,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                 </div>
                 <button
                   onClick={handleToggleOnline}
-                  className="py-2.5 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-500/20 transition transform active:scale-95 cursor-pointer inline-flex items-center gap-2"
+                  className="py-2.5 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-500/20 transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer inline-flex items-center gap-2"
                 >
                   <span>🟢 Go Online Now</span>
                 </button>
@@ -744,14 +746,14 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                       playContinuousAlarm();
                       triggerVibration();
                     }}
-                    className="py-2 px-3 bg-zinc-900 border border-pink-500/50 rounded-xl text-[10px] font-black uppercase text-pink-300 hover:bg-zinc-800 transition active:scale-95 cursor-pointer"
+                    className="py-2 px-3 bg-zinc-900 border border-pink-500/50 rounded-xl text-[10px] font-black uppercase text-pink-300 hover:bg-zinc-800 transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer"
                     title="Test or trigger loud sound tone"
                   >
                     🔊 Test Ring
                   </button>
                   <button
                     onClick={() => setIsMuted(prev => !prev)}
-                    className="py-2 px-4 bg-[#E21B70] hover:bg-[#C2145E] text-white rounded-xl text-xs font-black uppercase tracking-wider transition active:scale-95 cursor-pointer shadow-lg shadow-pink-500/30"
+                    className="py-2 px-4 bg-[#E21B70] hover:bg-[#C2145E] text-white rounded-xl relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100 text-xs font-black uppercase tracking-wider transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer shadow-lg shadow-pink-500/30"
                   >
                     {isMuted ? "🔊 Unmute Ring" : "🔇 Stop Ringing"}
                   </button>
@@ -803,7 +805,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                           <button
                             key={order.id}
                             onClick={() => setFocusedActiveOrderId(order.id)}
-                            className={`p-2.5 rounded-xl text-left border transition cursor-pointer active:scale-95 flex flex-col justify-between ${
+                            className={`p-2.5 rounded-xl text-left border transition-transform duration-180 cursor-pointer active:scale-[0.97] active:brightness-110 md:hover:-translate-y-0.5 flex flex-col justify-between ${
                               isSelected
                                 ? "bg-[#E21B70] border-[#E21B70] text-white shadow-md"
                                 : "bg-zinc-950 border-zinc-800 text-zinc-300 hover:border-pink-500/40"
@@ -938,7 +940,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                         <div className="absolute left-6 right-6 h-1 bg-zinc-800 top-1/2 -translate-y-1/2 z-0"></div>
                         {/* Active connecting line fill */}
                         <div 
-                          className="absolute left-6 h-1 bg-[#E21B70] top-1/2 -translate-y-1/2 z-0 transition-all duration-500"
+                          className="absolute left-6 h-1 bg-[#E21B70] top-1/2 -translate-y-1/2 z-0 transition-[width] duration-300 ease-out micro-progress"
                           style={{
                             width: 
                               riderActiveOrder.status === "accepted" ? "0%" :
@@ -971,10 +973,10 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                             }}
                             disabled={loadingActionId !== null || riderActiveOrder.status !== "accepted"}
                             aria-label="Mark order as preparing"
-                            className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black transition-all border ${
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black transition-all duration-300 border ${
                               ["preparing", "out_for_delivery", "delivered"].includes(riderActiveOrder.status)
                                 ? "bg-[#E21B70] text-white border-[#E21B70] shadow-md shadow-pink-500/20 cursor-default"
-                                : "bg-zinc-900 text-zinc-400 border-zinc-700 hover:border-pink-500/40 cursor-pointer active:scale-90"
+                                : "bg-zinc-900 text-zinc-400 border-zinc-700 hover:border-pink-500/40 cursor-pointer active:scale-[0.97] active:brightness-110"
                             }`}
                             title="Tap to mark as Preparing"
                           >
@@ -994,10 +996,10 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                             }}
                             disabled={loadingActionId !== null || !["accepted", "preparing"].includes(riderActiveOrder.status)}
                             aria-label="Mark order as out for delivery"
-                            className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black transition-all border ${
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black transition-all duration-300 border ${
                               ["out_for_delivery", "delivered"].includes(riderActiveOrder.status)
                                 ? "bg-[#E21B70] text-white border-[#E21B70] shadow-md shadow-pink-500/20 cursor-default"
-                                : "bg-zinc-900 text-zinc-400 border-zinc-700 hover:border-pink-500/40 cursor-pointer active:scale-90"
+                                : "bg-zinc-900 text-zinc-400 border-zinc-700 hover:border-pink-500/40 cursor-pointer active:scale-[0.97] active:brightness-110"
                             }`}
                             title="Tap to mark as Out for Delivery"
                           >
@@ -1069,7 +1071,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                           {riderActiveOrder.userPhone ? (
                             <a 
                               href={`tel:${riderActiveOrder.userPhone}`} 
-                              className="bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 text-zinc-100 py-2 sm:py-2.5 px-2 rounded-xl transition text-center font-black text-[10.5px] sm:text-xs flex items-center justify-center gap-1 shadow-xs cursor-pointer truncate active:scale-95"
+                              className="bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 text-zinc-100 py-2 sm:py-2.5 px-2 rounded-xl transition-transform duration-180 text-center font-black text-[10.5px] sm:text-xs flex items-center justify-center gap-1 shadow-xs cursor-pointer truncate active:scale-[0.97] active:brightness-110"
                             >
                               📞 Call
                             </a>
@@ -1082,7 +1084,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                           <button
                             type="button"
                             onClick={() => setShowLiveChat(!showLiveChat)}
-                            className={`py-2 sm:py-2.5 px-2 rounded-xl transition text-center font-black text-[10.5px] sm:text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer active:scale-95 truncate relative ${
+                            className={`py-2 sm:py-2.5 px-2 rounded-xl relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100 transition-transform duration-180 text-center font-black text-[10.5px] sm:text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer active:scale-[0.97] active:brightness-110 truncate relative ${
                               showLiveChat 
                                 ? "bg-zinc-800 border border-[#E21B70] text-white hover:bg-zinc-800 ring-2 ring-[#E21B70]/30" 
                                 : "bg-gradient-to-r from-[#E21B70] to-pink-600 text-white hover:from-[#C2145E] hover:to-pink-700"
@@ -1103,7 +1105,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                               setRiderReceiptOrder(riderActiveOrder);
                               setIsRiderReceiptModalOpen(true);
                             }}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white py-2 sm:py-2.5 px-2 rounded-xl transition text-center font-black text-[10.5px] sm:text-xs flex items-center justify-center gap-1 shadow-md cursor-pointer truncate active:scale-95 border border-emerald-500/30"
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white py-2 sm:py-2.5 px-2 rounded-xl transition-transform duration-180 text-center font-black text-[10.5px] sm:text-xs flex items-center justify-center gap-1 shadow-md cursor-pointer truncate active:scale-[0.97] active:brightness-110 border border-emerald-500/30"
                           >
                             <span>🧾 Bill & WhatsApp</span>
                           </button>
@@ -1140,7 +1142,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                                     alert("Template sending failed: " + err.message);
                                   }
                                 }}
-                                className="bg-zinc-900/60 hover:bg-[#E21B70]/10 hover:text-pink-300 border border-zinc-800/80 hover:border-[#E21B70]/30 py-2 px-2.5 rounded-xl text-[10px] font-bold text-left transition cursor-pointer flex items-center justify-between gap-1 group active:scale-95"
+                                className="bg-zinc-900/60 hover:bg-[#E21B70]/10 hover:text-pink-300 border border-zinc-800/80 hover:border-[#E21B70]/30 py-2 px-2.5 rounded-xl text-[10px] font-bold text-left transition-transform duration-180 cursor-pointer flex items-center justify-between gap-1 group active:scale-[0.97] active:brightness-110"
                               >
                                 <span className="text-[#E21B70] group-hover:text-pink-400 font-extrabold">{tpl.label}</span>
                                 <span className="text-[9px] text-zinc-500 truncate max-w-[120px] sm:max-w-[160px]">{tpl.text}</span>
@@ -1194,7 +1196,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                            href={`https://www.google.com/maps/dir/?api=1&destination=${riderActiveOrder.userCoords.latitude},${riderActiveOrder.userCoords.longitude}`}
                            target="_blank"
                            rel="noopener noreferrer"
-                           className="w-full bg-[#E21B70] hover:bg-[#C2145E] text-white font-black text-xs uppercase tracking-wider py-2.5 px-4 rounded-xl text-center shadow-md flex items-center justify-center gap-1.5 transition cursor-pointer active:scale-95"
+                           className="w-full bg-[#E21B70] hover:bg-[#C2145E] text-white font-black text-xs uppercase tracking-wider py-2.5 px-4 rounded-xl relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100 text-center shadow-md flex items-center justify-center gap-1.5 transition-transform duration-180 cursor-pointer active:scale-[0.97] active:brightness-110"
                            id="google-maps-dir-button"
                          >
                            <Compass className="w-4 h-4 shrink-0" />
@@ -1245,7 +1247,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                             key={preset}
                             type="button"
                             onClick={() => setEtaInputs({ ...etaInputs, [riderActiveOrder.id]: preset })}
-                            className="bg-zinc-900 hover:bg-[#E21B70]/20 border border-zinc-700 hover:border-[#E21B70] text-zinc-300 hover:text-pink-300 text-[10px] font-bold px-3 py-2 min-h-[40px] rounded-lg transition cursor-pointer"
+                            className="bg-zinc-900 hover:bg-[#E21B70]/20 border border-zinc-700 hover:border-[#E21B70] text-zinc-300 hover:text-pink-300 text-[10px] font-bold px-3 py-2 min-h-[40px] rounded-lg transition-transform duration-180 cursor-pointer active:scale-[0.97] active:brightness-110"
                           >
                             ⏱️ {preset}
                           </button>
@@ -1280,7 +1282,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                               alert("Failed to update ETA: " + err.message);
                             }
                           }}
-                          className="bg-[#E21B70] hover:bg-[#C2145E] text-white font-black text-xs uppercase px-4 py-2.5 rounded-xl transition cursor-pointer active:scale-95"
+                          className="bg-[#E21B70] hover:bg-[#C2145E] text-white font-black text-xs uppercase px-4 py-2.5 rounded-xl relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100 transition-transform duration-180 cursor-pointer active:scale-[0.97] active:brightness-110"
                         >
                           Update Time
                         </button>
@@ -1305,7 +1307,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                         <button
                           onClick={() => handleMarkAsPreparing(riderActiveOrder.id)}
                           disabled={loadingActionId === riderActiveOrder.id}
-                          className="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black py-4 rounded-2xl transition shadow-lg text-xs sm:text-sm tracking-wider uppercase flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95 shadow-amber-500/20"
+                          className="w-full bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black py-4 rounded-2xl transition-transform duration-180 shadow-lg text-xs sm:text-sm tracking-wider uppercase flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-[0.97] active:brightness-110 shadow-amber-500/20"
                         >
                           {loadingActionId === riderActiveOrder.id ? (
                             <>
@@ -1324,7 +1326,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                         <button
                           onClick={() => handleMarkAsOutForDelivery(riderActiveOrder.id)}
                           disabled={loadingActionId === riderActiveOrder.id}
-                          className="w-full bg-[#E21B70] hover:bg-[#C2145E] text-white font-black py-4 rounded-2xl transition shadow-lg text-xs sm:text-sm tracking-wider uppercase flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95 shadow-pink-500/20"
+                          className="w-full bg-[#E21B70] hover:bg-[#C2145E] text-white font-black py-4 rounded-2xl relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100 transition-transform duration-180 shadow-lg text-xs sm:text-sm tracking-wider uppercase flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-[0.97] active:brightness-110 shadow-pink-500/20"
                         >
                           {loadingActionId === riderActiveOrder.id ? (
                             <>
@@ -1344,7 +1346,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                         <button
                           onClick={() => handleMarkAsDelivered(riderActiveOrder.id)}
                           disabled={loadingActionId === riderActiveOrder.id}
-                          className="w-full bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black py-4 rounded-2xl transition shadow-lg text-xs sm:text-sm tracking-wider uppercase flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95 shadow-emerald-500/20"
+                          className="w-full bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black py-4 rounded-2xl transition-transform duration-180 shadow-lg text-xs sm:text-sm tracking-wider uppercase flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-[0.97] active:brightness-110 shadow-emerald-500/20"
                         >
                           {loadingActionId === riderActiveOrder.id ? (
                             <>
@@ -1363,10 +1365,19 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                       <button
                         onClick={() => handleCancelOrder(riderActiveOrder.id)}
                         disabled={loadingActionId === riderActiveOrder.id}
-                        className="w-full bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-red-400 font-bold py-2.5 rounded-xl transition text-[11px] tracking-wider uppercase flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-95 mt-1"
+                        className="w-full bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-red-400 font-bold py-2.5 rounded-xl transition-transform duration-180 text-[11px] tracking-wider uppercase flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-[0.97] active:brightness-110 mt-1"
                       >
-                        <XCircle className="w-4 h-4" />
-                        Cancel / Return Order
+                        {loadingActionId === riderActiveOrder.id ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Cancelling...
+                          </>
+                        ) : (
+                          <>
+                            <XCircle className="w-4 h-4" />
+                            Cancel / Return Order
+                          </>
+                        )}
                       </button>
                     </div>
 
@@ -1433,7 +1444,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                       return (
                         <div 
                           key={order.id} 
-                          className={`bg-zinc-900 border rounded-2xl p-4 sm:p-5 hover:border-[#E21B70]/40 transition space-y-4 shadow-xs relative text-zinc-100 group ${
+                          className={`bg-zinc-900 border rounded-2xl p-4 sm:p-5 hover:border-[#E21B70]/40 transition duration-300 md:hover:-translate-y-0.5 space-y-4 shadow-xs relative text-zinc-100 group ${
                             hasNearbyMatches ? "border-emerald-500/30 ring-1 ring-emerald-500/10" : "border-zinc-800"
                           }`}
                         >
@@ -1572,7 +1583,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                               setRiderReceiptOrder(order);
                               setIsRiderReceiptModalOpen(true);
                             }}
-                            className="w-full py-2 px-3 mb-2 rounded-xl text-[10.5px] font-black text-emerald-300 bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-800/60 transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shadow-xs"
+                            className="w-full py-2 px-3 mb-2 rounded-xl text-[10.5px] font-black text-emerald-300 bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-800/60 transition-transform duration-180 flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.97] active:brightness-110 shadow-xs"
                           >
                             <span>🧾 Order Bill & WhatsApp Customer</span>
                           </button>
@@ -1581,14 +1592,17 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                           <button
                             onClick={() => handleAcceptOrder(order.id)}
                             disabled={isDisabled}
-                            className={`w-full py-3 rounded-xl text-[11px] font-black uppercase tracking-wider transition flex items-center justify-center gap-2 cursor-pointer border active:scale-95 ${
+                            className={`w-full py-3 rounded-xl relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100 text-[11px] font-black uppercase tracking-wider transition-transform duration-180 flex items-center justify-center gap-2 cursor-pointer border active:scale-[0.97] active:brightness-110 ${
                               isDisabled && riderActiveOrders.length >= 3
                                 ? "bg-zinc-950 text-zinc-600 border-zinc-850 cursor-not-allowed"
                                 : "bg-gradient-to-r from-[#E21B70] to-pink-600 text-white hover:from-pink-500 hover:to-pink-600 border-[#E21B70] shadow-md shadow-pink-500/10"
                             }`}
                           >
                             {loadingActionId === order.id ? (
-                              "Accepting package..."
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Accepting package...
+                              </>
                             ) : riderActiveOrders.length >= 3 ? (
                               "Limit reached (Max 3 orders active)"
                             ) : (
@@ -1631,7 +1645,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
 
             <button
               onClick={handleToggleOnline}
-              className="w-full bg-[#E21B70] hover:bg-[#C2145E] text-white font-black text-xs uppercase tracking-wider py-4 px-6 rounded-2xl transition shadow-lg shadow-pink-500/10 active:scale-95 cursor-pointer"
+              className="w-full bg-[#E21B70] hover:bg-[#C2145E] text-white font-black text-xs uppercase tracking-wider py-4 px-6 rounded-2xl relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100 transition-transform duration-180 shadow-lg shadow-pink-500/10 active:scale-[0.97] active:brightness-110 cursor-pointer"
             >
               🟢 Start Online Duty Now
             </button>
@@ -1676,7 +1690,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                           <button
                             key={dateKey}
                             onClick={() => setSelectedHistoryDate(dateKey)}
-                            className={`w-full p-3 rounded-xl border text-left transition flex items-center justify-between gap-3 text-xs cursor-pointer active:scale-95 ${
+                            className={`w-full p-3 rounded-xl border text-left transition-all duration-300 flex items-center justify-between gap-3 text-xs cursor-pointer active:scale-[0.97] active:brightness-110 ${
                               isSelected
                                 ? "bg-[#E21B70] text-white border-[#E21B70]"
                                 : "bg-zinc-950 hover:bg-zinc-850 text-zinc-300 border-zinc-800"
@@ -1824,7 +1838,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                                         setRiderReceiptOrder(order);
                                         setIsRiderReceiptModalOpen(true);
                                       }}
-                                      className="text-[10px] font-black text-emerald-300 bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-800/60 py-1.5 px-3 rounded-lg flex items-center gap-1 cursor-pointer transition active:scale-95"
+                                      className="text-[10px] font-black text-emerald-300 bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-800/60 py-1.5 px-3 rounded-lg flex items-center gap-1 cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110"
                                     >
                                       <span>🧾 View / Send WhatsApp Receipt</span>
                                     </button>
@@ -1895,7 +1909,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                       <button
                         key={item.id}
                         onClick={() => setTimeframe(item.id as any)}
-                        className={`px-3 py-1.5 rounded-lg text-[9.5px] font-black uppercase tracking-wider transition cursor-pointer ${
+                        className={`px-3 py-1.5 rounded-lg text-[9.5px] font-black uppercase tracking-wider transition-all duration-300 cursor-pointer active:scale-[0.97] active:brightness-110 ${
                           timeframe === item.id
                             ? "bg-[#E21B70] text-white"
                             : "text-zinc-300 hover:text-zinc-100"
@@ -2102,7 +2116,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                           <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 shrink-0" />
                           <div className="flex-1 h-2 bg-zinc-950 rounded-full overflow-hidden border border-zinc-850">
                             <div
-                              className="h-full bg-amber-400 rounded-full transition-all duration-500"
+                              className="h-full bg-amber-400 rounded-full transition-[width] duration-300 ease-out micro-progress"
                               style={{ width: `${percentage}%` }}
                             />
                           </div>
@@ -2194,7 +2208,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
       <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-zinc-900/95 backdrop-blur-md border-t border-zinc-800 z-50 px-4 py-2 flex items-center justify-around shadow-2xl">
         <button
           onClick={() => setActiveTab("dashboard")}
-          className={`flex flex-col items-center gap-1 py-1 px-4 rounded-xl transition cursor-pointer active:scale-95 ${
+          className={`flex flex-col items-center gap-1 py-1 px-4 rounded-xl transition-all duration-300 cursor-pointer active:scale-[0.97] active:brightness-110 ${
             activeTab === "dashboard" ? "text-[#E21B70] font-black" : "text-zinc-400 font-semibold hover:text-zinc-200"
           }`}
         >
@@ -2211,7 +2225,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
 
         <button
           onClick={() => setActiveTab("performance")}
-          className={`flex flex-col items-center gap-1 py-1 px-4 rounded-xl transition cursor-pointer active:scale-95 ${
+          className={`flex flex-col items-center gap-1 py-1 px-4 rounded-xl transition-all duration-300 cursor-pointer active:scale-[0.97] active:brightness-110 ${
             activeTab === "performance" ? "text-[#E21B70] font-black" : "text-zinc-400 font-semibold hover:text-zinc-200"
           }`}
         >
@@ -2221,7 +2235,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
 
         <button
           onClick={() => setActiveTab("history")}
-          className={`flex flex-col items-center gap-1 py-1 px-4 rounded-xl transition cursor-pointer active:scale-95 ${
+          className={`flex flex-col items-center gap-1 py-1 px-4 rounded-xl transition-all duration-300 cursor-pointer active:scale-[0.97] active:brightness-110 ${
             activeTab === "history" ? "text-[#E21B70] font-black" : "text-zinc-400 font-semibold hover:text-zinc-200"
           }`}
         >

@@ -159,7 +159,7 @@ export default function FoodpandaHeader({
         type="button"
         onClick={() => switchModule("food")}
         aria-pressed={activeModule === "food"}
-        className={`flex-1 min-h-[40px] rounded-full text-[13px] sm:text-sm font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${activeModule === "food" ? "bg-gradient-to-r from-[#FF2B85] via-[#E21B70] to-[#D70F64] text-white glossy-edge" : "text-[#14141A]"}`}
+        className={`flex-1 min-h-[40px] rounded-full text-[13px] sm:text-sm font-black flex items-center justify-center gap-1.5 transition-all duration-300 transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer ${activeModule === "food" ? "bg-gradient-to-r from-[#FF2B85] via-[#E21B70] to-[#D70F64] text-white glossy-edge" : "text-[#14141A]"}`}
       >
         🍔 FOOD DELIVERY
       </button>
@@ -167,7 +167,7 @@ export default function FoodpandaHeader({
         type="button"
         onClick={() => switchModule("grocery")}
         aria-pressed={activeModule === "grocery"}
-        className={`flex-1 min-h-[40px] rounded-full text-[13px] sm:text-sm font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${activeModule === "grocery" ? "bg-gradient-to-r from-[#FF2B85] via-[#E21B70] to-[#D70F64] text-white glossy-edge" : "text-[#14141A]"}`}
+        className={`flex-1 min-h-[40px] rounded-full text-[13px] sm:text-sm font-black flex items-center justify-center gap-1.5 transition-all duration-300 transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer ${activeModule === "grocery" ? "bg-gradient-to-r from-[#FF2B85] via-[#E21B70] to-[#D70F64] text-white glossy-edge" : "text-[#14141A]"}`}
       >
         🛒 GROCERIES
         {groceryCartCount > 0 && (
@@ -235,7 +235,7 @@ export default function FoodpandaHeader({
             <button
               type="button"
               onClick={() => onOpenLocation?.()}
-              className="min-h-[44px] flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/20 hover:bg-white/25 active:scale-[0.98] transition-all text-left min-w-0 max-w-[210px] sm:max-w-[240px] cursor-pointer glossy-sheen glossy-edge"
+              className="min-h-[44px] flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/20 hover:bg-white/25 transition-transform duration-180 active:scale-[0.97] active:brightness-110 text-left min-w-0 max-w-[210px] sm:max-w-[240px] cursor-pointer glossy-sheen glossy-edge"
               title="Change delivery location"
             >
               <MapPin className="w-5 h-5 text-white shrink-0" />
@@ -252,7 +252,7 @@ export default function FoodpandaHeader({
           </div>
 
           {/* Desktop White Pill Search Bar inside Pink Header */}
-          <div className="relative flex-1 max-w-md hidden sm:block">
+          <div className="relative flex-1 max-w-md hidden sm:block transition-all duration-300">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#D70F64] pointer-events-none" />
             <input
               id="desktop-search-input"
@@ -264,7 +264,7 @@ export default function FoodpandaHeader({
                   ? "Search Dadu Mart groceries..."
                   : "Search shops, dishes & groceries..."
               }
-              className="w-full min-h-[42px] pl-10 pr-10 py-2 bg-white text-[#14141A] placeholder-[#6E6E80] rounded-full text-sm outline-none shadow-xs focus:ring-2 focus:ring-white/60 transition-all font-medium"
+              className="w-full min-h-[42px] pl-10 pr-10 py-2 bg-white text-[#14141A] placeholder-[#6E6E80] rounded-full text-sm outline-none shadow-xs focus:ring-2 focus:ring-white/60 focus:shadow-[0_8px_24px_rgba(0,0,0,0.18)] transition-all duration-300 font-medium"
             />
             {voiceSupported && (
               <button
@@ -273,7 +273,7 @@ export default function FoodpandaHeader({
                 aria-label={isListening ? "Listening for voice search" : "Voice search"}
                 aria-pressed={isListening}
                 title="Voice search"
-                className={`absolute ${searchQuery ? "right-10" : "right-2"} top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full transition cursor-pointer ${isListening ? "bg-[#D70F64] text-white animate-pulse" : "text-[#D70F64] hover:bg-pink-50"}`}
+                className={`absolute ${searchQuery ? "right-10" : "right-2"} top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer ${isListening ? "bg-[#D70F64] text-white animate-pulse" : "text-[#D70F64] hover:bg-pink-50"}`}
               >
                 <Mic className="w-4 h-4" />
               </button>
@@ -283,7 +283,7 @@ export default function FoodpandaHeader({
                 type="button"
                 onClick={() => setSearchQuery("")}
                 aria-label="Clear search"
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-[#5A5A6B] hover:text-[#14141A] rounded-full transition cursor-pointer"
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-[#5A5A6B] hover:text-[#14141A] rounded-full transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer"
                 title="Clear search"
               >
                 <X className="w-4 h-4" />
@@ -300,7 +300,7 @@ export default function FoodpandaHeader({
                 onClick={onToggleTheme}
                 aria-label={theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"}
                 title={theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"}
-                className="min-h-[44px] min-w-[44px] flex items-center justify-center gap-1.5 px-2.5 bg-white/15 hover:bg-white/25 text-white rounded-full transition cursor-pointer text-xs font-bold shrink-0 glossy-sheen glossy-edge"
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center gap-1.5 px-2.5 bg-white/15 hover:bg-white/25 text-white rounded-full transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer text-xs font-bold shrink-0 glossy-sheen glossy-edge"
               >
                 {theme === "light" ? (
                   <>
@@ -327,7 +327,7 @@ export default function FoodpandaHeader({
                   setShowNotifications(!showNotifications);
                   setShowUserMenu(false);
                 }}
-                className="min-h-[44px] min-w-[44px] flex items-center justify-center bg-white/15 hover:bg-white/25 text-white rounded-full transition cursor-pointer relative glossy-sheen glossy-edge"
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center bg-white/15 hover:bg-white/25 text-white rounded-full transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer relative glossy-sheen glossy-edge"
               >
                 <Bell className="w-5 h-5 text-white" />
                 {unreadNotifications.length > 0 && (
@@ -436,7 +436,7 @@ export default function FoodpandaHeader({
                   ? `Open cart, ${activeModule === "grocery" ? groceryCartCount : cartCount} items`
                   : "Open cart, empty"
               }
-              className="min-h-[44px] min-w-[44px] flex items-center justify-center bg-white/15 hover:bg-white/25 text-white rounded-full transition cursor-pointer relative shrink-0 glossy-sheen glossy-edge"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center bg-white/15 hover:bg-white/25 text-white rounded-full transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer relative shrink-0 glossy-sheen glossy-edge"
             >
               {isLocked ? (
                 <Lock className="w-5 h-5 text-white" aria-label="Account locked" />
@@ -462,7 +462,7 @@ export default function FoodpandaHeader({
                     setShowUserMenu(!showUserMenu);
                     setShowNotifications(false);
                   }}
-                  className="flex items-center justify-center w-11 h-11 rounded-full bg-white text-[#D70F64] font-black text-sm shadow-xs hover:bg-pink-50 cursor-pointer transition"
+                  className="flex items-center justify-center w-11 h-11 rounded-full bg-white text-[#D70F64] font-black text-sm shadow-xs hover:bg-pink-50 cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110"
                 >
                   {(user.name || "D").charAt(0).toUpperCase()}
                 </button>
@@ -476,7 +476,7 @@ export default function FoodpandaHeader({
                     setShowUserMenu(!showUserMenu);
                     setShowNotifications(false);
                   }}
-                  className="min-h-[44px] px-3.5 bg-white/15 hover:bg-white/25 text-white rounded-full transition cursor-pointer flex items-center gap-1.5 shrink-0"
+                  className="min-h-[44px] px-3.5 bg-white/15 hover:bg-white/25 text-white rounded-full transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer flex items-center gap-1.5 shrink-0"
                 >
                   <User className="w-4 h-4 text-white" />
                   <span className="hidden md:inline text-xs font-bold text-white">Sign In</span>
@@ -637,7 +637,7 @@ export default function FoodpandaHeader({
                                       setShowUserMenu(false);
                                       onReorder(o);
                                     }}
-                                    className="text-[8.5px] text-white bg-[#D70F64] hover:bg-[#B80C54] px-2 py-0.5 rounded-md flex items-center gap-0.5 font-black cursor-pointer transition uppercase"
+                                    className="text-[8.5px] text-white bg-[#D70F64] hover:bg-[#B80C54] px-2 py-0.5 rounded-md flex items-center gap-0.5 font-black cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110 uppercase relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
                                   >
                                     <RotateCcw className="w-2.5 h-2.5 stroke-[3]" />
                                     Reorder
@@ -658,7 +658,7 @@ export default function FoodpandaHeader({
                         setShowUserMenu(false);
                         if (onToggleFavorites) onToggleFavorites();
                       }}
-                      className={`flex-1 min-w-[100px] font-bold text-xs px-2.5 py-2 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer border ${showFavoritesOnly ? 'text-[#D70F64] bg-[#D70F64]/10 border-[#D70F64]/20' : 'text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-800/80 border-zinc-100 dark:border-zinc-700 hover:bg-zinc-100'}`}
+                      className={`flex-1 min-w-[100px] font-bold text-xs px-2.5 py-2 rounded-xl transition-transform duration-180 active:scale-[0.97] active:brightness-110 flex items-center justify-center gap-1.5 cursor-pointer border ${showFavoritesOnly ? 'text-[#D70F64] bg-[#D70F64]/10 border-[#D70F64]/20' : 'text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-800/80 border-zinc-100 dark:border-zinc-700 hover:bg-zinc-100'}`}
                     >
                       <Heart className={`w-3.5 h-3.5 shrink-0 ${showFavoritesOnly ? 'fill-[#D70F64] text-[#D70F64]' : 'text-[#D70F64]'}`} />
                       <span>Favorites</span>
@@ -669,7 +669,7 @@ export default function FoodpandaHeader({
                         setShowUserMenu(false);
                         if (onOpenHistory) onOpenHistory();
                       }}
-                      className="flex-1 min-w-[100px] font-bold text-xs text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-100 dark:border-zinc-700 px-2.5 py-2 hover:bg-zinc-100 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="flex-1 min-w-[100px] font-bold text-xs text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-100 dark:border-zinc-700 px-2.5 py-2 hover:bg-zinc-100 rounded-xl transition-transform duration-180 active:scale-[0.97] active:brightness-110 flex items-center justify-center gap-1.5 cursor-pointer"
                       id="history-menu-btn"
                     >
                       <History className="w-3.5 h-3.5 text-[#D70F64] shrink-0" />
@@ -681,7 +681,7 @@ export default function FoodpandaHeader({
                         setShowUserMenu(false);
                         if (onOpenSettings) onOpenSettings();
                       }}
-                      className="flex-1 min-w-[100px] font-bold text-xs text-zinc-800 dark:text-zinc-100 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-2.5 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="flex-1 min-w-[100px] font-bold text-xs text-zinc-800 dark:text-zinc-100 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-2.5 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-xl transition-transform duration-180 active:scale-[0.97] active:brightness-110 flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <Settings className="w-3.5 h-3.5 text-[#D70F64] shrink-0" />
                       <span>My Settings</span>
@@ -691,7 +691,7 @@ export default function FoodpandaHeader({
                       onClick={() => {
                         if (onToggleTheme) onToggleTheme();
                       }}
-                      className="flex-1 min-w-[100px] font-bold text-xs text-zinc-800 dark:text-zinc-100 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-2.5 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="flex-1 min-w-[100px] font-bold text-xs text-zinc-800 dark:text-zinc-100 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-2.5 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-xl transition-transform duration-180 active:scale-[0.97] active:brightness-110 flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       {theme === "light" ? (
                         <Moon className="w-3.5 h-3.5 text-zinc-700 shrink-0" />
@@ -707,7 +707,7 @@ export default function FoodpandaHeader({
                           setShowUserMenu(false);
                           onOpenAdmin();
                         }}
-                        className="w-full font-bold text-xs text-[#D70F64] bg-[#D70F64]/10 border border-[#D70F64]/30 px-2.5 py-2 hover:bg-[#D70F64]/20 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
+                        className="w-full font-bold text-xs text-[#D70F64] bg-[#D70F64]/10 border border-[#D70F64]/30 px-2.5 py-2 hover:bg-[#D70F64]/20 rounded-xl transition-transform duration-180 active:scale-[0.97] active:brightness-110 flex items-center justify-center gap-1.5 cursor-pointer"
                       >
                         <ShieldAlert className="w-3.5 h-3.5 text-[#D70F64] shrink-0" />
                         <span>Admin Console</span>
@@ -719,7 +719,7 @@ export default function FoodpandaHeader({
                         setShowUserMenu(false);
                         onLogout();
                       }}
-                      className="w-full text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 px-2.5 py-2 hover:bg-red-100 dark:hover:bg-red-950/60 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="w-full text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 px-2.5 py-2 hover:bg-red-100 dark:hover:bg-red-950/60 rounded-xl transition-transform duration-180 active:scale-[0.97] active:brightness-110 flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <LogOut className="w-3.5 h-3.5 shrink-0" />
                       <span>Sign Out</span>
@@ -735,7 +735,7 @@ export default function FoodpandaHeader({
       {/* Mobile Foodpanda Pink Sticky Pill Search Bar */}
       <div className="sticky top-0 z-30 bg-gradient-to-b from-[#FF2B85] via-[#E21B70] to-[#D70F64] block sm:hidden px-3.5 pb-3 pt-0.5 shadow-sm">
         <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-white/5 to-transparent pointer-events-none" aria-hidden="true" />
-        <div className="relative flex items-center">
+        <div className="relative flex items-center transition-all duration-300">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#D70F64] pointer-events-none" />
           <input
             id="mobile-search-input"
@@ -747,7 +747,7 @@ export default function FoodpandaHeader({
                 ? "Search Dadu Mart groceries..."
                 : "Search shops, dishes & groceries"
             }
-            className="w-full min-h-[44px] pl-10 pr-10 py-2.5 bg-white text-[#14141A] placeholder-[#6E6E80] rounded-full text-sm outline-none shadow-xs focus:ring-2 focus:ring-white/60 transition-all font-medium glossy-sheen"
+            className="w-full min-h-[44px] pl-10 pr-10 py-2.5 bg-white text-[#14141A] placeholder-[#6E6E80] rounded-full text-sm outline-none shadow-xs focus:ring-2 focus:ring-white/60 focus:shadow-[0_8px_24px_rgba(0,0,0,0.18)] transition-all duration-300 font-medium glossy-sheen"
           />
           {voiceSupported && (
             <button
@@ -756,7 +756,7 @@ export default function FoodpandaHeader({
               aria-label={isListening ? "Listening for voice search" : "Voice search"}
               aria-pressed={isListening}
               title="Voice search"
-              className={`absolute ${searchQuery ? "right-11" : "right-1.5"} top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full transition cursor-pointer ${isListening ? "bg-[#D70F64] text-white animate-pulse" : "text-[#D70F64] hover:bg-pink-50"}`}
+              className={`absolute ${searchQuery ? "right-11" : "right-1.5"} top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer ${isListening ? "bg-[#D70F64] text-white animate-pulse" : "text-[#D70F64] hover:bg-pink-50"}`}
             >
               <Mic className="w-4 h-4" />
             </button>
@@ -766,7 +766,7 @@ export default function FoodpandaHeader({
               type="button"
               onClick={() => setSearchQuery("")}
               aria-label="Clear search"
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center text-[#5A5A6B] hover:text-[#14141A] rounded-full transition cursor-pointer"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center text-[#5A5A6B] hover:text-[#14141A] rounded-full transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer"
               title="Clear search"
             >
               <X className="w-4 h-4" />
@@ -829,7 +829,7 @@ export default function FoodpandaHeader({
               </span>
               <button
                 onClick={() => setSelectedNotification(null)}
-                className="px-5 py-2.5 bg-[#D70F64] text-white text-xs font-bold rounded-xl hover:bg-[#B80C54] transition cursor-pointer shadow-md"
+                className="px-5 py-2.5 bg-[#D70F64] text-white text-xs font-bold rounded-xl hover:bg-[#B80C54] transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer shadow-md relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
               >
                 Close
               </button>

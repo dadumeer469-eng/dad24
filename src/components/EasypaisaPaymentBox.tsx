@@ -125,7 +125,7 @@ export default function EasypaisaPaymentBox({
           type="button"
           onClick={handleCopyNumber}
           aria-label="Copy Easypaisa number"
-          className={`min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 active:scale-95 focus-visible:outline-2 focus-visible:outline-emerald-400 ${
+          className={`min-h-[44px] px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer shrink-0 focus-visible:outline-2 focus-visible:outline-emerald-400 ${
             copied
               ? "bg-emerald-500 text-white"
               : "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40"
@@ -171,18 +171,19 @@ export default function EasypaisaPaymentBox({
               type="button"
               onClick={() => onReceiptChange(null)}
               aria-label="Remove receipt"
-              className="min-h-[40px] min-w-[40px] rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 flex items-center justify-center cursor-pointer shrink-0 focus-visible:outline-2 focus-visible:outline-rose-400"
+              className="min-h-[40px] min-w-[40px] rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 flex items-center justify-center transition-all duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer shrink-0 focus-visible:outline-2 focus-visible:outline-rose-400"
             >
               <Trash2 className="w-4 h-4" />
             </button>
           </div>
         ) : (
+          <>
           <button
             type="button"
             disabled={uploading}
             onClick={() => fileInputRef.current?.click()}
             aria-label="Upload screenshot or take photo of Easypaisa receipt"
-            className="w-full min-h-[48px] px-4 py-3 rounded-xl border-2 border-dashed border-emerald-500/40 hover:border-emerald-400 bg-zinc-950/70 hover:bg-zinc-900 text-emerald-300 text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-emerald-400"
+            className="w-full min-h-[48px] px-4 py-3 rounded-xl border-2 border-dashed border-emerald-500/40 hover:border-emerald-400 bg-zinc-950/70 hover:bg-zinc-900 text-emerald-300 text-xs font-bold flex items-center justify-center gap-2 transition-all duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-emerald-400"
           >
             {uploading ? (
               <>
@@ -197,6 +198,10 @@ export default function EasypaisaPaymentBox({
               </>
             )}
           </button>
+          {uploading && (
+            <div role="progressbar" aria-label="Compressing receipt" className="micro-progress h-1.5 rounded-full bg-emerald-500/25" />
+          )}
+          </>
         )}
 
         {uploadError && (

@@ -147,7 +147,7 @@ export default function FoodDetailModal({
             type="button"
             onClick={handleClose}
             aria-label="Close dish details"
-            className="absolute top-4 right-4 z-10 w-11 h-11 bg-black/45 hover:bg-black/65 backdrop-blur-md text-white rounded-full flex items-center justify-center transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-white"
+            className="absolute top-4 right-4 z-10 w-11 h-11 bg-black/45 hover:bg-black/65 backdrop-blur-md text-white rounded-full flex items-center justify-center transition-all duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer focus-visible:outline-2 focus-visible:outline-white"
           >
             <X className="w-5 h-5" />
           </button>
@@ -208,7 +208,7 @@ export default function FoodDetailModal({
                             setSizeError(false);
                           }}
                           aria-pressed={selectedSizeObj?.name === sizeObj.name}
-                          className={`min-w-0 min-h-[48px] flex flex-col items-center justify-center p-3 rounded-xl transition-all border focus-visible:outline-2 focus-visible:outline-[#D70F64] ${
+                          className={`min-w-0 min-h-[48px] flex flex-col items-center justify-center p-3 rounded-xl transition-all duration-300 border focus-visible:outline-2 focus-visible:outline-[#D70F64] ${
                             selectedSizeObj?.name === sizeObj.name
                               ? "bg-[#D70F64]/10 border-[#D70F64] text-[#D70F64]" 
                               : "bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-600"
@@ -249,7 +249,7 @@ export default function FoodDetailModal({
                               setFlavorError(false);
                             }}
                             aria-pressed={isSelected}
-                            className={`w-full text-left flex items-center justify-between py-4 cursor-pointer transition-colors ${idx !== dish.flavors!.length - 1 ? 'border-b border-zinc-100 dark:border-zinc-800' : ''} ${isSelected ? 'bg-zinc-50 dark:bg-zinc-800/60' : ''}`}
+                            className={`w-full text-left flex items-center justify-between py-4 cursor-pointer transition-all duration-300 ${idx !== dish.flavors!.length - 1 ? 'border-b border-zinc-100 dark:border-zinc-800' : ''} ${isSelected ? 'bg-zinc-50 dark:bg-zinc-800/60' : ''}`}
                           >
                             <div className="flex flex-col px-2">
                               <span className="text-base font-black text-zinc-900 dark:text-zinc-100">{flavorObj.name}</span>
@@ -294,7 +294,7 @@ export default function FoodDetailModal({
                       {dish.addOns.map((addOn, idx) => {
                         const addOnCount = selectedAddOns.filter(a => a.name === addOn.name).length;
                         return (
-                          <div key={`${addOn.name}-${idx}`} className={`flex items-center justify-between py-4 transition-colors ${idx !== dish.addOns!.length - 1 ? 'border-b border-zinc-100 dark:border-zinc-800' : ''}`}>
+                          <div key={`${addOn.name}-${idx}`} className={`flex items-center justify-between py-4 transition-all duration-300 ${idx !== dish.addOns!.length - 1 ? 'border-b border-zinc-100 dark:border-zinc-800' : ''}`}>
                             <div className="flex items-center gap-3 px-2">
                               {addOn.imageUrl ? (
                                 <LazyImage src={addOn.imageUrl} alt={addOn.name} className="w-14 h-14 rounded-xl overflow-hidden" referrerPolicy="no-referrer" />
@@ -330,11 +330,11 @@ export default function FoodDetailModal({
                                       }
                                     }
                                   }}
-                                  className="w-11 h-11 flex items-center justify-center text-zinc-600 dark:text-zinc-300 hover:text-black dark:hover:text-white rounded-l-full active:bg-zinc-200 dark:active:bg-zinc-700"
+                                  className="w-11 h-11 flex items-center justify-center text-zinc-600 dark:text-zinc-300 hover:text-black dark:hover:text-white rounded-l-full transition-transform duration-180 active:scale-[0.97] active:brightness-110 active:bg-zinc-200 dark:active:bg-zinc-700"
                                 >
                                   <Minus className="w-3.5 h-3.5" />
                                 </button>
-                                <span className="w-6 text-center text-sm font-bold text-zinc-900 dark:text-zinc-100">{addOnCount}</span>
+                                <span className="w-6 text-center text-sm font-bold text-zinc-900 dark:text-zinc-100 transition-all duration-200">{addOnCount}</span>
                                 <button
                                   type="button"
                                   aria-label={`Add one ${addOn.name}`}
@@ -343,7 +343,7 @@ export default function FoodDetailModal({
                                     e.stopPropagation();
                                     setSelectedAddOns([...selectedAddOns, addOn]);
                                   }}
-                                  className="w-11 h-11 flex items-center justify-center text-[#D70F64] rounded-r-full active:bg-zinc-200 dark:active:bg-zinc-700"
+                                  className="w-11 h-11 flex items-center justify-center text-[#D70F64] rounded-r-full transition-transform duration-180 active:scale-[0.97] active:brightness-110 active:bg-zinc-200 dark:active:bg-zinc-700"
                                 >
                                   <Plus className="w-3.5 h-3.5" />
                                 </button>
@@ -371,7 +371,7 @@ export default function FoodDetailModal({
                     onChange={(e) => setSpecialInstructions(e.target.value)}
                     placeholder="e.g. No mayo, extra spicy..."
                     aria-label="Special instructions for this dish"
-                    className="w-full p-3 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-xl text-sm outline-none focus:border-[#D70F64] resize-none h-20 placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
+                    className="w-full p-3 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-xl text-sm outline-none focus:border-[#D70F64] transition-all duration-300 resize-none h-20 placeholder:text-zinc-400 dark:placeholder:text-zinc-500"
                   />
                 </div>
 
@@ -382,7 +382,7 @@ export default function FoodDetailModal({
                     value={notAvailable}
                     onChange={(e) => setNotAvailable(e.target.value as "refund" | "replace" | "call")}
                     aria-label="What to do if this item is not available"
-                    className="w-full min-h-[48px] p-3 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-xl text-sm outline-none focus:border-[#D70F64]"
+                    className="w-full min-h-[48px] p-3 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-xl text-sm outline-none focus:border-[#D70F64] transition-all duration-300"
                   >
                     <option value="refund">Refund my money</option>
                     <option value="replace">Replace with a similar item</option>
@@ -400,16 +400,16 @@ export default function FoodDetailModal({
                 type="button"
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
                 aria-label="Decrease quantity"
-                className="w-12 h-12 rounded-full bg-white dark:bg-zinc-700 shadow-sm flex items-center justify-center text-zinc-600 dark:text-zinc-200 hover:text-[#D70F64] transition-colors focus-visible:outline-2 focus-visible:outline-[#D70F64]"
+                className="w-12 h-12 rounded-full bg-white dark:bg-zinc-700 shadow-sm flex items-center justify-center text-zinc-600 dark:text-zinc-200 hover:text-[#D70F64] transition-all duration-180 active:scale-[0.97] active:brightness-110 focus-visible:outline-2 focus-visible:outline-[#D70F64]"
               >
                 <Minus className="w-5 h-5" />
               </button>
-              <span className="font-black text-base min-w-6 text-center text-zinc-900 dark:text-zinc-100">{quantity}</span>
+              <span className="font-black text-base min-w-6 text-center text-zinc-900 dark:text-zinc-100 transition-all duration-200">{quantity}</span>
               <button
                 type="button"
                 onClick={() => setQuantity(quantity + 1)}
                 aria-label="Increase quantity"
-                className="w-12 h-12 rounded-full bg-white dark:bg-zinc-700 shadow-sm flex items-center justify-center text-zinc-600 dark:text-zinc-200 hover:text-[#D70F64] transition-colors focus-visible:outline-2 focus-visible:outline-[#D70F64]"
+                className="w-12 h-12 rounded-full bg-white dark:bg-zinc-700 shadow-sm flex items-center justify-center text-zinc-600 dark:text-zinc-200 hover:text-[#D70F64] transition-all duration-180 active:scale-[0.97] active:brightness-110 focus-visible:outline-2 focus-visible:outline-[#D70F64]"
               >
                 <Plus className="w-5 h-5" />
               </button>
@@ -418,14 +418,14 @@ export default function FoodDetailModal({
             <button
               onClick={handleAdd}
               disabled={dish.isAvailable === false || isActiveDetailDishClosed}
-              className={`flex-1 min-h-[52px] py-4 rounded-full text-sm font-black capitalize tracking-wide flex items-center justify-between px-6 transition-all shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D70F64] ${
+              className={`flex-1 min-h-[52px] py-4 rounded-full text-sm font-black capitalize tracking-wide flex items-center justify-between px-6 transition-all duration-180 active:scale-[0.97] active:brightness-110 shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D70F64] ${
                 (dish.isAvailable === false || isActiveDetailDishClosed) 
                   ? 'cursor-not-allowed opacity-60 bg-zinc-200 text-zinc-500 shadow-none' 
                   : ((dish.sizes && dish.sizes.length > 0 && !selectedSizeObj) || (dish.flavors && dish.flavors.length > 0 && !selectedFlavorObj))
                     ? 'bg-zinc-200 text-zinc-500 shadow-none hover:bg-zinc-300'
                     : isService 
-                      ? 'bg-amber-500 text-neutral-950 hover:bg-amber-600 shadow-amber-500/20 active:scale-[0.98]' 
-                      : "btn-pink text-white shadow-[#D70F64]/20 active:scale-[0.98]"
+                      ? 'bg-amber-500 text-neutral-950 hover:bg-amber-600 shadow-amber-500/20' 
+                      : "btn-pink text-white shadow-[#D70F64]/20 relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
               }`}
             >
               <span>{isService ? "Book Visitation" : "Add to cart"}</span>

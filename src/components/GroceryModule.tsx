@@ -236,7 +236,7 @@ export default function GroceryModule({
     return (
       <div
         key={p.id}
-        className="bg-[#FFF0F5] dark:bg-[#2A101B] border border-[#F9A8C9]/40 dark:border-[#D70F64]/25 rounded-2xl overflow-hidden shadow-xs hover:shadow-md hover:border-[#D70F64]/50 transition-all duration-200 flex flex-col relative group"
+        className="bg-[#FFF0F5] dark:bg-[#2A101B] border border-[#F9A8C9]/40 dark:border-[#D70F64]/25 rounded-2xl overflow-hidden shadow-xs hover:shadow-md hover:border-[#D70F64]/50 transition-all duration-300 md:hover:-translate-y-0.5 flex flex-col relative group"
       >
         <div className="relative h-[104px] sm:h-32 md:h-36 bg-[#FFF0F5] dark:bg-[#2A101B] shrink-0 select-none overflow-hidden">
           {/* Loading shimmer so the tile never looks blank pink while the photo loads */}
@@ -268,7 +268,7 @@ export default function GroceryModule({
               toggleFav(p.id);
             }}
             aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
-            className="absolute top-2 right-2 z-10 w-9 h-9 flex items-center justify-center cursor-pointer active:scale-90 transition rounded-full focus-visible:outline-2 focus-visible:outline-white"
+            className="absolute top-2 right-2 z-10 w-9 h-9 flex items-center justify-center cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110 rounded-full focus-visible:outline-2 focus-visible:outline-white"
           >
             <Heart
               className={`w-5 h-5 drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)] ${
@@ -305,16 +305,16 @@ export default function GroceryModule({
                   type="button"
                   onClick={() => onUpdateCartQuantity(p.id, qty - 1)}
                   aria-label="Decrease quantity"
-                  className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center cursor-pointer active:scale-90 focus-visible:outline-2 focus-visible:outline-white"
+                  className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110 focus-visible:outline-2 focus-visible:outline-white"
                 >
                   <Minus className="w-3.5 h-3.5" />
                 </button>
-                <span className="text-xs font-extrabold px-1 min-w-[18px] text-center">{qty}</span>
+                <span className="text-xs font-extrabold px-1 min-w-[18px] text-center transition-all duration-200">{qty}</span>
                 <button
                   type="button"
                   onClick={() => onUpdateCartQuantity(p.id, qty + 1)}
                   aria-label="Increase quantity"
-                  className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center cursor-pointer active:scale-90 focus-visible:outline-2 focus-visible:outline-white"
+                  className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110 focus-visible:outline-2 focus-visible:outline-white"
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
@@ -342,7 +342,7 @@ export default function GroceryModule({
                   type="button"
                   onClick={() => onAddToCart(p)}
                   aria-label={`Add ${p.name} to cart`}
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full btn-pink text-white flex items-center justify-center cursor-pointer active:scale-90 shrink-0 shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70]"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full btn-pink text-white flex items-center justify-center cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110 shrink-0 shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70] relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
                 >
                   <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
@@ -389,7 +389,7 @@ export default function GroceryModule({
               onClick={() =>
                 document.getElementById("grocery-products")?.scrollIntoView({ behavior: "smooth", block: "start" })
               }
-              className="mt-3.5 inline-flex items-center gap-1.5 bg-white text-[#14141A] font-extrabold text-xs sm:text-sm px-4 py-2.5 min-h-[44px] rounded-full shadow-md hover:bg-pink-50 active:scale-95 transition cursor-pointer"
+              className="mt-3.5 inline-flex items-center gap-1.5 bg-white text-[#14141A] font-extrabold text-xs sm:text-sm px-4 py-2.5 min-h-[44px] rounded-full shadow-md hover:bg-pink-50 transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer"
             >
               Shop Now <ChevronRight className="w-4 h-4" />
             </button>
@@ -407,7 +407,7 @@ export default function GroceryModule({
                 setShowAllInCategory(false);
                 setShowAllCatalog(false);
               }}
-              className={`w-[110px] shrink-0 rounded-2xl border p-2 text-left transition-all cursor-pointer ${
+              className={`w-[110px] shrink-0 rounded-2xl border p-2 text-left transition-all duration-300 active:scale-[0.97] active:brightness-110 cursor-pointer ${
                 selectedCategoryId === "All" && !showAllCatalog
                   ? "bg-[#FFE4EF] border-[#D70F64] ring-2 ring-[#D70F64]/40 shadow-md"
                   : "bg-[#FFF0F5] dark:bg-[#2A101B] border-[#F9A8C9]/40 dark:border-[#D70F64]/25 hover:border-[#D70F64]/60"
@@ -440,7 +440,7 @@ export default function GroceryModule({
                     setShowAllInCategory(true);
                     setShowAllCatalog(false);
                   }}
-                  className={`w-[110px] shrink-0 rounded-2xl border p-2 text-left transition-all cursor-pointer ${
+                  className={`w-[110px] shrink-0 rounded-2xl border p-2 text-left transition-all duration-300 active:scale-[0.97] active:brightness-110 cursor-pointer ${
                     isActive
                       ? "bg-[#FFE4EF] border-[#D70F64] ring-2 ring-[#D70F64]/40 shadow-md"
                       : "bg-[#FFF0F5] dark:bg-[#2A101B] border-[#F9A8C9]/40 dark:border-[#D70F64]/25 hover:border-[#D70F64]/60"
@@ -487,7 +487,7 @@ export default function GroceryModule({
                     setShowAllCatalog(true);
                     setShowAllInCategory(true);
                   }}
-                  className="text-xs font-bold text-[#D70F64] dark:text-[#FF4D94] hover:underline shrink-0 cursor-pointer min-h-[44px] px-2"
+                  className="text-xs font-bold text-[#D70F64] dark:text-[#FF4D94] hover:underline shrink-0 cursor-pointer min-h-[44px] px-2 transition-all duration-300 active:scale-[0.97] active:brightness-110"
                 >
                   See All →
                 </button>
@@ -543,7 +543,7 @@ export default function GroceryModule({
                           setSelectedCategoryId(section.id);
                           setShowAllInCategory(true);
                         }}
-                        className="text-xs font-bold text-[#D70F64] dark:text-[#FF4D94] hover:underline shrink-0 cursor-pointer min-h-[44px] px-2"
+                        className="text-xs font-bold text-[#D70F64] dark:text-[#FF4D94] hover:underline shrink-0 cursor-pointer min-h-[44px] px-2 transition-all duration-300 active:scale-[0.97] active:brightness-110"
                       >
                         See all →
                       </button>
@@ -566,7 +566,7 @@ export default function GroceryModule({
                     <button
                       type="button"
                       onClick={() => setShowAllInCategory(true)}
-                      className="min-h-[44px] px-6 py-2.5 rounded-xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64] text-xs font-bold text-[#14141A] dark:text-white flex items-center gap-1.5 cursor-pointer transition"
+                      className="min-h-[44px] px-6 py-2.5 rounded-xl bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64] text-xs font-bold text-[#14141A] dark:text-white flex items-center gap-1.5 cursor-pointer transition-all duration-300 active:scale-[0.97] active:brightness-110"
                     >
                       <span>{`Show All ${filteredProducts.length} Items`}</span>
                       <ChevronDown className="w-4 h-4 text-[#D70F64]" />

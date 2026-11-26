@@ -297,7 +297,7 @@ export default function AuthModal({
             setError("");
             setInfoMsg("");
           }}
-          className="absolute top-4 left-4 min-h-[48px] min-w-[48px] flex items-center justify-center bg-black/20 hover:bg-black/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 text-white rounded-full z-10 transition-colors cursor-pointer"
+          className="absolute top-4 left-4 min-h-[48px] min-w-[48px] flex items-center justify-center bg-black/20 hover:bg-black/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 text-white rounded-full z-10 transition-all duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer"
           title={isStaffMode ? "Back to Customer Sign-In" : "Staff / Admin Login"}
           aria-label={isStaffMode ? "Switch to customer login" : "Switch to staff login"}
         >
@@ -307,7 +307,7 @@ export default function AuthModal({
           type="button"
           onClick={onClose}
           aria-label="Close sign in dialog"
-          className="absolute top-4 right-4 min-h-[48px] min-w-[48px] flex items-center justify-center bg-black/20 hover:bg-black/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 text-white rounded-full z-10 transition-colors cursor-pointer"
+          className="absolute top-4 right-4 min-h-[48px] min-w-[48px] flex items-center justify-center bg-black/20 hover:bg-black/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 text-white rounded-full z-10 transition-all duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
@@ -336,13 +336,13 @@ export default function AuthModal({
 
         <div className="p-6 sm:p-7 space-y-4">
           {error && (
-            <div role="alert" className="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-xs p-3 rounded-xl font-semibold text-center leading-relaxed">
+            <div role="alert" className="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-xs p-3 rounded-xl font-semibold text-center leading-relaxed animate-fade-in">
               {error}
             </div>
           )}
 
           {infoMsg && !error && (
-            <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs p-3 rounded-xl font-semibold text-center flex items-center justify-center gap-1.5">
+            <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs p-3 rounded-xl font-semibold text-center flex items-center justify-center gap-1.5 animate-fade-in">
               <ShieldCheck className="w-4 h-4 shrink-0" />
               <span>{infoMsg}</span>
             </div>
@@ -361,7 +361,7 @@ export default function AuthModal({
                     autoComplete="username"
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-zinc-300 dark:border-zinc-700 outline-none focus:border-[#E21B70] focus:ring-2 focus:ring-[#E21B70]/20 transition bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-bold text-sm"
+                    className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-zinc-300 dark:border-zinc-700 outline-none focus:border-[#E21B70] focus:ring-2 focus:ring-[#E21B70]/20 transition-all duration-300 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-bold text-sm"
                   />
                 </div>
                 <div className="relative">
@@ -374,7 +374,7 @@ export default function AuthModal({
                     autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-zinc-300 dark:border-zinc-700 outline-none focus:border-[#E21B70] focus:ring-2 focus:ring-[#E21B70]/20 transition bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-bold text-sm"
+                    className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-zinc-300 dark:border-zinc-700 outline-none focus:border-[#E21B70] focus:ring-2 focus:ring-[#E21B70]/20 transition-all duration-300 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-bold text-sm"
                   />
                 </div>
               </div>
@@ -382,7 +382,7 @@ export default function AuthModal({
               <button
                 type="submit"
                 disabled={loading || !phoneNumber.trim() || password.length < 4}
-                className="w-full min-h-[48px] bg-[#E21B70] hover:bg-[#C2145E] text-white font-black tracking-wide shadow-md transition-all flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm uppercase disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-[0.98]"
+                className="w-full min-h-[48px] bg-[#E21B70] hover:bg-[#C2145E] text-white font-black tracking-wide shadow-md transition-all duration-180 active:scale-[0.97] active:brightness-110 flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm uppercase disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
               >
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" /> : <>Verify &amp; Login <ArrowRight className="w-4 h-4" /></>}
               </button>
@@ -410,7 +410,7 @@ export default function AuthModal({
                       }
                       setPhoneNumber(val.slice(0, 11));
                     }}
-                    className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-zinc-300 dark:border-zinc-700 outline-none focus:border-[#E21B70] focus:ring-2 focus:ring-[#E21B70]/20 transition bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-bold text-lg tracking-wide"
+                    className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-zinc-300 dark:border-zinc-700 outline-none focus:border-[#E21B70] focus:ring-2 focus:ring-[#E21B70]/20 transition-all duration-300 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-bold text-lg tracking-wide"
                   />
                 </div>
                 <p className="text-[11px] text-zinc-500 dark:text-zinc-400 text-center">
@@ -419,7 +419,7 @@ export default function AuthModal({
                 <button
                   type="submit"
                   disabled={loading || googleLoading || phoneNumber.length < 11}
-                  className="w-full min-h-[48px] bg-[#E21B70] hover:bg-[#C2145E] text-white font-black tracking-wide shadow-md transition-all flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm uppercase disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-[0.98]"
+                  className="w-full min-h-[48px] bg-[#E21B70] hover:bg-[#C2145E] text-white font-black tracking-wide shadow-md transition-all duration-180 active:scale-[0.97] active:brightness-110 flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm uppercase disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
                 >
                   {loading ? <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" /> : <>Send SMS OTP <ArrowRight className="w-4 h-4" /></>}
                 </button>
@@ -437,7 +437,7 @@ export default function AuthModal({
                 type="button"
                 disabled={loading || googleLoading}
                 onClick={handleGoogleSignIn}
-                className="w-full min-h-[48px] bg-white dark:bg-[#1D1D26] hover:bg-zinc-50 dark:hover:bg-[#252530] text-[#14141A] dark:text-white border border-zinc-300 dark:border-zinc-700 font-extrabold text-sm rounded-2xl py-3 px-4 flex items-center justify-center gap-2.5 shadow-2xs transition cursor-pointer disabled:opacity-50 active:scale-[0.98]"
+                className="w-full min-h-[48px] bg-white dark:bg-[#1D1D26] hover:bg-zinc-50 dark:hover:bg-[#252530] text-[#14141A] dark:text-white border border-zinc-300 dark:border-zinc-700 font-extrabold text-sm rounded-2xl py-3 px-4 flex items-center justify-center gap-2.5 shadow-2xs transition-all duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer disabled:opacity-50"
               >
                 {googleLoading ? (
                   <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
@@ -479,14 +479,14 @@ export default function AuthModal({
                   aria-label="6-digit OTP code"
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-zinc-300 dark:border-zinc-700 outline-none focus:border-[#E21B70] focus:ring-2 focus:ring-[#E21B70]/20 transition bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-black text-xl tracking-[0.3em] text-center"
+                  className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-zinc-300 dark:border-zinc-700 outline-none focus:border-[#E21B70] focus:ring-2 focus:ring-[#E21B70]/20 transition-all duration-300 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-black text-xl tracking-[0.3em] text-center"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading || otpCode.length < 6}
-                className="w-full min-h-[48px] bg-[#E21B70] hover:bg-[#C2145E] text-white font-black tracking-wide shadow-md transition-all flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm uppercase disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-[0.98]"
+                className="w-full min-h-[48px] bg-[#E21B70] hover:bg-[#C2145E] text-white font-black tracking-wide shadow-md transition-all duration-180 active:scale-[0.97] active:brightness-110 flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm uppercase disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
               >
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" /> : <>Verify OTP &amp; Continue <ArrowRight className="w-4 h-4" /></>}
               </button>
@@ -499,7 +499,7 @@ export default function AuthModal({
                     setOtpCode("");
                     setError("");
                   }}
-                  className="inline-flex items-center gap-1 min-h-[44px] px-2 py-1 font-bold text-zinc-600 dark:text-zinc-300 hover:text-[#E21B70] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70]/50 rounded-lg cursor-pointer"
+                  className="inline-flex items-center gap-1 min-h-[44px] px-2 py-1 font-bold text-zinc-600 dark:text-zinc-300 hover:text-[#E21B70] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70]/50 rounded-lg transition-transform duration-180 active:scale-[0.97] cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" /> Change Number
                 </button>
@@ -507,7 +507,7 @@ export default function AuthModal({
                   type="button"
                   disabled={resendCooldown > 0 || loading}
                   onClick={() => handleSendOtp()}
-                  className="inline-flex items-center gap-1 min-h-[44px] px-2 py-1 font-bold text-[#E21B70] disabled:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70]/50 rounded-lg cursor-pointer"
+                  className="inline-flex items-center gap-1 min-h-[44px] px-2 py-1 font-bold text-[#E21B70] disabled:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70]/50 rounded-lg transition-transform duration-180 active:scale-[0.97] cursor-pointer"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend OTP"}

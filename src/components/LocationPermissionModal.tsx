@@ -69,7 +69,7 @@ export default function LocationPermissionModal({
           <button
             type="button"
             onClick={onAllow}
-            className="w-full min-h-[48px] bg-[#E21B70] hover:bg-[#C2145E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70]/50 text-white font-extrabold py-3.5 px-4 rounded-2xl text-sm transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-sm active:scale-[0.98]"
+            className="w-full min-h-[48px] bg-[#E21B70] hover:bg-[#C2145E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70]/50 text-white font-extrabold py-3.5 px-4 rounded-2xl text-sm transition-transform duration-180 active:scale-[0.97] active:brightness-110 relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100 cursor-pointer flex items-center justify-center gap-2 shadow-sm"
           >
             <Navigation className="w-4 h-4" aria-hidden="true" />
             <span>Allow Location</span>
@@ -81,7 +81,7 @@ export default function LocationPermissionModal({
                 <button
                   type="button"
                   onClick={onPickOnMap}
-                  className="w-full min-h-[48px] bg-[#FFF0F5] dark:bg-[#2A101B] hover:bg-[#FFE4EF] dark:hover:bg-[#3A1424] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70]/50 border border-[#E21B70]/25 text-[#14141A] dark:text-[#F5F5F8] font-bold py-3 px-3 rounded-2xl text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                  className="w-full min-h-[48px] bg-[#FFF0F5] dark:bg-[#2A101B] hover:bg-[#FFE4EF] dark:hover:bg-[#3A1424] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70]/50 border border-[#E21B70]/25 text-[#14141A] dark:text-[#F5F5F8] font-bold py-3 px-3 rounded-2xl text-xs transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   <Map className="w-4 h-4 text-[#E21B70]" aria-hidden="true" />
                   <span>Pick on Map</span>
@@ -90,7 +90,7 @@ export default function LocationPermissionModal({
               <button
                 type="button"
                 onClick={() => setShowManualInput(true)}
-                className="w-full min-h-[48px] bg-[#F7F7FA] dark:bg-[#1B1B23] hover:bg-[#EFEFF5] dark:hover:bg-[#252530] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70]/50 border border-[#E6E6EE] dark:border-[#272733] text-[#14141A] dark:text-[#F5F5F8] font-bold py-3 px-3 rounded-2xl text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                className="w-full min-h-[48px] bg-[#F7F7FA] dark:bg-[#1B1B23] hover:bg-[#EFEFF5] dark:hover:bg-[#252530] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70]/50 border border-[#E6E6EE] dark:border-[#272733] text-[#14141A] dark:text-[#F5F5F8] font-bold py-3 px-3 rounded-2xl text-xs transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer flex items-center justify-center gap-1.5"
               >
                 <Edit3 className="w-3.5 h-3.5 text-[#E21B70]" aria-hidden="true" />
                 <span>{onPickOnMap ? "Type Address" : "Enter Manual Dadu Address Instead"}</span>
@@ -116,7 +116,7 @@ export default function LocationPermissionModal({
               )}
               <button
                 type="submit"
-                className="w-full min-h-[48px] bg-[#E21B70] hover:bg-[#C2145E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70]/50 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5 active:scale-[0.98]"
+                className="w-full min-h-[48px] bg-[#E21B70] hover:bg-[#C2145E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70]/50 text-white font-bold py-2.5 px-4 rounded-xl text-xs transition-transform duration-180 active:scale-[0.97] active:brightness-110 relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100 cursor-pointer flex items-center justify-center gap-1.5"
               >
                 <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
                 <span>Save Delivery Address</span>
@@ -125,7 +125,7 @@ export default function LocationPermissionModal({
                 <button
                   type="button"
                   onClick={() => setShowManualInput(false)}
-                  className="w-full min-h-[44px] text-[#E21B70] hover:text-[#C2145E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70]/50 font-bold py-2 rounded-xl text-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                  className="w-full min-h-[44px] text-[#E21B70] hover:text-[#C2145E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70]/50 font-bold py-2 rounded-xl text-xs transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   <Map className="w-4 h-4" aria-hidden="true" />
                   <span>Pick on Map instead</span>
@@ -138,7 +138,7 @@ export default function LocationPermissionModal({
             <button
               type="button"
               onClick={onLater}
-              className="w-full min-h-[48px] text-[#5A5A6B] dark:text-[#A1A1B2] hover:text-[#14141A] dark:hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70]/50 font-bold py-2.5 rounded-xl text-xs transition-colors cursor-pointer"
+              className="w-full min-h-[48px] text-[#5A5A6B] dark:text-[#A1A1B2] hover:text-[#14141A] dark:hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70]/50 font-bold py-2.5 rounded-xl text-xs transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer"
             >
               Browse Menu First
             </button>

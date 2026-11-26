@@ -219,7 +219,7 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
                 {order.riderPhone ? (
                   <a
                     href={`tel:${order.riderPhone}`}
-                    className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-100 py-2 sm:py-2.5 px-2 rounded-xl transition text-center font-black text-[10.5px] sm:text-xs flex items-center justify-center gap-1 shadow-xs cursor-pointer truncate active:scale-95"
+                    className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-100 py-2 sm:py-2.5 px-2 rounded-xl transition-transform duration-180 active:scale-[0.97] active:brightness-110 text-center font-black text-[10.5px] sm:text-xs flex items-center justify-center gap-1 shadow-xs cursor-pointer truncate"
                   >
                     📞 Call
                   </a>
@@ -232,7 +232,7 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
                 <button
                   type="button"
                   onClick={() => setShowLiveChat(!showLiveChat)}
-                  className={`py-2 sm:py-2.5 px-2 rounded-xl transition text-center font-black text-[10.5px] sm:text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer active:scale-95 truncate relative ${
+                  className={`py-2 sm:py-2.5 px-2 rounded-xl transition-transform duration-180 active:scale-[0.97] active:brightness-110 text-center font-black text-[10.5px] sm:text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer truncate relative ${
                     showLiveChat 
                       ? "bg-zinc-800 border border-[#E21B70] text-white hover:bg-zinc-800 ring-2 ring-[#E21B70]/30" 
                       : "bg-gradient-to-r from-[#E21B70] to-pink-600 text-white hover:from-[#C2145E] hover:to-pink-700"
@@ -252,7 +252,7 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
                     href={`https://wa.me/${order.riderPhone.replace(/\D/g, "")}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white py-2 sm:py-2.5 px-2 rounded-xl transition text-center font-black text-[10.5px] sm:text-xs flex items-center justify-center gap-1 shadow-xs cursor-pointer truncate active:scale-95"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white py-2 sm:py-2.5 px-2 rounded-xl transition-transform duration-180 active:scale-[0.97] active:brightness-110 text-center font-black text-[10.5px] sm:text-xs flex items-center justify-center gap-1 shadow-xs cursor-pointer truncate"
                   >
                     💬 WhatsApp
                   </a>
@@ -405,7 +405,7 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
             <div className="absolute left-4 right-4 top-4 h-1 z-0">
               <div className="absolute inset-0 bg-zinc-800 rounded-full" />
               <div
-                className="absolute left-0 top-0 h-1 bg-gradient-to-r from-pink-500 to-[#E21B70] rounded-full transition-all duration-500"
+                className="absolute left-0 top-0 h-1 bg-gradient-to-r from-pink-500 to-[#E21B70] rounded-full transition-[width] duration-300 ease-out"
                 style={{ width: `${Math.max(0, (activeIndex / (steps.length - 1)) * 100)}%` }}
               />
             </div>
@@ -513,7 +513,7 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
                   <button
                     type="button"
                     onClick={() => setConfirmingCancel(false)}
-                    className="px-3 py-1.5 rounded-lg bg-zinc-800 text-zinc-200 text-xs font-bold cursor-pointer"
+                    className="px-3 py-1.5 rounded-lg bg-zinc-800 text-zinc-200 text-xs font-bold cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110"
                   >
                     Keep Order
                   </button>
@@ -521,7 +521,7 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
                     type="button"
                     disabled={cancellingOrder}
                     onClick={handleCancelOrder}
-                    className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold cursor-pointer disabled:opacity-60"
+                    className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold cursor-pointer disabled:opacity-60 transition-transform duration-180 active:scale-[0.97] active:brightness-110"
                   >
                     {cancellingOrder ? "Cancelling..." : "Confirm Cancel"}
                   </button>
@@ -531,7 +531,7 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
               <button
                 type="button"
                 onClick={() => setConfirmingCancel(true)}
-                className="w-full py-2 rounded-xl border border-red-500/40 bg-red-500/10 hover:bg-red-500/20 text-red-300 font-bold text-xs transition cursor-pointer"
+                className="w-full py-2 rounded-xl border border-red-500/40 bg-red-500/10 hover:bg-red-500/20 text-red-300 font-bold text-xs transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer"
               >
                 Cancel This Order
               </button>
@@ -555,7 +555,7 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
       {onClose && (
         <button
           onClick={onClose}
-          className="w-full mt-4 bg-zinc-800 hover:bg-zinc-800 border border-zinc-700 transition text-zinc-200 text-xs font-extrabold py-2 px-4 rounded-xl cursor-pointer shadow-xs"
+          className="w-full mt-4 bg-zinc-800 hover:bg-zinc-800 border border-zinc-700 transition-transform duration-180 active:scale-[0.97] active:brightness-110 text-zinc-200 text-xs font-extrabold py-2 px-4 rounded-xl cursor-pointer shadow-xs"
         >
           Track Another Order
         </button>

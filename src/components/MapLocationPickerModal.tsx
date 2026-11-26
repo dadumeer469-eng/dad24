@@ -232,14 +232,14 @@ function NominatimSearch({
         <button
           type="submit"
           disabled={isSearching}
-          className="min-h-[44px] bg-[#E21B70] hover:bg-[#C2145E] text-white px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+          className="min-h-[44px] bg-[#E21B70] hover:bg-[#C2145E] text-white px-4 py-2 rounded-xl text-xs font-bold transition-transform duration-180 active:scale-[0.97] active:brightness-110 relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100 shrink-0 flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
         >
           {isSearching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Search"}
         </button>
       </form>
 
       {showDropdown && suggestions.length > 0 && (
-        <ul className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl max-h-56 overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-800">
+        <ul className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-xl max-h-56 overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-800 animate-fade-in">
           {suggestions.map((item) => {
             const label = item.display_name || "";
             if (!label) return null;
@@ -248,7 +248,7 @@ function NominatimSearch({
                 <button
                   type="button"
                   onClick={() => handleSelectSuggestion(item)}
-                  className="w-full min-h-[44px] px-3.5 py-2.5 text-left text-xs font-semibold text-zinc-800 dark:text-zinc-100 hover:bg-[#FDF2F6] dark:hover:bg-[#2A121D] flex items-center gap-2.5 cursor-pointer transition-colors"
+                  className="w-full min-h-[44px] px-3.5 py-2.5 text-left text-xs font-semibold text-zinc-800 dark:text-zinc-100 hover:bg-[#FDF2F6] dark:hover:bg-[#2A121D] flex items-center gap-2.5 cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110"
                 >
                   <MapPin className="w-3.5 h-3.5 text-[#E21B70] shrink-0" />
                   <span className="truncate">{label}</span>
@@ -458,7 +458,7 @@ export default function MapLocationPickerModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-12 h-12 min-h-[48px] min-w-[48px] flex items-center justify-center text-zinc-400 hover:text-zinc-600 dark:hover:text-white bg-zinc-100 dark:bg-zinc-800 rounded-full transition cursor-pointer shrink-0"
+            className="w-12 h-12 min-h-[48px] min-w-[48px] flex items-center justify-center text-zinc-400 hover:text-zinc-600 dark:hover:text-white bg-zinc-100 dark:bg-zinc-800 rounded-full transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer shrink-0"
             title="Close"
             aria-label="Close map picker"
           >
@@ -479,7 +479,7 @@ export default function MapLocationPickerModal({
                 type="button"
                 onClick={handleGetCurrentLocation}
                 disabled={isLocating}
-                className="min-h-[44px] bg-[#FDF2F6] dark:bg-[#2A121D] text-[#E21B70] dark:text-[#FF4D94] hover:opacity-90 px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0 border border-[#E21B70]/25 disabled:opacity-60"
+                className="min-h-[44px] bg-[#FDF2F6] dark:bg-[#2A121D] text-[#E21B70] dark:text-[#FF4D94] hover:opacity-90 px-3.5 py-2 rounded-xl text-xs font-bold transition-transform duration-180 active:scale-[0.97] active:brightness-110 flex items-center gap-1.5 cursor-pointer shrink-0 border border-[#E21B70]/25 disabled:opacity-60"
                 title="Use current GPS position"
                 aria-label="Use my current GPS location"
               >
@@ -493,7 +493,7 @@ export default function MapLocationPickerModal({
             </div>
 
             {searchError && (
-              <p role="alert" className="text-[11px] text-rose-500 font-bold px-1">{searchError}</p>
+              <p role="alert" className="text-[11px] text-rose-500 font-bold px-1 animate-fade-in">{searchError}</p>
             )}
           </div>
 
@@ -541,7 +541,7 @@ export default function MapLocationPickerModal({
             <button
               type="button"
               onClick={onClose}
-              className="min-h-[48px] px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70]/50 transition cursor-pointer"
+              className="min-h-[48px] px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70]/50 transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer"
             >
               Cancel
             </button>
@@ -552,7 +552,7 @@ export default function MapLocationPickerModal({
                 onSaveLocation(lat, lng, selectedLabel);
                 onClose();
               }}
-              className="min-h-[48px] px-5 py-2 rounded-xl bg-[#E21B70] hover:bg-[#C2145E] text-white text-xs font-bold shadow-sm transition flex items-center gap-1.5 cursor-pointer active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70]/50"
+              className="min-h-[48px] px-5 py-2 rounded-xl bg-[#E21B70] hover:bg-[#C2145E] text-white text-xs font-bold shadow-sm transition-transform duration-180 active:scale-[0.97] active:brightness-110 relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100 flex items-center gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70]/50"
             >
               <Check className="w-4 h-4 stroke-[2.5]" />
               <span>Save Location</span>

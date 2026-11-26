@@ -31,7 +31,7 @@ export const DashboardMenuItemCard = React.memo(function DashboardMenuItemCard({
 
   return (
     <div
-      className={`bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl overflow-hidden shadow-xs hover:border-[#E21B70]/45 hover:shadow-md transition-all duration-200 flex flex-col group relative text-[#14141A] dark:text-[#F5F5F8] ${
+      className={`bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl overflow-hidden shadow-xs hover:border-[#E21B70]/45 hover:shadow-md transition-all duration-300 md:hover:-translate-y-0.5 flex flex-col group relative text-[#14141A] dark:text-[#F5F5F8] ${
         isRestaurantClosed ? "opacity-75 grayscale-[15%]" : ""
       }`}
     >
@@ -85,7 +85,7 @@ export const DashboardMenuItemCard = React.memo(function DashboardMenuItemCard({
             e.stopPropagation();
             onToggleFavorite(dish.id);
           }}
-          className="absolute top-1.5 right-1.5 z-30 w-10 h-10 rounded-full bg-white/92 dark:bg-[#14141A]/90 hover:bg-white text-[#E21B70] active:scale-95 shadow-xs transition flex items-center justify-center cursor-pointer"
+          className="absolute top-1.5 right-1.5 z-30 w-10 h-10 rounded-full bg-white/92 dark:bg-[#14141A]/90 hover:bg-white text-[#E21B70] shadow-xs transition-transform duration-180 active:scale-[0.97] active:brightness-110 flex items-center justify-center cursor-pointer"
           aria-label={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
           title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
         >
@@ -150,18 +150,18 @@ export const DashboardMenuItemCard = React.memo(function DashboardMenuItemCard({
                 type="button"
                 onClick={() => onUpdateCartQuantity(dish.id, quantityInCart - 1)}
                 aria-label="Decrease quantity"
-                className="w-11 h-11 rounded-lg bg-white dark:bg-[#14141A] text-[#14141A] dark:text-white transition font-bold flex items-center justify-center cursor-pointer active:scale-95"
+                className="w-11 h-11 rounded-lg bg-white dark:bg-[#14141A] text-[#14141A] dark:text-white transition-transform duration-180 active:scale-[0.97] active:brightness-110 font-bold flex items-center justify-center cursor-pointer"
               >
                 <Minus className="w-4 h-4" />
               </button>
-              <span className="text-xs font-extrabold text-[#E21B70] dark:text-[#FF4D94] font-mono tabular-nums px-2">
+              <span className="text-xs font-extrabold text-[#E21B70] dark:text-[#FF4D94] font-mono tabular-nums px-2 transition-all duration-200">
                 {quantityInCart}
               </span>
               <button
                 type="button"
                 onClick={() => onUpdateCartQuantity(dish.id, quantityInCart + 1)}
                 aria-label="Increase quantity"
-                className="w-11 h-11 rounded-lg btn-pink text-white transition font-bold flex items-center justify-center cursor-pointer active:scale-95"
+                className="w-11 h-11 rounded-lg btn-pink text-white transition-transform duration-180 active:scale-[0.97] active:brightness-110 font-bold flex items-center justify-center cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
               </button>
@@ -182,7 +182,7 @@ export const DashboardMenuItemCard = React.memo(function DashboardMenuItemCard({
                 }
               }}
               disabled={!dish.isAvailable || isRestaurantClosed}
-              className={`w-full min-h-[44px] py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition flex items-center justify-center gap-1.5 btn-pink text-white active:scale-[0.98] ${
+              className={`w-full min-h-[44px] py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-transform duration-180 active:scale-[0.97] active:brightness-110 flex items-center justify-center gap-1.5 btn-pink text-white relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100 ${
                 !dish.isAvailable || isRestaurantClosed
                   ? "cursor-not-allowed opacity-50"
                   : "cursor-pointer"

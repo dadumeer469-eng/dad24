@@ -112,7 +112,7 @@ function CategoryDishGridBatch({
           <button
             type="button"
             onClick={() => setVisibleCount((c) => c + 24)}
-            className="min-h-[44px] px-5 py-2.5 rounded-xl bg-white dark:bg-[#14141A] border border-[#D70F64]/45 text-[#D70F64] dark:text-[#FF4D94] hover:bg-[#D70F64] hover:text-white font-bold text-xs transition-colors cursor-pointer"
+            className="min-h-[44px] px-5 py-2.5 rounded-xl bg-white dark:bg-[#14141A] border border-[#D70F64]/45 text-[#D70F64] dark:text-[#FF4D94] hover:bg-[#D70F64] hover:text-white font-bold text-xs transition-all duration-300 transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer"
           >
             Show {Math.min(remaining, 24)} More Items ({remaining} remaining)
           </button>
@@ -431,7 +431,7 @@ export default function FoodpandaRestaurantPage({
           <button
             type="button"
             onClick={onBack}
-            className="w-11 h-11 bg-white/95 dark:bg-[#14141A]/95 backdrop-blur-md rounded-full text-[#14141A] dark:text-white shadow-md hover:bg-white transition flex items-center justify-center cursor-pointer active:scale-95"
+            className="w-11 h-11 bg-white/95 dark:bg-[#14141A]/95 backdrop-blur-md rounded-full text-[#14141A] dark:text-white shadow-md hover:bg-white transition-transform duration-180 active:scale-[0.97] active:brightness-110 flex items-center justify-center cursor-pointer"
             aria-label="Back to restaurants"
             title="Go back"
           >
@@ -441,13 +441,13 @@ export default function FoodpandaRestaurantPage({
           <button
             type="button"
             onClick={handleShare}
-            className="w-11 h-11 bg-white/95 dark:bg-[#14141A]/95 backdrop-blur-md rounded-full text-[#14141A] dark:text-white shadow-md hover:bg-white transition flex items-center justify-center cursor-pointer active:scale-95 relative"
+            className="w-11 h-11 bg-white/95 dark:bg-[#14141A]/95 backdrop-blur-md rounded-full text-[#14141A] dark:text-white shadow-md hover:bg-white transition-transform duration-180 active:scale-[0.97] active:brightness-110 flex items-center justify-center cursor-pointer relative"
             aria-label="Share restaurant"
             title="Share store"
           >
             <Share2 className="w-4 h-4 stroke-[2.2]" />
             {copiedLink && (
-              <span className="absolute -bottom-8 right-0 bg-[#14141A] text-white text-[10px] font-bold px-2.5 py-1 rounded-lg shadow-md whitespace-nowrap">
+              <span className="micro-toast-in absolute -bottom-8 right-0 bg-[#14141A] text-white text-[10px] font-bold px-2.5 py-1 rounded-lg shadow-md whitespace-nowrap">
                 Link Copied
               </span>
             )}
@@ -627,14 +627,14 @@ export default function FoodpandaRestaurantPage({
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={`Search in ${restaurantName}...`}
               aria-label={`Search in ${restaurantName}`}
-              className="w-full min-h-[44px] bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-xl py-2.5 pl-10 pr-10 text-sm font-medium outline-none focus:border-[#D70F64] focus:ring-2 focus:ring-[#D70F64]/20 text-[#14141A] dark:text-white transition"
+              className="w-full min-h-[44px] bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-xl py-2.5 pl-10 pr-10 text-sm font-medium outline-none focus:border-[#D70F64] focus:ring-2 focus:ring-[#D70F64]/20 focus:shadow-[0_8px_24px_rgba(215,15,100,0.12)] text-[#14141A] dark:text-white transition-all duration-300"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
                 aria-label="Clear search"
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 text-xs text-[#5A5A6B] hover:text-[#14141A] dark:hover:text-white font-bold bg-[#F2F2F6] dark:bg-[#1D1D26] rounded-lg flex items-center justify-center cursor-pointer"
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 text-xs text-[#5A5A6B] hover:text-[#14141A] dark:hover:text-white font-bold bg-[#F2F2F6] dark:bg-[#1D1D26] rounded-lg transition-transform duration-180 active:scale-[0.97] active:brightness-110 flex items-center justify-center cursor-pointer"
               >
                 ✕
               </button>
@@ -646,7 +646,7 @@ export default function FoodpandaRestaurantPage({
               type="button"
               onClick={() => setFilterType("all")}
               aria-pressed={filterType === "all"}
-              className={`min-h-[44px] px-4 py-2 rounded-full text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer border ${
+              className={`min-h-[44px] px-4 py-2 rounded-full text-xs font-bold transition-all duration-300 transition-transform duration-180 active:scale-[0.97] active:brightness-110 flex items-center gap-1.5 shrink-0 cursor-pointer border ${
                 filterType === "all"
                   ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
                   : "bg-white dark:bg-[#14141A] text-[#14141A] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733]"
@@ -659,7 +659,7 @@ export default function FoodpandaRestaurantPage({
               type="button"
               onClick={() => setFilterType(filterType === "bestsellers" ? "all" : "bestsellers")}
               aria-pressed={filterType === "bestsellers"}
-              className={`min-h-[44px] px-4 py-2 rounded-full text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer border ${
+              className={`min-h-[44px] px-4 py-2 rounded-full text-xs font-bold transition-all duration-300 transition-transform duration-180 active:scale-[0.97] active:brightness-110 flex items-center gap-1.5 shrink-0 cursor-pointer border ${
                 filterType === "bestsellers"
                   ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
                   : "bg-white dark:bg-[#14141A] text-[#14141A] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733]"
@@ -676,7 +676,7 @@ export default function FoodpandaRestaurantPage({
               type="button"
               onClick={() => setFilterType(filterType === "top_rated" ? "all" : "top_rated")}
               aria-pressed={filterType === "top_rated"}
-              className={`min-h-[44px] px-4 py-2 rounded-full text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer border ${
+              className={`min-h-[44px] px-4 py-2 rounded-full text-xs font-bold transition-all duration-300 transition-transform duration-180 active:scale-[0.97] active:brightness-110 flex items-center gap-1.5 shrink-0 cursor-pointer border ${
                 filterType === "top_rated"
                   ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
                   : "bg-white dark:bg-[#14141A] text-[#14141A] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733]"
@@ -716,7 +716,7 @@ export default function FoodpandaRestaurantPage({
                     ref={(el) => (categoryButtonRefs.current[cat] = el)}
                     onClick={() => scrollToCategory(cat)}
                     aria-current={isActive ? "true" : undefined}
-                    className={`min-h-[44px] whitespace-nowrap px-3.5 py-2 rounded-full text-xs font-bold transition-colors flex items-center gap-2 cursor-pointer select-none border ${
+                    className={`min-h-[44px] whitespace-nowrap px-3.5 py-2 rounded-full text-xs font-bold transition-all duration-300 transition-transform duration-180 active:scale-[0.97] active:brightness-110 flex items-center gap-2 cursor-pointer select-none border ${
                       isActive
                         ? "bg-gradient-to-r from-[#FF2B85] to-[#D70F64] text-white border-[#D70F64] shadow-md shadow-[#D70F64]/30"
                         : "bg-[#F9F9FB] dark:bg-[#1D1D26] text-[#14141A] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733]"
@@ -754,7 +754,7 @@ export default function FoodpandaRestaurantPage({
             <button
               type="button"
               onClick={onBack}
-              className="mt-4 min-h-[44px] px-5 py-2.5 rounded-xl bg-[#D70F64] hover:bg-[#B80C54] text-white font-bold text-xs transition cursor-pointer"
+              className="mt-4 min-h-[44px] px-5 py-2.5 rounded-xl bg-[#D70F64] hover:bg-[#B80C54] text-white font-bold text-xs transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
             >
               Browse other restaurants
             </button>
@@ -772,7 +772,7 @@ export default function FoodpandaRestaurantPage({
                   setSearchQuery("");
                   setFilterType("all");
                 }}
-                className="min-h-[40px] px-3 text-xs text-[#D70F64] dark:text-[#FF4D94] font-bold hover:underline cursor-pointer"
+                className="min-h-[40px] px-3 text-xs text-[#D70F64] dark:text-[#FF4D94] font-bold hover:underline cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110"
               >
                 Clear Filters
               </button>
@@ -928,7 +928,7 @@ export default function FoodpandaRestaurantPage({
           <button
             type="button"
             onClick={onViewCart}
-            className="w-full min-h-[52px] bg-[#D70F64] hover:bg-[#B80C54] text-white px-4 py-3 rounded-2xl font-bold text-sm shadow-lg transition flex items-center justify-between cursor-pointer active:scale-[0.99] group"
+            className="w-full min-h-[52px] bg-[#D70F64] hover:bg-[#B80C54] text-white px-4 py-3 rounded-2xl font-bold text-sm shadow-lg transition-transform duration-180 active:scale-[0.97] active:brightness-110 flex items-center justify-between cursor-pointer group relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
           >
             <div className="flex items-center gap-2.5">
               <span className="bg-white/20 px-2.5 py-1 rounded-lg text-xs font-bold tabular-nums">
@@ -988,7 +988,7 @@ const DishCard = React.memo(function DishCard({
 
   return (
     <div
-      className={`group relative flex gap-3 p-3.5 bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl shadow-2xs hover:shadow-sm transition-all duration-200 ${
+      className={`group relative flex gap-3 p-3.5 bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl shadow-2xs hover:shadow-sm transition-all duration-300 md:hover:-translate-y-0.5 ${
         !isAvailable ? "opacity-65 grayscale-[15%]" : "hover:border-[#D70F64]/45"
       }`}
     >
@@ -1090,7 +1090,7 @@ const DishCard = React.memo(function DishCard({
                 onToggleFavorite();
               }}
               aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
-              className={`absolute top-1 right-1 w-9 h-9 rounded-full transition flex items-center justify-center cursor-pointer shadow-sm ${
+              className={`absolute top-1 right-1 w-9 h-9 rounded-full transition-transform duration-180 active:scale-[0.97] active:brightness-110 flex items-center justify-center cursor-pointer shadow-sm ${
                 isFavorite
                   ? "bg-[#D70F64] text-white"
                   : "bg-white/90 dark:bg-[#14141A]/90 text-[#5A5A6B] hover:text-[#D70F64]"
@@ -1117,11 +1117,11 @@ const DishCard = React.memo(function DishCard({
                     if (onQuickAdd) onQuickAdd(-1);
                   }}
                   aria-label="Remove one"
-                  className="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 text-white flex items-center justify-center cursor-pointer active:scale-90"
+                  className="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 text-white flex items-center justify-center cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110"
                 >
                   <Minus className="w-3.5 h-3.5 stroke-[2.8]" />
                 </button>
-                <span className="font-mono text-xs font-bold tabular-nums px-1">
+                <span className="font-mono text-xs font-bold tabular-nums px-1 transition-all duration-200">
                   {quantityInCart}
                 </span>
                 <button
@@ -1135,7 +1135,7 @@ const DishCard = React.memo(function DishCard({
                     }
                   }}
                   aria-label="Add one more"
-                  className="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 text-white flex items-center justify-center cursor-pointer active:scale-90"
+                  className="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 text-white flex items-center justify-center cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110"
                 >
                   <Plus className="w-3.5 h-3.5 stroke-[2.8]" />
                 </button>
@@ -1153,7 +1153,7 @@ const DishCard = React.memo(function DishCard({
                     onAdd();
                   }
                 }}
-                className={`min-h-[38px] px-4 py-1.5 rounded-xl font-bold text-xs uppercase tracking-wider shadow-md transition flex items-center justify-center gap-1 active:scale-95 cursor-pointer ${
+                className={`min-h-[38px] px-4 py-1.5 rounded-xl font-bold text-xs uppercase tracking-wider shadow-md transition-transform duration-180 active:scale-[0.97] active:brightness-110 flex items-center justify-center gap-1 cursor-pointer ${
                   hasOptions
                     ? "bg-white dark:bg-[#14141A] border-2 border-[#D70F64] text-[#D70F64] dark:text-[#FF4D94] hover:bg-[#D70F64] hover:text-white"
                     : "bg-[#D70F64] hover:bg-[#B80C54] text-white"

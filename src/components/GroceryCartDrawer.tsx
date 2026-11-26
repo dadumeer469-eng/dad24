@@ -632,7 +632,7 @@ export default function GroceryCartDrawer({
           <button
             onClick={onClose}
             aria-label="Close grocery basket"
-            className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-850 rounded-full transition cursor-pointer text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70]"
+            className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-850 rounded-full transition-all duration-300 active:scale-[0.97] active:brightness-110 cursor-pointer text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70]"
           >
             <X className="w-4 h-4" />
           </button>
@@ -653,7 +653,7 @@ export default function GroceryCartDrawer({
                 return (
                   <React.Fragment key={s.n}>
                     {i > 0 && (
-                      <div className={`flex-1 h-[2px] mx-2 ${wizardStep > i ? "bg-[#D70F64]" : "bg-zinc-300 dark:bg-zinc-700"}`} />
+                      <div className={`flex-1 h-[2px] mx-2 transition-colors duration-300 ${wizardStep > i ? "bg-[#D70F64]" : "bg-zinc-300 dark:bg-zinc-700"}`} />
                     )}
                     <button
                       type="button"
@@ -666,9 +666,9 @@ export default function GroceryCartDrawer({
                       disabled={!done}
                       aria-label={s.label}
                       aria-current={current ? "step" : undefined}
-                      className={`flex items-center gap-1.5 ${done ? "text-emerald-600 dark:text-emerald-400 cursor-pointer" : current ? "text-[#FF4D94] cursor-default" : "text-zinc-700 dark:text-zinc-300 cursor-default"}`}
+                      className={`flex items-center gap-1.5 transition-all duration-300 ${done ? "text-emerald-600 dark:text-emerald-400 cursor-pointer" : current ? "text-[#FF4D94] cursor-default" : "text-zinc-700 dark:text-zinc-300 cursor-default"}`}
                     >
-                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${done ? "bg-emerald-500 text-white" : current ? "bg-[#D70F64] text-white" : "bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400"}`}>
+                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] transition-all duration-300 ${done ? "bg-emerald-500 text-white" : current ? "bg-[#D70F64] text-white" : "bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400"}`}>
                         {done ? "✓" : s.n}
                       </span>
                       <span>{s.label}</span>
@@ -689,15 +689,15 @@ export default function GroceryCartDrawer({
               <p className="text-xs text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-wider">Your Grocery Basket is empty!</p>
               <button
                 onClick={onClose}
-                className="bg-[#E21B70] hover:bg-[#C2145E] transition text-white font-black text-xs uppercase tracking-wider py-3 px-6 rounded-xl cursor-pointer shadow-xs"
+                className="bg-[#E21B70] hover:bg-[#C2145E] transition-all duration-300 active:scale-[0.97] active:brightness-110 text-white font-black text-xs uppercase tracking-wider py-3 px-6 rounded-xl cursor-pointer shadow-xs relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
               >
                 Go Add Groceries
               </button>
             </div>
           ) : wizardStep === 1 ? (
-            <div className="space-y-3">
+            <div className="space-y-3 animate-fade-in">
               {cartItems.map((item) => (
-                <div key={item.productId} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-2xl flex items-center justify-between gap-3 shadow-xs">
+                <div key={item.productId} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-2xl flex items-center justify-between gap-3 shadow-xs transition-transform duration-300 md:hover:-translate-y-0.5">
                   <LazyImage src={item.imageUrl} alt={item.name} className="w-12 h-12 rounded-xl overflow-hidden shrink-0" referrerPolicy="no-referrer" />
                   <div className="flex-1 min-w-0">
                     <span className="font-extrabold text-sm text-zinc-900 dark:text-zinc-100 block truncate">{item.name}</span>
@@ -714,15 +714,15 @@ export default function GroceryCartDrawer({
                     <button
                       onClick={() => onUpdateQuantity(item.productId, item.quantity - 1)}
                       aria-label={`Decrease quantity of ${item.name}`}
-                      className="w-10 h-10 rounded-lg text-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-[#E21B70]"
+                      className="w-10 h-10 rounded-lg text-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-[#E21B70] transition-transform duration-180 active:scale-[0.97] active:brightness-110"
                     >
                       -
                     </button>
-                    <span className="text-xs font-black min-w-4 text-center text-zinc-800 dark:text-zinc-200">{item.quantity}</span>
+                    <span className="text-xs font-black min-w-4 text-center text-zinc-800 dark:text-zinc-200 transition-all duration-200">{item.quantity}</span>
                     <button
                       onClick={() => onUpdateQuantity(item.productId, item.quantity + 1)}
                       aria-label={`Increase quantity of ${item.name}`}
-                      className="w-10 h-10 rounded-lg text-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-[#E21B70]"
+                      className="w-10 h-10 rounded-lg text-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-[#E21B70] transition-transform duration-180 active:scale-[0.97] active:brightness-110"
                     >
                       +
                     </button>
@@ -731,7 +731,7 @@ export default function GroceryCartDrawer({
                   <button
                     onClick={() => onRemoveItem(item.productId)}
                     aria-label={`Remove ${item.name} from basket`}
-                    className="min-w-[40px] min-h-[40px] p-2 flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:text-[#E21B70] shrink-0 transition cursor-pointer focus-visible:outline-2 focus-visible:outline-[#E21B70] rounded-lg"
+                    className="min-w-[40px] min-h-[40px] p-2 flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:text-[#E21B70] shrink-0 transition-all duration-300 active:scale-[0.97] active:brightness-110 cursor-pointer focus-visible:outline-2 focus-visible:outline-[#E21B70] rounded-lg"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -742,7 +742,7 @@ export default function GroceryCartDrawer({
 
           {/* Checkout address inputs flow */}
           {cartItems.length > 0 && wizardStep === 2 && (
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-3xl mt-6 space-y-4 shadow-xs">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-3xl mt-6 space-y-4 shadow-xs animate-fade-in">
               <h4 className="text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300 border-b border-zinc-200 dark:border-zinc-800 pb-2 flex items-center gap-1.5">
                 <MapPin className="w-4 h-4 text-[#E21B70]" />
                 Delivery Information Details
@@ -775,7 +775,7 @@ export default function GroceryCartDrawer({
                           <button
                             type="button"
                             onClick={handleStartEditAddress}
-                            className="flex items-center gap-1 text-[11px] font-black text-[#E21B70] hover:text-[#ff2b7f] hover:underline transition cursor-pointer"
+                            className="flex items-center gap-1 text-[11px] font-black text-[#E21B70] hover:text-[#ff2b7f] hover:underline transition-all duration-300 active:scale-[0.97] cursor-pointer"
                           >
                             <Edit2 className="w-3 h-3" />
                             {currentUser.address ? "Change Address" : "Add Address"}
@@ -799,7 +799,7 @@ export default function GroceryCartDrawer({
                                 key={tag}
                                 type="button"
                                 onClick={() => setAddressLabel(tag)}
-                                className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition cursor-pointer border ${
+                                className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all duration-300 active:scale-[0.97] active:brightness-110 cursor-pointer border ${
                                   addressLabel === tag
                                     ? "bg-[#E21B70] text-white border-[#E21B70]"
                                     : "bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:text-zinc-900 dark:hover:text-white"
@@ -831,7 +831,7 @@ export default function GroceryCartDrawer({
                                 setAddressError(null);
                               }}
                               disabled={isSavingAddress}
-                              className="px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 transition cursor-pointer"
+                              className="px-3 py-1.5 rounded-lg text-xs font-bold text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 transition-all duration-300 active:scale-[0.97] active:brightness-110 cursor-pointer"
                             >
                               Cancel
                             </button>
@@ -839,7 +839,7 @@ export default function GroceryCartDrawer({
                               type="button"
                               onClick={handleSaveAddress}
                               disabled={isSavingAddress}
-                              className="px-4 py-1.5 rounded-lg text-xs font-black text-white bg-[#E21B70] hover:bg-[#C2145E] shadow-md shadow-[#E21B70]/20 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                              className="px-4 py-1.5 rounded-lg text-xs font-black text-white bg-[#E21B70] hover:bg-[#C2145E] shadow-md shadow-[#E21B70]/20 transition-all duration-300 active:scale-[0.97] active:brightness-110 flex items-center gap-1.5 cursor-pointer disabled:opacity-50 relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
                             >
                               {isSavingAddress ? (
                                 <>
@@ -898,7 +898,7 @@ export default function GroceryCartDrawer({
                                   disabled={isSavingAddress}
                                   onClick={() => handleQuickSelectSavedAddress(entry)}
                                   title={entry.address}
-                                  className={`max-w-full text-left px-2.5 py-1.5 rounded-xl text-[10.5px] font-bold transition cursor-pointer flex items-center gap-1.5 border ${
+                                  className={`max-w-full text-left px-2.5 py-1.5 rounded-xl text-[10.5px] font-bold transition-all duration-300 active:scale-[0.97] active:brightness-110 cursor-pointer flex items-center gap-1.5 border ${
                                     isActive
                                       ? "bg-[#E21B70]/15 border-[#E21B70]/60 text-pink-700 dark:text-pink-200"
                                       : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-600"
@@ -996,7 +996,7 @@ export default function GroceryCartDrawer({
                     <button
                       type="button"
                       onClick={() => setIsScheduled(false)}
-                      className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition cursor-pointer ${
+                      className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition-all duration-300 active:scale-[0.97] active:brightness-110 cursor-pointer ${
                         !isScheduled
                           ? "bg-[#E21B70] border-[#E21B70] text-white"
                           : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"
@@ -1007,7 +1007,7 @@ export default function GroceryCartDrawer({
                     <button
                       type="button"
                       onClick={() => setIsScheduled(true)}
-                      className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition cursor-pointer ${
+                      className={`py-2 px-2.5 rounded-xl text-xs font-bold border transition-all duration-300 active:scale-[0.97] active:brightness-110 cursor-pointer ${
                         isScheduled
                           ? "bg-[#E21B70] border-[#E21B70] text-white"
                           : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300"
@@ -1043,7 +1043,7 @@ export default function GroceryCartDrawer({
                         key={opt.id}
                         type="button"
                         onClick={() => setDeliverySpeed(opt.id)}
-                        className={`py-2 px-2 rounded-xl text-center border transition cursor-pointer ${
+                        className={`py-2 px-2 rounded-xl text-center border transition-all duration-300 active:scale-[0.97] active:brightness-110 cursor-pointer ${
                           effectiveSpeed === opt.id
                             ? "bg-[#E21B70] border-[#E21B70] text-white"
                             : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-600"
@@ -1083,10 +1083,10 @@ export default function GroceryCartDrawer({
                           <span className="block text-[10px] text-zinc-500 dark:text-zinc-400">{pref.desc}</span>
                         </span>
                         <span
-                          className={`shrink-0 w-11 h-6 rounded-full p-0.5 transition ${pref.value ? "bg-[#E21B70]" : "bg-zinc-300 dark:bg-zinc-700"}`}
+                          className={`shrink-0 w-11 h-6 rounded-full p-0.5 transition-colors duration-300 ${pref.value ? "bg-[#E21B70]" : "bg-zinc-300 dark:bg-zinc-700"}`}
                         >
                           <span
-                            className={`block w-5 h-5 rounded-full bg-white shadow transition ${pref.value ? "translate-x-5" : "translate-x-0"}`}
+                            className={`block w-5 h-5 rounded-full bg-white shadow transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${pref.value ? "translate-x-5" : "translate-x-0"}`}
                           />
                         </span>
                       </button>
@@ -1110,7 +1110,7 @@ export default function GroceryCartDrawer({
                         key={amt}
                         type="button"
                         onClick={() => setRiderTip(amt)}
-                        className={`py-1.5 rounded-lg text-xs font-bold border transition cursor-pointer ${
+                        className={`py-1.5 rounded-lg text-xs font-bold border transition-all duration-300 active:scale-[0.97] active:brightness-110 cursor-pointer ${
                           riderTip === amt
                             ? "bg-[#E21B70] border-[#E21B70] text-white"
                             : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-600"
@@ -1128,7 +1128,7 @@ export default function GroceryCartDrawer({
 
           {/* Step 3 — Payment: method + receipt, offers, pricing summary */}
           {cartItems.length > 0 && wizardStep === 3 && (
-            <div className="space-y-4 mt-6">
+            <div className="space-y-4 mt-6 animate-fade-in">
                 {/* Payment Method Selector (ONLY Cash on Delivery & Easypaisa) */}
                 <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-xl space-y-2">
                   <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block">
@@ -1144,7 +1144,7 @@ export default function GroceryCartDrawer({
                           setCheckoutError(null);
                           localStorage.setItem("dadu_preferred_payment", method);
                         }}
-                        className={`min-h-[44px] py-2.5 px-3 rounded-xl text-xs font-extrabold border transition cursor-pointer ${
+                        className={`min-h-[44px] py-2.5 px-3 rounded-xl text-xs font-extrabold border transition-all duration-300 active:scale-[0.97] active:brightness-110 cursor-pointer ${
                           paymentMethod === method
                             ? "bg-[#D70F64] border-[#D70F64] text-white shadow-sm"
                             : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-600"
@@ -1213,7 +1213,7 @@ export default function GroceryCartDrawer({
                   <button
                     type="button"
                     onClick={() => handleApplyVoucher(bestVoucher)}
-                    className="bg-[#E21B70] hover:bg-[#C2145E] text-white text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-xl shrink-0 shadow-md shadow-[#E21B70]/25 cursor-pointer transition active:scale-95"
+                    className="bg-[#E21B70] hover:bg-[#C2145E] text-white text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-xl shrink-0 shadow-md shadow-[#E21B70]/25 cursor-pointer transition-all duration-300 active:scale-[0.97] active:brightness-110 relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
                   >
                     1-Tap Apply
                   </button>
@@ -1222,7 +1222,7 @@ export default function GroceryCartDrawer({
             })()}
 
             {/* BENEFIT / OFFERS & DISCOUNTS COLLAPSIBLE BOX */}
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden transition-all duration-200">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden transition-all duration-300">
               {/* Box Click Trigger */}
               <button
                 type="button"
@@ -1306,7 +1306,7 @@ export default function GroceryCartDrawer({
                         <button
                           type="button"
                           onClick={handleRemoveVoucher}
-                          className="text-xs text-rose-400 hover:text-rose-500 dark:hover:text-rose-300 font-bold px-2 py-1 bg-rose-500/10 rounded-lg cursor-pointer"
+                          className="text-xs text-rose-400 hover:text-rose-500 dark:hover:text-rose-300 font-bold px-2 py-1 bg-rose-500/10 rounded-lg cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110"
                         >
                           Remove
                         </button>
@@ -1333,7 +1333,7 @@ export default function GroceryCartDrawer({
                           <button
                             type="button"
                             onClick={() => handleApplyVoucher(voucherInputCode)}
-                            className="bg-[#E21B70] hover:bg-[#C2145E] text-white text-xs font-black px-3.5 py-2 rounded-xl transition cursor-pointer"
+                            className="bg-[#E21B70] hover:bg-[#C2145E] text-white text-xs font-black px-3.5 py-2 rounded-xl transition-all duration-300 active:scale-[0.97] active:brightness-110 cursor-pointer relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
                           >
                             Apply
                           </button>
@@ -1380,12 +1380,12 @@ export default function GroceryCartDrawer({
                           onClick={handleToggleCoins}
                           aria-pressed={useCoins && !appliedVoucher}
                           aria-label="Use coins for discount"
-                          className={`w-11 h-6 rounded-full transition-all relative cursor-pointer outline-none shrink-0 border ${
+                          className={`w-11 h-6 rounded-full transition-colors duration-300 relative cursor-pointer outline-none shrink-0 border ${
                             useCoins && !appliedVoucher ? "bg-amber-500 border-amber-400 shadow-md shadow-amber-500/20" : "bg-zinc-200 dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700"
                           }`}
                         >
                           <span
-                            className={`absolute top-0.5 left-0.5 w-4.5 h-4.5 rounded-full bg-white shadow-md transition-transform flex items-center justify-center text-[9px] font-black ${
+                            className={`absolute top-0.5 left-0.5 w-4.5 h-4.5 rounded-full bg-white shadow-md transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] flex items-center justify-center text-[9px] font-black ${
                               useCoins && !appliedVoucher ? "transform translate-x-5 text-amber-600" : "text-zinc-500 dark:text-zinc-500"
                             }`}
                           >
@@ -1501,7 +1501,7 @@ export default function GroceryCartDrawer({
         {cartItems.length > 0 && (
           <div className="p-4 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 space-y-3 shrink-0">
             {checkoutError && (
-              <div className="p-3 bg-rose-500/15 border border-rose-500/30 rounded-xl text-xs text-rose-500 dark:text-rose-300 font-bold flex items-center gap-2">
+              <div className="p-3 bg-rose-500/15 border border-rose-500/30 rounded-xl text-xs text-rose-500 dark:text-rose-300 font-bold flex items-center gap-2 micro-toast-in">
                 <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
                 <span>{checkoutError}</span>
               </div>
@@ -1515,7 +1515,7 @@ export default function GroceryCartDrawer({
                 <button
                   type="button"
                   onClick={handleNextFromBasket}
-                  className="w-full min-h-[48px] btn-pink text-white py-3.5 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70]"
+                  className="w-full min-h-[48px] btn-pink relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100 text-white py-3.5 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.97] active:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70]"
                 >
                   Proceed to Delivery →
                 </button>
@@ -1527,14 +1527,14 @@ export default function GroceryCartDrawer({
                   type="button"
                   onClick={handleBackToBasket}
                   aria-label="Back to basket"
-                  className="min-h-[48px] px-5 rounded-2xl border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-black uppercase text-xs tracking-wider bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70]"
+                  className="min-h-[48px] px-5 rounded-2xl border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-black uppercase text-xs tracking-wider bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-300 active:scale-[0.97] active:brightness-110 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70]"
                 >
                   ← Back
                 </button>
                 <button
                   type="button"
                   onClick={handleNextFromDelivery}
-                  className="flex-1 min-h-[48px] btn-pink text-white py-3.5 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70]"
+                  className="flex-1 min-h-[48px] btn-pink relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100 text-white py-3.5 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.97] active:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70]"
                 >
                   Proceed to Payment →
                 </button>
@@ -1546,14 +1546,14 @@ export default function GroceryCartDrawer({
                   type="button"
                   onClick={handleBackToDelivery}
                   aria-label="Back to delivery details"
-                  className="min-h-[48px] px-5 rounded-2xl border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-black uppercase text-xs tracking-wider bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70]"
+                  className="min-h-[48px] px-5 rounded-2xl border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-black uppercase text-xs tracking-wider bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-300 active:scale-[0.97] active:brightness-110 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70]"
                 >
                   ← Back
                 </button>
             <button
               onClick={handleCheckoutSubmit}
               disabled={submitting}
-              className="flex-1 min-h-[48px] btn-pink text-white py-3.5 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70]"
+              className="flex-1 min-h-[48px] btn-pink relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100 text-white py-3.5 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75 active:scale-[0.97] active:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70]"
             >
               {submitting ? (
                 <>Placing Grocery Order...</>

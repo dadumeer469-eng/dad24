@@ -93,7 +93,7 @@ export default function FoodpandaHero({
             <button
               type="button"
               onClick={() => setActiveCategory("All")}
-              className="min-h-[44px] px-2 text-xs font-extrabold text-[#D70F64] hover:underline cursor-pointer"
+              className="min-h-[44px] px-2 text-xs font-extrabold text-[#D70F64] hover:underline cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110"
             >
               Show All
             </button>
@@ -113,10 +113,10 @@ export default function FoodpandaHero({
                 onClick={() => setActiveCategory(cat.name)}
                 aria-pressed={isSelected}
                 aria-label={`${cat.name} cuisine${isSelected ? ", selected" : ""}`}
-                className="group flex flex-col items-center gap-1.5 shrink-0 w-[76px] sm:w-[86px] snap-start cursor-pointer active:scale-95 transition-transform"
+                className="group flex flex-col items-center gap-1.5 shrink-0 w-[76px] sm:w-[86px] snap-start cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110"
               >
                 <div
-                  className={`w-16 h-16 sm:w-[70px] sm:h-[70px] rounded-full overflow-hidden flex items-center justify-center text-2xl transition-all border-2 shadow-md ${
+                  className={`w-16 h-16 sm:w-[70px] sm:h-[70px] rounded-full overflow-hidden flex items-center justify-center text-2xl transition-all duration-300 border-2 shadow-md ${
                     isSelected
                       ? "border-[#D70F64] ring-2 ring-[#D70F64]/25 bg-[#FFF0F5] dark:bg-[#2A101C]"
                       : "border-[#E6E6EE] dark:border-[#272733] bg-white dark:bg-[#14141A] group-hover:border-[#D70F64]/50"
@@ -134,7 +134,7 @@ export default function FoodpandaHero({
                   )}
                 </div>
                 <span
-                  className={`text-[11px] font-bold text-center leading-tight line-clamp-1 w-full ${
+                  className={`text-[11px] font-bold text-center leading-tight line-clamp-1 w-full transition-colors duration-300 ${
                     isSelected
                       ? "text-[#D70F64] dark:text-[#FF5C9E]"
                       : "text-[#14141A] dark:text-[#F5F5F8]"
