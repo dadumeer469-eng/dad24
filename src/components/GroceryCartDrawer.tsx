@@ -463,7 +463,7 @@ export default function GroceryCartDrawer({
       <div className="absolute inset-0 bg-black/80 transition-opacity" onClick={onClose} />
 
       <div className="absolute inset-y-0 right-0 max-w-full flex sm:pl-10">
-        <div className="w-screen max-w-md bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 border-l border-zinc-200 dark:border-zinc-900 shadow-2xl flex flex-col h-full animate-slide-in">
+        <div className="w-screen max-w-md bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 border-l border-zinc-200 dark:border-zinc-900 shadow-2xl flex flex-col h-full h-dvh animate-slide-in">
           
           {/* Header */}
           <div className="p-4 border-b border-zinc-200 dark:border-zinc-900 flex items-center justify-between bg-zinc-200/50 dark:bg-zinc-900/40">
@@ -506,7 +506,7 @@ export default function GroceryCartDrawer({
           )}
 
           {/* Cart items list */}
-          <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y p-5 space-y-4">
             {cartItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center text-center py-20 space-y-4">
                 <div className="w-16 h-16 bg-pink-600/10 border border-orange-500/20 rounded-full flex items-center justify-center text-orange-500">
