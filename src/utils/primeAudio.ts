@@ -13,7 +13,9 @@ export function primeAudio(): void {
       window.AudioContext ||
       (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctx) return;
-    if (!sharedCtx) sharedCtx = new Ctx();
+    // A closed context can never ring again — recreate it after a call ends
+    // (stopRinging closes the shared context).
+    if (!sharedCtx || sharedCtx.state === "closed") sharedCtx = new Ctx();
     if (sharedCtx.state === "suspended") void sharedCtx.resume();
   } catch {
     /* noop */
@@ -21,5 +23,5 @@ export function primeAudio(): void {
 }
 
 export function getAudioContext(): AudioContext | null {
-  return sharedCtx;
+  return sharedCtx && sharedCtx.state !== "closed" ? sharedCtx : null;
 }
