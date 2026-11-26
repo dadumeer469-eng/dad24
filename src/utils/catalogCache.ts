@@ -12,10 +12,14 @@
 // - Each catalogue collection gets one versioned key holding
 //   { v, savedAt, data }. `savedAt` is the epoch ms of the last successful
 //   Firestore fetch.
-// - TTL is 6 hours. A price/category change made by the admin propagates to
-//   users within 6h even if the admin forgets to press Refresh — and the
-//   admin "Refresh All Users" button invalidates the cache immediately, so
-//   an intentional edit reaches users at once.
+// - TTL is 24 hours. Repeat loads inside a day cost ~0 catalogue reads,
+//   and the catalogue delta (settings/catalog_delta, see
+//   ./catalogDelta.ts) keeps prices/products fresh in between: when the
+//   admin changes a price or adds a product, only that one item is
+//   re-fetched and patched into the cache — the 24h TTL never has to
+//   expire for an edit to reach users. The admin "Refresh All Users"
+//   button still invalidates the cache immediately, so an intentional
+//   edit reaches users at once.
 // - On mount the UI renders from the cache immediately (first paint), even
 //   if it is stale. The fetch effects then check freshness:
 //     * Fresh cache (age < TTL)  -> skip Firestore entirely (0 reads).
@@ -34,11 +38,13 @@
 
 export const CATALOG_CACHE_VERSION = 1;
 
-// 6 hours. Long enough that repeat loads inside a day cost ~0 catalogue
-// reads, short enough that an admin edit the admin forgot to push via
-// "Refresh All Users" still reaches users the same day. Raise to 12h/24h
-// if the daily read quota still exhausts.
-export const CATALOG_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+// 24 hours. Long enough that repeat loads inside a day cost ~0 catalogue
+// reads. The catalogue delta (./catalogDelta.ts) applies admin edits
+// (price change / product add) granularly on top of the cache, so a
+// 24h TTL does NOT mean prices go stale for a day — only the changed
+// item is re-fetched. Raise to 48h if the daily read quota still
+// exhausts; lower it only if delta reads ever stop working.
+export const CATALOG_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 export const CATALOG_CACHE_KEYS = {
   menu: "dadu_catalog_v1_menu",
@@ -79,15 +85,29 @@ export function readCatalogCache<T>(key: CatalogCacheKey): CatalogCacheEntry<T> 
 }
 
 /**
+ * Read a cache entry only when it is fresh (age < TTL). Returns the whole
+ * entry (data + savedAt) — the delta logic needs savedAt to know which
+ * admin changes happened after this cache was written. Returns null when
+ * the entry is missing, from an older version, or expired — the caller
+ * should then fetch from Firestore.
+ */
+export function readFreshCatalogEntry<T>(
+  key: CatalogCacheKey,
+): CatalogCacheEntry<T> | null {
+  const entry = readEntry<T>(key);
+  if (!entry) return null;
+  if (Date.now() - entry.savedAt >= CATALOG_CACHE_TTL_MS) return null;
+  return entry;
+}
+
+/**
  * Read cached data only when it is fresh (age < TTL). Returns null when the
  * entry is missing, from an older version, or expired — the caller should
  * then fetch from Firestore.
  */
 export function readFreshCatalogCache<T>(key: CatalogCacheKey): T | null {
-  const entry = readEntry<T>(key);
-  if (!entry) return null;
-  if (Date.now() - entry.savedAt >= CATALOG_CACHE_TTL_MS) return null;
-  return entry.data;
+  const entry = readFreshCatalogEntry<T>(key);
+  return entry ? entry.data : null;
 }
 
 /** Age of a cache entry in ms, or Infinity when missing/invalid. */
@@ -97,12 +117,22 @@ export function catalogCacheAgeMs(key: CatalogCacheKey): number {
   return Date.now() - entry.savedAt;
 }
 
-/** Write a cache entry, stamping the current version and time. */
-export function writeCatalogCache<T>(key: CatalogCacheKey, data: T): void {
+/**
+ * Write a cache entry, stamping the current version and time.
+ * `savedAtOverride` is used by the delta patch path: the cache is stamped
+ * at the moment the delta was read, so an admin edit that lands after the
+ * delta read (but before this write) is still newer than the cache and
+ * gets applied on the next load instead of being silently skipped.
+ */
+export function writeCatalogCache<T>(
+  key: CatalogCacheKey,
+  data: T,
+  savedAtOverride?: number,
+): void {
   try {
     const entry: CatalogCacheEntry<T> = {
       v: CATALOG_CACHE_VERSION,
-      savedAt: Date.now(),
+      savedAt: savedAtOverride ?? Date.now(),
       data,
     };
     localStorage.setItem(CATALOG_CACHE_KEYS[key], JSON.stringify(entry));

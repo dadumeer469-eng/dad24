@@ -239,29 +239,37 @@ export function recategorizeDish(dish: Dish): string {
   return baseCat;
 }
 
+// Local branded dish photos (public/images/dishes/) — professional real food
+// photography with the Dadu Food logo, each under 200KB. These replace the old
+// Unsplash hotlinks so dish photos load from our own site (no external
+// dependency, no wrong-dish hotlink risk). One photo per dish category; the
+// top sellers get dedicated photos (zinger, shawarma, seekhKabab).
 const DISH_IMAGE_MAP = {
-  paratha: "https://images.unsplash.com/photo-1626074353765-517a681e40be?w=600&q=80&auto=format&fit=crop",
-  mountainDew: "https://images.unsplash.com/photo-1625772299848-391b6a87d7b3?w=600&q=80&auto=format&fit=crop",
-  sevenUp: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=600&q=80&auto=format&fit=crop",
-  cola: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=600&q=80&auto=format&fit=crop",
-  bbq: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&q=80&auto=format&fit=crop",
-  biryani: "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=600&q=80&auto=format&fit=crop",
-  karahi: "https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=600&q=80&auto=format&fit=crop",
-  pizza: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600&q=80&auto=format&fit=crop",
-  burger: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=80&auto=format&fit=crop",
-  broast: "https://images.unsplash.com/photo-1626645738196-c2a7c87a8f58?w=600&q=80&auto=format&fit=crop",
-  pasta: "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=600&q=80&auto=format&fit=crop",
-  lasagna: "https://images.unsplash.com/photo-1574894709920-11b28e7367e3?w=600&q=80&auto=format&fit=crop",
-  sandwich: "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=600&q=80&auto=format&fit=crop",
-  roll: "https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=600&q=80&auto=format&fit=crop",
-  fries: "https://images.unsplash.com/photo-1576107232684-1279f390859f?w=600&q=80&auto=format&fit=crop",
-  salad: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&q=80&auto=format&fit=crop",
-  steak: "https://images.unsplash.com/photo-1600891964092-4316c288032e?w=600&q=80&auto=format&fit=crop",
-  chai: "https://images.unsplash.com/photo-1571934811356-5cc061b6821f?w=600&q=80&auto=format&fit=crop",
-  greenTea: "https://images.unsplash.com/photo-1627435601361-ec25f5b1d0e5?w=600&q=80&auto=format&fit=crop",
-  shake: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=600&q=80&auto=format&fit=crop",
-  cheesecake: "https://images.unsplash.com/photo-1533134242443-d4fd215305ad?w=600&q=80&auto=format&fit=crop",
-  naan: "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=600&q=80&auto=format&fit=crop",
+  paratha: "/images/dishes/paratha.jpg",
+  mountainDew: "/images/dishes/mountain-dew.jpg",
+  sevenUp: "/images/dishes/seven-up.jpg",
+  cola: "/images/dishes/cola.jpg",
+  bbq: "/images/dishes/bbq.jpg",
+  biryani: "/images/dishes/biryani.jpg",
+  karahi: "/images/dishes/karahi.jpg",
+  pizza: "/images/dishes/pizza.jpg",
+  burger: "/images/dishes/burger.jpg",
+  zinger: "/images/dishes/zinger.jpg",
+  broast: "/images/dishes/broast.jpg",
+  pasta: "/images/dishes/pasta.jpg",
+  lasagna: "/images/dishes/lasagna.jpg",
+  sandwich: "/images/dishes/sandwich.jpg",
+  roll: "/images/dishes/roll.jpg",
+  shawarma: "/images/dishes/shawarma.jpg",
+  fries: "/images/dishes/fries.jpg",
+  salad: "/images/dishes/salad.jpg",
+  steak: "/images/dishes/steak.jpg",
+  chai: "/images/dishes/chai.jpg",
+  greenTea: "/images/dishes/green-tea.jpg",
+  shake: "/images/dishes/shake.jpg",
+  cheesecake: "/images/dishes/cheesecake.jpg",
+  naan: "/images/dishes/naan.jpg",
+  seekhKabab: "/images/dishes/seekh-kabab.jpg",
 };
 
 const KNOWN_BAD_PHOTO_SNIPPETS = [
@@ -278,21 +286,24 @@ const KNOWN_BAD_PHOTO_SNIPPETS = [
 function pickFallbackPhotoByName(name: string): string {
   if (name.includes("mountain dew") || name.includes("dew")) return DISH_IMAGE_MAP.mountainDew;
   if (name.includes("7up") || name.includes("7 up") || name.includes("sprite")) return DISH_IMAGE_MAP.sevenUp;
-  if (name.includes("pepsi") || name.includes("coke") || name.includes("cola")) return DISH_IMAGE_MAP.cola;
+  if (name.includes("pepsi") || name.includes("coke") || (name.includes("cola") && !name.includes("chocolate"))) return DISH_IMAGE_MAP.cola;
   if (name.includes("steak") || name.includes("ribeye") || name.includes("tenderloin")) return DISH_IMAGE_MAP.steak;
   if (name.includes("green tea") || name.includes("kehwa") || name.includes("kahwa")) return DISH_IMAGE_MAP.greenTea;
   if (name.includes("chai") || name.includes("tea")) return DISH_IMAGE_MAP.chai;
   if (name.includes("paratha")) return DISH_IMAGE_MAP.paratha;
   if (name.includes("naan") || name.includes("roti") || name.includes("chapati")) return DISH_IMAGE_MAP.naan;
   if (name.includes("biryani") || name.includes("pulao")) return DISH_IMAGE_MAP.biryani;
+  if (name.includes("seekh")) return DISH_IMAGE_MAP.seekhKabab;
   if (name.includes("karahi") || name.includes("handi") || name.includes("nihari") || name.includes("desi")) return DISH_IMAGE_MAP.karahi;
-  if (name.includes("tikka") || name.includes("kabab") || name.includes("seekh") || name.includes("bbq") || name.includes("malai boti")) return DISH_IMAGE_MAP.bbq;
+  if (name.includes("tikka") || name.includes("kabab") || name.includes("bbq") || name.includes("malai boti")) return DISH_IMAGE_MAP.bbq;
   if (name.includes("lasagna")) return DISH_IMAGE_MAP.lasagna;
   if (name.includes("pasta") || name.includes("alfredo") || name.includes("chowmein")) return DISH_IMAGE_MAP.pasta;
   if (name.includes("sandwich")) return DISH_IMAGE_MAP.sandwich;
-  if (name.includes("roll") || name.includes("shawarma") || name.includes("wrap")) return DISH_IMAGE_MAP.roll;
+  if (name.includes("shawarma")) return DISH_IMAGE_MAP.shawarma;
+  if (name.includes("roll") || name.includes("wrap")) return DISH_IMAGE_MAP.roll;
   if (name.includes("broast") || name.includes("fried chicken") || name.includes("wings") || name.includes("nuggets")) return DISH_IMAGE_MAP.broast;
-  if (name.includes("burger") || name.includes("zinger")) return DISH_IMAGE_MAP.burger;
+  if (name.includes("zinger")) return DISH_IMAGE_MAP.zinger;
+  if (name.includes("burger")) return DISH_IMAGE_MAP.burger;
   if (name.includes("fries")) return DISH_IMAGE_MAP.fries;
   if (name.includes("salad")) return DISH_IMAGE_MAP.salad;
   if (name.includes("cheesecake") || name.includes("cake") || name.includes("dessert") || name.includes("brownie")) return DISH_IMAGE_MAP.cheesecake;
