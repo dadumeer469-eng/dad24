@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Bot, PhoneOff } from "lucide-react";
+import { Phone, PhoneOff, X } from "lucide-react";
 
 export interface VoiceOrderItem {
   name: string;
@@ -63,12 +63,6 @@ function pickVoice(): SpeechSynthesisVoice | null {
   );
 }
 
-function formatCallTime(totalSeconds: number): string {
-  const m = Math.floor(totalSeconds / 60);
-  const s = totalSeconds % 60;
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
-
 export default function VoiceOrderModal({
   isOpen,
   onClose,
@@ -80,17 +74,27 @@ export default function VoiceOrderModal({
 }: VoiceOrderModalProps) {
   const [status, setStatus] = useState<Status>("idle");
   const [recogLang, setRecogLang] = useState("sd-PK");
-  const [callSeconds, setCallSeconds] = useState(0);
   const [placedOrder, setPlacedOrder] = useState<VoiceOrder | null>(null);
+  // The agent girl stays hidden while the call connects; she walks in the
+  // moment the API answers, then talks with a nod and a waving hand.
+  const [agentVisible, setAgentVisible] = useState(false);
+  const [walkInDone, setWalkInDone] = useState(false);
 
   const recogRef = useRef<Recog | null>(null);
   const messagesRef = useRef<ChatMsg[]>([]);
   const statusRef = useRef<Status>("idle");
   const openRef = useRef(false);
-  const callStartRef = useRef(0);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const ringStopRef = useRef(false);
   const ringTimerRef = useRef<number | null>(null);
+  const walkInTimerRef = useRef<number | null>(null);
+
+  // Reveal the agent: she walks in, then settles into her idle/talking loop.
+  const revealAgent = useCallback(() => {
+    setAgentVisible(true);
+    if (walkInTimerRef.current !== null) clearTimeout(walkInTimerRef.current);
+    walkInTimerRef.current = window.setTimeout(() => setWalkInDone(true), 1400);
+  }, []);
 
   const setStatusBoth = (s: Status) => {
     statusRef.current = s;
@@ -152,6 +156,10 @@ export default function VoiceOrderModal({
 
   const stopAll = useCallback(() => {
     stopRinging();
+    if (walkInTimerRef.current !== null) {
+      clearTimeout(walkInTimerRef.current);
+      walkInTimerRef.current = null;
+    }
     try {
       recogRef.current?.abort();
     } catch {
@@ -254,6 +262,8 @@ export default function VoiceOrderModal({
         const say: string = data?.say || "";
         const next = [...history, { role: "assistant" as const, text: say }];
         messagesRef.current = next;
+        // The API answered — the agent walks in and starts talking.
+        revealAgent();
         if (data?.done && data?.order) {
           speak(say, () => finishOrder(data.order as VoiceOrder));
         } else {
@@ -367,8 +377,9 @@ export default function VoiceOrderModal({
     openRef.current = true;
     messagesRef.current = [];
     setPlacedOrder(null);
-    setCallSeconds(0);
-    callStartRef.current = Date.now();
+    // The agent is absent until the API connects — then she walks in.
+    setAgentVisible(false);
+    setWalkInDone(false);
     setStatusBoth("calling");
     // Ring like a real phone call until the agent answers.
     startRinging();
@@ -377,9 +388,6 @@ export default function VoiceOrderModal({
     } catch {
       /* noop */
     }
-    const timer = setInterval(() => {
-      setCallSeconds(Math.floor((Date.now() - callStartRef.current) / 1000));
-    }, 1000);
     const greet = async () => {
       try {
         const resp = await fetch("/api/voice-order", {
@@ -403,6 +411,8 @@ export default function VoiceOrderModal({
         const say: string = data?.say || "Assalam-o-Alaikum! Main Dadu Food jo voice assistant aahiyan.";
         const next = [{ role: "assistant" as const, text: say }];
         messagesRef.current = next;
+        // The API answered — the agent walks in and greets the user.
+        revealAgent();
         speak(say, () => {
           if (openRef.current) startListening();
         });
@@ -416,7 +426,6 @@ export default function VoiceOrderModal({
     const t = setTimeout(greet, 400);
     return () => {
       clearTimeout(t);
-      clearInterval(timer);
       openRef.current = false;
       stopAll();
     };
@@ -425,11 +434,12 @@ export default function VoiceOrderModal({
 
   if (!isOpen) return null;
 
-  const statusLine =
+  // Status card text (the white card from the design).
+  const cardTitle =
     status === "calling"
-      ? "Ringing..."
+      ? "Connecting..."
       : status === "listening"
-        ? "Sunn raha hoon..."
+        ? "Listening..."
         : status === "thinking"
           ? "Soch raha hoon..."
           : status === "speaking"
@@ -441,70 +451,123 @@ export default function VoiceOrderModal({
               : status === "error"
                 ? "Connection mein masla"
                 : "Connected";
+  const cardSub =
+    status === "calling"
+      ? "Please wait, our agent will be with you shortly..."
+      : status === "listening"
+        ? "Bolo — main sunn raha hoon"
+        : status === "thinking"
+          ? "Agent jawab soch raha hai..."
+          : status === "speaking"
+            ? "Agent bol raha hai — suno"
+            : status === "done"
+              ? "Shukriya! Order place ho gaya."
+              : status === "error"
+                ? "Dobara koshish karo — main yahin hoon"
+                : "";
+
+  // Agent motion: walks in once the API answers, then nods while talking
+  // and breathes gently while listening.
+  const agentMotionClass = !walkInDone
+    ? "animate-agent-walk-in"
+    : status === "speaking"
+      ? "animate-agent-talk"
+      : "animate-agent-breathe";
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex flex-col bg-[#1a0b12] text-white"
+      className="fixed inset-0 z-[70] flex flex-col overflow-hidden text-white"
       role="dialog"
       aria-modal="true"
       aria-label="Dadu Food voice call"
       style={{
         background:
-          "radial-gradient(120% 90% at 50% 0%, #E21B70 0%, #7a0e3e 55%, #1a0b12 100%)",
+          "radial-gradient(130% 100% at 50% 0%, #ff5da2 0%, #E21B70 55%, #a80e50 100%)",
       }}
     >
-      {/* Top: who you are calling */}
-      <div className="flex flex-col items-center pt-14 px-6">
-        <div className="relative">
-          <div className="w-28 h-28 rounded-full bg-white/15 border border-white/30 flex items-center justify-center">
-            <Bot className="w-14 h-14 text-white" />
-          </div>
-          {(status === "speaking" || status === "listening") && (
-            <span
-              className="absolute inset-0 rounded-full border-2 border-white/50 animate-ping"
-              aria-hidden="true"
-            />
-          )}
+      {/* Pink wave blobs */}
+      <div aria-hidden="true" className="pointer-events-none absolute -left-24 top-24 h-72 w-72 rounded-full bg-[#ff8fbe]/50 blur-3xl" />
+      <div aria-hidden="true" className="pointer-events-none absolute -right-20 bottom-40 h-80 w-80 rounded-full bg-[#8f0a44]/60 blur-3xl" />
+
+      {/* Top pill: Call Agent + close */}
+      <div className="relative z-10 flex justify-center px-5 pt-6">
+        <div className="flex w-full max-w-[420px] items-center gap-3 rounded-full bg-[#ff2e93] px-4 py-3 shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
+          <Phone className="h-6 w-6 shrink-0 text-white" aria-hidden="true" />
+          <span className="flex-1 text-center text-[22px] font-bold leading-none text-white">
+            Call Agent
+          </span>
+          <button
+            onClick={endCall}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/25 text-white active:scale-95"
+            aria-label="Close call"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
-        <p className="font-bold text-[24px] leading-tight mt-5">Dadu Food</p>
-        <p className="text-white/80 text-[15px] mt-1">Voice Assistant • Sindhi</p>
-        <p className="text-white/90 text-[15px] font-medium mt-3 flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-[#4ade80] inline-block" aria-hidden="true" />
-          {statusLine}
-        </p>
-        <p className="text-white/60 text-[14px] mt-1 tabular-nums">
-          {formatCallTime(callSeconds)}
-        </p>
       </div>
 
-      {/* Middle: voice waveform (no messages, no transcript) */}
-      <div className="flex-1 flex items-center justify-center px-8" aria-hidden="true">
-        <div className="flex items-center gap-1.5 h-14">
-          {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-            <span
-              key={i}
-              className={`w-1.5 rounded-full bg-white ${
-                status === "speaking" || status === "listening" ? "animate-voice-wave" : "opacity-30"
-              }`}
-              style={{
-                height: status === "speaking" || status === "listening" ? undefined : "10px",
-                animationDelay: `${i * 0.11}s`,
-              }}
-            />
-          ))}
+      {/* Middle: the agent girl — absent while connecting, walks in once
+          the API answers, then talks with a nod and a waving hand. */}
+      <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-4">
+        {agentVisible && (
+          <div className={`relative w-full max-w-[400px] ${agentMotionClass}`}>
+            <div className="relative aspect-[710/637] w-full overflow-hidden rounded-[28px]">
+              <img
+                src="/images/voice-agent.jpg"
+                alt="Dadu Food voice agent"
+                className="h-full w-full object-cover"
+                draggable={false}
+              />
+              {/* Waving hand layer, aligned exactly over the hand in the photo. */}
+              <img
+                src="/images/voice-agent-hand.png"
+                alt=""
+                aria-hidden="true"
+                draggable={false}
+                className={status === "speaking" && walkInDone ? "animate-hand-wave" : undefined}
+                style={{
+                  position: "absolute",
+                  left: "78.2%",
+                  top: "46.6%",
+                  width: "21.8%",
+                  height: "42.4%",
+                  transformOrigin: "35% 76%",
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Status card */}
+        <div className="relative z-10 -mt-10 w-full max-w-[400px] rounded-[28px] bg-white/95 px-6 py-5 text-center shadow-[0_12px_32px_rgba(0,0,0,0.3)]">
+          <div className="flex items-center justify-center gap-3">
+            <Phone className="h-8 w-8 shrink-0 text-[#22c55e]" aria-hidden="true" />
+            <span className="text-[26px] font-bold leading-tight text-[#1e293b]">
+              {cardTitle}
+            </span>
+          </div>
+          <p className="mt-1 text-[15px] leading-snug text-[#334155]">{cardSub}</p>
+          <div className="mt-3 flex items-center justify-center gap-2" aria-hidden="true">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <span
+                key={i}
+                className="animate-dot-bounce h-2.5 w-2.5 rounded-full bg-[#E21B70]"
+                style={{ animationDelay: `${i * 0.14}s` }}
+              />
+            ))}
+          </div>
         </div>
       </div>
 
       {/* Bottom: ONE option — end the call */}
-      <div className="pb-12 pt-4 flex flex-col items-center gap-4">
+      <div className="relative z-10 flex flex-col items-center gap-3 pb-10 pt-2">
         <button
           onClick={endCall}
-          className="w-[76px] h-[76px] rounded-full bg-[#e11d48] hover:bg-[#c81e42] shadow-[0_0_0_10px_rgba(225,29,72,0.18)] flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
+          className="flex h-[76px] w-[76px] cursor-pointer items-center justify-center rounded-full bg-[#e11d48] shadow-[0_0_0_10px_rgba(225,29,72,0.18)] transition-transform active:scale-95"
           aria-label="End call"
         >
-          <PhoneOff className="w-9 h-9 text-white" />
+          <PhoneOff className="h-9 w-9 text-white" />
         </button>
-        <p className="text-white/70 text-[13.5px]">Call cut karan lai dabayo</p>
       </div>
     </div>
   );
