@@ -34,7 +34,6 @@ import {
 } from "firebase/firestore";
 import { db, firebaseConfig, databaseId, cleanObject, storage, handleFirestoreError, app } from "../firebase";
 import { recordCatalogChange, recordCatalogFull, clearCatalogDelta } from "../utils/catalogDelta";
-import { compressImageToLowRes, compressImageFile } from "../utils/imageCompressor";
 import { formatOrderId } from "../utils/catalogNormalizer";
 import { DADU_FOOD_BUSINESS } from "../utils/seoManager";
 import { getDatabase, ref, set as setRtdb, onValue, off } from "firebase/database";
@@ -138,17 +137,12 @@ function ProductImageSelector({
   uploadPath,
 }: ProductImageSelectorProps) {
   const [isDragOver, setIsDragOver] = React.useState(false);
-  const [mode, setMode] = React.useState<"url" | "file" | "ai">("file");
+  const [mode, setMode] = React.useState<"url" | "file">("file");
   const [urlInput, setUrlInput] = React.useState(imageUrl || "");
   const [isProcessing, setIsProcessing] = React.useState(false);
   const [uploadProgress, setUploadProgress] = React.useState(0);
   const [uploadError, setUploadError] = React.useState("");
   const [failedFile, setFailedFile] = React.useState<File | null>(null);
-
-  // Google AI Web Search State
-  const [aiPromptInput, setAiPromptInput] = React.useState("");
-  const [isGeneratingAi, setIsGeneratingAi] = React.useState(false);
-  const [aiError, setAiError] = React.useState("");
 
   React.useEffect(() => {
     setUrlInput(imageUrl || "");
@@ -157,42 +151,6 @@ function ProductImageSelector({
   const handleUrlChange = (val: string) => {
     setUrlInput(val);
     onChange(val);
-  };
-
-  const handleSearchGoogleImage = async () => {
-    if (!aiPromptInput.trim()) {
-      setAiError("Please type a dish or item name to search Google");
-      return;
-    }
-
-    setIsGeneratingAi(true);
-    setAiError("");
-
-    try {
-      const res = await fetch("/api/ai/search-food-image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          itemName: aiPromptInput.trim(),
-          query: aiPromptInput.trim()
-        })
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success || !data.imageUrl) {
-        throw new Error(data.error || "Failed to find image on Google");
-      }
-
-      // Compress to low resolution (<30KB) to prevent Firebase load
-      const lowResUrl = await compressImageToLowRes(data.imageUrl, 380, 380, 0.72);
-      onChange(lowResUrl);
-      setUrlInput(lowResUrl);
-    } catch (err: any) {
-      console.error(err);
-      setAiError(err?.message || "Google image search failed");
-    } finally {
-      setIsGeneratingAi(false);
-    }
   };
 
   const processFile = async (file: File) => {
@@ -340,18 +298,6 @@ function ProductImageSelector({
           >
             URL
           </button>
-          <button
-            type="button"
-            onClick={() => setMode("ai")}
-            className={`px-2 py-0.5 text-[8px] uppercase font-black tracking-wide rounded transition cursor-pointer flex items-center gap-0.5 ${
-              mode === "ai"
-                ? "bg-blue-600 text-white shadow-xs"
-                : "text-blue-400 hover:text-blue-300 bg-blue-500/10"
-            }`}
-          >
-            <span>🔍</span>
-            <span>Google Search</span>
-          </button>
         </div>
       </div>
 
@@ -458,7 +404,7 @@ function ProductImageSelector({
             </div>
           )}
         </div>
-      ) : mode === "url" ? (
+      ) : (
         <div className="space-y-2">
           <input
             type="text"
@@ -490,81 +436,6 @@ function ProductImageSelector({
                 type="button"
                 onClick={() => onChange("")}
                 className="text-red-500 hover:text-pink-400 text-[10px] font-extrabold uppercase shrink-0 px-2 cursor-pointer"
-              >
-                Clear
-              </button>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-2 p-3 bg-blue-500/10 border border-blue-400/30 rounded-xl">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black text-blue-300 uppercase tracking-wide flex items-center gap-1">
-              <span>🔍</span> Google Food Image Search (Web Photo)
-            </span>
-            <span className="text-[8.5px] font-bold text-blue-400 bg-blue-500/20 px-1.5 py-0.5 rounded">
-              Google Web
-            </span>
-          </div>
-
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={aiPromptInput}
-              onChange={(e) => setAiPromptInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleSearchGoogleImage();
-                }
-              }}
-              placeholder="e.g. Special Peshawari Karahi, Karak Chai, Zinger..."
-              className="flex-1 p-2 glass-input border border-white/15 rounded-lg text-xs outline-none text-white font-medium focus:border-blue-500"
-            />
-            <button
-              type="button"
-              onClick={handleSearchGoogleImage}
-              disabled={isGeneratingAi}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
-            >
-              {isGeneratingAi ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Searching...</span>
-                </>
-              ) : (
-                <>
-                  <span>🔍</span>
-                  <span>Search</span>
-                </>
-              )}
-            </button>
-          </div>
-
-          {aiError && (
-            <p className="text-[9px] font-bold text-red-400">{aiError}</p>
-          )}
-
-          {imageUrl && (
-            <div className="flex items-center gap-3 p-2 glass-dark border border-blue-400/30 rounded-lg mt-2">
-              <img
-                src={imageUrl}
-                alt="Search Preview"
-                className="h-12 w-12 object-cover rounded-lg border border-blue-400/40 shrink-0"
-                referrerPolicy="no-referrer"
-              />
-              <div className="truncate flex-1">
-                <p className="text-[9.5px] font-black text-blue-300">
-                  🔍 Found via Google Search
-                </p>
-                <p className="text-[8.5px] text-white/60">
-                  Real web photography &bull; Optimized payload
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => onChange("")}
-                className="text-red-500 hover:text-red-400 text-[10px] font-bold uppercase shrink-0 px-2 cursor-pointer"
               >
                 Clear
               </button>

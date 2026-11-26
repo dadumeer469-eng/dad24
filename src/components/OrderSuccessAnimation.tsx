@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Check, ShoppingBag, MapPin, Star, Navigation, X, Receipt, Clock, ArrowRight } from "lucide-react";
+import { Check, ShoppingBag, MapPin, Navigation, X, Receipt, Clock, ArrowRight } from "lucide-react";
 import { Order } from "../types";
 
 interface OrderSuccessAnimationProps {
@@ -157,7 +157,7 @@ export default function OrderSuccessAnimation({
           </button>
 
           <div className="px-5 pt-8 pb-6 flex flex-col items-center text-center">
-            {/* Animating Stars & Circular Badge */}
+            {/* Animating Circular Badge */}
             <div className="relative mb-2">
               {/* Outer Ripple 1 */}
               <motion.div
@@ -190,21 +190,6 @@ export default function OrderSuccessAnimation({
                 </motion.div>
               </motion.div>
 
-              {/* Float sparkles decorations around success badge */}
-              <motion.span
-                animate={{ y: [0, -8, 0], scale: [1, 1.3, 1], rotate: [0, 20, 0] }}
-                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute -top-5 -right-5 text-amber-400"
-              >
-                <Star className="w-7 h-7 fill-amber-400/20 drop-shadow-md" />
-              </motion.span>
-              <motion.span
-                animate={{ y: [0, 8, 0], scale: [0.8, 1.2, 0.8], rotate: [0, -20, 0] }}
-                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
-                className="absolute -bottom-3 -left-5 text-[#E21B70]"
-              >
-                <Star className="w-5 h-5 fill-pink-500/20 drop-shadow-md" />
-              </motion.span>
             </div>
 
             <motion.div
