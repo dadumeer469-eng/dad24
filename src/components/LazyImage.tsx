@@ -61,9 +61,9 @@ export function LazyImage({
   };
 
   return (
-    <div className={`relative overflow-hidden bg-[#F2F2F6] dark:bg-[#1D1D26] ${className}`}>
+    <div className={`relative overflow-hidden bg-[#efe9df] dark:bg-[#1D1D26] ${className}`}>
       {!isLoaded && !hasError && (
-        <div className="absolute inset-0 z-10 overflow-hidden bg-[#ECECF2] dark:bg-[#1D1D26] pointer-events-none flex items-center justify-center">
+        <div className="absolute inset-0 z-10 overflow-hidden bg-[#f7f4ee] dark:bg-[#1D1D26] pointer-events-none flex items-center justify-center">
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 dark:via-white/8 to-transparent animate-shimmer-sweep" />
           <div className="p-2 rounded-xl bg-white/80 dark:bg-[#252530] text-[#E21B70]">
             {fallbackIcon || <Utensils className="w-4 h-4 opacity-70" />}
