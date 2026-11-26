@@ -35,6 +35,7 @@ interface VoiceOrderModalProps {
   onOrderReady: (order: VoiceOrder) => Promise<VoiceOrderResult>;
   userName?: string;
   userPhone?: string;
+  deliveryLocation?: { area: string; street: string };
 }
 
 type Status = "idle" | "calling" | "listening" | "thinking" | "speaking" | "done" | "error";
@@ -44,7 +45,7 @@ interface ChatMsg {
   text: string;
 }
 
-const GREETING = "السلام علیکم! میں دادو فوڈ کی وائس اسسٹنٹ ہوں۔ آپ کیا آرڈر کرنا چاہیں گے؟";
+const GREETING = "السلام علیکم! کیا حال ہیں؟ میں منچی ہوں — آج کیا کھلایا جائے آپ کو؟";
 const UNCLEAR_SPEECH = "معاف کیجیے، پھر سے بولیں۔";
 const MIC_DENIED = "مائیکروفون کی اجازت دیں — براؤزر کی ایڈریس بار میں مائیک آئیکن پر ٹیپ کریں۔";
 const NO_VOICE_INPUT = "آپ کا فون وائس ان پٹ سپورٹ نہیں کرتا۔ کروم استعمال کریں۔";
@@ -78,6 +79,7 @@ export default function VoiceOrderModal({
   onOrderReady,
   userName,
   userPhone,
+  deliveryLocation,
 }: VoiceOrderModalProps) {
   const [status, setStatus] = useState<Status>("idle");
   const [placedOrder, setPlacedOrder] = useState<VoiceOrder | null>(null);
@@ -587,6 +589,11 @@ export default function VoiceOrderModal({
             ordersText,
             userName: userName || undefined,
             userPhone: userPhone || undefined,
+            locationText: deliveryLocation
+              ? deliveryLocation.street
+                ? `${deliveryLocation.area}, ${deliveryLocation.street}`
+                : deliveryLocation.area
+              : undefined,
           }),
           signal: AbortSignal.timeout(30000),
         });
@@ -633,7 +640,7 @@ export default function VoiceOrderModal({
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [menuText, ordersText, userName, userPhone, speak, revealAgent, speakBusyAndEnd, menuItems],
+    [menuText, ordersText, userName, userPhone, deliveryLocation, speak, revealAgent, speakBusyAndEnd, menuItems],
   );
 
   // Transcribe the recorded audio (Groq Whisper), then chat with Groq.
