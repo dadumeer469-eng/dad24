@@ -34,6 +34,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { db, cleanObject } from "../firebase";
+import { recordCatalogChange } from "../utils/catalogDelta";
 import { Voucher, UserProfile, isVoucherExpired } from "../types";
 
 interface AdminVoucherManagerProps {
@@ -186,6 +187,7 @@ export default function AdminVoucherManager({
       }
 
       await setDoc(doc(db, "vouchers", voucherId), cleanObject(voucherData), { merge: true });
+      recordCatalogChange("vouchers", voucherId, "upsert");
 
       // If assigning to specific users and notification is checked, send notifications
       if (sendNotificationOnCreate && selectedUserIds.length > 0) {
@@ -224,6 +226,7 @@ export default function AdminVoucherManager({
     }
     try {
       await deleteDoc(doc(db, "vouchers", v.id || v.code));
+      recordCatalogChange("vouchers", v.id || v.code, "delete");
       alert(`🗑️ Voucher '${v.code}' deleted.`);
     } catch (err: any) {
       alert("Failed to delete voucher: " + err.message);
@@ -236,6 +239,7 @@ export default function AdminVoucherManager({
       await updateDoc(doc(db, "vouchers", v.id || v.code), {
         isActive: !v.isActive,
       });
+      recordCatalogChange("vouchers", v.id || v.code, "upsert");
     } catch (err: any) {
       alert("Failed to update status: " + err.message);
     }
@@ -258,6 +262,7 @@ export default function AdminVoucherManager({
       await updateDoc(doc(db, "vouchers", vId), {
         assignedUserIds: arrayUnion(...sendTargetUserIds),
       });
+      recordCatalogChange("vouchers", vId, "upsert");
 
       // Send notifications to each recipient
       const discountText =
@@ -293,6 +298,7 @@ export default function AdminVoucherManager({
       await updateDoc(doc(db, "vouchers", voucher.id || voucher.code), {
         assignedUserIds: arrayRemove(userId),
       });
+      recordCatalogChange("vouchers", voucher.id || voucher.code, "upsert");
       alert(`Voucher '${voucher.code}' removed from user.`);
     } catch (err: any) {
       alert("Failed to revoke voucher: " + err.message);
