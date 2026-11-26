@@ -3,7 +3,8 @@ import { Phone, PhoneOff, X } from "lucide-react";
 import type { LocalMenuItem, LocalOrder } from "../utils/voiceAgentLocal";
 import { getAudioContext, primeAudio } from "../utils/primeAudio";
 import MunchiCharacter from "./MunchiCharacter";
-import { MunchiController } from "../utils/munchiController";
+import { MunchiController, classifyMood } from "../utils/munchiController";
+import { findProductInText, type ProductFrame } from "../utils/munchiProductFrames";
 
 export interface VoiceOrderItem {
   name: string;
@@ -80,6 +81,8 @@ export default function VoiceOrderModal({
 }: VoiceOrderModalProps) {
   const [status, setStatus] = useState<Status>("idle");
   const [placedOrder, setPlacedOrder] = useState<VoiceOrder | null>(null);
+  // The product being talked about, shown in Munchi's hand.
+  const [productFrame, setProductFrame] = useState<ProductFrame | null>(null);
   // The agent girl stays hidden while the call connects; she walks in the
   // moment the agent answers, then talks with a nod and a waving hand.
   const [agentVisible, setAgentVisible] = useState(false);
@@ -135,11 +138,20 @@ export default function VoiceOrderModal({
     // Drive Munchi's expressions from the same status funnel.
     const m = munchiRef.current;
     if (!m) return;
-    if (s === "listening") m.setState("listening");
-    else if (s === "thinking") m.setState("thinking");
-    else if (s === "speaking") m.setState("speaking");
-    else if (s === "error") m.setState("error");
-    else if (s === "idle") m.setState("idle");
+    if (s === "listening") {
+      m.setState("listening");
+      m.setMood("neutral");
+    } else if (s === "thinking") {
+      m.setState("thinking");
+      m.setMood("thinking");
+    } else if (s === "speaking") m.setState("speaking");
+    else if (s === "error") {
+      m.setState("error");
+      m.setMood("concerned");
+    } else if (s === "idle") {
+      m.setState("idle");
+      m.setMood("neutral");
+    }
     // "calling" keeps Munchi hidden; "done" is handled in finishOrder
     // (celebrate only when the order really placed).
   };
@@ -212,6 +224,7 @@ export default function VoiceOrderModal({
     turnRef.current += 1;
     stopRinging();
     munchiRef.current?.reset();
+    setProductFrame(null);
     if (maxRecTimerRef.current !== null) {
       clearTimeout(maxRecTimerRef.current);
       maxRecTimerRef.current = null;
@@ -347,6 +360,13 @@ export default function VoiceOrderModal({
         setPlacedOrder(order);
         // Order confirmed — Munchi celebrates (thumbs-up is baked into his photo).
         munchiRef.current?.setState("order_confirmed");
+        munchiRef.current?.setMood("happy");
+        // Show what was just ordered.
+        const first = order.items?.[0];
+        if (first) {
+          const hit = findProductInText(first.name, menuItems);
+          if (hit) setProductFrame(hit);
+        }
         // Let the agent's spoken confirmation finish, then end the call.
         setTimeout(() => {
           if (openRef.current) endCall();
@@ -364,7 +384,7 @@ export default function VoiceOrderModal({
         });
       }
     },
-    [onOrderReady, speak, endCall, onClose, onOpenAuth],
+    [onOrderReady, speak, endCall, onClose, onOpenAuth, menuItems],
   );
 
   // All Groq keys exhausted (or not configured): tell the customer the
@@ -413,6 +433,11 @@ export default function VoiceOrderModal({
         }
         const next = [...history, { role: "assistant" as const, text: say }];
         messagesRef.current = next.slice(-12);
+        // Wear the face that fits this reply — happy, funny, concerned, or neutral.
+        munchiRef.current?.setMood(classifyMood(say));
+        // The agent's reply named a dish — frame that one in Munchi's hand.
+        const hit = findProductInText(say, menuItems);
+        if (hit) setProductFrame(hit);
         // The agent answered — she walks in and starts talking.
         revealAgent();
         // A short human-like pause before answering (and it lets the
@@ -435,7 +460,7 @@ export default function VoiceOrderModal({
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [menuText, ordersText, userName, userPhone, speak, revealAgent, speakBusyAndEnd],
+    [menuText, ordersText, userName, userPhone, speak, revealAgent, speakBusyAndEnd, menuItems],
   );
 
   // Transcribe the recorded audio (Groq Whisper), then chat with Groq.
@@ -466,6 +491,9 @@ export default function VoiceOrderModal({
         }
         const next = [...messagesRef.current, { role: "user" as const, text }];
         messagesRef.current = next.slice(-12);
+        // The customer named a dish — frame it in Munchi's hand right away.
+        const hit = findProductInText(text, menuItems);
+        if (hit) setProductFrame(hit);
         await sendToGroq(messagesRef.current, turn);
       } catch {
         if (!openRef.current || turn !== turnRef.current) return;
@@ -475,7 +503,7 @@ export default function VoiceOrderModal({
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [speak, sendToGroq, speakBusyAndEnd],
+    [speak, sendToGroq, speakBusyAndEnd, menuItems],
   );
 
   // Silence watch (best-effort): stop the recording after ~1.2s of quiet.
@@ -643,8 +671,9 @@ export default function VoiceOrderModal({
     // Ring for 2 seconds first, then the agent picks up and speaks first.
     const t = setTimeout(() => {
       messagesRef.current = [{ role: "assistant" as const, text: GREETING }];
-      // The agent answered — she walks in and greets the user.
+      // The agent answered — he walks in with a big smile and greets the user.
       revealAgent();
+      munchiRef.current?.setMood("happy");
       speak(GREETING, () => {
         if (openRef.current) startListening();
       });
@@ -727,7 +756,7 @@ export default function VoiceOrderModal({
           agent answers, then listens, thinks and talks with a live jaw. */}
       <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-4">
         {agentVisible && munchiRef.current && (
-          <MunchiCharacter controller={munchiRef.current} visible={agentVisible} />
+          <MunchiCharacter controller={munchiRef.current} visible={agentVisible} product={productFrame} />
         )}
 
         {/* Status card */}

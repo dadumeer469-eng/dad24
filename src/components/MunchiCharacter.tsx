@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import type { MunchiController, MunchiState } from "../utils/munchiController";
+import type { MunchiController, MunchiMood, MunchiState } from "../utils/munchiController";
+import type { ProductFrame } from "../utils/munchiProductFrames";
 
 // Layer positions measured from the supplied Munchi reference image.
 // public/images/munchi.jpg is the 880x960 crop of it, so percentages map
@@ -7,6 +8,13 @@ import type { MunchiController, MunchiState } from "../utils/munchiController";
 const JAW = { left: 43.18, top: 43.75, width: 20.45, height: 23.96 }; // mouth + moustache + beard + chin
 const EYE_L = { left: 53.98, top: 30.52 }; // viewer's left eye
 const EYE_R = { left: 66.7, top: 30.83 }; // viewer's right eye
+
+// One face per mood, all from the same reference photo, same framing —
+// the face cross-fades between them in 300ms. Each mood has its own jaw
+// layer (cut from its own face) so the lip-sync still lines up.
+const MOODS: MunchiMood[] = ["neutral", "happy", "thinking", "funny", "concerned"];
+const faceUrl = (m: MunchiMood) => (m === "neutral" ? "/images/munchi.jpg" : `/images/munchi-${m}.jpg`);
+const jawUrl = (m: MunchiMood) => (m === "neutral" ? "/images/munchi-jaw.png" : `/images/munchi-jaw-${m}.png`);
 
 // Munchi — the Dadu Food voice agent, alive on the call screen.
 // One requestAnimationFrame loop drives breathing, head tilt, the jaw and
@@ -16,17 +24,33 @@ const EYE_R = { left: 66.7, top: 30.83 }; // viewer's right eye
 export default function MunchiCharacter({
   controller,
   visible,
+  product,
 }: {
   controller: MunchiController;
   visible: boolean;
+  // The product being talked about: a hero frame (Munchi holding it) or a
+  // catalogue photo composited at his hand, with a name + price pill.
+  product?: ProductFrame | null;
 }) {
   const [, setMstate] = useState<MunchiState>(controller.state);
+  const [mood, setMoodState] = useState<MunchiMood>(controller.mood);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const jawRef = useRef<HTMLImageElement | null>(null);
   const blinkLRef = useRef<HTMLDivElement | null>(null);
   const blinkRRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => controller.subscribe(setMstate), [controller]);
+  useEffect(() => controller.subscribeMood(setMoodState), [controller]);
+
+  // Preload every mood face + jaw on mount so switching never flashes.
+  useEffect(() => {
+    MOODS.forEach((m) => {
+      [faceUrl(m), jawUrl(m)].forEach((src) => {
+        const im = new Image();
+        im.src = src;
+      });
+    });
+  }, []);
 
   useEffect(() => {
     if (!visible) return;
@@ -149,16 +173,41 @@ export default function MunchiCharacter({
         className="relative aspect-[880/960] w-full overflow-hidden rounded-[28px] will-change-transform"
         style={{ transformOrigin: "50% 62%" }}
       >
-        <img
-          src="/images/munchi.jpg"
-          alt="Munchi — Dadu Food AI agent"
-          className="h-full w-full object-cover"
-          draggable={false}
-        />
-        {/* Jaw layer: mouth + moustache + beard, driven by the voice. */}
+        {/* One face per mood, cross-faded — same man, same framing.
+            A hero product replaces the face with Munchi holding that dish. */}
+        {product?.hero ? (
+          <img
+            src={product.image}
+            alt={`Munchi holding ${product.name}`}
+            draggable={false}
+            style={{ position: "absolute", inset: 0, height: "100%", width: "100%", objectFit: "cover" }}
+          />
+        ) : (
+          MOODS.map((m) => (
+            <img
+              key={m}
+              src={faceUrl(m)}
+              alt={m === "neutral" ? "Munchi — Dadu Food AI agent" : ""}
+              aria-hidden={m !== "neutral"}
+              draggable={false}
+              style={{
+                position: "absolute",
+                inset: 0,
+                height: "100%",
+                width: "100%",
+                objectFit: "cover",
+                opacity: mood === m ? 1 : 0,
+                transition: "opacity 300ms ease",
+              }}
+            />
+          ))
+        )}
+        {/* Jaw layer of the current face: mouth + moustache + beard, driven
+            by the voice. Hero frames wear the neutral face, so they use the
+            neutral jaw. */}
         <img
           ref={jawRef}
-          src="/images/munchi-jaw.png"
+          src={product?.hero ? "/images/munchi-jaw.png" : jawUrl(mood)}
           alt=""
           aria-hidden="true"
           draggable={false}
@@ -204,6 +253,54 @@ export default function MunchiCharacter({
             transform: "translate(-50%,-50%) scaleY(0)",
           }}
         />
+        {/* Non-hero product: its catalogue photo at Munchi's hand, like a
+            card he is presenting, plus a name + price pill. */}
+        {product && !product.hero && product.image && (
+          <img
+            src={product.image}
+            alt={product.name}
+            draggable={false}
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+            }}
+            style={{
+              position: "absolute",
+              left: "8%",
+              bottom: "12%",
+              width: "32%",
+              aspectRatio: "1 / 1",
+              objectFit: "cover",
+              transform: "rotate(-4deg)",
+              borderRadius: 16,
+              border: "3px solid rgba(255,255,255,0.92)",
+              boxShadow: "0 10px 24px rgba(0,0,0,0.35)",
+            }}
+          />
+        )}
+        {product && (
+          <div
+            style={{
+              position: "absolute",
+              right: "4%",
+              // Above the status card: it overlaps the portrait's bottom
+              // 40px (-mt-10), so the pill must sit higher to stay readable.
+              bottom: "16%",
+              background: "rgba(255,255,255,0.96)",
+              color: "#C2145E",
+              borderRadius: 999,
+              padding: "6px 12px",
+              fontSize: 11,
+              fontWeight: 700,
+              boxShadow: "0 6px 16px rgba(0,0,0,0.25)",
+              whiteSpace: "nowrap",
+              maxWidth: "72%",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {product.name} · Rs {product.price}
+          </div>
+        )}
       </div>
     </div>
   );
