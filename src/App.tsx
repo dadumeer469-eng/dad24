@@ -3193,7 +3193,7 @@ export default function App() {
     }
   }, [currentUser, cartItems, deliverySettings, deviceId]);
 
-  // ===== Voice Order Assistant (AI Studio Gemini, Sindhi) =====
+  // ===== Voice Order Assistant (Urdu, local — no API key) =====
   const [isVoiceOrderOpen, setIsVoiceOrderOpen] = useState(false);
   const [voiceFoodDetails, setVoiceFoodDetails] = useState<Parameters<
     typeof handlePlaceOrderSubmit
@@ -3203,27 +3203,29 @@ export default function App() {
     resolve: (r: VoiceOrderResult) => void;
   } | null>(null);
 
-  // Compact menu text for the voice agent (name — price — type).
-  const voiceMenuText = useMemo(() => {
-    const foodLines = dishes
+  // Structured menu for the local voice agent (no API): name, price, type.
+  const voiceMenuItems = useMemo(() => {
+    const food = dishes
       .filter((d) => d.isAvailable && d.type === "food")
-      .map(
-        (d) =>
-          `${d.name} — Rs ${d.discountPrice && d.discountPrice < d.price ? d.discountPrice : d.price} — food`,
-      );
-    const groceryLines = groceryProducts
+      .map((d) => ({
+        name: d.name,
+        price: d.discountPrice && d.discountPrice < d.price ? d.discountPrice : d.price,
+        type: "food" as const,
+      }));
+    const grocery = groceryProducts
       .filter((p) => p.isAvailable)
-      .map(
-        (p) =>
-          `${p.name} — Rs ${p.discountPrice && p.discountPrice < p.price ? p.discountPrice : p.price} — grocery`,
-      );
-    return [...foodLines, ...groceryLines].join("\n");
+      .map((p) => ({
+        name: p.name,
+        price: p.discountPrice && p.discountPrice < p.price ? p.discountPrice : p.price,
+        type: "grocery" as const,
+      }));
+    return [...food, ...grocery];
   }, [dishes, groceryProducts]);
 
-  // Customer's recent orders for the voice agent, so it can answer
+  // Customer's recent orders for the local voice agent, so it can answer
   // "where is my order?" / "why is it late?" with real information.
-  const voiceOrdersText = useMemo(() => {
-    if (!orders || orders.length === 0) return "";
+  const voiceRecentOrders = useMemo(() => {
+    if (!orders || orders.length === 0) return [];
     const activeFirst = [...orders].sort((a, b) => {
       const aActive = a.status !== "delivered" && a.status !== "cancelled" && a.status !== "completed" ? 0 : 1;
       const bActive = b.status !== "delivered" && b.status !== "cancelled" && b.status !== "completed" ? 0 : 1;
@@ -3234,18 +3236,16 @@ export default function App() {
     });
     return activeFirst.slice(0, 5).map((o) => {
       const secs = o.createdAt?.seconds || (o.createdAt?.toDate ? Math.floor(o.createdAt.toDate().getTime() / 1000) : 0);
-      const placed = secs
-        ? new Date(secs * 1000).toLocaleTimeString("en-PK", {
-            hour: "numeric",
-            minute: "2-digit",
-            timeZone: "Asia/Karachi",
-          })
-        : "";
-      const items = (o.items || [])
-        .map((i: { name: string; quantity: number }) => `${i.quantity}x ${i.name}`)
-        .join(", ");
-      return `- ${o.id}: ${items} — Rs ${o.grandTotal || o.totalPrice} — status: ${o.status} — placed ${placed} — ${o.paymentMethod} — ${o.deliverySpeed || "standard"}`;
-    }).join("\n");
+      return {
+        id: o.id,
+        items: (o.items || []).map((i: { name: string; quantity: number }) => ({ name: i.name, qty: i.quantity })),
+        total: o.grandTotal || o.totalPrice || 0,
+        status: o.status,
+        placedAtMs: secs * 1000,
+        payment: o.paymentMethod || "COD",
+        speed: o.deliverySpeed || "standard",
+      };
+    });
   }, [orders]);
 
   const normalizeName = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -4947,18 +4947,18 @@ export default function App() {
       <button
         onClick={() => setIsVoiceOrderOpen(true)}
         className={`fixed bottom-32 right-4 z-40 bg-[#E21B70] hover:bg-[#C2145E] text-white p-2 rounded-full shadow-lg active:scale-[0.97] transition-[color,background-color,border-color,transform,opacity] duration-180 cursor-pointer flex items-center justify-center border border-white/20 ${isScrolling ? "opacity-0 pointer-events-none translate-y-3" : "opacity-100"}`}
-        title="Voice Assistant — Sindhi mein order karein"
+        title="Voice Assistant — Urdu mein order karein"
         aria-label="Voice Assistant"
       >
         <Phone className="w-6 h-6 text-white" />
       </button>
 
-      {/* AI Voice Order Assistant (Sindhi) */}
+      {/* Voice Order Assistant (Urdu, no API key — everything local) */}
       <VoiceOrderModal
         isOpen={isVoiceOrderOpen}
         onClose={() => setIsVoiceOrderOpen(false)}
-        menuText={voiceMenuText}
-        ordersText={voiceOrdersText}
+        menuItems={voiceMenuItems}
+        recentOrders={voiceRecentOrders}
         isSignedIn={!!currentUser}
         onOpenAuth={() => setIsAuthOpen(true)}
         onOrderReady={handleVoiceOrderReady}
