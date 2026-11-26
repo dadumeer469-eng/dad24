@@ -1,5 +1,5 @@
 // Vercel serverless function — neural Urdu TTS for the Dadu Food call agent.
-// POST {text} -> audio/mpeg (Google TTS voice, Urdu). No key needed.
+// POST {text} -> audio/mpeg (Edge neural TTS, ur-PK-AsadNeural (male)). No key needed.
 // If this fails, the modal falls back to the phone's speechSynthesis voice.
 // NOTE: the import MUST carry the .js extension — Vercel compiles api/*.ts
 // to ESM, and Node ESM cannot resolve extension-less imports (1b752cb).
