@@ -43,11 +43,12 @@ import {
 } from "./types";
 import { INITIAL_MENU_ITEMS, DEFAULT_FOOD_CATEGORIES, getDefaultRestaurantImage } from "./data";
 import {
-  readFreshCatalogCache,
+  readFreshCatalogEntry,
   readCatalogForPaint,
   writeCatalogCache,
   invalidateCatalogCache,
 } from "./utils/catalogCache";
+import { applyCatalogDelta } from "./utils/catalogDelta";
 
 // Import modules
 import FoodpandaHeader from "./components/FoodpandaHeader";
@@ -1169,11 +1170,33 @@ export default function App() {
     console.log("Trace: Initializing Menu collection listener...");
     let cancelled = false;
     const fetchMenu = async () => {
-      // TTL catalogue cache: skip Firestore when a fresh cache exists. The UI
-      // already renders from that cache (initial state), so this load costs 0
-      // catalogue reads. Revalidates only when the cache is stale/missing
-      // (or the admin pressed Refresh, which invalidates the cache).
-      if (readFreshCatalogCache<Dish[]>("menu")) return;
+      // 24h TTL catalogue cache + granular delta: a fresh cache costs 0
+      // catalogue reads, but the delta doc (1 cheap read, shared across
+      // all 5 collections) patches in only the items the admin changed
+      // since this cache was saved — a price change updates just that
+      // item, a product add inserts just that product. Falls through to
+      // the full fetch only on Refresh, a bulk op, or >20 changes; if the
+      // delta read fails, the cache is used as-is.
+      const freshEntry = readFreshCatalogEntry<Dish[]>("menu");
+      if (freshEntry) {
+        const patched = await applyCatalogDelta<Dish>(
+          "menu",
+          freshEntry.data,
+          freshEntry.savedAt,
+        );
+        if (cancelled) return;
+        if (patched.mode === "cache") return;
+        if (patched.mode === "patched") {
+          const list = [...patched.list].sort(
+            (a, b) => (a.position || 0) - (b.position || 0),
+          );
+          setDishes(list);
+          setCachedData("dadu_cached_dishes", list);
+          writeCatalogCache("menu", list, patched.readAt);
+          return;
+        }
+        // mode "full" — fall through to the full fetch below.
+      }
       try {
         const snapshot = await getDocs(collection(db, "menu"));
         if (cancelled) return;
@@ -1321,8 +1344,28 @@ export default function App() {
   useEffect(() => {
     let cancelled = false;
     const fetchFoodCategories = async () => {
-      // TTL catalogue cache — skip Firestore when a fresh cache exists (see fetchMenu).
-      if (readFreshCatalogCache<FoodCategory[]>("foodCategories")) return;
+      // 24h TTL cache + granular delta (see fetchMenu): patch only the
+      // categories the admin changed since this cache was saved.
+      const freshEntry = readFreshCatalogEntry<FoodCategory[]>("foodCategories");
+      if (freshEntry) {
+        const patched = await applyCatalogDelta<FoodCategory>(
+          "foodCategories",
+          freshEntry.data,
+          freshEntry.savedAt,
+        );
+        if (cancelled) return;
+        if (patched.mode === "cache") return;
+        if (patched.mode === "patched") {
+          const list = [...patched.list].sort(
+            (a, b) => (a.position || 0) - (b.position || 0),
+          );
+          setFoodCategories(list);
+          setCachedData("dadu_cached_food_categories", list);
+          writeCatalogCache("foodCategories", list, patched.readAt);
+          return;
+        }
+        // mode "full" — fall through to the full fetch below.
+      }
       try {
         const snapshot = await getDocs(collection(db, "foodCategories"));
         if (cancelled) return;
@@ -1478,8 +1521,30 @@ export default function App() {
     console.log("Trace: Initializing GroceryCategories collection listener...");
     let cancelled = false;
     const fetchGroceryCategories = async () => {
-      // TTL catalogue cache — skip Firestore when a fresh cache exists (see fetchMenu).
-      if (readFreshCatalogCache<GroceryCategory[]>("groceryCategories")) return;
+      // 24h TTL cache + granular delta (see fetchMenu): patch only the
+      // categories the admin changed since this cache was saved. The
+      // cached list is already the owner-merged display list, so patch it
+      // in place (no re-merge, no re-sort — that would break owner-first
+      // ordering); a new category appends at the end until the next full
+      // fetch, exactly like a fresh load would order it.
+      const freshEntry =
+        readFreshCatalogEntry<GroceryCategory[]>("groceryCategories");
+      if (freshEntry) {
+        const patched = await applyCatalogDelta<GroceryCategory>(
+          "groceryCategories",
+          freshEntry.data,
+          freshEntry.savedAt,
+        );
+        if (cancelled) return;
+        if (patched.mode === "cache") return;
+        if (patched.mode === "patched") {
+          setGroceryCategories(patched.list);
+          setCachedData("dadu_cached_grocery_categories", patched.list);
+          writeCatalogCache("groceryCategories", patched.list, patched.readAt);
+          return;
+        }
+        // mode "full" — fall through to the full fetch below.
+      }
       try {
         const snapshot = await getDocs(collection(db, "groceryCategories"));
         if (cancelled) return;
@@ -1547,8 +1612,29 @@ export default function App() {
     console.log("Trace: Initializing GroceryProducts collection listener...");
     let cancelled = false;
     const fetchGroceryProducts = async () => {
-      // TTL catalogue cache — skip Firestore when a fresh cache exists (see fetchMenu).
-      if (readFreshCatalogCache<GroceryProduct[]>("groceryProducts")) return;
+      // 24h TTL cache + granular delta (see fetchMenu): patch only the
+      // products the admin changed since this cache was saved — a price
+      // change updates just that product, a new product is inserted only.
+      // The cached list is already the owner-merged display list, so
+      // patch it in place (no re-merge).
+      const freshEntry =
+        readFreshCatalogEntry<GroceryProduct[]>("groceryProducts");
+      if (freshEntry) {
+        const patched = await applyCatalogDelta<GroceryProduct>(
+          "groceryProducts",
+          freshEntry.data,
+          freshEntry.savedAt,
+        );
+        if (cancelled) return;
+        if (patched.mode === "cache") return;
+        if (patched.mode === "patched") {
+          setGroceryProducts(patched.list);
+          setCachedData("dadu_cached_grocery_products", patched.list);
+          writeCatalogCache("groceryProducts", patched.list, patched.readAt);
+          return;
+        }
+        // mode "full" — fall through to the full fetch below.
+      }
       try {
         const snapshot = await getDocs(collection(db, "groceryProducts"));
         if (cancelled) return;
@@ -1699,10 +1785,26 @@ export default function App() {
   useEffect(() => {
     let cancelled = false;
     const fetchVouchers = async () => {
-      // TTL catalogue cache — skip Firestore when a fresh cache exists (see fetchMenu).
+      // 24h TTL cache + granular delta (see fetchMenu): patch only the
+      // vouchers the admin changed since this cache was saved.
       // Safe: checkout validates the chosen voucher with a live per-voucher
       // getDoc, so a stale list can never redeem an expired voucher.
-      if (readFreshCatalogCache<Voucher[]>("vouchers")) return;
+      const freshEntry = readFreshCatalogEntry<Voucher[]>("vouchers");
+      if (freshEntry) {
+        const patched = await applyCatalogDelta<Voucher>(
+          "vouchers",
+          freshEntry.data,
+          freshEntry.savedAt,
+        );
+        if (cancelled) return;
+        if (patched.mode === "cache") return;
+        if (patched.mode === "patched") {
+          setVouchers(patched.list);
+          writeCatalogCache("vouchers", patched.list, patched.readAt);
+          return;
+        }
+        // mode "full" — fall through to the full fetch below.
+      }
       try {
         const snapshot = await getDocs(collection(db, "vouchers"));
         if (cancelled) return;
