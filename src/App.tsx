@@ -414,6 +414,11 @@ export default function App() {
 
   // Navigation / Toggles
   const [activeCategory, setActiveCategory] = useState<string>("All");
+  // Grocery sub-view (lifted from GroceryModule so the mobile back-button
+  // controller can step back out of a grocery category / full catalog
+  // instead of jumping straight to the homepage).
+  const [groceryCategoryId, setGroceryCategoryId] = useState<string>("All");
+  const [groceryShowAllCatalog, setGroceryShowAllCatalog] = useState<boolean>(false);
   const [selectedRestaurant, setSelectedRestaurant] =
     useState<string>("All Restaurants");
   const [initialRestaurantCategory, setInitialRestaurantCategory] = useState<string | undefined>(undefined);
@@ -2221,6 +2226,12 @@ export default function App() {
     // Priority 2: Pages & Sub-views
     if (selectedRestaurant !== "All Restaurants") return `restaurant_page:${selectedRestaurant}`;
     if (activeCategory !== "All") return `category_page:${activeCategory}`;
+    // Grocery sub-view: a category (or the full catalog) open inside the
+    // grocery tab — its own history step, so back returns to the grouped
+    // grocery list instead of the homepage.
+    if (activeModule === "grocery" && (groceryCategoryId !== "All" || groceryShowAllCatalog)) {
+      return `grocery_category:${groceryCategoryId}`;
+    }
     if (searchQuery !== "") return `search_page:${searchQuery}`;
 
     // Priority 3: Sub-tabs / Modules
@@ -2326,6 +2337,13 @@ export default function App() {
         setActiveCategory("All");
         return;
       }
+      // Grocery sub-view: a category (or the full catalog) is open inside
+      // the grocery tab — back returns to the grouped grocery list, not home.
+      if (activeModule === "grocery" && (groceryCategoryId !== "All" || groceryShowAllCatalog)) {
+        setGroceryCategoryId("All");
+        setGroceryShowAllCatalog(false);
+        return;
+      }
       if (searchQuery !== "") {
         setSearchQuery("");
         return;
@@ -2370,6 +2388,8 @@ export default function App() {
     isExitConfirmationOpen,
     selectedRestaurant,
     activeCategory,
+    groceryCategoryId,
+    groceryShowAllCatalog,
     searchQuery,
     activeModule,
     activeRoute,
@@ -6006,6 +6026,10 @@ export default function App() {
               onRemoveFromCart={handleRemoveFromGroceryCart}
               searchQuery={searchQuery}
               initialCategoryId={activeRoute === "pharmacy" ? "gcat_medicine" : undefined}
+              selectedCategoryId={groceryCategoryId}
+              onSelectCategory={setGroceryCategoryId}
+              showAllCatalog={groceryShowAllCatalog}
+              onSetShowAllCatalog={setGroceryShowAllCatalog}
             />
           </motion.div>
         )}
