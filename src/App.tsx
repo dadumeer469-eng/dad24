@@ -4972,6 +4972,14 @@ export default function App() {
         onOrderReady={handleVoiceOrderReady}
         userName={currentUser?.name}
         userPhone={currentUser?.phone}
+        deliveryLocation={
+          currentUser?.savedLocation?.area
+            ? {
+                area: currentUser.savedLocation.area,
+                street: currentUser.savedLocation.street || "",
+              }
+            : manualAddress || undefined
+        }
       />
 
       {/* Primary Navigation System */}
