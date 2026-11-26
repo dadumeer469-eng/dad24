@@ -111,6 +111,9 @@ export default function GroceryCartDrawer({
   const [cutlery, setCutlery] = useState<boolean>(false);
   const [locationTimedOut, setLocationTimedOut] = useState<boolean>(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  // 3-step wizard: 1 Basket, 2 Delivery, 3 Payment (Foodpanda-style — one
+  // step at a time, so the user never scrolls through every checkout section).
+  const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
   const [isEditingAddress, setIsEditingAddress] = useState(!currentUser?.address);
   const [addressInput, setAddressInput] = useState(currentUser?.address || "");
   const [isSavingAddress, setIsSavingAddress] = useState(false);
@@ -251,6 +254,11 @@ export default function GroceryCartDrawer({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [isOpen, onClose]);
+
+  // Wizard always starts on the Basket step when the drawer opens.
+  React.useEffect(() => {
+    if (isOpen) setWizardStep(1);
+  }, [isOpen]);
 
   // Medicine product ids (memoised — the catalogue is ~300 items, no need to
   // rebuild this set on every render).
@@ -424,6 +432,53 @@ export default function GroceryCartDrawer({
     }
   };
 
+  // Wizard step validation — mirrors the Place Order checks, so the user can
+  // only advance with valid data (clear inline error, never a silent block).
+  const validateDeliveryStep = (): string | null => {
+    const trimmedName = (nameInput.trim() || currentUser?.name || "").trim();
+    if (!trimmedName) return "Apna naam enter karein (Please enter your name).";
+    const currentAddr = (addressInput.trim() || currentUser.address || "").trim();
+    const hasManualAddress = currentAddr.length >= 6;
+    if (!userCoords && !hasManualAddress) {
+      setIsEditingAddress(true);
+      onRequireLocation?.();
+      return "Aapka order sahi address par pahunche, is liye location zaroori hai. Apni location on karein ya complete Dadu address enter karein.";
+    }
+    const cleanPhone = (phoneInput || currentUser.phone || "").replace(/\D/g, "");
+    if (!/^03\d{9}$/.test(cleanPhone)) return "Please enter a valid 11-digit mobile number (03XXXXXXXXX).";
+    return null;
+  };
+
+  const handleNextFromBasket = () => {
+    if (cartItems.length === 0) return;
+    setCheckoutError(null);
+    setWizardStep(2);
+  };
+
+  const handleNextFromDelivery = () => {
+    if (!currentUser) {
+      onOpenAuth();
+      return;
+    }
+    const err = validateDeliveryStep();
+    if (err) {
+      setCheckoutError(err);
+      return;
+    }
+    setCheckoutError(null);
+    setWizardStep(3);
+  };
+
+  const handleBackToBasket = () => {
+    setCheckoutError(null);
+    setWizardStep(1);
+  };
+
+  const handleBackToDelivery = () => {
+    setCheckoutError(null);
+    setWizardStep(2);
+  };
+
   const handleCheckoutSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setCheckoutError(null);
@@ -437,6 +492,7 @@ export default function GroceryCartDrawer({
     const trimmedName = (nameInput.trim() || currentUser.name || "").trim();
     if (!trimmedName) {
       setCheckoutError("Apna naam enter karein (Please enter your name).");
+      setWizardStep(2);
       return;
     }
 
@@ -446,6 +502,7 @@ export default function GroceryCartDrawer({
       setIsEditingAddress(true);
       setCheckoutError("Aapka order sahi address par pahunche, is liye location zaroori hai. Apni location on karein ya complete Dadu address enter karein.");
       onRequireLocation?.();
+      setWizardStep(2);
       return;
     }
 
@@ -460,6 +517,7 @@ export default function GroceryCartDrawer({
     const cleanPhone = (phoneInput || currentUser.phone || "").replace(/\D/g, "");
     if (!/^03\d{9}$/.test(cleanPhone)) {
       setCheckoutError("Please enter a valid 11-digit mobile number (03XXXXXXXXX).");
+      setWizardStep(2);
       setSubmitting(false);
       return;
     }
@@ -580,24 +638,44 @@ export default function GroceryCartDrawer({
           </button>
         </div>
 
-        {/* Foodpanda 3-Step Cart Progress Bar */}
+        {/* 3-step wizard progress: Basket -> Delivery -> Payment.
+            Completed steps are tappable to go back; future steps are locked. */}
         {cartItems.length > 0 && (
           <div className="px-4 py-2.5 bg-white dark:bg-zinc-950 border-b border-zinc-200/80 dark:border-zinc-800/80">
             <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wider">
-              <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-                <span className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px]">✓</span>
-                <span>1. Mart</span>
-              </div>
-              <div className="flex-1 h-[2px] mx-2 bg-[#D70F64]" />
-              <div className="flex items-center gap-1.5 text-[#FF4D94]">
-                <span className="w-5 h-5 rounded-full bg-[#D70F64] text-white flex items-center justify-center text-[10px]">2</span>
-                <span>2. Basket</span>
-              </div>
-              <div className="flex-1 h-[2px] mx-2 bg-zinc-300 dark:bg-zinc-700" />
-              <div className="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300">
-                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${currentUser && (userCoords || addressInput.trim().length >= 6) ? "bg-[#D70F64] text-white" : "bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400"}`}>3</span>
-                <span>3. Checkout</span>
-              </div>
+              {([
+                { n: 1 as const, label: "1. Basket" },
+                { n: 2 as const, label: "2. Delivery" },
+                { n: 3 as const, label: "3. Payment" },
+              ]).map((s, i) => {
+                const done = wizardStep > s.n;
+                const current = wizardStep === s.n;
+                return (
+                  <React.Fragment key={s.n}>
+                    {i > 0 && (
+                      <div className={`flex-1 h-[2px] mx-2 ${wizardStep > i ? "bg-[#D70F64]" : "bg-zinc-300 dark:bg-zinc-700"}`} />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (done) {
+                          setCheckoutError(null);
+                          setWizardStep(s.n);
+                        }
+                      }}
+                      disabled={!done}
+                      aria-label={s.label}
+                      aria-current={current ? "step" : undefined}
+                      className={`flex items-center gap-1.5 ${done ? "text-emerald-600 dark:text-emerald-400 cursor-pointer" : current ? "text-[#FF4D94] cursor-default" : "text-zinc-700 dark:text-zinc-300 cursor-default"}`}
+                    >
+                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${done ? "bg-emerald-500 text-white" : current ? "bg-[#D70F64] text-white" : "bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400"}`}>
+                        {done ? "✓" : s.n}
+                      </span>
+                      <span>{s.label}</span>
+                    </button>
+                  </React.Fragment>
+                );
+              })}
             </div>
           </div>
         )}
@@ -616,7 +694,7 @@ export default function GroceryCartDrawer({
                 Go Add Groceries
               </button>
             </div>
-          ) : (
+          ) : wizardStep === 1 ? (
             <div className="space-y-3">
               {cartItems.map((item) => (
                 <div key={item.productId} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-2xl flex items-center justify-between gap-3 shadow-xs">
@@ -660,10 +738,10 @@ export default function GroceryCartDrawer({
                 </div>
               ))}
             </div>
-          )}
+          ) : null}
 
           {/* Checkout address inputs flow */}
-          {cartItems.length > 0 && (
+          {cartItems.length > 0 && wizardStep === 2 && (
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-3xl mt-6 space-y-4 shadow-xs">
               <h4 className="text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300 border-b border-zinc-200 dark:border-zinc-800 pb-2 flex items-center gap-1.5">
                 <MapPin className="w-4 h-4 text-[#E21B70]" />
@@ -909,42 +987,6 @@ export default function GroceryCartDrawer({
                   />
                 </div>
 
-                {/* Payment Method Selector (ONLY Cash on Delivery & Easypaisa) */}
-                <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-xl space-y-2">
-                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block">
-                    Payment Method
-                  </span>
-                  <div className="grid grid-cols-2 gap-2">
-                    {(["COD", "Easypaisa"] as const).map((method) => (
-                      <button
-                        key={method}
-                        type="button"
-                        onClick={() => {
-                          setPaymentMethod(method);
-                          setCheckoutError(null);
-                          localStorage.setItem("dadu_preferred_payment", method);
-                        }}
-                        className={`min-h-[44px] py-2.5 px-3 rounded-xl text-xs font-extrabold border transition cursor-pointer ${
-                          paymentMethod === method
-                            ? "bg-[#D70F64] border-[#D70F64] text-white shadow-sm"
-                            : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-600"
-                        }`}
-                      >
-                        {method === "COD" ? "💵 Cash on Delivery" : "📱 Easypaisa"}
-                      </button>
-                    ))}
-                  </div>
-                  {paymentMethod === "Easypaisa" && (
-                    <EasypaisaPaymentBox
-                      receiptUrl={paymentReceiptUrl}
-                      onReceiptChange={setPaymentReceiptUrl}
-                      amount={grandTotal}
-                      accountTitle={easypaisaTitle}
-                      accountNumber={easypaisaNumber}
-                    />
-                  )}
-                </div>
-
                 {/* Delivery Timing: Deliver Now vs Scheduled Pre-Order */}
                 <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-xl space-y-2">
                   <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block">
@@ -1084,11 +1126,45 @@ export default function GroceryCartDrawer({
             </div>
           )}
 
-        </div>
+          {/* Step 3 — Payment: method + receipt, offers, pricing summary */}
+          {cartItems.length > 0 && wizardStep === 3 && (
+            <div className="space-y-4 mt-6">
+                {/* Payment Method Selector (ONLY Cash on Delivery & Easypaisa) */}
+                <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-xl space-y-2">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block">
+                    Payment Method
+                  </span>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(["COD", "Easypaisa"] as const).map((method) => (
+                      <button
+                        key={method}
+                        type="button"
+                        onClick={() => {
+                          setPaymentMethod(method);
+                          setCheckoutError(null);
+                          localStorage.setItem("dadu_preferred_payment", method);
+                        }}
+                        className={`min-h-[44px] py-2.5 px-3 rounded-xl text-xs font-extrabold border transition cursor-pointer ${
+                          paymentMethod === method
+                            ? "bg-[#D70F64] border-[#D70F64] text-white shadow-sm"
+                            : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-600"
+                        }`}
+                      >
+                        {method === "COD" ? "💵 Cash on Delivery" : "📱 Easypaisa"}
+                      </button>
+                    ))}
+                  </div>
+                  {paymentMethod === "Easypaisa" && (
+                    <EasypaisaPaymentBox
+                      receiptUrl={paymentReceiptUrl}
+                      onReceiptChange={setPaymentReceiptUrl}
+                      amount={grandTotal}
+                      accountTitle={easypaisaTitle}
+                      accountNumber={easypaisaNumber}
+                    />
+                  )}
+                </div>
 
-        {/* Pricing Summary Bottom Card */}
-        {cartItems.length > 0 && (
-          <div className="p-4 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 space-y-3.5 rounded-t-3xl shadow-2xl shrink-0">
             {isDoubleFee && !isFreeDelivery && (
               <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-3 text-[11px] text-amber-600 dark:text-amber-400 flex items-start gap-2.5">
                 <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
@@ -1367,7 +1443,11 @@ export default function GroceryCartDrawer({
               )}
             </div>
 
-            <div className="space-y-1.5 text-xs text-zinc-500 dark:text-zinc-400 font-semibold mt-4">
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-3xl shadow-xs">
+                <h4 className="text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300 border-b border-zinc-200 dark:border-zinc-800 pb-2 mb-1">
+                  Pricing Summary
+                </h4>
+            <div className="space-y-1.5 text-xs text-zinc-500 dark:text-zinc-400 font-semibold">
               <div className="flex justify-between">
                 <span>Items Subtotal:</span>
                 <span className="text-zinc-900 dark:text-zinc-100 font-extrabold font-mono">Rs. {totalGroceryPrice}</span>
@@ -1411,17 +1491,69 @@ export default function GroceryCartDrawer({
               </div>
             </div>
 
+              </div>
+            </div>
+          )}
+
+        </div>
+
+        {/* Sticky wizard footer — Back / Next / Submit always visible, never scrolled away */}
+        {cartItems.length > 0 && (
+          <div className="p-4 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 space-y-3 shrink-0">
             {checkoutError && (
               <div className="p-3 bg-rose-500/15 border border-rose-500/30 rounded-xl text-xs text-rose-500 dark:text-rose-300 font-bold flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
                 <span>{checkoutError}</span>
               </div>
             )}
-
+            {wizardStep === 1 && (
+              <div className="space-y-2.5">
+                <div className="flex justify-between text-xs text-zinc-500 dark:text-zinc-400 font-semibold">
+                  <span>Items Subtotal:</span>
+                  <span className="text-zinc-900 dark:text-zinc-100 font-extrabold font-mono">Rs. {totalGroceryPrice}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleNextFromBasket}
+                  className="w-full min-h-[48px] btn-pink text-white py-3.5 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70]"
+                >
+                  Proceed to Delivery →
+                </button>
+              </div>
+            )}
+            {wizardStep === 2 && (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleBackToBasket}
+                  aria-label="Back to basket"
+                  className="min-h-[48px] px-5 rounded-2xl border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-black uppercase text-xs tracking-wider bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70]"
+                >
+                  ← Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNextFromDelivery}
+                  className="flex-1 min-h-[48px] btn-pink text-white py-3.5 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70]"
+                >
+                  Proceed to Payment →
+                </button>
+              </div>
+            )}
+            {wizardStep === 3 && (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleBackToDelivery}
+                  aria-label="Back to delivery details"
+                  className="min-h-[48px] px-5 rounded-2xl border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-black uppercase text-xs tracking-wider bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70]"
+                >
+                  ← Back
+                </button>
             <button
               onClick={handleCheckoutSubmit}
               disabled={submitting}
-              className="w-full min-h-[48px] btn-pink text-white py-3.5 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70]"
+              className="flex-1 min-h-[48px] btn-pink text-white py-3.5 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70]"
             >
               {submitting ? (
                 <>Placing Grocery Order...</>
@@ -1442,6 +1574,8 @@ export default function GroceryCartDrawer({
                 </>
               )}
             </button>
+              </div>
+            )}
           </div>
         )}
 
