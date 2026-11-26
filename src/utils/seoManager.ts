@@ -18,7 +18,6 @@ export const DADU_FOOD_BUSINESS = {
   medicineDeliveryFee: 30,
   smallOrderThreshold: 500,
   freeDeliveryThreshold: 1000,
-  minOrder: 200,
   priceRange: "Rs. 80 – Rs. 2,500",
   deliveryAreas: [
     "Station Road",
@@ -30,7 +29,7 @@ export const DADU_FOOD_BUSINESS = {
     "Kacheri Road",
     "Dadu City Center",
   ],
-  siteUrl: typeof window !== "undefined" ? window.location.origin : "https://dadufood.store",
+  siteUrl: typeof window !== "undefined" ? window.location.origin : "https://www.dadufood.store",
 };
 
 export interface FaqItem {
@@ -188,7 +187,7 @@ const INFO_PAGE_META: Record<InfoPageSlug, { title: string; description: string 
 };
 
 export function syncPageSeo(params: {
-  pageType: "home" | "shop" | "info";
+  pageType: "home" | "shop" | "info" | "grocery" | "pharmacy";
   shopName?: string;
   shopDishes?: Dish[];
   infoSlug?: InfoPageSlug;
@@ -197,15 +196,16 @@ export function syncPageSeo(params: {
 }) {
   if (typeof document === "undefined") return;
 
-  // Canonical domain: always dadufood.store, even when the visitor is on
-  // dadufood.vercel.app. Otherwise Google sees two versions and picks the
+  // Canonical domain: always https://www.dadufood.store, even when the visitor
+  // is on dadufood.vercel.app. Otherwise Google sees two versions and picks the
   // Vercel URL as canonical, and the .store homepage never gets indexed.
-  const origin = "https://dadufood.store";
-  let title = "Food Delivery in Dadu | Dadu Food — 20–35 Min, Rs 50, COD & Easypaisa";
+  // (The apex dadufood.store 308-redirects to www, so www is the one host.)
+  const origin = "https://www.dadufood.store";
+  let title = "Food Delivery in Dadu | Dadu Food — 20–35 Min";
   let description =
     "Food delivery in Dadu, Sindh — biryani, pizza, zinger burgers, karahi & groceries delivered in 20–35 min for Rs 50. Cash on Delivery & Easypaisa. Call 03277004471.";
   let canonicalPath = "/";
-  let ogImage = "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=1200&q=80&auto=format&fit=crop";
+  let ogImage = "https://www.dadufood.store/og-image.jpg";
 
   const graphNodes: object[] = [
     {
@@ -214,6 +214,7 @@ export function syncPageSeo(params: {
       name: DADU_FOOD_BUSINESS.name,
       description: DADU_FOOD_BUSINESS.tagline,
       url: origin,
+      image: "https://www.dadufood.store/og-image.jpg",
       telephone: DADU_FOOD_BUSINESS.phoneIntl,
       email: DADU_FOOD_BUSINESS.email,
       geo: {
@@ -222,7 +223,13 @@ export function syncPageSeo(params: {
         longitude: "67.7735",
       },
       priceRange: DADU_FOOD_BUSINESS.priceRange,
-      servesCuisine: ["Pakistani", "Fast Food", "Desi Food", "Pizza", "BBQ", "Biryani", "Tea & Chai"],
+      servesCuisine: ["Pakistani", "Fast Food", "Desi Food", "Pizza", "Burgers", "BBQ", "Biryani", "Tea & Chai"],
+      openingHoursSpecification: {
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+        opens: "12:00",
+        closes: "23:00",
+      },
       openingHours: DADU_FOOD_BUSINESS.openingHoursSchema,
       areaServed: DADU_FOOD_BUSINESS.deliveryAreas.map((area) => ({
         "@type": "Place",
@@ -312,6 +319,16 @@ export function syncPageSeo(params: {
     title = info.title;
     description = info.description;
     canonicalPath = `/${params.infoSlug}`;
+  } else if (params.pageType === "grocery") {
+    title = "Grocery Delivery in Dadu | Dadu Food";
+    description =
+      "Grocery delivery in Dadu — 297 grocery items in 13 categories, delivered in 20–35 min for Rs 50. Order from the morning. Cash on Delivery & Easypaisa. Call 03277004471.";
+    canonicalPath = "/grocery";
+  } else if (params.pageType === "pharmacy") {
+    title = "Medicine Delivery in Dadu | Dadu Food";
+    description =
+      "Medicine delivery in Dadu — 12 medicines delivered to your home for Rs 30. Cash on Delivery & Easypaisa. Order from the morning. Call 03277004471.";
+    canonicalPath = "/pharmacy";
   } else {
     // Homepage: apply admin override only if it's meaningful Dadu content (not generic placeholder)
     if (params.adminSeoOverride?.siteTitle && params.adminSeoOverride.siteTitle.toLowerCase().includes("dadu")) {
@@ -321,17 +338,9 @@ export function syncPageSeo(params: {
       description = params.adminSeoOverride.siteDescription;
     }
 
-    graphNodes.push({
-      "@type": "FAQPage",
-      mainEntity: DADU_FOOD_FAQS.map((f) => ({
-        "@type": "Question",
-        name: f.question,
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: f.answer,
-        },
-      })),
-    });
+    // NOTE: no FAQPage node here — FAQ rich results were retired (May 2026)
+    // and there is no visible FAQ section on the site, so schema must not
+    // describe content that does not exist on the page.
 
     graphNodes.push({
       "@type": "WebPage",
@@ -340,20 +349,25 @@ export function syncPageSeo(params: {
       description,
       speakable: {
         "@type": "SpeakableSpecification",
-        cssSelector: [".speakable-summary", ".faq-answer"],
+        cssSelector: [".speakable-summary"],
       },
     });
   }
 
-  // BreadcrumbList: Home > current page (shop / info). Home itself has a
-  // single-item breadcrumb in the static JSON-LD in index.html.
+  // BreadcrumbList: Home > current page (shop / info / grocery / pharmacy).
+  // Home itself has no breadcrumb node (the static JSON-LD block that used to
+  // carry one was removed from index.html; seoManager is the only source).
   if (canonicalPath !== "/") {
     const crumbName =
       params.pageType === "shop" && params.shopName
         ? params.shopName
         : params.pageType === "info" && params.infoSlug
           ? INFO_PAGE_META[params.infoSlug].title.replace(/ \| Dadu Food.*$/, "")
-          : "Home";
+          : params.pageType === "grocery"
+            ? "Grocery Delivery in Dadu"
+            : params.pageType === "pharmacy"
+              ? "Medicine Delivery in Dadu"
+              : "Home";
     graphNodes.push({
       "@type": "BreadcrumbList",
       itemListElement: [

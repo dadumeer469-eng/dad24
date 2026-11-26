@@ -616,10 +616,10 @@ export function getShopOpenStatus(
   const specific = systemSettings?.restaurantStatuses?.[shopName];
   const globalStatus = systemSettings?.restaurantStatus;
 
-  const openStr = specific?.openingTime || globalStatus?.openingTime || "09:00";
-  const closeStr = specific?.closingTime || globalStatus?.closingTime || "23:59";
-  const openFormatted = formatTime12h(openStr) || "9:00 AM";
-  const closeFormatted = formatTime12h(closeStr) || "11:59 PM";
+  const openStr = specific?.openingTime || globalStatus?.openingTime || "12:00";
+  const closeStr = specific?.closingTime || globalStatus?.closingTime || "23:00";
+  const openFormatted = formatTime12h(openStr) || "12:00 PM";
+  const closeFormatted = formatTime12h(closeStr) || "11:00 PM";
   const hoursText = `${openFormatted} – ${closeFormatted}`;
 
   const isClosed = Boolean(isClosedOverride);
@@ -631,6 +631,33 @@ export function getShopOpenStatus(
       detail: `Opens ${openFormatted}`,
       hoursText,
     };
+  }
+
+  // Real clock check: compare the current local time against open/close
+  // (Dadu food shops: 12:00 PM – 11:00 PM). Previously this always returned
+  // Open, so the badge could show "Open" at 3 AM.
+  const toMinutes = (hhmm: string): number | null => {
+    const [h, m] = hhmm.split(":").map((v) => Number(v));
+    if (Number.isNaN(h) || Number.isNaN(m)) return null;
+    return h * 60 + m;
+  };
+  const openMin = toMinutes(openStr);
+  const closeMin = toMinutes(closeStr);
+  if (openMin !== null && closeMin !== null) {
+    const now = new Date();
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    const withinHours =
+      closeMin > openMin
+        ? nowMin >= openMin && nowMin < closeMin
+        : nowMin >= openMin || nowMin < closeMin; // overnight range
+    if (!withinHours) {
+      return {
+        isOpen: false,
+        label: "Closed",
+        detail: `Opens ${openFormatted}`,
+        hoursText,
+      };
+    }
   }
 
   return {
