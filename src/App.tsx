@@ -2763,6 +2763,20 @@ export default function App() {
       return;
     }
 
+    // Never write an invalid order: empty cart, bad phone, or no street.
+    if (!details.items || details.items.length === 0 || details.totalPrice <= 0) {
+      setToastNotification({ title: "Order Failed", message: "Cart khaali hai — pehle items add karein." });
+      return;
+    }
+    if (!/^0?3\d{9}$/.test((details.phone || "").replace(/[\s-]/g, ""))) {
+      setToastNotification({ title: "Order Failed", message: "Sahi 11-digit mobile number zaroori hai." });
+      return;
+    }
+    if (!details.location?.street || details.location.street.trim().length < 4) {
+      setToastNotification({ title: "Order Failed", message: "Sahi street address zaroori hai." });
+      return;
+    }
+
     if (details.voucher) {
       const vRef = doc(db, "vouchers", details.voucher.code);
       const vSnap = await getDoc(vRef);
@@ -2966,6 +2980,23 @@ export default function App() {
     if (!currentUser) {
       setIsAuthOpen(true);
       return;
+    }
+
+    // Never write an invalid order: empty cart, or (for food) no street
+    // address or bad phone number.
+    if (!cartItems || cartItems.length === 0) {
+      setToastNotification({ title: "Order Failed", message: "Cart khaali hai — pehle items add karein." });
+      return;
+    }
+    if (details.orderType === "food") {
+      if (!details.location?.street || details.location.street.trim().length < 4) {
+        setToastNotification({ title: "Order Failed", message: "Sahi street address zaroori hai." });
+        return;
+      }
+      if (!/^0?3\d{9}$/.test((details.phone || "").replace(/[\s-]/g, ""))) {
+        setToastNotification({ title: "Order Failed", message: "Sahi 11-digit mobile number zaroori hai." });
+        return;
+      }
     }
 
     if (details.voucher) {
@@ -3300,6 +3331,13 @@ export default function App() {
       };
       const paymentMethod: "COD" | "Easypaisa" =
         order.payment === "Easypaisa" ? "Easypaisa" : "COD";
+
+      // Easypaisa on a voice call cannot take a receipt screenshot, so the
+      // order would sit unverifiable forever. Block it and let the agent
+      // offer COD (or Easypaisa in the app with a receipt upload).
+      if (paymentMethod === "Easypaisa") {
+        return { ok: false, message: "ایزی پیسہ کے لیے رسید کی ضرورت ہے، اور کال پر رسید اپ لوڈ نہیں ہو سکتی۔ کیش آن ڈیلیوری پر آرڈر کر لیں، یا ایپ میں ایزی پیسہ سے پے کر کے رسید اپ لوڈ کریں۔" };
+      }
 
       // Match spoken items to the catalogue (fall back to the other catalogue
       // when the agent's type hint does not match).
@@ -5676,7 +5714,9 @@ export default function App() {
                                 </h4>
                                 <span className="text-[10px] text-zinc-600 dark:text-zinc-300 font-bold block mt-0.5 truncate">
                                   {activeOrderForBanner.status === "payment_verification_pending"
-                                    ? "Easypaisa receipt received — admin verification in progress"
+                                    ? activeOrderForBanner.paymentReceiptUrl
+                                      ? "Easypaisa receipt received — admin verification in progress"
+                                      : "Easypaisa payment pending — receipt abhi upload nahi hui"
                                     : activeOrderForBanner.status === "out_for_delivery"
                                     ? "Rider aapka order pick kar chuka hai aur raste me hai!"
                                     : activeOrderForBanner.status === "preparing"
