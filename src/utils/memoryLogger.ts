@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 interface PerformanceMemory {
   jsHeapSizeLimit: number;
@@ -10,7 +10,12 @@ interface PerformanceMemory {
   * Safely logs current JS Heap memory usage in development mode if supported by the runtime (e.g. Chrome/WebKit with flags).
   */
 export function logMemoryUsage(tag: string = "Memory Snapshot"): void {
-  const isDev = import.meta.env?.DEV || process.env.NODE_ENV !== "production";
+  // NOTE: `process` does not exist in a plain Vite browser build. The old
+  // `process.env.NODE_ENV` read threw a ReferenceError in production whenever
+  // this ran (App calls useMemoryMonitor on every mount). Guard it.
+  const nodeEnv =
+    typeof process !== "undefined" ? process.env?.NODE_ENV : undefined;
+  const isDev = Boolean(import.meta.env?.DEV) || nodeEnv !== "production";
   if (!isDev) return;
 
   const perf = window.performance as Performance & { memory?: PerformanceMemory };
@@ -113,9 +118,17 @@ export function useMemoryMonitor(
   componentName: string,
   onCleanup?: (disposer: ResourceDisposer) => void
 ): ResourceDisposer {
+  // One disposer per hook instance, created once and shared between the
+  // effect and the caller. The old code returned `new ResourceDisposer()`
+  // on every render — a dead object whose cleanups never ran.
+  const disposerRef = useRef<ResourceDisposer | null>(null);
+  if (disposerRef.current === null) {
+    disposerRef.current = new ResourceDisposer();
+  }
+  const disposer = disposerRef.current;
+
   useEffect(() => {
     logMemoryUsage(`${componentName} Mount`);
-    const disposer = new ResourceDisposer();
 
     if (onCleanup) {
       onCleanup(disposer);
@@ -125,7 +138,8 @@ export function useMemoryMonitor(
       disposer.dispose();
       logMemoryUsage(`${componentName} Unmount`);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [componentName]);
 
-  return new ResourceDisposer();
+  return disposer;
 }
