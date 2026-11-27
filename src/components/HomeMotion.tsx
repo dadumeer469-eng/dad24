@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type Key, type ReactNode } from "react";
 import { animate, motion, useInView } from "motion/react";
-import { Plus, Sparkles } from "lucide-react";
+import { Plus, Search, Sparkles, X } from "lucide-react";
 import {
   Carousel,
   CarouselContent,
@@ -10,6 +10,7 @@ import {
   type CarouselApi,
 } from "@/components/ui/carousel";
 import type { Dish } from "../types";
+import { dealDiscountPct, dealSavings, type Deal } from "../data/deals";
 import {
   shimmerPulse,
   springGentle,
@@ -402,6 +403,192 @@ export function MenuSkeleton({ count = 8 }: { count?: number }) {
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* SectionHeading — Blinkit-style "stylish" section title: LARGE BOLD  */
+/* black heading with a small grey subtitle, optional right-side        */
+/* action (badge / link). Used by every home section so the homepage    */
+/* reads in one consistent bold voice.                                  */
+/* ------------------------------------------------------------------ */
+export function SectionHeading({
+  title,
+  subtitle,
+  action,
+}: {
+  title: string;
+  subtitle?: string;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="flex items-end justify-between gap-2 mb-2">
+      <div className="min-w-0">
+        <h2 className="text-xl sm:text-2xl font-black tracking-tight text-[#14141A] dark:text-white leading-tight">
+          {title}
+        </h2>
+        {subtitle && (
+          <p className="text-xs sm:text-sm font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-0.5">
+            {subtitle}
+          </p>
+        )}
+      </div>
+      {action && <div className="shrink-0">{action}</div>}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* HomeSearchBar — the prominent white pill search on the homepage      */
+/* (Blinkit pattern: the search is the hero of the home screen). The    */
+/* placeholder rotates through REAL popular dishes, like the reel's     */
+/* rotating "Search 'milk'" suggestions. Wired to the app's search     */
+/* state, so typing filters the catalogue below. Enter scrolls to the   */
+/* catalogue. Reduced motion: the placeholder stays on the first item.  */
+/* ------------------------------------------------------------------ */
+const HOME_SEARCH_SUGGESTIONS = [
+  "Crispy Zinger Burger",
+  "Chicken Biryani",
+  "Chicken Shawarma",
+  "Chicken Karahi",
+  "Dadu Mart groceries",
+];
+
+export function HomeSearchBar({
+  value,
+  onChange,
+  onSubmit,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onSubmit?: () => void;
+}) {
+  const reduced = usePrefersReducedMotion();
+  const [suggestionIdx, setSuggestionIdx] = useState(0);
+
+  useEffect(() => {
+    if (reduced) return;
+    const id = setInterval(
+      () => setSuggestionIdx((i) => (i + 1) % HOME_SEARCH_SUGGESTIONS.length),
+      3000,
+    );
+    return () => clearInterval(id);
+  }, [reduced]);
+
+  return (
+    <form
+      role="search"
+      className="relative w-full"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit?.();
+      }}
+    >
+      <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#E21B70] pointer-events-none" />
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label="Search dishes, groceries and medicines in Dadu"
+        placeholder={`Search '${HOME_SEARCH_SUGGESTIONS[suggestionIdx]}'`}
+        className="w-full min-h-[52px] pl-12 pr-12 py-3 bg-white text-[#14141A] placeholder-[#6E6E80] rounded-full text-[15px] font-semibold outline-none shadow-[0_8px_24px_rgba(0,0,0,0.12)] focus:ring-2 focus:ring-white/70 transition"
+      />
+      {value ? (
+        <button
+          type="button"
+          onClick={() => onChange("")}
+          aria-label="Clear search"
+          className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-[#5A5A6B] hover:text-[#14141A] rounded-full cursor-pointer"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      ) : (
+        <button
+          type="submit"
+          aria-label="Search"
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-[#E21B70] text-white shadow-sm cursor-pointer active:scale-95 transition"
+        >
+          <Search className="w-4.5 h-4.5" />
+        </button>
+      )}
+    </form>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* PromoDealCard — bold Blinkit-style promo card for a meal deal:       */
+/* LARGE photo, discount badge, LARGE BOLD BLACK title + price, small   */
+/* grey dish list, pink ADD. The card lifts on hover/tap (spring) and  */
+/* carries a soft layered shadow for the 3D feel. Reduced motion: no    */
+/* lift, no entrance slide.                                             */
+/* ------------------------------------------------------------------ */
+export function PromoDealCard({
+  deal,
+  items,
+  onAdd,
+}: {
+  /** React list key (stripped by React at runtime; declared so JSX accepts it). */
+  key?: Key;
+  deal: Deal;
+  items: { dish: Dish; qty: number }[];
+  onAdd: (deal: Deal) => void;
+}) {
+  const reduced = usePrefersReducedMotion();
+  const savings = dealSavings(deal);
+  const pct = dealDiscountPct(deal);
+  const firstImage = items[0]?.dish.imageUrl || "/images/dishes/pizza.jpg";
+  return (
+    <motion.article
+      initial={reduced ? false : { opacity: 0, y: 18 }}
+      whileInView={reduced ? undefined : { opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-60px" }}
+      transition={springSmooth}
+      whileHover={reduced ? undefined : { y: -4 }}
+      whileTap={reduced ? undefined : { scale: 0.98 }}
+      className="bg-white dark:bg-[#14141A] border border-[#e8e2d6] dark:border-[#272733] rounded-3xl overflow-hidden shadow-md hover:shadow-xl transition-shadow flex flex-col"
+    >
+      <div className="relative">
+        <ShimmerImage
+          src={firstImage}
+          alt={deal.title}
+          className="w-full h-36 sm:h-44"
+          imgClassName="object-cover"
+          loading="lazy"
+        />
+        <span className="absolute left-3 top-3 z-10 rounded-full bg-[#E21B70] px-2.5 py-1 text-[11px] font-black text-white shadow-md">
+          Save Rs. {savings} · {pct}% OFF
+        </span>
+        <span className="absolute right-3 top-3 z-10 rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-[#E21B70] shadow">
+          {deal.tag}
+        </span>
+      </div>
+      <div className="p-4 flex flex-col flex-1">
+        <h3 className="text-lg font-black tracking-tight text-[#14141A] dark:text-white leading-snug">
+          {deal.title}
+        </h3>
+        <p className="text-xs text-[#5A5A6B] dark:text-[#A3A3B5] leading-snug mt-1 line-clamp-2">
+          {deal.description}
+        </p>
+        <p className="text-xs font-semibold text-[#14141A] dark:text-white mt-1.5 line-clamp-2">
+          {items.map(({ dish, qty }) => `${qty > 1 ? `${qty}× ` : ""}${dish.name}`).join(" + ")}
+        </p>
+        <div className="mt-auto pt-3 flex items-center justify-between gap-2">
+          <p className="text-xl font-black text-[#14141A] dark:text-white tabular-nums leading-none">
+            Rs. {deal.dealPrice}{" "}
+            <span className="text-sm font-bold text-[#9A9AAB] dark:text-[#6E6E80] line-through">
+              Rs. {deal.originalTotal}
+            </span>
+          </p>
+          <button
+            type="button"
+            onClick={() => onAdd(deal)}
+            aria-label={`Add ${deal.title} deal to cart for Rs. ${deal.dealPrice}`}
+            className="min-h-[44px] px-5 rounded-full bg-[#E21B70] hover:bg-[#B80C54] text-white text-xs font-black cursor-pointer transition active:scale-95 shadow-sm shrink-0"
+          >
+            Add Deal
+          </button>
+        </div>
+      </div>
+    </motion.article>
+  );
+}
 /* ------------------------------------------------------------------ */
 /* AppLoadingState — polished loading state for the app / menu / lazy   */
 /* panels: pulsing pink D mark, shimmer bars, label. The caller wraps  */

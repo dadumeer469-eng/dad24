@@ -35,9 +35,9 @@ export const DashboardMenuItemCard = React.memo(function DashboardMenuItemCard({
 
   return (
     <motion.div
-      whileHover={reduceMotion ? undefined : { y: -2 }}
+      whileHover={reduceMotion ? undefined : { y: -3 }}
       transition={springSnappy}
-      className={`bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl overflow-hidden shadow-xs hover:border-[#E21B70]/45 hover:shadow-md transition-[border-color,box-shadow] duration-300 flex flex-col group relative text-[#14141A] dark:text-[#F5F5F8] ${
+      className={`bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl overflow-hidden shadow-sm hover:border-[#E21B70]/45 hover:shadow-lg transition-[border-color,box-shadow] duration-300 flex flex-col group relative text-[#14141A] dark:text-[#F5F5F8] ${
         isRestaurantClosed ? "opacity-75 grayscale-[15%]" : ""
       }`}
     >
@@ -138,22 +138,22 @@ export const DashboardMenuItemCard = React.memo(function DashboardMenuItemCard({
           </p>
           <h4
             title={dish.name}
-            className="font-bold text-[#14141A] dark:text-[#F5F5F8] text-xs sm:text-sm leading-snug group-hover:text-[#E21B70] transition-colors line-clamp-2"
+            className="font-black text-[#14141A] dark:text-[#F5F5F8] text-sm sm:text-base leading-snug group-hover:text-[#E21B70] transition-colors line-clamp-2"
           >
             {dish.name}
           </h4>
           <div className="flex items-baseline gap-1.5 pt-0.5">
             {dish.discountPrice && dish.discountPrice < dish.price ? (
               <>
-                <span className="font-mono font-bold text-sm text-[#E21B70] dark:text-[#FF4D94] tabular-nums">
+                <span className="font-mono font-black text-base text-[#14141A] dark:text-white tabular-nums">
                   Rs. {dish.discountPrice}
                 </span>
-                <span className="font-mono text-xs line-through text-[#717185] tabular-nums">
+                <span className="font-mono text-xs font-bold line-through text-[#9A9AAB] dark:text-[#6E6E80] tabular-nums">
                   Rs. {dish.price}
                 </span>
               </>
             ) : (
-              <span className="font-mono font-bold text-sm text-[#E21B70] dark:text-[#FF4D94] tabular-nums">
+              <span className="font-mono font-black text-base text-[#14141A] dark:text-white tabular-nums">
                 Rs. {dish.price}
               </span>
             )}

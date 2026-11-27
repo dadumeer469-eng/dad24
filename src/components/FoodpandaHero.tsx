@@ -105,7 +105,7 @@ export default function FoodpandaHero({
       {/* Foodpanda Cuisines Row (Visual Rounded Cuisine Tiles) */}
       <div className="max-w-7xl mx-auto px-3.5 sm:px-4 pt-2 pb-1">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-sm sm:text-base font-semibold tracking-tight text-[#14141A] dark:text-[#F5F5F8]">
+          <h2 className="text-xl sm:text-2xl font-black tracking-tight text-[#14141A] dark:text-[#F5F5F8] leading-tight">
             Cuisines
           </h2>
           {activeCategory !== "All" && (
