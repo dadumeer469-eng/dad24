@@ -5335,7 +5335,6 @@ export default function App() {
                         loading="eager"
                         decoding="async"
                       />
-                      <div className="absolute inset-y-0 right-0 w-[56%] sm:w-[48%] lg:w-[26%] bg-gradient-to-r from-[#E21B70] via-[#E21B70]/20 to-transparent pointer-events-none" aria-hidden="true" />
                       <div className="relative z-10 px-4 sm:px-6 pt-5 sm:pt-7 pb-4 max-w-[62%] sm:max-w-[58%] animate-slide-in-left">
                         <h1 className="text-[27px] sm:text-4xl font-medium leading-[1.05] text-white tracking-tight">
                           Dadu Food — Fast Delivery
