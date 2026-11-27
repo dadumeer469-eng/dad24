@@ -6,6 +6,7 @@ import { getAudioContext, primeAudio } from "../utils/primeAudio";
 import MunchiCharacter from "./MunchiCharacter";
 import { MunchiController, classifyMood } from "../utils/munchiController";
 import { findProductInText, type ProductFrame } from "../utils/munchiProductFrames";
+import { apiUrl } from "../utils/apiBase";
 
 export interface VoiceOrderItem {
   name: string;
@@ -484,7 +485,7 @@ export default function VoiceOrderModal({
         if (!done) finish();
       }, 30000);
       try {
-        const res = await fetch("/api/voice-speak", {
+        const res = await fetch(apiUrl("/api/voice-speak"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text }),
@@ -708,7 +709,7 @@ export default function VoiceOrderModal({
           if (!openRef.current || turn !== turnRef.current) return;
           if (attempt > 0) await new Promise((r) => setTimeout(r, 1500));
           try {
-            res = await fetch("/api/voice-chat", {
+            res = await fetch(apiUrl("/api/voice-chat"), {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -824,7 +825,7 @@ export default function VoiceOrderModal({
           try {
             const fd = new FormData();
             fd.append("audio", blob, ext);
-            tRes = await fetch("/api/voice-transcribe", {
+            tRes = await fetch(apiUrl("/api/voice-transcribe"), {
               method: "POST",
               body: fd,
               signal: AbortSignal.timeout(30000),
