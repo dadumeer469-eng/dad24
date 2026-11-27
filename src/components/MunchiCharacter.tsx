@@ -1,26 +1,46 @@
 import { useEffect, useRef, useState } from "react";
 import type { MunchiController, MunchiMood, MunchiState } from "../utils/munchiController";
 import type { ProductFrame } from "../utils/munchiProductFrames";
-
-// Layer positions measured from the supplied Munchi reference image.
-// public/images/munchi.jpg is the 880x960 crop of it, so percentages map
-// exactly onto the displayed portrait.
-const JAW = { left: 43.18, top: 43.75, width: 20.45, height: 23.96 }; // mouth + moustache + beard + chin
-const EYE_L = { left: 53.98, top: 30.52 }; // viewer's left eye
-const EYE_R = { left: 66.7, top: 30.83 }; // viewer's right eye
-
-// One face per mood, all from the same reference photo, same framing —
-// the face cross-fades between them in 300ms. Each mood has its own jaw
-// layer (cut from its own face) so the lip-sync still lines up.
-const MOODS: MunchiMood[] = ["neutral", "happy", "thinking", "funny", "concerned"];
-const faceUrl = (m: MunchiMood) => (m === "neutral" ? "/images/munchi.jpg" : `/images/munchi-${m}.jpg`);
-const jawUrl = (m: MunchiMood) => (m === "neutral" ? "/images/munchi-jaw.png" : `/images/munchi-jaw-${m}.png`);
+import {
+  drawPoseBlink,
+  drawPoseFrame,
+  preloadPose,
+  visemeAt,
+  type MunchiPose,
+} from "../utils/munchiFramePlayer";
 
 // Munchi — the Dadu Food voice agent, alive on the call screen.
-// One requestAnimationFrame loop drives breathing, head tilt, the jaw and
-// blinking by writing transforms straight onto DOM nodes (no React
-// re-renders). The loop pauses when the tab is hidden or the character is
-// off-screen, and low-power devices skip blinking and head tilt.
+//
+// Frame-by-frame animation: the site ships only the KEYFRAMES (a few
+// stills per pose, all AI edits of the same Munchi photo). This component
+// blends between adjacent keyframes on a <canvas> every frame, so the
+// mouth moves smoothly at 24fps without shipping hundreds of images.
+//   - the mouth follows the actual WORDS of each Groq reply (viseme
+//     schedule on the controller, built from the reply text + the TTS
+//     audio's real duration — see munchiFramePlayer.ts);
+//   - without a schedule (phone voice) it falls back to the analyser /
+//     word-pulse level on controller.mouth, as before;
+//   - the pose follows the state + mood: listening (hands down), thinking
+//     (finger on chin), happy (thumbs-up), funny (open palm), concerned
+//     (hand on chest) — each pose has its OWN mouth frames, so every
+//     reply feels like the same Munchi;
+//   - blinking uses each pose's own blink frame, every few seconds.
+// One requestAnimationFrame loop drives breathing, head tilt, the mouth
+// and blinking by writing straight onto DOM/canvas nodes (no React
+// re-renders). The loop pauses when the tab is hidden or the character
+// is off-screen, and low-power devices skip blinking and head tilt.
+
+// The pose Munchi wears for a state + mood. Activity (listening /
+// thinking / speaking) is the state machine; mood is the expression.
+function poseFor(state: MunchiState, mood: MunchiMood): MunchiPose {
+  if (state === "listening") return "listening";
+  if (state === "thinking") return "thinking";
+  if (state === "error") return "concerned";
+  if (state === "happy" || state === "order_confirmed") return "happy";
+  if (state === "funny") return "funny";
+  return mood;
+}
+
 export default function MunchiCharacter({
   controller,
   visible,
@@ -35,21 +55,16 @@ export default function MunchiCharacter({
   const [, setMstate] = useState<MunchiState>(controller.state);
   const [mood, setMoodState] = useState<MunchiMood>(controller.mood);
   const wrapRef = useRef<HTMLDivElement | null>(null);
-  const jawRef = useRef<HTMLImageElement | null>(null);
-  const blinkLRef = useRef<HTMLDivElement | null>(null);
-  const blinkRRef = useRef<HTMLDivElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => controller.subscribe(setMstate), [controller]);
   useEffect(() => controller.subscribeMood(setMoodState), [controller]);
 
-  // Preload every mood face + jaw on mount so switching never flashes.
+  // Preload the base pose + happy on mount so the call screen never
+  // flashes; other poses load when they are first worn.
   useEffect(() => {
-    MOODS.forEach((m) => {
-      [faceUrl(m), jawUrl(m)].forEach((src) => {
-        const im = new Image();
-        im.src = src;
-      });
-    });
+    preloadPose("neutral");
+    preloadPose("happy");
   }, []);
 
   useEffect(() => {
@@ -61,7 +76,12 @@ export default function MunchiCharacter({
     let blinkStart = -1;
     let celebrateStart = -1;
     let lastState: MunchiState = controller.state;
+    let open = 0;
+    let pose: MunchiPose = poseFor(controller.state, controller.mood);
+    let prevPose: MunchiPose | null = null;
+    let poseChangedAt = 0;
     let inView = true;
+    preloadPose(pose);
 
     const tick = (now: number) => {
       raf = requestAnimationFrame(tick);
@@ -76,13 +96,36 @@ export default function MunchiCharacter({
         lastState = controller.state;
       }
 
-      // Mouth: ease toward the word pulse, then decay shut between words.
-      const m = controller.mouth;
-      m.open += (m.target - m.open) * 0.3;
-      m.target *= 0.88;
-      if (m.open < 0.01 && m.target < 0.01) {
-        m.open = 0;
-        m.target = 0;
+      // Pose: switch (with a 300ms crossfade) when the state or mood
+      // changes, and start loading the new pose's frames.
+      const want = poseFor(controller.state, controller.mood);
+      if (want !== pose) {
+        prevPose = pose;
+        pose = want;
+        poseChangedAt = now;
+        preloadPose(pose);
+      }
+
+      // Mouth openness: the viseme schedule (real words + real audio
+      // duration) wins when one is active; otherwise ease toward the
+      // analyser / word-pulse level and decay shut between words.
+      const schedule = controller.speechSchedule;
+      if (controller.state === "speaking" && schedule) {
+        const elapsed = (now - schedule.startedAt) / 1000;
+        const target =
+          elapsed > schedule.duration + 0.5 || schedule.words.length === 0
+            ? 0
+            : visemeAt(schedule, elapsed).open;
+        open += (target - open) * 0.3;
+      } else {
+        const m = controller.mouth;
+        m.open += (m.target - m.open) * 0.3;
+        m.target *= 0.88;
+        if (m.open < 0.01 && m.target < 0.01) {
+          m.open = 0;
+          m.target = 0;
+        }
+        open = m.open;
       }
 
       // Breathing + head tilt per state. Small angles only — no bouncing.
@@ -100,7 +143,7 @@ export default function MunchiCharacter({
           break;
         case "speaking":
           tilt = reduced ? 0 : Math.sin(t * 3.1) * 0.7;
-          bob = m.open * 2;
+          bob = open * 2;
           break;
         case "happy":
           tilt = 1;
@@ -124,29 +167,44 @@ export default function MunchiCharacter({
       }
       wrap.style.transform = `rotate(${tilt.toFixed(2)}deg) translateY(${bob.toFixed(2)}px) scale(${scale.toFixed(4)})`;
 
-      // Jaw (lip-sync): drops and widens with each spoken word.
-      const jaw = jawRef.current;
-      if (jaw) {
-        jaw.style.transform = `translateY(${(m.open * 3.5).toFixed(2)}px) scaleY(${(1 + m.open * 0.1).toFixed(3)})`;
-      }
-
-      // Blink: eyelid strips (real skin pixels from the photo) close and
-      // open over ~150ms, every few seconds, at random intervals.
-      if (!reduced) {
-        if (blinkStart < 0 && now >= nextBlink) blinkStart = now;
-        let phase = 0;
-        if (blinkStart >= 0) {
-          const bp = (now - blinkStart) / 150;
-          if (bp >= 1) {
-            blinkStart = -1;
-            nextBlink = now + 2400 + Math.random() * 2800;
+      // Draw the frame: blend the pose's keyframes by mouth openness,
+      // crossfade between poses for 300ms, blink with the pose's own
+      // blink frame every few seconds. A hero product covers the canvas,
+      // so there is nothing to draw then.
+      const canvas = canvasRef.current;
+      if (canvas && !product?.hero) {
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          const W = canvas.width;
+          const H = canvas.height;
+          const p = prevPose ? Math.min(1, (now - poseChangedAt) / 300) : 1;
+          // Blink: eyes close and open over ~150ms.
+          let blinking = false;
+          if (!reduced) {
+            if (blinkStart < 0 && now >= nextBlink) blinkStart = now;
+            if (blinkStart >= 0) {
+              const bp = (now - blinkStart) / 150;
+              if (bp >= 1) {
+                blinkStart = -1;
+                nextBlink = now + 2400 + Math.random() * 2800;
+              } else {
+                blinking = true;
+              }
+            }
+          }
+          ctx.clearRect(0, 0, W, H);
+          if (blinking) {
+            if (prevPose && p < 1) drawPoseBlink(ctx, prevPose, W, H, 1 - p);
+            drawPoseBlink(ctx, pose, W, H, p);
           } else {
-            phase = bp < 0.5 ? bp * 2 : 2 - bp * 2;
+            if (prevPose && p < 1) {
+              drawPoseFrame(ctx, prevPose, open, W, H, 1 - p);
+            } else {
+              prevPose = null;
+            }
+            drawPoseFrame(ctx, pose, open, W, H, p);
           }
         }
-        const s = `translate(-50%,-50%) scaleY(${phase.toFixed(2)})`;
-        if (blinkLRef.current) blinkLRef.current.style.transform = s;
-        if (blinkRRef.current) blinkRRef.current.style.transform = s;
       }
     };
     raf = requestAnimationFrame(tick);
@@ -162,7 +220,8 @@ export default function MunchiCharacter({
       cancelAnimationFrame(raf);
       io?.disconnect();
     };
-  }, [visible, controller]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, controller, product?.hero]);
 
   if (!visible) return null;
 
@@ -173,8 +232,8 @@ export default function MunchiCharacter({
         className="relative aspect-[880/960] w-full overflow-hidden rounded-[28px] will-change-transform"
         style={{ transformOrigin: "50% 62%" }}
       >
-        {/* One face per mood, cross-faded — same man, same framing.
-            A hero product replaces the face with Munchi holding that dish. */}
+        {/* Frame-by-frame Munchi: keyframes blended live on canvas.
+            A hero product replaces the canvas with Munchi holding it. */}
         {product?.hero ? (
           <img
             src={product.image}
@@ -183,76 +242,14 @@ export default function MunchiCharacter({
             style={{ position: "absolute", inset: 0, height: "100%", width: "100%", objectFit: "cover" }}
           />
         ) : (
-          MOODS.map((m) => (
-            <img
-              key={m}
-              src={faceUrl(m)}
-              alt={m === "neutral" ? "Munchi — Dadu Food AI agent" : ""}
-              aria-hidden={m !== "neutral"}
-              draggable={false}
-              style={{
-                position: "absolute",
-                inset: 0,
-                height: "100%",
-                width: "100%",
-                objectFit: "cover",
-                opacity: mood === m ? 1 : 0,
-                transition: "opacity 300ms ease",
-              }}
-            />
-          ))
+          <canvas
+            ref={canvasRef}
+            width={880}
+            height={960}
+            aria-label="Munchi — Dadu Food AI agent"
+            style={{ position: "absolute", inset: 0, height: "100%", width: "100%" }}
+          />
         )}
-        {/* Jaw layer of the current face: mouth + moustache + beard, driven
-            by the voice. Hero frames wear the neutral face, so they use the
-            neutral jaw. */}
-        <img
-          ref={jawRef}
-          src={product?.hero ? "/images/munchi-jaw.png" : jawUrl(mood)}
-          alt=""
-          aria-hidden="true"
-          draggable={false}
-          style={{
-            position: "absolute",
-            left: `${JAW.left}%`,
-            top: `${JAW.top}%`,
-            width: `${JAW.width}%`,
-            height: `${JAW.height}%`,
-            transformOrigin: "50% 0%",
-          }}
-        />
-        {/* Eyelid strips (real skin pixels from the photo) for blinking. */}
-        <div
-          ref={blinkLRef}
-          data-munchi-blink-l
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            left: `${EYE_L.left}%`,
-            top: `${EYE_L.top}%`,
-            width: "5.6%",
-            height: "3.4%",
-            backgroundImage: "url(/images/munchi-skin.png)",
-            backgroundSize: "100% 100%",
-            borderRadius: "50%",
-            transform: "translate(-50%,-50%) scaleY(0)",
-          }}
-        />
-        <div
-          ref={blinkRRef}
-          data-munchi-blink-r
-          aria-hidden="true"
-          style={{
-            position: "absolute",
-            left: `${EYE_R.left}%`,
-            top: `${EYE_R.top}%`,
-            width: "5.6%",
-            height: "3.4%",
-            backgroundImage: "url(/images/munchi-skin.png)",
-            backgroundSize: "100% 100%",
-            borderRadius: "50%",
-            transform: "translate(-50%,-50%) scaleY(0)",
-          }}
-        />
         {/* Non-hero product: its catalogue photo at Munchi's hand, like a
             card he is presenting, plus a name + price pill. */}
         {product && !product.hero && product.image && (

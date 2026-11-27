@@ -495,6 +495,17 @@ export default function VoiceOrderModal({
         const audio = new Audio(url);
         ttsAudioRef.current = audio;
         ttsUrlRef.current = url;
+        // Frame-by-frame lip-sync: this reply's text + the audio's real
+        // duration build the word-by-word viseme schedule, armed the
+        // moment playback actually starts (the 'playing' event), so the
+        // mouth never runs ahead of the voice. If the duration is ever
+        // unknown, the analyser / word-pulse fallback keeps moving it.
+        const armViseme = () => {
+          if (audio.duration && isFinite(audio.duration)) {
+            munchiRef.current?.noteSpeechStart(text, audio.duration);
+          }
+        };
+        audio.addEventListener("playing", armViseme, { once: true });
         // Route the audio through an analyser when the context runs; if
         // the browser keeps it suspended, play plainly and let the
         // word-paced fallback pulse (noteSpeechStart) move the jaw.
