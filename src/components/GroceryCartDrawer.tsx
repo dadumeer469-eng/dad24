@@ -260,15 +260,21 @@ export default function GroceryCartDrawer({
     if (isOpen) setWizardStep(1);
   }, [isOpen]);
 
-  // Medicine product ids (memoised — the catalogue is ~300 items, no need to
-  // rebuild this set on every render).
-  const medicineProductIds = useMemo(
-    () =>
-      new Set(
-        OWNER_GROCERY_PRODUCTS.filter((p) => p.categoryId === "gcat_medicine").map((p) => p.id),
-      ),
+  // Medicine detection is category-based (matches the voice-order path in
+  // App.tsx): an item is medicine when its product's category is
+  // gcat_medicine — never a hard-coded id list. The cart item itself may
+  // carry categoryId; otherwise look the product up in the owner
+  // catalogue. NOTE: admin-added Firestore-only medicines are invisible
+  // to this drawer until the cart builder attaches categoryId to the item
+  // (App.tsx) — the lookup below only covers the owner catalogue.
+  const productCategoryById = useMemo(
+    () => new Map(OWNER_GROCERY_PRODUCTS.map((p) => [p.id, p.categoryId])),
     [],
   );
+  const isMedicineItem = (item: GroceryOrderItem) =>
+    (item as GroceryOrderItem & { categoryId?: string }).categoryId ===
+      "gcat_medicine" ||
+    productCategoryById.get(item.productId) === "gcat_medicine";
 
   if (!isOpen) return null;
 
@@ -291,7 +297,7 @@ export default function GroceryCartDrawer({
   const isFreeDelivery = totalGroceryPrice >= freeThreshold;
   // Medicine has its OWN delivery fee, separate from grocery (user instruction).
   // If the cart contains any medicine item, the medicine fee applies instead.
-  const hasMedicine = cartItems.some((item) => medicineProductIds.has(item.productId));
+  const hasMedicine = cartItems.some(isMedicineItem);
   const medicineDeliveryFee = (deliveryConfig?.medicineDeliveryFee || 0) > 0 ? deliveryConfig.medicineDeliveryFee : 30;
   const baseDeliveryFee = hasMedicine
     ? medicineDeliveryFee
@@ -586,7 +592,13 @@ export default function GroceryCartDrawer({
           lng: activeCoords?.longitude,
           googleMapsLink: activeCoords ? `https://maps.google.com/?q=${activeCoords.latitude},${activeCoords.longitude}` : undefined
         },
-        items: cartItems,
+        items: cartItems.map((item) => ({
+          ...item,
+          // M20: store the price the customer actually paid — the discount
+          // price when one is set and lower — not the list price, so the
+          // saved order lines match the charged subtotal.
+          price: effectiveItemPrice(item),
+        })),
         totalPrice: totalGroceryPrice,
         deliveryFee: finalDeliveryFee,
         grandTotal: grandTotal,
@@ -702,7 +714,7 @@ export default function GroceryCartDrawer({
                   <div className="flex-1 min-w-0">
                     <span className="font-extrabold text-sm text-zinc-900 dark:text-zinc-100 block truncate">{item.name}</span>
                     <span className="text-xs text-zinc-500 dark:text-zinc-400 font-bold block mt-0.5">Unit: {item.unit} • Rs. {effectiveItemPrice(item)} each{effectiveItemPrice(item) < item.price && (<span className="line-through ml-1">Rs. {item.price}</span>)}</span>
-                    {medicineProductIds.has(item.productId) && (
+                    {isMedicineItem(item) && (
                       <span className="text-[10px] text-[#E21B70] dark:text-[#FF4D94] font-extrabold tracking-wider uppercase flex items-center gap-1 select-none mt-0.5">
                         <span>💊</span> Medicine
                       </span>
@@ -1470,7 +1482,10 @@ export default function GroceryCartDrawer({
               <div className="flex justify-between">
                 <span>{hasMedicine ? "Medicine Delivery Fee" : "Grocery Delivery Fee"}:</span>
                 <span className="text-zinc-900 dark:text-zinc-100 font-extrabold">
-                  {isFreeDelivery ? (
+                  {/* M19: "FREE" only when nothing is actually charged. With
+                      Priority selected the fee is Rs. 30 even on a free-
+                      delivery order, so show the real fee instead. */}
+                  {isFreeDelivery && finalDeliveryFee === 0 ? (
                     <span className="text-emerald-600 dark:text-emerald-400 font-black">
                       FREE (Order ≥ Rs. {freeThreshold.toLocaleString()})
                     </span>
