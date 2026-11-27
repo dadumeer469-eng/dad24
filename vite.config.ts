@@ -54,6 +54,26 @@ export default defineConfig(() => {
         '@': path.resolve(__dirname, '.'),
       },
     },
+    build: {
+      // Split heavy vendor libs out of the first-paint chunk (perf audit
+      // 2026-11-27: main bundle was 2.17 MB raw / ~585 KB gzip, single
+      // chunk; Vite warned about chunks over 500 kB). Each vendor chunk is
+      // cached independently and only downloaded when actually imported.
+      chunkSizeWarningLimit: 500,
+      rollupOptions: {
+        output: {
+          manualChunks: (id) => {
+            if (id.includes('node_modules')) {
+              if (id.includes('firebase')) return 'firebase';
+              if (id.includes('leaflet')) return 'leaflet';
+              if (id.includes('framer-motion') || id.includes('/motion/'))
+                return 'motion';
+            }
+            return undefined;
+          },
+        },
+      },
+    },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modifyâfile watching is disabled to prevent flickering during agent edits.

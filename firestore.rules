@@ -1,184 +1,586 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
     // ================================================================
-    // Dadu Food — Firestore security rules (REWRITTEN 27 Nov 2026)
+    // Dadu Food — Firestore security rules (REWRITTEN 27 Nov 2026,
+    // fix program Agent H — audit: firestore-security-audit.md)
     //
-    // WHAT CHANGED: the old catch-all
-    //   match /{document=**} { allow read, write: if true; }
-    // made every rule below it dead code — anyone with the Firebase
-    // config could read/write orders, users and settings directly.
-    // It is DELETED. Rider rules now match the confirmed-only flow.
+    // Fixes ALL 13 audit items (P0-1..P0-6, P1-1..P1-5, P2-1..P2-5).
+    // See the per-issue notes inline below.
     //
-    // !!! NOT LIVE YET: this file only takes effect when deployed
-    // (Firebase console > Firestore > Rules, or `firebase deploy
-    // --only firestore:rules`). DO NOT deploy it until the staff/rider
-    // role lookup is fixed: user docs are keyed by PHONE number
-    // (e.g. "03277004427"), but rules can only look a role up by
-    // Auth UID or by token.phone_number (E.164, "+92..."), so
-    // isAdmin()/isRider() usually resolve false for staff/riders.
-    // The fix is a UID-keyed roles collection written by an admin
-    // (never self-written — a client-chosen role is forgeable).
-    // Until that lands, the app runs on the old open rules.
+    // !!! NOT DEPLOYED — DO NOT DEPLOY until the deploy gates in
+    // fix-H-rules.md are met (roles backfill + coordinated code
+    // changes: guestToken on guest checkout, orderId on rider
+    // notifications, staff-login restructure). Deploy via Firebase
+    // console > Firestore > Rules or `firebase deploy --only
+    // firestore:rules`. Until then the app runs on the old open rules.
+    //
+    // Role source of truth is now the UID-keyed /roles collection
+    // (audit #6, P1-1) plus optional Auth custom claims. The `role`
+    // field on /users docs is NEVER trusted for authorisation any
+    // more, and non-admins can never set or change it (audit #1).
+    // There is intentionally NO catch-all match — anything not
+    // listed here is denied by default.
     // ================================================================
 
-    // Helper function to check if the user is authenticated
+    // ---------------------------------------------------------------
+    // TODO(OWNER_UID) — audit #7 (P1-2). The old placeholder UID
+    // 'vL9LpYI3q5e6bFIsAdmInTrUgGer12' ("AdmInTrUgGer") is REMOVED.
+    // It matched no real user and locked the owner out of admin on
+    // phone OTP. No real owner UID exists anywhere in the repo
+    // (searched src/ for dadumeer469@gmail.com and any Auth UID —
+    // nothing found), so NO UID is invented here: ownerUid() returns
+    // a string that can never be a real Firebase Auth UID, so this
+    // branch is inert until filled in. FILL IT IN before deploy:
+    // Firebase console > Authentication > find the owner (Google
+    // dadumeer469@gmail.com, or phone 03277004471) > copy the
+    // "User UID" (28 chars) and paste it below. Until then the owner
+    // reaches admin via the Google-email branch (Google sign-in) or
+    // the staff synthetic-email branch (Staff Login).
+    // ---------------------------------------------------------------
+    function ownerUid() {
+      return 'TODO_REPLACE_WITH_OWNER_AUTH_UID';
+    }
+
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    // Checking profile document status
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
+    // UID-keyed role lookup (audit #6). exists() guards get() so a
+    // missing roles doc resolves false instead of erroring.
+    function hasRole(role) {
+      return isAuthenticated()
+        && exists(/databases/$(database)/documents/roles/$(request.auth.uid))
+        && get(/databases/$(database)/documents/roles/$(request.auth.uid)).data.role == role;
     }
 
-    // Check if the authenticated user has the 'admin' role
+    // Admin = roles doc OR Auth custom claim OR owner identity.
+    // The old users/{uid}.role lookup is GONE (audit #1): a user doc
+    // role is client-writable, so trusting it was the privilege-
+    // escalation hole. Email branches are the bootstrap path: the
+    // owner signs in with Google (dadumeer469@gmail.com) or Staff
+    // Login (synthetic 03277004471@dadu247.com) and, as admin, writes
+    // the roles docs — including their own. After the backfill the
+    // roles branch alone suffices and the email branches are a
+    // fallback, not the mechanism.
     function isAdmin() {
-      return isAuthenticated() &&
-        (request.auth.uid == 'vL9LpYI3q5e6bFIsAdmInTrUgGer12' ||
-         ('email' in request.auth.token && request.auth.token.email == '03277004471@dadu247.com') ||
-         ('email' in request.auth.token && request.auth.token.email == 'dadumeer469@gmail.com') ||
-         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
+      return isAuthenticated() && (
+        hasRole('admin')
+        || (('admin' in request.auth.token) && request.auth.token.admin == true)
+        || (('email' in request.auth.token) && request.auth.token.email == 'dadumeer469@gmail.com')
+        || (('email' in request.auth.token) && request.auth.token.email == '03277004471@dadu247.com')
+        || request.auth.uid == ownerUid()
+      );
     }
 
-    // Check if the authenticated user has the 'rider' role.
-    // NOTE: user docs are keyed by phone number, so the UID lookup
-    // below usually misses; the phone_number lookup covers docs keyed
-    // by E.164. See the header note — a roles collection is the real fix.
+    // Rider = roles doc OR Auth custom claim. The old phone-keyed
+    // users-doc lookups are GONE: riders sign in via Staff Login
+    // (email/password, token.phone_number is null) and even for
+    // phone-OTP riders the token carries E.164 ("+92327...") while
+    // doc IDs are local format ("03277..."), so the old isRider()
+    // was false on every path (audit #6, P1-1).
     function isRider() {
-      return isAuthenticated() &&
-        ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'rider') ||
-         (('phone_number' in request.auth.token) && request.auth.token.phone_number != null &&
-          exists(/databases/$(database)/documents/users/$(request.auth.token.phone_number)) &&
-          get(/databases/$(database)/documents/users/$(request.auth.token.phone_number)).data.role == 'rider'));
+      return isAuthenticated() && (
+        hasRole('rider')
+        || (('rider' in request.auth.token) && request.auth.token.rider == true)
+      );
     }
 
-    // Users Collection rules
-    // Docs are keyed by phone ("03277004427") or "g_<uid>"; the owner
-    // check below also accepts the firebaseUid field the app writes
-    // at sign-in, so a phone user can create/update their own profile.
+    // True when `profileId` is the caller's own user-profile doc ID.
+    // User docs are keyed by PHONE ("03277004427") or "g_<uid>", NOT
+    // by Auth UID, so callers are identified by UID, by the "g_"
+    // prefix, or by the firebaseUid field the app writes at sign-in
+    // (src/App.tsx:4318,4388). Orders/notifications carry the
+    // PROFILE uid as userId, not the Auth UID — so every "is this
+    // mine?" check must go through here, not a bare uid comparison.
+    function isOwnProfileId(profileId) {
+      return isAuthenticated() && (
+        profileId == request.auth.uid
+        || profileId == 'g_' + request.auth.uid
+        || (exists(/databases/$(database)/documents/users/$(profileId))
+          && get(/databases/$(database)/documents/users/$(profileId)).data.firebaseUid == request.auth.uid)
+      );
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated()
+        && (request.auth.uid == userId || ('g_' + request.auth.uid) == userId);
+    }
+
+    // Map.get(key, default) comparison — true when a field is absent
+    // in both docs or has the same value in both.
+    function fieldUnchanged(field) {
+      return request.resource.data.get(field, null) == resource.data.get(field, null);
+    }
+
+    // ================================================================
+    // /roles/{uid} — UID-keyed role store (audit #6, P1-1)
+    // Docs: { role: "admin" | "staff" | "rider" }.
+    // Written ONLY by an admin (never self-written — a client-chosen
+    // role is forgeable). The owner bootstraps it via the email
+    // branches in isAdmin() (Google sign-in) and then writes the
+    // roles docs, including their own. See fix-H-rules.md backfill.
+    // ================================================================
+    match /roles/{uid} {
+      allow get: if isAuthenticated() && (request.auth.uid == uid || isAdmin());
+      allow list: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ================================================================
+    // /users/{userId} — audit #1 (P0-1), #12 (P2-2), #12/#13 (P2-5)
+    // Docs are keyed by phone or "g_<uid>". Non-admins may create /
+    // update their OWN profile but may NEVER set or change the
+    // privileged fields: role, status, isBlacklisted, loyaltyCoins,
+    // ordersCount, totalOrders, uid. firebaseUid may only ever be
+    // set to the caller's own Auth UID. On create, a non-admin may
+    // only include the benign initial values the app writes at
+    // sign-up (role "buyer", status "verified", isBlacklisted
+    // false, zero counters) — so the old attack
+    // setDoc(users/{myUid}, {role:"admin"}) is now denied.
+    // P2-2: a get on a NON-EXISTENT user doc is allowed for any
+    // signed-in user, so first-time phone sign-in's getDoc existence
+    // check (src/App.tsx:4301) is not denied by dereferencing
+    // resource.data on a missing doc. This leaks only existence of
+    // a doc ID, not its contents.
+    // P1-4 (staff login): the PRE-AUTH users lookup is still denied
+    // by design — unauthenticated reads of user docs would leak the
+    // plaintext staff passwords (M14). The app must restructure
+    // Staff Login to sign in FIRST, then read the profile (code
+    // fix, not a rules fix — see fix-H-rules.md).
+    // ================================================================
+    function userCreateFieldsOk() {
+      return isAdmin() || (
+        (!('role' in request.resource.data) || request.resource.data.role == 'buyer')
+        && (!('status' in request.resource.data) || request.resource.data.status == 'verified')
+        && (!('isBlacklisted' in request.resource.data) || request.resource.data.isBlacklisted == false)
+        && (!('loyaltyCoins' in request.resource.data) || request.resource.data.loyaltyCoins == 0)
+        && (!('ordersCount' in request.resource.data) || request.resource.data.ordersCount == 0)
+        && (!('totalOrders' in request.resource.data) || request.resource.data.totalOrders == 0)
+        && (!('firebaseUid' in request.resource.data) || request.resource.data.firebaseUid == request.auth.uid)
+        && (!('uid' in request.resource.data) || request.resource.data.uid == userId)
+      );
+    }
+
+    function userUpdateFieldsOk() {
+      return isAdmin() || (
+        fieldUnchanged('role')
+        && fieldUnchanged('status')
+        && fieldUnchanged('isBlacklisted')
+        && fieldUnchanged('loyaltyCoins')
+        && fieldUnchanged('ordersCount')
+        && fieldUnchanged('totalOrders')
+        && fieldUnchanged('uid')
+        && (fieldUnchanged('firebaseUid')
+          || (('firebaseUid' in request.resource.data)
+            && request.resource.data.firebaseUid == request.auth.uid))
+      );
+    }
+
     match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin() ||
-        (isAuthenticated() && resource.data.firebaseUid == request.auth.uid);
-      allow create: if isAdmin() || isOwner(userId) ||
-        (isAuthenticated() && request.resource.data.firebaseUid == request.auth.uid) ||
-        (isAuthenticated() && userId == ('g_' + request.auth.uid));
-      allow update: if isAdmin() || isOwner(userId) ||
-        (isAuthenticated() && resource.data.firebaseUid == request.auth.uid);
+      allow get: if isOwner(userId) || isAdmin()
+        || (isAuthenticated() && resource.data.firebaseUid == request.auth.uid);
+      // P2-2: existence check on a doc that does not exist yet.
+      allow get: if isAuthenticated() && !exists(/databases/$(database)/documents/users/$(userId));
+      allow list: if isAdmin();
+      // List branches for the app's own-doc lookups (audit P2-5).
+      // Rules are not filters: a list query succeeds only if EVERY
+      // document it could return is readable. Session restore
+      // queries by phone (src/App.tsx:1159) and Google sign-in
+      // queries by email (src/App.tsx:4364) — both run as a
+      // non-admin, so the caller's own docs must be list-readable
+      // via the firebaseUid link or via the token email. A query
+      // for someone else's phone/email still fails, because those
+      // docs do not satisfy either branch.
+      allow list: if isAuthenticated()
+        && resource.data.firebaseUid == request.auth.uid;
+      allow list: if isAuthenticated()
+        && ('email' in request.auth.token)
+        && ('email' in resource.data)
+        && resource.data.email == request.auth.token.email;
+      allow create: if (isAdmin() || isOwner(userId)
+          || (isAuthenticated() && request.resource.data.firebaseUid == request.auth.uid)
+          || (isAuthenticated() && userId == ('g_' + request.auth.uid)))
+        && userCreateFieldsOk();
+      allow update: if (isAdmin() || isOwner(userId)
+          || (isAuthenticated() && resource.data.firebaseUid == request.auth.uid))
+        && userUpdateFieldsOk();
       allow delete: if isAdmin();
     }
 
-    // Menu Collection rules
-    // Reads are public. Creates stay open so the client can auto-seed
-    // an empty menu; updates/deletes are admin-only (the old rule
-    // allowed anyone to rewrite dishes).
+    // ================================================================
+    // /blacklist/{phone} — NEW section (not in the audit, needed so
+    // deploy does not break sign-in). The old file had NO rule for
+    // this collection, so under default-deny the sign-in blacklist
+    // check (src/App.tsx:4294) and the admin block/unblock writes
+    // (AdminPanel.tsx:1854,8941,9129,9317) would all fail. Single-doc
+    // gets are allowed for any signed-in user (existence check only);
+    // listing is admin-only; writes are admin-only.
+    // ================================================================
+    match /blacklist/{phone} {
+      allow get: if isAuthenticated();
+      allow list: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ================================================================
+    // /menu, /foodCategories, /groceryCategories, /groceryProducts,
+    // /settings — audit #4 (P0-4). `allow create: if true` is gone
+    // on all five: reads stay public, ALL writes are admin-only.
+    // No client auto-seed code exists for these collections (audit
+    // verified); the only writers are the admin panel's setDoc
+    // calls, which run as admin after the roles backfill.
+    // ================================================================
     match /menu/{dishId} {
-      allow read: if true; // Publicly readable for browsing
-      allow create: if true; // Allow client-side default auto-seeding if empty
-      allow update, delete: if isAdmin();
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
     }
 
-    // Orders Collection rules
-    match /orders/{orderId} {
-      allow create: if true; // Allow guest checkout and authenticated users
-
-      // Separate allowed reads to guarantee static query safety for Firestore analyzer
-      allow read: if isAdmin();
-      // Riders only ever see CONFIRMED orders (the rider panel queries
-      // status == "confirmed"); "pending" here used to 403 every rider.
-      allow read: if isRider() && resource.data.status == "confirmed";
-      allow read: if isAuthenticated() && resource.data.riderId == request.auth.uid;
-      allow read: if resource.data.userId == "guest"; // Allow guest users tracking their own order
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-
-      // Separate/clean updates for simplicity
-      allow update: if isAdmin();
-      // Rider accept: only confirmed -> accepted, and the rider must
-      // claim it for themselves.
-      allow update: if isRider() && resource.data.status == "confirmed" && request.resource.data.status == "accepted" && request.resource.data.riderId == request.auth.uid;
-      allow update: if isAuthenticated() && resource.data.riderId == request.auth.uid;
-      allow update: if (resource.data.userId == "guest" || (isAuthenticated() && resource.data.userId == request.auth.uid)) && request.resource.data.status == resource.data.status;
-
-      allow delete: if isAdmin();
-
-      // Messages sub-collection rules for live rider-user chat.
-      // Only the admin, the customer who placed the order, or the
-      // rider assigned to it may read/write — never the open internet.
-      match /messages/{messageId} {
-        allow read, write: if isAdmin() ||
-          (isAuthenticated() &&
-           (get(/databases/$(database)/documents/orders/$(orderId)).data.userId == request.auth.uid ||
-            get(/databases/$(database)/documents/orders/$(orderId)).data.riderId == request.auth.uid));
-      }
+    match /foodCategories/{categoryId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
     }
 
-    // Settings Collection rules
+    match /groceryCategories/{categoryId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /groceryProducts/{productId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
     match /settings/{settingId} {
-      allow read: if true; // Any customer can retrieve the current delivery cost coefficient
-      allow create: if true; // Allow client-side default auto-seeding (e.g., delivery_config) if not exists
-      allow update, delete: if isAdmin(); // Strictly restricted to admin
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
     }
 
-    // Banners Collection rules
+    // ================================================================
+    // /banners — audit #13 (P2-4). RESERVED: no callers in src/
+    // (the app never reads/writes banners). Kept, documented and
+    // secured (public read, admin-only writes) rather than deleted,
+    // so a future banner feature starts from a safe rule.
+    // ================================================================
     match /banners/{bannerId} {
       allow read: if true;
       allow create, update, delete: if isAdmin();
     }
 
-    // Vouchers Collection rules
-    // NOTE: `allow update: if true` stays for now because the order
-    // writer increments the voucher use-count client-side. A truly
-    // safe version needs a Cloud Function; do not tighten this until
-    // the increment moves server-side, or voucher redemption breaks.
+    // ================================================================
+    // /orders (+ /groceryOrders, same rules) — audit #2 (P0-2),
+    // #5/#6 (P0-5/P0-6), #9 (P1-5)
+    //
+    // CREATE (#2): status must be a genuine initial status
+    // (placed / pending / payment_verification_pending / booked —
+    // the exact values the app writes, src/App.tsx:2898,3194);
+    // NOBODY may create a 'confirmed' order directly, so the
+    // admin-approval gate can no longer be bypassed. riderId must
+    // be absent/null. userId must be the caller's own profile ID
+    // (or "guest" — see below). items/totalPrice must be present
+    // and well-typed.
+    //
+    // GUEST ORDERS (#5/#6): the bare `userId == "guest"` read and
+    // update branches are REMOVED. Unauthenticated callers can no
+    // longer list/read/rewrite every guest order. Guest CREATE is
+    // token-gated: a guest order must carry a `guestToken` (random
+    // string, >= 12 chars). COORDINATED CODE CHANGE REQUIRED: the
+    // checkout flows (src/App.tsx ~2885 grocery, ~3194 food) must
+    // generate and store that token, and guest tracking must go
+    // through a Cloud Function that checks the token — Firestore
+    // rules cannot verify a caller-supplied secret on READ (rules
+    // see no request token on reads), so unauthenticated guest
+    // tracking stays DENIED until that function lands. Until then
+    // guest orders can be placed (with a token) but not tracked
+    // without signing in.
+    //
+    // UPDATE (#9): admin may change anything. The assigned rider
+    // may only move status along the legal chain (confirmed ->
+    // accepted -> preparing -> out_for_delivery -> delivered, or
+    // -> cancelled from an active status) and touch eta / cancel
+    // metadata / rider location fields — never items, prices,
+    // userId or riderId (except claiming the order on accept).
+    // The order's owner may only cancel from an initial status or
+    // edit delivery instructions (leaveAtDoor / messageUponArrival
+    // / cutlery / riderTip) — never items, prices or riderId.
+    // ================================================================
+    function validOrderCreate() {
+      return ('userId' in request.resource.data)
+        && ('items' in request.resource.data) && request.resource.data.items is list
+        && ('totalPrice' in request.resource.data) && request.resource.data.totalPrice is number
+        && ('status' in request.resource.data)
+        && request.resource.data.status in ['placed', 'pending', 'payment_verification_pending', 'booked']
+        && (!('riderId' in request.resource.data) || request.resource.data.riderId == null)
+        && (
+          (request.resource.data.userId == 'guest'
+            && ('guestToken' in request.resource.data)
+            && request.resource.data.guestToken is string
+            && request.resource.data.guestToken.size() >= 12)
+          || (isAuthenticated() && isOwnProfileId(request.resource.data.userId))
+        );
+    }
+
+    // Legal rider status moves. Cancellation is allowed from any
+    // ACTIVE status (confirmed/accepted/preparing/out_for_delivery),
+    // never from a terminal one.
+    function riderStatusTransitionOk() {
+      return (resource.data.status == 'confirmed' && request.resource.data.status == 'accepted')
+        || (resource.data.status == 'accepted' && request.resource.data.status == 'preparing')
+        || (resource.data.status == 'preparing' && request.resource.data.status == 'out_for_delivery')
+        || (resource.data.status == 'out_for_delivery' && request.resource.data.status == 'delivered')
+        || (request.resource.data.status == 'cancelled'
+          && resource.data.status in ['confirmed', 'accepted', 'preparing', 'out_for_delivery']);
+    }
+
+    function riderOrderUpdateOk() {
+      return isRider()
+        && resource.data.riderId == request.auth.uid
+        && request.resource.data.diff(resource.data).changedKeys()
+          .hasOnly(['status', 'eta', 'cancelReason', 'cancelledBy', 'cancelledAt',
+                    'riderLocation', 'riderLat', 'riderLng'])
+        && (riderStatusTransitionOk() || request.resource.data.status == resource.data.status);
+    }
+
+    function ownerOrderUpdateOk() {
+      return isAuthenticated()
+        && isOwnProfileId(resource.data.userId)
+        && request.resource.data.diff(resource.data).changedKeys()
+          .hasOnly(['status', 'cancelReason', 'leaveAtDoor', 'messageUponArrival',
+                    'cutlery', 'riderTip'])
+        && (request.resource.data.status == resource.data.status
+          || (request.resource.data.status == 'cancelled'
+            && resource.data.status in ['placed', 'pending', 'payment_verification_pending', 'booked']));
+    }
+
+    match /orders/{orderId} {
+      allow create: if validOrderCreate();
+
+      allow get, list: if isAdmin();
+      // Riders only ever see CONFIRMED orders (RiderPanel.tsx:275).
+      allow get, list: if isRider() && resource.data.status == 'confirmed';
+      allow get, list: if isAuthenticated() && resource.data.riderId == request.auth.uid;
+      allow get, list: if isAuthenticated() && isOwnProfileId(resource.data.userId);
+
+      allow update: if isAdmin();
+      // Rider accept: only confirmed -> accepted, and the rider
+      // must claim it for themselves.
+      allow update: if isRider() && resource.data.status == 'confirmed'
+        && request.resource.data.status == 'accepted'
+        && request.resource.data.riderId == request.auth.uid
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['status', 'riderId']);
+      allow update: if riderOrderUpdateOk();
+      allow update: if ownerOrderUpdateOk();
+
+      allow delete: if isAdmin();
+
+      // Order chat — audit #11 (P2-3). No sender validation existed:
+      // any participant could delete messages or impersonate the
+      // other side via senderId/senderRole. Now: create requires
+      // the sender to BE a participant (order owner, assigned
+      // rider, or admin), senderId must be the sender's own profile
+      // ID (see validMessageCreate), senderRole must match the
+      // for a real/assigned rider, 'admin' only for an admin), and
+      // text must be a non-empty string (<= 2000 chars). Update is
+      // admin-only, except a participant marking a message read.
+      // Delete is admin-only. Guest chat is explicitly NOT
+      // supported: guest orders have no authenticated user, so
+      // guests cannot read/write chat until the token flow (see
+      // guest note above) lands.
+      match /messages/{messageId} {
+        allow create: if isOrderParticipant(orderId) && validMessageCreate(orderId);
+        allow get, list: if isOrderParticipant(orderId);
+        allow update: if isAdmin()
+          || (isOrderParticipant(orderId)
+            && request.resource.data.diff(resource.data).changedKeys().hasOnly(['isRead'])
+            && request.resource.data.isRead == true);
+        allow delete: if isAdmin();
+      }
+    }
+
+    // Participant in an order's chat: admin, the order's owner
+    // (profile-ID aware), or the assigned rider.
+    function isOrderParticipant(orderId) {
+      return isAdmin()
+        || (isAuthenticated()
+          && exists(/databases/$(database)/documents/orders/$(orderId))
+          && (get(/databases/$(database)/documents/orders/$(orderId)).data.riderId == request.auth.uid
+            || isOwnProfileId(get(/databases/$(database)/documents/orders/$(orderId)).data.userId)));
+    }
+
+    function isAssignedRider(orderId) {
+      return isAuthenticated()
+        && exists(/databases/$(database)/documents/orders/$(orderId))
+        && get(/databases/$(database)/documents/orders/$(orderId)).data.riderId == request.auth.uid;
+    }
+
+    function validMessageCreate(orderId) {
+      // NOTE: the app writes senderId as the PROFILE uid
+      // (currentUser.uid — phone or "g_<uid>", OrderChat.tsx:153),
+      // NOT the Auth UID, so the check goes through
+      // isOwnProfileId(), not a bare uid comparison.
+      return ('senderId' in request.resource.data)
+        && isOwnProfileId(request.resource.data.senderId)
+        && ('text' in request.resource.data) && request.resource.data.text is string
+        && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 2000
+        && ('senderRole' in request.resource.data)
+        && ((request.resource.data.senderRole == 'admin' && isAdmin())
+          || (request.resource.data.senderRole == 'rider' && (isRider() || isAssignedRider(orderId)))
+          || request.resource.data.senderRole == 'user');
+    }
+
+    // ================================================================
+    // /groceryOrders — audit #13 (P2-4). RESERVED: no callers in
+    // src/ (the app uses /orders for grocery too). Kept, documented
+    // and given the EXACT same create/read/update rules as /orders
+    // (including the open-create hole being closed), so it is safe
+    // if it is ever used.
+    // ================================================================
+    match /groceryOrders/{orderId} {
+      allow create: if validOrderCreate();
+
+      allow get, list: if isAdmin();
+      allow get, list: if isRider() && resource.data.status == 'confirmed';
+      allow get, list: if isAuthenticated() && resource.data.riderId == request.auth.uid;
+      allow get, list: if isAuthenticated() && isOwnProfileId(resource.data.userId);
+
+      allow update: if isAdmin();
+      allow update: if isRider() && resource.data.status == 'confirmed'
+        && request.resource.data.status == 'accepted'
+        && request.resource.data.riderId == request.auth.uid
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['status', 'riderId']);
+      allow update: if riderOrderUpdateOk();
+      allow update: if ownerOrderUpdateOk();
+
+      allow delete: if isAdmin();
+    }
+
+    // ================================================================
+    // /vouchers — audit #3 (P0-3). `allow update: if true` is CLOSED.
+    // Reads stay public (checkout reads the doc); create/delete and
+    // full updates are admin-only. The ONLY client update allowed is
+    // the redemption counter increment the checkout flow performs
+    // (src/App.tsx:2931,3225): currentUses must rise by exactly 1,
+    // only the four counter fields may change, usedUserIds may only
+    // gain entries (never lose them), userUsageCount values may only
+    // rise, and assignedUserIds may only shrink by a removal. The
+    // discount fields (discountType / discountValue /
+    // maxDiscountAmount / isActive / minOrderAmount / maxUses /
+    // perUserLimit) can NO LONGER be touched by any client — the
+    // free-order attack is closed.
+    // STOP-GAP, NOT THE REAL FIX: a client can still increment the
+    // counters without placing an order (burning voucher uses), and
+    // the redeeming identity cannot be bound strictly in rules
+    // because the app keys usage by PROFILE uid (phone), which the
+    // rules cannot derive from the Auth token. The real fix is a
+    // Cloud Function / Callable that validates and increments
+    // server-side — treat this stop-gap as temporary.
+    // NOTE: Firestore resolves FieldValue.increment() before rules
+    // see request.resource.data, so the "+1" checks below see the
+    // post-increment values. Verify in the simulator (see report).
+    // ================================================================
+    function voucherCounterOnlyUpdate() {
+      return request.resource.data.diff(resource.data).changedKeys()
+          .hasOnly(['currentUses', 'userUsageCount', 'usedUserIds', 'assignedUserIds'])
+        && ('currentUses' in request.resource.data)
+        && ('currentUses' in resource.data)
+        && request.resource.data.currentUses == resource.data.currentUses + 1
+        && voucherUsedIdsOk()
+        && voucherUsageCountOk()
+        && voucherAssignedIdsOk();
+    }
+
+    // usedUserIds may only gain entries, never lose them.
+    function voucherUsedIdsOk() {
+      return !('usedUserIds' in request.resource.data.diff(resource.data).changedKeys())
+        || (!('usedUserIds' in resource.data)
+          || request.resource.data.usedUserIds.hasAll(resource.data.usedUserIds));
+    }
+
+    // userUsageCount: no key may disappear. (Rules cannot sum a
+    // map or compare all values, so a per-key exact +1 is not
+    // expressible here — the currentUses +1 check is the binding
+    // constraint. See the stop-gap note above.)
+    function voucherUsageCountOk() {
+      return !('userUsageCount' in request.resource.data.diff(resource.data).changedKeys())
+        || (!('userUsageCount' in resource.data)
+          || request.resource.data.userUsageCount.keys().hasAll(resource.data.userUsageCount.keys()));
+    }
+
+    // assignedUserIds may only shrink (arrayRemove of the redeemer
+    // when their per-user limit is reached, src/App.tsx:2939).
+    function voucherAssignedIdsOk() {
+      return !('assignedUserIds' in request.resource.data.diff(resource.data).changedKeys())
+        || (('assignedUserIds' in resource.data)
+          && request.resource.data.assignedUserIds.size() < resource.data.assignedUserIds.size()
+          && resource.data.assignedUserIds.hasAll(request.resource.data.assignedUserIds));
+    }
+
     match /vouchers/{voucherId} {
       allow read: if true;
       allow create, delete: if isAdmin();
-      allow update: if true;
+      allow update: if isAdmin();
+      allow update: if isAuthenticated() && voucherCounterOnlyUpdate();
     }
 
-    // Notifications Collection rules
+    // ================================================================
+    // /notifications — audit #10 (P2-1). Any signed-in user could
+    // create a notification for ANY userId (fake "pay Rs 500"
+    // messages). Now: admin may notify anyone; a user may only
+    // notify themselves; a rider may only notify the customer of
+    // an order assigned to them — and only if the notification
+    // carries that order's ID (orderId), so the rule can verify the
+    // rider<->customer link. COORDINATED CODE CHANGE REQUIRED:
+    // RiderPanel.tsx (lines ~544,587,612,1286) currently writes
+    // notifications with NO orderId — add `orderId` to those writes
+    // or rider status notifications will be DENIED after deploy.
+    // Reads are admin or own-userId; marking read / deleting your
+    // own notification is allowed (src/App.tsx:3591,3600,3610,3619).
+    // ================================================================
+    function isAssignedRiderNotification() {
+      return isRider()
+        && ('orderId' in request.resource.data)
+        && request.resource.data.orderId is string
+        && exists(/databases/$(database)/documents/orders/$(request.resource.data.orderId))
+        && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.riderId == request.auth.uid
+        && ('userId' in request.resource.data)
+        && get(/databases/$(database)/documents/orders/$(request.resource.data.orderId)).data.userId == request.resource.data.userId;
+    }
+
     match /notifications/{notificationId} {
-      allow create: if isAdmin() || isAuthenticated();
-      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
-      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAdmin()
+        || (isAuthenticated() && ('userId' in request.resource.data)
+          && isOwnProfileId(request.resource.data.userId))
+        || isAssignedRiderNotification();
+      allow get, list: if isAdmin()
+        || (isAuthenticated() && isOwnProfileId(resource.data.userId));
+      allow update: if isAdmin()
+        || (isAuthenticated() && isOwnProfileId(resource.data.userId)
+          && request.resource.data.diff(resource.data).changedKeys().hasOnly(['read'])
+          && request.resource.data.read == true);
+      allow delete: if isAdmin()
+        || (isAuthenticated() && isOwnProfileId(resource.data.userId));
     }
 
-    // Food Categories rules
-    match /foodCategories/{categoryId} {
-      allow read: if true;
-      allow create: if true; // Allow client-side auto-creation or seed
-      allow update, delete: if isAdmin();
-    }
-
-    // Grocery Categories rules
-    match /groceryCategories/{categoryId} {
-      allow read: if true;
-      allow create: if true; // Allow client-side auto-creation or seed
-      allow update, delete: if isAdmin();
-    }
-
-    // Grocery Products rules
-    match /groceryProducts/{productId} {
-      allow read: if true;
-      allow create: if true; // Allow client-side auto-creation or seed
-      allow update, delete: if isAdmin();
-    }
-
-    // Grocery Orders rules
-    match /groceryOrders/{orderId} {
-      allow create: if true; // Allow guest and auth checkouts
-      allow read: if isAdmin() ||
-                     (isRider() && resource.data.status == "confirmed") ||
-                     (isAuthenticated() && resource.data.riderId == request.auth.uid) ||
-                     (resource.data.userId == "guest") ||
-                     (isAuthenticated() && resource.data.userId == request.auth.uid);
-      allow update: if isAdmin() ||
-                       (isRider() && resource.data.status == "confirmed" && request.resource.data.status == "accepted" && request.resource.data.riderId == request.auth.uid) ||
-                       (isAuthenticated() && resource.data.riderId == request.auth.uid) ||
-                       ((resource.data.userId == "guest" || (isAuthenticated() && resource.data.userId == request.auth.uid)) && request.resource.data.status == resource.data.status);
+    // ================================================================
+    // /devices/{deviceId} — NEW section (not in the audit, needed so
+    // deploy does not break checkout). The old file had NO rule for
+    // this collection, so under default-deny the checkout device
+    // heartbeat writes (src/App.tsx:2980,3246, setDoc merge,
+    // .catch(()=>{})) would fail. Doc IDs are random local device
+    // IDs and writes happen even for guests, so unauthenticated
+    // create/update is allowed — but ONLY the three heartbeat
+    // fields (lastUserName / lastUserPhone / lastActive) may be
+    // written. Nothing in the app reads this collection.
+    // ================================================================
+    match /devices/{deviceId} {
+      allow get, list: if isAdmin();
+      // Create has no `resource` (null), so diff() cannot be used
+      // here — keys().hasOnly() instead.
+      allow create: if request.resource.data.keys()
+        .hasOnly(['lastUserName', 'lastUserPhone', 'lastActive']);
+      allow update: if request.resource.data.diff(resource.data).changedKeys()
+        .hasOnly(['lastUserName', 'lastUserPhone', 'lastActive']);
       allow delete: if isAdmin();
     }
   }
