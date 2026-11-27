@@ -463,6 +463,14 @@ const RAW_SPICES_2026_11_27: SeedTuple[] = [
   ["og_339", "gcat_spices", "Shan Chicken White Karahi Masala", "40g", 165, "shan-chicken-white-karahi-masala-40g.jpg"],
 ];
 
+/** Epoch ms when this bundled catalogue was last synced from Firestore
+ * (27 Nov 2026 price sync + 39 spices). Used as the `savedAt` when the
+ * app builds the grocery list from the bundle instead of Firestore, so
+ * the catalogue delta only re-fetches admin changes made AFTER this
+ * moment — anything earlier is already in the bundle. Update this
+ * whenever the bundle is re-synced from Firestore. */
+export const OWNER_CATALOG_SYNCED_AT = Date.UTC(2026, 10, 27, 12, 0, 0);
+
 export const OWNER_GROCERY_PRODUCTS: GroceryProduct[] = [...RAW_100_ITEMS, ...RAW_200_ITEMS, ...RAW_SPICES_2026_11_27].map(
   ([id, categoryId, name, unit, price, filename]) => ({
     id,
