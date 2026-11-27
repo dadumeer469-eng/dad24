@@ -97,7 +97,6 @@ import OrderHistoryDrawer from "./components/OrderHistoryDrawer";
 import OrderChat from "./components/OrderChat";
 import BottomNavBar from "./components/BottomNavBar";
 import ScrollProgress from "./components/ScrollProgress";
-import BackToTop from "./components/BackToTop";
 import MobileAccountDrawer from "./components/MobileAccountDrawer";
 import { LazyImage } from "./components/LazyImage";
 import DaduLogoLoader from "./components/DaduLogoLoader";
@@ -5268,10 +5267,8 @@ export default function App() {
         Skip to content
       </a>
 
-      {/* Scroll progress bar + back-to-top (bottom-LEFT by design — the
-          voice-call button lives bottom-right, so they never overlap) */}
+      {/* Scroll progress bar */}
       <ScrollProgress />
-      <BackToTop />
 
       {/* Welcome Intro Splash — Pink Ripple Opening (brand splash) */}
       <AnimatePresence mode="wait">
