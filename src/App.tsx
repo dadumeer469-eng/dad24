@@ -1782,8 +1782,14 @@ export default function App() {
     };
   }, [catalogRefreshTick]);
 
-  // 3b. Fetch-once Grocery Products Loading (refetch on tab visible)
+  // 3b. Fetch-once Grocery Products Loading (refetch on tab visible).
+  // LAZY (user 28 Nov 04:42 — "jo user dekhe wo ho"): the grocery list is
+  // only fetched when the user actually opens the Groceries module. On
+  // the Food homepage it is skipped entirely — the food view never shows
+  // grocery products (the Dadu Mart tile count is hardcoded, food search
+  // only searches dishes). Switching to Groceries re-runs the effect.
   useEffect(() => {
+    if (activeModule !== "grocery") return;
     console.log("Trace: Initializing GroceryProducts collection listener...");
     let cancelled = false;
     const fetchGroceryProducts = async () => {
@@ -1929,7 +1935,7 @@ export default function App() {
       cancelled = true;
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [catalogRefreshTick]);
+  }, [catalogRefreshTick, activeModule]);
 
   // 3c. Fetch-once Grocery Delivery Config Loading (refetch on tab visible)
   useEffect(() => {
