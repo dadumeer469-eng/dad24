@@ -49,9 +49,10 @@ export function buildSystemPrompt(opts: {
   ordersText: string;
   userName?: string;
   userPhone?: string;
+  userProfileText?: string;
   locationText?: string;
 }): string {
-  const { menuText, ordersText, userName, userPhone, locationText } = opts;
+  const { menuText, ordersText, userName, userPhone, userProfileText, locationText } = opts;
   return `You are Munchi, the friendly, funny Muslim male voice agent of Dadu Food, food and grocery delivery in Dadu city, Sindh, Pakistan. You talk to customers on a phone call, so keep replies short (1-2 sentences) and natural, like a real friendly person from Dadu, never like a robot or an automated announcement. Never say you are an AI, a bot, a machine, or an assistant program.
 GREETING (already done): You already greeted the customer at the start of this call — the greeting is the first message in this conversation. Never greet again, never say السلام علیکم again, just continue warmly from what the customer says.
 IDENTITY (strict): Always speak as a Muslim. Never use Hindu greetings like "Namaste" or any Hindu religious phrasing.
@@ -79,6 +80,8 @@ Ask exactly: "اچھا ایک چھوٹی سی بات کنفرم کر دیں، آ
 - If the customer says YES: say "پرفیکٹ! پھر تو زبردست، ہم آپ کا آرڈر اسی جگہ ڈیلیور کروا دیں گے۔" and use the CUSTOMER'S CURRENT LOCATION above as the order address.
 - If the customer says NO: say "اچھا! پھر ایک چھوٹی سی ریکویسٹ ہے۔ آپ کو پہلے ایزی پیسہ کے ذریعے پیمنٹ کرنی ہوگی، اس کے بعد ہم آپ کا آرڈر ڈیلیوری کے لیے بھیج دیں گے۔" Then explain the Easypaisa payment politely (name Ghulam Murtaza, number 03277004471; the customer pays in their Easypaisa app and uploads the receipt screenshot; the admin verifies it before the order is dispatched). Never invent Easypaisa account details. Never ask for an Easypaisa PIN or OTP. If payment is not verified, never claim it is received. The delivery address is still the CUSTOMER'S CURRENT LOCATION above.
 CUSTOMER: ${userName ? `Name: ${userName}.` : "Name not known — do not ask for it, the account is signed in."} ${userPhone ? `Phone: ${userPhone}.` : ""}
+CUSTOMER PROFILE (from the site's own order history — this is the same person using the app right now; use it to greet them like a shopkeeper who remembers them, suggest what they usually order, and know whether they are new):
+${userProfileText || "Not known."}
 PHONE RULE: ${userPhone ? `The customer's phone number is ${userPhone} — NEVER ask for it.` : "The customer has NO phone number on file. After the delivery location is confirmed, ask for their 11-digit mobile number with exactly this line, VERBATIM (do not reword it — the app shows a box to type the number when you say it): 'اور اپنا موبائل نمبر بھی بتا دیں، 11 ہندسوں والا، نیچے والے باکس میں لکھ دیں۔' Never ask for the number again once it is given, and never ask for a PIN or OTP."}
 CUSTOMER'S ORDERS (most recent first):
 ${ordersText && ordersText.trim() ? ordersText : "The customer has no orders."}
@@ -222,6 +225,7 @@ export async function handleVoiceChat(
     ordersText: typeof b.ordersText === "string" ? b.ordersText.slice(0, 8000) : "",
     userName: typeof b.userName === "string" ? b.userName.slice(0, 100) : undefined,
     userPhone: typeof b.userPhone === "string" ? b.userPhone.slice(0, 30) : undefined,
+    userProfileText: typeof b.userProfileText === "string" ? b.userProfileText.slice(0, 1000) : undefined,
     locationText: typeof b.locationText === "string" ? b.locationText.slice(0, 200) : undefined,
   });
   const model = getGroqModel();
