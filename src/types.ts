@@ -4,6 +4,7 @@ export interface Dish {
   description: string;
   price: number;
   discountPrice?: number;
+  costPrice?: number; // admin-entered cost/market price — margin = selling price − cost
   category: "Burgers" | "Pizzas" | "Chicken & Rice" | "Only Tea" | "Home Services" | "Specials" | "Drinks" | "Pizza" | "Burger" | "Broast" | "Rolls" | "Pasta" | "Lazania" | "Fries" | "Paratha" | "Sandwich" | "Ice Cream" | "Dessert" | "Milkshake" | "Limca" | "Beverages" | string;
   imageUrl: string;
   isAvailable: boolean; // ON/OFF toggle switch from admin
@@ -152,8 +153,19 @@ export interface Order {
 
 export interface SystemSettings {
   deliveryFee: number;
-  minOrderAmount?: number;
-  riderRangeKm?: number;
+  // New fee structure (27 Nov 2026) — stored in settings/delivery_config.
+  foodDeliveryFee?: number; // default 70 (deliveryFee is kept in sync as the legacy alias)
+  groceryDeliveryFee?: number; // default 100
+  medicineDeliveryFee?: number; // default 30
+  siteTax?: number; // flat Rs per order, default 12 — applies even when delivery is free
+  nightSurchargeAmount?: number; // added to the final delivery fee from nightSurchargeStartHour, default 30
+  nightSurchargeStartHour?: number; // 0–23, default 21 (9 PM)
+  // Homepage / voice controls (read by App.tsx with fallbacks)
+  voiceOrderEnabled?: boolean; // default true — floating voice-call button
+  deliveryAreas?: string[]; // the "We Deliver Across Dadu City" areas
+  deliveryTimeText?: string; // e.g. "25–35 min"
+  minOrderAmount?: number; // LEGACY — nothing reads this; no admin control (dead field, kept so old docs still parse)
+  riderRangeKm?: number; // distance (km) from base beyond which the delivery fee doubles — LIVE, read by App.tsx
   userRangeKm?: number;
   baseLocationCoords?: { lat: number; lng: number };
   bannerVersion?: number;
@@ -251,6 +263,7 @@ export interface GroceryProduct {
   imageUrl: string;
   price: number;
   discountPrice?: number;
+  costPrice?: number; // admin-entered cost/market price — margin = selling price − cost
   unit: string;
   packSize?: string;
   stock: number; // custom number or boolean representation
