@@ -12,6 +12,9 @@ import {
   Ticket, Wallet
 } from "lucide-react";
 import OrderChat from "./OrderChat";
+import InAppCallButton from "./InAppCallButton";
+import { listenIncomingCalls, type CallDoc } from "../utils/webrtcCall";
+import IncomingCallModal from "./IncomingCallModal";
 import { useRiderLocationTracker } from "../lib/riderLocationTracker";
 import { formatOrderId } from "../utils/catalogNormalizer";
 import L from "leaflet";
@@ -176,6 +179,9 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
   const [focusedActiveOrderId, setFocusedActiveOrderId] = useState<string | null>(null);
   const [showLiveChat, setShowLiveChat] = useState(false);
   const [riderUnreadCount, setRiderUnreadCount] = useState(0);
+  // In-app incoming call (customer -> rider). Shows the WhatsApp-style
+  // incoming-call screen when a customer calls from inside their app.
+  const [incomingCall, setIncomingCall] = useState<CallDoc | null>(null);
 
   // Listen to unread messages for rider's active order
   useEffect(() => {
@@ -195,6 +201,15 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
 
     return () => unsubscribe();
   }, [riderActiveOrders, focusedActiveOrderId, currentUser?.uid]);
+
+  // Listen for incoming in-app calls addressed to this rider.
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+    const unsub = listenIncomingCalls(currentUser.uid, (call) => {
+      setIncomingCall(call);
+    });
+    return () => unsub();
+  }, [currentUser?.uid]);
 
   // Focused active order reference
   const focusedActiveOrder = riderActiveOrders.find((o) => o.id === focusedActiveOrderId) || riderActiveOrders[0];
@@ -636,6 +651,13 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans">
+      {incomingCall && (
+        <IncomingCallModal
+          call={incomingCall}
+          myId={currentUser.uid}
+          onClose={() => setIncomingCall(null)}
+        />
+      )}
       
       {/* Ultra Clean Compact Header */}
       <header className="bg-zinc-900/95 backdrop-blur-md border-b border-zinc-800/80 sticky top-0 z-40 px-3.5 sm:px-4 py-2 flex items-center justify-between shadow-sm">
@@ -1081,18 +1103,16 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                       <div className="flex flex-col gap-2.5 pt-3 border-t border-zinc-900">
                         <span className="text-[10px] uppercase text-zinc-500 font-black tracking-wider block">Customer Communication</span>
                         <div className="grid grid-cols-3 gap-1.5 sm:gap-2 w-full">
-                          {riderActiveOrder.userPhone ? (
-                            <a 
-                              href={`tel:${riderActiveOrder.userPhone}`} 
-                              className="bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 text-zinc-100 py-2 sm:py-2.5 px-2 rounded-xl transition-transform duration-180 text-center font-black text-[10.5px] sm:text-xs flex items-center justify-center gap-1 shadow-xs cursor-pointer truncate active:scale-[0.97] active:brightness-110"
-                            >
-                              📞 Call
-                            </a>
-                          ) : (
-                            <div className="bg-zinc-950/50 border border-zinc-800 text-zinc-600 py-2 sm:py-2.5 px-2 rounded-xl text-center font-black text-[10.5px] sm:text-xs flex items-center justify-center gap-1 opacity-50 cursor-not-allowed">
-                              📞 Call
-                            </div>
-                          )}
+                          {/* In-app call (user 28 Nov 03:06): rider calls the customer
+                              FROM INSIDE the app (WebRTC, no dialer, no phone number).
+                              Replaces the old tel: dialer button. */}
+                          <InAppCallButton
+                            myId={currentUser.uid}
+                            myName={currentUser.name || "Rider"}
+                            peerId={riderActiveOrder.userId || ""}
+                            peerName={riderActiveOrder.userName || "Customer"}
+                            orderId={riderActiveOrder.id}
+                          />
 
                           <button
                             type="button"
