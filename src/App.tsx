@@ -25,6 +25,7 @@ import { auth, db, handleFirestoreError, cleanObject } from "./firebase";
 import {
   OWNER_GROCERY_CATEGORIES,
   OWNER_GROCERY_PRODUCTS,
+  OWNER_CATALOG_SYNCED_AT,
 } from "./data/ownerGroceryCatalog";
 import {
   Dish,
@@ -1805,6 +1806,44 @@ export default function App() {
           setGroceryProducts(patched.list);
           setCachedData("dadu_cached_grocery_products", patched.list);
           writeCatalogCache("groceryProducts", patched.list, patched.readAt);
+          return;
+        }
+        // mode "full" — fall through to the bundled-base attempt below.
+      }
+      // No fresh cache: build from the BUNDLED owner catalogue (0 reads)
+      // instead of a full Firestore fetch (~335 reads). The delta (1
+      // memoized read) applies only admin changes made after the bundle
+      // was synced (OWNER_CATALOG_SYNCED_AT); a full fetch only happens
+      // when the delta says a Refresh / bulk op / >20 changes needs it.
+      // Tombstones (admin-deleted products) are filtered out first so a
+      // deleted product never resurrects from the bundle.
+      {
+        const delta = await getCatalogDelta();
+        const tombstones = new Set(
+          Object.values(delta?.changes || {})
+            .filter((e) => e && e.c === "groceryProducts" && e.a === "delete")
+            .map((e) => e.id),
+        );
+        const base = OWNER_GROCERY_PRODUCTS.filter(
+          (prod) => !tombstones.has(prod.id),
+        );
+        const patched = await applyCatalogDelta<GroceryProduct>(
+          "groceryProducts",
+          base,
+          OWNER_CATALOG_SYNCED_AT,
+        );
+        if (cancelled) return;
+        if (patched.mode === "cache" || patched.mode === "patched") {
+          const list = patched.mode === "patched" ? patched.list : base;
+          setGroceryProducts(list);
+          setCachedData("dadu_cached_grocery_products", list);
+          writeCatalogCache(
+            "groceryProducts",
+            list,
+            patched.mode === "patched" ? patched.readAt : Date.now(),
+          );
+          setIsLoadingGrocery(false);
+          preloadImages(list.slice(0, 20).map((prod) => prod.imageUrl));
           return;
         }
         // mode "full" — fall through to the full fetch below.
