@@ -2,6 +2,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Phone, PhoneOff, X } from "lucide-react";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import type { LocalMenuItem, LocalOrder } from "../utils/voiceAgentLocal";
+import {
+  buildActiveOrderText,
+  buildLocalOrdersText,
+  buildLocalProfileText,
+  getUserOrders,
+  saveUserLocation,
+  saveUserOrders,
+  saveUserProfile,
+} from "../utils/localUserData";
 import { getAudioContext, primeAudio } from "../utils/primeAudio";
 import MunchiCharacter from "./MunchiCharacter";
 import { MunchiController, classifyMood } from "../utils/munchiController";
@@ -154,7 +163,13 @@ export default function VoiceOrderModal({
     () => menuItems.map((i) => `${i.name} — Rs ${i.price} — ${i.type}`).join("\n"),
     [menuItems],
   );
+  // Munchi reads the user's data from the PHONE (localStorage), not from
+  // the server again and again (user 28 Nov 03:27). The props (from App.tsx
+  // / Firestore) are only a fallback when the on-device cache is empty.
+  // The cache is refreshed from props whenever the modal opens.
   const ordersText = useMemo(() => {
+    const local = buildLocalOrdersText();
+    if (local) return local;
     if (recentOrders.length === 0) return "";
     return recentOrders
       .map((o) => {
@@ -163,7 +178,40 @@ export default function VoiceOrderModal({
         return `Order ${o.id}: ${items} — Rs ${o.total} — status ${o.status} — placed ${mins} min ago — payment ${o.payment} — ${o.speed}`;
       })
       .join("\n");
-  }, [recentOrders]);
+  }, [recentOrders, isOpen]);
+  // The user's CURRENT active order, from on-device data — so when they ask
+  // "mera order abhi aya nahi", Munchi knows the live status and explains it.
+  const activeOrderText = useMemo(() => buildActiveOrderText(), [isOpen, recentOrders]);
+  // Profile from on-device data first, else the App.tsx prop.
+  const profileText = useMemo(() => {
+    const local = buildLocalProfileText();
+    return local || userProfileText || undefined;
+  }, [userProfileText, isOpen]);
+
+  // Save the latest user data ON THE PHONE whenever the voice modal opens,
+  // so Munchi always reads fresh on-device data (user 28 Nov 03:27).
+  useEffect(() => {
+    if (!isOpen) return;
+    if (recentOrders.length > 0) saveUserOrders(recentOrders);
+    if (deliveryLocation?.area) {
+      saveUserLocation({ area: deliveryLocation.area, street: deliveryLocation.street || "" });
+    }
+    if (userProfileText) {
+      const isNew = /NEW CUSTOMER/i.test(userProfileText);
+      const m = userProfileText.match(/(\d+) previous orders, total spent Rs ([\d,]+)/);
+      const favM = userProfileText.match(/Favourite items: ([^.]*)/);
+      saveUserProfile({
+        name: userName,
+        phone: userPhone || enteredPhone || undefined,
+        totalOrders: m ? parseInt(m[1], 10) : isNew ? 0 : getUserOrders().length,
+        totalSpent: m ? parseInt(m[2].replace(/,/g, ""), 10) : 0,
+        favourites: favM
+          ? favM[1].split(",").map((s) => s.replace(/\s*\(\d+x\)\s*/, "").trim()).filter(Boolean)
+          : [],
+        isNew,
+      });
+    }
+  }, [isOpen, recentOrders, deliveryLocation, userProfileText, userName, userPhone, enteredPhone]);
 
   // Reveal the agent: Munchi walks in once the call is answered.
   const revealAgent = useCallback(() => {
@@ -718,7 +766,8 @@ export default function VoiceOrderModal({
                 ordersText,
                 userName: userName || undefined,
                 userPhone: userPhone || enteredPhone || undefined,
-                userProfileText: userProfileText || undefined,
+                userProfileText: profileText,
+                activeOrderText: activeOrderText || undefined,
                 locationText: deliveryLocation
                   ? deliveryLocation.street
                     ? `${deliveryLocation.area}, ${deliveryLocation.street}`
