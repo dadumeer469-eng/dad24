@@ -3547,6 +3547,39 @@ export default function App() {
     });
   }, [orders]);
 
+  // Customer profile for the voice agent (Munchi "high level" brain): so the
+  // agent knows the caller — new or returning, how many orders, total spent,
+  // favourite items, last order — and can greet and suggest like a real
+  // shopkeeper who remembers the customer. Built from the site's own orders.
+  const voiceUserProfile = useMemo(() => {
+    if (!orders || orders.length === 0) {
+      return "NEW CUSTOMER — this is their first time ordering. No previous orders. Their first order gets FREE delivery. Welcome them warmly as a new customer and mention the free first delivery.";
+    }
+    const totalOrders = orders.length;
+    const totalSpent = orders.reduce((s, o) => s + (o.grandTotal || o.totalPrice || 0), 0);
+    const counts = new Map<string, number>();
+    for (const o of orders) {
+      for (const it of o.items || []) {
+        const name = (it as { name?: string }).name || "";
+        if (name) counts.set(name, (counts.get(name) || 0) + 1);
+      }
+    }
+    const favs = [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([n, c]) => `${n} (${c}x)`)
+      .join(", ");
+    const sorted = [...orders].sort((a, b) => {
+      const aT = a.createdAt?.seconds || 0;
+      const bT = b.createdAt?.seconds || 0;
+      return bT - aT;
+    });
+    const last = sorted[0];
+    const lastItems = (last?.items || []).map((i: { name?: string }) => i.name || "").filter(Boolean).join(", ");
+    const lastMins = last ? Math.max(0, Math.floor((Date.now() - (last.createdAt?.seconds || 0) * 1000) / 60000)) : 0;
+    return `RETURNING CUSTOMER — ${totalOrders} previous orders, total spent Rs ${totalSpent}. Favourite items: ${favs || "none yet"}. Last order ${lastMins} min ago: ${lastItems || "—"} (status ${last?.status || "—"}). Greet them warmly as a returning customer, and feel free to suggest their favourites.`;
+  }, [orders]);
+
   const normalizeName = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
 
   const findDish = useCallback(
@@ -5448,6 +5481,7 @@ export default function App() {
         onRequestLocation={requestLocation}
         userName={currentUser?.name}
         userPhone={currentUser?.phone}
+        userProfileText={voiceUserProfile}
         deliveryLocation={
           currentUser?.savedLocation?.area
             ? {
