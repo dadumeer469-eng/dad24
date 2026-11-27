@@ -5353,6 +5353,40 @@ export default function App() {
               <div className="absolute w-[150px] h-[150px] md:w-[190px] md:h-[190px] rounded-full border border-white/20" />
             </div>
 
+            {/* Floating food — drifts up around the logo (premium app-opening feel) */}
+            <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+              {[
+                { e: "🍔", left: "12%", size: "text-3xl", dur: 3.4, delay: 0.2 },
+                { e: "🍕", left: "82%", size: "text-3xl", dur: 3.8, delay: 0.5 },
+                { e: "🍟", left: "22%", size: "text-2xl", dur: 3.1, delay: 0.9 },
+                { e: "🥤", left: "72%", size: "text-2xl", dur: 3.6, delay: 1.2 },
+                { e: "🍦", left: "38%", size: "text-2xl", dur: 3.2, delay: 1.5 },
+                { e: "🍩", left: "62%", size: "text-2xl", dur: 3.9, delay: 0.7 },
+              ].map((f, i) => (
+                <motion.span
+                  key={i}
+                  initial={{ y: 40, opacity: 0, rotate: -12 }}
+                  animate={prefersReducedMotion ? { y: 0, opacity: 0.9, rotate: 0 } : { y: [40, -90, 40], opacity: [0, 0.95, 0], rotate: [-12, 10, -12] }}
+                  transition={prefersReducedMotion ? { duration: 0 } : { duration: f.dur, delay: f.delay, repeat: Infinity, ease: "easeInOut" }}
+                  className={`absolute bottom-[18%] ${f.size}`}
+                  style={{ left: f.left }}
+                >
+                  {f.e}
+                </motion.span>
+              ))}
+            </div>
+
+            {/* Delivery scooter rides across the bottom */}
+            <motion.div
+              initial={{ x: "-20vw", opacity: 0 }}
+              animate={prefersReducedMotion ? { x: 0, opacity: 0 } : { x: ["-20vw", "120vw"], opacity: [0, 1, 1, 0] }}
+              transition={prefersReducedMotion ? { duration: 0 } : { duration: 2.4, delay: 0.35, ease: "easeInOut" }}
+              className="absolute bottom-6 left-0 text-4xl md:text-5xl pointer-events-none"
+              aria-hidden="true"
+            >
+              🛵
+            </motion.div>
+
             {/* Center content */}
             <motion.div
               initial={{ opacity: 0, scale: 0.85 }}
@@ -5388,14 +5422,25 @@ export default function App() {
                 </motion.div>
               </motion.div>
 
-              {/* Brand */}
+              {/* Brand — letters pop in one by one (staggered spring) */}
               <motion.h2
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.15 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.1, delay: 0.15 }}
                 className="text-4xl md:text-5xl font-black tracking-[0.18em] text-white drop-shadow-[0_4px_16px_rgba(0,0,0,0.35)] uppercase"
+                aria-label="Dadu Food"
               >
-                Dadu Food
+                {"DADU FOOD".split("").map((ch, i) => (
+                  <motion.span
+                    key={i}
+                    initial={{ opacity: 0, y: 18, scale: 0.6 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ type: "spring", stiffness: 320, damping: 15, delay: 0.15 + i * 0.045 }}
+                    className="inline-block"
+                  >
+                    {ch === " " ? "\u00A0" : ch}
+                  </motion.span>
+                ))}
               </motion.h2>
               <motion.p
                 initial={{ opacity: 0 }}
