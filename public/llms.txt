@@ -29,6 +29,8 @@
 - Home: https://www.dadufood.store/
 - Grocery delivery in Dadu (297 items, 13 categories): https://www.dadufood.store/grocery
 - Medicine delivery in Dadu (12 medicines): https://www.dadufood.store/pharmacy
+- Restaurants directory: https://www.dadufood.store/restaurants
+- Hotels in Dadu: https://www.dadufood.store/hotels
 - About: https://www.dadufood.store/about
 - Contact: https://www.dadufood.store/contact
 - Partner with us (restaurants): https://www.dadufood.store/partner-with-us
