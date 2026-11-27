@@ -1,9 +1,9 @@
 import React from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { springBouncy, springSnappy } from "../utils/motion";
+import { springSnappy } from "../utils/motion";
 import { Dish } from "../types";
 import { LazyImage } from "./LazyImage";
-import { Heart, Clock, BadgeAlert, Plus, Minus } from "lucide-react";
+import { Clock, BadgeAlert, Plus, Minus } from "lucide-react";
 
 interface DashboardMenuItemCardProps {
   dish: Dish;
@@ -22,9 +22,7 @@ export const DashboardMenuItemCard = React.memo(function DashboardMenuItemCard({
   dish,
   isRestaurantClosed,
   openingTime,
-  isFavorite,
   quantityInCart,
-  onToggleFavorite,
   onSelectDetail,
   onAddToCart,
   onUpdateCartQuantity,
@@ -32,12 +30,29 @@ export const DashboardMenuItemCard = React.memo(function DashboardMenuItemCard({
   const dishRestaurantName = dish.restaurantName || "Dadu Fast Food & Kitchen";
   // Reduced motion: micro-interactions become instant state changes.
   const reduceMotion = useReducedMotion();
+  const hasDiscount = dish.discountPrice && dish.discountPrice < dish.price;
+  const discountPct = hasDiscount
+    ? Math.round(((dish.price - dish.discountPrice!) / dish.price) * 100)
+    : 0;
+  const hasCustomization =
+    (dish.sizes && dish.sizes.length > 0) ||
+    (dish.flavors && dish.flavors.length > 0) ||
+    (dish.addOns && dish.addOns.length > 0);
+
+  const handleAdd = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (hasCustomization) {
+      onSelectDetail(dish);
+    } else {
+      onAddToCart(dish);
+    }
+  };
 
   return (
     <motion.div
       whileHover={reduceMotion ? undefined : { y: -2 }}
       transition={springSnappy}
-      className={`bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl overflow-hidden shadow-xs hover:border-[#E21B70]/45 hover:shadow-md transition-[border-color,box-shadow] duration-300 flex flex-col group relative text-[#14141A] dark:text-[#F5F5F8] ${
+      className={`bg-white dark:bg-[#14141A] rounded-2xl overflow-hidden shadow-[0_1px_4px_rgba(0,0,0,0.07)] hover:shadow-md transition-shadow duration-180 flex flex-col group relative text-[#14141A] dark:text-[#F5F5F8] border border-[#f0f0f0] dark:border-[#2A2A35] ${
         isRestaurantClosed ? "opacity-75 grayscale-[15%]" : ""
       }`}
     >
@@ -63,9 +78,9 @@ export const DashboardMenuItemCard = React.memo(function DashboardMenuItemCard({
         </div>
       )}
 
-      {/* Card Image */}
+      {/* Card Image — Foodpanda-style: clean photo, white + button overlaps bottom-right */}
       <div
-        className="relative h-32 sm:h-44 bg-[#F2F2F6] dark:bg-[#1D1D26] overflow-hidden shrink-0 cursor-pointer"
+        className="relative h-36 sm:h-44 bg-[#f7f7f7] dark:bg-[#1D1D26] overflow-hidden shrink-0 cursor-pointer"
         onClick={(e) => {
           e.stopPropagation();
           if (!dish.isAvailable || isRestaurantClosed) return;
@@ -82,148 +97,96 @@ export const DashboardMenuItemCard = React.memo(function DashboardMenuItemCard({
           className="w-full h-full"
           imgClassName="object-cover group-hover:scale-105 transition-transform duration-300"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
 
-        {/* Favorite Heart Button (44px touch hitbox) */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleFavorite(dish.id);
-          }}
-          className="absolute top-1.5 right-1.5 z-30 w-11 h-11 rounded-full bg-white/92 dark:bg-[#14141A]/90 hover:bg-white text-[#E21B70] shadow-xs transition-transform duration-180 active:scale-[0.97] active:brightness-110 flex items-center justify-center cursor-pointer"
-          aria-label={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
-          title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
-        >
-          {/* Heart pops with a spring whenever the favourite state flips */}
-          <motion.span
-            key={isFavorite ? "fav" : "not-fav"}
-            initial={reduceMotion ? false : { scale: 0.5 }}
-            animate={{ scale: 1 }}
-            transition={springBouncy}
-            className="flex"
+        {dish.isAvailable && !isRestaurantClosed && quantityInCart > 0 ? (
+          <motion.div
+            initial={reduceMotion ? false : { scale: 0.92, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={springSnappy}
+            className="absolute bottom-2 right-2 z-10 flex items-center bg-white dark:bg-[#14141A] rounded-full shadow-md border border-black/5 p-0.5"
+            onClick={(e) => e.stopPropagation()}
           >
-            <Heart
-              className={`w-4 h-4 ${
-                isFavorite
-                  ? "fill-[#E21B70] text-[#E21B70]"
-                  : "text-[#5A5A6B] dark:text-[#A1A1B2]"
-              }`}
-            />
-          </motion.span>
-        </button>
-
-        {/* Discount Tag */}
-        {dish.discountPrice && dish.discountPrice < dish.price && (
-          <div className="absolute top-2 left-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider py-0.5 px-2 bg-[#E21B70] text-white rounded-md shadow-xs">
-              {Math.round(((dish.price - dish.discountPrice) / dish.price) * 100)}% OFF
-            </span>
-          </div>
+            <motion.button
+              type="button"
+              whileTap={reduceMotion ? undefined : { scale: 0.88 }}
+              onClick={() => onUpdateCartQuantity(dish.id, quantityInCart - 1)}
+              aria-label="Decrease quantity"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-[#E21B70] hover:bg-[#FDE7F0] dark:hover:bg-[#2A121D] cursor-pointer"
+            >
+              <Minus className="w-4 h-4" strokeWidth={2.5} />
+            </motion.button>
+            <motion.span
+              key={quantityInCart}
+              initial={reduceMotion ? false : { scale: 1.35 }}
+              animate={{ scale: 1 }}
+              transition={springSnappy}
+              className="text-sm font-bold text-[#14141A] dark:text-white min-w-[20px] text-center"
+            >
+              {quantityInCart}
+            </motion.span>
+            <motion.button
+              type="button"
+              whileTap={reduceMotion ? undefined : { scale: 0.88 }}
+              onClick={() => onUpdateCartQuantity(dish.id, quantityInCart + 1)}
+              aria-label="Increase quantity"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-[#E21B70] hover:bg-[#FDE7F0] dark:hover:bg-[#2A121D] cursor-pointer"
+            >
+              <Plus className="w-4 h-4" strokeWidth={2.5} />
+            </motion.button>
+          </motion.div>
+        ) : (
+          <motion.button
+            type="button"
+            whileTap={reduceMotion ? undefined : { scale: 0.88 }}
+            onClick={handleAdd}
+            disabled={!dish.isAvailable || isRestaurantClosed}
+            aria-label={`Add ${dish.name} to cart`}
+            className={`absolute bottom-2 right-2 z-10 w-10 h-10 rounded-full bg-white dark:bg-[#14141A] text-[#14141A] dark:text-white flex items-center justify-center shadow-md border border-black/5 active:scale-95 ${
+              !dish.isAvailable || isRestaurantClosed
+                ? "cursor-not-allowed opacity-50"
+                : "cursor-pointer"
+            }`}
+          >
+            <Plus className="w-5 h-5" strokeWidth={2.5} />
+          </motion.button>
         )}
       </div>
 
-      {/* Card Contents */}
-      <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between space-y-2.5 bg-white dark:bg-[#14141A]">
-        <div
-          className="space-y-1 flex-1 cursor-pointer"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (!dish.isAvailable || isRestaurantClosed) return;
-            onSelectDetail(dish);
-          }}
+      {/* Card Contents — Foodpanda order: name, price, discount */}
+      <div
+        className="p-2.5 sm:p-3 flex-1 flex flex-col gap-0.5 cursor-pointer"
+        onClick={(e) => {
+          e.stopPropagation();
+          if (!dish.isAvailable || isRestaurantClosed) return;
+          onSelectDetail(dish);
+        }}
+      >
+        <p className="text-[10px] sm:text-[11px] text-[#5A5A6B] dark:text-[#A1A1B2] font-semibold uppercase tracking-wide truncate">
+          {dishRestaurantName}
+        </p>
+        <h4
+          title={dish.name}
+          className="font-bold text-[#14141A] dark:text-[#F5F5F8] text-[13px] sm:text-sm leading-snug line-clamp-2"
         >
-          <p className="text-[10px] sm:text-[11px] text-[#5A5A6B] dark:text-[#A1A1B2] font-semibold uppercase tracking-wide truncate">
-            {dishRestaurantName}
-          </p>
-          <h4
-            title={dish.name}
-            className="font-bold text-[#14141A] dark:text-[#F5F5F8] text-xs sm:text-sm leading-snug group-hover:text-[#E21B70] transition-colors line-clamp-2"
-          >
-            {dish.name}
-          </h4>
-          <div className="flex items-baseline gap-1.5 pt-0.5">
-            {dish.discountPrice && dish.discountPrice < dish.price ? (
-              <>
-                <span className="font-mono font-bold text-sm text-[#E21B70] dark:text-[#FF4D94] tabular-nums">
-                  Rs. {dish.discountPrice}
-                </span>
-                <span className="font-mono text-xs line-through text-[#717185] tabular-nums">
-                  Rs. {dish.price}
-                </span>
-              </>
-            ) : (
-              <span className="font-mono font-bold text-sm text-[#E21B70] dark:text-[#FF4D94] tabular-nums">
+          {dish.name}
+        </h4>
+        <div className="flex items-baseline gap-1.5 flex-wrap pt-0.5">
+          {hasDiscount ? (
+            <>
+              <span className="font-bold text-[15px] sm:text-base text-[#E21B70] dark:text-[#FF4D94]">
+                Rs. {dish.discountPrice}
+              </span>
+              <span className="text-xs line-through text-[#9a9aad] dark:text-[#717185]">
                 Rs. {dish.price}
               </span>
-            )}
-          </div>
-        </div>
-
-        {/* Add / Stepper CTA (>=44px touch target) */}
-        <div className="pt-1 shrink-0">
-          {quantityInCart > 0 ? (
-            <motion.div
-              initial={reduceMotion ? false : { scale: 0.92, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={springSnappy}
-              className="flex items-center justify-between bg-[#FDF2F6] dark:bg-[#2A121D] border border-[#E21B70]/30 p-1 rounded-xl"
-            >
-              <motion.button
-                type="button"
-                whileTap={reduceMotion ? undefined : { scale: 0.88 }}
-                onClick={() => onUpdateCartQuantity(dish.id, quantityInCart - 1)}
-                aria-label="Decrease quantity"
-                className="w-11 h-11 rounded-lg bg-white dark:bg-[#14141A] text-[#14141A] dark:text-white active:brightness-110 font-bold flex items-center justify-center cursor-pointer"
-              >
-                <Minus className="w-4 h-4" />
-              </motion.button>
-              {/* Qty pops briefly on every change */}
-              <motion.span
-                key={quantityInCart}
-                initial={reduceMotion ? false : { scale: 1.35 }}
-                animate={{ scale: 1 }}
-                transition={springSnappy}
-                className="text-xs font-extrabold text-[#E21B70] dark:text-[#FF4D94] font-mono tabular-nums px-2"
-              >
-                {quantityInCart}
-              </motion.span>
-              <motion.button
-                type="button"
-                whileTap={reduceMotion ? undefined : { scale: 0.88 }}
-                onClick={() => onUpdateCartQuantity(dish.id, quantityInCart + 1)}
-                aria-label="Increase quantity"
-                className="w-11 h-11 rounded-lg btn-pink text-white active:brightness-110 font-bold flex items-center justify-center cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-              </motion.button>
-            </motion.div>
+              <span className="text-xs font-bold text-[#D70F64] dark:text-[#FF8FBF]">
+                {discountPct}% off
+              </span>
+            </>
           ) : (
-            <motion.button
-              type="button"
-              whileTap={reduceMotion ? undefined : { scale: 0.94 }}
-              onClick={(e) => {
-                e.stopPropagation();
-                const hasCustomization =
-                  (dish.sizes && dish.sizes.length > 0) ||
-                  (dish.flavors && dish.flavors.length > 0) ||
-                  (dish.addOns && dish.addOns.length > 0);
-                if (hasCustomization) {
-                  onSelectDetail(dish);
-                } else {
-                  onAddToCart(dish);
-                }
-              }}
-              disabled={!dish.isAvailable || isRestaurantClosed}
-              className={`w-full min-h-[44px] py-2 rounded-xl text-xs font-bold uppercase tracking-wider active:brightness-110 flex items-center justify-center gap-1.5 btn-pink text-white relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100 ${
-                !dish.isAvailable || isRestaurantClosed
-                  ? "cursor-not-allowed opacity-50"
-                  : "cursor-pointer"
-              }`}
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add</span>
-            </motion.button>
+            <span className="font-bold text-[15px] sm:text-base text-[#E21B70] dark:text-[#FF4D94]">
+              Rs. {dish.price}
+            </span>
           )}
         </div>
       </div>

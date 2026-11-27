@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { springBouncy, springSnappy } from "../utils/motion";
 import { GroceryCategory, GroceryProduct, GroceryOrderItem } from "../types";
-import { Check, Package, Plus, Minus, ChevronDown, ChevronRight, Heart } from "lucide-react";
+import { Check, Package, Plus, Minus, ChevronDown, ChevronRight } from "lucide-react";
 import { LazyImage } from "./LazyImage";
 import useLazyBatchLoad from "../hooks/useLazyBatchLoad";
 import { GROCERY_CATEGORY_VISUALS } from "../data/ownerGroceryCatalog";
@@ -91,7 +91,6 @@ function GroceryProductImage({
 }
 
 // Genuine most-bought staples — shown with the green "Best Seller" badge (design).
-const GROCERY_BESTSELLER_IDS = new Set(["og_001", "og_007", "og_008", "og_016", "og_049", "og_061"]);
 
 function CategoryTileThumb({ src, alt }: { src: string; alt: string }) {
   const [failed, setFailed] = useState(false);
@@ -133,25 +132,6 @@ export default function GroceryModule({
   // initialCategoryId="gcat_medicine" only on /pharmacy, so this is the
   // route signal — the grocery banner must not render there.
   const isPharmacy = initialCategoryId === "gcat_medicine";
-  const [favIds, setFavIds] = useState<string[]>(() => {
-    try {
-      const parsed = JSON.parse(localStorage.getItem("dadu_grocery_favs") || "[]");
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  });
-  const toggleFav = (id: string) => {
-    setFavIds((prev) => {
-      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
-      try {
-        localStorage.setItem("dadu_grocery_favs", JSON.stringify(next));
-      } catch {
-        /* storage unavailable */
-      }
-      return next;
-    });
-  };
 
   // Follow route changes (e.g. /grocery -> /pharmacy) while the module stays mounted.
   React.useEffect(() => {
@@ -246,159 +226,99 @@ export default function GroceryModule({
     const hasDiscount = p.discountPrice && p.discountPrice < p.price;
     const displayPrice = hasDiscount ? p.discountPrice : p.price;
     const packLabel = p.unit && p.unit !== "—" ? p.unit : "Standard Pack";
-    const isFav = favIds.includes(p.id);
-    const isBestSeller = GROCERY_BESTSELLER_IDS.has(p.id);
-    // Mobile-UX finding F5: never show the green "Fresh" badge on
-    // cigarettes — it reads as a health/quality endorsement.
-    const isCigarette = p.categoryId === "gcat_cigarettes";
+    const discountPct = hasDiscount
+      ? Math.round(((p.price - p.discountPrice!) / p.price) * 100)
+      : 0;
 
     return (
       <motion.div
         key={p.id}
         whileHover={reduceMotion ? undefined : { y: -2 }}
         transition={springSnappy}
-        className="bg-[#fdfbf7] dark:bg-[#2A101B] border border-[#e8e2d6] dark:border-[#D70F64]/25 rounded-2xl overflow-hidden shadow-xs hover:shadow-md hover:border-[#D70F64]/50 transition-[color,background-color,border-color,opacity] duration-180 flex flex-col relative group"
+        className="bg-white dark:bg-[#1B1B24] rounded-2xl overflow-hidden shadow-[0_1px_4px_rgba(0,0,0,0.07)] hover:shadow-md transition-shadow duration-180 flex flex-col relative group border border-[#f0f0f0] dark:border-[#2A2A35]"
       >
-        <div className="relative h-[104px] sm:h-32 md:h-36 bg-[#fdfbf7] dark:bg-[#2A101B] shrink-0 select-none overflow-hidden">
-          {/* Loading shimmer so the tile never looks blank pink while the photo loads */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 dark:via-white/10 to-transparent animate-shimmer-sweep" />
-          </div>
+        {/* Photo — light backdrop, product fills it; white + button (Foodpanda-style)
+            overlaps the bottom-right corner. No badges on the photo — clean. */}
+        <div className="relative h-36 sm:h-44 bg-[#f7f7f7] dark:bg-[#23232E] shrink-0 select-none overflow-hidden">
           <GroceryProductImage product={p} categoryName={categoryNameMap[p.categoryId] || "Grocery"} eager={eager} />
           {isOutOfStock ? (
-            <div className="absolute bottom-2 left-2 z-10 bg-zinc-900/90 text-white font-semibold text-[10px] tracking-wider py-0.5 px-2 rounded-full border border-white/15">
+            <span className="absolute bottom-2 right-2 z-10 text-[10px] font-semibold text-[#717185] px-2.5 py-1.5 rounded-full bg-white/95 dark:bg-[#14141A]/95 shadow-md">
               Out of stock
-            </div>
-          ) : hasDiscount ? (
-            <div className="absolute bottom-2 left-2 z-10 bg-[#D70F64] text-white font-semibold text-[10px] tracking-wider py-0.5 px-2 rounded-full shadow-sm">
-              {`${Math.round(((p.price - p.discountPrice!) / p.price) * 100)}% off`}
-            </div>
-          ) : isBestSeller ? (
-            <div className="absolute bottom-2 left-2 z-10 bg-[#15803D] text-white font-semibold text-[10px] py-0.5 px-2 rounded-full shadow-sm">
-              Best seller
-            </div>
-          ) : isCigarette ? null : (
-            <div className="absolute bottom-2 left-2 z-10 bg-[#15803D] text-white font-semibold text-[10px] py-0.5 px-2 rounded-full shadow-sm">
-              Fresh
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleFav(p.id);
-            }}
-            aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
-            className="absolute top-2 right-2 z-10 w-11 h-11 flex items-center justify-center cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110 rounded-full focus-visible:outline-2 focus-visible:outline-white"
-          >
-            {/* Heart pops with a spring whenever the favourite state flips */}
-            <motion.span
-              key={isFav ? "fav" : "not-fav"}
-              initial={reduceMotion ? false : { scale: 0.5 }}
-              animate={{ scale: 1 }}
-              transition={springBouncy}
-              className="flex"
+            </span>
+          ) : qty > 0 ? (
+            <motion.div
+              initial={reduceMotion ? false : { scale: 0.92, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={springSnappy}
+              className="absolute bottom-2 right-2 z-10 flex items-center bg-white dark:bg-[#14141A] rounded-full shadow-md border border-black/5 p-0.5"
             >
-              <Heart
-                className={`w-5 h-5 drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)] ${
-                  isFav ? "fill-[#D70F64] text-[#D70F64]" : "text-[#D70F64]"
-                }`}
-              />
-            </motion.span>
-          </button>
+              <motion.button
+                type="button"
+                whileTap={reduceMotion ? undefined : { scale: 0.88 }}
+                onClick={() => onUpdateCartQuantity(p.id, qty - 1)}
+                aria-label="Decrease quantity"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-[#E21B70] hover:bg-[#FDE7F0] dark:hover:bg-[#2A121D] cursor-pointer"
+              >
+                <Minus className="w-4 h-4" strokeWidth={2.5} />
+              </motion.button>
+              <motion.span
+                key={qty}
+                initial={reduceMotion ? false : { scale: 1.35 }}
+                animate={{ scale: 1 }}
+                transition={springSnappy}
+                className="text-sm font-bold text-[#14141A] dark:text-white min-w-[20px] text-center"
+              >
+                {qty}
+              </motion.span>
+              <motion.button
+                type="button"
+                whileTap={reduceMotion ? undefined : { scale: 0.88 }}
+                onClick={() => onUpdateCartQuantity(p.id, qty + 1)}
+                aria-label="Increase quantity"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-[#E21B70] hover:bg-[#FDE7F0] dark:hover:bg-[#2A121D] cursor-pointer"
+              >
+                <Plus className="w-4 h-4" strokeWidth={2.5} />
+              </motion.button>
+            </motion.div>
+          ) : (
+            <motion.button
+              type="button"
+              whileTap={reduceMotion ? undefined : { scale: 0.88 }}
+              onClick={() => onAddToCart(p)}
+              aria-label={`Add ${p.name} to cart`}
+              className="absolute bottom-2 right-2 z-10 w-10 h-10 rounded-full bg-white dark:bg-[#14141A] text-[#14141A] dark:text-white flex items-center justify-center cursor-pointer shadow-md border border-black/5 active:scale-95"
+            >
+              <Plus className="w-5 h-5" strokeWidth={2.5} />
+            </motion.button>
+          )}
         </div>
 
-        <div className="p-1.5 sm:p-3 flex-1 flex flex-col justify-between gap-2">
-          <div>
-            <h4
-              title={p.name}
-              className="font-semibold text-[#14141A] dark:text-[#F5F5F8] text-[13px] sm:text-sm leading-snug line-clamp-2"
-            >
-              {p.name}
-            </h4>
-            <span className="block text-[11px] font-medium text-[#5A5A6B] dark:text-[#A1A1B2] mt-0.5 line-clamp-1">
-              {packLabel}
+        {/* Details — price, discount, name, pack (Foodpanda order: price first). */}
+        <div className="p-2.5 sm:p-3 flex-1 flex flex-col gap-0.5">
+          <div className="flex items-baseline gap-1.5 flex-wrap">
+            <span className="text-[15px] sm:text-base font-bold text-[#E21B70] dark:text-[#FF4D94]">
+              {`Rs. ${displayPrice}`}
             </span>
+            {hasDiscount && (
+              <span className="text-xs text-[#9a9aad] dark:text-[#717185] line-through">
+                {`Rs. ${p.price}`}
+              </span>
+            )}
           </div>
-
-          {qty > 0 && !isOutOfStock ? (
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-baseline gap-1 min-w-0 overflow-hidden">
-                <span className="text-[13px] font-semibold text-[#D70F64] dark:text-[#FF4D94] whitespace-nowrap">
-                  {`Rs. ${displayPrice}`}
-                </span>
-                {hasDiscount && (
-                  <span className="hidden sm:inline text-[11px] text-[#717185] line-through whitespace-nowrap">
-                    {`Rs. ${p.price}`}
-                  </span>
-                )}
-              </div>
-              <motion.div
-                initial={reduceMotion ? false : { scale: 0.92, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={springSnappy}
-                className="flex items-center justify-between bg-[#D70F64] text-white p-0.5 rounded-full shadow-sm"
-              >
-                <motion.button
-                  type="button"
-                  whileTap={reduceMotion ? undefined : { scale: 0.88 }}
-                  onClick={() => onUpdateCartQuantity(p.id, qty - 1)}
-                  aria-label="Decrease quantity"
-                  className="w-11 h-11 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center cursor-pointer focus-visible:outline-2 focus-visible:outline-white"
-                >
-                  <Minus className="w-3.5 h-3.5" />
-                </motion.button>
-                {/* Qty pops briefly on every change */}
-                <motion.span
-                  key={qty}
-                  initial={reduceMotion ? false : { scale: 1.35 }}
-                  animate={{ scale: 1 }}
-                  transition={springSnappy}
-                  className="text-xs font-semibold px-1 min-w-[18px] text-center"
-                >
-                  {qty}
-                </motion.span>
-                <motion.button
-                  type="button"
-                  whileTap={reduceMotion ? undefined : { scale: 0.88 }}
-                  onClick={() => onUpdateCartQuantity(p.id, qty + 1)}
-                  aria-label="Increase quantity"
-                  className="w-11 h-11 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center cursor-pointer focus-visible:outline-2 focus-visible:outline-white"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                </motion.button>
-              </motion.div>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between gap-1">
-              <div className="flex items-baseline gap-1 min-w-0 overflow-hidden">
-                <span className="text-[11px] sm:text-sm font-semibold text-[#D70F64] dark:text-[#FF4D94] whitespace-nowrap">
-                  {`Rs. ${displayPrice}`}
-                </span>
-                {hasDiscount && (
-                  <span className="hidden sm:inline text-[11px] text-[#717185] line-through whitespace-nowrap">
-                    {`Rs. ${p.price}`}
-                  </span>
-                )}
-              </div>
-
-              {isOutOfStock ? (
-                <span className="text-[9px] font-semibold text-[#717185] px-1.5 py-1 rounded-full bg-white/70 dark:bg-white/10 shrink-0">
-                  Out of stock
-                </span>
-              ) : (
-                <motion.button
-                  type="button"
-                  whileTap={reduceMotion ? undefined : { scale: 0.88 }}
-                  onClick={() => onAddToCart(p)}
-                  aria-label={`Add ${p.name} to cart`}
-                  className="w-9 h-9 sm:w-11 sm:h-11 rounded-full btn-pink text-white flex items-center justify-center cursor-pointer active:brightness-110 shrink-0 shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70] relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-[opacity,transform] after:duration-180 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
-                >
-                  <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </motion.button>
-              )}
-            </div>
+          {hasDiscount && (
+            <span className="self-start text-[11px] font-bold text-[#D70F64] dark:text-[#FF8FBF] bg-[#FDE7F0] dark:bg-[#3A1526] rounded-full px-2 py-0.5 mt-0.5">
+              {`${discountPct}% off`}
+            </span>
           )}
+          <h4
+            title={p.name}
+            className="font-semibold text-[#14141A] dark:text-[#F5F5F8] text-[13px] sm:text-sm leading-snug line-clamp-2 mt-0.5"
+          >
+            {p.name}
+          </h4>
+          <span className="block text-[11px] sm:text-xs text-[#717185] dark:text-[#A1A1B2] line-clamp-1">
+            {packLabel}
+          </span>
         </div>
       </motion.div>
     );
@@ -593,7 +513,7 @@ export default function GroceryModule({
           )}
 
           {isLoading ? (
-            <div className="grid grid-cols-3 gap-2.5 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
               {Array.from({ length: 8 }).map((_, idx) => (
                 <div
                   key={idx}
@@ -644,7 +564,7 @@ export default function GroceryModule({
                         See all →
                       </button>
                     </div>
-                    <div className="grid grid-cols-3 gap-2.5 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
                       {section.items.map((p, i) => renderProductCard(p, i < 6))}
                     </div>
                   </section>
@@ -652,7 +572,7 @@ export default function GroceryModule({
               </div>
             ) : (
               <div className="space-y-6">
-                <div className="grid grid-cols-3 gap-2.5 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
                   {visibleItems.map((p, i) => renderProductCard(p, i < 9))}
                 </div>
 
