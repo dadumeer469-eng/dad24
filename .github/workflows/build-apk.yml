@@ -16,7 +16,9 @@ on:
       - '.github/workflows/build-apk.yml'
       - 'scripts/add-android-permissions.py'
       - 'assets/**'
-      - 'src/components/AppIntro.tsx'
+      - 'src/**'
+      - 'api/**'
+      - 'public/**'
 
 # The release-attach step needs write access to the repo's releases.
 # Without this, GITHUB_TOKEN gets HTTP 403 "Resource not accessible by
