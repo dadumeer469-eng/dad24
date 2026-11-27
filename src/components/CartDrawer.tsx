@@ -770,72 +770,88 @@ export default function CartDrawer({
           ) : wizardStep === 1 ? (
             <div className="space-y-3 animate-fade-in">
               {cartItems.map((item) => (
-                <div key={item.dishId} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-2xl flex items-center justify-between gap-3 shadow-xs transition-transform duration-300 md:hover:-translate-y-0.5">
-                  {/* Dish thumbnail — Foodpanda-style, same as the grocery basket.
-                      Only renders when the item carries a photo (items added before
-                      this change have none and simply show no thumbnail). */}
-                  {item.imageUrl && (
-                    <LazyImage
-                      src={item.imageUrl}
-                      alt={item.name}
-                      className="w-12 h-12 rounded-xl overflow-hidden shrink-0"
-                      referrerPolicy="no-referrer"
-                    />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-extrabold text-sm text-zinc-900 dark:text-zinc-100 block truncate">{item.name}</span>
-                      {item.type === "service" && (
-                        <span className="bg-amber-100 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-900/40 text-amber-600 dark:text-amber-500 text-[9px] font-black uppercase px-2 py-0.5 rounded-sm shrink-0">
-                          Service
+                <div key={item.dishId} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-2xl shadow-xs transition-transform duration-300 md:hover:-translate-y-0.5">
+                  <div className="flex gap-3">
+                    {/* Dish thumbnail — bigger, Foodpanda-style. Only renders
+                        when the item carries a photo (items added before this
+                        change have none and simply show no thumbnail). */}
+                    {item.imageUrl && (
+                      <LazyImage
+                        src={item.imageUrl}
+                        alt={item.name}
+                        className="w-16 h-16 rounded-xl overflow-hidden shrink-0"
+                        referrerPolicy="no-referrer"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      {/* Name (up to 2 lines, never a "Fa..." stub) + remove */}
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="font-extrabold text-[15px] leading-snug text-zinc-900 dark:text-zinc-100 line-clamp-2">
+                          {item.name}
+                          {item.type === "service" && (
+                            <span className="ml-2 align-middle bg-amber-100 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-900/40 text-amber-600 dark:text-amber-500 text-[9px] font-black uppercase px-2 py-0.5 rounded-sm">
+                              Service
+                            </span>
+                          )}
                         </span>
+                        <button
+                          onClick={() => onRemoveItem(item.dishId)}
+                          aria-label={`Remove ${item.name} from cart`}
+                          className="w-7 h-7 shrink-0 flex items-center justify-center text-zinc-400 dark:text-zinc-500 hover:text-[#E21B70] rounded-lg transition-all duration-300 active:scale-95 cursor-pointer focus-visible:outline-2 focus-visible:outline-[#E21B70]"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                      {item.selectedAddOns && item.selectedAddOns.length > 0 && (
+                        <div className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium mt-1">
+                          Add-ons: {Object.entries(item.selectedAddOns.reduce((acc, curr) => {
+                            acc[curr.name] = (acc[curr.name] || 0) + 1;
+                            return acc;
+                          }, {} as Record<string, number>)).map(([name, count]) => `${Number(count) * (item.quantity || 1)}x ${name}`).join(', ')}
+                        </div>
                       )}
-                    </div>
-                    {item.selectedAddOns && item.selectedAddOns.length > 0 && (
-                      <div className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5">
-                        Add-ons: {Object.entries(item.selectedAddOns.reduce((acc, curr) => {
-                          acc[curr.name] = (acc[curr.name] || 0) + 1;
-                          return acc;
-                        }, {} as Record<string, number>)).map(([name, count]) => `${Number(count) * (item.quantity || 1)}x ${name}`).join(', ')}
+                      {item.specialInstructions && (
+                        <div className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium mt-1 italic">
+                          Note: {item.specialInstructions}
+                        </div>
+                      )}
+                      {/* Restaurant — one clean line, never wrapped into a column */}
+                      <div className="text-[11px] text-[#E21B70] dark:text-[#FF4D94] font-extrabold tracking-wide uppercase flex items-center gap-1 select-none mt-1">
+                        <span className="shrink-0">🏪</span>
+                        <span className="truncate">{item.restaurantName || "Dadu Fast Food & Kitchen"}</span>
                       </div>
-                    )}
-                    {item.specialInstructions && (
-                      <div className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium mt-0.5 italic">
-                        Note: {item.specialInstructions}
+                      {/* Bottom row: line total (bold pink) + unit price, stepper right.
+                          The stepper sits on its own row now, so it can never
+                          squeeze the name into a stub again. */}
+                      <div className="flex items-center justify-between gap-2 mt-2">
+                        <span className="min-w-0 whitespace-nowrap">
+                          <span className="text-[15px] font-black text-[#E21B70] dark:text-[#FF4D94]">
+                            Rs. {item.price * (item.quantity || 1)}
+                          </span>
+                          <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-bold ml-1.5">
+                            Rs. {item.price} each
+                          </span>
+                        </span>
+                        <div className="flex items-center gap-1 select-none shrink-0 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-0.5 rounded-full">
+                          <button
+                            onClick={() => onUpdateQuantity(item.dishId, item.quantity - 1)}
+                            aria-label={`Decrease quantity of ${item.name}`}
+                            className="w-8 h-8 rounded-full text-base bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-[#E21B70] transition-transform duration-180 active:scale-95"
+                          >
+                            -
+                          </button>
+                          <span className="text-sm font-black min-w-5 text-center text-zinc-800 dark:text-zinc-200 transition-all duration-200">{item.quantity}</span>
+                          <button
+                            onClick={() => onUpdateQuantity(item.dishId, item.quantity + 1)}
+                            aria-label={`Increase quantity of ${item.name}`}
+                            className="w-8 h-8 rounded-full text-base bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-[#E21B70] transition-transform duration-180 active:scale-95"
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
-                    )}
-                    <div className="text-[10px] text-[#E21B70] dark:text-[#FF4D94] font-extrabold tracking-wider uppercase flex items-center gap-1 select-none mt-0.5">
-                      <span>🏪</span> {item.restaurantName || "Dadu Fast Food & Kitchen"}
                     </div>
-                    <span className="text-xs text-zinc-500 dark:text-zinc-400 font-bold block mt-0.5">Rs. {item.price} each</span>
                   </div>
-
-                  {/* Quantity adjustments */}
-                  <div className="flex items-center gap-2 select-none shrink-0 bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-1 rounded-xl">
-                    <button
-                      onClick={() => onUpdateQuantity(item.dishId, item.quantity - 1)}
-                      aria-label={`Decrease quantity of ${item.name}`}
-                      className="w-11 h-11 rounded-lg text-base bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-[#E21B70] transition-transform duration-180 active:scale-[0.97] active:brightness-110"
-                    >
-                      -
-                    </button>
-                    <span className="text-xs font-black min-w-4 text-center text-zinc-800 dark:text-zinc-200 transition-all duration-200">{item.quantity}</span>
-                    <button
-                      onClick={() => onUpdateQuantity(item.dishId, item.quantity + 1)}
-                      aria-label={`Increase quantity of ${item.name}`}
-                      className="w-11 h-11 rounded-lg text-base bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-[#E21B70] transition-transform duration-180 active:scale-[0.97] active:brightness-110"
-                    >
-                      +
-                    </button>
-                  </div>
-
-                  <button
-                    onClick={() => onRemoveItem(item.dishId)}
-                    aria-label={`Remove ${item.name} from cart`}
-                    className="w-11 h-11 shrink-0 flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:text-[#E21B70] rounded-lg transition-all duration-300 active:scale-[0.97] active:brightness-110 cursor-pointer focus-visible:outline-2 focus-visible:outline-[#E21B70]"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
                 </div>
               ))}
             </div>
