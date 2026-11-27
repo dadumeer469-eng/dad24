@@ -59,6 +59,7 @@ import VoiceOrderModal, { type VoiceOrder, type VoiceOrderResult } from "./compo
 import { primeAudio } from "./utils/primeAudio";
 import OrderTracker from "./components/OrderTracker";
 import AuthModal from "./components/AuthModal";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 // Staff-only panels load on demand so the first paint stays fast for customers
 const AdminPanel = React.lazy(() => import("./components/AdminPanel"));
 const RiderPanel = React.lazy(() => import("./components/RiderPanel"));
@@ -6403,21 +6404,24 @@ export default function App() {
                     <p className="speakable-summary text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed">
                       Everything Dadu asks about ordering food, groceries and medicines online — delivery fee, payment, hours and areas, answered in one place.
                     </p>
-                    <div className="space-y-2">
-                      {DADU_FOOD_FAQS.map((faq) => (
-                        <details
+                    <Accordion hiddenUntilFound className="space-y-2">
+                      {DADU_FOOD_FAQS.map((faq, i) => (
+                        <AccordionItem
                           key={faq.question}
+                          value={`faq-${i}`}
                           className="rounded-xl border border-[#e8e2d6] dark:border-[#272733] bg-[#fdfbf7] dark:bg-[#1B1B22] px-3.5 py-2.5"
                         >
-                          <summary className="cursor-pointer text-xs sm:text-sm font-bold text-[#111118] dark:text-[#F5F5F8] leading-snug min-h-[44px] flex items-center">
+                          <AccordionTrigger className="py-0 text-xs sm:text-sm font-bold text-[#111118] dark:text-[#F5F5F8] leading-snug min-h-[44px] hover:no-underline **:data-[slot=accordion-trigger-icon]:text-[#E21B70]">
                             {faq.question}
-                          </summary>
-                          <p className="faq-answer text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed pt-1 pb-1">
-                            {faq.answer}
-                          </p>
-                        </details>
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            <p className="faq-answer text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed pt-1 pb-1">
+                              {faq.answer}
+                            </p>
+                          </AccordionContent>
+                        </AccordionItem>
                       ))}
-                    </div>
+                    </Accordion>
                   </div>
                 </section>
 
