@@ -56,6 +56,8 @@ import { applyCatalogDelta, getCatalogDelta } from "./utils/catalogDelta";
 import FoodpandaHeader from "./components/FoodpandaHeader";
 import AppUpdateBanner from "./components/AppUpdateBanner";
 import { checkForAppUpdate, type AppVersionInfo } from "./utils/appVersion";
+import { Capacitor } from "@capacitor/core";
+import { saveUserOrders, saveUserProfile } from "./utils/localUserData";
 import FoodpandaHero from "./components/FoodpandaHero";
 import {
   OffersMarquee,
@@ -1093,6 +1095,10 @@ export default function App() {
   }, [currentUser?.uid, globalCoords, currentUser?.savedLocation?.lat, currentUser?.savedLocation?.lng]);
 
   useEffect(() => {
+    // NEVER show the PWA install prompt inside the native APK (user 28 Nov
+    // 03:15): the app is already installed, so an "Install" bubble inside
+    // it is meaningless. Only the website (browser) may show it.
+    if (Capacitor.isNativePlatform()) return;
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
     
     if (!isStandalone) {
@@ -1302,7 +1308,7 @@ export default function App() {
 
     let animationFrameId: number;
     const startTime = performance.now();
-    const duration = 900; // ~0.9s — fast open, ripple still seen
+    const duration = 2400; // ~2.4s — long enough to actually SEE the opening animation (floating food, scooter, staggered letters, shine sweep)
 
     const updateProgress = (currentTime: number) => {
       const elapsed = currentTime - startTime;
@@ -2215,6 +2221,51 @@ export default function App() {
         );
         setOrders(list);
         setOrdersLoaded(true);
+
+        // Save the user's data ON THE PHONE (localStorage) so Munchi reads
+        // it from the device instead of asking the server again and again
+        // (user 28 Nov 03:27). This also saves Firestore reads.
+        try {
+          saveUserOrders(
+            list.map((o) => ({
+              id: o.id,
+              items: (o.items || []).map((it: { name?: string; quantity?: number; qty?: number }) => ({
+                name: it.name || "",
+                qty: it.quantity ?? it.qty ?? 1,
+              })),
+              total: o.grandTotal || o.totalPrice || 0,
+              status: o.status || "",
+              placedAtMs: (o.createdAt?.seconds || 0) * 1000,
+              payment: (o as { paymentMethod?: string }).paymentMethod || "COD",
+              speed: (o as { speed?: string }).speed || "standard",
+            })),
+          );
+          if (currentUser) {
+            const counts = new Map<string, number>();
+            let spent = 0;
+            for (const o of list) {
+              spent += o.grandTotal || o.totalPrice || 0;
+              for (const it of o.items || []) {
+                const n = (it as { name?: string }).name || "";
+                if (n) counts.set(n, (counts.get(n) || 0) + 1);
+              }
+            }
+            const favs = [...counts.entries()]
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 3)
+              .map(([n]) => n);
+            saveUserProfile({
+              name: currentUser.name,
+              phone: currentUser.phone,
+              totalOrders: list.length,
+              totalSpent: spent,
+              favourites: favs,
+              isNew: list.length === 0,
+            });
+          }
+        } catch {
+          // Local cache is best-effort; Munchi falls back to props.
+        }
 
         // Detect live status transitions for buyer orders and play status chime!
         if (currentUser.role !== "admin") {
@@ -5788,6 +5839,46 @@ export default function App() {
                       decoding="async"
                     />
                   </motion.div>
+                    {/* MUNCHI — heavy, prominent voice agent card (user 28 Nov 03:15).
+                        Munchi is the app's voice: tap to talk in Urdu and order by
+                        voice. Hidden when the admin switches voice ordering off. */}
+                    {voiceOrderEnabled && (
+                      <motion.button
+                        type="button"
+                        onClick={() => {
+                          primeAudio();
+                          setIsVoiceOrderOpen(true);
+                        }}
+                        initial={prefersReducedMotion ? false : { opacity: 0, y: 14 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: 0.15 }}
+                        className="relative w-full mt-2.5 sm:mt-3 rounded-3xl overflow-hidden text-left cursor-pointer active:scale-[0.99] shadow-[0_10px_30px_rgba(226,27,112,0.35)] border border-[#E21B70]/30 bg-gradient-to-r from-[#E21B70] via-[#D70F64] to-[#B3084C] text-white"
+                        aria-label="Munchi se baat karein — Urdu mein order karein"
+                      >
+                        <div className="flex items-center gap-3.5 p-3.5 sm:p-4">
+                          <span className="relative shrink-0">
+                            <span className="absolute inset-0 rounded-full bg-white/40 animate-ping" aria-hidden="true" />
+                            <img
+                              src="/images/munchi.jpg"
+                              alt="Munchi — Dadu Food voice agent"
+                              className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover border-[3px] border-white shadow-lg"
+                            />
+                          </span>
+                          <span className="flex-1 min-w-0">
+                            <span className="block text-base sm:text-lg font-black leading-tight">
+                              Munchi se baat karein 🎙️
+                            </span>
+                            <span className="block text-[12px] sm:text-[13px] font-medium text-white/90 leading-snug mt-0.5">
+                              Urdu mein bol kar order karein — bas bolain, Munchi samajh jayega
+                            </span>
+                          </span>
+                          <span className="shrink-0 inline-flex items-center gap-1.5 bg-white text-[#E21B70] text-xs sm:text-sm font-black px-3.5 py-2.5 rounded-full shadow active:scale-95 transition">
+                            <Phone className="w-4 h-4" />
+                            Call karein
+                          </span>
+                        </div>
+                      </motion.button>
+                    )}
                     <motion.div
                       className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 pt-2.5 sm:pt-3"
                       variants={staggerContainer}
@@ -7339,7 +7430,7 @@ export default function App() {
           product cards; 44px tall with a 44×44 dismiss target. Auto-hides
           after 8s and while scrolling. */}
       <AnimatePresence>
-        {showInstallBubble && (
+        {showInstallBubble && !Capacitor.isNativePlatform() && (
           <motion.div
             initial={{ opacity: 0, scale: 0.8, x: -50 }}
             animate={{ opacity: isScrolling ? 0 : 1, scale: 1, x: 0 }}
