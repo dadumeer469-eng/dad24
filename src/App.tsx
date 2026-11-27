@@ -54,6 +54,8 @@ import { applyCatalogDelta, getCatalogDelta } from "./utils/catalogDelta";
 
 // Import modules
 import FoodpandaHeader from "./components/FoodpandaHeader";
+import AppUpdateBanner from "./components/AppUpdateBanner";
+import { checkForAppUpdate, type AppVersionInfo } from "./utils/appVersion";
 import FoodpandaHero from "./components/FoodpandaHero";
 import {
   OffersMarquee,
@@ -284,9 +286,27 @@ export default function App() {
   // Reduced motion: every hero / view / loading animation below collapses
   // to its instant final state when the OS asks for reduced motion.
   const prefersReducedMotion = usePrefersReducedMotion();
+  // App-update banner (user 28 Nov 02:55): when the admin publishes a
+  // new APK version (settings/app_version), show a "Naya version aa gaya!"
+  // banner with a Download button so old-app users can tap to install.
+  const [appUpdate, setAppUpdate] = useState<AppVersionInfo | null>(null);
+
   const [showSplash, setShowSplash] = useState(() => {
     return typeof window !== "undefined" && !sessionStorage.getItem("dadu_splash_seen");
   });
+
+  // Check once on mount whether a newer APK version was published.
+  useEffect(() => {
+    let cancelled = false;
+    checkForAppUpdate()
+      .then((info) => {
+        if (!cancelled && info) setAppUpdate(info);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [splashExiting, setSplashExiting] = useState(false);
   const [splashProgress, setSplashProgress] = useState(0);
   const initialUser = getCachedData<UserProfile | null>("dadu_cached_user", null);
@@ -5278,6 +5298,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#f7f4ee] dark:bg-[#0B0B0F] text-[#1f1b16] dark:text-[#F5F5F8] relative pb-28 md:pb-12 flex flex-col font-sans overflow-x-clip">
+      {appUpdate && <AppUpdateBanner info={appUpdate} />}
       {/* Skip link — first focusable element (a11y fix 27 Nov 2026); CSS in
           src/index.css (.skip-link). The info-page branch main below has
           id="main-content"; the catalog branch main keeps id=
