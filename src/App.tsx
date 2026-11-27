@@ -63,9 +63,6 @@ import {
   AppLoadingState,
   MenuSkeleton,
   ShimmerImage,
-  SectionHeading,
-  HomeSearchBar,
-  PromoDealCard,
 } from "./components/HomeMotion";
 import {
   heroContainer,
@@ -158,7 +155,6 @@ import {
   Minus,
   Star,
   ChevronRight,
-  ChevronDown,
   X,
   Bike,
   CheckCircle2,
@@ -5685,41 +5681,6 @@ export default function App() {
                       animate={prefersReducedMotion ? { x: "0%" } : { x: ["-160%", "520%"] }}
                       transition={prefersReducedMotion ? { duration: 0 } : { duration: 2.4, repeat: Infinity, repeatDelay: 4.5, ease: "easeInOut" }}
                     />
-                    {/* Delivery promise — Blinkit-style header: BIG bold delivery
-                        time + delivery address. Tapping it opens the location
-                        picker (same as the header location pill). The time is
-                        the real Dadu Food promise (admin setting, else 20–35
-                        min) — never the reel's "12 minutes". */}
-                    <motion.button
-                      type="button"
-                      onClick={() => {
-                        setLocationRequiredForOrder(false);
-                        setShowLocationPrompt(true);
-                      }}
-                      className="relative z-10 w-full flex items-center gap-3 px-4 sm:px-6 pt-4 pb-1 text-left cursor-pointer"
-                      aria-label="Delivery time and address — tap to change location"
-                      initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={motionTransition(prefersReducedMotion, { ...springGentle, delay: 0.15 })}
-                    >
-                      <span className="text-[28px] sm:text-4xl font-black tracking-tight text-white leading-none tabular-nums whitespace-nowrap">
-                        {deliveryTimeTextSetting || "20–35 min"}
-                      </span>
-                      <span className="min-w-0 flex-1 border-l-2 border-white/40 pl-3">
-                        <span className="block text-[11px] font-bold uppercase tracking-wider text-white/85 leading-none">
-                          Delivery in Dadu
-                        </span>
-                        <span className="mt-1 flex items-center gap-1 text-[13px] sm:text-sm font-semibold text-white leading-tight">
-                          <MapPin className="w-3.5 h-3.5 shrink-0" />
-                          <span className="truncate">
-                            {manualAddress
-                              ? `${manualAddress.area}, ${manualAddress.street}`
-                              : currentUser?.address || (globalCoords ? "GPS Live Location · Dadu" : "Set your delivery location")}
-                          </span>
-                          <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-85" />
-                        </span>
-                      </span>
-                    </motion.button>
                     {/* Headline + rider row */}
                     <div className="relative min-h-[185px] sm:min-h-[220px]">
                       <motion.img
@@ -5757,19 +5718,9 @@ export default function App() {
                           transition={motionTransition(prefersReducedMotion, { ...springGentle, delay: 0.45 })}
                         >
                           <Clock className="w-4 h-4 shrink-0" />
-                          COD &amp; Easypaisa
+                          {deliveryTimeTextSetting || "25–35 min"} • COD &amp; Easypaisa
                         </motion.p>
                       </div>
-                    </div>
-                    {/* Prominent home search — Blinkit-style white pill with
-                        rotating dish suggestions. Wired to the app search, so
-                        typing filters the catalogue below. Enter scrolls there. */}
-                    <div className="relative z-10 px-4 sm:px-6 pt-2 pb-1">
-                      <HomeSearchBar
-                        value={searchQuery}
-                        onChange={setSearchQuery}
-                        onSubmit={() => document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth" })}
-                      />
                     </div>
                     <motion.div
                       className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 p-2.5 sm:p-3 pt-1"
@@ -5901,47 +5852,6 @@ export default function App() {
                     </motion.div>
                   </div>
                 </section>
-
-                {/* Category chips — Blinkit-style horizontal chip row (real food
-                    categories). Tapping one filters the menu below. */}
-                <div className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-3">
-                  <div
-                    className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1 pr-4 touch-pan-both"
-                    role="group"
-                    aria-label="Food categories"
-                  >
-                    {[
-                      { name: "All" },
-                      // Raw food categories (same source as the Cuisines row) —
-                      // these resolve even when the dish catalogue is empty,
-                      // unlike normalizedFoodCategories which hides 0-item cats.
-                      ...[...foodCategories]
-                        .filter((c) => !c.name.toLowerCase().includes("home service") && c.name !== "All")
-                        .sort((a, b) => (a.position || 0) - (b.position || 0)),
-                    ].map((cat) => {
-                      const active = activeCategory === cat.name;
-                      return (
-                        <button
-                          key={cat.name}
-                          type="button"
-                          onClick={() => {
-                            setActiveCategory(cat.name);
-                            setQuickFilter("all");
-                            document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth" });
-                          }}
-                          aria-pressed={active}
-                          className={`shrink-0 min-h-[44px] px-4 rounded-full text-xs font-extrabold tracking-tight transition active:scale-[0.97] cursor-pointer border ${
-                            active
-                              ? "bg-[#E21B70] text-white border-[#D70F64] shadow-md"
-                              : "bg-white dark:bg-[#14141A] text-[#111118] dark:text-[#F5F5F8] border-[#E6E6EE] dark:border-[#272733] hover:border-[#D70F64]/60"
-                          }`}
-                        >
-                          {cat.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
 
                 {/* Thin pink route line — the delivery journey in one line */}
                 <div aria-hidden="true" className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-3">
@@ -6082,7 +5992,7 @@ export default function App() {
                           <Compass className="w-4.5 h-4.5" />
                         </div>
                         <div>
-                          <h2 className="text-xl sm:text-2xl font-black tracking-tight text-[#111118] dark:text-[#F5F5F8] leading-tight">
+                          <h2 className="text-sm font-semibold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
                             Partner Restaurants in Dadu
                           </h2>
                           <p className="text-xs text-[#5A5A6B] dark:text-[#A3A3B5]">
@@ -6201,17 +6111,21 @@ export default function App() {
                 </div>
               </FoodpandaHero>
 
-              {/* Bestsellers — auto-playing carousel of real bestsellers */}
+              {/* Today's Deals — auto-playing carousel of real bestsellers */}
               <ScrollReveal className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-6">
-                <SectionHeading
-                  title="Bestsellers"
-                  subtitle="Dadu's favourites, fresh and fast"
-                  action={
-                    <span className="rounded-full bg-[#E21B70]/10 px-2.5 py-1 text-[11px] font-black text-[#E21B70]">
-                      Auto-play
-                    </span>
-                  }
-                />
+                <div className="flex items-end justify-between mb-2">
+                  <div>
+                    <h2 className="text-sm sm:text-base font-extrabold tracking-tight text-[#14141A] dark:text-[#F5F5F8]">
+                      Today's Deals
+                    </h2>
+                    <p className="text-[11px] sm:text-xs font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-0.5">
+                      Dadu's favourites, fresh and fast
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-[#E21B70]/10 px-2.5 py-1 text-[11px] font-black text-[#E21B70]">
+                    Auto-play
+                  </span>
+                </div>
                 <OffersCarousel dishes={popularDishesForCart} onAdd={handleAddToCart} />
               </ScrollReveal>
 
@@ -6221,23 +6135,68 @@ export default function App() {
                   first dish so the cart total equals the deal price. */}
               {availableDeals.length > 0 && (
                 <ScrollReveal className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-6">
-                  <SectionHeading
-                    title="Meal Deals"
-                    subtitle="Bundle price applied in your cart — one tap adds the whole deal"
-                    action={
-                      <span className="rounded-full bg-[#E21B70]/10 px-2.5 py-1 text-[11px] font-black text-[#E21B70]">
-                        Save 10–20%
-                      </span>
-                    }
-                  />
+                  <div className="flex items-end justify-between mb-2">
+                    <div>
+                      <h2 className="text-sm sm:text-base font-extrabold tracking-tight text-[#14141A] dark:text-[#F5F5F8]">
+                        Meal Deals — Save up to 20%
+                      </h2>
+                      <p className="text-[11px] sm:text-xs font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-0.5">
+                        Bundle price applied in your cart — one tap adds the whole deal
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-[#E21B70]/10 px-2.5 py-1 text-[11px] font-black text-[#E21B70]">
+                      Save 10–20%
+                    </span>
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {availableDeals.map(({ deal, items }) => (
-                      <PromoDealCard
+                      <article
                         key={deal.id}
-                        deal={deal}
-                        items={items}
-                        onAdd={handleAddDeal}
-                      />
+                        className="bg-white dark:bg-[#14141A] border border-[#e8e2d6] dark:border-[#272733] rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.05)] flex gap-3 p-3"
+                      >
+                        <ShimmerImage
+                          src={items[0].dish.imageUrl || "/images/dishes/pizza.jpg"}
+                          alt={deal.title}
+                          className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl shrink-0"
+                          imgClassName="object-cover"
+                          loading="lazy"
+                        />
+                        <div className="min-w-0 flex-1 flex flex-col">
+                          <div className="flex items-center gap-2">
+                            <span className="rounded-full bg-[#E21B70]/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-[#E21B70]">
+                              {deal.tag}
+                            </span>
+                            <span className="rounded-full bg-[#15803D]/10 px-2 py-0.5 text-[10px] font-black text-[#15803D] dark:text-[#4ADE80]">
+                              Save Rs. {dealSavings(deal)} · {dealDiscountPct(deal)}% off
+                            </span>
+                          </div>
+                          <h3 className="text-sm font-extrabold tracking-tight text-[#14141A] dark:text-white leading-snug mt-1.5">
+                            {deal.title}
+                          </h3>
+                          <p className="text-[11px] sm:text-xs text-[#5A5A6B] dark:text-[#A3A3B5] leading-snug mt-0.5 line-clamp-2">
+                            {deal.description}
+                          </p>
+                          <p className="text-[11px] font-semibold text-[#14141A] dark:text-white mt-1 line-clamp-2">
+                            {items.map(({ dish, qty }) => `${qty > 1 ? `${qty}× ` : ""}${dish.name}`).join(" + ")}
+                          </p>
+                          <div className="mt-auto pt-2 flex items-center justify-between gap-2">
+                            <p className="text-sm font-black text-[#14141A] dark:text-white tabular-nums">
+                              Rs. {deal.dealPrice}{" "}
+                              <span className="text-[11px] font-bold text-[#5A5A6B] dark:text-[#A3A3B5] line-through">
+                                Rs. {deal.originalTotal}
+                              </span>
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => handleAddDeal(deal)}
+                              aria-label={`Add ${deal.title} deal to cart for Rs. ${deal.dealPrice}`}
+                              className="min-h-[44px] px-4 rounded-xl bg-[#D70F64] hover:bg-[#B80C54] text-white text-[11px] font-extrabold cursor-pointer transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 shrink-0"
+                            >
+                              Add Deal
+                            </button>
+                          </div>
+                        </div>
+                      </article>
                     ))}
                   </div>
                 </ScrollReveal>
@@ -6502,7 +6461,7 @@ export default function App() {
                     </div>
 
                     <div className="flex items-center justify-between gap-2 flex-wrap border-b border-[#E6E6EE] dark:border-[#272733] pb-2.5">
-                      <h2 className="text-xl sm:text-2xl font-black tracking-tight text-[#111118] dark:text-[#F5F5F8] leading-tight">
+                      <h2 className="text-base sm:text-lg font-semibold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
                         {quickFilter !== "all"
                           ? quickFilter === "top_rated"
                             ? "Featured Picks"
@@ -6520,7 +6479,7 @@ export default function App() {
                               ? "Restaurants in Dadu"
                               : activeCategory
                             : selectedRestaurant}{" "}
-                        <span className="text-sm sm:text-base font-bold text-[#5A5A6B] dark:text-[#A3A3B5] tabular-nums">
+                        <span className="text-sm font-semibold text-[#5A5A6B] dark:text-[#A3A3B5] tabular-nums">
                           ({selectedRestaurant === "All Restaurants" && activeCategory === "All" && !searchQuery && quickFilter === "all" && !showFavoritesOnly ? `${uniqueRestaurants.length} kitchens` : `${filteredDishes.length} items`})
                         </span>
                       </h2>
@@ -6658,7 +6617,7 @@ export default function App() {
                                   )}
 
                                   <div className="absolute bottom-3 left-4 right-4 text-white">
-                                    <h3 className="font-black text-lg sm:text-xl tracking-tight leading-tight mb-0.5">
+                                    <h3 className="font-extrabold text-lg sm:text-xl tracking-tight leading-tight mb-0.5">
                                       {vendor}
                                     </h3>
                                     <p className="text-xs text-white/85 line-clamp-1 mb-1.5">
@@ -6839,7 +6798,7 @@ export default function App() {
                 {/* About Dadu Food — homepage copy (SEO: real local keywords, no FAQ section) */}
                 <section className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-6">
                   <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-4 border border-[#e8e2d6] dark:border-[#272733] shadow-xs">
-                    <h2 className="text-xl sm:text-2xl font-black tracking-tight text-[#111118] dark:text-[#F5F5F8] leading-tight">
+                    <h2 className="text-sm sm:text-base font-semibold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
                       About Dadu Food — Dadu City&apos;s Own Delivery Service
                     </h2>
                     <p className="text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed">
@@ -6884,7 +6843,7 @@ export default function App() {
                 {/* Delivery areas in Dadu — homepage copy (SEO: real delivery areas) */}
                 <ScrollReveal className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-6">
                   <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-4 border border-[#e8e2d6] dark:border-[#272733] shadow-xs">
-                    <h2 className="text-xl sm:text-2xl font-black tracking-tight text-[#111118] dark:text-[#F5F5F8] leading-tight">
+                    <h2 className="text-sm sm:text-base font-semibold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
                       We Deliver Across Dadu City
                     </h2>
                     <p className="text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed">
@@ -6917,7 +6876,7 @@ export default function App() {
                     .faq-answer for the SpeakableSpecification selector) */}
                 <ScrollReveal className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-6">
                   <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-3 border border-[#e8e2d6] dark:border-[#272733] shadow-xs">
-                    <h2 className="text-xl sm:text-2xl font-black tracking-tight text-[#111118] dark:text-[#F5F5F8] leading-tight">
+                    <h2 className="text-sm sm:text-base font-semibold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
                       Frequently Asked Questions — Dadu Food
                     </h2>
                     <p className="speakable-summary text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed">
