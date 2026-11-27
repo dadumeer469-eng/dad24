@@ -525,6 +525,10 @@ export default function AdminPanel({
   const [newPasswordInputValue, setNewPasswordInputValue] = useState<string>("");
   const [showPasswordId, setShowPasswordId] = useState<string | null>(null);
   const [selectedRiderStatsId, setSelectedRiderStatsId] = useState<string | null>(null);
+  // Easypaisa verification in flight (order id) — disables the Verify /
+  // Reject buttons while a verification is running so a double-click
+  // cannot double-verify or double-reject the same order.
+  const [verifyingOrderId, setVerifyingOrderId] = useState<string | null>(null);
   const [statsTimeframe, setStatsTimeframe] = useState<"1day" | "7days" | "30days" | "60days" | "all">("all");
   const [showSettledHistory, setShowSettledHistory] = useState<boolean>(false);
 
@@ -2498,6 +2502,12 @@ export default function AdminPanel({
             query(collection(db, "groceryProducts"), where("categoryId", "==", catId)),
           );
           await Promise.all(prods.docs.map((d) => deleteDoc(d.ref)));
+          // B7: tombstone each deleted product too — without per-item
+          // "delete" entries, mergeOwnerFirst would resurrect owner
+          // products (og_/gcat_) from the local seed on the next load.
+          prods.docs.forEach((d) =>
+            recordCatalogChange("groceryProducts", d.id, "delete"),
+          );
           await deleteDoc(doc(db, "groceryCategories", catId));
           recordCatalogChange("groceryCategories", catId, "delete");
           // Bulk product delete — user pages re-fetch the whole collection.
@@ -3024,6 +3034,11 @@ export default function AdminPanel({
             deleteDoc(doc(db, "menu", d.id)),
           );
           await Promise.all(deletePromises);
+          // B7: tombstone each deleted dish too, so the seed guard cannot
+          // resurrect owner dishes from the local menu seed.
+          dishesToDelete.forEach((d) =>
+            recordCatalogChange("menu", d.id, "delete"),
+          );
           // Bulk delete — user pages re-fetch the whole menu once.
           recordCatalogFull("menu");
 
@@ -3179,14 +3194,19 @@ export default function AdminPanel({
 
   // Easypaisa payment verification: receipt confirmed -> order becomes confirmed
   const handleVerifyEasypaisaPayment = async (orderId: string) => {
+    if (verifyingOrderId === orderId) return; // double-tap guard
+    const targetOrder = orders.find((o) => o.id === orderId);
+    setVerifyingOrderId(orderId);
     try {
       await updateDoc(doc(db, "orders", orderId), {
         status: "confirmed",
         paymentVerified: true,
         paymentRejected: false,
         paymentVerifiedAt: { seconds: Date.now() / 1000 },
+        // M23: snapshot the amount that was actually verified, so the
+        // receipt is bound to the order total at verification time.
+        paymentVerifiedAmount: targetOrder?.grandTotal ?? null,
       });
-      const targetOrder = orders.find((o) => o.id === orderId);
       if (targetOrder) {
         await addDoc(collection(db, "notifications"), {
           userId: targetOrder.userId,
@@ -3198,15 +3218,20 @@ export default function AdminPanel({
       }
     } catch (err) {
       console.error(err);
+      alert("Verification save nahi ho saki — dobara try karein. " + handleFirestoreError(err));
+    } finally {
+      setVerifyingOrderId(null);
     }
   };
 
   // Easypaisa payment rejection: ask reason -> order cancelled + customer notified
   const handleRejectEasypaisaPayment = async (orderId: string) => {
+    if (verifyingOrderId === orderId) return; // double-tap guard
     const reason = prompt(
       "Payment reject karne ki wajah likhein (customer ko bheji jayegi):",
     );
     if (reason === null) return; // User pressed cancel on the prompt
+    setVerifyingOrderId(orderId);
     try {
       await updateDoc(doc(db, "orders", orderId), {
         status: "cancelled",
@@ -3229,6 +3254,9 @@ export default function AdminPanel({
       }
     } catch (err) {
       console.error(err);
+      alert("Rejection save nahi ho saki — dobara try karein. " + handleFirestoreError(err));
+    } finally {
+      setVerifyingOrderId(null);
     }
   };
 
@@ -3240,19 +3268,31 @@ export default function AdminPanel({
     if (!riderIdValue && !etaValue) return;
 
     try {
+      const targetOrder = orders.find((o) => o.id === orderId);
       const updates: any = {};
       if (riderIdValue) {
         const selectedRider = ridersSubset.find(r => r.uid === riderIdValue);
         if (selectedRider) {
           updates.riderId = selectedRider.uid;
           updates.riderName = selectedRider.name;
+          // M12: an assigned order must not stay "confirmed" — with a
+          // riderId set it disappears from the riders' available list
+          // (which only shows confirmed orders WITHOUT a rider), and
+          // with status "confirmed" it never enters a rider's active
+          // list, so nobody can move it. Mark it accepted so the
+          // assigned rider can start it. Only for confirmed food/grocery
+          // orders — never force-accept an unapproved order, and never
+          // touch the service pipeline (booked service orders).
+          if (targetOrder?.status === "confirmed" && targetOrder?.orderType !== "service") {
+            updates.status = "accepted";
+            updates.acceptedAt = { seconds: Date.now() / 1000 };
+          }
         } else {
           updates.riderName = riderIdValue; // fallback for string
         }
       }
       if (etaValue) {
         updates.eta = etaValue;
-        const targetOrder = orders.find((o) => o.id === orderId);
         if (targetOrder && targetOrder.orderType === "service") {
           updates.serviceTiming = etaValue;
         }
@@ -6419,21 +6459,23 @@ export default function AdminPanel({
                                   <div className="flex flex-wrap gap-2">
                                     <button
                                       type="button"
+                                      disabled={verifyingOrderId === order.id}
                                       onClick={() =>
                                         handleVerifyEasypaisaPayment(order.id)
                                       }
-                                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider cursor-pointer transition hover:scale-[1.02] active:scale-95"
+                                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider cursor-pointer transition hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-wait disabled:hover:scale-100"
                                     >
-                                      ✅ Verify & Confirm Order
+                                      {verifyingOrderId === order.id ? "⏳ Verifying…" : "✅ Verify & Confirm Order"}
                                     </button>
                                     <button
                                       type="button"
+                                      disabled={verifyingOrderId === order.id}
                                       onClick={() =>
                                         handleRejectEasypaisaPayment(order.id)
                                       }
-                                      className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider cursor-pointer transition hover:scale-[1.02] active:scale-95"
+                                      className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider cursor-pointer transition hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-wait disabled:hover:scale-100"
                                     >
-                                      ❌ Reject Payment
+                                      {verifyingOrderId === order.id ? "⏳ Working…" : "❌ Reject Payment"}
                                     </button>
                                   </div>
                                 )}
