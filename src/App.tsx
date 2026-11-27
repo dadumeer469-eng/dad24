@@ -54,6 +54,12 @@ import { applyCatalogDelta, getCatalogDelta } from "./utils/catalogDelta";
 // Import modules
 import FoodpandaHeader from "./components/FoodpandaHeader";
 import FoodpandaHero from "./components/FoodpandaHero";
+import {
+  OffersMarquee,
+  AnimatedCounter,
+  OffersCarousel,
+  ScrollReveal,
+} from "./components/HomeMotion";
 import CartDrawer from "./components/CartDrawer";
 import VoiceOrderModal, { type VoiceOrder, type VoiceOrderResult } from "./components/VoiceOrderModal";
 import { primeAudio } from "./utils/primeAudio";
@@ -5327,6 +5333,13 @@ export default function App() {
                 {/* Dadu Food hero banner — Foodpanda-style, richer: headline + rider + 4 service tiles */}
                 <section className="max-w-7xl mx-auto px-3.5 sm:px-4 pt-3.5 pb-1">
                   <div className="rounded-[28px] bg-[#E21B70] shadow-[0_8px_24px_rgba(0,0,0,0.06)] relative overflow-hidden animate-fade-in">
+                    {/* Shine sweep across the pink banner */}
+                    <motion.div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/25 to-transparent skew-x-[-18deg]"
+                      animate={{ x: ["-160%", "520%"] }}
+                      transition={{ duration: 2.4, repeat: Infinity, repeatDelay: 4.5, ease: "easeInOut" }}
+                    />
                     {/* Headline + rider row */}
                     <div className="relative min-h-[185px] sm:min-h-[220px]">
                       <img
@@ -5336,10 +5349,29 @@ export default function App() {
                         loading="eager"
                         decoding="async"
                       />
-                      <div className="relative z-10 px-4 sm:px-6 pt-5 sm:pt-7 pb-4 max-w-[62%] sm:max-w-[58%] animate-slide-in-left">
-                        <h1 className="text-[27px] sm:text-4xl font-medium leading-[1.05] text-white tracking-tight">
-                          Dadu Food — Fast Delivery
-                        </h1>
+                      <div className="relative z-10 px-4 sm:px-6 pt-5 sm:pt-7 pb-4 max-w-[62%] sm:max-w-[58%]">
+                        <motion.h1
+                          className="text-[27px] sm:text-4xl font-medium leading-[1.05] text-white tracking-tight"
+                          initial="hidden"
+                          animate="visible"
+                          variants={{
+                            hidden: {},
+                            visible: { transition: { staggerChildren: 0.09, delayChildren: 0.1 } },
+                          }}
+                        >
+                          {["Dadu", "Food", "—", "Fast", "Delivery"].map((word) => (
+                            <motion.span
+                              key={word}
+                              className="inline-block mr-[0.28em]"
+                              variants={{
+                                hidden: { opacity: 0, y: 18, scale: 0.94 },
+                                visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 320, damping: 24 } },
+                              }}
+                            >
+                              {word}
+                            </motion.span>
+                          ))}
+                        </motion.h1>
                         <p className="mt-3 flex items-center gap-1.5 text-[12px] sm:text-sm font-medium text-white/95">
                           <Clock className="w-4 h-4 shrink-0" />
                           25–35 min • COD &amp; Easypaisa
@@ -5573,6 +5605,23 @@ export default function App() {
                   );
                 })()}
 
+                {/* Scrolling offers ticker */}
+                <div className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-3">
+                  <div className="overflow-hidden rounded-full">
+                    <OffersMarquee
+                      items={[
+                        "Free delivery over Rs. 1,000",
+                        "20–35 min delivery",
+                        "Cash on Delivery & Easypaisa",
+                        "297 groceries in Dadu",
+                        "152 dishes • 3 restaurants",
+                        "Station Road • College Road • Shahani Paro",
+                        "Fresh, hot & fast — Dadu Food",
+                      ]}
+                    />
+                  </div>
+                </div>
+
                 {/* Cuisines Row & Partner Restaurants Strip */}
                 <FoodpandaHero
                   activeCategory={activeCategory}
@@ -5708,6 +5757,24 @@ export default function App() {
                   </div>
                 </div>
               </FoodpandaHero>
+
+              {/* Today's Deals — auto-playing carousel of real bestsellers */}
+              <ScrollReveal className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-6">
+                <div className="flex items-end justify-between mb-2">
+                  <div>
+                    <h2 className="text-sm sm:text-base font-extrabold tracking-tight text-[#14141A] dark:text-[#F5F5F8]">
+                      Today's Deals
+                    </h2>
+                    <p className="text-[11px] sm:text-xs font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-0.5">
+                      Dadu's favourites, fresh and fast
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-[#E21B70]/10 px-2.5 py-1 text-[11px] font-black text-[#E21B70]">
+                    Auto-play
+                  </span>
+                </div>
+                <OffersCarousel dishes={popularDishesForCart} onAdd={handleAddToCart} />
+              </ScrollReveal>
 
               {/* Active Order Banner Cards (Horizontal Scroll) */}
               {(() => {
@@ -6369,7 +6436,7 @@ export default function App() {
                 </section>
 
                 {/* Delivery areas in Dadu — homepage copy (SEO: real delivery areas) */}
-                <section className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-6">
+                <ScrollReveal className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-6">
                   <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-4 border border-[#e8e2d6] dark:border-[#272733] shadow-xs">
                     <h2 className="text-sm sm:text-base font-semibold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
                       We Deliver Across Dadu City
@@ -6380,6 +6447,12 @@ export default function App() {
                       choose your meal, pay by Cash on Delivery or Easypaisa, and track it live until it arrives.
                       That is why families across the city call Dadu Food the best food delivery in Dadu.
                     </p>
+                    <div className="grid grid-cols-4 gap-2 rounded-2xl bg-[#FFF0F5] dark:bg-[#2A101B] border border-[#E21B70]/15 px-2 py-3">
+                      <AnimatedCounter to={297} label="Groceries" />
+                      <AnimatedCounter to={152} label="Dishes" />
+                      <AnimatedCounter to={3} label="Restaurants" />
+                      <AnimatedCounter to={35} suffix=" min" label="Max delivery" />
+                    </div>
                     <div className="flex flex-wrap gap-1.5">
                       {["Shahani Paro", "Moro Road", "Station Road", "College Road", "Makhdoom Bilawal Nagar", "Civil Hospital Road", "Degree College Road", "New Bus Stand", "Kacheri Road", "Dadu City Center"].map((area) => (
                         <span
@@ -6391,12 +6464,12 @@ export default function App() {
                       ))}
                     </div>
                   </div>
-                </section>
+                </ScrollReveal>
 
                 {/* Frequently asked questions — visible FAQ (AEO: the same 17
                     Q&As as the FAQPage schema in seoManager.ts; answers carry
                     .faq-answer for the SpeakableSpecification selector) */}
-                <section className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-6">
+                <ScrollReveal className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-6">
                   <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-3 border border-[#e8e2d6] dark:border-[#272733] shadow-xs">
                     <h2 className="text-sm sm:text-base font-semibold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
                       Frequently Asked Questions — Dadu Food
@@ -6423,7 +6496,7 @@ export default function App() {
                       ))}
                     </Accordion>
                   </div>
-                </section>
+                </ScrollReveal>
 
             </>
           </motion.div>
