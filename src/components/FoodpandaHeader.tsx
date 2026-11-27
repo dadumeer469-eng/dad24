@@ -248,7 +248,10 @@ export default function FoodpandaHeader({
             </>
           )}
           {groceryCartCount > 0 && (
-            <span className={`text-[10px] font-semibold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center tabular-nums ${activeModule === "grocery" ? "bg-white text-[#D70F64]" : "bg-[#D70F64] text-white"}`}>
+            <span
+              key={groceryCartCount}
+              className={`animate-cart-pop text-[10px] font-semibold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center tabular-nums ${activeModule === "grocery" ? "bg-white text-[#D70F64]" : "bg-[#D70F64] text-white"}`}
+            >
               {groceryCartCount}
             </span>
           )}

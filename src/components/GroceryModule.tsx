@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from "react";
+import { motion, useReducedMotion } from "motion/react";
+import { springBouncy, springSnappy } from "../utils/motion";
 import { GroceryCategory, GroceryProduct, GroceryOrderItem } from "../types";
 import { Check, Package, Plus, Minus, ChevronDown, ChevronRight, Heart } from "lucide-react";
 import { LazyImage } from "./LazyImage";
@@ -83,7 +85,7 @@ function GroceryProductImage({
       decoding="async"
       referrerPolicy="no-referrer"
       onError={() => setImgFailed(true)}
-      className="relative w-full h-full object-cover transition-transform duration-180"
+      className="relative w-full h-full object-cover transition-transform duration-180 group-hover:scale-105"
     />
   );
 }
@@ -124,6 +126,8 @@ export default function GroceryModule({
   // display concern (e.g. "Show all N items" while searching), not a
   // navigation sub-view, so the back-button controller does not need it.
   const [showAllInCategory, setShowAllInCategory] = useState<boolean>(Boolean(initialCategoryId));
+  // Reduced motion: micro-interactions become instant state changes.
+  const reduceMotion = useReducedMotion();
 
   // Pharmacy route (mobile-UX finding F2, fix 27 Nov 2026): App passes
   // initialCategoryId="gcat_medicine" only on /pharmacy, so this is the
@@ -249,9 +253,11 @@ export default function GroceryModule({
     const isCigarette = p.categoryId === "gcat_cigarettes";
 
     return (
-      <div
+      <motion.div
         key={p.id}
-        className="bg-[#fdfbf7] dark:bg-[#2A101B] border border-[#e8e2d6] dark:border-[#D70F64]/25 rounded-2xl overflow-hidden shadow-xs hover:shadow-md hover:border-[#D70F64]/50 transition-[color,background-color,border-color,transform,opacity] duration-180 flex flex-col relative group"
+        whileHover={reduceMotion ? undefined : { y: -2 }}
+        transition={springSnappy}
+        className="bg-[#fdfbf7] dark:bg-[#2A101B] border border-[#e8e2d6] dark:border-[#D70F64]/25 rounded-2xl overflow-hidden shadow-xs hover:shadow-md hover:border-[#D70F64]/50 transition-[color,background-color,border-color,opacity] duration-180 flex flex-col relative group"
       >
         <div className="relative h-[104px] sm:h-32 md:h-36 bg-[#fdfbf7] dark:bg-[#2A101B] shrink-0 select-none overflow-hidden">
           {/* Loading shimmer so the tile never looks blank pink while the photo loads */}
@@ -285,11 +291,20 @@ export default function GroceryModule({
             aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
             className="absolute top-2 right-2 z-10 w-11 h-11 flex items-center justify-center cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110 rounded-full focus-visible:outline-2 focus-visible:outline-white"
           >
-            <Heart
-              className={`w-5 h-5 drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)] ${
-                isFav ? "fill-[#D70F64] text-[#D70F64]" : "text-[#D70F64]"
-              }`}
-            />
+            {/* Heart pops with a spring whenever the favourite state flips */}
+            <motion.span
+              key={isFav ? "fav" : "not-fav"}
+              initial={reduceMotion ? false : { scale: 0.5 }}
+              animate={{ scale: 1 }}
+              transition={springBouncy}
+              className="flex"
+            >
+              <Heart
+                className={`w-5 h-5 drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)] ${
+                  isFav ? "fill-[#D70F64] text-[#D70F64]" : "text-[#D70F64]"
+                }`}
+              />
+            </motion.span>
           </button>
         </div>
 
@@ -318,25 +333,41 @@ export default function GroceryModule({
                   </span>
                 )}
               </div>
-              <div className="flex items-center justify-between bg-[#D70F64] text-white p-0.5 rounded-full shadow-sm">
-                <button
+              <motion.div
+                initial={reduceMotion ? false : { scale: 0.92, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={springSnappy}
+                className="flex items-center justify-between bg-[#D70F64] text-white p-0.5 rounded-full shadow-sm"
+              >
+                <motion.button
                   type="button"
+                  whileTap={reduceMotion ? undefined : { scale: 0.88 }}
                   onClick={() => onUpdateCartQuantity(p.id, qty - 1)}
                   aria-label="Decrease quantity"
-                  className="w-11 h-11 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110 focus-visible:outline-2 focus-visible:outline-white"
+                  className="w-11 h-11 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center cursor-pointer focus-visible:outline-2 focus-visible:outline-white"
                 >
                   <Minus className="w-3.5 h-3.5" />
-                </button>
-                <span className="text-xs font-semibold px-1 min-w-[18px] text-center transition-[color,background-color,border-color,transform,opacity] duration-180">{qty}</span>
-                <button
+                </motion.button>
+                {/* Qty pops briefly on every change */}
+                <motion.span
+                  key={qty}
+                  initial={reduceMotion ? false : { scale: 1.35 }}
+                  animate={{ scale: 1 }}
+                  transition={springSnappy}
+                  className="text-xs font-semibold px-1 min-w-[18px] text-center"
+                >
+                  {qty}
+                </motion.span>
+                <motion.button
                   type="button"
+                  whileTap={reduceMotion ? undefined : { scale: 0.88 }}
                   onClick={() => onUpdateCartQuantity(p.id, qty + 1)}
                   aria-label="Increase quantity"
-                  className="w-11 h-11 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110 focus-visible:outline-2 focus-visible:outline-white"
+                  className="w-11 h-11 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center cursor-pointer focus-visible:outline-2 focus-visible:outline-white"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                </button>
-              </div>
+                </motion.button>
+              </motion.div>
             </div>
           ) : (
             <div className="flex items-center justify-between gap-1">
@@ -356,19 +387,20 @@ export default function GroceryModule({
                   Out of stock
                 </span>
               ) : (
-                <button
+                <motion.button
                   type="button"
+                  whileTap={reduceMotion ? undefined : { scale: 0.88 }}
                   onClick={() => onAddToCart(p)}
                   aria-label={`Add ${p.name} to cart`}
-                  className="w-11 h-11 rounded-full btn-pink text-white flex items-center justify-center cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110 shrink-0 shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70] relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-[opacity,transform] after:duration-180 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
+                  className="w-11 h-11 rounded-full btn-pink text-white flex items-center justify-center cursor-pointer active:brightness-110 shrink-0 shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70] relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-[opacity,transform] after:duration-180 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
                 >
                   <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </button>
+                </motion.button>
               )}
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
     );
   };
 

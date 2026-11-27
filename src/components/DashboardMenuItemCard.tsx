@@ -1,4 +1,6 @@
 import React from "react";
+import { motion, useReducedMotion } from "motion/react";
+import { springBouncy, springSnappy } from "../utils/motion";
 import { Dish } from "../types";
 import { LazyImage } from "./LazyImage";
 import { Heart, Clock, BadgeAlert, Plus, Minus } from "lucide-react";
@@ -28,10 +30,14 @@ export const DashboardMenuItemCard = React.memo(function DashboardMenuItemCard({
   onUpdateCartQuantity,
 }: DashboardMenuItemCardProps) {
   const dishRestaurantName = dish.restaurantName || "Dadu Fast Food & Kitchen";
+  // Reduced motion: micro-interactions become instant state changes.
+  const reduceMotion = useReducedMotion();
 
   return (
-    <div
-      className={`bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl overflow-hidden shadow-xs hover:border-[#E21B70]/45 hover:shadow-md transition-all duration-300 md:hover:-translate-y-0.5 flex flex-col group relative text-[#14141A] dark:text-[#F5F5F8] ${
+    <motion.div
+      whileHover={reduceMotion ? undefined : { y: -2 }}
+      transition={springSnappy}
+      className={`bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl overflow-hidden shadow-xs hover:border-[#E21B70]/45 hover:shadow-md transition-[border-color,box-shadow] duration-300 flex flex-col group relative text-[#14141A] dark:text-[#F5F5F8] ${
         isRestaurantClosed ? "opacity-75 grayscale-[15%]" : ""
       }`}
     >
@@ -89,13 +95,22 @@ export const DashboardMenuItemCard = React.memo(function DashboardMenuItemCard({
           aria-label={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
           title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
         >
-          <Heart
-            className={`w-4 h-4 ${
-              isFavorite
-                ? "fill-[#E21B70] text-[#E21B70]"
-                : "text-[#5A5A6B] dark:text-[#A1A1B2]"
-            }`}
-          />
+          {/* Heart pops with a spring whenever the favourite state flips */}
+          <motion.span
+            key={isFavorite ? "fav" : "not-fav"}
+            initial={reduceMotion ? false : { scale: 0.5 }}
+            animate={{ scale: 1 }}
+            transition={springBouncy}
+            className="flex"
+          >
+            <Heart
+              className={`w-4 h-4 ${
+                isFavorite
+                  ? "fill-[#E21B70] text-[#E21B70]"
+                  : "text-[#5A5A6B] dark:text-[#A1A1B2]"
+              }`}
+            />
+          </motion.span>
         </button>
 
         {/* Discount Tag */}
@@ -148,30 +163,45 @@ export const DashboardMenuItemCard = React.memo(function DashboardMenuItemCard({
         {/* Add / Stepper CTA (>=44px touch target) */}
         <div className="pt-1 shrink-0">
           {quantityInCart > 0 ? (
-            <div className="flex items-center justify-between bg-[#FDF2F6] dark:bg-[#2A121D] border border-[#E21B70]/30 p-1 rounded-xl">
-              <button
+            <motion.div
+              initial={reduceMotion ? false : { scale: 0.92, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={springSnappy}
+              className="flex items-center justify-between bg-[#FDF2F6] dark:bg-[#2A121D] border border-[#E21B70]/30 p-1 rounded-xl"
+            >
+              <motion.button
                 type="button"
+                whileTap={reduceMotion ? undefined : { scale: 0.88 }}
                 onClick={() => onUpdateCartQuantity(dish.id, quantityInCart - 1)}
                 aria-label="Decrease quantity"
-                className="w-11 h-11 rounded-lg bg-white dark:bg-[#14141A] text-[#14141A] dark:text-white transition-transform duration-180 active:scale-[0.97] active:brightness-110 font-bold flex items-center justify-center cursor-pointer"
+                className="w-11 h-11 rounded-lg bg-white dark:bg-[#14141A] text-[#14141A] dark:text-white active:brightness-110 font-bold flex items-center justify-center cursor-pointer"
               >
                 <Minus className="w-4 h-4" />
-              </button>
-              <span className="text-xs font-extrabold text-[#E21B70] dark:text-[#FF4D94] font-mono tabular-nums px-2 transition-all duration-200">
+              </motion.button>
+              {/* Qty pops briefly on every change */}
+              <motion.span
+                key={quantityInCart}
+                initial={reduceMotion ? false : { scale: 1.35 }}
+                animate={{ scale: 1 }}
+                transition={springSnappy}
+                className="text-xs font-extrabold text-[#E21B70] dark:text-[#FF4D94] font-mono tabular-nums px-2"
+              >
                 {quantityInCart}
-              </span>
-              <button
+              </motion.span>
+              <motion.button
                 type="button"
+                whileTap={reduceMotion ? undefined : { scale: 0.88 }}
                 onClick={() => onUpdateCartQuantity(dish.id, quantityInCart + 1)}
                 aria-label="Increase quantity"
-                className="w-11 h-11 rounded-lg btn-pink text-white transition-transform duration-180 active:scale-[0.97] active:brightness-110 font-bold flex items-center justify-center cursor-pointer"
+                className="w-11 h-11 rounded-lg btn-pink text-white active:brightness-110 font-bold flex items-center justify-center cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
-              </button>
-            </div>
+              </motion.button>
+            </motion.div>
           ) : (
-            <button
+            <motion.button
               type="button"
+              whileTap={reduceMotion ? undefined : { scale: 0.94 }}
               onClick={(e) => {
                 e.stopPropagation();
                 const hasCustomization =
@@ -185,7 +215,7 @@ export const DashboardMenuItemCard = React.memo(function DashboardMenuItemCard({
                 }
               }}
               disabled={!dish.isAvailable || isRestaurantClosed}
-              className={`w-full min-h-[44px] py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-transform duration-180 active:scale-[0.97] active:brightness-110 flex items-center justify-center gap-1.5 btn-pink text-white relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100 ${
+              className={`w-full min-h-[44px] py-2 rounded-xl text-xs font-bold uppercase tracking-wider active:brightness-110 flex items-center justify-center gap-1.5 btn-pink text-white relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100 ${
                 !dish.isAvailable || isRestaurantClosed
                   ? "cursor-not-allowed opacity-50"
                   : "cursor-pointer"
@@ -193,10 +223,10 @@ export const DashboardMenuItemCard = React.memo(function DashboardMenuItemCard({
             >
               <Plus className="w-4 h-4" />
               <span>Add</span>
-            </button>
+            </motion.button>
           )}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 });
