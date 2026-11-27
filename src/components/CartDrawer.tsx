@@ -689,6 +689,17 @@ export default function CartDrawer({
             <div className="space-y-3 animate-fade-in">
               {cartItems.map((item) => (
                 <div key={item.dishId} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-2xl flex items-center justify-between gap-3 shadow-xs transition-transform duration-300 md:hover:-translate-y-0.5">
+                  {/* Dish thumbnail — Foodpanda-style, same as the grocery basket.
+                      Only renders when the item carries a photo (items added before
+                      this change have none and simply show no thumbnail). */}
+                  {item.imageUrl && (
+                    <LazyImage
+                      src={item.imageUrl}
+                      alt={item.name}
+                      className="w-12 h-12 rounded-xl overflow-hidden shrink-0"
+                      referrerPolicy="no-referrer"
+                    />
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-extrabold text-sm text-zinc-900 dark:text-zinc-100 block truncate">{item.name}</span>
