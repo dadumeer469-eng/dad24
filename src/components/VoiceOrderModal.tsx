@@ -58,7 +58,7 @@ const NO_VOICE_INPUT = "آپ کا فون وائس ان پٹ سپورٹ نہیں 
 const NETWORK_PROBLEM = "انٹرنیٹ کا مسئلہ لگتا ہے — دوبارہ کوشش کریں۔";
 const LINE_BUSY = "معاف کیجیے، لائن ابھی مصروف ہے — تھوڑی دیر بعد دوبارہ کوشش کریں۔";
 const MAX_RECORD_MS = 15000;
-const SILENCE_MS = 1200;
+const SILENCE_MS = 800;
 const SILENCE_RMS = 0.02;
 
 function pickVoice(): SpeechSynthesisVoice | null {
@@ -781,7 +781,8 @@ export default function VoiceOrderModal({
         // The agent answered — he walks in and starts talking.
         revealAgent();
         // A short human-like pause before answering (and it lets the
-        // agent's walk-in animation play).
+        // agent's walk-in animation play). Kept short so the reply feels
+        // instant, not delayed.
         window.setTimeout(() => {
           if (!openRef.current || turn !== turnRef.current) return;
           if (data?.order) {
@@ -791,7 +792,7 @@ export default function VoiceOrderModal({
               if (openRef.current && statusRef.current !== "done") startListeningRef.current();
             });
           }
-        }, 700);
+        }, 300);
       } catch {
         if (!openRef.current || turn !== turnRef.current) return;
         speak(NETWORK_PROBLEM, () => {
