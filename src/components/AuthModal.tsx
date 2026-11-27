@@ -9,6 +9,7 @@ import {
 } from "firebase/auth";
 import { auth } from "../firebase";
 import daduLogo from "../assets/images/dadu_food_logo_new_1782333467889.jpg";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 export interface GoogleAuthPayload {
   uid: string;
@@ -468,19 +469,31 @@ export default function AuthModal({
             </div>
           ) : (
             <form onSubmit={handleVerifyOtp} className="space-y-4">
-              <div className="relative">
-                <ShieldCheck className="absolute left-4 top-3.5 w-5 h-5 text-[#E21B70]" />
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  required
-                  placeholder="Enter 6-digit OTP"
-                  aria-label="6-digit OTP code"
+              <div className="flex flex-col items-center gap-2.5">
+                <span className="inline-flex items-center gap-2 text-sm font-bold text-zinc-700 dark:text-zinc-200">
+                  <ShieldCheck className="w-5 h-5 text-[#E21B70]" />
+                  Enter 6-digit OTP
+                </span>
+                <InputOTP
+                  maxLength={6}
                   value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-zinc-300 dark:border-zinc-700 outline-none focus:border-[#E21B70] focus:ring-2 focus:ring-[#E21B70]/20 transition-all duration-300 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-black text-xl tracking-[0.3em] text-center"
-                />
+                  onChange={(value) => setOtpCode(value.replace(/\D/g, "").slice(0, 6))}
+                  autoComplete="one-time-code"
+                  inputMode="numeric"
+                  aria-label="6-digit OTP code"
+                  containerClassName="justify-center"
+                >
+                  <InputOTPGroup className="gap-2">
+                    {[0, 1, 2, 3, 4, 5].map((i) => (
+                      <InputOTPSlot
+                        key={i}
+                        index={i}
+                        className="size-11 sm:size-12 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-950 text-lg font-black text-zinc-900 dark:text-zinc-100 first:rounded-xl last:rounded-xl data-[active=true]:border-[#E21B70] data-[active=true]:ring-2 data-[active=true]:ring-[#E21B70]/20"
+                      />
+                    ))}
+                  </InputOTPGroup>
+                </InputOTP>
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400">Sent via SMS to your phone</p>
               </div>
 
               <button
