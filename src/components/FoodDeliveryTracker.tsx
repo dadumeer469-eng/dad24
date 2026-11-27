@@ -19,6 +19,7 @@ import {
   Minimize2,
 } from "lucide-react";
 import OrderChat from "./OrderChat";
+import InAppCallButton from "./InAppCallButton";
 import GoogleMapsProvider from "./GoogleMapsProvider";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 
@@ -35,6 +36,7 @@ interface FoodDeliveryTrackerProps {
   orderEta?: string;
   riderName?: string;
   riderPhone?: string;
+  riderId?: string;
   initialRiderCoords?: Coords;
   onClose?: () => void;
   restaurantName?: string;
@@ -230,6 +232,7 @@ export default function FoodDeliveryTracker({
   orderEta,
   riderName,
   riderPhone,
+  riderId,
   initialRiderCoords,
   onClose,
   restaurantName,
@@ -541,16 +544,8 @@ export default function FoodDeliveryTracker({
             </div>
 
             <div className="flex items-center gap-2">
-              {riderPhone && !isCancelled && (
-                <a
-                  href={`tel:${riderPhone}`}
-                  onClick={(e) => e.stopPropagation()}
-                  className="w-10 h-10 bg-white border border-slate-200 text-slate-800 rounded-full flex items-center justify-center shadow-xs transition-transform duration-180 active:scale-[0.97] active:brightness-110"
-                  title="Call Rider"
-                >
-                  <Phone className="w-4 h-4 text-[#E21B70]" />
-                </a>
-              )}
+              {/* No rider call button for the customer (user 28 Nov 02:55):
+                  only the rider can call the customer (Rider Panel). */}
               <div className="w-8 h-8 rounded-full bg-slate-200/80 flex items-center justify-center text-slate-600">
                 <ChevronUp className="w-4 h-4" />
               </div>
@@ -581,16 +576,9 @@ export default function FoodDeliveryTracker({
                       </p>
                     </div>
                   </div>
-
-                  {riderPhone && (
-                    <a
-                      href={`tel:${riderPhone}`}
-                      className="w-10 h-10 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-full flex items-center justify-center transition-transform duration-180 active:scale-[0.97] active:brightness-110"
-                      title="Call Rider"
-                    >
-                      <Phone className="w-4 h-4" />
-                    </a>
-                  )}
+                  {/* In-App Call (user 28 Nov 03:06): customer calls the rider
+                      FROM INSIDE the app (WebRTC) — no dialer, no phone number.
+                      The old tel: button was removed 28 Nov 02:55. */}
                 </div>
 
                 <button
@@ -604,6 +592,14 @@ export default function FoodDeliveryTracker({
                   </div>
                   <ChevronRight className="w-4 h-4 text-slate-400" />
                 </button>
+
+                <InAppCallButton
+                  myId={currentUser?.uid || "guest"}
+                  myName={currentUser?.name || "Customer"}
+                  peerId={riderId || ""}
+                  peerName={riderName || "Rider"}
+                  orderId={orderId}
+                />
 
                 {showChat && (
                   <div className="pt-2">
