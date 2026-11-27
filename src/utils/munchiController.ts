@@ -22,6 +22,8 @@
 // the modal reads its true volume through an AnalyserNode and drives the
 // jaw from the actual amplitude (driveMouth) — the most honest sync there is.
 
+import { buildVisemeSchedule, type VisemeSchedule } from "./munchiFramePlayer";
+
 export type MunchiState =
   | "idle"
   | "listening"
@@ -74,6 +76,13 @@ export class MunchiController {
   // the mouth can move at 60fps without re-rendering anything.
   mouth = { open: 0, target: 0 };
 
+  // Frame-by-frame viseme schedule for the neural voice: the reply text
+  // is known before its TTS audio plays, so the mouth follows the actual
+  // words (see munchiFramePlayer.ts). Set by noteSpeechStart(text,
+  // duration); the phone-voice path never sets it and keeps the
+  // word-pulse / analyser fallback instead.
+  speechSchedule: VisemeSchedule | null = null;
+
   private listeners = new Set<(s: MunchiState) => void>();
   private moodListeners = new Set<(m: MunchiMood) => void>();
   private fallbackTimer: number | null = null;
@@ -107,10 +116,17 @@ export class MunchiController {
   }
 
   // --- lip-sync driver (called from the voice agent's speak()) ---
-  noteSpeechStart() {
+  noteSpeechStart(text?: string, durationSec?: number) {
     this.boundarySeen = false;
     this.setState("speaking");
     this.stopFallback();
+    // Neural voice with a known reply + real audio duration: build the
+    // word-by-word viseme schedule. Without args (call start / phone
+    // voice) the schedule stays as it was — the previous utterance's
+    // finish() already cleared it.
+    if (text && durationSec && durationSec > 0) {
+      this.speechSchedule = buildVisemeSchedule(text, durationSec);
+    }
     // If no word boundary arrives within 700ms, this voice never fires
     // onboundary — fall back to a word-paced pulse.
     this.watchdogTimer = window.setTimeout(() => {
@@ -141,12 +157,14 @@ export class MunchiController {
     this.stopFallback();
     this.mouth.target = 0;
     this.mouth.open = 0;
+    this.speechSchedule = null;
   }
 
   reset() {
     this.stopFallback();
     this.mouth.target = 0;
     this.mouth.open = 0;
+    this.speechSchedule = null;
     this.setState("idle");
     this.setMood("neutral");
   }
