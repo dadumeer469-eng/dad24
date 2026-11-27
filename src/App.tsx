@@ -306,6 +306,19 @@ export default function App() {
     })
   );
 
+  // First-order FREE delivery (user decision 27 Nov 2026): a signed-in user
+  // with ZERO previous orders gets Rs 0 delivery on their first order —
+  // food, grocery and medicine. Guests (no account) never get it, and the
+  // admin can switch it off in Admin Panel → Store Controls.
+  // ordersLoaded guards the check: until the orders listener has fired once,
+  // we must NOT assume a returning user is a first-timer.
+  const [ordersLoaded, setOrdersLoaded] = useState(false);
+  const isFirstOrderFreeDelivery =
+    !!currentUser &&
+    ordersLoaded &&
+    !orders.some((o) => o.userId === currentUser.uid) &&
+    deliverySettings?.firstOrderFreeDelivery !== false;
+
   // Favorites and Deal of the Hour configuration
   const [favoriteDishIds, setFavoriteDishIds] = useState<string[]>([]);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
@@ -2059,6 +2072,7 @@ export default function App() {
     if (!currentUser) {
       setOrders([]);
       setNotifications([]);
+      setOrdersLoaded(false);
       return;
     }
 
@@ -2087,6 +2101,7 @@ export default function App() {
           (a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0),
         );
         setOrders(list);
+        setOrdersLoaded(true);
 
         // Detect live status transitions for buyer orders and play status chime!
         if (currentUser.role !== "admin") {
@@ -2844,10 +2859,13 @@ export default function App() {
       const recomputedDiscount = voucherDoc
         ? calculateVoucherDiscount(voucherDoc, details.totalPrice)
         : 0;
+      // First-order FREE delivery (user decision 27 Nov 2026): override any
+      // fee the caller computed — a new user's first order ships free.
+      const effectiveDeliveryFee = isFirstOrderFreeDelivery ? 0 : details.deliveryFee;
       const computedGrandTotal = Math.max(
         0,
         details.totalPrice +
-          details.deliveryFee +
+          effectiveDeliveryFee +
           (details.riderTip || 0) -
           recomputedDiscount -
           (details.coinsUsed || 0),
@@ -2867,7 +2885,7 @@ export default function App() {
         location: details.location,
         items: adaptedItems,
         totalPrice: details.totalPrice,
-        deliveryFee: details.deliveryFee,
+        deliveryFee: effectiveDeliveryFee,
         grandTotal: computedGrandTotal,
         paymentMethod: isEasypaisa ? "Easypaisa" : "COD",
         status: isEasypaisa ? "payment_verification_pending" : "pending",
@@ -3097,10 +3115,14 @@ export default function App() {
           ? (deliverySettings?.priorityFee ?? 30)
           : 0
         : 0;
-    const finalFee = Math.max(
-      0,
-      (isRiderRangeExceeded ? feeCalc.fee * 2 : feeCalc.fee) + speedFeeAdjustment,
-    );
+    // First-order FREE delivery: a new user's first order ships free,
+    // overriding the standard / doubled / priority fee entirely.
+    const finalFee = isFirstOrderFreeDelivery
+      ? 0
+      : Math.max(
+          0,
+          (isRiderRangeExceeded ? feeCalc.fee * 2 : feeCalc.fee) + speedFeeAdjustment,
+        );
     const riderTip = Math.max(0, Number(details.riderTip || 0));
 
     let finalGrandTotal = itemsTotal + finalFee + riderTip;
@@ -3462,7 +3484,11 @@ export default function App() {
         const doubleBelow = Number(deliverySettings?.doubleFeeBelowAmount ?? 500);
         const isFree = totalPrice >= freeThreshold;
         const isDouble = doubleBelow > 0 && totalPrice > 0 && totalPrice < doubleBelow;
-        const deliveryFee = !isFree && totalPrice > 0 ? (isDouble ? baseFee * 2 : baseFee) : 0;
+        const deliveryFee = isFirstOrderFreeDelivery
+          ? 0
+          : !isFree && totalPrice > 0
+            ? (isDouble ? baseFee * 2 : baseFee)
+            : 0;
         await handlePlaceGroceryOrder({
           name,
           phone,
@@ -3964,6 +3990,7 @@ export default function App() {
             currentUser={currentUser}
             onOpenAuth={() => setIsAuthOpen(true)}
             deliveryFee={computedDeliveryFee}
+            isFirstOrderFreeDelivery={isFirstOrderFreeDelivery}
             onPlaceOrder={handlePlaceOrderSubmit}
             onAddDrink={handleAddExclusiveDrink}
             popularDishes={popularDishesForCart}
@@ -3995,6 +4022,7 @@ export default function App() {
             currentUser={currentUser}
             onOpenAuth={() => setIsAuthOpen(true)}
             deliveryConfig={computedGroceryDeliveryConfig}
+            isFirstOrderFreeDelivery={isFirstOrderFreeDelivery}
             onPlaceGroceryOrder={handlePlaceGroceryOrder}
             userCoords={globalCoords}
             systemSettings={deliverySettings}

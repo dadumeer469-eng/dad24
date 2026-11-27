@@ -192,6 +192,7 @@ export interface SystemSettings {
   loyaltyMaxSpendCoins?: number; // max coins spendable per order
   loyaltyAllowOnFood?: boolean;
   loyaltyAllowOnGrocery?: boolean;
+  firstOrderFreeDelivery?: boolean; // New user's FIRST order = FREE delivery on food/grocery/medicine (default ON; admin can switch off in Store Controls)
   // Store Controls — every user-panel option mirrored in the Admin Panel
   easypaisaTitle?: string; // Easypaisa account title shown at checkout (default "Ghulam Murtaza")
   easypaisaNumber?: string; // Easypaisa account number shown at checkout (default "03277004471")
@@ -466,11 +467,12 @@ export function calculateVoucherDiscount(voucher: Voucher, subtotal: number): nu
 
 /**
  * Standardized utility to fetch a user's loyalty coin balance.
- * Backward-compatible: falls back to ordersCount * earnCoins if loyaltyCoins is undefined.
+ * NO free coins: only coins actually earned (and stored in loyaltyCoins)
+ * count. The old ordersCount * earnRate fallback handed out phantom coins
+ * for orders that never earned any — removed 27 Nov 2026 (user: no free coins).
  */
 export function getUserCoins(user: UserProfile | null, settings?: SystemSettings): number {
   if (!user) return 0;
-  if (user.loyaltyCoins !== undefined) return user.loyaltyCoins;
-  const earnRate = settings?.loyaltyEarnCoins ?? 15;
-  return (user.ordersCount || 0) * earnRate;
+  void settings;
+  return user.loyaltyCoins ?? 0;
 }
