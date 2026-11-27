@@ -5704,58 +5704,26 @@ export default function App() {
                 >
               <>
                 {/* Dadu Food hero banner — Foodpanda-style, richer: headline + rider + 4 service tiles */}
-                <section className="max-w-7xl mx-auto px-3.5 sm:px-4 pt-3.5 pb-1">
-                  <div className="rounded-[28px] bg-[#E21B70] shadow-[0_8px_24px_rgba(0,0,0,0.06)] relative overflow-hidden animate-fade-in">
-                    {/* Shine sweep across the pink banner */}
-                    <motion.div
-                      aria-hidden="true"
-                      className="pointer-events-none absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/25 to-transparent skew-x-[-18deg]"
-                      animate={prefersReducedMotion ? { x: "0%" } : { x: ["-160%", "520%"] }}
-                      transition={prefersReducedMotion ? { duration: 0 } : { duration: 2.4, repeat: Infinity, repeatDelay: 4.5, ease: "easeInOut" }}
+                <section className="max-w-7xl mx-auto px-3.5 sm:px-4 pt-2 pb-1">
+                  {/* Hero banner — the user's own artwork (Dadu Food / Fast Delivery / rider on scooter).
+                      Text, rider, burger, fries and pizza are all baked into the image, so no
+                      headline or rider overlay is rendered on top of it. */}
+                  <motion.div
+                    className="rounded-[28px] overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.06)] animate-fade-in"
+                    initial={prefersReducedMotion ? false : { opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={motionTransition(prefersReducedMotion, viewTransition)}
+                  >
+                    <img
+                      src="/images/home/hero-banner.jpg"
+                      alt="Dadu Food — Fast Delivery, 25–35 min, COD &amp; EasyPaisa"
+                      className="w-full h-auto block"
+                      loading="eager"
+                      decoding="async"
                     />
-                    {/* Headline + rider row */}
-                    <div className="relative min-h-[185px] sm:min-h-[220px]">
-                      <motion.img
-                        src="/images/home/rider-scooter.png"
-                        alt="Dadu Food rider delivering fast on a pink scooter"
-                        className="absolute right-0 top-0 h-full w-[56%] sm:w-[48%] lg:w-[38%] object-contain animate-rider-bob will-change-transform"
-                        loading="eager"
-                        decoding="async"
-                        variants={heroImage}
-                        initial={prefersReducedMotion ? false : "hidden"}
-                        animate="show"
-                      />
-                      <div className="relative z-10 px-4 sm:px-6 pt-5 sm:pt-7 pb-4 max-w-[62%] sm:max-w-[58%]">
-                        <motion.h1
-                          aria-label="Dadu Food — Fast Delivery"
-                          className="text-[27px] sm:text-4xl font-medium leading-[1.05] text-white tracking-tight"
-                          initial={prefersReducedMotion ? false : "hidden"}
-                          animate="show"
-                          variants={heroContainer}
-                        >
-                          {["Dadu", "Food", "—", "Fast", "Delivery"].map((word) => (
-                            <motion.span
-                              key={word}
-                              className="inline-block mr-[0.28em] will-change-transform"
-                              variants={heroWord}
-                            >
-                              {word}
-                            </motion.span>
-                          ))}
-                        </motion.h1>
-                        <motion.p
-                          className="mt-3 flex items-center gap-1.5 text-[12px] sm:text-sm font-medium text-white/95"
-                          initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={motionTransition(prefersReducedMotion, { ...springGentle, delay: 0.45 })}
-                        >
-                          <Clock className="w-4 h-4 shrink-0" />
-                          {deliveryTimeTextSetting || "25–35 min"} • COD &amp; Easypaisa
-                        </motion.p>
-                      </div>
-                    </div>
+                  </motion.div>
                     <motion.div
-                      className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 p-2.5 sm:p-3 pt-1"
+                      className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 pt-2.5 sm:pt-3"
                       variants={staggerContainer}
                       initial={prefersReducedMotion ? false : "hidden"}
                       animate="show"
@@ -5882,7 +5850,6 @@ export default function App() {
                       />
                     </motion.a>
                     </motion.div>
-                  </div>
                 </section>
 
                 {/* Thin pink route line — the delivery journey in one line */}
