@@ -124,7 +124,6 @@ import {
   syncPageSeo,
   slugifyShop,
   DADU_FOOD_BUSINESS,
-  DADU_FOOD_FAQS,
   InfoPageSlug,
 } from "./utils/seoManager";
 
@@ -5852,28 +5851,28 @@ export default function App() {
                         initial={prefersReducedMotion ? false : { opacity: 0, y: 14 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4, delay: 0.15 }}
-                        className="relative w-full mt-2.5 sm:mt-3 rounded-3xl overflow-hidden text-left cursor-pointer active:scale-[0.99] shadow-[0_10px_30px_rgba(226,27,112,0.35)] border border-[#E21B70]/30 bg-gradient-to-r from-[#E21B70] via-[#D70F64] to-[#B3084C] text-white"
+                        className="relative w-full mt-2 rounded-2xl overflow-hidden text-left cursor-pointer active:scale-[0.99] shadow-[0_6px_18px_rgba(226,27,112,0.30)] border border-[#E21B70]/30 bg-gradient-to-r from-[#E21B70] via-[#D70F64] to-[#B3084C] text-white"
                         aria-label="Munchi se baat karein — Urdu mein order karein"
                       >
-                        <div className="flex items-center gap-3.5 p-3.5 sm:p-4">
+                        <div className="flex items-center gap-2.5 p-2.5 sm:p-3">
                           <span className="relative shrink-0">
                             <span className="absolute inset-0 rounded-full bg-white/40 animate-ping" aria-hidden="true" />
                             <img
                               src="/images/munchi.jpg"
                               alt="Munchi — Dadu Food voice agent"
-                              className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full object-cover border-[3px] border-white shadow-lg"
+                              className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-white shadow"
                             />
                           </span>
                           <span className="flex-1 min-w-0">
-                            <span className="block text-base sm:text-lg font-black leading-tight">
+                            <span className="block text-[15px] sm:text-base font-black leading-tight">
                               Munchi se baat karein 🎙️
                             </span>
-                            <span className="block text-[12px] sm:text-[13px] font-medium text-white/90 leading-snug mt-0.5">
-                              Urdu mein bol kar order karein — bas bolain, Munchi samajh jayega
+                            <span className="block text-[11px] sm:text-xs font-medium text-white/90 leading-tight truncate">
+                              Urdu mein bol kar order karein
                             </span>
                           </span>
-                          <span className="shrink-0 inline-flex items-center gap-1.5 bg-white text-[#E21B70] text-xs sm:text-sm font-black px-3.5 py-2.5 rounded-full shadow active:scale-95 transition">
-                            <Phone className="w-4 h-4" />
+                          <span className="shrink-0 inline-flex items-center gap-1 bg-white text-[#E21B70] text-xs font-black px-3 py-2 rounded-full shadow active:scale-95 transition">
+                            <Phone className="w-3.5 h-3.5" />
                             Call karein
                           </span>
                         </div>
@@ -7024,38 +7023,6 @@ export default function App() {
                         </span>
                       ))}
                     </div>
-                  </div>
-                </ScrollReveal>
-
-                {/* Frequently asked questions — visible FAQ (AEO: the same 27
-                    Q&As as the FAQPage schema in seoManager.ts; answers carry
-                    .faq-answer for the SpeakableSpecification selector) */}
-                <ScrollReveal className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-6">
-                  <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-3 border border-[#e8e2d6] dark:border-[#272733] shadow-xs">
-                    <h2 className="text-sm sm:text-base font-semibold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
-                      Frequently Asked Questions — Dadu Food
-                    </h2>
-                    <p className="speakable-summary text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed">
-                      Everything Dadu asks about ordering food, groceries and medicines online — delivery fee, payment, hours and areas, answered in one place.
-                    </p>
-                    <Accordion hiddenUntilFound className="space-y-2">
-                      {DADU_FOOD_FAQS.map((faq, i) => (
-                        <AccordionItem
-                          key={faq.question}
-                          value={`faq-${i}`}
-                          className="rounded-xl border border-[#e8e2d6] dark:border-[#272733] bg-[#fdfbf7] dark:bg-[#1B1B22] px-3.5 py-2.5"
-                        >
-                          <AccordionTrigger className="py-0 text-xs sm:text-sm font-bold text-[#111118] dark:text-[#F5F5F8] leading-snug min-h-[44px] hover:no-underline **:data-[slot=accordion-trigger-icon]:text-[#E21B70]">
-                            {faq.question}
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            <p className="faq-answer text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed pt-1 pb-1">
-                              {faq.answer}
-                            </p>
-                          </AccordionContent>
-                        </AccordionItem>
-                      ))}
-                    </Accordion>
                   </div>
                 </ScrollReveal>
 
