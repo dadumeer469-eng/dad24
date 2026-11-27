@@ -90,7 +90,7 @@ function breadcrumbNode(crumbName, canonical) {
 }
 
 // ---------------------------------------------------------------------------
-// The 17 homepage FAQs — VERBATIM copy of DADU_FOOD_FAQS in
+// The 27 homepage FAQs — VERBATIM copy of DADU_FOOD_FAQS in
 // src/utils/seoManager.ts (same questions + answers, same order). They are
 // rendered visibly on the homepage (App.tsx FAQ section + the noscript in
 // index.html), so the FAQPage node in buildJsonLd describes real on-page
@@ -111,7 +111,7 @@ export const FAQS = [
   },
   {
     question: "How much is the delivery fee on Dadu Food?",
-    answer: "The delivery fee on Dadu Food is a flat Rs 50 per order for food and groceries, anywhere in Dadu city. Medicine-only orders have a separate, lower delivery fee of Rs 30. There are no hidden charges — the fee is shown clearly at checkout before you confirm your order.",
+    answer: "The delivery fee on Dadu Food is Rs 70 per order for food, Rs 100 for groceries, and Rs 30 for medicine-only orders, anywhere in Dadu city. Every order also carries a flat Rs 12 site tax. There are no hidden charges — the fee is shown clearly at checkout before you confirm your order.",
   },
   {
     question: "How can I pay for my Dadu Food order?",
@@ -139,7 +139,7 @@ export const FAQS = [
   },
   {
     question: "Is there a minimum order on Dadu Food?",
-    answer: "Dadu Food has no published minimum order amount, so you can order even a single dish or a single grocery item. The flat Rs 50 delivery fee applies to food and grocery orders, and Rs 30 to medicine-only orders. The total, including the delivery fee, is shown before checkout.",
+    answer: "Dadu Food has no published minimum order amount, so you can order even a single dish or a single grocery item. The delivery fee is Rs 70 for food orders, Rs 100 for grocery orders, and Rs 30 for medicine-only orders, plus a flat Rs 12 site tax per order. The total, including the delivery fee, is shown before checkout.",
   },
   {
     question: "How can I track my Dadu Food order?",
@@ -159,11 +159,51 @@ export const FAQS = [
   },
   {
     question: "Can I order pizza in Dadu on Dadu Food?",
-    answer: "Yes. Dadu Food delivers pizza in Dadu from Dadu Fast Food & Kitchen and Tasty Bites Dadu — freshly baked pizzas, along with zinger burgers, crispy broast, creamy pasta and loaded lasagna. Order pizza online in Dadu on dadufood.store and get it delivered hot in 20 to 35 minutes for Rs 50. Pay by Cash on Delivery or Easypaisa.",
+    answer: "Yes. Dadu Food delivers pizza in Dadu from Dadu Fast Food & Kitchen and Tasty Bites Dadu — freshly baked pizzas, along with zinger burgers, crispy broast, creamy pasta and loaded lasagna. Order pizza online in Dadu on dadufood.store and get it delivered hot in 20 to 35 minutes for Rs 70. Pay by Cash on Delivery or Easypaisa.",
   },
   {
     question: "What food can I order in Dadu on Dadu Food?",
-    answer: "On Dadu Food you can order chicken biryani, zinger burgers, chicken shawarma, chicken karahi, BBQ, seekh kababs, pizza, creamy pasta, lasagna, grilled sandwiches and crispy broast from Dadu Fast Food & Kitchen, S M Bilal Hotel and Tasty Bites Dadu. All food is delivered hot across Dadu city in 20 to 35 minutes for Rs 50.",
+    answer: "On Dadu Food you can order chicken biryani, zinger burgers, chicken shawarma, chicken karahi, BBQ, seekh kababs, pizza, creamy pasta, lasagna, grilled sandwiches and crispy broast from Dadu Fast Food & Kitchen, S M Bilal Hotel and Tasty Bites Dadu. All food is delivered hot across Dadu city in 20 to 35 minutes for Rs 70.",
+  },
+  {
+    question: "Does Dadu Food deliver outside Dadu city?",
+    answer: "No — Dadu Food delivers within Dadu city only, including Shahani Paro, Moro Road, Station Road, College Road, Makhdoom Bilawal Nagar, Civil Hospital Road, Degree College Road, New Bus Stand, Kacheri Road and Dadu City Center. If you are outside the city, the app will tell you delivery is not available when you enter your address.",
+  },
+  {
+    question: "How do I get free delivery on Dadu Food?",
+    answer: "There are two ways to get free delivery on Dadu Food. Your first order gets free delivery on anything — food, groceries or medicines. After that, any order of Rs 1,000 or more gets free delivery. Below Rs 1,000 the delivery fee is Rs 70 for food orders, Rs 100 for grocery orders, and Rs 30 for medicine-only orders.",
+  },
+  {
+    question: "Is the delivery fee higher on small orders?",
+    answer: "Yes. Orders below Rs 500 carry double the delivery fee — Rs 140 instead of Rs 70 for food orders, Rs 200 instead of Rs 100 for grocery orders, and Rs 60 instead of Rs 30 for medicine-only orders. Orders of Rs 500 or more pay the normal fee, and orders of Rs 1,000 or more get free delivery. Your first order is always free delivery, whatever the total.",
+  },
+  {
+    question: "How do I pay with Easypaisa on Dadu Food?",
+    answer: "At checkout, choose Easypaisa. The app shows the Easypaisa account name Ghulam Murtaza and number 03277004471 with a Copy button. Send the payment from your own Easypaisa app, then upload a screenshot of the payment receipt on the same screen. Your order is saved as payment verification pending, and the Dadu Food admin checks your receipt — once it is verified, your order is confirmed and sent to the restaurant and rider. Never send money to any other number.",
+  },
+  {
+    question: "Can I see my rider's live location on the map?",
+    answer: "Yes. Once the rider picks up your order, you can follow the rider live on the map in the order tracker on dadufood.store — the rider's pin moves as they travel towards you. The tracker also shows every stage of your order: confirmed, cooking, picked up and on the way.",
+  },
+  {
+    question: "How do I cancel my Dadu Food order?",
+    answer: "If your order has not started cooking yet, you can cancel it free of charge — message or call Dadu Food on WhatsApp at 03277004471 with your Order ID. If you already paid by Easypaisa, the amount is refunded within 24 hours. Once the kitchen has started preparing your food, the order can no longer be cancelled. If an item arrives missing, wrong, spilled or damaged, report it within 30 minutes on WhatsApp with your Order ID and a photo, and Dadu Food will replace it or refund it.",
+  },
+  {
+    question: "Can I order groceries in the morning before restaurants open?",
+    answer: "Yes. Grocery and medicine orders can be placed from the morning, even though restaurants only start serving food at 12:00 PM. So you can order atta, rice, cooking oil, tea, milk and other groceries early in the day, and they are delivered in 20 to 35 minutes for the flat Rs 100 grocery delivery fee. Food orders are only accepted from 12:00 PM to 11:00 PM.",
+  },
+  {
+    question: "What medicines can I order on Dadu Food?",
+    answer: "Dadu Food's pharmacy lists 11 essential, commonly used over-the-counter medicines — the everyday medicines Dadu families need most. Browse the Medicine & Pharmacy section on dadufood.store, add what you need, and it is delivered to your home in 20 to 35 minutes for the lower Rs 30 medicine delivery fee. Pay by Cash on Delivery or Easypaisa. Medicine orders can be placed from the morning.",
+  },
+  {
+    question: "How can I become a Dadu Food rider?",
+    answer: "Fill in the rider application form on the Become a Rider page on dadufood.store with your name, mobile number, vehicle type, your mohalla or area in Dadu, your preferred shift — morning, evening or full day — and whether your CNIC is available. There is no fee to apply. You need your own vehicle, a motorbike, electric bike or bicycle, a mobile phone for the rider panel, and good knowledge of Dadu city. Riders earn a payout for every order delivered and keep 100% of customer tips. You can also call or WhatsApp 03277004471 to ask first.",
+  },
+  {
+    question: "How can I list my restaurant or shop on Dadu Food?",
+    answer: "Fill in the partner application form on the Partner With Us page on dadufood.store with your shop name, the owner or manager's name, your WhatsApp number and your shop address in Dadu. Dadu Food charges a simple 10% commission on each order — no upfront setup fee and no monthly fee, so you keep 90% of every order. The onboarding team will call you within 24 hours to confirm your menu, prices and hours, and your shop usually goes live within a day or two. You can also call or WhatsApp 03277004471.",
   },
 ];
 
@@ -175,11 +215,18 @@ export const FAQS = [
 // (only the home route uses this).
 // ---------------------------------------------------------------------------
 export const ROUTES = [
+  // HOME H1 NOTE (2026-11-27): the prerendered homepage H1 lives in
+  // index.html (<h1> "Food Delivery in Dadu — Dadu Food"), NOT in this file
+  // — this route keeps noscript: null so the plugin leaves the homepage
+  // noscript untouched. To align it with the visible React H1 ("Dadu Food —
+  // Fast Delivery", App.tsx motion.h1), change that <h1> in index.html.
+  // index.html is outside the SEO agent's file ownership; flagged to the
+  // coordinator in fix-B-seo.md.
   {
     path: "/",
     title: "Food Delivery in Dadu | Dadu Food — 20–35 Min",
     description:
-      "Food delivery in Dadu, Sindh — biryani, pizza, zinger burgers, karahi & groceries delivered in 20–35 min for Rs 50. Cash on Delivery & Easypaisa. Call 03277004471.",
+      "Food delivery in Dadu, Sindh — biryani, pizza, zinger burgers, karahi & groceries delivered in 20–35 min. Cash on Delivery & Easypaisa. Call 03277004471.",
     canonical: `${ORIGIN}/`,
     breadcrumb: null,
     jsonLd: "home",
@@ -207,11 +254,11 @@ export const ROUTES = [
       sections: [
         {
           h2: "Order online from Dadu Fast Food & Kitchen in Dadu",
-          p: "Looking for chicken biryani Dadu or a crispy zinger burger Dadu? Dadu Fast Food & Kitchen serves freshly baked pizzas, zinger burgers and crispy broast across Dadu city, delivered hot in 20–35 minutes for Rs 50. Pay by Cash on Delivery or Easypaisa.",
+          p: "Looking for chicken biryani Dadu or a crispy zinger burger Dadu? Dadu Fast Food & Kitchen serves freshly baked pizzas, zinger burgers and crispy broast across Dadu city, delivered hot in 20–35 minutes for Rs 70. Pay by Cash on Delivery or Easypaisa.",
         },
         {
           h2: "Delivery hours & payment",
-          p: "Food delivery runs daily from 12:00 PM to 11:00 PM. Delivery fee Rs 50. Pay by Cash on Delivery or Easypaisa. Call or WhatsApp 03277004471. Address: Station Road, Dadu, Sindh 76200.",
+          p: "Food delivery runs daily from 12:00 PM to 11:00 PM. Delivery fee Rs 70. Pay by Cash on Delivery or Easypaisa. Call or WhatsApp 03277004471. Address: Station Road, Dadu, Sindh 76200.",
         },
       ],
     },
@@ -235,11 +282,11 @@ export const ROUTES = [
       sections: [
         {
           h2: "Order online from S M Bilal Hotel in Dadu",
-          p: "S M Bilal Hotel is the place for chicken karahi Dadu and BBQ Dadu — mutton karahi, seekh kababs and fresh tandoori naan, delivered hot across Dadu city in 20–35 minutes. Delivery is Rs 50 and you can pay by Cash on Delivery or Easypaisa.",
+          p: "S M Bilal Hotel is the place for chicken karahi Dadu and BBQ Dadu — mutton karahi, seekh kababs and fresh tandoori naan, delivered hot across Dadu city in 20–35 minutes. Delivery is Rs 70 and you can pay by Cash on Delivery or Easypaisa.",
         },
         {
           h2: "Delivery hours & payment",
-          p: "Food delivery runs daily from 12:00 PM to 11:00 PM. Delivery fee Rs 50. Pay by Cash on Delivery or Easypaisa. Call or WhatsApp 03277004471. Address: Station Road, Dadu, Sindh 76200.",
+          p: "Food delivery runs daily from 12:00 PM to 11:00 PM. Delivery fee Rs 70. Pay by Cash on Delivery or Easypaisa. Call or WhatsApp 03277004471. Address: Station Road, Dadu, Sindh 76200.",
         },
       ],
     },
@@ -263,11 +310,11 @@ export const ROUTES = [
       sections: [
         {
           h2: "Order online from Tasty Bites Dadu in Dadu",
-          p: "Tasty Bites Dadu serves pizza in Dadu — creamy pastas, loaded lasagna, grilled sandwiches and fresh pizzas — along with chicken shawarma Dadu orders. Everything is delivered hot in 20–35 minutes for Rs 50, with Cash on Delivery or Easypaisa.",
+          p: "Tasty Bites Dadu serves pizza in Dadu — creamy pastas, loaded lasagna, grilled sandwiches and fresh pizzas — along with chicken shawarma Dadu orders. Everything is delivered hot in 20–35 minutes for Rs 70, with Cash on Delivery or Easypaisa.",
         },
         {
           h2: "Delivery hours & payment",
-          p: "Food delivery runs daily from 12:00 PM to 11:00 PM. Delivery fee Rs 50. Pay by Cash on Delivery or Easypaisa. Call or WhatsApp 03277004471. Address: Station Road, Dadu, Sindh 76200.",
+          p: "Food delivery runs daily from 12:00 PM to 11:00 PM. Delivery fee Rs 70. Pay by Cash on Delivery or Easypaisa. Call or WhatsApp 03277004471. Address: Station Road, Dadu, Sindh 76200.",
         },
       ],
     },
@@ -278,7 +325,7 @@ export const ROUTES = [
     path: "/grocery",
     title: "Grocery Delivery in Dadu | Dadu Food",
     description:
-      "Grocery delivery in Dadu — 297 grocery items in 13 categories, delivered in 20–35 min for Rs 50. Order from the morning. Cash on Delivery & Easypaisa. Call 03277004471.",
+      "Grocery delivery in Dadu — 297 items in 13 categories, delivered in 20–35 min for Rs 100. Order from the morning. Cash on Delivery & Easypaisa. Call 03277004471",
     canonical: `${ORIGIN}/grocery`,
     breadcrumb: "Grocery Delivery in Dadu",
     jsonLd: "standard",
@@ -291,7 +338,7 @@ export const ROUTES = [
         },
         {
           h2: "Delivery fee & payment",
-          p: "Delivery fee Rs 50 for grocery orders, delivered in 20–35 minutes. Pay by Cash on Delivery or Easypaisa. Call or WhatsApp 03277004471. Address: Station Road, Dadu, Sindh 76200.",
+          p: "Delivery fee Rs 100 for grocery orders, delivered in 20–35 minutes. Pay by Cash on Delivery or Easypaisa. Call or WhatsApp 03277004471. Address: Station Road, Dadu, Sindh 76200.",
         },
       ],
     },
@@ -300,7 +347,7 @@ export const ROUTES = [
     path: "/pharmacy",
     title: "Medicine Delivery in Dadu | Dadu Food",
     description:
-      "Medicine delivery in Dadu — 12 medicines delivered to your home for Rs 30. Cash on Delivery & Easypaisa. Order from the morning. Call 03277004471.",
+      "Medicine delivery in Dadu — 11 medicines delivered to your home for Rs 30. Cash on Delivery & Easypaisa. Order from the morning. Call 03277004471.",
     canonical: `${ORIGIN}/pharmacy`,
     breadcrumb: "Medicine Delivery in Dadu",
     jsonLd: "standard",
@@ -308,7 +355,7 @@ export const ROUTES = [
       h1: "Medicine Delivery in Dadu",
       sections: [
         {
-          h2: "Medicine delivery in Dadu — 12 medicines",
+          h2: "Medicine delivery in Dadu — 11 medicines",
           p: "Dadu Food has a Medicine & Pharmacy category, so you can order medicines and health products for home delivery in Dadu city. Medicine orders can be placed from the morning, and are delivered to your home for a Rs 30 medicine-only delivery fee.",
         },
         {
@@ -323,7 +370,7 @@ export const ROUTES = [
     path: "/restaurants",
     title: "Restaurants in Dadu — Order Food Online | Dadu Food",
     description:
-      "Restaurants in Dadu — order food online from Dadu Fast Food & Kitchen, S M Bilal Hotel and Tasty Bites Dadu. Biryani, zinger burgers, pizza, karahi and BBQ delivered in 20–35 min for Rs 50. Cash on Delivery & Easypaisa. Call 03277004471.",
+      "Restaurants in Dadu — order food online from Dadu Fast Food & Kitchen, S M Bilal Hotel & Tasty Bites Dadu. Biryani, pizza, karahi & BBQ in 20–35 min, Rs 70.",
     canonical: `${ORIGIN}/restaurants`,
     breadcrumb: "Restaurants in Dadu",
     jsonLd: "standard",
@@ -332,11 +379,11 @@ export const ROUTES = [
       sections: [
         {
           h2: "Restaurants in Dadu — order food online",
-          p: "Order food online in Dadu from Dadu Fast Food & Kitchen, S M Bilal Hotel and Tasty Bites Dadu. Dadu Fast Food & Kitchen serves freshly baked pizzas, zinger burgers and crispy broast; S M Bilal Hotel serves Dadu BBQ, mutton karahi, seekh kababs and fresh tandoori naan; Tasty Bites Dadu serves creamy pastas, loaded lasagna, grilled sandwiches and pizzas. Biryani, zinger burgers, pizza, karahi and BBQ are delivered hot across Dadu city in 20–35 minutes for Rs 50. Pay by Cash on Delivery or Easypaisa.",
+          p: "Order food online in Dadu from Dadu Fast Food & Kitchen, S M Bilal Hotel and Tasty Bites Dadu. Dadu Fast Food & Kitchen serves freshly baked pizzas, zinger burgers and crispy broast; S M Bilal Hotel serves Dadu BBQ, mutton karahi, seekh kababs and fresh tandoori naan; Tasty Bites Dadu serves creamy pastas, loaded lasagna, grilled sandwiches and pizzas. Biryani, zinger burgers, pizza, karahi and BBQ are delivered hot across Dadu city in 20–35 minutes for Rs 70. Pay by Cash on Delivery or Easypaisa.",
         },
         {
           h2: "Delivery hours & payment",
-          p: "Food delivery runs daily from 12:00 PM to 11:00 PM. Delivery fee Rs 50. Pay by Cash on Delivery or Easypaisa. Call or WhatsApp 03277004471. Address: Station Road, Dadu, Sindh 76200.",
+          p: "Food delivery runs daily from 12:00 PM to 11:00 PM. Delivery fee Rs 70. Pay by Cash on Delivery or Easypaisa. Call or WhatsApp 03277004471. Address: Station Road, Dadu, Sindh 76200.",
         },
       ],
     },
@@ -345,7 +392,7 @@ export const ROUTES = [
     path: "/hotels",
     title: "Hotels in Dadu — Order Food Online | Dadu Food",
     description:
-      "Hotels in Dadu — S M Bilal Hotel is listed on Dadu Food for BBQ, mutton karahi, seekh kababs and tandoori naan, delivered in 20–35 min for Rs 50. More hotels in Dadu joining soon — list your hotel. Cash on Delivery & Easypaisa. Call 03277004471.",
+      "Hotels in Dadu — S M Bilal Hotel: BBQ, mutton karahi, seekh kababs & tandoori naan delivered in 20–35 min for Rs 70. More Dadu hotels joining soon.",
     canonical: `${ORIGIN}/hotels`,
     breadcrumb: "Hotels in Dadu",
     jsonLd: "standard",
@@ -354,7 +401,7 @@ export const ROUTES = [
       sections: [
         {
           h2: "Hotels in Dadu — S M Bilal Hotel",
-          p: "S M Bilal Hotel is the only hotel listed on Dadu Food so far. It serves Dadu BBQ, mutton karahi, seekh kababs and fresh tandoori naan, delivered hot across Dadu city in 20–35 minutes for Rs 50. Pay by Cash on Delivery or Easypaisa.",
+          p: "S M Bilal Hotel is the only hotel listed on Dadu Food so far. It serves Dadu BBQ, mutton karahi, seekh kababs and fresh tandoori naan, delivered hot across Dadu city in 20–35 minutes for Rs 70. Pay by Cash on Delivery or Easypaisa.",
         },
         {
           h2: "More hotels joining soon",
@@ -380,7 +427,7 @@ export const ROUTES = [
       sections: [
         {
           h2: "About Dadu Food",
-          p: "Dadu Food is Dadu city's own food, grocery and medicine delivery service. Order food online in Dadu from local restaurants and get it delivered hot to your home in 20 to 35 minutes. Delivery fee Rs 50 for food and grocery orders. Payment by Cash on Delivery (COD) or Easypaisa only. Food delivery hours: 12:00 PM to 11:00 PM, seven days a week. Call or WhatsApp 03277004471. Address: Station Road, Dadu, Sindh 76200.",
+          p: "Dadu Food is Dadu city's own food, grocery and medicine delivery service. Order food online in Dadu from local restaurants and get it delivered hot to your home in 20 to 35 minutes. Delivery fee Rs 70 for food orders and Rs 100 for grocery orders. Payment by Cash on Delivery (COD) or Easypaisa only. Food delivery hours: 12:00 PM to 11:00 PM, seven days a week. Call or WhatsApp 03277004471. Address: Station Road, Dadu, Sindh 76200.",
         },
         {
           h2: "Our story",
@@ -526,7 +573,7 @@ export const ROUTES = [
 // ---------------------------------------------------------------------------
 // JSON-LD builder. Mirrors syncPageSeo() in seoManager.ts:
 //  - LocalBusiness/FoodEstablishment node on EVERY route.
-//  - Home only: FAQPage (the 17 FAQs, also rendered visibly on the
+//  - Home only: FAQPage (the 27 FAQs, also rendered visibly on the
 //    homepage) + WebPage node.
 //  - Shop pages only: Restaurant node with a price-free Menu (real dish
 //    kinds, no aggregateRating — no real ratings).
@@ -539,7 +586,7 @@ export function buildJsonLd(route) {
   const graph = [localBusinessNode()];
 
   if (route.jsonLd === "home") {
-    // FAQPage — the same 17 FAQs rendered visibly on the homepage
+    // FAQPage — the same 27 FAQs rendered visibly on the homepage
     // (App.tsx FAQ section + the noscript in index.html).
     graph.push({
       "@type": "FAQPage",
