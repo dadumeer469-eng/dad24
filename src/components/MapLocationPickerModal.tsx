@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { springSmooth } from "../utils/motion";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 import L from "leaflet";
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-leaflet";
 import { MapPin, Navigation, Search, Check, X, Compass, Loader2 } from "lucide-react";
@@ -340,19 +341,19 @@ export default function MapLocationPickerModal({
     }
   }, [isOpen, initialLat, initialLng]);
 
-  // Escape closes the picker; clear any pending reverse-geocode on unmount
-  // so it never writes state after the modal is gone.
+  // Focus trap + ESC to close (a11y fix 27 Nov 2026) — replaces the old
+  // ESC-only listener. Must sit above the `if (!isOpen) return null`
+  // below so the hook order never changes.
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, isOpen, onClose);
+
+  // Clear any pending reverse-geocode on unmount so it never writes state
+  // after the modal is gone.
   useEffect(() => {
-    if (!isOpen) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKeyDown);
     return () => {
-      window.removeEventListener("keydown", onKeyDown);
       if (reverseTimerRef.current) clearTimeout(reverseTimerRef.current);
     };
-  }, [isOpen, onClose]);
+  }, []);
 
   // Best-effort reverse-geocode: fills the address label for pins placed by
   // tapping/dragging/GPS. Never blocks saving; never overwrites a search label.
@@ -431,10 +432,12 @@ export default function MapLocationPickerModal({
 
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 backdrop-blur-sm p-3 sm:p-5 animate-fade-in"
       role="dialog"
       aria-modal="true"
       aria-label={title}
+      tabIndex={-1}
       onClick={onClose}
     >
       <motion.div

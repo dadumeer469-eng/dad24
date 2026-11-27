@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { Order } from "../types";
 import { Check, ClipboardList, Clock, ShieldCheck, Heart, ArrowRight, Server, Wrench, User, CalendarDays, MapPin, Compass } from "lucide-react";
 import { doc, updateDoc, collection, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
 import OrderChat from "./OrderChat";
-import FoodDeliveryTracker from "./FoodDeliveryTracker";
+const FoodDeliveryTracker = React.lazy(() => import("./FoodDeliveryTracker"));
 import { formatOrderId } from "../utils/catalogNormalizer";
 
 interface OrderTrackerProps {
@@ -51,26 +51,28 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
 
   if (!isService) {
     return (
-      <FoodDeliveryTracker
-        orderId={order.id}
-        orderStatus={order.status}
-        destinationCoords={
-          order.userCoords || {
-            latitude: 26.7323,
-            longitude: 67.7744,
+      <Suspense fallback={null}>
+        <FoodDeliveryTracker
+          orderId={order.id}
+          orderStatus={order.status}
+          destinationCoords={
+            order.userCoords || {
+              latitude: 26.7323,
+              longitude: 67.7744,
+            }
           }
-        }
-        restaurantCoords={restaurantCoords}
-        orderEta={order.eta}
-        initialRiderCoords={order.riderCoords}
-        riderName={order.riderName}
-        riderPhone={order.riderPhone}
-        restaurantName={order.restaurantName || "Dadu Central Kitchen"}
-        items={order.items}
-        grandTotal={order.grandTotal}
-        currentUser={currentUser}
-        onClose={onClose}
-      />
+          restaurantCoords={restaurantCoords}
+          orderEta={order.eta}
+          initialRiderCoords={order.riderCoords}
+          riderName={order.riderName}
+          riderPhone={order.riderPhone}
+          restaurantName={order.restaurantName || "Dadu Central Kitchen"}
+          items={order.items}
+          grandTotal={order.grandTotal}
+          currentUser={currentUser}
+          onClose={onClose}
+        />
+      </Suspense>
     );
   }
 

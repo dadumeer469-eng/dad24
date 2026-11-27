@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 import { X, History, Heart, Sun, Moon, ShieldAlert, LogOut, BadgeCheck, RotateCcw, Settings } from "lucide-react";
 import { UserProfile, Order } from "../types";
 import { formatOrderId } from "../utils/catalogNormalizer";
@@ -39,6 +40,11 @@ export default function MobileAccountDrawer({
   onToggleTheme,
   onOpenSettings,
 }: MobileAccountDrawerProps) {
+  // Focus trap + ESC to close (a11y fix 27 Nov 2026). Must sit above the
+  // `if (!user) return null` below so the hook order never changes.
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, isOpen, onClose);
+
   if (!user) return null;
 
   const activeOrders = orders.filter(
@@ -64,6 +70,11 @@ export default function MobileAccountDrawer({
 
           {/* Drawer Body */}
           <motion.div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Account menu"
+            tabIndex={-1}
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
@@ -96,7 +107,7 @@ export default function MobileAccountDrawer({
               <button
                 onClick={onClose}
                 aria-label="Close"
-                className="p-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 rounded-full transition cursor-pointer"
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 rounded-full transition cursor-pointer"
               >
                 <X className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
               </button>

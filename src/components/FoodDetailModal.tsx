@@ -4,6 +4,7 @@ import { Dish } from "../types";
 import { AlertTriangle, Clock, Plus, Minus, X, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LazyImage } from "./LazyImage";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 
 interface FoodDetailModalProps {
   dish: Dish | null;
@@ -57,6 +58,12 @@ export default function FoodDetailModal({
     resetSelections();
     onClose();
   };
+
+  // Focus trap + ESC to close (a11y fix 27 Nov 2026). The modal is open
+  // whenever a dish is set. Must sit above the `if (!dish) return null`
+  // below so the hook order never changes.
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, !!dish, handleClose);
 
   React.useEffect(() => {
     if (dish) {
@@ -123,6 +130,7 @@ export default function FoodDetailModal({
   return createPortal(
     <AnimatePresence>
       <motion.div
+        ref={dialogRef}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -133,6 +141,10 @@ export default function FoodDetailModal({
         className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs p-0 pb-[76px] sm:p-6"
       >
         <motion.div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="food-detail-heading"
+          tabIndex={-1}
           initial={{ y: "100%", opacity: 0.8 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: "100%", opacity: 0.8 }}
@@ -170,7 +182,7 @@ export default function FoodDetailModal({
 
               {/* Content Body */}
               <div className="p-5 sm:p-7 overflow-y-auto scrollbar-none flex-grow">
-                <h3 className="font-black text-zinc-900 dark:text-zinc-100 text-2xl tracking-tight">{dish.name}</h3>
+                <h3 id="food-detail-heading" className="font-black text-zinc-900 dark:text-zinc-100 text-2xl tracking-tight">{dish.name}</h3>
                 <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed mt-2">{dish.description}</p>
 
                 {isService && (

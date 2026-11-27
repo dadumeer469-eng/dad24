@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { springSmooth } from "../utils/motion";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 import { X, User, MapPin, CreditCard, Bell, Globe, Plus, Trash2, Check, Save } from "lucide-react";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "../firebase";
@@ -76,6 +77,11 @@ export const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
       setToast(null);
     }
   }, [isOpen, user, storageUid]);
+
+  // Focus trap + ESC to close (a11y fix 27 Nov 2026). Must sit above the
+  // `if (!isOpen) return null` below so the hook order never changes.
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, isOpen, onClose);
 
   if (!isOpen) return null;
 
@@ -162,8 +168,12 @@ export const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-[120] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div ref={dialogRef} className="fixed inset-0 z-[120] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
       <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="customer-settings-heading"
+        tabIndex={-1}
         initial={{ opacity: 0, scale: 0.96, y: 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={springSmooth}
@@ -172,7 +182,7 @@ export const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
           <div>
-            <h2 className="text-lg font-black text-zinc-900 dark:text-white">Account &amp; Settings</h2>
+            <h2 id="customer-settings-heading" className="text-lg font-black text-zinc-900 dark:text-white">Account &amp; Settings</h2>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
               {user ? `Signed in as ${user.name || user.phone}` : "Manage your local preferences"}
             </p>
@@ -181,7 +191,7 @@ export const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
             type="button"
             onClick={onClose}
             aria-label="Close settings"
-            className="p-2 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 cursor-pointer"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -281,7 +291,7 @@ export const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
                         type="button"
                         onClick={() => handleDeleteAddress(addr.address)}
                         aria-label="Delete address"
-                        className="p-2 rounded-lg text-zinc-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 cursor-pointer"
+                        className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-lg text-zinc-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 cursor-pointer"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

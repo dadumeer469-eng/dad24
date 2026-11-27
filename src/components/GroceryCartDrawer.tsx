@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion } from "motion/react";
 import { springSmooth } from "../utils/motion";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
@@ -45,6 +46,7 @@ interface GroceryCartDrawerProps {
   currentUser: UserProfile | null;
   onOpenAuth: () => void;
   deliveryConfig: GroceryDeliveryConfig;
+  isRiderRangeExceeded?: boolean; // Customer beyond the admin-set rider range — delivery fee doubles (matches App's saved order total)
   isFirstOrderFreeDelivery?: boolean; // New user's first order ships FREE (food/grocery/medicine)
   onPlaceGroceryOrder: (details: {
     name: string;
@@ -82,6 +84,7 @@ export default function GroceryCartDrawer({
   currentUser,
   onOpenAuth,
   deliveryConfig,
+  isRiderRangeExceeded,
   isFirstOrderFreeDelivery,
   onPlaceGroceryOrder,
   userCoords,
@@ -249,15 +252,11 @@ export default function GroceryCartDrawer({
     }
   }, [isOpen, cartItems.length]);
 
-  // Escape closes the drawer (keyboard / accessibility).
-  React.useEffect(() => {
-    if (!isOpen) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isOpen, onClose]);
+  // Focus trap + ESC to close (a11y fix 27 Nov 2026) — replaces the old
+  // ESC-only listener above. Must sit above the `if (!isOpen) return null`
+  // below so the hook order never changes.
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, isOpen, onClose);
 
   // Wizard always starts on the Basket step when the drawer opens.
   React.useEffect(() => {
@@ -302,12 +301,33 @@ export default function GroceryCartDrawer({
   // Medicine has its OWN delivery fee, separate from grocery (user instruction).
   // If the cart contains any medicine item, the medicine fee applies instead.
   const hasMedicine = cartItems.some(isMedicineItem);
-  const medicineDeliveryFee = (deliveryConfig?.medicineDeliveryFee || 0) > 0 ? deliveryConfig.medicineDeliveryFee : 30;
-  const baseDeliveryFee = hasMedicine
-    ? medicineDeliveryFee
-    : (deliveryConfig?.baseDeliveryFee || 0) > 0 ? deliveryConfig.baseDeliveryFee : 50;
+  // NEW FEE STRUCTURE (user decision 27 Nov 2026, overrides the old Rs. 50):
+  // grocery Rs. 100, medicine Rs. 30 — read from settings/delivery_config
+  // (systemSettings, the delivery_config doc) with the legacy
+  // groceryDeliveryConfig doc fields as fallback.
+  const medicineDeliveryFee =
+    Number(systemSettings?.medicineDeliveryFee ?? 0) > 0
+      ? Number(systemSettings.medicineDeliveryFee)
+      : (deliveryConfig?.medicineDeliveryFee || 0) > 0
+        ? deliveryConfig.medicineDeliveryFee
+        : 30;
+  const groceryDeliveryFee =
+    Number(systemSettings?.groceryDeliveryFee ?? 0) > 0
+      ? Number(systemSettings.groceryDeliveryFee)
+      : (deliveryConfig?.baseDeliveryFee || 0) > 0
+        ? deliveryConfig.baseDeliveryFee
+        : 100;
+  const baseDeliveryFee = hasMedicine ? medicineDeliveryFee : groceryDeliveryFee;
   const isDoubleFee = doubleFeeBelow > 0 && totalGroceryPrice < doubleFeeBelow;
   const deliveryFeeRate = isDoubleFee ? baseDeliveryFee * 2 : baseDeliveryFee;
+  // Rider-range doubling (27 Nov 2026): beyond the admin-set rider range
+  // the delivery fee doubles — applied here to the (possibly below-Rs-500
+  // doubled) base, BEFORE Priority, exactly like the food drawer and
+  // App's saved food total. App no longer pre-doubles
+  // deliveryConfig.baseDeliveryFee, so this is the single x2 — and because
+  // App trusts the fee this drawer passes, the saved grocery total now
+  // includes the doubling too (previously it was dead in both places).
+  const rangeAdjustedFee = isRiderRangeExceeded ? deliveryFeeRate * 2 : deliveryFeeRate;
   // First-order FREE delivery (user decision 27 Nov 2026): a signed-in user
   // with zero previous orders pays no delivery fee on their first order.
   const isFirstOrderFree = isFirstOrderFreeDelivery === true && !!currentUser;
@@ -317,7 +337,7 @@ export default function GroceryCartDrawer({
     ? 0
     : isFreeDelivery
     ? 0
-    : deliveryFeeRate;
+    : rangeAdjustedFee;
   // Delivery speed (mirrors food checkout — Standard / Priority only, no Saver)
   const priorityFee = Number(systemSettings?.priorityFee ?? 30);
   const tipOptions = (Array.isArray(systemSettings?.tipOptions) && systemSettings.tipOptions.length > 0
@@ -337,10 +357,28 @@ export default function GroceryCartDrawer({
   const easypaisaTitle = systemSettings?.easypaisaTitle || "Ghulam Murtaza";
   const easypaisaNumber = systemSettings?.easypaisaNumber || "03277004471";
 
-  const taxesAmount = 0; // Transparent pricing: total = items + delivery fee - discount
+  // Site tax (user decision 27 Nov 2026): flat Rs. 12 per order, from
+  // settings/delivery_config (siteTax, default 12). Still charged on free
+  // and first-order-free delivery; never doubled, never waived.
+  const siteTax = totalGroceryPrice > 0 ? Number(systemSettings?.siteTax ?? 12) : 0;
+  const taxesAmount = siteTax; // Transparent pricing: total = items + delivery fee + site tax - discount
 
-  // Base Grocery Total before benefits (items + delivery + optional rider tip, mirrors food)
-  const baseOrderTotal = totalGroceryPrice + finalDeliveryFee + riderTip;
+  // Night surcharge (user decision 27 Nov 2026, confirmed same day):
+  // +nightSurchargeAmount (default Rs. 30) from nightSurchargeStartHour
+  // (default 21:00 local time). Applies ON TOP of the final delivery fee,
+  // AFTER any below-500 doubling — but free delivery (subtotal >= 1000 or
+  // first order) waives the WHOLE delivery fee including the surcharge.
+  const nightSurchargeAmount = Number(systemSettings?.nightSurchargeAmount ?? 30);
+  const nightSurchargeStartHour = Number(systemSettings?.nightSurchargeStartHour ?? 21);
+  const isNightSurcharge =
+    deliveryRequired &&
+    !isFirstOrderFree &&
+    !isFreeDelivery &&
+    new Date().getHours() >= nightSurchargeStartHour;
+  const nightSurcharge = isNightSurcharge ? nightSurchargeAmount : 0;
+
+  // Base Grocery Total before benefits (items + delivery + night surcharge + site tax + optional rider tip, mirrors food)
+  const baseOrderTotal = totalGroceryPrice + finalDeliveryFee + nightSurcharge + taxesAmount + riderTip;
 
   // Voucher Discount
   let voucherDiscount = 0;
@@ -609,7 +647,7 @@ export default function GroceryCartDrawer({
           price: effectiveItemPrice(item),
         })),
         totalPrice: totalGroceryPrice,
-        deliveryFee: finalDeliveryFee,
+        deliveryFee: finalDeliveryFee + nightSurcharge,
         grandTotal: grandTotal,
         paymentMethod,
         paymentReceiptUrl: paymentMethod === "Easypaisa" ? (paymentReceiptUrl || undefined) : undefined,
@@ -638,14 +676,15 @@ export default function GroceryCartDrawer({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/75">
+    <div ref={dialogRef} className="fixed inset-0 z-50 flex justify-end bg-black/75">
       {/* Tap space to slide out drawer */}
       <div className="flex-1" onClick={onClose}></div>
 
       <motion.div
         role="dialog"
         aria-modal="true"
-        aria-label="Grocery basket and checkout"
+        aria-labelledby="grocery-cart-drawer-heading"
+        tabIndex={-1}
         initial={{ x: "100%" }}
         animate={{ x: 0 }}
         transition={springSmooth}
@@ -656,7 +695,7 @@ export default function GroceryCartDrawer({
         <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-2">
             <ShoppingBag className="w-5 h-5 text-[#D70F64]" />
-            <h3 className="font-extrabold text-sm tracking-wide text-zinc-900 dark:text-zinc-100 uppercase">Your Grocery Cart</h3>
+            <h3 id="grocery-cart-drawer-heading" className="font-extrabold text-sm tracking-wide text-zinc-900 dark:text-zinc-100 uppercase">Your Grocery Cart</h3>
           </div>
           <button
             onClick={onClose}
@@ -743,7 +782,7 @@ export default function GroceryCartDrawer({
                     <button
                       onClick={() => onUpdateQuantity(item.productId, item.quantity - 1)}
                       aria-label={`Decrease quantity of ${item.name}`}
-                      className="w-10 h-10 rounded-lg text-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-[#E21B70] transition-transform duration-180 active:scale-[0.97] active:brightness-110"
+                      className="w-11 h-11 rounded-lg text-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-[#E21B70] transition-transform duration-180 active:scale-[0.97] active:brightness-110"
                     >
                       -
                     </button>
@@ -751,7 +790,7 @@ export default function GroceryCartDrawer({
                     <button
                       onClick={() => onUpdateQuantity(item.productId, item.quantity + 1)}
                       aria-label={`Increase quantity of ${item.name}`}
-                      className="w-10 h-10 rounded-lg text-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-[#E21B70] transition-transform duration-180 active:scale-[0.97] active:brightness-110"
+                      className="w-11 h-11 rounded-lg text-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-extrabold flex items-center justify-center cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-[#E21B70] transition-transform duration-180 active:scale-[0.97] active:brightness-110"
                     >
                       +
                     </button>
@@ -1513,6 +1552,18 @@ export default function GroceryCartDrawer({
                   )}
                 </span>
               </div>
+              {nightSurcharge > 0 && (
+                <div className="flex justify-between">
+                  <span>Night Surcharge +Rs. {nightSurcharge}</span>
+                  <span className="text-zinc-900 dark:text-zinc-100 font-extrabold font-mono">Rs. {nightSurcharge}</span>
+                </div>
+              )}
+              {siteTax > 0 && (
+                <div className="flex justify-between">
+                  <span>Site Tax:</span>
+                  <span className="text-zinc-900 dark:text-zinc-100 font-extrabold font-mono">Rs. {siteTax}</span>
+                </div>
+              )}
               {riderTip > 0 && (
                 <div className="flex justify-between">
                   <span>Rider Tip:</span>

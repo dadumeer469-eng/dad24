@@ -141,8 +141,8 @@ export const InfoPagesView: React.FC<InfoPagesViewProps> = ({ page, onBack, onNa
             <section className="space-y-2">
               <h2 className="text-lg font-bold text-zinc-900 dark:text-white">Our Delivery &amp; Pricing Commitment</h2>
               <ul className="list-disc pl-5 text-sm text-zinc-600 dark:text-zinc-300 space-y-1.5">
-                <li>Standard delivery fee is Rs. {DADU_FOOD_BUSINESS.standardDeliveryFee} across Dadu City.</li>
-                <li>Orders below Rs. {DADU_FOOD_BUSINESS.smallOrderThreshold} carry a small-order delivery fee (2x standard fee, Rs. {DADU_FOOD_BUSINESS.standardDeliveryFee * 2}).</li>
+                <li>Delivery fees: Rs. 70 for food orders, Rs. 100 for grocery orders, and Rs. 30 for medicine-only orders, plus a flat Rs. 12 site tax per order.</li>
+                <li>Orders below Rs. {DADU_FOOD_BUSINESS.smallOrderThreshold} carry double the delivery fee (food Rs. 140, grocery Rs. 200, medicine Rs. 60).</li>
                 <li>Orders of Rs. {DADU_FOOD_BUSINESS.freeDeliveryThreshold} or more qualify for FREE delivery.</li>
                 <li>Pay flexibly with Cash on Delivery (COD) or Easypaisa (Ghulam Murtaza · 03277004471).</li>
               </ul>

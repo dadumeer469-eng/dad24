@@ -27,6 +27,7 @@ import {
   query,
   where,
   onSnapshot,
+  getDoc,
   getDocs,
   getFirestore,
   orderBy,
@@ -497,6 +498,19 @@ function CountUp({ value, prefix = "" }: { value: number; prefix?: string }) {
   );
 }
 
+const DEFAULT_DELIVERY_AREAS = [
+  "Shahani Paro",
+  "Moro Road",
+  "Station Road",
+  "College Road",
+  "Makhdoom Bilawal Nagar",
+  "Civil Hospital Road",
+  "Degree College Road",
+  "New Bus Stand",
+  "Kacheri Road",
+  "Dadu City Center",
+];
+
 export default function AdminPanel({
   dishes,
   orders,
@@ -520,6 +534,7 @@ export default function AdminPanel({
     | "food_categories"
     | "loyalty"
     | "vouchers"
+    | "settings"
   >("analytics");
   const [editingRiderPasswordId, setEditingRiderPasswordId] = useState<string | null>(null);
   const [newPasswordInputValue, setNewPasswordInputValue] = useState<string>("");
@@ -577,16 +592,41 @@ export default function AdminPanel({
 
   // Delivery config state
   const [deliveryChargeInput, setDeliveryChargeInput] = useState(
-    deliverySettings?.deliveryFee || 50,
-  );
-  const [minOrderAmountInput, setMinOrderAmountInput] = useState(
-    deliverySettings?.minOrderAmount || 0,
+    deliverySettings?.foodDeliveryFee ?? deliverySettings?.deliveryFee ?? 70,
   );
   const [riderRangeKmInput, setRiderRangeKmInput] = useState(
     deliverySettings?.riderRangeKm || 5,
   );
   const [userRangeKmInput, setUserRangeKmInput] = useState(
     deliverySettings?.userRangeKm || 10,
+  );
+
+  // New fee structure (27 Nov 2026) — settings/delivery_config.
+  // Food 70 / grocery 100 / medicine 30 / site tax 12 / night +30 from 21:00.
+  const [groceryDeliveryFeeInput, setGroceryDeliveryFeeInput] = useState(
+    deliverySettings?.groceryDeliveryFee ?? groceryDeliveryConfig?.baseDeliveryFee ?? 100,
+  );
+  const [medicineDeliveryFeeInput, setMedicineDeliveryFeeInput] = useState(
+    deliverySettings?.medicineDeliveryFee ?? groceryDeliveryConfig?.medicineDeliveryFee ?? 30,
+  );
+  const [siteTaxInput, setSiteTaxInput] = useState(
+    deliverySettings?.siteTax ?? 12,
+  );
+  const [nightSurchargeAmountInput, setNightSurchargeAmountInput] = useState(
+    deliverySettings?.nightSurchargeAmount ?? 30,
+  );
+  const [nightSurchargeStartHourInput, setNightSurchargeStartHourInput] = useState(
+    deliverySettings?.nightSurchargeStartHour ?? 21,
+  );
+  // Homepage / voice controls — App.tsx reads these exact field names.
+  const [voiceOrderEnabledInput, setVoiceOrderEnabledInput] = useState(
+    deliverySettings?.voiceOrderEnabled !== false,
+  );
+  const [deliveryTimeTextInput, setDeliveryTimeTextInput] = useState(
+    deliverySettings?.deliveryTimeText || "25–35 min",
+  );
+  const [deliveryAreasInput, setDeliveryAreasInput] = useState(
+    (deliverySettings?.deliveryAreas || DEFAULT_DELIVERY_AREAS).join("\n"),
   );
   const [baseLatInput, setBaseLatInput] = useState(
     deliverySettings?.baseLocationCoords?.lat || 26.7323, // Dadu city center approx
@@ -669,10 +709,8 @@ export default function AdminPanel({
       await setRtdb(ref(rtdb, "settings/live_tracking_enabled"), newVal);
       await setDoc(
         doc(db, "settings", "delivery_config"),
-        cleanObject({
-          ...deliverySettings,
-          liveTrackingEnabled: newVal,
-        })
+        { liveTrackingEnabled: newVal },
+        { merge: true },
       );
     } catch (e) {
       console.error("Error toggling live tracking in RTDB:", e);
@@ -699,6 +737,8 @@ export default function AdminPanel({
   const [restCommissionEnabled, setRestCommissionEnabled] = useState(false);
   const [restCommissionType, setRestCommissionType] = useState<"percentage" | "fixed">("percentage");
   const [restCommissionValue, setRestCommissionValue] = useState("");
+  const [restDeliveryTime, setRestDeliveryTime] = useState("");
+  const [restTagline, setRestTagline] = useState("");
   const [newRestaurantInput, setNewRestaurantInput] = useState("");
 
   // Deal of the Hour states
@@ -734,9 +774,16 @@ export default function AdminPanel({
   // Sync state when props or selected restaurant change
   useEffect(() => {
     if (deliverySettings) {
-      setDeliveryChargeInput(deliverySettings.deliveryFee || 50);
-      setMinOrderAmountInput(deliverySettings.minOrderAmount || 0);
+      setDeliveryChargeInput(deliverySettings.foodDeliveryFee ?? deliverySettings.deliveryFee ?? 70);
       setRiderRangeKmInput(deliverySettings.riderRangeKm || 5);
+      setGroceryDeliveryFeeInput(deliverySettings.groceryDeliveryFee ?? groceryDeliveryConfig?.baseDeliveryFee ?? 100);
+      setMedicineDeliveryFeeInput(deliverySettings.medicineDeliveryFee ?? groceryDeliveryConfig?.medicineDeliveryFee ?? 30);
+      setSiteTaxInput(deliverySettings.siteTax ?? 12);
+      setNightSurchargeAmountInput(deliverySettings.nightSurchargeAmount ?? 30);
+      setNightSurchargeStartHourInput(deliverySettings.nightSurchargeStartHour ?? 21);
+      setVoiceOrderEnabledInput(deliverySettings.voiceOrderEnabled !== false);
+      setDeliveryTimeTextInput(deliverySettings.deliveryTimeText || "25–35 min");
+      setDeliveryAreasInput((deliverySettings.deliveryAreas || DEFAULT_DELIVERY_AREAS).join("\n"));
       setUserRangeKmInput(deliverySettings.userRangeKm || 10);
       setIsMaintenanceMode(deliverySettings.isMaintenanceMode || false);
       setMaintenanceMessage(
@@ -798,6 +845,8 @@ export default function AdminPanel({
         setRestCommissionEnabled(specificStatus.commissionEnabled || false);
         setRestCommissionType(specificStatus.commissionType || "percentage");
         setRestCommissionValue(specificStatus.commissionValue?.toString() || "");
+        setRestDeliveryTime(specificStatus.deliveryTime || "");
+        setRestTagline(specificStatus.tagline || "");
       } else {
         setRestStatusUnavailable(false);
         setRestOpeningTime("12:00");
@@ -812,6 +861,8 @@ export default function AdminPanel({
         setRestCommissionEnabled(false);
         setRestCommissionType("percentage");
         setRestCommissionValue("");
+        setRestDeliveryTime("");
+        setRestTagline("");
       }
     }
   }, [deliverySettings, selectedScheduleRestaurant]);
@@ -1099,7 +1150,7 @@ export default function AdminPanel({
 
   // Grocery settings inputs
   const [gBaseDeliveryFee, setGBaseDeliveryFee] = useState(
-    groceryDeliveryConfig?.baseDeliveryFee || 50,
+    groceryDeliveryConfig?.baseDeliveryFee ?? 100,
   );
   const [gMedicineDeliveryFee, setGMedicineDeliveryFee] = useState(
     groceryDeliveryConfig?.medicineDeliveryFee ?? 30,
@@ -1110,6 +1161,14 @@ export default function AdminPanel({
   const [gAllowMixed, setGAllowMixed] = useState(
     groceryDeliveryConfig?.allowMixedCart ?? false,
   );
+
+  // Keep the grocery-tab fee inputs in step with the live config doc.
+  useEffect(() => {
+    if (groceryDeliveryConfig) {
+      setGBaseDeliveryFee(groceryDeliveryConfig.baseDeliveryFee ?? 100);
+      setGMedicineDeliveryFee(groceryDeliveryConfig.medicineDeliveryFee ?? 30);
+    }
+  }, [groceryDeliveryConfig]);
 
   // Form states for adding grocery category
   const [newCatName, setNewCatName] = useState("");
@@ -1134,6 +1193,7 @@ export default function AdminPanel({
   const [newGProdStock, setNewGProdStock] = useState<number>(10);
   const [newGProdCategoryId, setNewGProdCategoryId] = useState("");
   const [newGProdCommission, setNewGProdCommission] = useState<number>(0);
+  const [newGProdCostPrice, setNewGProdCostPrice] = useState<number>(0);
 
   // Edit grocery states
   const [editingGProductId, setEditingGProductId] = useState<string | null>(
@@ -1144,6 +1204,8 @@ export default function AdminPanel({
   const [editingGProdStockInput, setEditingGProdStockInput] =
     useState<number>(0);
   const [editingGProdCommissionInput, setEditingGProdCommissionInput] =
+    useState<number>(0);
+  const [editingGProdCostPriceInput, setEditingGProdCostPriceInput] =
     useState<number>(0);
 
   // Form states for adding items
@@ -1161,6 +1223,7 @@ export default function AdminPanel({
   const [newItemClosingTime, setNewItemClosingTime] = useState("");
   const [newItemRestaurantName, setNewItemRestaurantName] = useState("");
   const [newItemCommission, setNewItemCommission] = useState<number>(0);
+  const [newItemCostPrice, setNewItemCostPrice] = useState<number>(0);
   const [newItemIsBestseller, setNewItemIsBestseller] = useState<boolean>(false);
   const [newItemSizes, setNewItemSizes] = useState<
     { name: string; price: number; imageUrl?: string }[]
@@ -1190,6 +1253,8 @@ export default function AdminPanel({
   const [editingDiscountPriceInput, setEditingDiscountPriceInput] =
     useState<number>(0);
   const [editingCommissionInput, setEditingCommissionInput] =
+    useState<number>(0);
+  const [editingCostPriceInput, setEditingCostPriceInput] =
     useState<number>(0);
   const [editingIsBestseller, setEditingIsBestseller] = useState<boolean>(false);
   const [editingSizes, setEditingSizes] = useState<
@@ -2192,7 +2257,6 @@ export default function AdminPanel({
       const existingForRestaurant: any = existingStatuses[trimmedName] || {};
 
       const newSettings = {
-        deliveryFee: Number(deliveryChargeInput),
         restaurantStatus: deliverySettings?.restaurantStatus || {
           isTemporarilyUnavailable: false,
           openingTime: "12:00",
@@ -2225,23 +2289,53 @@ export default function AdminPanel({
     }
   };
 
-  // Save new Delivery Setting and Restaurant Status
-  const handleSaveDeliveryConfig = async () => {
-    try {
-      const existingStatuses = deliverySettings?.restaurantStatuses || {};
-      const currentRestaurantConfig: any = existingStatuses[selectedScheduleRestaurant] || {};
+  // ---- Per-field / per-section saves (settings/delivery_config) ----
+  // Each save writes ONLY its own fields with setDoc(..., { merge: true }),
+  // so one card can never clobber another card's newer values with stale
+  // form state (the old handleSaveDeliveryConfig wrote the whole doc from
+  // form state synced only on load). merge:true also creates the doc if
+  // it is ever missing, instead of throwing like updateDoc would.
+  const saveDeliveryConfigFields = async (fields: Record<string, unknown>) => {
+    await setDoc(doc(db, "settings", "delivery_config"), fields, { merge: true });
+  };
 
-      const newSettings = {
-        ...deliverySettings,
-        deliveryFee: Number(deliveryChargeInput),
-        minOrderAmount: Number(minOrderAmountInput),
-        riderRangeKm: Number(riderRangeKmInput),
-        userRangeKm: Number(userRangeKmInput),
-        baseLocationCoords: {
-          lat: Number(baseLatInput),
-          lng: Number(baseLngInput),
-        },
-        // Store Controls — checkout & payment options shown in the user panel
+  // Delivery fees + site tax + night surcharge (Settings tab).
+  // foodDeliveryFee is also written to the legacy `deliveryFee` field so
+  // user code that still reads deliveryFee keeps working until it
+  // migrates to foodDeliveryFee. Grocery/medicine fees are mirrored into
+  // settings/groceryDeliveryConfig for the same reason.
+  const handleSaveDeliveryCharges = async () => {
+    try {
+      const foodFee = Number(deliveryChargeInput) || 70;
+      const groceryFee = Number(groceryDeliveryFeeInput) || 100;
+      const medicineFee = Number(medicineDeliveryFeeInput) || 30;
+      await saveDeliveryConfigFields({
+        deliveryFee: foodFee,
+        foodDeliveryFee: foodFee,
+        groceryDeliveryFee: groceryFee,
+        medicineDeliveryFee: medicineFee,
+        siteTax: Number(siteTaxInput) || 0,
+        nightSurchargeAmount: Number(nightSurchargeAmountInput) || 0,
+        nightSurchargeStartHour: Math.max(0, Math.min(23, Number(nightSurchargeStartHourInput) || 21)),
+      });
+      await setDoc(
+        doc(db, "settings", "groceryDeliveryConfig"),
+        { baseDeliveryFee: groceryFee, medicineDeliveryFee: medicineFee },
+        { merge: true },
+      );
+      setGBaseDeliveryFee(groceryFee);
+      setGMedicineDeliveryFee(medicineFee);
+      alert("Delivery fees, site tax & night surcharge saved!");
+    } catch (err) {
+      console.error(err);
+      alert("Permission denied or Firestore configuration missing while saving delivery charges.");
+    }
+  };
+
+  // Store Controls — checkout & payment options (Settings tab).
+  const handleSaveStoreControls = async () => {
+    try {
+      await saveDeliveryConfigFields({
         easypaisaTitle: easypaisaTitleInput.trim() || "Ghulam Murtaza",
         easypaisaNumber: easypaisaNumberInput.trim() || "03277004471",
         whatsappNumber: whatsappNumberInput.trim().replace(/[^0-9]/g, "") || "923277004471",
@@ -2254,12 +2348,23 @@ export default function AdminPanel({
         leaveAtDoorEnabled: leaveAtDoorEnabledInput,
         messageOnArrivalEnabled: messageOnArrivalEnabledInput,
         firstOrderFreeDelivery: firstOrderFreeDeliveryInput,
-        // Keep legacy for safety
-        restaurantStatus: deliverySettings?.restaurantStatus || {
-          isTemporarilyUnavailable: false,
-          openingTime: "12:00",
-          closingTime: "23:00",
-        },
+      });
+      alert("Store Controls successfully saved!");
+    } catch (err) {
+      console.error(err);
+      alert("Permission denied or Firestore configuration missing while saving store controls.");
+    }
+  };
+
+  // Restaurant profile / operating times for the selected vendor.
+  // Reads the doc fresh so a concurrent admin's restaurantStatuses are
+  // not overwritten, then updates ONLY the restaurantStatuses map.
+  const handleSaveRestaurantStatus = async () => {
+    try {
+      const snap = await getDoc(doc(db, "settings", "delivery_config"));
+      const existingStatuses = (snap.exists() ? (snap.data().restaurantStatuses as Record<string, any>) : {}) || {};
+      const currentRestaurantConfig: any = existingStatuses[selectedScheduleRestaurant] || {};
+      await saveDeliveryConfigFields({
         restaurantStatuses: {
           ...existingStatuses,
           [selectedScheduleRestaurant]: {
@@ -2267,36 +2372,85 @@ export default function AdminPanel({
             isTemporarilyUnavailable: restStatusUnavailable,
             openingTime: restOpeningTime,
             closingTime: restClosingTime,
-            // CRITICAL FIX: Never wipe existing restaurant picture if restImageUrl is empty/unaltered!
             imageUrl: restImageUrl || currentRestaurantConfig.imageUrl || "",
             bgImageUrl: restBgImageUrl || currentRestaurantConfig.bgImageUrl || "",
             phone: restPhone || currentRestaurantConfig.phone || "",
             minOrder: restMinOrder ? String(restMinOrder) : (currentRestaurantConfig.minOrder || null),
             deliveryCharge: restDeliveryCharge || currentRestaurantConfig.deliveryCharge || "",
+            deliveryTime: restDeliveryTime || currentRestaurantConfig.deliveryTime || "",
+            tagline: restTagline || currentRestaurantConfig.tagline || "",
             coords: (restLat && restLng ? { lat: parseFloat(restLat), lng: parseFloat(restLng) } : null) || currentRestaurantConfig.coords || null,
             commissionEnabled: restCommissionEnabled,
             commissionType: restCommissionType,
             commissionValue: restCommissionValue ? Number(restCommissionValue) : (currentRestaurantConfig.commissionValue || 0),
           },
         },
-        isMaintenanceMode: isMaintenanceMode,
-        maintenanceMessage: maintenanceMessage,
+      });
+      alert(`Settings successfully saved for ${selectedScheduleRestaurant}!`);
+    } catch (err) {
+      console.error(err);
+      alert("Permission denied or Firestore configuration missing while saving settings.");
+    }
+  };
+
+  // Ranges + base pin (Riders tab).
+  const handleSaveDeliveryRanges = async () => {
+    try {
+      await saveDeliveryConfigFields({
+        riderRangeKm: Number(riderRangeKmInput),
+        userRangeKm: Number(userRangeKmInput),
+        baseLocationCoords: { lat: Number(baseLatInput), lng: Number(baseLngInput) },
+      });
+      alert("Delivery ranges & base location saved!");
+    } catch (err) {
+      console.error(err);
+      alert("Permission denied or Firestore configuration missing while saving ranges.");
+    }
+  };
+
+  // Announcement / promo popup (Settings tab) — only the announcement field.
+  const handleSaveAnnouncement = async () => {
+    if (announcementActive && !announcementImageUrl.trim()) {
+      alert("Aapne Announcement active rakhi hai magar Image URL khali hai! Pehle image ka link dalein.");
+      return;
+    }
+    let targetId = announcementId.trim();
+    if (!targetId) {
+      targetId = "promo_" + Date.now();
+      setAnnouncementId(targetId);
+    }
+    try {
+      await saveDeliveryConfigFields({
         announcement: {
           active: announcementActive,
           imageUrl: announcementImageUrl.trim(),
           title: announcementTitle.trim(),
           description: announcementDescription.trim(),
-          id: announcementId.trim() || String(Date.now()),
+          id: targetId,
         },
-      };
-
-      await setDoc(doc(db, "settings", "delivery_config"), cleanObject(newSettings));
-      alert(`Settings successfully saved for ${selectedScheduleRestaurant}!`);
+      });
+      alert("🎉 Mubarak Ho! Global Offer/Announcement successfully publish ho gayi hai!");
     } catch (err) {
       console.error(err);
-      alert(
-        "Permission denied or Firestore configuration missing while saving settings.",
-      );
+      alert("Firestore error while publishing announcement: " + err);
+    }
+  };
+
+  // Voice order toggle + delivery areas + delivery-time text (Settings tab).
+  // App.tsx reads delivery_config.voiceOrderEnabled / deliveryAreas /
+  // deliveryTimeText with fallbacks, so these field names must not change.
+  const handleSaveHomepageSettings = async () => {
+    try {
+      const areas = deliveryAreasInput.split("\n").map((a) => a.trim()).filter(Boolean);
+      await saveDeliveryConfigFields({
+        voiceOrderEnabled: voiceOrderEnabledInput,
+        deliveryAreas: areas,
+        deliveryTimeText: deliveryTimeTextInput.trim() || "25–35 min",
+      });
+      alert("Homepage & voice settings saved!");
+    } catch (err) {
+      console.error(err);
+      alert("Permission denied or Firestore configuration missing while saving homepage settings.");
     }
   };
 
@@ -2324,12 +2478,11 @@ export default function AdminPanel({
   // Save Maintenance Mode Config
   const handleSaveMaintenanceConfig = async () => {
     try {
-      const newSettings = {
-        ...deliverySettings,
-        isMaintenanceMode: isMaintenanceMode,
-        maintenanceMessage: maintenanceMessage.trim(),
-      };
-      await setDoc(doc(db, "settings", "delivery_config"), cleanObject(newSettings));
+      await setDoc(
+        doc(db, "settings", "delivery_config"),
+        { isMaintenanceMode: isMaintenanceMode, maintenanceMessage: maintenanceMessage.trim() },
+        { merge: true },
+      );
       alert("Maintenance mode configuration saved successfully!");
     } catch (err) {
       console.error(err);
@@ -2340,17 +2493,19 @@ export default function AdminPanel({
   // Save Loyalty Wallet Config
   const handleSaveLoyaltyConfig = async () => {
     try {
-      const newSettings = {
-        ...deliverySettings,
-        loyaltyEnabled: Boolean(loyaltyEnabled),
-        loyaltyMinOrderForEarn: Number(loyaltyMinOrderForEarn),
-        loyaltyEarnCoins: Number(loyaltyEarnCoins),
-        loyaltyEarnType,
-        loyaltyMaxSpendCoins: Number(loyaltyMaxSpendCoins),
-        loyaltyAllowOnFood: Boolean(loyaltyAllowOnFood),
-        loyaltyAllowOnGrocery: Boolean(loyaltyAllowOnGrocery),
-      };
-      await setDoc(doc(db, "settings", "delivery_config"), cleanObject(newSettings));
+      await setDoc(
+        doc(db, "settings", "delivery_config"),
+        {
+          loyaltyEnabled: Boolean(loyaltyEnabled),
+          loyaltyMinOrderForEarn: Number(loyaltyMinOrderForEarn),
+          loyaltyEarnCoins: Number(loyaltyEarnCoins),
+          loyaltyEarnType,
+          loyaltyMaxSpendCoins: Number(loyaltyMaxSpendCoins),
+          loyaltyAllowOnFood: Boolean(loyaltyAllowOnFood),
+          loyaltyAllowOnGrocery: Boolean(loyaltyAllowOnGrocery),
+        },
+        { merge: true },
+      );
       alert("Loyalty Coin Wallet configuration saved successfully! 🪙");
     } catch (err) {
       console.error(err);
@@ -2367,6 +2522,15 @@ export default function AdminPanel({
         allowMixedCart: Boolean(gAllowMixed),
         medicineDeliveryFee: Number(gMedicineDeliveryFee),
       });
+      // Mirror into delivery_config so the Settings fee card never disagrees.
+      await setDoc(
+        doc(db, "settings", "delivery_config"),
+        {
+          groceryDeliveryFee: Number(gBaseDeliveryFee),
+          medicineDeliveryFee: Number(gMedicineDeliveryFee),
+        },
+        { merge: true },
+      );
       alert("Grocery store settings saved successfully!");
     } catch (err) {
       console.error(err);
@@ -2453,6 +2617,7 @@ export default function AdminPanel({
           categoryId: newGProdCategoryId,
           isAvailable: true,
           commission: Number(newGProdCommission),
+          costPrice: newGProdCostPrice > 0 ? Number(newGProdCostPrice) : undefined,
         }),
       );
       recordCatalogChange("groceryProducts", generatedId, "upsert");
@@ -2462,6 +2627,7 @@ export default function AdminPanel({
       setNewGProdDiscountPrice(0);
       setNewGProdStock(10);
       setNewGProdCommission(0);
+      setNewGProdCostPrice(0);
       alert(`Product "${newGProdName}" added successfully!`);
     } catch (err) {
       console.error(err);
@@ -2559,6 +2725,7 @@ export default function AdminPanel({
         price: Number(editingGProdPriceInput),
         stock: Number(editingGProdStockInput),
         commission: Number(editingGProdCommissionInput),
+        costPrice: editingGProdCostPriceInput > 0 ? Number(editingGProdCostPriceInput) : null,
       });
       recordCatalogChange("groceryProducts", prodId, "upsert");
       setEditingGProductId(null);
@@ -2592,6 +2759,7 @@ export default function AdminPanel({
       restaurantName:
         newItemRestaurantName.trim() || "Dadu Fast Food & Kitchen",
       commission: Number(newItemCommission),
+      costPrice: newItemCostPrice > 0 ? Number(newItemCostPrice) : undefined,
       isBestseller: newItemIsBestseller,
       sizes:
         newItemSizes.length > 0
@@ -2618,6 +2786,7 @@ export default function AdminPanel({
       setNewItemImageUrl("");
       setNewItemRestaurantName("");
       setNewItemCommission(0);
+      setNewItemCostPrice(0);
       setNewItemIsBestseller(false);
       setNewItemSizes([]);
       setNewItemFlavors([]);
@@ -2974,6 +3143,7 @@ export default function AdminPanel({
         discountPrice:
           editingDiscountPriceInput > 0 ? editingDiscountPriceInput : null,
         commission: editingCommissionInput,
+        costPrice: editingCostPriceInput > 0 ? editingCostPriceInput : null,
         isBestseller: editingIsBestseller,
         sizes:
           dish.type === "food" && editingSizes.length > 0 ? editingSizes : null,
@@ -3614,7 +3784,15 @@ export default function AdminPanel({
                 activeSubTab === "seo" ? "bg-[#E21B70] border-[#E21B70] text-white" : "bg-white/5 border-white/10 text-white"
               }`}
             >
-              <Settings className="w-3.5 h-3.5" /> System Settings
+              <Globe className="w-3.5 h-3.5" /> SEO
+            </button>
+            <button
+              onClick={() => setActiveSubTab("settings")}
+              className={`px-3 py-2.5 min-h-[44px] rounded-xl text-xs font-bold flex items-center gap-1.5 border transition cursor-pointer ${
+                activeSubTab === "settings" ? "bg-[#E21B70] border-[#E21B70] text-white" : "bg-white/5 border-white/10 text-white/80"
+              }`}
+            >
+              <Settings className="w-3.5 h-3.5" /> Settings
             </button>
           </div>
         </div>
@@ -3843,6 +4021,18 @@ export default function AdminPanel({
                     Coins Loyalty Wallet
                   </button>
 
+                  <button
+                    onClick={() => setActiveSubTab("settings")}
+                    className={`w-full font-black text-xs px-3 py-2.5 rounded-xl transition-all flex items-center gap-2.5 cursor-pointer border mt-1 ${
+                      activeSubTab === "settings"
+                        ? "bg-[#E21B70] border-[#E21B70] text-white shadow-md ring-1 ring-white/20"
+                        : "bg-white/5 border-white/10 text-white hover:bg-white/10"
+                    }`}
+                  >
+                    <Settings className="w-4 h-4 shrink-0 text-white/60" />
+                    <span>Store Settings</span>
+                  </button>
+
                   {/* Distinct styling for Global System Settings */}
                   <button
                     onClick={() => setActiveSubTab("seo")}
@@ -3925,6 +4115,615 @@ export default function AdminPanel({
         {/* Dashboard Panels Area */}
         <div className="col-span-1 lg:col-span-9 space-y-8">
           {/* TAB 1: Real-time Analytics Dashboard */}
+          {activeSubTab === "settings" && (
+            <div className="space-y-8 animate-fade-in text-white col-span-1 lg:col-span-9">
+              <div className="glass-dark border border-white/10 p-6 rounded-2xl shadow-sm relative">
+                <h3 className="text-lg font-black text-white tracking-wide uppercase flex items-center gap-2">
+                  <Settings className="w-5 h-5 text-[#E21B70]" /> Store Settings
+                </h3>
+                <p className="text-[11px] text-white/70 font-medium mt-1">
+                  Delivery fees, store controls, announcement, live tracking, maintenance, Deal of the Hour and homepage images — sab kuch aik jagah.
+                </p>
+              </div>
+              {/* Delivery Fees, Site Tax & Night Surcharge — new fee structure, 27 Nov 2026 */}
+              <div className="glass-dark border border-white/10 p-6 rounded-2xl shadow-sm relative space-y-4">
+                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#E21B70]/10 to-transparent" />
+                <h4 className="font-black text-sm text-white flex items-center gap-2 pb-2.5 border-b border-white/10 uppercase tracking-wide">
+                  <Truck className="w-4 h-4 text-[#E21B70]" />
+                  Delivery Fees, Site Tax &amp; Night Surcharge
+                </h4>
+                <p className="text-[10.5px] text-white/70 font-medium leading-relaxed">
+                  Food Rs. 70 · Grocery Rs. 100 · Medicine Rs. 30. Site Tax Rs. 12 applies to every order, even when delivery is free. Night surcharge is added on top of the final delivery fee from the start hour; free delivery (≥ Rs. 1000 or first order) waives the whole delivery fee including the surcharge.
+                </p>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">Food Delivery Fee (Rs.)</span>
+                    <input type="number" min="0" value={deliveryChargeInput} onChange={(e) => setDeliveryChargeInput(Number(e.target.value))} className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs" />
+                  </div>
+                  <div>
+                    <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">Grocery Delivery Fee (Rs.)</span>
+                    <input type="number" min="0" value={groceryDeliveryFeeInput} onChange={(e) => setGroceryDeliveryFeeInput(Number(e.target.value))} className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs" />
+                  </div>
+                  <div>
+                    <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">Medicine Delivery Fee (Rs.)</span>
+                    <input type="number" min="0" value={medicineDeliveryFeeInput} onChange={(e) => setMedicineDeliveryFeeInput(Number(e.target.value))} className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs" />
+                  </div>
+                  <div>
+                    <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">Site Tax (per order) (Rs.)</span>
+                    <input type="number" min="0" value={siteTaxInput} onChange={(e) => setSiteTaxInput(Number(e.target.value))} className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs" />
+                  </div>
+                  <div>
+                    <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">Night Surcharge Amount (Rs)</span>
+                    <input type="number" min="0" value={nightSurchargeAmountInput} onChange={(e) => setNightSurchargeAmountInput(Number(e.target.value))} className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs" />
+                  </div>
+                  <div>
+                    <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">Night Surcharge Starts At (hour, 0–23)</span>
+                    <input type="number" min="0" max="23" value={nightSurchargeStartHourInput} onChange={(e) => setNightSurchargeStartHourInput(Number(e.target.value))} className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs" />
+                  </div>
+                </div>
+                <button type="button" onClick={handleSaveDeliveryCharges} className="bg-[#E21B70] text-white font-black px-5 py-3 rounded-xl hover:scale-[1.02] active:scale-95 transition cursor-pointer text-xs uppercase w-full">
+                  Save Delivery Fees
+                </button>
+              </div>
+              <div className="glass-dark border border-white/10 p-6 rounded-2xl shadow-sm relative space-y-4">
+                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#E21B70]/10 to-transparent" />
+                <h4 className="font-black text-sm text-white flex items-center gap-2 pb-2.5 border-b border-white/10 uppercase tracking-wide">
+                  <Truck className="w-4 h-4 text-[#E21B70]" />
+                  Store Controls — Checkout &amp; Payment
+                </h4>
+<div className="pt-3 mt-3 border-t border-white/5 space-y-3">
+                      <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest">
+                        🏪 Store Controls — Checkout & Payment (user panel options)
+                      </span>
+                      <p className="text-[10.5px] text-white/60 font-semibold leading-relaxed">
+                        Jo option customer ko cart/checkout mein dikhti hai, wo yahan se control hoti hai. Save karne par user panel turant update ho jata hai.
+                      </p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">Easypaisa Account Title</span>
+                          <input type="text" value={easypaisaTitleInput} onChange={(e) => setEasypaisaTitleInput(e.target.value)} placeholder="Ghulam Murtaza" className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs" />
+                        </div>
+                        <div>
+                          <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">Easypaisa Number</span>
+                          <input type="text" value={easypaisaNumberInput} onChange={(e) => setEasypaisaNumberInput(e.target.value)} placeholder="03277004471" className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs" />
+                        </div>
+                      </div>
+                      <div>
+                        <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">WhatsApp / Support Number (country code ke saath, + ke baghair)</span>
+                        <input type="text" value={whatsappNumberInput} onChange={(e) => setWhatsappNumberInput(e.target.value)} placeholder="923277004471" className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs" />
+                      </div>
+                      <div>
+                        <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">Rider Tip Options (comma se alag, Rs.)</span>
+                        <input type="text" value={tipOptionsInput} onChange={(e) => setTipOptionsInput(e.target.value)} placeholder="0,50,100,200,300" className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">Priority Extra Fee (Rs.)</span>
+                          <input type="number" min="0" value={priorityFeeInput} onChange={(e) => setPriorityFeeInput(Number(e.target.value))} className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs" />
+                        </div>
+                        <div>
+                          <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">Free Delivery Above (Rs.)</span>
+                          <input type="number" min="0" value={freeDeliveryAboveInput} onChange={(e) => setFreeDeliveryAboveInput(Number(e.target.value))} className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs" />
+                        </div>
+                        <div>
+                          <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">Double Fee Below (Rs., 0 = off)</span>
+                          <input type="number" min="0" value={doubleFeeBelowInput} onChange={(e) => setDoubleFeeBelowInput(Number(e.target.value))} className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        {([
+                          { label: "Priority speed dikhao", value: priorityEnabledInput, set: setPriorityEnabledInput },
+                          { label: "Cutlery option dikhao", value: cutleryEnabledInput, set: setCutleryEnabledInput },
+                          { label: "Leave at door dikhao", value: leaveAtDoorEnabledInput, set: setLeaveAtDoorEnabledInput },
+                          { label: "Message on arrival dikhao", value: messageOnArrivalEnabledInput, set: setMessageOnArrivalEnabledInput },
+                          { label: "First order FREE delivery", value: firstOrderFreeDeliveryInput, set: setFirstOrderFreeDeliveryInput },
+                        ]).map((t) => (
+                          <label key={t.label} className="flex items-center gap-2 glass-dark border border-white/10 rounded-xl px-3 py-2.5 cursor-pointer text-xs font-bold text-white/80">
+                            <input type="checkbox" checked={t.value} onChange={(e) => t.set(e.target.checked)} className="accent-[#E21B70] w-4 h-4" />
+                            {t.label}
+                          </label>
+                        ))}
+                      </div>
+                      <button type="button" onClick={handleSaveStoreControls} className="bg-[#E21B70] text-white font-black px-5 py-3 rounded-xl hover:scale-[1.02] active:scale-95 transition cursor-pointer text-xs uppercase w-full">
+                        Save Store Controls
+                      </button>
+                      <button type="button" onClick={handleRefreshAllUsers} className="bg-emerald-600 hover:bg-emerald-700 text-white font-black px-5 py-3 rounded-xl hover:scale-[1.02] active:scale-95 transition cursor-pointer text-xs uppercase w-full flex items-center justify-center gap-2">
+                        <RefreshCw className="w-4 h-4 shrink-0" />
+                        Refresh All Users — Naya Menu/Price Sab Ko Bhejo
+                      </button>
+                      <p className="text-[10.5px] text-white/60 font-semibold leading-relaxed">
+                        Price ya kuch bhi change karne ke baad ye dabayen — har user ke khule hue page par naya menu aur prices turant load ho jayenge.
+                      </p>
+                    </div>
+              </div>
+              {/* Voice Order, Delivery Areas & Delivery Time */}
+              <div className="glass-dark border border-white/10 p-6 rounded-2xl shadow-sm relative space-y-4">
+                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#E21B70]/10 to-transparent" />
+                <h4 className="font-black text-sm text-white flex items-center gap-2 pb-2.5 border-b border-white/10 uppercase tracking-wide">
+                  <Smartphone className="w-4 h-4 text-[#E21B70]" />
+                  Voice Order &amp; Homepage
+                </h4>
+                <p className="text-[10.5px] text-white/70 font-medium leading-relaxed">
+                  Voice order button (Munchi), the "We Deliver Across Dadu City" areas and the delivery-time text shown on the homepage. Saved in settings/delivery_config; the user panel reads them with fallbacks (voice on, the 10 areas, "25–35 min").
+                </p>
+                <label className="flex items-center gap-2 glass-dark border border-white/10 rounded-xl px-3 py-2.5 cursor-pointer text-xs font-bold text-white/80">
+                  <input type="checkbox" checked={voiceOrderEnabledInput} onChange={(e) => setVoiceOrderEnabledInput(e.target.checked)} className="accent-[#E21B70] w-4 h-4" />
+                  Voice order button dikhao (Munchi)
+                </label>
+                <div>
+                  <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">Delivery Time Text</span>
+                  <input type="text" value={deliveryTimeTextInput} onChange={(e) => setDeliveryTimeTextInput(e.target.value)} placeholder="25–35 min" className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs" />
+                </div>
+                <div>
+                  <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">Delivery Areas (one per line)</span>
+                  <textarea value={deliveryAreasInput} onChange={(e) => setDeliveryAreasInput(e.target.value)} rows={6} placeholder={"Shahani Paro\nMoro Road\nStation Road"} className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs resize-none" />
+                </div>
+                <button type="button" onClick={handleSaveHomepageSettings} className="bg-[#E21B70] text-white font-black px-5 py-3 rounded-xl hover:scale-[1.02] active:scale-95 transition cursor-pointer text-xs uppercase w-full">
+                  Save Homepage Settings
+                </button>
+              </div>
+<div className="glass-dark border border-white/10 p-6 rounded-2xl shadow-sm relative space-y-6">
+                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#E21B70]/10 to-transparent" />
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+                  <div>
+                    <h4 className="font-black text-sm text-white flex items-center gap-2 uppercase tracking-wide">
+                      <Percent className="w-4 h-4 text-[#E21B70]" />
+                      Deal of the Hour Controller
+                    </h4>
+                    <p className="text-[11px] text-white/70 mt-1 leading-relaxed font-medium">
+                      Configure the high-intensity countdown timer, set the
+                      custom discount rate, and dynamically pick featured
+                      dishes/services on sale.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleSaveDealConfig}
+                    className="bg-[#E21B70] hover:bg-[#C2145E] transition-all text-white font-black px-5 py-3 rounded-2xl text-[11px] uppercase tracking-wider cursor-pointer shadow-lg shadow-[#E21B70]/15 flex items-center gap-2 shrink-0 hover:scale-[1.02] active:scale-95 self-start sm:self-auto animate-pulse"
+                  >
+                    <Save className="w-4 h-4" />
+                    Save Deal Settings
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 text-xs text-white">
+                  <div className="md:col-span-12 flex items-center justify-between glass-dark border border-white/10 p-4 rounded-2xl border border-white/10">
+                    <div>
+                      <h5 className="font-bold text-sm text-white">
+                        Enable Deal of the Hour
+                      </h5>
+                      <p className="text-[10px] text-white/60 mt-1">
+                        Toggle this on or off to control visibility instantly.
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={dealActive}
+                        onChange={(e) => setDealActive(e.target.checked)}
+                      />
+                      <div className="w-11 h-6 bg-white/15 rounded-full peer transition-colors duration-300 peer-focus:ring-2 peer-focus:ring-[#E21B70]/40 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white/15 after:border-white/15 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#E21B70] group-hover:after:glass-dark"></div>
+                    </label>
+                  </div>
+
+                  <div className="md:col-span-4 space-y-2">
+                    <label className="block text-xs font-black uppercase tracking-wider text-white/70 font-bold uppercase tracking-widest text-[9px]">
+                      Timer Duration (Minutes)
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={1440}
+                      value={dealTimer}
+                      onChange={(e) =>
+                        setDealTimer(Math.max(1, Number(e.target.value)))
+                      }
+                      placeholder="e.g. 30"
+                      className="w-full p-3 glass-input border border-white/10 border border-white/10 rounded-2xl text-xs sm:text-sm outline-none text-white focus:border-[#E21B70]/60 transition"
+                    />
+                  </div>
+
+                  <div className="md:col-span-4 space-y-2">
+                    <label className="block text-xs font-black uppercase tracking-wider text-white/70 font-bold uppercase tracking-widest text-[9px]">
+                      Discount Rate (%)
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={95}
+                      value={dealDiscount}
+                      onChange={(e) =>
+                        setDealDiscount(
+                          Math.max(0, Math.min(95, Number(e.target.value))),
+                        )
+                      }
+                      placeholder="e.g. 25"
+                      className="w-full p-3 glass-input border border-white/10 border border-white/10 rounded-2xl text-xs sm:text-sm outline-none text-white focus:border-[#E21B70]/60 transition"
+                    />
+                  </div>
+
+                  <div className="md:col-span-4 space-y-2">
+                    <label className="block text-xs font-black uppercase tracking-wider text-[#E21B70] font-bold uppercase tracking-widest text-[9px]">
+                      Deal Banner Text (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={dealText}
+                      onChange={(e) => setDealText(e.target.value)}
+                      placeholder={`e.g. Save ${dealDiscount}% on Tea & Fresh Platters!`}
+                      className="w-full p-3 glass-input border border-white/10 border border-white/10 rounded-2xl text-xs sm:text-sm outline-none text-white focus:border-[#E21B70]/60 transition"
+                    />
+                  </div>
+                </div>
+
+                {/* Dynamic Items Select list */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-black uppercase tracking-wider text-white/70 font-bold uppercase tracking-widest text-[9px]">
+                    Select Included Products & Services
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto p-3 glass-dark border border-white/10 rounded-2xl scrollbar-none">
+                    {dishes.map((dish) => {
+                      const isSelected = dealItems.includes(dish.id);
+                      return (
+                        <button
+                          key={dish.id}
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              setDealItems(
+                                dealItems.filter((id) => id !== dish.id),
+                              );
+                            } else {
+                              setDealItems([...dealItems, dish.id]);
+                            }
+                          }}
+                          className={`p-3 rounded-xl border text-left flex items-center gap-3 transition text-xs cursor-pointer ${
+                            isSelected
+                              ? "bg-[#E21B70]/10 border-[#E21B70] text-white/80"
+                              : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => {}} // click handled on container
+                            className="accent-[#E21B70] scale-105 pointer-events-none"
+                          />
+                          <div className="truncate flex-1">
+                            <p className="font-bold truncate text-white leading-snug">
+                              {dish.name}
+                            </p>
+                            <p className="text-[9.5px] text-white/60 font-extrabold uppercase mt-0.5 tracking-wide">
+                              {dish.category} • Rs. {dish.price}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <span className="text-[10px] text-white/60 font-bold uppercase tracking-wider block leading-relaxed">
+                    💡 Active Deal of the Hour items will dynamically show the
+                    discounted price calculated from your discount rate.
+                  </span>
+                </div>
+              </div>
+<div className="glass-dark border border-white/10 p-6 rounded-2xl shadow-sm relative space-y-4">
+                  <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#E21B70]/10 to-transparent" />
+                  <h4 className="font-black text-sm text-white flex items-center gap-2 pb-2.5 border-b border-white/10 uppercase tracking-wide">
+                    <ImageIcon className="w-4 h-4 text-[#E21B70]" />
+                    Global Promo Offer / Pop-up Announcement
+                  </h4>
+                  <p className="text-[10.5px] text-white/70 font-medium leading-relaxed">
+                    Yahan se aap kisi bhi product ya special offer ki image lagayein. Ye image har user ko app open karte hi aik dafa popup modal me dikhayi degi.
+                  </p>
+
+                  <div className="space-y-4 pt-1">
+                    {/* Active Status Switch */}
+                    <div className="flex items-center justify-between p-3.5 bg-emerald-500/10 rounded-2xl border border-emerald-400/25">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-black text-white">Announcement Popup Status</span>
+                        <span className="text-[10px] font-bold text-white/60">
+                          {announcementActive ? "🔴 ACTIVE - Users Will See Popup" : "⚪ INACTIVE - Hidden"}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setAnnouncementActive(!announcementActive)}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                          announcementActive ? "bg-emerald-500" : "bg-white/15"
+                        }`}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full glass-dark shadow-sm ring-0 transition duration-200 ease-in-out ${
+                            announcementActive ? "translate-x-5" : "translate-x-0"
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    {/* Announcement Image URL */}
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-bold text-white/60 uppercase tracking-widest flex items-center justify-between">
+                        <span>Offer Image URL (Pehli Fursat Me Image Link Dalein)</span>
+                        {announcementImageUrl && (
+                          <span className="text-[9px] text-[#E21B70] lowercase select-all font-mono">
+                            {announcementImageUrl.length > 30 ? announcementImageUrl.substring(0, 30) + "..." : announcementImageUrl}
+                          </span>
+                        )}
+                      </label>
+                      <input
+                        type="text"
+                        value={announcementImageUrl}
+                        onChange={(e) => setAnnouncementImageUrl(e.target.value)}
+                        placeholder="https://example.com/offer-image.jpg"
+                        className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs"
+                      />
+                    </div>
+
+                    {/* Optional Title */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <label className="block text-[10px] font-bold text-white/60 uppercase tracking-widest">
+                          Popup Title (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          value={announcementTitle}
+                          onChange={(e) => setAnnouncementTitle(e.target.value)}
+                          placeholder="e.g. 50% Flat Discount Offer!"
+                          className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="block text-[10px] font-bold text-white/60 uppercase tracking-widest">
+                          Announcement ID (Unique string to force popup again)
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={announcementId}
+                            onChange={(e) => setAnnouncementId(e.target.value)}
+                            placeholder="Auto-generated timestamp"
+                            className="flex-1 p-3 glass-input border border-white/10 rounded-xl outline-none text-white/70 font-bold text-xs"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newId = "promo_" + Date.now();
+                              setAnnouncementId(newId);
+                              alert("Naya ID set ho gaya! Ab sab users ko ye popup aik bar phir dikhayi dega.");
+                            }}
+                            className="bg-zinc-100 hover:bg-zinc-200 text-white/80 text-[10px] font-black uppercase px-3.5 rounded-xl transition shrink-0"
+                          >
+                            🔄 Reset
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Optional Description */}
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-bold text-white/60 uppercase tracking-widest">
+                        Popup Detail Description (Optional)
+                      </label>
+                      <textarea
+                        value={announcementDescription}
+                        onChange={(e) => setAnnouncementDescription(e.target.value)}
+                        rows={2}
+                        placeholder="Describe details of your flash sale or instruction..."
+                        className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs resize-none"
+                      />
+                    </div>
+
+                    {/* Live Preview of the Image Announcement */}
+                    {announcementImageUrl && (
+                      <div className="space-y-2 border border-white/5 bg-white/5 p-4 rounded-2xl">
+                        <span className="block text-[9px] font-extrabold text-white/50 uppercase tracking-widest">Live Promo Image Preview:</span>
+                        <div className="max-h-48 overflow-hidden rounded-xl border border-white/10 glass-dark flex items-center justify-center relative group">
+                          <img
+                            src={announcementImageUrl}
+                            alt="Announcement Offer Preview"
+                            referrerPolicy="no-referrer"
+                            className="max-h-48 w-auto object-contain"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Save Config Button */}
+                    <button
+                      type="button"
+                      onClick={handleSaveAnnouncement}
+                      className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-3 rounded-xl hover:scale-[1.01] active:scale-95 transition cursor-pointer text-xs uppercase shadow-md shadow-emerald-500/15 flex items-center justify-center gap-2"
+                    >
+                      <span>📢 Save & Publish Offer Announcement</span>
+                    </button>
+                  </div>
+                </div>
+<div className="glass-dark border border-white/10 p-6 rounded-2xl shadow-sm relative space-y-4">
+                  <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#E21B70]/10 to-transparent" />
+                  <h4 className="font-black text-sm text-white flex items-center gap-2 pb-2.5 border-b border-white/10 uppercase tracking-wide">
+                    <Navigation className="w-4 h-4 text-[#E21B70]" />
+                    Enable Live Rider Tracking
+                  </h4>
+                  <p className="text-[10.5px] text-white/70 font-medium leading-relaxed">
+                    Toggle live rider GPS tracking on or off. Turning this OFF disables live location writes from riders to stay strictly within free plan limits.
+                  </p>
+
+                  <div className="flex items-center justify-between p-3.5 bg-pink-500/10 rounded-2xl border border-pink-400/25">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-black text-white">Live Rider Tracking Status</span>
+                      <span className="text-[10px] font-bold text-white/60">
+                        {isLiveTrackingEnabled ? "🟢 ENABLED - Live GPS Active" : "🔴 PAUSED - Quota Saver Active"}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleLiveTracking(!isLiveTrackingEnabled)}
+                      aria-label="Toggle live rider GPS tracking"
+                      aria-pressed={isLiveTrackingEnabled}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70] ${
+                        isLiveTrackingEnabled ? "bg-[#E21B70]" : "bg-white/15"
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full glass-dark shadow-sm ring-0 transition duration-200 ease-in-out ${
+                          isLiveTrackingEnabled ? "translate-x-5" : "translate-x-0"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+<div className="glass-dark border border-white/10 p-6 rounded-2xl shadow-sm relative space-y-4">
+                  <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#E21B70]/10 to-transparent" />
+                  <h4 className="font-black text-sm text-white flex items-center gap-2 pb-2.5 border-b border-white/10 uppercase tracking-wide">
+                    <Wrench className="w-4 h-4 text-[#E21B70]" />
+                    System Maintenance Mode
+                  </h4>
+                  <p className="text-[10.5px] text-white/70 font-medium leading-relaxed">
+                    Toggle maintenance mode. While enabled, general users will be blocked from using the platform and will see only your custom message. Admins bypass this block.
+                  </p>
+
+                  <div className="space-y-4 pt-1">
+                    <div className="flex items-center justify-between p-3.5 bg-rose-500/10 rounded-2xl border border-rose-400/25">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-black text-white">Maintenance Status</span>
+                        <span className="text-[10px] font-bold text-white/60">
+                          {isMaintenanceMode ? "🔴 ACTIVE - Users Blocked" : "🟢 INACTIVE - Public Access"}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsMaintenanceMode(!isMaintenanceMode)}
+                        aria-label="Toggle maintenance mode"
+                        aria-pressed={isMaintenanceMode}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70] ${
+                          isMaintenanceMode ? "bg-[#E21B70]" : "bg-white/15"
+                        }`}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full glass-dark shadow-sm ring-0 transition duration-200 ease-in-out ${
+                            isMaintenanceMode ? "translate-x-5" : "translate-x-0"
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-bold text-white/60 uppercase tracking-widest">
+                        Maintenance Message for Users
+                      </label>
+                      <textarea
+                        value={maintenanceMessage}
+                        onChange={(e) => setMaintenanceMessage(e.target.value)}
+                        rows={3}
+                        placeholder="Provide a clear explanation..."
+                        className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs resize-none"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleSaveMaintenanceConfig}
+                      className="w-full bg-[#E21B70] text-white font-black py-3 rounded-xl hover:scale-[1.01] active:scale-95 transition cursor-pointer text-xs uppercase"
+                    >
+                      Update Maintenance Mode
+                    </button>
+                  </div>
+                </div>
+<div className="glass-dark border border-white/10 rounded-3xl p-6 relative overflow-hidden mt-6 animate-scale-up">
+                <div className="absolute right-0 top-0 w-80 h-80 bg-[#E21B70]/5 rounded-full blur-[100px] pointer-events-none" />
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 text-[#E21B70]">
+                      <Grid className="w-5 h-5 text-[#E21B70]" />
+                      <span className="text-[10px] font-black uppercase tracking-widest bg-[#E21B70]/10 px-2 py-0.5 rounded-full">
+                        UI Configuration
+                      </span>
+                    </div>
+                    <h2 className="text-xl font-black text-white mt-1">
+                      Theme Settings
+                    </h2>
+                    <p className="text-xs text-white/60 font-medium mt-1">
+                      Configure the main hero background image.
+                    </p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      onClick={handleSaveUiConfig}
+                      className="bg-[#E21B70] hover:bg-[#C2145E] text-white font-black text-[10px] uppercase tracking-widest py-3 px-5 rounded-xl transition cursor-pointer shrink-0"
+                    >
+                      Save Changes
+                    </button>
+                  </div>
+                </div>
+              </div>
+<div className="glass-dark border border-white/10 rounded-[24px] p-5 lg:p-7 shadow-sm relative">
+                <div className="space-y-6">
+                  <div>
+                    <label className="text-[10px] font-black text-white/60 uppercase tracking-widest block mb-1.5">
+                      Hero Background Image URL
+                    </label>
+                    <input
+                      type="text"
+                      value={heroBgUrl}
+                      onChange={(e) => setHeroBgUrl(e.target.value)}
+                      placeholder="e.g. /images/dishes/pizza.jpg"
+                      className="w-full p-3 glass-input border border-white/10 rounded-2xl text-xs sm:text-sm outline-none text-white focus:border-[#E21B70]/60 transition"
+                    />
+                  </div>
+
+                  <div className="pt-4 border-t border-white/5">
+                    <label className="text-[10px] font-black text-white/60 uppercase tracking-widest block mb-1.5">
+                      Partner Shops Section Background Image URL 🏪
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={partnerShopsBgUrl}
+                        onChange={(e) => setPartnerShopsBgUrl(e.target.value)}
+                        placeholder="e.g. /images/dishes/pizza.jpg"
+                        className="flex-1 p-3 glass-input border border-white/10 rounded-2xl text-xs sm:text-sm outline-none text-white focus:border-[#E21B70]/60 transition"
+                      />
+                      {partnerShopsBgUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setPartnerShopsBgUrl("")}
+                          className="px-3.5 py-2 bg-white/5 hover:bg-white/10 text-white/80 text-xs font-black rounded-2xl transition cursor-pointer"
+                        >
+                          Reset
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-white/50 font-medium mt-1.5">
+                      Enter any image URL to customize the backdrop of the "Partner Shops" card. Leave empty to use the default high-definition culinary theme.
+                    </p>
+
+                    {partnerShopsBgUrl && (
+                      <div className="mt-3 relative h-28 rounded-2xl overflow-hidden border border-white/10 shadow-inner">
+                        <img
+                          src={partnerShopsBgUrl}
+                          alt="Partner Shops Preview"
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-black/60 flex items-center justify-center">
+                          <span className="text-white text-xs font-black uppercase tracking-wider bg-black/70 px-3 py-1 rounded-full border border-white/30 shadow-md backdrop-blur-xs">
+                            Live Preview: Partner Shops Header
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {activeSubTab === "analytics" && (
             <div className="space-y-8 animate-fade-in">
               {/* Glassy Stats Row — real admin stats (no invented numbers) */}
@@ -4215,46 +5014,7 @@ export default function AdminPanel({
 
               {/* Delivery Charge Setup Card & Broadcast Manager */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {/* Delivery Fee Adjustment form */}
-                <div className="glass-dark border border-white/10 p-6 rounded-2xl shadow-sm space-y-5 relative">
-                  <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#E21B70]/10 to-transparent" />
-                  <div>
-                    <h4 className="font-black text-sm text-white flex items-center gap-2 uppercase tracking-wide">
-                      <Settings className="w-4 h-4 text-[#E21B70]" />
-                      Delivery Charges Controller
-                    </h4>
-                    <p className="text-[11px] text-white/70 mt-2.5 leading-relaxed font-medium">
-                      Overwrite the default delivery charges for food deliveries
-                      instantly on user screens. (Services are automatically
-                      forced to Rs. 0).
-                    </p>
-                  </div>
-
-                  <div className="space-y-4 pt-1">
-                    <div className="flex gap-3">
-                      <input
-                        type="number"
-                        value={deliveryChargeInput}
-                        onChange={(e) =>
-                          setDeliveryChargeInput(Number(e.target.value))
-                        }
-                        placeholder="e.g. 100"
-                        className="flex-1 p-3 glass-input border border-white/10 border border-white/10 rounded-2xl text-xs sm:text-sm outline-none text-white focus:border-[#E21B70]/60 transition focus:ring-1 focus:ring-[#E21B70]/10"
-                      />
-                      <button
-                        onClick={handleSaveDeliveryConfig}
-                        className="bg-[#E21B70] hover:bg-[#C2145E] transition-all text-white font-black px-5 py-3 rounded-2xl text-[11px] uppercase tracking-wider cursor-pointer shadow-lg shadow-[#E21B70]/10 flex items-center gap-2 shrink-0 hover:scale-[1.02] active:scale-95"
-                      >
-                        <Save className="w-4 h-4" />
-                        Save Rate
-                      </button>
-                    </div>
-                    <span className="text-[10px] text-white/60 font-bold uppercase tracking-wider block leading-relaxed">
-                      💡 Stored coordinates: settings/delivery_config with
-                      Firestore.
-                    </span>
-                  </div>
-                </div>
+                
 
                 {/* Chime trigger in-app broadcaster */}
                 <div className="glass-dark border border-white/10 p-6 rounded-2xl shadow-sm space-y-5 relative">
@@ -4298,154 +5058,7 @@ export default function AdminPanel({
                 </div>
               </div>
 
-              {/* Deal of the Hour Full Control Manager */}
-              <div className="glass-dark border border-white/10 p-6 rounded-2xl shadow-sm relative space-y-6">
-                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#E21B70]/10 to-transparent" />
-
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
-                  <div>
-                    <h4 className="font-black text-sm text-white flex items-center gap-2 uppercase tracking-wide">
-                      <Percent className="w-4 h-4 text-[#E21B70]" />
-                      Deal of the Hour Controller
-                    </h4>
-                    <p className="text-[11px] text-white/70 mt-1 leading-relaxed font-medium">
-                      Configure the high-intensity countdown timer, set the
-                      custom discount rate, and dynamically pick featured
-                      dishes/services on sale.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleSaveDealConfig}
-                    className="bg-[#E21B70] hover:bg-[#C2145E] transition-all text-white font-black px-5 py-3 rounded-2xl text-[11px] uppercase tracking-wider cursor-pointer shadow-lg shadow-[#E21B70]/15 flex items-center gap-2 shrink-0 hover:scale-[1.02] active:scale-95 self-start sm:self-auto animate-pulse"
-                  >
-                    <Save className="w-4 h-4" />
-                    Save Deal Settings
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 text-xs text-white">
-                  <div className="md:col-span-12 flex items-center justify-between glass-dark border border-white/10 p-4 rounded-2xl border border-white/10">
-                    <div>
-                      <h5 className="font-bold text-sm text-white">
-                        Enable Deal of the Hour
-                      </h5>
-                      <p className="text-[10px] text-white/60 mt-1">
-                        Toggle this on or off to control visibility instantly.
-                      </p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer group">
-                      <input
-                        type="checkbox"
-                        className="sr-only peer"
-                        checked={dealActive}
-                        onChange={(e) => setDealActive(e.target.checked)}
-                      />
-                      <div className="w-11 h-6 bg-white/15 rounded-full peer transition-colors duration-300 peer-focus:ring-2 peer-focus:ring-[#E21B70]/40 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white/15 after:border-white/15 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#E21B70] group-hover:after:glass-dark"></div>
-                    </label>
-                  </div>
-
-                  <div className="md:col-span-4 space-y-2">
-                    <label className="block text-xs font-black uppercase tracking-wider text-white/70 font-bold uppercase tracking-widest text-[9px]">
-                      Timer Duration (Minutes)
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={1440}
-                      value={dealTimer}
-                      onChange={(e) =>
-                        setDealTimer(Math.max(1, Number(e.target.value)))
-                      }
-                      placeholder="e.g. 30"
-                      className="w-full p-3 glass-input border border-white/10 border border-white/10 rounded-2xl text-xs sm:text-sm outline-none text-white focus:border-[#E21B70]/60 transition"
-                    />
-                  </div>
-
-                  <div className="md:col-span-4 space-y-2">
-                    <label className="block text-xs font-black uppercase tracking-wider text-white/70 font-bold uppercase tracking-widest text-[9px]">
-                      Discount Rate (%)
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      max={95}
-                      value={dealDiscount}
-                      onChange={(e) =>
-                        setDealDiscount(
-                          Math.max(0, Math.min(95, Number(e.target.value))),
-                        )
-                      }
-                      placeholder="e.g. 25"
-                      className="w-full p-3 glass-input border border-white/10 border border-white/10 rounded-2xl text-xs sm:text-sm outline-none text-white focus:border-[#E21B70]/60 transition"
-                    />
-                  </div>
-
-                  <div className="md:col-span-4 space-y-2">
-                    <label className="block text-xs font-black uppercase tracking-wider text-[#E21B70] font-bold uppercase tracking-widest text-[9px]">
-                      Deal Banner Text (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      value={dealText}
-                      onChange={(e) => setDealText(e.target.value)}
-                      placeholder={`e.g. Save ${dealDiscount}% on Tea & Fresh Platters!`}
-                      className="w-full p-3 glass-input border border-white/10 border border-white/10 rounded-2xl text-xs sm:text-sm outline-none text-white focus:border-[#E21B70]/60 transition"
-                    />
-                  </div>
-                </div>
-
-                {/* Dynamic Items Select list */}
-                <div className="space-y-2">
-                  <label className="block text-xs font-black uppercase tracking-wider text-white/70 font-bold uppercase tracking-widest text-[9px]">
-                    Select Included Products & Services
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto p-3 glass-dark border border-white/10 rounded-2xl scrollbar-none">
-                    {dishes.map((dish) => {
-                      const isSelected = dealItems.includes(dish.id);
-                      return (
-                        <button
-                          key={dish.id}
-                          type="button"
-                          onClick={() => {
-                            if (isSelected) {
-                              setDealItems(
-                                dealItems.filter((id) => id !== dish.id),
-                              );
-                            } else {
-                              setDealItems([...dealItems, dish.id]);
-                            }
-                          }}
-                          className={`p-3 rounded-xl border text-left flex items-center gap-3 transition text-xs cursor-pointer ${
-                            isSelected
-                              ? "bg-[#E21B70]/10 border-[#E21B70] text-white/80"
-                              : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => {}} // click handled on container
-                            className="accent-[#E21B70] scale-105 pointer-events-none"
-                          />
-                          <div className="truncate flex-1">
-                            <p className="font-bold truncate text-white leading-snug">
-                              {dish.name}
-                            </p>
-                            <p className="text-[9.5px] text-white/60 font-extrabold uppercase mt-0.5 tracking-wide">
-                              {dish.category} • Rs. {dish.price}
-                            </p>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <span className="text-[10px] text-white/60 font-bold uppercase tracking-wider block leading-relaxed">
-                    💡 Active Deal of the Hour items will dynamically show the
-                    discounted price calculated from your discount rate.
-                  </span>
-                </div>
-              </div>
+              
             </div>
           )}
 
@@ -4626,7 +5239,33 @@ export default function AdminPanel({
                             type="text"
                             value={restDeliveryCharge}
                             onChange={(e) => setRestDeliveryCharge(e.target.value)}
-                            placeholder="e.g. Rs. 50-100"
+                            placeholder="e.g. Rs. 70"
+                            className="w-full p-3 glass-input border border-white/10 rounded-xl text-xs text-white outline-none text-white focus:border-[#E21B70]/60 transition"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 pt-2">
+                        <div>
+                          <label className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">
+                            Delivery Time Text
+                          </label>
+                          <input
+                            type="text"
+                            value={restDeliveryTime}
+                            onChange={(e) => setRestDeliveryTime(e.target.value)}
+                            placeholder="e.g. 25–35 min"
+                            className="w-full p-3 glass-input border border-white/10 rounded-xl text-xs text-white outline-none text-white focus:border-[#E21B70]/60 transition"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">
+                            Tagline
+                          </label>
+                          <input
+                            type="text"
+                            value={restTagline}
+                            onChange={(e) => setRestTagline(e.target.value)}
+                            placeholder="e.g. Dadu's favourite biryani"
                             className="w-full p-3 glass-input border border-white/10 rounded-xl text-xs text-white outline-none text-white focus:border-[#E21B70]/60 transition"
                           />
                         </div>
@@ -4788,7 +5427,7 @@ export default function AdminPanel({
 
                       <div className="flex flex-col gap-2 mt-2">
                         <button
-                          onClick={handleSaveDeliveryConfig}
+                          onClick={handleSaveRestaurantStatus}
                           className="w-full bg-[#E21B70] hover:bg-[#C2145E] transition-all text-white font-black py-3 rounded-xl text-[11px] uppercase tracking-wider cursor-pointer shadow-lg shadow-pink-500/15 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95"
                         >
                           <Save className="w-4 h-4 shrink-0" />
@@ -5084,6 +5723,19 @@ export default function AdminPanel({
                       }
                       placeholder="Commission"
                       className="w-full p-3 glass-input border border-white/10 border border-emerald-400/40 rounded-xl text-white outline-none text-white focus:border-emerald-400/40 transition focus:ring-1 focus:ring-emerald-500/10 font-bold"
+                    />
+                  </div>
+                  <div className="md:col-span-2 space-y-1.5">
+                    <label className="text-white/60 font-bold uppercase tracking-widest text-[9px]">
+                      Cost Price (Rs.) — for margin
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={newItemCostPrice || ""}
+                      onChange={(e) => setNewItemCostPrice(Number(e.target.value))}
+                      placeholder="e.g. 200"
+                      className="w-full p-3 glass-input border border-white/10 border border-white/10 rounded-xl text-white outline-none text-white focus:border-[#E21B70] transition focus:ring-1 focus:ring-[#E21B70]/10"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -5493,6 +6145,7 @@ export default function AdminPanel({
                         <th className="p-4.5">Category</th>
                         <th className="p-4.5">Type</th>
                         <th className="p-4.5">Price (Rs.)</th>
+              <th className="p-4.5">Margin</th>
                         <th className="p-4.5 text-center">Featured</th>
                         <th className="p-4.5 text-center">Bestseller</th>
                         <th className="p-4.5 text-center">ON/OFF Toggle</th>
@@ -5615,6 +6268,22 @@ export default function AdminPanel({
                                       }
                                       className="w-20 p-1 glass-input border border-[#E21B70] text-white rounded text-xs leading-none"
                                       placeholder="0 for none"
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[8px] text-white/60 uppercase font-bold w-12">
+                                      Cost:
+                                    </span>
+                                    <input
+                                      type="number"
+                                      value={editingCostPriceInput || ""}
+                                      onChange={(e) =>
+                                        setEditingCostPriceInput(
+                                          Number(e.target.value),
+                                        )
+                                      }
+                                      className="w-20 p-1 glass-input border border-[#E21B70] text-white rounded text-xs leading-none"
+                                      placeholder="Cost price"
                                     />
                                   </div>
                                   <div className="flex items-center gap-1">
@@ -5985,6 +6654,7 @@ export default function AdminPanel({
                                       setEditingCommissionInput(
                                         dish.commission || 0,
                                       );
+                                      setEditingCostPriceInput(dish.costPrice || 0);
                                       setEditingOpeningTime(dish.openingTime || "");
                                       setEditingClosingTime(dish.closingTime || "");
                                       setEditingIsBestseller(dish.isBestseller || false);
@@ -6015,6 +6685,20 @@ export default function AdminPanel({
                                     Edit Details
                                   </button>
                                 </div>
+                              )}
+                            </td>
+                            <td className="p-4">
+                              {dish.costPrice && dish.costPrice > 0 ? (
+                                <div className="flex flex-col gap-0.5">
+                                  <span className="font-extrabold text-emerald-400 text-xs">
+                                    Rs. {(dish.discountPrice || dish.price) - dish.costPrice}
+                                  </span>
+                                  <span className="text-[10px] text-white/60 font-bold">
+                                    Cost: Rs. {dish.costPrice} • {Math.round((((dish.discountPrice || dish.price) - dish.costPrice) / (dish.discountPrice || dish.price)) * 100)}%
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-[10px] text-white/40 font-bold">No cost set</span>
                               )}
                             </td>
                             <td className="p-4 text-center">
@@ -6717,62 +7401,19 @@ export default function AdminPanel({
                   <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#E21B70]/10 to-transparent" />
                   <h4 className="font-black text-sm text-white flex items-center gap-2 pb-2.5 border-b border-white/10 uppercase tracking-wide">
                     <Truck className="w-4 h-4 text-[#E21B70]" />
-                    Set Global Delivery Charges
+                    Delivery Ranges & Base Location
                   </h4>
                   <p className="text-[10.5px] text-white/70 font-medium leading-relaxed">
-                    This setting governs the base delivery rate added to
-                    checkout carts across Dadu24#7 dynamically.
+                    Delivery fees live in the Settings tab now. Set the distance ranges and the base pin here — beyond the Rider Double Charge Range the delivery fee doubles.
                   </p>
 
                   <div className="flex flex-col gap-3 text-xs pt-1">
-                    <div className="flex items-center gap-3">
-                      <div className="relative flex-grow">
-                        <span className="absolute left-3.5 top-3.5 text-white/60 font-bold">
-                          Rs.
-                        </span>
-                        <input
-                          type="number"
-                          min="0"
-                          value={deliveryChargeInput}
-                          onChange={(e) =>
-                            setDeliveryChargeInput(Number(e.target.value))
-                          }
-                          placeholder="Delivery Fee"
-                          className="w-full pl-10 pr-4 py-3 glass-input border border-white/10 border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition"
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleSaveDeliveryConfig}
-                        className="bg-[#E21B70] text-white font-black px-5 py-3 rounded-xl hover:scale-[1.02] active:scale-95 transition cursor-pointer text-xs uppercase"
-                      >
-                        Update Rate
-                      </button>
-                    </div>
-                    <div className="relative flex-grow mt-2">
-                      <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">
-                        Minimum Order Amount
-                      </span>
-                      <div className="relative">
-                        <span className="absolute left-3.5 top-3.5 text-white/60 font-bold">
-                          Rs.
-                        </span>
-                        <input
-                          type="number"
-                          min="0"
-                          value={minOrderAmountInput}
-                          onChange={(e) =>
-                            setMinOrderAmountInput(Number(e.target.value))
-                          }
-                          placeholder="0 for no minimum"
-                          className="w-full pl-10 pr-4 py-3 glass-input border border-white/10 border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition"
-                        />
-                      </div>
-                    </div>
+                    
+                    
                     
                     <div className="pt-2 mt-2 border-t border-white/5 grid grid-cols-2 gap-3">
                       <div className="relative flex-grow">
-                        <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5 flex items-center gap-1"><MapPin className="w-3 h-3"/> Rider Double Charge Range (KM)</span>
+                        <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5 flex items-center gap-1"><MapPin className="w-3 h-3"/> Rider Double Charge Range (KM) — fee doubles beyond this</span>
                         <input
                           type="number"
                           min="0"
@@ -6798,71 +7439,10 @@ export default function AdminPanel({
                         />
                       </div>
                     </div>
-                    {/* Store Controls — every user-panel checkout/payment option */}
-                    <div className="pt-3 mt-3 border-t border-white/5 space-y-3">
-                      <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest">
-                        🏪 Store Controls — Checkout & Payment (user panel options)
-                      </span>
-                      <p className="text-[10.5px] text-white/60 font-semibold leading-relaxed">
-                        Jo option customer ko cart/checkout mein dikhti hai, wo yahan se control hoti hai. Save karne par user panel turant update ho jata hai.
-                      </p>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">Easypaisa Account Title</span>
-                          <input type="text" value={easypaisaTitleInput} onChange={(e) => setEasypaisaTitleInput(e.target.value)} placeholder="Ghulam Murtaza" className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs" />
-                        </div>
-                        <div>
-                          <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">Easypaisa Number</span>
-                          <input type="text" value={easypaisaNumberInput} onChange={(e) => setEasypaisaNumberInput(e.target.value)} placeholder="03277004471" className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs" />
-                        </div>
-                      </div>
-                      <div>
-                        <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">WhatsApp / Support Number (country code ke saath, + ke baghair)</span>
-                        <input type="text" value={whatsappNumberInput} onChange={(e) => setWhatsappNumberInput(e.target.value)} placeholder="923277004471" className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs" />
-                      </div>
-                      <div>
-                        <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">Rider Tip Options (comma se alag, Rs.)</span>
-                        <input type="text" value={tipOptionsInput} onChange={(e) => setTipOptionsInput(e.target.value)} placeholder="0,50,100,200,300" className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">Priority Extra Fee (Rs.)</span>
-                          <input type="number" min="0" value={priorityFeeInput} onChange={(e) => setPriorityFeeInput(Number(e.target.value))} className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs" />
-                        </div>
-                        <div>
-                          <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">Free Delivery Above (Rs.)</span>
-                          <input type="number" min="0" value={freeDeliveryAboveInput} onChange={(e) => setFreeDeliveryAboveInput(Number(e.target.value))} className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs" />
-                        </div>
-                        <div>
-                          <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">Double Fee Below (Rs., 0 = off)</span>
-                          <input type="number" min="0" value={doubleFeeBelowInput} onChange={(e) => setDoubleFeeBelowInput(Number(e.target.value))} className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs" />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 pt-1">
-                        {([
-                          { label: "Priority speed dikhao", value: priorityEnabledInput, set: setPriorityEnabledInput },
-                          { label: "Cutlery option dikhao", value: cutleryEnabledInput, set: setCutleryEnabledInput },
-                          { label: "Leave at door dikhao", value: leaveAtDoorEnabledInput, set: setLeaveAtDoorEnabledInput },
-                          { label: "Message on arrival dikhao", value: messageOnArrivalEnabledInput, set: setMessageOnArrivalEnabledInput },
-                          { label: "First order FREE delivery", value: firstOrderFreeDeliveryInput, set: setFirstOrderFreeDeliveryInput },
-                        ]).map((t) => (
-                          <label key={t.label} className="flex items-center gap-2 glass-dark border border-white/10 rounded-xl px-3 py-2.5 cursor-pointer text-xs font-bold text-white/80">
-                            <input type="checkbox" checked={t.value} onChange={(e) => t.set(e.target.checked)} className="accent-[#E21B70] w-4 h-4" />
-                            {t.label}
-                          </label>
-                        ))}
-                      </div>
-                      <button type="button" onClick={handleSaveDeliveryConfig} className="bg-[#E21B70] text-white font-black px-5 py-3 rounded-xl hover:scale-[1.02] active:scale-95 transition cursor-pointer text-xs uppercase w-full">
-                        Save Store Controls
-                      </button>
-                      <button type="button" onClick={handleRefreshAllUsers} className="bg-emerald-600 hover:bg-emerald-700 text-white font-black px-5 py-3 rounded-xl hover:scale-[1.02] active:scale-95 transition cursor-pointer text-xs uppercase w-full flex items-center justify-center gap-2">
-                        <RefreshCw className="w-4 h-4 shrink-0" />
-                        Refresh All Users — Naya Menu/Price Sab Ko Bhejo
-                      </button>
-                      <p className="text-[10.5px] text-white/60 font-semibold leading-relaxed">
-                        Price ya kuch bhi change karne ke baad ye dabayen — har user ke khule hue page par naya menu aur prices turant load ho jayenge.
-                      </p>
-                    </div>
+                    <button type="button" onClick={handleSaveDeliveryRanges} className="bg-[#E21B70] text-white font-black px-5 py-3 rounded-xl hover:scale-[1.02] active:scale-95 transition cursor-pointer text-xs uppercase w-full">
+                      Save Ranges &amp; Base Location
+                    </button>
+                    
 
                     <div className="pt-2">
                       <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5 flex items-center gap-1">
@@ -6898,284 +7478,11 @@ export default function AdminPanel({
                   </div>
                 </div>
 
-                {/* Enable Live Rider Tracking (GPS) Quota Control Card */}
-                <div className="glass-dark border border-white/10 p-6 rounded-2xl shadow-sm relative space-y-4">
-                  <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#E21B70]/10 to-transparent" />
-                  <h4 className="font-black text-sm text-white flex items-center gap-2 pb-2.5 border-b border-white/10 uppercase tracking-wide">
-                    <Navigation className="w-4 h-4 text-[#E21B70]" />
-                    Enable Live Rider Tracking
-                  </h4>
-                  <p className="text-[10.5px] text-white/70 font-medium leading-relaxed">
-                    Toggle live rider GPS tracking on or off. Turning this OFF disables live location writes from riders to stay strictly within free plan limits.
-                  </p>
+                
 
-                  <div className="flex items-center justify-between p-3.5 bg-pink-500/10 rounded-2xl border border-pink-400/25">
-                    <div className="flex flex-col">
-                      <span className="text-xs font-black text-white">Live Rider Tracking Status</span>
-                      <span className="text-[10px] font-bold text-white/60">
-                        {isLiveTrackingEnabled ? "🟢 ENABLED - Live GPS Active" : "🔴 PAUSED - Quota Saver Active"}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleToggleLiveTracking(!isLiveTrackingEnabled)}
-                      aria-label="Toggle live rider GPS tracking"
-                      aria-pressed={isLiveTrackingEnabled}
-                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70] ${
-                        isLiveTrackingEnabled ? "bg-[#E21B70]" : "bg-white/15"
-                      }`}
-                    >
-                      <span
-                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full glass-dark shadow-sm ring-0 transition duration-200 ease-in-out ${
-                          isLiveTrackingEnabled ? "translate-x-5" : "translate-x-0"
-                        }`}
-                      />
-                    </button>
-                  </div>
-                </div>
+                
 
-                {/* System Maintenance Mode Config Card */}
-                <div className="glass-dark border border-white/10 p-6 rounded-2xl shadow-sm relative space-y-4">
-                  <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#E21B70]/10 to-transparent" />
-                  <h4 className="font-black text-sm text-white flex items-center gap-2 pb-2.5 border-b border-white/10 uppercase tracking-wide">
-                    <Wrench className="w-4 h-4 text-[#E21B70]" />
-                    System Maintenance Mode
-                  </h4>
-                  <p className="text-[10.5px] text-white/70 font-medium leading-relaxed">
-                    Toggle maintenance mode. While enabled, general users will be blocked from using the platform and will see only your custom message. Admins bypass this block.
-                  </p>
-
-                  <div className="space-y-4 pt-1">
-                    <div className="flex items-center justify-between p-3.5 bg-rose-500/10 rounded-2xl border border-rose-400/25">
-                      <div className="flex flex-col">
-                        <span className="text-xs font-black text-white">Maintenance Status</span>
-                        <span className="text-[10px] font-bold text-white/60">
-                          {isMaintenanceMode ? "🔴 ACTIVE - Users Blocked" : "🟢 INACTIVE - Public Access"}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setIsMaintenanceMode(!isMaintenanceMode)}
-                        aria-label="Toggle maintenance mode"
-                        aria-pressed={isMaintenanceMode}
-                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E21B70] ${
-                          isMaintenanceMode ? "bg-[#E21B70]" : "bg-white/15"
-                        }`}
-                      >
-                        <span
-                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full glass-dark shadow-sm ring-0 transition duration-200 ease-in-out ${
-                            isMaintenanceMode ? "translate-x-5" : "translate-x-0"
-                          }`}
-                        />
-                      </button>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="block text-[10px] font-bold text-white/60 uppercase tracking-widest">
-                        Maintenance Message for Users
-                      </label>
-                      <textarea
-                        value={maintenanceMessage}
-                        onChange={(e) => setMaintenanceMessage(e.target.value)}
-                        rows={3}
-                        placeholder="Provide a clear explanation..."
-                        className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs resize-none"
-                      />
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleSaveMaintenanceConfig}
-                      className="w-full bg-[#E21B70] text-white font-black py-3 rounded-xl hover:scale-[1.01] active:scale-95 transition cursor-pointer text-xs uppercase"
-                    >
-                      Update Maintenance Mode
-                    </button>
-                  </div>
-                </div>
-
-                {/* Global Image Announcement & Offer Popup */}
-                <div className="glass-dark border border-white/10 p-6 rounded-2xl shadow-sm relative space-y-4">
-                  <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#E21B70]/10 to-transparent" />
-                  <h4 className="font-black text-sm text-white flex items-center gap-2 pb-2.5 border-b border-white/10 uppercase tracking-wide">
-                    <ImageIcon className="w-4 h-4 text-[#E21B70]" />
-                    Global Promo Offer / Pop-up Announcement
-                  </h4>
-                  <p className="text-[10.5px] text-white/70 font-medium leading-relaxed">
-                    Yahan se aap kisi bhi product ya special offer ki image lagayein. Ye image har user ko app open karte hi aik dafa popup modal me dikhayi degi.
-                  </p>
-
-                  <div className="space-y-4 pt-1">
-                    {/* Active Status Switch */}
-                    <div className="flex items-center justify-between p-3.5 bg-emerald-500/10 rounded-2xl border border-emerald-400/25">
-                      <div className="flex flex-col">
-                        <span className="text-xs font-black text-white">Announcement Popup Status</span>
-                        <span className="text-[10px] font-bold text-white/60">
-                          {announcementActive ? "🔴 ACTIVE - Users Will See Popup" : "⚪ INACTIVE - Hidden"}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setAnnouncementActive(!announcementActive)}
-                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                          announcementActive ? "bg-emerald-500" : "bg-white/15"
-                        }`}
-                      >
-                        <span
-                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full glass-dark shadow-sm ring-0 transition duration-200 ease-in-out ${
-                            announcementActive ? "translate-x-5" : "translate-x-0"
-                          }`}
-                        />
-                      </button>
-                    </div>
-
-                    {/* Announcement Image URL */}
-                    <div className="space-y-1.5">
-                      <label className="block text-[10px] font-bold text-white/60 uppercase tracking-widest flex items-center justify-between">
-                        <span>Offer Image URL (Pehli Fursat Me Image Link Dalein)</span>
-                        {announcementImageUrl && (
-                          <span className="text-[9px] text-[#E21B70] lowercase select-all font-mono">
-                            {announcementImageUrl.length > 30 ? announcementImageUrl.substring(0, 30) + "..." : announcementImageUrl}
-                          </span>
-                        )}
-                      </label>
-                      <input
-                        type="text"
-                        value={announcementImageUrl}
-                        onChange={(e) => setAnnouncementImageUrl(e.target.value)}
-                        placeholder="https://example.com/offer-image.jpg"
-                        className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs"
-                      />
-                    </div>
-
-                    {/* Optional Title */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="space-y-1.5">
-                        <label className="block text-[10px] font-bold text-white/60 uppercase tracking-widest">
-                          Popup Title (Optional)
-                        </label>
-                        <input
-                          type="text"
-                          value={announcementTitle}
-                          onChange={(e) => setAnnouncementTitle(e.target.value)}
-                          placeholder="e.g. 50% Flat Discount Offer!"
-                          className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="block text-[10px] font-bold text-white/60 uppercase tracking-widest">
-                          Announcement ID (Unique string to force popup again)
-                        </label>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={announcementId}
-                            onChange={(e) => setAnnouncementId(e.target.value)}
-                            placeholder="Auto-generated timestamp"
-                            className="flex-1 p-3 glass-input border border-white/10 rounded-xl outline-none text-white/70 font-bold text-xs"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const newId = "promo_" + Date.now();
-                              setAnnouncementId(newId);
-                              alert("Naya ID set ho gaya! Ab sab users ko ye popup aik bar phir dikhayi dega.");
-                            }}
-                            className="bg-zinc-100 hover:bg-zinc-200 text-white/80 text-[10px] font-black uppercase px-3.5 rounded-xl transition shrink-0"
-                          >
-                            🔄 Reset
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Optional Description */}
-                    <div className="space-y-1.5">
-                      <label className="block text-[10px] font-bold text-white/60 uppercase tracking-widest">
-                        Popup Detail Description (Optional)
-                      </label>
-                      <textarea
-                        value={announcementDescription}
-                        onChange={(e) => setAnnouncementDescription(e.target.value)}
-                        rows={2}
-                        placeholder="Describe details of your flash sale or instruction..."
-                        className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs resize-none"
-                      />
-                    </div>
-
-                    {/* Live Preview of the Image Announcement */}
-                    {announcementImageUrl && (
-                      <div className="space-y-2 border border-white/5 bg-white/5 p-4 rounded-2xl">
-                        <span className="block text-[9px] font-extrabold text-white/50 uppercase tracking-widest">Live Promo Image Preview:</span>
-                        <div className="max-h-48 overflow-hidden rounded-xl border border-white/10 glass-dark flex items-center justify-center relative group">
-                          <img
-                            src={announcementImageUrl}
-                            alt="Announcement Offer Preview"
-                            referrerPolicy="no-referrer"
-                            className="max-h-48 w-auto object-contain"
-                            onError={(e) => {
-                              (e.target as HTMLElement).style.display = 'none';
-                            }}
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Save Config Button */}
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (announcementActive && !announcementImageUrl.trim()) {
-                          alert("Aapne Announcement active rakhi hai magar Image URL khali hai! Pehle image ka link dalein.");
-                          return;
-                        }
-                        // If no ID is generated, make one on the fly
-                        let targetId = announcementId.trim();
-                        if (!targetId) {
-                          targetId = "promo_" + Date.now();
-                          setAnnouncementId(targetId);
-                        }
-                        try {
-                          const existingStatuses = deliverySettings?.restaurantStatuses || {};
-                          const newSettings = {
-                            ...deliverySettings,
-                            deliveryFee: Number(deliveryChargeInput),
-                            minOrderAmount: Number(minOrderAmountInput),
-                            riderRangeKm: Number(riderRangeKmInput),
-                            userRangeKm: Number(userRangeKmInput),
-                            baseLocationCoords: {
-                              lat: Number(baseLatInput),
-                              lng: Number(baseLngInput),
-                            },
-                            restaurantStatus: deliverySettings?.restaurantStatus || {
-                              isTemporarilyUnavailable: false,
-                              openingTime: "12:00",
-                              closingTime: "23:00",
-                            },
-                            restaurantStatuses: existingStatuses,
-                            isMaintenanceMode: isMaintenanceMode,
-                            maintenanceMessage: maintenanceMessage,
-                            announcement: {
-                              active: announcementActive,
-                              imageUrl: announcementImageUrl.trim(),
-                              title: announcementTitle.trim(),
-                              description: announcementDescription.trim(),
-                              id: targetId,
-                            },
-                          };
-
-                          await setDoc(doc(db, "settings", "delivery_config"), cleanObject(newSettings));
-                          alert("🎉 Mubarak Ho! Global Offer/Announcement successfully publish ho gayi hai!");
-                        } catch (err) {
-                          console.error(err);
-                          alert("Firestore error while publishing announcement: " + err);
-                        }
-                      }}
-                      className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-3 rounded-xl hover:scale-[1.01] active:scale-95 transition cursor-pointer text-xs uppercase shadow-md shadow-emerald-500/15 flex items-center justify-center gap-2"
-                    >
-                      <span>📢 Save & Publish Offer Announcement</span>
-                    </button>
-                  </div>
-                </div>
+                
 
                 {/* Mobile Restaurant Schedule Manager */}
                 <div className="glass-dark border border-white/10 p-6 rounded-2xl shadow-sm relative space-y-4">
@@ -7304,7 +7611,7 @@ export default function AdminPanel({
                           type="text"
                           value={restDeliveryCharge}
                           onChange={(e) => setRestDeliveryCharge(e.target.value)}
-                          placeholder="e.g. Rs. 50-100"
+                          placeholder="e.g. Rs. 70"
                           className="w-full p-3 glass-input border border-white/10 border border-white/10 rounded-xl text-xs text-white focus:border-[#E21B70]/60 outline-none"
                         />
                       </div>
@@ -7333,7 +7640,7 @@ export default function AdminPanel({
 
                     <button
                       type="button"
-                      onClick={handleSaveDeliveryConfig}
+                      onClick={handleSaveRestaurantStatus}
                       className="w-full bg-purple-500 text-black font-black px-5 py-3 rounded-xl hover:scale-[1.02] active:scale-95 transition cursor-pointer text-xs uppercase"
                     >
                       Save Times
@@ -8503,6 +8810,21 @@ export default function AdminPanel({
                         placeholder="Commission in Rs."
                       />
                     </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-white/70 block uppercase font-sans">
+                        Cost Price (Rs.) — for margin
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={newGProdCostPrice || ""}
+                        onChange={(e) =>
+                          setNewGProdCostPrice(Number(e.target.value))
+                        }
+                        className="w-full p-2.5 glass-input border border-white/10 rounded-xl outline-none text-white focus:border-[#E21B70]/40 text-white text-xs font-mono font-bold"
+                        placeholder="Cost price in Rs."
+                      />
+                    </div>
 
                     <div className="space-y-1">
                       <label className="text-[9px] font-bold text-white/60 block uppercase">
@@ -8626,6 +8948,17 @@ export default function AdminPanel({
                                       placeholder="Comm"
                                       className="p-1.5 text-xs text-white glass-input border border-emerald-400/40 rounded font-semibold w-full"
                                     />
+                                    <input
+                                      type="number"
+                                      value={editingGProdCostPriceInput}
+                                      onChange={(e) =>
+                                        setEditingGProdCostPriceInput(
+                                          Number(e.target.value),
+                                        )
+                                      }
+                                      placeholder="Cost"
+                                      className="p-1.5 text-xs text-white glass-input border border-[#E21B70]/40 rounded font-semibold w-full"
+                                    />
                                   </div>
                                 ) : (
                                   <div>
@@ -8644,6 +8977,13 @@ export default function AdminPanel({
                                     <span className="text-emerald-400 text-[10px] block font-bold mt-0.5">
                                       Comm: Rs. {p.commission || 0}
                                     </span>
+                                    {p.costPrice && p.costPrice > 0 ? (
+                                      <span className="text-emerald-400 text-[10px] block font-bold mt-0.5">
+                                        Margin: Rs. {(p.discountPrice || p.price) - p.costPrice} ({Math.round((((p.discountPrice || p.price) - p.costPrice) / (p.discountPrice || p.price)) * 100)}%)
+                                      </span>
+                                    ) : (
+                                      <span className="text-white/40 text-[10px] block font-bold mt-0.5">No cost set</span>
+                                    )}
                                   </div>
                                 )}
                               </td>
@@ -8681,6 +9021,7 @@ export default function AdminPanel({
                                           setEditingGProdCommissionInput(
                                             p.commission || 0,
                                           );
+                                          setEditingGProdCostPriceInput(p.costPrice || 0);
                                         }}
                                         className="text-orange-500 hover:underline text-[10px] font-bold cursor-pointer"
                                       >
@@ -9455,91 +9796,8 @@ export default function AdminPanel({
                 </div>
               </div>
 
-              <div className="glass-dark border border-white/10 rounded-3xl p-6 relative overflow-hidden mt-6 animate-scale-up">
-                <div className="absolute right-0 top-0 w-80 h-80 bg-[#E21B70]/5 rounded-full blur-[100px] pointer-events-none" />
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-2 text-[#E21B70]">
-                      <Grid className="w-5 h-5 text-[#E21B70]" />
-                      <span className="text-[10px] font-black uppercase tracking-widest bg-[#E21B70]/10 px-2 py-0.5 rounded-full">
-                        UI Configuration
-                      </span>
-                    </div>
-                    <h2 className="text-xl font-black text-white mt-1">
-                      Theme Settings
-                    </h2>
-                    <p className="text-xs text-white/60 font-medium mt-1">
-                      Configure the main hero background image.
-                    </p>
-                  </div>
-                  <div className="flex gap-2 shrink-0">
-                    <button
-                      onClick={handleSaveUiConfig}
-                      className="bg-[#E21B70] hover:bg-[#C2145E] text-white font-black text-[10px] uppercase tracking-widest py-3 px-5 rounded-xl transition cursor-pointer shrink-0"
-                    >
-                      Save Changes
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <div className="glass-dark border border-white/10 rounded-[24px] p-5 lg:p-7 shadow-sm relative">
-                <div className="space-y-6">
-                  <div>
-                    <label className="text-[10px] font-black text-white/60 uppercase tracking-widest block mb-1.5">
-                      Hero Background Image URL
-                    </label>
-                    <input
-                      type="text"
-                      value={heroBgUrl}
-                      onChange={(e) => setHeroBgUrl(e.target.value)}
-                      placeholder="e.g. /images/dishes/pizza.jpg"
-                      className="w-full p-3 glass-input border border-white/10 rounded-2xl text-xs sm:text-sm outline-none text-white focus:border-[#E21B70]/60 transition"
-                    />
-                  </div>
-
-                  <div className="pt-4 border-t border-white/5">
-                    <label className="text-[10px] font-black text-white/60 uppercase tracking-widest block mb-1.5">
-                      Partner Shops Section Background Image URL 🏪
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={partnerShopsBgUrl}
-                        onChange={(e) => setPartnerShopsBgUrl(e.target.value)}
-                        placeholder="e.g. /images/dishes/pizza.jpg"
-                        className="flex-1 p-3 glass-input border border-white/10 rounded-2xl text-xs sm:text-sm outline-none text-white focus:border-[#E21B70]/60 transition"
-                      />
-                      {partnerShopsBgUrl && (
-                        <button
-                          type="button"
-                          onClick={() => setPartnerShopsBgUrl("")}
-                          className="px-3.5 py-2 bg-white/5 hover:bg-white/10 text-white/80 text-xs font-black rounded-2xl transition cursor-pointer"
-                        >
-                          Reset
-                        </button>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-white/50 font-medium mt-1.5">
-                      Enter any image URL to customize the backdrop of the "Partner Shops" card. Leave empty to use the default high-definition culinary theme.
-                    </p>
-
-                    {partnerShopsBgUrl && (
-                      <div className="mt-3 relative h-28 rounded-2xl overflow-hidden border border-white/10 shadow-inner">
-                        <img
-                          src={partnerShopsBgUrl}
-                          alt="Partner Shops Preview"
-                          className="w-full h-full object-cover"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/30 to-black/60 flex items-center justify-center">
-                          <span className="text-white text-xs font-black uppercase tracking-wider bg-black/70 px-3 py-1 rounded-full border border-white/30 shadow-md backdrop-blur-xs">
-                            Live Preview: Partner Shops Header
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+              
+              
 
             </div>
           )}

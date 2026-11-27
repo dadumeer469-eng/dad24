@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
 import { springSnappy } from "../utils/motion";
 import { UserProfile, AppNotification, Order } from "../types";
-import { Search, ShoppingCart, User, LogOut, Bell, ShieldAlert, BadgeCheck, History, Heart, RotateCcw, Sun, Moon, X, Settings, MapPin, ChevronDown, Mic, Lock, Coins, UtensilsCrossed } from "lucide-react";
+import { Search, ShoppingCart, User, LogOut, Bell, ShieldAlert, BadgeCheck, History, Heart, RotateCcw, Sun, Moon, X, Settings, MapPin, ChevronDown, Mic, Lock, Coins, UtensilsCrossed, Pill } from "lucide-react";
 import { formatOrderId } from "../utils/catalogNormalizer";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 
 interface FoodpandaHeaderProps {
   user: UserProfile | null;
@@ -33,6 +34,7 @@ interface FoodpandaHeaderProps {
   setActiveModule?: (mode: "food" | "grocery") => void;
   onResetFoodHome?: () => void;
   onResetGroceryHome?: () => void;
+  onResetPharmacyHome?: () => void;
   allOrders?: Order[];
   onReorder?: (order: Order) => void;
   theme?: "light" | "dark";
@@ -69,6 +71,7 @@ export default function FoodpandaHeader({
   setActiveModule,
   onResetFoodHome,
   onResetGroceryHome,
+  onResetPharmacyHome,
   allOrders = [],
   onReorder,
   theme = "light",
@@ -84,8 +87,23 @@ export default function FoodpandaHeader({
   const [isListening, setIsListening] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Focus trap + ESC to close the notification detail modal (a11y fix
+  // 27 Nov 2026). The modal only mounts when a notification is selected.
+  const notificationDialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(notificationDialogRef, !!selectedNotification, () => setSelectedNotification(null));
   // Fun: when an item lands in the cart, the badge pops and a "+1" floats up.
   const displayedCartCount = activeModule === "grocery" ? groceryCartCount : cartCount;
+
+  // Pharmacy state (mobile-UX finding F2, fix 27 Nov 2026): App keeps
+  // activeModule as "grocery" on /pharmacy (its state type is only
+  // "food" | "grocery"), so the switch would wrongly show "Groceries"
+  // active and the search would say "Search groceries". The route is the
+  // source of truth — App sets the pathname to /pharmacy itself and
+  // re-renders this header on every route change, so this stays current.
+  const isPharmacy =
+    typeof window !== "undefined" &&
+    window.location.pathname.replace(/^\/+|\/+$/g, "") === "pharmacy";
   const [showPlusOne, setShowPlusOne] = useState(false);
   const prevCartCountRef = useRef(displayedCartCount);
   useEffect(() => {
@@ -177,7 +195,7 @@ export default function FoodpandaHeader({
         type="button"
         onClick={() => switchModule("food")}
         aria-pressed={activeModule === "food"}
-        className={`relative flex-1 min-h-[40px] rounded-full text-[13px] sm:text-sm font-medium flex items-center justify-center gap-1.5 transition-[color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer ${activeModule === "food" ? "text-white" : "text-[#5e554a]"}`}
+        className={`relative flex-1 min-h-[44px] rounded-full text-[13px] sm:text-sm font-medium flex items-center justify-center gap-1.5 transition-[color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer ${activeModule === "food" ? "text-white" : "text-[#5e554a]"}`}
       >
         {activeModule === "food" && (
           <motion.span
@@ -192,9 +210,25 @@ export default function FoodpandaHeader({
       </button>
       <button
         type="button"
-        onClick={() => switchModule("grocery")}
+        onClick={() => {
+          if (isPharmacy) {
+            // Already on /pharmacy: full App-level pharmacy-home reset
+            // (clears search, restores the Medicine category, scrolls to
+            // top) via the callback App passes; fall back to the local
+            // reset when no callback is provided.
+            if (onResetPharmacyHome) {
+              onResetPharmacyHome();
+            } else {
+              setSearchQuery("");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+          } else {
+            switchModule("grocery");
+          }
+        }}
         aria-pressed={activeModule === "grocery"}
-        className={`relative flex-1 min-h-[40px] rounded-full text-[13px] sm:text-sm font-medium flex items-center justify-center gap-1.5 transition-[color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer ${activeModule === "grocery" ? "text-white" : "text-[#5e554a]"}`}
+        aria-label={isPharmacy ? "Pharmacy — current section" : "Groceries"}
+        className={`relative flex-1 min-h-[44px] rounded-full text-[13px] sm:text-sm font-medium flex items-center justify-center gap-1.5 transition-[color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer ${activeModule === "grocery" ? "text-white" : "text-[#5e554a]"}`}
       >
         {activeModule === "grocery" && (
           <motion.span
@@ -204,7 +238,15 @@ export default function FoodpandaHeader({
           />
         )}
         <span className="relative z-10 flex items-center justify-center gap-1.5">
-          <ShoppingCart className="w-4 h-4 shrink-0 stroke-[1.5]" /> Groceries
+          {isPharmacy ? (
+            <>
+              <Pill className="w-4 h-4 shrink-0 stroke-[1.5]" /> Pharmacy
+            </>
+          ) : (
+            <>
+              <ShoppingCart className="w-4 h-4 shrink-0 stroke-[1.5]" /> Groceries
+            </>
+          )}
           {groceryCartCount > 0 && (
             <span className={`text-[10px] font-semibold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center tabular-nums ${activeModule === "grocery" ? "bg-white text-[#D70F64]" : "bg-[#D70F64] text-white"}`}>
               {groceryCartCount}
@@ -294,10 +336,19 @@ export default function FoodpandaHeader({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              aria-label={
+                isPharmacy
+                  ? "Search medicines"
+                  : activeModule === "grocery"
+                    ? "Search groceries"
+                    : "Search shops, dishes and groceries"
+              }
               placeholder={
-                activeModule === "grocery"
-                  ? "Search groceries"
-                  : "Search shops, dishes & groceries..."
+                isPharmacy
+                  ? "Search medicines"
+                  : activeModule === "grocery"
+                    ? "Search groceries"
+                    : "Search shops, dishes & groceries..."
               }
               className="w-full min-h-[42px] pl-10 pr-10 py-2 bg-white text-[#14141A] placeholder-[#6E6E80] rounded-full text-sm outline-none shadow-xs focus:ring-2 focus:ring-white/60 focus:shadow-[0_8px_24px_rgba(0,0,0,0.18)] transition-[color,background-color,border-color,transform,opacity] duration-180 font-medium"
             />
@@ -308,7 +359,7 @@ export default function FoodpandaHeader({
                 aria-label={isListening ? "Listening for voice search" : "Voice search"}
                 aria-pressed={isListening}
                 title="Voice search"
-                className={`absolute ${searchQuery ? "right-10" : "right-2"} top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer ${isListening ? "bg-[#D70F64] text-white animate-pulse" : "text-[#D70F64] hover:bg-pink-50"}`}
+                className={`absolute ${searchQuery ? "right-10" : "right-2"} top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center rounded-full transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer ${isListening ? "bg-[#D70F64] text-white animate-pulse" : "text-[#D70F64] hover:bg-pink-50"}`}
               >
                 <Mic className="w-4 h-4" />
               </button>
@@ -318,7 +369,7 @@ export default function FoodpandaHeader({
                 type="button"
                 onClick={() => setSearchQuery("")}
                 aria-label="Clear search"
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-[#5A5A6B] hover:text-[#14141A] rounded-full transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer"
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-[#5A5A6B] hover:text-[#14141A] rounded-full transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer"
                 title="Clear search"
               >
                 <X className="w-4 h-4" />
@@ -784,10 +835,19 @@ export default function FoodpandaHeader({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            aria-label={
+              isPharmacy
+                ? "Search medicines"
+                : activeModule === "grocery"
+                  ? "Search groceries"
+                  : "Search shops, dishes and groceries"
+            }
             placeholder={
-              activeModule === "grocery"
-                ? "Search groceries"
-                : "Search shops, dishes & groceries"
+              isPharmacy
+                ? "Search medicines"
+                : activeModule === "grocery"
+                  ? "Search groceries"
+                  : "Search shops, dishes & groceries"
             }
             className="w-full min-h-[44px] pl-10 pr-10 py-2.5 bg-white text-[#14141A] placeholder-[#6E6E80] rounded-full text-sm outline-none shadow-xs focus:ring-2 focus:ring-white/60 focus:shadow-[0_8px_24px_rgba(0,0,0,0.18)] transition-[color,background-color,border-color,transform,opacity] duration-180 font-medium"
           />
@@ -798,7 +858,7 @@ export default function FoodpandaHeader({
               aria-label={isListening ? "Listening for voice search" : "Voice search"}
               aria-pressed={isListening}
               title="Voice search"
-              className={`absolute ${searchQuery ? "right-11" : "right-1.5"} top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center rounded-full transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer ${isListening ? "bg-[#D70F64] text-white animate-pulse" : "text-[#D70F64] hover:bg-pink-50"}`}
+              className={`absolute ${searchQuery ? "right-11" : "right-1.5"} top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center rounded-full transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer ${isListening ? "bg-[#D70F64] text-white animate-pulse" : "text-[#D70F64] hover:bg-pink-50"}`}
             >
               <Mic className="w-4 h-4" />
             </button>
@@ -808,7 +868,7 @@ export default function FoodpandaHeader({
               type="button"
               onClick={() => setSearchQuery("")}
               aria-label="Clear search"
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center text-[#5A5A6B] hover:text-[#14141A] rounded-full transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-[#5A5A6B] hover:text-[#14141A] rounded-full transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer"
               title="Clear search"
             >
               <X className="w-4 h-4" />
@@ -828,7 +888,14 @@ export default function FoodpandaHeader({
 
       {/* Notification Detail View Modal */}
       {selectedNotification && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
+        <div
+          ref={notificationDialogRef}
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="notification-heading"
+          tabIndex={-1}
+        >
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl max-w-md w-full p-6 shadow-2xl relative overflow-hidden animate-scale-up">
             <div className="flex items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800">
               <div className="flex items-center gap-2.5">
@@ -850,14 +917,14 @@ export default function FoodpandaHeader({
               <button
                 onClick={() => setSelectedNotification(null)}
                 aria-label="Close message"
-                className="p-2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-full bg-zinc-100 dark:bg-zinc-800 transition-[color,background-color] cursor-pointer"
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-full bg-zinc-100 dark:bg-zinc-800 transition-[color,background-color] cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="py-4">
-              <h3 className="text-base font-semibold text-zinc-900 dark:text-white leading-snug">
+              <h3 id="notification-heading" className="text-base font-semibold text-zinc-900 dark:text-white leading-snug">
                 {selectedNotification.title}
               </h3>
               <div className="text-xs sm:text-sm text-zinc-700 dark:text-zinc-200 mt-3 font-normal leading-relaxed whitespace-pre-line bg-zinc-50 dark:bg-zinc-800/60 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-700 max-h-60 overflow-y-auto">

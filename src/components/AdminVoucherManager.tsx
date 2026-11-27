@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   Ticket,
   Plus,
@@ -36,6 +36,7 @@ import {
 import { db, cleanObject } from "../firebase";
 import { recordCatalogChange } from "../utils/catalogDelta";
 import { Voucher, UserProfile, isVoucherExpired } from "../types";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 
 interface AdminVoucherManagerProps {
   vouchers: Voucher[];
@@ -76,6 +77,14 @@ export default function AdminVoucherManager({
   // Direct "Send Voucher" Modal State
   const [sendModalVoucher, setSendModalVoucher] = useState<Voucher | null>(null);
   const [sendTargetUserIds, setSendTargetUserIds] = useState<string[]>([]);
+
+  // Focus trap + ESC to close for both modals (a11y fix 27 Nov 2026).
+  // The hook's topmost-overlay stack keeps ESC closing only the modal
+  // the user is actually in when both are open.
+  const voucherDialogRef = useRef<HTMLDivElement | null>(null);
+  const sendDialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(voucherDialogRef, isModalOpen, () => setIsModalOpen(false));
+  useFocusTrap(sendDialogRef, !!sendModalVoucher, () => setSendModalVoucher(null));
   const [sendModalSearch, setSendModalSearch] = useState<string>("");
   const [isSending, setIsSending] = useState(false);
 
@@ -634,7 +643,14 @@ export default function AdminVoucherManager({
 
       {/* CREATE / EDIT VOUCHER MODAL */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+        <div
+          ref={voucherDialogRef}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="voucher-editor-heading"
+          tabIndex={-1}
+        >
           <div className="bg-white rounded-3xl border border-slate-200 max-w-xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col text-left">
             {/* Modal Header */}
             <div className="p-5 border-b border-slate-100 bg-slate-50/80 flex items-center justify-between shrink-0">
@@ -643,7 +659,7 @@ export default function AdminVoucherManager({
                   <Ticket className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-black text-base text-slate-900">
+                  <h3 id="voucher-editor-heading" className="font-black text-base text-slate-900">
                     {editingVoucher ? `Edit Voucher '${editingVoucher.code}'` : "Create New Discount Voucher"}
                   </h3>
                   <p className="text-xs text-slate-500 font-medium">
@@ -653,7 +669,8 @@ export default function AdminVoucherManager({
               </div>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="p-2 text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-100 rounded-full border border-slate-200 transition cursor-pointer"
+                aria-label="Close voucher editor"
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-100 rounded-full border border-slate-200 transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1016,7 +1033,14 @@ export default function AdminVoucherManager({
 
       {/* DIRECT SEND VOUCHER MODAL */}
       {sendModalVoucher && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+        <div
+          ref={sendDialogRef}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="voucher-send-heading"
+          tabIndex={-1}
+        >
           <div className="bg-white rounded-3xl border border-slate-200 max-w-lg w-full max-h-[85vh] overflow-hidden shadow-2xl flex flex-col text-left">
             <div className="p-5 border-b border-slate-100 bg-amber-50/80 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2.5">
@@ -1024,7 +1048,7 @@ export default function AdminVoucherManager({
                   <Send className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-black text-base text-slate-900">
+                  <h3 id="voucher-send-heading" className="font-black text-base text-slate-900">
                     Send Voucher '{sendModalVoucher.code}' to Users
                   </h3>
                   <p className="text-xs text-slate-500 font-medium">
@@ -1034,7 +1058,8 @@ export default function AdminVoucherManager({
               </div>
               <button
                 onClick={() => setSendModalVoucher(null)}
-                className="p-2 text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-100 rounded-full border border-slate-200 transition cursor-pointer"
+                aria-label="Close send voucher dialog"
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-100 rounded-full border border-slate-200 transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>

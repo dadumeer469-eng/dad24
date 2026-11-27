@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { springSmooth } from "../utils/motion";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 import { MapPin, Navigation, Edit3, CheckCircle2, Map } from "lucide-react";
 
 interface LocationPermissionModalProps {
@@ -24,6 +25,14 @@ export default function LocationPermissionModal({
   const [manualAddress, setManualAddress] = useState(initialAddress);
   const [manualError, setManualError] = useState("");
 
+  // Focus trap + ESC to dismiss (a11y fix 27 Nov 2026). This prompt has no
+  // onClose prop: ESC does what "Browse Menu First" does, and nothing at
+  // all when location is required for the order.
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, true, () => {
+    if (!requireForOrder) onLater?.();
+  });
+
   // Keep the draft in sync if the parent hands us a saved address later
   // (e.g. reopening the prompt after a previous manual entry).
   useEffect(() => {
@@ -43,10 +52,12 @@ export default function LocationPermissionModal({
 
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4 animate-fade-in"
       role="dialog"
       aria-modal="true"
       aria-labelledby="location-prompt-heading"
+      tabIndex={-1}
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.96, y: 16 }}

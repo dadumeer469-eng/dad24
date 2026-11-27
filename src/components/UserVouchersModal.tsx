@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 import { X, Ticket, Copy, Check, Calendar, Store, ShoppingBag, AlertCircle, ArrowRight, UserCheck, ShieldCheck, History } from "lucide-react";
 import { Voucher, UserProfile, isVoucherExpired, canUserUseVoucher, isVoucherExhaustedForUser } from "../types";
 
@@ -26,6 +27,11 @@ export default function UserVouchersModal({
 }: UserVouchersModalProps) {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [filterTab, setFilterTab] = useState<"all" | "food" | "grocery" | "exclusive" | "used">("all");
+
+  // Focus trap + ESC to close (a11y fix 27 Nov 2026). Must sit above the
+  // `if (!isOpen) return null` below so the hook order never changes.
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, isOpen, onClose);
 
   if (!isOpen) return null;
 
@@ -72,8 +78,12 @@ export default function UserVouchersModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
+      <div ref={dialogRef} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
         <motion.div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="user-vouchers-heading"
+          tabIndex={-1}
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
@@ -86,7 +96,7 @@ export default function UserVouchersModal({
                 <Ticket className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-black text-white flex items-center gap-2">
+                <h3 id="user-vouchers-heading" className="text-base font-black text-white flex items-center gap-2">
                   My Vouchers & Offers
                   <span className="text-[10px] bg-[#E21B70]/20 border border-[#E21B70]/30 text-pink-400 font-bold px-2 py-0.5 rounded-full">
                     {activeAvailableVouchers.length} Available
@@ -100,7 +110,7 @@ export default function UserVouchersModal({
             <button
               onClick={onClose}
               aria-label="Close"
-              className="p-2 text-zinc-400 hover:text-white bg-zinc-800/60 hover:bg-zinc-800 rounded-full transition cursor-pointer"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 text-zinc-400 hover:text-white bg-zinc-800/60 hover:bg-zinc-800 rounded-full transition cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -110,7 +120,7 @@ export default function UserVouchersModal({
           <div className="px-5 py-3 border-b border-zinc-800/80 bg-zinc-900/60 flex items-center gap-2 overflow-x-auto scrollbar-none shrink-0">
             <button
               onClick={() => setFilterTab("all")}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition whitespace-nowrap cursor-pointer ${
+              className={`min-h-[44px] px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition whitespace-nowrap cursor-pointer ${
                 filterTab === "all"
                   ? "bg-[#E21B70] text-white shadow-sm"
                   : "bg-zinc-800 text-zinc-400 hover:text-zinc-200"
@@ -120,7 +130,7 @@ export default function UserVouchersModal({
             </button>
             <button
               onClick={() => setFilterTab("food")}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition whitespace-nowrap cursor-pointer ${
+              className={`min-h-[44px] px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition whitespace-nowrap cursor-pointer ${
                 filterTab === "food"
                   ? "bg-[#E21B70] text-white shadow-sm"
                   : "bg-zinc-800 text-zinc-400 hover:text-zinc-200"
@@ -130,7 +140,7 @@ export default function UserVouchersModal({
             </button>
             <button
               onClick={() => setFilterTab("grocery")}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition whitespace-nowrap cursor-pointer ${
+              className={`min-h-[44px] px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition whitespace-nowrap cursor-pointer ${
                 filterTab === "grocery"
                   ? "bg-[#E21B70] text-white shadow-sm"
                   : "bg-zinc-800 text-zinc-400 hover:text-zinc-200"
@@ -141,7 +151,7 @@ export default function UserVouchersModal({
             {currentUser && activeAvailableVouchers.some(v => v.assignedUserIds?.includes(currentUser.uid)) && (
               <button
                 onClick={() => setFilterTab("exclusive")}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition whitespace-nowrap cursor-pointer ${
+                className={`min-h-[44px] px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition whitespace-nowrap cursor-pointer ${
                   filterTab === "exclusive"
                     ? "bg-amber-500 text-zinc-950 shadow-sm"
                     : "bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20"
@@ -153,7 +163,7 @@ export default function UserVouchersModal({
             {usedOrExhaustedVouchers.length > 0 && (
               <button
                 onClick={() => setFilterTab("used")}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition whitespace-nowrap cursor-pointer ${
+                className={`min-h-[44px] px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition whitespace-nowrap cursor-pointer ${
                   filterTab === "used"
                     ? "bg-zinc-700 text-white shadow-sm"
                     : "bg-zinc-800/60 text-zinc-500 hover:text-zinc-300"
@@ -295,7 +305,7 @@ export default function UserVouchersModal({
                       </div>
                       <button
                         onClick={() => handleCopy(voucher.code)}
-                        className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-zinc-850 hover:bg-zinc-800 text-zinc-300 hover:text-white text-[10px] font-black uppercase tracking-wider transition cursor-pointer border border-zinc-750"
+                        className="min-h-[44px] flex items-center gap-1 px-2.5 py-1 rounded-xl bg-zinc-850 hover:bg-zinc-800 text-zinc-300 hover:text-white text-[10px] font-black uppercase tracking-wider transition cursor-pointer border border-zinc-750"
                       >
                         {copiedCode === voucher.code ? (
                           <>
@@ -355,7 +365,7 @@ export default function UserVouchersModal({
                             onApplyVoucher(voucher);
                             onClose();
                           }}
-                          className={`px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer ${
+                          className={`min-h-[44px] px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer ${
                             canApplyNow
                               ? "bg-[#E21B70] hover:bg-[#C2145E] text-white shadow-sm"
                               : "bg-zinc-800 text-zinc-500 opacity-60 cursor-not-allowed"

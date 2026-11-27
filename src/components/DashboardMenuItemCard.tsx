@@ -85,7 +85,7 @@ export const DashboardMenuItemCard = React.memo(function DashboardMenuItemCard({
             e.stopPropagation();
             onToggleFavorite(dish.id);
           }}
-          className="absolute top-1.5 right-1.5 z-30 w-10 h-10 rounded-full bg-white/92 dark:bg-[#14141A]/90 hover:bg-white text-[#E21B70] shadow-xs transition-transform duration-180 active:scale-[0.97] active:brightness-110 flex items-center justify-center cursor-pointer"
+          className="absolute top-1.5 right-1.5 z-30 w-11 h-11 rounded-full bg-white/92 dark:bg-[#14141A]/90 hover:bg-white text-[#E21B70] shadow-xs transition-transform duration-180 active:scale-[0.97] active:brightness-110 flex items-center justify-center cursor-pointer"
           aria-label={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
           title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
         >
@@ -121,7 +121,10 @@ export const DashboardMenuItemCard = React.memo(function DashboardMenuItemCard({
           <p className="text-[10px] sm:text-[11px] text-[#5A5A6B] dark:text-[#A1A1B2] font-semibold uppercase tracking-wide truncate">
             {dishRestaurantName}
           </p>
-          <h4 className="font-bold text-[#14141A] dark:text-[#F5F5F8] text-xs sm:text-sm leading-snug group-hover:text-[#E21B70] transition-colors line-clamp-2">
+          <h4
+            title={dish.name}
+            className="font-bold text-[#14141A] dark:text-[#F5F5F8] text-xs sm:text-sm leading-snug group-hover:text-[#E21B70] transition-colors line-clamp-2"
+          >
             {dish.name}
           </h4>
           <div className="flex items-baseline gap-1.5 pt-0.5">

@@ -12,6 +12,7 @@ import {
 import { auth } from "../firebase";
 import daduLogo from "../assets/images/dadu_food_logo_new_1782333467889.jpg";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 
 export interface GoogleAuthPayload {
   uid: string;
@@ -56,6 +57,11 @@ export default function AuthModal({
   const [googleLoading, setGoogleLoading] = useState(false);
   const [isStaffMode, setIsStaffMode] = useState(false);
   const recaptchaContainerRef = useRef<HTMLDivElement | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+
+  // Focus trap + ESC to close (a11y fix 27 Nov 2026). Must sit above the
+  // `if (!isOpen) return null` below so the hook order never changes.
+  useFocusTrap(dialogRef, isOpen, onClose);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -283,12 +289,16 @@ export default function AuthModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[999] flex items-end sm:items-center justify-center sm:p-6">
+    <div ref={dialogRef} className="fixed inset-0 z-[999] flex items-end sm:items-center justify-center sm:p-6">
       <div
         className="absolute inset-0 bg-black/75 backdrop-blur-sm animate-fade-in"
         onClick={onClose}
       />
       <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="auth-modal-heading"
+        tabIndex={-1}
         initial={{ opacity: 0, scale: 0.96, y: 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={springSmooth}
@@ -326,7 +336,7 @@ export default function AuthModal({
             alt="Dadu Food Logo"
             className="w-16 h-16 rounded-2xl mx-auto shadow-xl border-2 border-white/25 mb-3 object-cover"
           />
-          <h2 className="text-xl font-black text-white tracking-tight">
+          <h2 id="auth-modal-heading" className="text-xl font-black text-white tracking-tight">
             {isStaffMode
               ? "Staff & Admin Login"
               : otpStep === "verify"

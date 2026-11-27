@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
 import { springSmooth } from "../utils/motion";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
@@ -45,6 +46,7 @@ interface CartDrawerProps {
   currentUser: UserProfile | null;
   onOpenAuth: () => void;
   deliveryFee: number; // Stored inside Firestore settings!
+  isRiderRangeExceeded?: boolean; // Customer beyond the admin-set rider range — delivery fee doubles (matches App's saved order total)
   isFirstOrderFreeDelivery?: boolean; // New user's first order ships FREE (food/grocery/medicine)
   onPlaceOrder: (details: {
     name: string;
@@ -82,6 +84,7 @@ export default function CartDrawer({
   currentUser,
   onOpenAuth,
   deliveryFee,
+  isRiderRangeExceeded,
   isFirstOrderFreeDelivery,
   onPlaceOrder,
   onAddDrink,
@@ -259,6 +262,11 @@ export default function CartDrawer({
     }
   }, [isOpen, cartItems.length]);
 
+  // Focus trap + ESC to close (a11y fix 27 Nov 2026). Must sit above the
+  // `if (!isOpen) return null` below so the hook order never changes.
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, isOpen, onClose);
+
   if (!isOpen) return null;
 
   const totalFoodItemsPrice = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
@@ -294,7 +302,16 @@ export default function CartDrawer({
   // First-order FREE delivery (user decision 27 Nov 2026): a signed-in user
   // with zero previous orders pays no delivery fee on their first order.
   const isFirstOrderFree = isFirstOrderFreeDelivery === true && !!currentUser;
-  const standardFee = deliveryFee > 0 ? deliveryFee : 50;
+  // NEW FEE STRUCTURE (user decision 27 Nov 2026, overrides the old Rs. 50):
+  // food delivery Rs. 70 — read from settings/delivery_config
+  // (foodDeliveryFee) with the App-passed deliveryFee prop as fallback.
+  const foodDeliveryFee =
+    Number(systemSettings?.foodDeliveryFee ?? 0) > 0
+      ? Number(systemSettings.foodDeliveryFee)
+      : deliveryFee > 0
+        ? deliveryFee
+        : 70;
+  const standardFee = foodDeliveryFee;
   const baseDeliveryFee = !hasFood
     ? 0
     : isFirstOrderFree
@@ -304,15 +321,40 @@ export default function CartDrawer({
     : isDoubleFee
     ? standardFee * 2
     : standardFee;
+  // Rider-range doubling (27 Nov 2026): beyond the admin-set rider range
+  // the delivery fee doubles — applied here to the (possibly below-Rs-500
+  // doubled) base, BEFORE Priority, exactly like App's saved food total
+  // (handlePlaceOrderSubmit). The App-passed deliveryFee prop is NOT
+  // pre-doubled any more, so this is the single x2.
+  const rangeAdjustedFee = isRiderRangeExceeded ? baseDeliveryFee * 2 : baseDeliveryFee;
   // Delivery speed adjustment (admin-controlled): Priority +priorityFee
   const speedFeeAdjustment =
     !hasFood || effectiveSpeed === "standard"
       ? 0
       : priorityFee;
-  const finalDeliveryFee = isFirstOrderFree ? 0 : Math.max(0, baseDeliveryFee + speedFeeAdjustment);
+  const finalDeliveryFee = isFirstOrderFree ? 0 : Math.max(0, rangeAdjustedFee + speedFeeAdjustment);
 
-  // Base total before any discounts (items + delivery + optional rider tip)
-  const baseOrderTotal = totalFoodItemsPrice + finalDeliveryFee + riderTip;
+  // Site tax (user decision 27 Nov 2026): flat Rs. 12 per order, from
+  // settings/delivery_config (siteTax, default 12). Still charged on free
+  // and first-order-free delivery; never doubled, never waived.
+  const siteTax = cartItems.length > 0 ? Number(systemSettings?.siteTax ?? 12) : 0;
+
+  // Night surcharge (user decision 27 Nov 2026, confirmed same day):
+  // +nightSurchargeAmount (default Rs. 30) from nightSurchargeStartHour
+  // (default 21:00 local time). Applies ON TOP of the final delivery fee,
+  // AFTER any below-500 doubling — but free delivery (subtotal >= 1000 or
+  // first order) waives the WHOLE delivery fee including the surcharge.
+  const nightSurchargeAmount = Number(systemSettings?.nightSurchargeAmount ?? 30);
+  const nightSurchargeStartHour = Number(systemSettings?.nightSurchargeStartHour ?? 21);
+  const isNightSurcharge =
+    hasFood &&
+    !isFirstOrderFree &&
+    !isFreeFoodDelivery &&
+    new Date().getHours() >= nightSurchargeStartHour;
+  const nightSurcharge = isNightSurcharge ? nightSurchargeAmount : 0;
+
+  // Base total before any discounts (items + delivery + night surcharge + site tax + optional rider tip)
+  const baseOrderTotal = totalFoodItemsPrice + finalDeliveryFee + nightSurcharge + siteTax + riderTip;
 
   // Voucher discount
   let voucherDiscount = 0;
@@ -334,7 +376,7 @@ export default function CartDrawer({
   const coinsDeducted = (useCoins && !appliedVoucher) ? maxCoinsUsable : 0;
   const totalBenefitDiscount = appliedVoucher ? voucherDiscount : coinsDeducted;
 
-  let grandTotal = Math.max(0, totalFoodItemsPrice + finalDeliveryFee + riderTip - totalBenefitDiscount);
+  let grandTotal = Math.max(0, totalFoodItemsPrice + finalDeliveryFee + nightSurcharge + siteTax + riderTip - totalBenefitDiscount);
 
   // Real-time Order Reward Calculation (from Admin Loyalty Settings)
   const loyaltyEarnVal = systemSettings?.loyaltyEarnCoins ?? 15;
@@ -577,11 +619,15 @@ export default function CartDrawer({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/75">
+    <div ref={dialogRef} className="fixed inset-0 z-50 flex justify-end bg-black/75">
       {/* Tap space to slide out drawer */}
       <div className="flex-1" onClick={onClose}></div>
 
       <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cart-drawer-heading"
+        tabIndex={-1}
         initial={{ x: "100%" }}
         animate={{ x: 0 }}
         transition={springSmooth}
@@ -592,7 +638,7 @@ export default function CartDrawer({
         <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-2">
             <ShoppingBag className="w-5 h-5 text-[#D70F64]" />
-            <h3 className="font-extrabold text-sm tracking-wide text-zinc-900 dark:text-zinc-100 uppercase">Your Delivery Cart</h3>
+            <h3 id="cart-drawer-heading" className="font-extrabold text-sm tracking-wide text-zinc-900 dark:text-zinc-100 uppercase">Your Delivery Cart</h3>
           </div>
           <button
             onClick={onClose}
@@ -1627,6 +1673,18 @@ export default function CartDrawer({
                   )}
                 </span>
               </div>
+              {nightSurcharge > 0 && (
+                <div className="flex justify-between">
+                  <span>Night Surcharge +Rs. {nightSurcharge}</span>
+                  <span className="text-zinc-900 dark:text-zinc-100 font-extrabold font-mono">Rs. {nightSurcharge}</span>
+                </div>
+              )}
+              {siteTax > 0 && (
+                <div className="flex justify-between">
+                  <span>Site Tax:</span>
+                  <span className="text-zinc-900 dark:text-zinc-100 font-extrabold font-mono">Rs. {siteTax}</span>
+                </div>
+              )}
               {riderTip > 0 && (
                 <div className="flex justify-between">
                   <span>Rider Tip:</span>

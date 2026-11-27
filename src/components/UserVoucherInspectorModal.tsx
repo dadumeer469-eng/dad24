@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { X, Ticket, Send, Trash2, CheckCircle, Calendar, Plus, Store, ShoppingBag } from "lucide-react";
 import { collection, doc, updateDoc, arrayUnion, arrayRemove, addDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { Voucher, UserProfile, isVoucherExpired } from "../types";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 
 interface UserVoucherInspectorModalProps {
   user: UserProfile | null;
@@ -18,6 +19,11 @@ export default function UserVoucherInspectorModal({
   const [selectedVoucherCode, setSelectedVoucherCode] = useState<string>("");
   const [customNote, setCustomNote] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Focus trap + ESC to close (a11y fix 27 Nov 2026). Must sit above the
+  // `if (!user) return null` below so the hook order never changes.
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, !!user, onClose);
 
   if (!user) return null;
 
@@ -93,8 +99,14 @@ export default function UserVoucherInspectorModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-xs text-left">
-      <div className="bg-white rounded-3xl border border-slate-200 max-w-lg w-full max-h-[85vh] overflow-hidden shadow-2xl flex flex-col">
+    <div ref={dialogRef} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-xs text-left">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="voucher-inspector-heading"
+        tabIndex={-1}
+        className="bg-white rounded-3xl border border-slate-200 max-w-lg w-full max-h-[85vh] overflow-hidden shadow-2xl flex flex-col"
+      >
         {/* Header */}
         <div className="p-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
@@ -102,7 +114,7 @@ export default function UserVoucherInspectorModal({
               <Ticket className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-black text-base text-slate-900">
+              <h3 id="voucher-inspector-heading" className="font-black text-base text-slate-900">
                 Vouchers for {user.name || user.phone || "User"}
               </h3>
               <p className="text-xs text-slate-500 font-medium">
@@ -113,7 +125,7 @@ export default function UserVoucherInspectorModal({
           <button
             onClick={onClose}
             aria-label="Close"
-            className="p-2 text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-100 rounded-full border border-slate-200 transition cursor-pointer"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-100 rounded-full border border-slate-200 transition cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>

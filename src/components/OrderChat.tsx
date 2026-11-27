@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 import { 
   collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc
 } from "firebase/firestore";
@@ -76,6 +77,13 @@ export default function OrderChat({
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Focus trap + ESC to close (a11y fix 27 Nov 2026). onClose is optional
+  // here, so ESC is a no-op when the parent did not pass one. Must sit
+  // above the `if (!isOpen) return null` below so the hook order never
+  // changes.
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, isOpen, onClose ?? (() => {}));
 
   // Track previous message count and initial load status for sound alarm
   const prevMsgCountRef = useRef<number>(0);
@@ -189,12 +197,18 @@ export default function OrderChat({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 sm:p-4 animate-fade-in">
+    <div ref={dialogRef} className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center bg-slate-900/60 backdrop-blur-sm p-0 sm:p-4 animate-fade-in">
       {/* Backdrop overlay - click to close */}
       <div className="absolute inset-0" onClick={onClose} />
 
       {/* Main Chat Modal Container - Foodpanda Clean Style */}
-      <div className="relative w-full h-[88vh] sm:h-[600px] max-w-lg bg-slate-50 border-t sm:border border-slate-200 rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden text-slate-800 z-10">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="order-chat-heading"
+        tabIndex={-1}
+        className="relative w-full h-[88vh] sm:h-[600px] max-w-lg bg-slate-50 border-t sm:border border-slate-200 rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden text-slate-800 z-10"
+      >
         
         {/* Foodpanda Signature Pink Header bar */}
         <div className="bg-[#E21B70] px-4 py-3 flex items-center justify-between shadow-md shrink-0">
@@ -214,7 +228,7 @@ export default function OrderChat({
                   <Bell className="w-2.5 h-2.5 text-amber-300" /> Live
                 </span>
               </div>
-              <span className="text-base font-black text-white block mt-0.5 truncate leading-tight">
+              <span id="order-chat-heading" className="text-base font-black text-white block mt-0.5 truncate leading-tight">
                 {recipientName || "Dadu Food Captain"}
               </span>
             </div>
@@ -224,7 +238,8 @@ export default function OrderChat({
             <button 
               type="button"
               onClick={onClose}
-              className="w-9 h-9 rounded-full bg-black/15 hover:bg-black/30 flex items-center justify-center text-white transition cursor-pointer shrink-0 ml-2 active:scale-95"
+              aria-label="Close chat"
+              className="w-11 h-11 rounded-full bg-black/15 hover:bg-black/30 flex items-center justify-center text-white transition cursor-pointer shrink-0 ml-2 active:scale-95"
               title="Close Chat"
             >
               <X className="w-5 h-5" />

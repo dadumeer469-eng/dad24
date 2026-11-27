@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from "react-leaflet";
 import { getDatabase, ref, onValue, off } from "firebase/database";
@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import OrderChat from "./OrderChat";
 import GoogleMapsProvider from "./GoogleMapsProvider";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 
 interface Coords {
   latitude: number;
@@ -277,6 +278,10 @@ export default function FoodDeliveryTracker({
   const [showChat, setShowChat] = useState<boolean>(false);
   const [showHelpModal, setShowHelpModal] = useState<boolean>(false);
   const [isSheetCollapsed, setIsSheetCollapsed] = useState<boolean>(false);
+
+  // Focus trap + ESC to close the help modal (a11y fix 27 Nov 2026).
+  const helpDialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(helpDialogRef, showHelpModal, () => setShowHelpModal(false));
 
   const handleRouteMetrics = useCallback((km: number, mins: number) => {
     setDistanceKm(km);
@@ -769,7 +774,14 @@ export default function FoodDeliveryTracker({
 
       {/* HELP MODAL */}
       {showHelpModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+        <div
+          ref={helpDialogRef}
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="tracker-help-heading"
+          tabIndex={-1}
+        >
           <div className="bg-white rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl relative animate-scale-up">
             <button
               type="button"
@@ -785,7 +797,7 @@ export default function FoodDeliveryTracker({
                 <img src={daduLogo} alt="Dadu Food" className="w-full h-full object-cover" />
               </div>
               <div>
-                <h3 className="text-base font-extrabold text-slate-900">Dadu Food Support</h3>
+                <h3 id="tracker-help-heading" className="text-base font-extrabold text-slate-900">Dadu Food Support</h3>
                 <p className="text-xs text-slate-500 font-medium">Order Help &amp; Order Hotline</p>
               </div>
             </div>

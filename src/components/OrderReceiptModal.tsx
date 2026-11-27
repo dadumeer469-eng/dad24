@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { springSmooth } from "../utils/motion";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 import { X, Printer, Send, Download, Copy, Check, Share2, Receipt } from "lucide-react";
 import { formatOrderId } from "../utils/catalogNormalizer";
 
@@ -82,6 +83,11 @@ export default function OrderReceiptModal({ order, isOpen, onClose, senderRole =
   const [copiedText, setCopiedText] = useState(false);
   const [isDownloadingImage, setIsDownloadingImage] = useState(false);
   const [copyImageSuccess, setCopyImageSuccess] = useState(false);
+
+  // Focus trap + ESC to close (a11y fix 27 Nov 2026). Must sit above the
+  // `if (!isOpen ...) return null` below so the hook order never changes.
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, isOpen, onClose);
 
   useEffect(() => {
     if (isOpen && order && canvasRef.current) {
@@ -241,8 +247,12 @@ For help or inquiries, contact us on WhatsApp.`;
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div ref={dialogRef} className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
       <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="order-receipt-heading"
+        tabIndex={-1}
         initial={{ opacity: 0, scale: 0.96, y: 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={springSmooth}
@@ -253,7 +263,7 @@ For help or inquiries, contact us on WhatsApp.`;
           <div className="flex items-center gap-2">
             <Receipt className="w-5 h-5 text-amber-300" />
             <div>
-              <h3 className="font-black text-sm sm:text-base uppercase tracking-tight leading-tight">
+              <h3 id="order-receipt-heading" className="font-black text-sm sm:text-base uppercase tracking-tight leading-tight">
                 Order Receipt & WhatsApp
               </h3>
               <span className="text-[10px] text-pink-100 font-medium block">
@@ -264,7 +274,7 @@ For help or inquiries, contact us on WhatsApp.`;
           <button
             onClick={onClose}
             aria-label="Close"
-            className="p-1.5 rounded-full hover:bg-white/20 text-white transition cursor-pointer"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center p-1.5 rounded-full hover:bg-white/20 text-white transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>

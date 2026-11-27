@@ -124,6 +124,11 @@ export default function GroceryModule({
   // display concern (e.g. "Show all N items" while searching), not a
   // navigation sub-view, so the back-button controller does not need it.
   const [showAllInCategory, setShowAllInCategory] = useState<boolean>(Boolean(initialCategoryId));
+
+  // Pharmacy route (mobile-UX finding F2, fix 27 Nov 2026): App passes
+  // initialCategoryId="gcat_medicine" only on /pharmacy, so this is the
+  // route signal — the grocery banner must not render there.
+  const isPharmacy = initialCategoryId === "gcat_medicine";
   const [favIds, setFavIds] = useState<string[]>(() => {
     try {
       const parsed = JSON.parse(localStorage.getItem("dadu_grocery_favs") || "[]");
@@ -239,6 +244,9 @@ export default function GroceryModule({
     const packLabel = p.unit && p.unit !== "—" ? p.unit : "Standard Pack";
     const isFav = favIds.includes(p.id);
     const isBestSeller = GROCERY_BESTSELLER_IDS.has(p.id);
+    // Mobile-UX finding F5: never show the green "Fresh" badge on
+    // cigarettes — it reads as a health/quality endorsement.
+    const isCigarette = p.categoryId === "gcat_cigarettes";
 
     return (
       <div
@@ -260,11 +268,11 @@ export default function GroceryModule({
               {`${Math.round(((p.price - p.discountPrice!) / p.price) * 100)}% off`}
             </div>
           ) : isBestSeller ? (
-            <div className="absolute bottom-2 left-2 z-10 bg-[#16A34A] text-white font-semibold text-[10px] py-0.5 px-2 rounded-full shadow-sm">
+            <div className="absolute bottom-2 left-2 z-10 bg-[#15803D] text-white font-semibold text-[10px] py-0.5 px-2 rounded-full shadow-sm">
               Best seller
             </div>
-          ) : (
-            <div className="absolute bottom-2 left-2 z-10 bg-[#16A34A] text-white font-semibold text-[10px] py-0.5 px-2 rounded-full shadow-sm">
+          ) : isCigarette ? null : (
+            <div className="absolute bottom-2 left-2 z-10 bg-[#15803D] text-white font-semibold text-[10px] py-0.5 px-2 rounded-full shadow-sm">
               Fresh
             </div>
           )}
@@ -275,7 +283,7 @@ export default function GroceryModule({
               toggleFav(p.id);
             }}
             aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
-            className="absolute top-2 right-2 z-10 w-9 h-9 flex items-center justify-center cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110 rounded-full focus-visible:outline-2 focus-visible:outline-white"
+            className="absolute top-2 right-2 z-10 w-11 h-11 flex items-center justify-center cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110 rounded-full focus-visible:outline-2 focus-visible:outline-white"
           >
             <Heart
               className={`w-5 h-5 drop-shadow-[0_1px_2px_rgba(255,255,255,0.9)] ${
@@ -287,7 +295,10 @@ export default function GroceryModule({
 
         <div className="p-2 sm:p-3 flex-1 flex flex-col justify-between gap-2">
           <div>
-            <h4 className="font-semibold text-[#14141A] dark:text-[#F5F5F8] text-[13px] sm:text-sm leading-snug line-clamp-2">
+            <h4
+              title={p.name}
+              className="font-semibold text-[#14141A] dark:text-[#F5F5F8] text-[13px] sm:text-sm leading-snug line-clamp-2"
+            >
               {p.name}
             </h4>
             <span className="block text-[11px] font-medium text-[#5A5A6B] dark:text-[#A1A1B2] mt-0.5 line-clamp-1">
@@ -312,7 +323,7 @@ export default function GroceryModule({
                   type="button"
                   onClick={() => onUpdateCartQuantity(p.id, qty - 1)}
                   aria-label="Decrease quantity"
-                  className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110 focus-visible:outline-2 focus-visible:outline-white"
+                  className="w-11 h-11 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110 focus-visible:outline-2 focus-visible:outline-white"
                 >
                   <Minus className="w-3.5 h-3.5" />
                 </button>
@@ -321,7 +332,7 @@ export default function GroceryModule({
                   type="button"
                   onClick={() => onUpdateCartQuantity(p.id, qty + 1)}
                   aria-label="Increase quantity"
-                  className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110 focus-visible:outline-2 focus-visible:outline-white"
+                  className="w-11 h-11 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110 focus-visible:outline-2 focus-visible:outline-white"
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
@@ -349,7 +360,7 @@ export default function GroceryModule({
                   type="button"
                   onClick={() => onAddToCart(p)}
                   aria-label={`Add ${p.name} to cart`}
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full btn-pink text-white flex items-center justify-center cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110 shrink-0 shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70] relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-[opacity,transform] after:duration-180 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
+                  className="w-11 h-11 rounded-full btn-pink text-white flex items-center justify-center cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110 shrink-0 shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70] relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-[opacity,transform] after:duration-180 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
                 >
                   <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
@@ -364,47 +375,91 @@ export default function GroceryModule({
   return (
     <div className="bg-transparent dark:bg-[#0B0B0F] text-[#14141A] dark:text-[#F5F5F8] min-h-screen py-3 sm:py-4 transition-colors duration-200 animate-slide-screen">
       <div className="max-w-7xl mx-auto px-3.5 sm:px-4 space-y-4 sm:space-y-5">
-        {/* Dadu Express Mart Hero (design: dark banner, basket photo, yellow headline) */}
-        <div className="relative overflow-hidden rounded-[28px] shadow-[0_12px_28px_rgba(0,0,0,0.10)] min-h-[210px] sm:min-h-[230px]">
-          <img
-            src="/images/home/grocery-basket.jpg"
-            alt="Fresh groceries in a Dadu Food basket"
-            className="absolute inset-0 w-full h-full object-cover object-center"
-            loading="eager"
-            fetchPriority="high"
-            decoding="async"
-          />
-          <div
-            className="absolute inset-0 bg-gradient-to-r from-[#1A0A12]/95 via-[#1A0A12]/60 to-transparent"
-            aria-hidden="true"
-          />
-          <div className="relative z-10 p-5 sm:p-7 max-w-[56%] sm:max-w-[58%]">
-            <h2 className="text-[24px] sm:text-4xl font-medium tracking-tight text-white leading-[1.08] mt-2.5">
-              Daily Groceries Delivered{" "}
-              <span className="text-white">Fast in Dadu</span>
-            </h2>
-            <p className="flex items-center gap-3 text-xs sm:text-sm text-white font-semibold mt-2.5 flex-wrap">
-              <span className="inline-flex items-center gap-1">
-                <Check className="w-4 h-4 text-white" strokeWidth={1.5} aria-hidden="true" /> Fresh
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <Check className="w-4 h-4 text-white" strokeWidth={1.5} aria-hidden="true" /> Quality
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <Check className="w-4 h-4 text-white" strokeWidth={1.5} aria-hidden="true" /> Affordable
-              </span>
-            </p>
-            <button
-              type="button"
-              onClick={() =>
-                document.getElementById("grocery-products")?.scrollIntoView({ behavior: "smooth", block: "start" })
-              }
-              className="mt-3.5 inline-flex items-center gap-1.5 bg-white text-[#14141A] font-semibold text-xs sm:text-sm px-4 py-2.5 min-h-[44px] rounded-full shadow-md hover:bg-pink-50 transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer"
-            >
-              Shop now <ChevronRight className="w-4 h-4" />
-            </button>
+        {/* Hero banner: medicine on /pharmacy, grocery everywhere else.
+            (F2 — the grocery banner used to render on /pharmacy too.) */}
+        {isPharmacy ? (
+          <div className="relative overflow-hidden rounded-[28px] shadow-[0_12px_28px_rgba(0,0,0,0.10)] min-h-[210px] sm:min-h-[230px]">
+            <img
+              src="/images/grocery/dettol-antiseptic-liquid-100ml.jpg"
+              alt="Medicines available for delivery from Dadu Food"
+              className="absolute inset-0 w-full h-full object-cover object-center"
+              loading="eager"
+              fetchPriority="high"
+              decoding="async"
+            />
+            <div
+              className="absolute inset-0 bg-gradient-to-r from-[#1A0A12]/95 via-[#1A0A12]/60 to-transparent"
+              aria-hidden="true"
+            />
+            <div className="relative z-10 p-5 sm:p-7 max-w-[56%] sm:max-w-[58%]">
+              <h2 className="text-[24px] sm:text-4xl font-medium tracking-tight text-white leading-[1.08] mt-2.5">
+                Medicine Delivered{" "}
+                <span className="text-white">Fast in Dadu</span>
+              </h2>
+              <p className="flex items-center gap-3 text-xs sm:text-sm text-white font-semibold mt-2.5 flex-wrap">
+                <span className="inline-flex items-center gap-1">
+                  <Check className="w-4 h-4 text-white" strokeWidth={1.5} aria-hidden="true" /> Genuine
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Check className="w-4 h-4 text-white" strokeWidth={1.5} aria-hidden="true" /> Quality
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Check className="w-4 h-4 text-white" strokeWidth={1.5} aria-hidden="true" /> Affordable
+                </span>
+              </p>
+              <button
+                type="button"
+                onClick={() =>
+                  document.getElementById("grocery-products")?.scrollIntoView({ behavior: "smooth", block: "start" })
+                }
+                className="mt-3.5 inline-flex items-center gap-1.5 bg-white text-[#14141A] font-semibold text-xs sm:text-sm px-4 py-2.5 min-h-[44px] rounded-full shadow-md hover:bg-pink-50 transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer"
+              >
+                Shop now <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="relative overflow-hidden rounded-[28px] shadow-[0_12px_28px_rgba(0,0,0,0.10)] min-h-[210px] sm:min-h-[230px]">
+            <img
+              src="/images/home/grocery-basket.jpg"
+              alt="Fresh groceries in a Dadu Food basket"
+              className="absolute inset-0 w-full h-full object-cover object-center"
+              loading="eager"
+              fetchPriority="high"
+              decoding="async"
+            />
+            <div
+              className="absolute inset-0 bg-gradient-to-r from-[#1A0A12]/95 via-[#1A0A12]/60 to-transparent"
+              aria-hidden="true"
+            />
+            <div className="relative z-10 p-5 sm:p-7 max-w-[56%] sm:max-w-[58%]">
+              <h2 className="text-[24px] sm:text-4xl font-medium tracking-tight text-white leading-[1.08] mt-2.5">
+                Daily Groceries Delivered{" "}
+                <span className="text-white">Fast in Dadu</span>
+              </h2>
+              <p className="flex items-center gap-3 text-xs sm:text-sm text-white font-semibold mt-2.5 flex-wrap">
+                <span className="inline-flex items-center gap-1">
+                  <Check className="w-4 h-4 text-white" strokeWidth={1.5} aria-hidden="true" /> Fresh
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Check className="w-4 h-4 text-white" strokeWidth={1.5} aria-hidden="true" /> Quality
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Check className="w-4 h-4 text-white" strokeWidth={1.5} aria-hidden="true" /> Affordable
+                </span>
+              </p>
+              <button
+                type="button"
+                onClick={() =>
+                  document.getElementById("grocery-products")?.scrollIntoView({ behavior: "smooth", block: "start" })
+                }
+                className="mt-3.5 inline-flex items-center gap-1.5 bg-white text-[#14141A] font-semibold text-xs sm:text-sm px-4 py-2.5 min-h-[44px] rounded-full shadow-md hover:bg-pink-50 transition-transform duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer"
+              >
+                Shop now <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Category Tiles (design: photo tiles row, light pink) */}
         {activeCategories.length > 0 && (

@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 import { 
   X, 
   ShoppingBag, 
@@ -43,6 +44,10 @@ export default function OrderHistoryDrawer({
   const [ratingComments, setRatingComments] = useState<Record<string, string>>({});
   const [submittingRating, setSubmittingRating] = useState<Record<string, boolean>>({});
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+
+  // Focus trap + ESC to close (a11y fix 27 Nov 2026).
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, isOpen, onClose);
 
   const handleCancelOrder = async (order: Order) => {
     setCancellingId(order.id);
@@ -157,7 +162,7 @@ export default function OrderHistoryDrawer({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-55 flex justify-end overflow-hidden">
+        <div ref={dialogRef} className="fixed inset-0 z-55 flex justify-end overflow-hidden">
           {/* Solid transparent backdrop overlay */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -170,6 +175,10 @@ export default function OrderHistoryDrawer({
 
           {/* Drawer container body */}
           <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="order-history-heading"
+            tabIndex={-1}
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
@@ -184,14 +193,14 @@ export default function OrderHistoryDrawer({
                   <RotateCcw className="w-5 h-5 stroke-[2.5]" />
                 </div>
                 <div>
-                  <h2 className="text-base font-black text-zinc-900 dark:text-zinc-100 tracking-tight leading-none">Order History</h2>
+                  <h2 id="order-history-heading" className="text-base font-black text-zinc-900 dark:text-zinc-100 tracking-tight leading-none">Order History</h2>
                   <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Your previous shipments</span>
                 </div>
               </div>
               <button 
                 onClick={onClose}
                 aria-label="Close"
-                className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-500 dark:text-zinc-300 hover:text-zinc-800 dark:hover:text-white transition flex items-center justify-center cursor-pointer"
+                className="w-11 h-11 rounded-full bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-500 dark:text-zinc-300 hover:text-zinc-800 dark:hover:text-white transition flex items-center justify-center cursor-pointer"
                 id="close-history-btn"
               >
                 <X className="w-4 h-4" />
@@ -214,7 +223,7 @@ export default function OrderHistoryDrawer({
                 {searchQuery && (
                   <button 
                     onClick={() => setSearchQuery("")}
-                    className="absolute right-3 top-2 text-zinc-400 hover:text-zinc-650 dark:hover:text-zinc-200 text-xs font-bold"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 min-h-[44px] min-w-[44px] px-2 flex items-center justify-center text-zinc-400 hover:text-zinc-650 dark:hover:text-zinc-200 text-xs font-bold"
                   >
                     Clear
                   </button>
@@ -227,7 +236,7 @@ export default function OrderHistoryDrawer({
                   <button
                     key={type}
                     onClick={() => setFilterType(type)}
-                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border cursor-pointer shrink-0 transition ${
+                    className={`min-h-[44px] px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border cursor-pointer shrink-0 transition ${
                       filterType === type 
                         ? "bg-[#E21B70] text-white border-[#E21B70]" 
                         : "bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-650 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700"
@@ -398,7 +407,7 @@ export default function OrderHistoryDrawer({
                                             key={star}
                                             type="button"
                                             onClick={() => setRatingStars((prev) => ({ ...prev, [order.id]: star }))}
-                                            className="p-0.5 hover:scale-125 transition-transform"
+                                            className="min-h-[44px] min-w-[44px] flex items-center justify-center p-0.5 hover:scale-125 transition-transform"
                                           >
                                             <Star
                                               className={`w-4 h-4 ${
@@ -427,7 +436,7 @@ export default function OrderHistoryDrawer({
                                         onClick={() =>
                                           handleRateOrder(order.id)
                                         }
-                                        className="bg-[#E21B70] text-white text-[10px] font-bold px-3 py-1 rounded-lg hover:bg-[#C2145E] disabled:opacity-50 transition cursor-pointer shrink-0"
+                                        className="min-h-[44px] bg-[#E21B70] text-white text-[10px] font-bold px-3 py-1 rounded-lg hover:bg-[#C2145E] disabled:opacity-50 transition cursor-pointer shrink-0"
                                       >
                                         {submittingRating[order.id] ? "Saving..." : "Submit"}
                                       </button>
@@ -446,7 +455,7 @@ export default function OrderHistoryDrawer({
                                     onTrackOrder(order);
                                     onClose();
                                   }}
-                                  className="w-full py-2 px-2.5 rounded-xl bg-zinc-900 dark:bg-zinc-800 hover:bg-zinc-800 text-white transition font-black text-[10.5px] uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer"
+                                  className="w-full min-h-[44px] py-2 px-2.5 rounded-xl bg-zinc-900 dark:bg-zinc-800 hover:bg-zinc-800 text-white transition font-black text-[10.5px] uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer"
                                 >
                                   Live Track Order
                                 </button>
@@ -456,7 +465,7 @@ export default function OrderHistoryDrawer({
                                   type="button"
                                   disabled={cancellingId === order.id}
                                   onClick={() => handleCancelOrder(order)}
-                                  className="w-full py-2 px-2.5 rounded-xl bg-red-50 dark:bg-red-950/40 hover:bg-red-100 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 transition font-black text-[10.5px] uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
+                                  className="w-full min-h-[44px] py-2 px-2.5 rounded-xl bg-red-50 dark:bg-red-950/40 hover:bg-red-100 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50 transition font-black text-[10.5px] uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
                                 >
                                   {cancellingId === order.id ? "Cancelling..." : "Cancel Order"}
                                 </button>
@@ -466,7 +475,7 @@ export default function OrderHistoryDrawer({
                                   onReorder(order);
                                   onClose();
                                 }}
-                                className="w-full py-2 px-2.5 rounded-xl bg-[#E21B70] hover:bg-[#C2145E] text-white transition font-black text-[10.5px] uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-pink-500/10"
+                                className="w-full min-h-[44px] py-2 px-2.5 rounded-xl bg-[#E21B70] hover:bg-[#C2145E] text-white transition font-black text-[10.5px] uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-pink-500/10"
                                 id={`reorder-btn-${order.id}`}
                               >
                                 <ShoppingBag className="w-3.5 h-3.5" />

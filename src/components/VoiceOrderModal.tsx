@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Phone, PhoneOff, X } from "lucide-react";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 import type { LocalMenuItem, LocalOrder } from "../utils/voiceAgentLocal";
 import { getAudioContext, primeAudio } from "../utils/primeAudio";
 import MunchiCharacter from "./MunchiCharacter";
@@ -104,6 +105,7 @@ export default function VoiceOrderModal({
   const [phoneError, setPhoneError] = useState("");
   const [shakeKey, setShakeKey] = useState(0);
   const pendingOrderRef = useRef<VoiceOrder | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
   // Location popup guard: the agent's location line fires the browser
   // popup at most once per call — it resets when a location arrives or
   // the call ends, so a denied prompt is never re-shown every turn.
@@ -1049,6 +1051,12 @@ export default function VoiceOrderModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
+  // Focus trap + ESC to end the call (a11y fix 27 Nov 2026). ESC goes
+  // through endCall — not onClose directly — so ringing/TTS/listening are
+  // stopped before the modal closes. Must sit above the `if (!isOpen)`
+  // early return below so the hook order never changes.
+  useFocusTrap(dialogRef, isOpen, endCall);
+
   if (!isOpen) return null;
 
   // Status card text (the white card from the design).
@@ -1085,10 +1093,12 @@ export default function VoiceOrderModal({
 
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-[70] flex flex-col overflow-hidden text-white"
       role="dialog"
       aria-modal="true"
       aria-label="Dadu Food voice call"
+      tabIndex={-1}
       style={{
         background:
           "radial-gradient(130% 100% at 50% 0%, #ff5da2 0%, #E21B70 55%, #a80e50 100%)",
@@ -1107,7 +1117,7 @@ export default function VoiceOrderModal({
           </span>
           <button
             onClick={endCall}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/25 text-white active:scale-95"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/25 text-white active:scale-95"
             aria-label="Close call"
           >
             <X className="h-5 w-5" />
@@ -1219,7 +1229,7 @@ export default function VoiceOrderModal({
                   setShowPhonePopup(false);
                   setPhoneError("");
                 }}
-                className="mt-2 w-full py-1 text-[15px] font-semibold text-[#64748b]"
+                className="mt-2 w-full min-h-[44px] py-1 text-[15px] font-semibold text-[#64748b]"
               >
                 Order cancel karein
               </button>

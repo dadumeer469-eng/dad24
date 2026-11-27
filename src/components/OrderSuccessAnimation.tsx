@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 import { Check, ShoppingBag, MapPin, Navigation, X, Receipt, Clock, ArrowRight } from "lucide-react";
 import { Order } from "../types";
 
@@ -91,11 +92,16 @@ export default function OrderSuccessAnimation({
     }
   }, [isOpen]);
 
+  // Focus trap + ESC to close (a11y fix 27 Nov 2026). Must sit above the
+  // `if (!isOpen ...) return null` below so the hook order never changes.
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  useFocusTrap(dialogRef, isOpen, onClose);
+
   if (!isOpen || !order) return null;
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+      <div ref={dialogRef} className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
         {/* Backdrop overlay */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -137,6 +143,10 @@ export default function OrderSuccessAnimation({
 
         {/* Success Modal Container */}
         <motion.div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="order-success-heading"
+          tabIndex={-1}
           initial={{ scale: 0.85, y: 30, opacity: 0, rotateX: 20 }}
           animate={{ scale: 1, y: 0, opacity: 1, rotateX: 0 }}
           exit={{ scale: 0.95, y: -20, opacity: 0 }}
@@ -151,7 +161,7 @@ export default function OrderSuccessAnimation({
           <button
             onClick={onClose}
             aria-label="Close"
-            className="absolute top-4 right-4 p-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer z-30"
+            className="absolute top-4 right-4 min-h-[44px] min-w-[44px] flex items-center justify-center p-1.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer z-30"
           >
             <X className="w-4 h-4" />
           </button>
@@ -198,7 +208,7 @@ export default function OrderSuccessAnimation({
               transition={{ delay: 0.4 }}
               className="mt-5 space-y-1.5"
             >
-              <h3 className="text-2xl font-black text-zinc-900 dark:text-zinc-100 tracking-tight leading-tight">
+              <h3 id="order-success-heading" className="text-2xl font-black text-zinc-900 dark:text-zinc-100 tracking-tight leading-tight">
                 Order Confirmed!
               </h3>
               <p className="text-zinc-500 dark:text-zinc-400 text-sm max-w-[280px] mx-auto font-medium">
