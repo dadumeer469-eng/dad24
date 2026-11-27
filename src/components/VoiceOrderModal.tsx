@@ -40,6 +40,7 @@ interface VoiceOrderModalProps {
   onRequestLocation: () => void;
   userName?: string;
   userPhone?: string;
+  userProfileText?: string;
   deliveryLocation?: { area: string; street: string };
 }
 
@@ -86,6 +87,7 @@ export default function VoiceOrderModal({
   onRequestLocation,
   userName,
   userPhone,
+  userProfileText,
   deliveryLocation,
 }: VoiceOrderModalProps) {
   const [status, setStatus] = useState<Status>("idle");
@@ -715,6 +717,7 @@ export default function VoiceOrderModal({
                 ordersText,
                 userName: userName || undefined,
                 userPhone: userPhone || enteredPhone || undefined,
+                userProfileText: userProfileText || undefined,
                 locationText: deliveryLocation
                   ? deliveryLocation.street
                     ? `${deliveryLocation.area}, ${deliveryLocation.street}`
