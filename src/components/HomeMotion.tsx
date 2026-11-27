@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { animate, motion, useInView } from "motion/react";
-import { Plus, Sparkles } from "lucide-react";
+import { Plus, Zap } from "lucide-react";
 import {
   Carousel,
   CarouselContent,
@@ -46,7 +46,7 @@ export function OffersMarquee({ items }: { items: string[] }) {
             className="flex items-center gap-2 whitespace-nowrap text-[12px] sm:text-[13px] font-bold text-white/90"
           >
             <span className="px-3">{item}</span>
-            <Sparkles className="w-3.5 h-3.5 shrink-0 text-[#E21B70]" />
+            <Zap className="w-3.5 h-3.5 shrink-0 text-[#E21B70]" />
           </span>
         ))}
       </motion.div>
