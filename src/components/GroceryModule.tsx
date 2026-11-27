@@ -85,7 +85,7 @@ function GroceryProductImage({
       decoding="async"
       referrerPolicy="no-referrer"
       onError={() => setImgFailed(true)}
-      className="relative w-full h-full object-cover transition-transform duration-180 group-hover:scale-105"
+      className="relative w-full h-full object-contain p-2 transition-transform duration-180 group-hover:scale-105"
     />
   );
 }
@@ -233,13 +233,15 @@ export default function GroceryModule({
     return (
       <motion.div
         key={p.id}
+        initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
         whileHover={reduceMotion ? undefined : { y: -2 }}
         transition={springSnappy}
         className="bg-white dark:bg-[#1B1B24] rounded-2xl overflow-hidden shadow-[0_1px_4px_rgba(0,0,0,0.07)] hover:shadow-md transition-shadow duration-180 flex flex-col relative group border border-[#f0f0f0] dark:border-[#2A2A35]"
       >
         {/* Photo — light backdrop, product fills it; white + button (Foodpanda-style)
             overlaps the bottom-right corner. No badges on the photo — clean. */}
-        <div className="relative h-36 sm:h-44 bg-[#f7f7f7] dark:bg-[#23232E] shrink-0 select-none overflow-hidden">
+        <div className="relative aspect-square bg-[#f7f7f7] dark:bg-[#23232E] shrink-0 select-none overflow-hidden">
           <GroceryProductImage product={p} categoryName={categoryNameMap[p.categoryId] || "Grocery"} eager={eager} />
           {isOutOfStock ? (
             <span className="absolute bottom-2 right-2 z-10 text-[10px] font-semibold text-[#717185] px-2.5 py-1.5 rounded-full bg-white/95 dark:bg-[#14141A]/95 shadow-md">
@@ -286,7 +288,7 @@ export default function GroceryModule({
               whileTap={reduceMotion ? undefined : { scale: 0.88 }}
               onClick={() => onAddToCart(p)}
               aria-label={`Add ${p.name} to cart`}
-              className="absolute bottom-2 right-2 z-10 w-10 h-10 rounded-full bg-white dark:bg-[#14141A] text-[#14141A] dark:text-white flex items-center justify-center cursor-pointer shadow-md border border-black/5 active:scale-95"
+              className="absolute bottom-2 right-2 z-10 w-10 h-10 rounded-full bg-white dark:bg-[#14141A] text-[#14141A] dark:text-white flex items-center justify-center cursor-pointer shadow-lg border border-black/5 active:scale-95"
             >
               <Plus className="w-5 h-5" strokeWidth={2.5} />
             </motion.button>
@@ -296,7 +298,7 @@ export default function GroceryModule({
         {/* Details — price, discount, name, pack (Foodpanda order: price first). */}
         <div className="p-2.5 sm:p-3 flex-1 flex flex-col gap-0.5">
           <div className="flex items-baseline gap-1.5 flex-wrap">
-            <span className="text-[15px] sm:text-base font-bold text-[#E21B70] dark:text-[#FF4D94]">
+            <span className="text-base sm:text-lg font-extrabold text-[#E21B70] dark:text-[#FF4D94]">
               {`Rs. ${displayPrice}`}
             </span>
             {hasDiscount && (

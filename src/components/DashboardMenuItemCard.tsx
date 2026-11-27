@@ -50,6 +50,8 @@ export const DashboardMenuItemCard = React.memo(function DashboardMenuItemCard({
 
   return (
     <motion.div
+      initial={reduceMotion ? false : { opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
       whileHover={reduceMotion ? undefined : { y: -2 }}
       transition={springSnappy}
       className={`bg-white dark:bg-[#14141A] rounded-2xl overflow-hidden shadow-[0_1px_4px_rgba(0,0,0,0.07)] hover:shadow-md transition-shadow duration-180 flex flex-col group relative text-[#14141A] dark:text-[#F5F5F8] border border-[#f0f0f0] dark:border-[#2A2A35] ${
@@ -80,7 +82,7 @@ export const DashboardMenuItemCard = React.memo(function DashboardMenuItemCard({
 
       {/* Card Image — Foodpanda-style: clean photo, white + button overlaps bottom-right */}
       <div
-        className="relative h-36 sm:h-44 bg-[#f7f7f7] dark:bg-[#1D1D26] overflow-hidden shrink-0 cursor-pointer"
+        className="relative aspect-square bg-[#f7f7f7] dark:bg-[#1D1D26] overflow-hidden shrink-0 cursor-pointer"
         onClick={(e) => {
           e.stopPropagation();
           if (!dish.isAvailable || isRestaurantClosed) return;
@@ -141,7 +143,7 @@ export const DashboardMenuItemCard = React.memo(function DashboardMenuItemCard({
             onClick={handleAdd}
             disabled={!dish.isAvailable || isRestaurantClosed}
             aria-label={`Add ${dish.name} to cart`}
-            className={`absolute bottom-2 right-2 z-10 w-10 h-10 rounded-full bg-white dark:bg-[#14141A] text-[#14141A] dark:text-white flex items-center justify-center shadow-md border border-black/5 active:scale-95 ${
+            className={`absolute bottom-2 right-2 z-10 w-10 h-10 rounded-full bg-white dark:bg-[#14141A] text-[#14141A] dark:text-white flex items-center justify-center shadow-lg border border-black/5 active:scale-95 ${
               !dish.isAvailable || isRestaurantClosed
                 ? "cursor-not-allowed opacity-50"
                 : "cursor-pointer"
@@ -173,7 +175,7 @@ export const DashboardMenuItemCard = React.memo(function DashboardMenuItemCard({
         <div className="flex items-baseline gap-1.5 flex-wrap pt-0.5">
           {hasDiscount ? (
             <>
-              <span className="font-bold text-[15px] sm:text-base text-[#E21B70] dark:text-[#FF4D94]">
+              <span className="font-extrabold text-base sm:text-lg text-[#E21B70] dark:text-[#FF4D94]">
                 Rs. {dish.discountPrice}
               </span>
               <span className="text-xs line-through text-[#9a9aad] dark:text-[#717185]">
@@ -184,7 +186,7 @@ export const DashboardMenuItemCard = React.memo(function DashboardMenuItemCard({
               </span>
             </>
           ) : (
-            <span className="font-bold text-[15px] sm:text-base text-[#E21B70] dark:text-[#FF4D94]">
+            <span className="font-extrabold text-base sm:text-lg text-[#E21B70] dark:text-[#FF4D94]">
               Rs. {dish.price}
             </span>
           )}

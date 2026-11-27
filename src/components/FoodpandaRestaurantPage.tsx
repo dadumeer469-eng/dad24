@@ -606,7 +606,7 @@ export default function FoodpandaRestaurantPage({
       <div className="max-w-4xl mx-auto px-3.5 sm:px-4 mt-4">
         <div className="relative overflow-hidden rounded-[28px] bg-[#E21B70] text-white shadow-[0_12px_28px_rgba(215,15,100,0.35)]">
           <img
-            src="/images/home/rider-scooter.jpg"
+            src="/images/home/rider-scooter.png"
             alt="Dadu Food rider on a pink scooter"
             className="absolute left-0 top-0 h-full w-[42%] sm:w-[32%] object-cover object-center"
             loading="lazy"
