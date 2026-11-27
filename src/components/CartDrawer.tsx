@@ -121,6 +121,9 @@ export default function CartDrawer({
   const [cutlery, setCutlery] = useState<boolean>(false);
   const [locationTimedOut, setLocationTimedOut] = useState<boolean>(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  // 3-step wizard: 1 Basket, 2 Delivery, 3 Payment (Foodpanda-style — one
+  // step at a time, so the user never scrolls through every checkout section).
+  const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
   const [isEditingAddress, setIsEditingAddress] = useState(!currentUser?.address);
   const [addressInput, setAddressInput] = useState(currentUser?.address || "");
   const [isSavingAddress, setIsSavingAddress] = useState(false);
@@ -254,6 +257,7 @@ export default function CartDrawer({
 
   React.useEffect(() => {
     if (!isOpen || cartItems.length === 0) {
+      setWizardStep(1);
       setUseCoins(false);
       setAppliedVoucher(null);
       setVoucherInputCode("");
@@ -266,6 +270,11 @@ export default function CartDrawer({
   // `if (!isOpen) return null` below so the hook order never changes.
   const dialogRef = useRef<HTMLDivElement | null>(null);
   useFocusTrap(dialogRef, isOpen, onClose);
+
+  // Wizard always starts on the Basket step when the drawer opens.
+  React.useEffect(() => {
+    if (isOpen) setWizardStep(1);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -472,6 +481,55 @@ export default function CartDrawer({
     }
   };
 
+  // 3-step wizard navigation (mirrors GroceryCartDrawer).
+  // Delivery-step validation uses this drawer's own rules/messages
+  // (name, address >= 4 chars, GPS or manual address >= 6 chars, 11-digit phone).
+  const validateDeliveryStep = (): string | null => {
+    const trimmedName = (nameInput.trim() || currentUser?.name || "").trim();
+    if (!trimmedName) return "Apna naam enter karein (Please enter your name).";
+    const currentAddr = (addressInput.trim() || currentUser.address || "").trim();
+    if (!currentAddr || currentAddr.length < 4) return "Ghar ya shop ka delivery address enter karein.";
+    const hasManualAddress = currentAddr.length >= 6;
+    if (!userCoords && !hasManualAddress) {
+      setIsEditingAddress(true);
+      onRequireLocation?.();
+      return "Aapka order sahi address par pahunche, is liye location zaroori hai. Apni location on karein ya complete Dadu address enter karein.";
+    }
+    const cleanPhone = (phoneInput || currentUser.phone || "").replace(/\D/g, "");
+    if (!/^03\d{9}$/.test(cleanPhone)) return "Please enter a valid 11-digit mobile number (03XXXXXXXXX) for rider contact.";
+    return null;
+  };
+
+  const handleNextFromBasket = () => {
+    if (cartItems.length === 0) return;
+    setCheckoutError(null);
+    setWizardStep(2);
+  };
+
+  const handleNextFromDelivery = () => {
+    if (!currentUser) {
+      onOpenAuth();
+      return;
+    }
+    const err = validateDeliveryStep();
+    if (err) {
+      setCheckoutError(err);
+      return;
+    }
+    setCheckoutError(null);
+    setWizardStep(3);
+  };
+
+  const handleBackToBasket = () => {
+    setCheckoutError(null);
+    setWizardStep(1);
+  };
+
+  const handleBackToDelivery = () => {
+    setCheckoutError(null);
+    setWizardStep(2);
+  };
+
   // Handles auto checkout detail mapping
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -486,6 +544,7 @@ export default function CartDrawer({
     const trimmedName = (nameInput.trim() || currentUser.name || "").trim();
     if (!trimmedName) {
       setCheckoutError("Apna naam enter karein (Please enter your name).");
+      setWizardStep(2);
       return;
     }
 
@@ -493,6 +552,7 @@ export default function CartDrawer({
     if (!currentAddr || currentAddr.length < 4) {
       setIsEditingAddress(true);
       setCheckoutError("Ghar ya shop ka delivery address enter karein.");
+      setWizardStep(2);
       return;
     }
 
@@ -503,6 +563,7 @@ export default function CartDrawer({
     if (!/^03\d{9}$/.test(cleanPhoneInput)) {
       setCheckoutError("Please enter a valid 11-digit mobile number (03XXXXXXXXX) for rider contact.");
       setSubmitting(false);
+      setWizardStep(2);
       return;
     }
     const finalPhone = cleanPhoneInput;
@@ -538,6 +599,7 @@ export default function CartDrawer({
       setCheckoutError("Aapka order sahi address par pahunche, is liye location zaroori hai. Apni location on karein ya complete Dadu address enter karein.");
       setSubmitting(false);
       onRequireLocation?.();
+      setWizardStep(2);
       return;
     }
 
@@ -638,7 +700,7 @@ export default function CartDrawer({
         <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 flex items-center justify-between shadow-xs">
           <div className="flex items-center gap-2">
             <ShoppingBag className="w-5 h-5 text-[#D70F64]" />
-            <h3 id="cart-drawer-heading" className="font-extrabold text-sm tracking-wide text-zinc-900 dark:text-zinc-100 uppercase">Your Delivery Cart</h3>
+            <h3 id="cart-drawer-heading" className="font-extrabold text-sm tracking-wide text-zinc-900 dark:text-zinc-100 uppercase">Your Food Cart</h3>
           </div>
           <button
             onClick={onClose}
@@ -649,24 +711,44 @@ export default function CartDrawer({
           </button>
         </div>
 
-        {/* Foodpanda 3-Step Cart Progress Bar */}
+        {/* 3-step wizard progress: Basket -> Delivery -> Payment.
+            Completed steps are tappable to go back; future steps are locked. */}
         {cartItems.length > 0 && (
           <div className="px-4 py-2.5 bg-white dark:bg-zinc-950 border-b border-zinc-200/80 dark:border-zinc-800/80">
             <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wider">
-              <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-                <span className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px]">✓</span>
-                <span>1. Menu</span>
-              </div>
-              <div className="flex-1 h-[2px] mx-2 bg-[#D70F64] transition-colors duration-300" />
-              <div className="flex items-center gap-1.5 text-[#FF4D94]">
-                <span className="w-5 h-5 rounded-full bg-[#D70F64] text-white flex items-center justify-center text-[10px]">2</span>
-                <span>2. Cart</span>
-              </div>
-              <div className="flex-1 h-[2px] mx-2 bg-zinc-300 dark:bg-zinc-700 transition-colors duration-300" />
-              <div className="flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300">
-                <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] transition-all duration-300 ${currentUser && (userCoords || addressInput.trim().length >= 6) ? "bg-[#D70F64] text-white" : "bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400"}`}>3</span>
-                <span>3. Checkout</span>
-              </div>
+              {([
+                { n: 1 as const, label: "1. Basket" },
+                { n: 2 as const, label: "2. Delivery" },
+                { n: 3 as const, label: "3. Payment" },
+              ]).map((s, i) => {
+                const done = wizardStep > s.n;
+                const current = wizardStep === s.n;
+                return (
+                  <React.Fragment key={s.n}>
+                    {i > 0 && (
+                      <div className={`flex-1 h-[2px] mx-2 transition-colors duration-300 ${wizardStep > i ? "bg-[#D70F64]" : "bg-zinc-300 dark:bg-zinc-700"}`} />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (done) {
+                          setCheckoutError(null);
+                          setWizardStep(s.n);
+                        }
+                      }}
+                      disabled={!done}
+                      aria-label={s.label}
+                      aria-current={current ? "step" : undefined}
+                      className={`flex items-center gap-1.5 transition-all duration-300 ${done ? "text-emerald-600 dark:text-emerald-400 cursor-pointer" : current ? "text-[#FF4D94] cursor-default" : "text-zinc-700 dark:text-zinc-300 cursor-default"}`}
+                    >
+                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] transition-all duration-300 ${done ? "bg-emerald-500 text-white" : current ? "bg-[#D70F64] text-white" : "bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400"}`}>
+                        {done ? "✓" : s.n}
+                      </span>
+                      <span>{s.label}</span>
+                    </button>
+                  </React.Fragment>
+                );
+              })}
             </div>
           </div>
         )}
@@ -685,7 +767,7 @@ export default function CartDrawer({
                 Go Add Tea & Food
               </button>
             </div>
-          ) : (
+          ) : wizardStep === 1 ? (
             <div className="space-y-3 animate-fade-in">
               {cartItems.map((item) => (
                 <div key={item.dishId} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-2xl flex items-center justify-between gap-3 shadow-xs transition-transform duration-300 md:hover:-translate-y-0.5">
@@ -757,10 +839,10 @@ export default function CartDrawer({
                 </div>
               ))}
             </div>
-          )}
+          ) : null}
 
           {/* Popular with your order — real bestsellers from the live menu */}
-          {cartItems.length > 0 && popularDishes.length > 0 && onAddPopularDish && (
+          {cartItems.length > 0 && wizardStep === 1 && popularDishes.length > 0 && onAddPopularDish && (
             <div className="bg-gradient-to-br from-[#E21B70]/5 to-white dark:to-zinc-900 border border-[#E21B70]/15 p-4 rounded-3xl mt-4 space-y-3 shadow-xs">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-black uppercase tracking-wider text-[#E21B70] flex items-center gap-1.5">
@@ -837,7 +919,7 @@ export default function CartDrawer({
           )}
 
           {/* Checkout-Exclusive Drinks Recommendation Section */}
-          {cartItems.length > 0 && (
+          {cartItems.length > 0 && wizardStep === 1 && (
             <div className="bg-gradient-to-br from-[#E21B70]/5 to-white dark:to-zinc-900 border border-[#E21B70]/15 p-4 rounded-3xl mt-4 space-y-3 shadow-xs">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-black uppercase tracking-wider text-[#E21B70] flex items-center gap-1.5">
@@ -913,7 +995,7 @@ export default function CartDrawer({
           )}
 
           {/* Checkout address inputs flow */}
-          {cartItems.length > 0 && (
+          {cartItems.length > 0 && wizardStep === 2 && (
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-3xl mt-6 space-y-4 shadow-3xs">
               <h4 className="text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300 border-b border-zinc-200 dark:border-zinc-800 pb-2 flex items-center gap-1.5">
                 <MapPin className="w-4 h-4 text-[#E21B70]" />
@@ -1158,43 +1240,6 @@ export default function CartDrawer({
                   />
                 </div>
 
-                {/* Payment Method Selector (ONLY Cash on Delivery & Easypaisa) */}
-                <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-xl space-y-2">
-                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block">
-                    Payment Method
-                  </span>
-                  <div className="grid grid-cols-2 gap-2">
-                    {(["COD", "Easypaisa"] as const).map((method) => (
-                      <button
-                        key={method}
-                        type="button"
-                        onClick={() => {
-                          setPaymentMethod(method);
-                          setCheckoutError(null);
-                          localStorage.setItem("dadu_preferred_payment", method);
-                        }}
-                        aria-pressed={paymentMethod === method}
-                        className={`min-h-[44px] py-2.5 px-3 rounded-xl text-xs font-extrabold border transition-all duration-300 active:scale-[0.97] active:brightness-110 cursor-pointer ${
-                          paymentMethod === method
-                            ? "bg-[#D70F64] border-[#D70F64] text-white shadow-sm"
-                            : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-600"
-                        }`}
-                      >
-                        {method === "COD" ? "💵 Cash on Delivery" : "📱 Easypaisa"}
-                      </button>
-                    ))}
-                  </div>
-                  {paymentMethod === "Easypaisa" && (
-                    <EasypaisaPaymentBox
-                      receiptUrl={paymentReceiptUrl}
-                      onReceiptChange={setPaymentReceiptUrl}
-                      amount={grandTotal}
-                      accountTitle={easypaisaTitle}
-                      accountNumber={easypaisaNumber}
-                    />
-                  )}
-                </div>
-
                 {/* Delivery Timing: Deliver Now vs Scheduled Pre-Order */}
                 <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-xl space-y-2">
                   <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block">
@@ -1344,7 +1389,7 @@ export default function CartDrawer({
           )}
 
           {/* Diagnostic Visitation Note for Pure Home Services ordered to omit Food terms */}
-          {hasService && (
+          {cartItems.length > 0 && wizardStep === 2 && hasService && (
             <div className="bg-amber-100 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-900/40 text-amber-600 dark:text-amber-500 text-xs p-3.5 rounded-3xl mt-4 flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500 mt-0.5" />
               <div>
@@ -1356,393 +1401,478 @@ export default function CartDrawer({
             </div>
           )}
 
-        </div>
-
-        {/* Pricing Summary Bottom Card — scrollable so Place Order is always
-            reachable on short phones even with the voucher box expanded. */}
-        {cartItems.length > 0 && (
-          <div className="p-4 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 space-y-3.5 rounded-t-3xl shadow-2xl shrink-0 max-h-[58dvh] overflow-y-auto overscroll-contain">
-            {hasFood && isDoubleFee && (
-              <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-3 text-[11px] text-amber-600 dark:text-amber-400 flex items-start gap-2.5">
-                <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-extrabold block text-amber-600 dark:text-amber-300">Delivery Charges Doubled (Below Rs. {doubleFeeBelow})</span>
-                  Rs. {doubleFeeBelow} se kam order par delivery charges double hain. Add Rs. {doubleFeeBelow - totalFoodItemsPrice} more of delicious food to get standard delivery rate!
+          {/* Step 3 — Payment: method + receipt, offers, pricing summary */}
+          {cartItems.length > 0 && wizardStep === 3 && (
+            <div className="space-y-4 animate-fade-in">
+              {/* Payment Method Selector (ONLY Cash on Delivery & Easypaisa) */}
+              <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-xl space-y-2">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block">
+                  Payment Method
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  {(["COD", "Easypaisa"] as const).map((method) => (
+                    <button
+                      key={method}
+                      type="button"
+                      onClick={() => {
+                        setPaymentMethod(method);
+                        setCheckoutError(null);
+                        localStorage.setItem("dadu_preferred_payment", method);
+                      }}
+                      aria-pressed={paymentMethod === method}
+                      className={`min-h-[44px] py-2.5 px-3 rounded-xl text-xs font-extrabold border transition-all duration-300 active:scale-[0.97] active:brightness-110 cursor-pointer ${
+                        paymentMethod === method
+                          ? "bg-[#D70F64] border-[#D70F64] text-white shadow-sm"
+                          : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-600"
+                      }`}
+                    >
+                      {method === "COD" ? "💵 Cash on Delivery" : "📱 Easypaisa"}
+                    </button>
+                  ))}
                 </div>
+                {paymentMethod === "Easypaisa" && (
+                  <EasypaisaPaymentBox
+                    receiptUrl={paymentReceiptUrl}
+                    onReceiptChange={setPaymentReceiptUrl}
+                    amount={grandTotal}
+                    accountTitle={easypaisaTitle}
+                    accountNumber={easypaisaNumber}
+                  />
+                )}
               </div>
-            )}
+              {hasFood && isDoubleFee && (
+                <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-3 text-[11px] text-amber-600 dark:text-amber-400 flex items-start gap-2.5">
+                  <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-extrabold block text-amber-600 dark:text-amber-300">Delivery Charges Doubled (Below Rs. {doubleFeeBelow})</span>
+                    Rs. {doubleFeeBelow} se kam order par delivery charges double hain. Add Rs. {doubleFeeBelow - totalFoodItemsPrice} more of delicious food to get standard delivery rate!
+                  </div>
+                </div>
+              )}
 
-            {/* 1-TAP AUTO-APPLY BEST VOUCHER BANNER */}
-            {!appliedVoucher && (() => {
-              const eligibleFoodVouchers = allVouchers
-                .filter((v) => {
-                  const elig = canUserUseVoucher(v, currentUser?.uid);
-                  if (!elig.allowed) return false;
-                  if (v.applicableType === "grocery_only") return false;
-                  if (v.applicableType === "restaurant" && v.applicableRestaurant) {
-                    const matchRest = cartItems.some(
-                      (i) => i.restaurantName?.toLowerCase() === v.applicableRestaurant?.toLowerCase()
-                    );
-                    if (!matchRest) return false;
-                  }
-                  if (v.minOrderAmount && totalFoodItemsPrice < v.minOrderAmount) return false;
-                  return calculateVoucherDiscount(v, totalFoodItemsPrice) > 0;
-                })
-                .sort(
-                  (a, b) =>
-                    calculateVoucherDiscount(b, totalFoodItemsPrice) -
-                    calculateVoucherDiscount(a, totalFoodItemsPrice)
+              {/* 1-TAP AUTO-APPLY BEST VOUCHER BANNER */}
+              {!appliedVoucher && (() => {
+                const eligibleFoodVouchers = allVouchers
+                  .filter((v) => {
+                    const elig = canUserUseVoucher(v, currentUser?.uid);
+                    if (!elig.allowed) return false;
+                    if (v.applicableType === "grocery_only") return false;
+                    if (v.applicableType === "restaurant" && v.applicableRestaurant) {
+                      const matchRest = cartItems.some(
+                        (i) => i.restaurantName?.toLowerCase() === v.applicableRestaurant?.toLowerCase()
+                      );
+                      if (!matchRest) return false;
+                    }
+                    if (v.minOrderAmount && totalFoodItemsPrice < v.minOrderAmount) return false;
+                    return calculateVoucherDiscount(v, totalFoodItemsPrice) > 0;
+                  })
+                  .sort(
+                    (a, b) =>
+                      calculateVoucherDiscount(b, totalFoodItemsPrice) -
+                      calculateVoucherDiscount(a, totalFoodItemsPrice)
+                  );
+
+                const bestVoucher = eligibleFoodVouchers[0];
+                if (!bestVoucher) return null;
+                const bestSave = calculateVoucherDiscount(bestVoucher, totalFoodItemsPrice);
+
+                return (
+                  <div className="bg-gradient-to-r from-[#E21B70]/20 via-pink-600/15 to-amber-500/15 border border-[#E21B70]/40 rounded-2xl p-2.5 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-7 h-7 rounded-xl bg-[#E21B70] text-white flex items-center justify-center shrink-0 shadow-sm">
+                        <Ticket className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-black text-zinc-900 dark:text-white truncate">
+                          Save Rs. {bestSave} with <span className="font-mono text-[#D70F64] dark:text-pink-300">{bestVoucher.code}</span>
+                        </p>
+                        <p className="text-[9.5px] text-zinc-700 dark:text-zinc-300 truncate">
+                          {bestVoucher.successMessage || "Instant promo discount available!"}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleApplyVoucher(bestVoucher)}
+                      className="bg-[#E21B70] hover:bg-[#C2145E] text-white text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-xl shrink-0 shadow-md shadow-[#E21B70]/25 cursor-pointer transition-all duration-300 active:scale-[0.97] active:brightness-110 relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
+                    >
+                      1-Tap Apply
+                    </button>
+                  </div>
                 );
+              })()}
 
-              const bestVoucher = eligibleFoodVouchers[0];
-              if (!bestVoucher) return null;
-              const bestSave = calculateVoucherDiscount(bestVoucher, totalFoodItemsPrice);
-
-              return (
-                <div className="bg-gradient-to-r from-[#E21B70]/20 via-pink-600/15 to-amber-500/15 border border-[#E21B70]/40 rounded-2xl p-2.5 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-7 h-7 rounded-xl bg-[#E21B70] text-white flex items-center justify-center shrink-0 shadow-sm">
-                      <Ticket className="w-3.5 h-3.5" />
+              {/* BENEFIT / OFFERS & DISCOUNTS COLLAPSIBLE BOX */}
+              <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden transition-all duration-300">
+                {/* Box Click Trigger */}
+                <button
+                  type="button"
+                  onClick={() => setIsBenefitsOpen(!isBenefitsOpen)}
+                  aria-expanded={isBenefitsOpen}
+                  className="w-full min-h-[48px] p-3 flex items-center justify-between gap-2.5 text-left hover:bg-zinc-100/70 dark:hover:bg-zinc-850/60 transition cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#E21B70]/20 via-pink-500/10 to-amber-500/20 border border-[#E21B70]/30 flex items-center justify-center shrink-0 shadow-inner">
+                      <Tag className="w-4 h-4 text-[#E21B70]" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[11px] font-black text-zinc-900 dark:text-white truncate">
-                        Save Rs. {bestSave} with <span className="font-mono text-[#D70F64] dark:text-pink-300">{bestVoucher.code}</span>
-                      </p>
-                      <p className="text-[9.5px] text-zinc-700 dark:text-zinc-300 truncate">
-                        {bestVoucher.successMessage || "Instant promo discount available!"}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleApplyVoucher(bestVoucher)}
-                    className="bg-[#E21B70] hover:bg-[#C2145E] text-white text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-xl shrink-0 shadow-md shadow-[#E21B70]/25 cursor-pointer transition-all duration-300 active:scale-[0.97] active:brightness-110 relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
-                  >
-                    1-Tap Apply
-                  </button>
-                </div>
-              );
-            })()}
-
-            {/* BENEFIT / OFFERS & DISCOUNTS COLLAPSIBLE BOX */}
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden transition-all duration-300">
-              {/* Box Click Trigger */}
-              <button
-                type="button"
-                onClick={() => setIsBenefitsOpen(!isBenefitsOpen)}
-                aria-expanded={isBenefitsOpen}
-                className="w-full min-h-[48px] p-3 flex items-center justify-between gap-2.5 text-left hover:bg-zinc-100/70 dark:hover:bg-zinc-850/60 transition cursor-pointer"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#E21B70]/20 via-pink-500/10 to-amber-500/20 border border-[#E21B70]/30 flex items-center justify-center shrink-0 shadow-inner">
-                    <Tag className="w-4 h-4 text-[#E21B70]" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-xs font-black text-zinc-900 dark:text-white tracking-wide">
-                        Offers & Benefits
-                      </span>
-                      {(appliedVoucher || (useCoins && coinsDeducted > 0)) ? (
-                        <span className="bg-emerald-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[9px] font-black px-2 py-0.5 rounded-full animate-pulse">
-                          Rs. {voucherDiscount + coinsDeducted} Saved
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs font-black text-zinc-900 dark:text-white tracking-wide">
+                          Offers & Benefits
                         </span>
-                      ) : (
-                        <span className="bg-[#E21B70]/15 border border-[#E21B70]/25 text-[#D70F64] dark:text-pink-400 text-[9px] font-extrabold px-1.5 py-0.5 rounded-md">
-                          Vouchers & Coins
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium truncate mt-0.5">
-                      {appliedVoucher && useCoins
-                        ? `Voucher: ${appliedVoucher.code} + 🪙 ${coinsDeducted} Coins Active`
-                        : appliedVoucher
-                        ? `Applied: ${appliedVoucher.code} (-Rs. ${voucherDiscount})`
-                        : useCoins
-                        ? `🪙 ${coinsDeducted} Coins Applied (-Rs. ${coinsDeducted})`
-                        : "Tap to apply voucher code or redeem coins"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 hidden sm:inline">
-                    {isBenefitsOpen ? "Close" : "Open"}
-                  </span>
-                  <div className={`w-6 h-6 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 dark:text-zinc-400 transition-transform duration-300 ${isBenefitsOpen ? "rotate-180 text-white bg-[#E21B70]" : ""}`}>
-                    <ChevronDown className="w-3.5 h-3.5" />
-                  </div>
-                </div>
-              </button>
-
-              {/* Inside Benefit Box (Shown when open) */}
-              {isBenefitsOpen && (
-                <div className="p-3 pt-2.5 border-t border-zinc-200 dark:border-zinc-800 space-y-3 bg-zinc-100/70 dark:bg-zinc-950/60">
-                  {/* VOUCHER / DISCOUNT CODE SECTION */}
-                  <div className="bg-zinc-50 dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-xs font-black text-[#D70F64] dark:text-pink-400">
-                        <Ticket className="w-3.5 h-3.5 text-[#E21B70]" />
-                        <span>Promo Voucher</span>
+                        {(appliedVoucher || (useCoins && coinsDeducted > 0)) ? (
+                          <span className="bg-emerald-500/20 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-[9px] font-black px-2 py-0.5 rounded-full animate-pulse">
+                            Rs. {voucherDiscount + coinsDeducted} Saved
+                          </span>
+                        ) : (
+                          <span className="bg-[#E21B70]/15 border border-[#E21B70]/25 text-[#D70F64] dark:text-pink-400 text-[9px] font-extrabold px-1.5 py-0.5 rounded-md">
+                            Vouchers & Coins
+                          </span>
+                        )}
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setIsVouchersModalOpen(true)}
-                        className="text-[10.5px] font-black text-[#E21B70] hover:text-[#C2145E] dark:hover:text-pink-300 underline cursor-pointer"
-                      >
-                        View My Vouchers 🎟️
-                      </button>
+                      <p className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium truncate mt-0.5">
+                        {appliedVoucher && useCoins
+                          ? `Voucher: ${appliedVoucher.code} + 🪙 ${coinsDeducted} Coins Active`
+                          : appliedVoucher
+                          ? `Applied: ${appliedVoucher.code} (-Rs. ${voucherDiscount})`
+                          : useCoins
+                          ? `🪙 ${coinsDeducted} Coins Applied (-Rs. ${coinsDeducted})`
+                          : "Tap to apply voucher code or redeem coins"}
+                      </p>
                     </div>
+                  </div>
 
-                    {appliedVoucher ? (
-                      <div className="bg-pink-500/10 border border-[#E21B70]/30 rounded-xl p-2.5 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                          <div>
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-mono font-black text-xs text-zinc-900 dark:text-white">{appliedVoucher.code}</span>
-                              <span className="bg-[#E21B70] text-white text-[9px] font-black px-1.5 py-0.2 rounded-md">
-                                Rs. {voucherDiscount} OFF
-                              </span>
-                            </div>
-                            <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block">{appliedVoucher.title}</span>
-                          </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 hidden sm:inline">
+                      {isBenefitsOpen ? "Close" : "Open"}
+                    </span>
+                    <div className={`w-6 h-6 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 dark:text-zinc-400 transition-transform duration-300 ${isBenefitsOpen ? "rotate-180 text-white bg-[#E21B70]" : ""}`}>
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                </button>
+
+                {/* Inside Benefit Box (Shown when open) */}
+                {isBenefitsOpen && (
+                  <div className="p-3 pt-2.5 border-t border-zinc-200 dark:border-zinc-800 space-y-3 bg-zinc-100/70 dark:bg-zinc-950/60">
+                    {/* VOUCHER / DISCOUNT CODE SECTION */}
+                    <div className="bg-zinc-50 dark:bg-zinc-900/90 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-xs font-black text-[#D70F64] dark:text-pink-400">
+                          <Ticket className="w-3.5 h-3.5 text-[#E21B70]" />
+                          <span>Promo Voucher</span>
                         </div>
                         <button
                           type="button"
-                          onClick={handleRemoveVoucher}
-                          className="text-xs text-rose-400 hover:text-rose-500 dark:hover:text-rose-300 font-bold px-2 py-1 bg-rose-500/10 rounded-lg cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110"
+                          onClick={() => setIsVouchersModalOpen(true)}
+                          className="text-[10.5px] font-black text-[#E21B70] hover:text-[#C2145E] dark:hover:text-pink-300 underline cursor-pointer"
                         >
-                          Remove
+                          View My Vouchers 🎟️
                         </button>
                       </div>
-                    ) : (
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-2">
-                          <div className="relative flex-1">
-                            <Tag className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                            <input
-                              type="text"
-                              placeholder="ENTER PROMO CODE"
-                              value={voucherInputCode}
-                              onChange={(e) => setVoucherInputCode(e.target.value.toUpperCase())}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault();
-                                  handleApplyVoucher(voucherInputCode);
-                                }
-                              }}
-                              className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl pl-8 pr-3 py-2 text-xs font-mono font-bold text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-[#E21B70] uppercase"
-                            />
+
+                      {appliedVoucher ? (
+                        <div className="bg-pink-500/10 border border-[#E21B70]/30 rounded-xl p-2.5 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-mono font-black text-xs text-zinc-900 dark:text-white">{appliedVoucher.code}</span>
+                                <span className="bg-[#E21B70] text-white text-[9px] font-black px-1.5 py-0.2 rounded-md">
+                                  Rs. {voucherDiscount} OFF
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block">{appliedVoucher.title}</span>
+                            </div>
                           </div>
                           <button
                             type="button"
-                            onClick={() => handleApplyVoucher(voucherInputCode)}
-                            className="min-h-[44px] bg-[#E21B70] hover:bg-[#C2145E] text-white text-xs font-black px-3.5 py-2 rounded-xl transition-all duration-300 active:scale-[0.97] active:brightness-110 cursor-pointer relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
+                            onClick={handleRemoveVoucher}
+                            className="text-xs text-rose-400 hover:text-rose-500 dark:hover:text-rose-300 font-bold px-2 py-1 bg-rose-500/10 rounded-lg cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110"
                           >
-                            Apply
+                            Remove
                           </button>
                         </div>
-                        {voucherError && (
-                          <p className="text-[10px] text-rose-400 font-semibold">{voucherError}</p>
-                        )}
+                      ) : (
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-2">
+                            <div className="relative flex-1">
+                              <Tag className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                              <input
+                                type="text"
+                                placeholder="ENTER PROMO CODE"
+                                value={voucherInputCode}
+                                onChange={(e) => setVoucherInputCode(e.target.value.toUpperCase())}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    handleApplyVoucher(voucherInputCode);
+                                  }
+                                }}
+                                className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl pl-8 pr-3 py-2 text-xs font-mono font-bold text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-[#E21B70] uppercase"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleApplyVoucher(voucherInputCode)}
+                              className="min-h-[44px] bg-[#E21B70] hover:bg-[#C2145E] text-white text-xs font-black px-3.5 py-2 rounded-xl transition-all duration-300 active:scale-[0.97] active:brightness-110 cursor-pointer relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
+                            >
+                              Apply
+                            </button>
+                          </div>
+                          {voucherError && (
+                            <p className="text-[10px] text-rose-400 font-semibold">{voucherError}</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Policy banner for 1 offer limit */}
+                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-[9.5px] text-zinc-500 dark:text-zinc-400">
+                      <Info className="w-3 h-3 text-[#D70F64] dark:text-pink-400 shrink-0" />
+                      <span>Ek order par sirf 1 offer lag sakti hai (Voucher <strong>ya</strong> Coin Discount).</span>
+                    </div>
+
+                    {/* Coin Benefit Section - Rendered ONLY if enabled by admin and user has coins */}
+                    {isLoyaltyEnabledForFood && maxAllowedCoinsByAdmin > 0 && userCoins > 0 && (
+                      <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/15 to-amber-600/10 border border-amber-500/30 rounded-xl p-3 space-y-2.5 animate-fade-in text-left shadow-sm">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0 shadow-inner">
+                              <Coins className="w-4 h-4 text-amber-600 dark:text-amber-400 animate-pulse" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-black text-amber-600 dark:text-amber-300 truncate">
+                                  🪙 Coin Benefit Discount
+                                </span>
+                                <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full ${useCoins && !appliedVoucher ? 'bg-amber-400 text-zinc-950' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'}`}>
+                                  {useCoins && !appliedVoucher ? `Rs. ${maxCoinsUsable} OFF` : 'OFF'}
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-amber-600/90 dark:text-amber-400/90 font-bold block truncate mt-0.5">
+                                Wallet: <span className="font-mono font-black text-amber-600 dark:text-amber-300">{userCoins} Coins</span> (1 Coin = Rs. 1)
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Toggle Switch */}
+                          <button
+                            type="button"
+                            onClick={handleToggleCoins}
+                            role="switch"
+                            aria-checked={useCoins && !appliedVoucher}
+                            aria-label="Use coins for discount"
+                            className={`w-11 h-6 rounded-full transition-colors duration-300 relative cursor-pointer outline-none shrink-0 border ${
+                              useCoins && !appliedVoucher ? "bg-amber-500 border-amber-400 shadow-md shadow-amber-500/20" : "bg-zinc-200 dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700"
+                            }`}
+                          >
+                            <span
+                              className={`absolute top-0.5 left-0.5 w-4.5 h-4.5 rounded-full bg-white shadow-md transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] flex items-center justify-center text-[9px] font-black ${
+                                useCoins && !appliedVoucher ? "transform translate-x-5 text-amber-600" : "text-zinc-500 dark:text-zinc-500"
+                              }`}
+                            >
+                              {useCoins && !appliedVoucher ? "✓" : ""}
+                            </span>
+                          </button>
+                        </div>
+
+                        {/* Admin settings info row */}
+                        <div className="pt-2 border-t border-amber-500/20 flex items-center justify-between text-[10px] text-amber-600/80 dark:text-amber-300/80 font-semibold">
+                          <span>
+                            ⚡ Admin Max Limit: <strong className="text-amber-600 dark:text-amber-300 font-mono">Rs. {maxAllowedCoinsByAdmin}</strong>
+                          </span>
+                          <span className="text-amber-600 dark:text-amber-400 font-bold">
+                            {useCoins && !appliedVoucher ? `Applied: Rs. ${coinsDeducted}` : `Available: Rs. ${maxCoinsUsable}`}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Real-time Loyalty Cashback Earning Banner - Rendered ONLY if enabled by admin */}
+                    {loyaltyEarnEnabled && loyaltyEarnVal > 0 && (
+                      <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between text-left text-xs animate-fade-in shadow-xs">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/35 flex items-center justify-center shrink-0">
+                            <Coins className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 animate-bounce" />
+                          </div>
+                          <div>
+                            {grandTotal >= loyaltyMinOrder ? (
+                              <>
+                                <span className="text-xs font-black text-emerald-600 dark:text-emerald-300 block">
+                                  🎉 Cashback: <span className="text-emerald-700 dark:text-emerald-200 font-mono font-black">+{estimatedCoinsEarned} Coins</span>
+                                </span>
+                                <span className="text-[10px] text-emerald-600/90 dark:text-emerald-400/90 font-medium block mt-0.5">
+                                  {loyaltyEarnType === "fixed" 
+                                    ? `Flat ${loyaltyEarnVal} Coins (Rs. ${estimatedCoinsEarned} Cashback)` 
+                                    : `${loyaltyEarnVal}% Cashback on Order (Rs. ${estimatedCoinsEarned})`}
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <span className="text-xs font-black text-amber-600 dark:text-amber-300 block">
+                                  💡 Rs. {loyaltyMinOrder - Math.floor(grandTotal)} Ka Aur Order Karein
+                                </span>
+                                <span className="text-[10px] text-amber-600/90 dark:text-amber-400/90 font-medium block mt-0.5">
+                                  Min order Rs. {loyaltyMinOrder} par +{loyaltyEarnType === 'fixed' ? `${loyaltyEarnVal} Coins` : `${loyaltyEarnVal}% Coins`} cashback!
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
+                )}
+              </div>
 
-                  {/* Policy banner for 1 offer limit */}
-                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-[9.5px] text-zinc-500 dark:text-zinc-400">
-                    <Info className="w-3 h-3 text-[#D70F64] dark:text-pink-400 shrink-0" />
-                    <span>Ek order par sirf 1 offer lag sakti hai (Voucher <strong>ya</strong> Coin Discount).</span>
+              <div className="space-y-1.5 text-xs text-zinc-500 dark:text-zinc-400 font-semibold mt-4">
+                <div className="flex justify-between">
+                  <span>Items Subtotal:</span>
+                  <span className="text-zinc-900 dark:text-zinc-100 font-extrabold font-mono">Rs. {totalFoodItemsPrice}</span>
+                </div>
+
+                {appliedVoucher && voucherDiscount > 0 && (
+                  <div className="flex justify-between text-[#D70F64] dark:text-pink-400">
+                    <span>Voucher Discount ({appliedVoucher.code}):</span>
+                    <span className="font-extrabold font-mono">- Rs. {voucherDiscount}</span>
                   </div>
+                )}
 
-                  {/* Coin Benefit Section - Rendered ONLY if enabled by admin and user has coins */}
-                  {isLoyaltyEnabledForFood && maxAllowedCoinsByAdmin > 0 && userCoins > 0 && (
-                    <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/15 to-amber-600/10 border border-amber-500/30 rounded-xl p-3 space-y-2.5 animate-fade-in text-left shadow-sm">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0 shadow-inner">
-                            <Coins className="w-4 h-4 text-amber-600 dark:text-amber-400 animate-pulse" />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-black text-amber-600 dark:text-amber-300 truncate">
-                                🪙 Coin Benefit Discount
-                              </span>
-                              <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full ${useCoins && !appliedVoucher ? 'bg-amber-400 text-zinc-950' : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400'}`}>
-                                {useCoins && !appliedVoucher ? `Rs. ${maxCoinsUsable} OFF` : 'OFF'}
-                              </span>
-                            </div>
-                            <span className="text-[10px] text-amber-600/90 dark:text-amber-400/90 font-bold block truncate mt-0.5">
-                              Wallet: <span className="font-mono font-black text-amber-600 dark:text-amber-300">{userCoins} Coins</span> (1 Coin = Rs. 1)
-                            </span>
-                          </div>
-                        </div>
+                {useCoins && coinsDeducted > 0 && (
+                  <div className="flex justify-between text-amber-600 dark:text-amber-400">
+                    <span>Coin Benefit Discount:</span>
+                    <span className="font-extrabold font-mono">- Rs. {coinsDeducted}</span>
+                  </div>
+                )}
 
-                        {/* Toggle Switch */}
-                        <button
-                          type="button"
-                          onClick={handleToggleCoins}
-                          role="switch"
-                          aria-checked={useCoins && !appliedVoucher}
-                          aria-label="Use coins for discount"
-                          className={`w-11 h-6 rounded-full transition-colors duration-300 relative cursor-pointer outline-none shrink-0 border ${
-                            useCoins && !appliedVoucher ? "bg-amber-500 border-amber-400 shadow-md shadow-amber-500/20" : "bg-zinc-200 dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700"
-                          }`}
-                        >
-                          <span
-                            className={`absolute top-0.5 left-0.5 w-4.5 h-4.5 rounded-full bg-white shadow-md transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] flex items-center justify-center text-[9px] font-black ${
-                              useCoins && !appliedVoucher ? "transform translate-x-5 text-amber-600" : "text-zinc-500 dark:text-zinc-500"
-                            }`}
-                          >
-                            {useCoins && !appliedVoucher ? "✓" : ""}
-                          </span>
-                        </button>
-                      </div>
-
-                      {/* Admin settings info row */}
-                      <div className="pt-2 border-t border-amber-500/20 flex items-center justify-between text-[10px] text-amber-600/80 dark:text-amber-300/80 font-semibold">
-                        <span>
-                          ⚡ Admin Max Limit: <strong className="text-amber-600 dark:text-amber-300 font-mono">Rs. {maxAllowedCoinsByAdmin}</strong>
-                        </span>
-                        <span className="text-amber-600 dark:text-amber-400 font-bold">
-                          {useCoins && !appliedVoucher ? `Applied: Rs. ${coinsDeducted}` : `Available: Rs. ${maxCoinsUsable}`}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Real-time Loyalty Cashback Earning Banner - Rendered ONLY if enabled by admin */}
-                  {loyaltyEarnEnabled && loyaltyEarnVal > 0 && (
-                    <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-between text-left text-xs animate-fade-in shadow-xs">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/35 flex items-center justify-center shrink-0">
-                          <Coins className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 animate-bounce" />
-                        </div>
-                        <div>
-                          {grandTotal >= loyaltyMinOrder ? (
-                            <>
-                              <span className="text-xs font-black text-emerald-600 dark:text-emerald-300 block">
-                                🎉 Cashback: <span className="text-emerald-700 dark:text-emerald-200 font-mono font-black">+{estimatedCoinsEarned} Coins</span>
-                              </span>
-                              <span className="text-[10px] text-emerald-600/90 dark:text-emerald-400/90 font-medium block mt-0.5">
-                                {loyaltyEarnType === "fixed" 
-                                  ? `Flat ${loyaltyEarnVal} Coins (Rs. ${estimatedCoinsEarned} Cashback)` 
-                                  : `${loyaltyEarnVal}% Cashback on Order (Rs. ${estimatedCoinsEarned})`}
-                              </span>
-                            </>
-                          ) : (
-                            <>
-                              <span className="text-xs font-black text-amber-600 dark:text-amber-300 block">
-                                💡 Rs. {loyaltyMinOrder - Math.floor(grandTotal)} Ka Aur Order Karein
-                              </span>
-                              <span className="text-[10px] text-amber-600/90 dark:text-amber-400/90 font-medium block mt-0.5">
-                                Min order Rs. {loyaltyMinOrder} par +{loyaltyEarnType === 'fixed' ? `${loyaltyEarnVal} Coins` : `${loyaltyEarnVal}% Coins`} cashback!
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-1.5 text-xs text-zinc-500 dark:text-zinc-400 font-semibold mt-4">
-              <div className="flex justify-between">
-                <span>Items Subtotal:</span>
-                <span className="text-zinc-900 dark:text-zinc-100 font-extrabold font-mono">Rs. {totalFoodItemsPrice}</span>
-              </div>
-
-              {appliedVoucher && voucherDiscount > 0 && (
-                <div className="flex justify-between text-[#D70F64] dark:text-pink-400">
-                  <span>Voucher Discount ({appliedVoucher.code}):</span>
-                  <span className="font-extrabold font-mono">- Rs. {voucherDiscount}</span>
-                </div>
-              )}
-
-              {useCoins && coinsDeducted > 0 && (
-                <div className="flex justify-between text-amber-600 dark:text-amber-400">
-                  <span>Coin Benefit Discount:</span>
-                  <span className="font-extrabold font-mono">- Rs. {coinsDeducted}</span>
-                </div>
-              )}
-
-              <div className="flex justify-between">
-                <span>Delivery / Service Fee:</span>
-                <span className="text-zinc-900 dark:text-zinc-100 font-extrabold">
-                  {finalDeliveryFee === 0 ? (
-                    <span className="text-emerald-600 dark:text-emerald-400 font-black">
-                      {isFirstOrderFree
-                        ? "FREE delivery — first order"
-                        : isFreeFoodDelivery
-                          ? `FREE (Order ≥ Rs. ${freeDeliveryAbove.toLocaleString()})`
-                          : "FREE (Home Service Booking)"}
-                    </span>
-                  ) : (
-                    <span className="font-mono">Rs. {finalDeliveryFee}</span>
-                  )}
-                </span>
-              </div>
-              {nightSurcharge > 0 && (
                 <div className="flex justify-between">
-                  <span>Night Surcharge +Rs. {nightSurcharge}</span>
-                  <span className="text-zinc-900 dark:text-zinc-100 font-extrabold font-mono">Rs. {nightSurcharge}</span>
+                  <span>Delivery / Service Fee:</span>
+                  <span className="text-zinc-900 dark:text-zinc-100 font-extrabold">
+                    {finalDeliveryFee === 0 ? (
+                      <span className="text-emerald-600 dark:text-emerald-400 font-black">
+                        {isFirstOrderFree
+                          ? "FREE delivery — first order"
+                          : isFreeFoodDelivery
+                            ? `FREE (Order ≥ Rs. ${freeDeliveryAbove.toLocaleString()})`
+                            : "FREE (Home Service Booking)"}
+                      </span>
+                    ) : (
+                      <span className="font-mono">Rs. {finalDeliveryFee}</span>
+                    )}
+                  </span>
                 </div>
-              )}
-              {siteTax > 0 && (
-                <div className="flex justify-between">
-                  <span>Site Tax:</span>
-                  <span className="text-zinc-900 dark:text-zinc-100 font-extrabold font-mono">Rs. {siteTax}</span>
+                {nightSurcharge > 0 && (
+                  <div className="flex justify-between">
+                    <span>Night Surcharge +Rs. {nightSurcharge}</span>
+                    <span className="text-zinc-900 dark:text-zinc-100 font-extrabold font-mono">Rs. {nightSurcharge}</span>
+                  </div>
+                )}
+                {siteTax > 0 && (
+                  <div className="flex justify-between">
+                    <span>Site Tax:</span>
+                    <span className="text-zinc-900 dark:text-zinc-100 font-extrabold font-mono">Rs. {siteTax}</span>
+                  </div>
+                )}
+                {riderTip > 0 && (
+                  <div className="flex justify-between">
+                    <span>Rider Tip:</span>
+                    <span className="text-zinc-900 dark:text-zinc-100 font-extrabold font-mono">Rs. {riderTip}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-zinc-900 dark:text-zinc-100 text-sm font-black border-t border-zinc-200 dark:border-zinc-800 pt-2.5">
+                  <span>Grand Total ({paymentMethod}):</span>
+                  <span className="text-[#D70F64] text-base font-bold font-mono">Rs. {grandTotal}</span>
                 </div>
-              )}
-              {riderTip > 0 && (
-                <div className="flex justify-between">
-                  <span>Rider Tip:</span>
-                  <span className="text-zinc-900 dark:text-zinc-100 font-extrabold font-mono">Rs. {riderTip}</span>
-                </div>
-              )}
-              <div className="flex justify-between text-zinc-900 dark:text-zinc-100 text-sm font-black border-t border-zinc-200 dark:border-zinc-800 pt-2.5">
-                <span>Grand Total ({paymentMethod}):</span>
-                <span className="text-[#D70F64] text-base font-bold font-mono">Rs. {grandTotal}</span>
               </div>
             </div>
+          )}
 
+        </div>
+
+        {/* Sticky wizard footer — Back / Next / Submit always visible, never scrolled away */}
+        {cartItems.length > 0 && (
+          <div className="p-4 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 space-y-3 shrink-0">
             {checkoutError && (
               <div className="p-3 bg-rose-500/15 border border-rose-500/30 rounded-xl text-xs text-rose-500 dark:text-rose-300 font-bold flex items-center gap-2 micro-toast-in">
                 <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
                 <span>{checkoutError}</span>
               </div>
             )}
-
-            <button
-              onClick={handleSubmitOrder}
-              disabled={submitting}
-              aria-busy={submitting}
-              className="w-full min-h-[48px] btn-pink relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100 text-white py-3.5 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75 active:scale-[0.97] active:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70]"
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Placing Order...
-                </>
-              ) : paymentMethod === "Easypaisa" ? (
-                <>
-                  <ShieldCheck className="w-4 h-4" />
-                  Submit Easypaisa Order • Rs. {grandTotal}
-                </>
-              ) : isScheduled ? (
-                <>
-                  <ShieldCheck className="w-4 h-4" />
-                  Schedule Order • Rs. {grandTotal}
-                </>
-              ) : (
-                <>
-                  <ShieldCheck className="w-4 h-4" />
-                  Place Order • Rs. {grandTotal}
-                </>
-              )}
-            </button>
+            {wizardStep === 1 && (
+              <div className="space-y-2.5">
+                <div className="flex justify-between text-xs text-zinc-500 dark:text-zinc-400 font-semibold">
+                  <span>Items Subtotal:</span>
+                  <span className="text-zinc-900 dark:text-zinc-100 font-extrabold font-mono">Rs. {totalFoodItemsPrice}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleNextFromBasket}
+                  className="w-full min-h-[48px] btn-pink relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100 text-white py-3.5 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.97] active:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70]"
+                >
+                  Proceed to Delivery →
+                </button>
+              </div>
+            )}
+            {wizardStep === 2 && (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleBackToBasket}
+                  aria-label="Back to basket"
+                  className="min-h-[48px] px-5 rounded-2xl border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-black uppercase text-xs tracking-wider bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-300 active:scale-[0.97] active:brightness-110 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70]"
+                >
+                  ← Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNextFromDelivery}
+                  className="flex-1 min-h-[48px] btn-pink relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100 text-white py-3.5 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.97] active:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70]"
+                >
+                  Proceed to Payment →
+                </button>
+              </div>
+            )}
+            {wizardStep === 3 && (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleBackToDelivery}
+                  aria-label="Back to delivery details"
+                  className="min-h-[48px] px-5 rounded-2xl border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-black uppercase text-xs tracking-wider bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all duration-300 active:scale-[0.97] active:brightness-110 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70]"
+                >
+                  ← Back
+                </button>
+                <button
+                  onClick={handleSubmitOrder}
+                  disabled={submitting}
+                  aria-busy={submitting}
+                  className="flex-1 min-h-[48px] btn-pink relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100 text-white py-3.5 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75 active:scale-[0.97] active:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70]"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Placing Order...
+                    </>
+                  ) : paymentMethod === "Easypaisa" ? (
+                    <>
+                      <ShieldCheck className="w-4 h-4" />
+                      Submit Easypaisa Order • Rs. {grandTotal}
+                    </>
+                  ) : isScheduled ? (
+                    <>
+                      <ShieldCheck className="w-4 h-4" />
+                      Schedule Order • Rs. {grandTotal}
+                    </>
+                  ) : (
+                    <>
+                      <ShieldCheck className="w-4 h-4" />
+                      Place Order • Rs. {grandTotal}
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         )}
 
