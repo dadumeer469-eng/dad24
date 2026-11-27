@@ -84,3 +84,14 @@ jobs:
           name: dadufood-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
+      - name: Attach APK to release v1.0.0-apk
+        # The cloud browser cannot open a file picker to attach the APK to
+        # the release by hand, so the workflow attaches it itself with the
+        # built-in GITHUB_TOKEN (gh CLI is preinstalled on the runner).
+        # This makes the APK publicly downloadable from the release page.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk DaduFood-v1.0.0.apk
+          gh release upload v1.0.0-apk DaduFood-v1.0.0.apk --clobber
