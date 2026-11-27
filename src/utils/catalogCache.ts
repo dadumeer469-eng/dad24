@@ -38,13 +38,13 @@
 
 export const CATALOG_CACHE_VERSION = 1;
 
-// 24 hours. Long enough that repeat loads inside a day cost ~0 catalogue
-// reads. The catalogue delta (./catalogDelta.ts) applies admin edits
-// (price change / product add) granularly on top of the cache, so a
-// 24h TTL does NOT mean prices go stale for a day — only the changed
-// item is re-fetched. Raise to 48h if the daily read quota still
-// exhausts; lower it only if delta reads ever stop working.
-export const CATALOG_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+// 7 days (raised from 24h on 28 Nov 2026 — user: "limit khatam na ho").
+// Repeat loads inside a week cost ~0 catalogue reads. The catalogue
+// delta (./catalogDelta.ts) applies admin edits (price change / product
+// add) granularly on top of the cache, so a 7-day TTL does NOT mean
+// prices go stale for a week — only the changed item is re-fetched.
+// Lower it only if delta reads ever stop working.
+export const CATALOG_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export const CATALOG_CACHE_KEYS = {
   menu: "dadu_catalog_v1_menu",
