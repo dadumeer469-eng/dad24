@@ -5681,7 +5681,7 @@ export default function App() {
                     {/* Headline + rider row */}
                     <div className="relative min-h-[185px] sm:min-h-[220px]">
                       <motion.img
-                        src="/images/home/rider-scooter.jpg"
+                        src="/images/home/rider-scooter.png"
                         alt="Dadu Food rider delivering fast on a pink scooter"
                         className="absolute right-0 top-0 h-full w-[56%] sm:w-[48%] lg:w-[38%] object-contain animate-rider-bob will-change-transform"
                         loading="eager"
