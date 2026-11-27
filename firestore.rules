@@ -583,5 +583,35 @@ service cloud.firestore {
         .hasOnly(['lastUserName', 'lastUserPhone', 'lastActive']);
       allow delete: if isAdmin();
     }
+
+    // ================================================================
+    // /calls/{callId} — in-app voice calling (WebRTC signalling).
+    // Rider <-> customer call, no phone numbers exchanged. The caller
+    // creates the doc (callerId must be their own uid); the callee
+    // answers/declines by updating it; both sides exchange ICE
+    // candidates in the `candidates` subcollection. Only the two
+    // participants (or an admin) may read or write a call.
+    // ================================================================
+    match /calls/{callId} {
+      function isCallParticipant() {
+        return isAuthenticated()
+          && (isOwnProfileId(resource.data.callerId)
+            || isOwnProfileId(resource.data.calleeId));
+      }
+      allow create: if isAuthenticated()
+        && ('callerId' in request.resource.data)
+        && isOwnProfileId(request.resource.data.callerId)
+        && ('calleeId' in request.resource.data);
+      allow get: if isAdmin() || isCallParticipant();
+      allow list: if isAdmin()
+        || (isAuthenticated() && isOwnProfileId(request.query.calleeId));
+      allow update: if isAdmin() || isCallParticipant();
+      allow delete: if isAdmin() || isCallParticipant();
+      match /candidates/{candidateId} {
+        allow create: if isAuthenticated();
+        allow get, list: if isAdmin() || isCallParticipant();
+        allow delete: if isAdmin() || isCallParticipant();
+      }
+    }
   }
 }
