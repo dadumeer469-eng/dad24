@@ -618,6 +618,16 @@ export default function AdminPanel({
   const [nightSurchargeStartHourInput, setNightSurchargeStartHourInput] = useState(
     deliverySettings?.nightSurchargeStartHour ?? 21,
   );
+  // App version (28 Nov 2026) — settings/app_version. When a new APK launches,
+  // the admin sets the new version + APK link here; every OLD app then shows
+  // an update banner the user taps to install the new version.
+  const [appVersionInput, setAppVersionInput] = useState(2);
+  const [appApkUrlInput, setAppApkUrlInput] = useState(
+    "https://github.com/dadumeer469-eng/dad24/releases/download/v1.0.0-apk/DaduFood-v1.0.0.apk",
+  );
+  const [appVersionMsgInput, setAppVersionMsgInput] = useState(
+    "Naya version aa gaya — naye features aur behtareen speed!",
+  );
   // Homepage / voice controls — App.tsx reads these exact field names.
   const [voiceOrderEnabledInput, setVoiceOrderEnabledInput] = useState(
     deliverySettings?.voiceOrderEnabled !== false,
@@ -2329,6 +2339,30 @@ export default function AdminPanel({
     } catch (err) {
       console.error(err);
       alert("Permission denied or Firestore configuration missing while saving delivery charges.");
+    }
+  };
+
+  // App version (28 Nov 2026) — settings/app_version. Jab naya APK launch
+  // ho, yahan naya version + APK link set karo; purani app mein turant
+  // update banner aa jayega jise tap karke user naya version install karega.
+  const handleSaveAppVersion = async () => {
+    try {
+      const version = Number(appVersionInput) || 2;
+      const apkUrl = appApkUrlInput.trim();
+      if (!apkUrl) {
+        alert("APK download link zaroori hai.");
+        return;
+      }
+      await setDoc(doc(db, "settings", "app_version"), {
+        version,
+        apkUrl,
+        message: appVersionMsgInput.trim() || "Naya version aa gaya — naye features aur behtareen speed!",
+        updatedAt: new Date().toISOString(),
+      });
+      alert(`App version ${version} set! Purani apps mein update notification aa jayega.`);
+    } catch (err) {
+      console.error(err);
+      alert("Permission denied or Firestore configuration missing while saving app version.");
     }
   };
 
@@ -4163,6 +4197,33 @@ export default function AdminPanel({
                 </div>
                 <button type="button" onClick={handleSaveDeliveryCharges} className="bg-[#E21B70] text-white font-black px-5 py-3 rounded-xl hover:scale-[1.02] active:scale-95 transition cursor-pointer text-xs uppercase w-full">
                   Save Delivery Fees
+                </button>
+              </div>
+              {/* App Version — new APK launch notification (28 Nov 2026) */}
+              <div className="glass-dark border border-white/10 p-6 rounded-2xl shadow-sm relative space-y-4">
+                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#E21B70]/10 to-transparent" />
+                <h4 className="font-black text-sm text-white flex items-center gap-2 pb-2.5 border-b border-white/10 uppercase tracking-wide">
+                  📱 App Version — New APK Launch Notification
+                </h4>
+                <p className="text-[10.5px] text-white/70 font-medium leading-relaxed">
+                  Jab naya APK version launch ho, yahan naya version number aur APK download link set karo. Purani app kholne par user ko turant update notification milega — tap karte hi naya version download/install ho jayega. Version number har nayi release par +1 karo (current app version: 2).
+                </p>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">Latest Version (number)</span>
+                    <input type="number" min="1" value={appVersionInput} onChange={(e) => setAppVersionInput(Number(e.target.value))} className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs" />
+                  </div>
+                  <div>
+                    <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">Update Message</span>
+                    <input type="text" value={appVersionMsgInput} onChange={(e) => setAppVersionMsgInput(e.target.value)} placeholder="Naya version aa gaya!" className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs" />
+                  </div>
+                </div>
+                <div>
+                  <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">APK Download Link</span>
+                  <input type="text" value={appApkUrlInput} onChange={(e) => setAppApkUrlInput(e.target.value)} placeholder="https://github.com/.../DaduFood-v1.0.0.apk" className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs" />
+                </div>
+                <button type="button" onClick={handleSaveAppVersion} className="bg-[#E21B70] text-white font-black px-5 py-3 rounded-xl hover:scale-[1.02] active:scale-95 transition cursor-pointer text-xs uppercase w-full">
+                  Save &amp; Notify Old Apps
                 </button>
               </div>
               <div className="glass-dark border border-white/10 p-6 rounded-2xl shadow-sm relative space-y-4">
