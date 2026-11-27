@@ -4,6 +4,9 @@ import { Check, ClipboardList, Clock, ShieldCheck, Heart, ArrowRight, Server, Wr
 import { doc, updateDoc, collection, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
 import OrderChat from "./OrderChat";
+import InAppCallButton from "./InAppCallButton";
+import IncomingCallModal from "./IncomingCallModal";
+import { listenIncomingCalls, type CallDoc } from "../utils/webrtcCall";
 const FoodDeliveryTracker = React.lazy(() => import("./FoodDeliveryTracker"));
 import { formatOrderId } from "../utils/catalogNormalizer";
 
@@ -18,6 +21,9 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
   const isService = order.orderType === "service";
   const [showLiveChat, setShowLiveChat] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  // In-app incoming call (rider -> customer). Shows the WhatsApp-style
+  // incoming-call screen when the rider calls from inside their app.
+  const [incomingCall, setIncomingCall] = useState<CallDoc | null>(null);
 
   // Listen to unread messages for this order
   useEffect(() => {
@@ -36,6 +42,15 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
 
     return () => unsubscribe();
   }, [order?.id, currentUser?.uid]);
+
+  // Listen for incoming in-app calls addressed to this customer.
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+    const unsub = listenIncomingCalls(currentUser.uid, (call) => {
+      setIncomingCall(call);
+    });
+    return () => unsub();
+  }, [currentUser?.uid]);
 
   const statusLower = (order.status || "").toLowerCase().trim();
 
@@ -66,6 +81,7 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
           initialRiderCoords={order.riderCoords}
           riderName={order.riderName}
           riderPhone={order.riderPhone}
+          riderId={order.riderId}
           restaurantName={order.restaurantName || "Dadu Central Kitchen"}
           items={order.items}
           grandTotal={order.grandTotal}
@@ -200,11 +216,9 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
                 <div>
                   <span className="text-zinc-400 text-[9px] uppercase font-black tracking-wider block">Assigned Dadu Food Rider</span>
                   <span className="text-sm font-black text-white block mt-0.5">{order.riderName}</span>
-                  {order.riderPhone && (
-                    <span className="text-[11px] text-emerald-400 font-mono font-bold block mt-0.5">
-                      {order.riderPhone}
-                    </span>
-                  )}
+                  {/* Rider phone hidden from the customer (user 28 Nov 02:55):
+                      the user must NOT be able to call the rider. Only the
+                      rider can call the customer (from the Rider Panel). */}
                 </div>
               </div>
 
@@ -215,22 +229,19 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
               </div>
             </div>
 
-            {/* Contact controls with Mobile-friendly Action Bar */}
+            {/* Contact controls (user 28 Nov 03:06): Live Chat + In-App Call.
+                The customer calls the rider FROM INSIDE the app (WebRTC) —
+                no phone dialer, no WhatsApp, no rider phone number shown.
+                (The old tel:/WhatsApp buttons were removed 28 Nov 02:55.) */}
             <div className="flex flex-col gap-3 w-full">
-              <div className="grid grid-cols-3 gap-1.5 sm:gap-2 w-full">
-                {order.riderPhone ? (
-                  <a
-                    href={`tel:${order.riderPhone}`}
-                    className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-100 py-2 sm:py-2.5 px-2 rounded-xl transition-transform duration-180 active:scale-[0.97] active:brightness-110 text-center font-black text-[10.5px] sm:text-xs flex items-center justify-center gap-1 shadow-xs cursor-pointer truncate"
-                  >
-                    📞 Call
-                  </a>
-                ) : (
-                  <div className="bg-zinc-900/50 border border-zinc-800 text-zinc-600 py-2 sm:py-2.5 px-2 rounded-xl text-center font-black text-[10.5px] sm:text-xs flex items-center justify-center gap-1 opacity-50 cursor-not-allowed">
-                    📞 Call
-                  </div>
-                )}
-
+              <div className="grid grid-cols-2 gap-1.5 sm:gap-2 w-full">
+                <InAppCallButton
+                  myId={currentUser?.uid || "guest"}
+                  myName={currentUser?.name || order.userName || "Customer"}
+                  peerId={order.riderId || ""}
+                  peerName={order.riderName || "Rider"}
+                  orderId={order.id}
+                />
                 <button
                   type="button"
                   onClick={() => setShowLiveChat(!showLiveChat)}
@@ -249,20 +260,6 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
                   )}
                 </button>
 
-                {order.riderPhone ? (
-                  <a
-                    href={`https://wa.me/${order.riderPhone.replace(/\D/g, "")}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white py-2 sm:py-2.5 px-2 rounded-xl transition-transform duration-180 active:scale-[0.97] active:brightness-110 text-center font-black text-[10.5px] sm:text-xs flex items-center justify-center gap-1 shadow-xs cursor-pointer truncate"
-                  >
-                    💬 WhatsApp
-                  </a>
-                ) : (
-                  <div className="bg-zinc-900/50 border border-zinc-800 text-zinc-600 py-2 sm:py-2.5 px-2 rounded-xl text-center font-black text-[10.5px] sm:text-xs flex items-center justify-center gap-1 opacity-50 cursor-not-allowed">
-                    💬 WhatsApp
-                  </div>
-                )}
               </div>
 
               {showLiveChat && (
@@ -350,6 +347,13 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
 
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 sm:p-6 shadow-xs relative overflow-hidden text-zinc-100">
+      {incomingCall && (
+        <IncomingCallModal
+          call={incomingCall}
+          myId={currentUser?.uid || "guest"}
+          onClose={() => setIncomingCall(null)}
+        />
+      )}
       
       {/* Background Decorative Neon Light */}
       <div className={`absolute top-0 right-0 w-44 h-44 rounded-full blur-3xl pointer-events-none -mt-10 -mr-10 ${
@@ -475,11 +479,6 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
               {order.riderName ? (
                 <>
                   {order.riderName}
-                  {order.riderPhone && (
-                    <span className="text-emerald-400 block font-mono">
-                      (Contact: {order.riderPhone})
-                    </span>
-                  )}
                 </>
               ) : (
                 isService ? "Assigning Mechanic..." : "Assigning Driver..."
