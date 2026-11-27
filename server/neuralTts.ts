@@ -42,7 +42,7 @@ const VOICE =
 // Voice tuning knobs (env-overridable for testing; defaults = current live sound).
 // Rate/pitch are safe SSML prosody. STYLE is only applied when set — most
 // styles are NOT supported by AsadNeural and Edge closes the socket then.
-const TTS_RATE = process.env.EDGE_TTS_RATE || "+10%";
+const TTS_RATE = process.env.EDGE_TTS_RATE || "+15%";
 const TTS_PITCH = process.env.EDGE_TTS_PITCH || "+0%";
 const TTS_STYLE = process.env.EDGE_TTS_STYLE || "";
 const MAX_CHUNK = 180;
