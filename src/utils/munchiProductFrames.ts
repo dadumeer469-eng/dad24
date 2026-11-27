@@ -18,15 +18,20 @@ const HERO_FRAMES: Record<string, string> = {
   "chicken karahi": "/images/munchi-karahi.jpg",
 };
 
-// Urdu-script names for the hero dishes (Whisper often returns Urdu script).
-// "برگر" maps to the Zinger — it is the house burger, the default when the
-// customer just says "burger".
-const URDU_ALIASES: Record<string, string> = {
-  "زنگر": "crispy zinger burger",
-  "برگر": "crispy zinger burger",
-  "بریانی": "chicken biryani",
-  "شوارما": "chicken shawarma",
-  "کڑاہی": "chicken karahi",
+// Urdu-script words -> Latin, so "زنگر برگر" and "پیزا" match the menu
+// just like Roman Urdu does (Whisper returns Urdu script for Urdu speech).
+const URDU_WORD_MAP: Record<string, string> = {
+  "برگر": "burger", "زنگر": "zinger", "چکن": "chicken", "مرغی": "chicken",
+  "بریانی": "biryani", "شوارما": "shawarma", "کڑاہی": "karahi",
+  "پیزا": "pizza", "فرائز": "fries", "سینڈوچ": "sandwich", "رول": "roll",
+  "ٹکا": "tikka", "تکہ": "tikka", "کباب": "kabab", "انڈا": "egg",
+  "چائے": "chai", "دودھ": "milk", "پانی": "water", "گھی": "ghee",
+  "تیل": "oil", "چینی": "sugar", "آٹا": "atta", "چاول": "rice",
+  "دال": "daal", "مٹن": "mutton", "بیف": "beef", "مچھلی": "fish",
+  "پنیر": "cheese", "چیز": "cheese", "سوپ": "soup", "سلاد": "salad",
+  "جوس": "juice", "سموسہ": "samosa", "پکوڑا": "pakora", "پراٹھا": "paratha",
+  "نان": "naan", "روٹی": "roti", "حلیم": "haleem", "نہاری": "nihari",
+  "بریڈ": "bread", "کیک": "cake", "آئسکریم": "icecream",
 };
 
 // Words too generic to identify a dish on their own.
@@ -62,33 +67,75 @@ function norm(s: string): string {
     .trim();
 }
 
+// Transliterate Urdu-script words to Latin, then normalise to plain words,
+// so "زنگر برگر", "پیزا" and Roman "zinger burger" all match the same way.
+function toLatinWords(text: string): string[] {
+  const raw = text.split(/[\s,؛،۔!?.؟"“”'()]+/).filter(Boolean);
+  const out: string[] = [];
+  for (const tok of raw) {
+    const mapped = URDU_WORD_MAP[tok] ?? tok;
+    const clean = mapped
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
+    if (clean) out.push(clean);
+  }
+  return out;
+}
+
 // Find the catalogue item the customer (or the agent) is talking about.
-// Full-name match wins; otherwise a distinctive word of the name. The
-// longest match wins. Returns null when nothing recognisable is named.
+// Scores by HOW MANY distinctive words of the name were spoken, so
+// "zinger burger" picks Crispy Zinger Burger (2 words) over Chicken Burger
+// (1 word), and "pizza" picks a pizza instead of whatever matched first.
+// Full-name match wins outright. Returns null when nothing recognisable
+// is named — the caller keeps the previous frame in that case.
 export function findProductInText(text: string, items: LocalMenuItem[]): ProductFrame | null {
   if (!text) return null;
-  // Urdu-script alias first (hero dishes only).
-  for (const [alias, key] of Object.entries(URDU_ALIASES)) {
-    if (text.includes(alias)) {
-      const item = items.find((i) => norm(i.name) === key);
-      if (item) return { name: item.name, price: item.price, image: HERO_FRAMES[key], hero: true };
+  const words = toLatinWords(text);
+  if (words.length === 0) return null;
+  const t = ` ${words.join(" ")} `;
+  // Hero shortcut: a bare hero word ("burger" alone) means the house burger.
+  if (words.length === 1) {
+    const solo = words[0];
+    if (solo === "burger" || solo === "zinger") {
+      const item = items.find((i) => norm(i.name) === "crispy zinger burger");
+      if (item) return { name: item.name, price: item.price, image: HERO_FRAMES["crispy zinger burger"], hero: true };
+    }
+    if (solo === "biryani") {
+      const item = items.find((i) => norm(i.name) === "chicken biryani");
+      if (item) return { name: item.name, price: item.price, image: HERO_FRAMES["chicken biryani"], hero: true };
+    }
+    if (solo === "shawarma") {
+      const item = items.find((i) => norm(i.name) === "chicken shawarma");
+      if (item) return { name: item.name, price: item.price, image: HERO_FRAMES["chicken shawarma"], hero: true };
+    }
+    if (solo === "karahi") {
+      const item = items.find((i) => norm(i.name) === "chicken karahi");
+      if (item) return { name: item.name, price: item.price, image: HERO_FRAMES["chicken karahi"], hero: true };
     }
   }
-  const t = ` ${norm(text)} `;
-  let best: { item: LocalMenuItem; score: number } | null = null;
+  let best: { item: LocalMenuItem; hits: number; chars: number } | null = null;
   for (const item of items) {
     const name = norm(item.name);
     if (!name) continue;
-    let score = 0;
+    // Full-name match wins outright.
     if (t.includes(` ${name} `)) {
-      score = name.length + 100;
-    } else {
-      const words = name.split(" ").filter((w) => w.length >= 4 && !GENERIC.has(w));
-      const hit = words.find((w) => t.includes(` ${w} `));
-      if (!hit) continue;
-      score = hit.length;
+      const key = norm(item.name);
+      const hero = HERO_FRAMES[key];
+      if (hero) return { name: item.name, price: item.price, image: hero, hero: true };
+      if (!item.image) continue;
+      return { name: item.name, price: item.price, image: item.image, hero: false };
     }
-    if (!best || score > best.score) best = { item, score };
+    const nameWords = name.split(" ").filter((w) => w.length >= 4 && !GENERIC.has(w));
+    if (nameWords.length === 0) continue;
+    const hits = nameWords.filter((w) => t.includes(` ${w} `));
+    if (hits.length === 0) continue;
+    // Require at least half the distinctive words, so a lone "chicken"
+    // never picks a random chicken dish.
+    if (hits.length < Math.ceil(nameWords.length / 2)) continue;
+    const chars = hits.reduce((s, w) => s + w.length, 0);
+    if (!best || hits.length > best.hits || (hits.length === best.hits && chars > best.chars)) {
+      best = { item, hits: hits.length, chars };
+    }
   }
   if (!best) return null;
   const key = norm(best.item.name);
