@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "motion/react";
 import { springSnappy } from "../utils/motion";
-import { Utensils, Store, Search, ShoppingBag, User, ChevronRight } from "lucide-react";
+import { Utensils, ShoppingBasket, Search, ShoppingBag, User, ChevronRight } from "lucide-react";
 
 interface BottomNavBarProps {
   activeModule: "food" | "grocery";
@@ -156,18 +156,25 @@ export default function BottomNavBar({
                 transition={springSnappy}
               />
             )}
-            <Utensils
-              className={`w-5 h-5 stroke-[1.5] transition-[color,background-color,border-color,transform,opacity] duration-300 ${
-                activeModule === "food"
-                  ? "text-[#D70F64] dark:text-[#FF5C9E]"
-                  : "text-[#5A5A6B] dark:text-[#A1A1B2]"
-              }`}
-            />
             <span
-              className={`text-[10.5px] leading-none font-medium transition-[color,background-color,border-color,transform,opacity] duration-300 ${
+              className={`flex items-center justify-center rounded-full px-2.5 py-1 transition-[color,background-color] duration-300 ${
+                activeModule === "food" ? "bg-[#FDE7F1] dark:bg-[#2A1A22]" : ""
+              }`}
+            >
+              <Utensils
+                fill={activeModule === "food" ? "currentColor" : "none"}
+                className={`w-6 h-6 stroke-2 transition-[color,background-color,border-color,transform,opacity] duration-300 ${
+                  activeModule === "food"
+                    ? "text-[#D70F64] dark:text-[#FF5C9E]"
+                    : "text-[#5A5A6B] dark:text-[#A1A1B2]"
+                }`}
+              />
+            </span>
+            <span
+              className={`text-[10.5px] leading-none transition-[color,background-color,border-color,transform,opacity] duration-300 ${
                 activeModule === "food"
-                  ? "text-[#D70F64] dark:text-[#FF5C9E]"
-                  : "text-[#5A5A6B] dark:text-[#A1A1B2]"
+                  ? "font-bold text-[#D70F64] dark:text-[#FF5C9E]"
+                  : "font-medium text-[#5A5A6B] dark:text-[#A1A1B2]"
               }`}
             >
               Food
@@ -190,18 +197,25 @@ export default function BottomNavBar({
                 transition={springSnappy}
               />
             )}
-            <Store
-              className={`w-5 h-5 stroke-[1.5] transition-[color,background-color,border-color,transform,opacity] duration-300 ${
-                activeModule === "grocery"
-                  ? "text-[#D70F64] dark:text-[#FF5C9E]"
-                  : "text-[#5A5A6B] dark:text-[#A1A1B2]"
-              }`}
-            />
             <span
-              className={`text-[10.5px] leading-none font-medium transition-[color,background-color,border-color,transform,opacity] duration-300 ${
+              className={`flex items-center justify-center rounded-full px-2.5 py-1 transition-[color,background-color] duration-300 ${
+                activeModule === "grocery" ? "bg-[#FDE7F1] dark:bg-[#2A1A22]" : ""
+              }`}
+            >
+              <ShoppingBasket
+                fill={activeModule === "grocery" ? "currentColor" : "none"}
+                className={`w-6 h-6 stroke-2 transition-[color,background-color,border-color,transform,opacity] duration-300 ${
+                  activeModule === "grocery"
+                    ? "text-[#D70F64] dark:text-[#FF5C9E]"
+                    : "text-[#5A5A6B] dark:text-[#A1A1B2]"
+                }`}
+              />
+            </span>
+            <span
+              className={`text-[10.5px] leading-none transition-[color,background-color,border-color,transform,opacity] duration-300 ${
                 activeModule === "grocery"
-                  ? "text-[#D70F64] dark:text-[#FF5C9E]"
-                  : "text-[#5A5A6B] dark:text-[#A1A1B2]"
+                  ? "font-bold text-[#D70F64] dark:text-[#FF5C9E]"
+                  : "font-medium text-[#5A5A6B] dark:text-[#A1A1B2]"
               }`}
             >
               Grocery
@@ -215,7 +229,7 @@ export default function BottomNavBar({
             aria-label="Search food and groceries"
             className="min-h-[48px] flex flex-col items-center justify-center gap-1 text-center relative select-none cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110 text-[#5A5A6B] dark:text-[#A1A1B2]"
           >
-            <Search className="w-5 h-5 stroke-[1.5]" />
+            <Search className="w-6 h-6 stroke-2" />
             <span className="text-[10.5px] leading-none font-medium">Search</span>
           </button>
 
@@ -226,7 +240,7 @@ export default function BottomNavBar({
             aria-label={user ? "Open my account" : "Sign in"}
             className="min-h-[48px] flex flex-col items-center justify-center gap-1 text-center relative select-none cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110 text-[#5A5A6B] dark:text-[#A1A1B2]"
           >
-            <User className="w-5 h-5 stroke-[1.5]" />
+            <User className="w-6 h-6 stroke-2" />
             <span className="text-[10.5px] leading-none font-medium">
               {user ? (user.name?.split(" ")[0] || "Account") : "Account"}
             </span>
