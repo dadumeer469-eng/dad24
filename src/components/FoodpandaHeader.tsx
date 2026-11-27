@@ -830,7 +830,7 @@ export default function FoodpandaHeader({
       </header>
 
       {/* Mobile Foodpanda Pink Sticky Pill Search Bar */}
-      <div className="sticky top-0 z-30 bg-[#E21B70] block sm:hidden px-3.5 pb-3 pt-0.5 shadow-sm">
+      <div className="sticky top-0 z-30 bg-[#E21B70] block sm:hidden px-3.5 pb-1.5 pt-0.5 shadow-sm">
         <div className="relative flex items-center transition-[color,background-color,border-color,transform,opacity] duration-180">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#D70F64] pointer-events-none" />
           <input
