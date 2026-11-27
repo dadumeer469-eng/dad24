@@ -74,14 +74,14 @@ const RAW_100_ITEMS: SeedTuple[] = [
   ["og_004", "gcat_rashan", "Youngs Mayonnaise Pouch", "500ml", 440, "youngs-mayonnaise-pouch-500ml.jpg"],
   ["og_005", "gcat_rashan", "Bake Parlor Spaghetti Box Hara Masala / Fajita", "250Gm", 170, "bake-parlor-spaghetti-box-250gm.jpg"],
   ["og_006", "gcat_rashan", "Rice (Sela)", "—", 320, "rice-sela.jpg"],
-  ["og_007", "gcat_rashan", "Chakki Atta", "1 kg", 190, "chakki-atta-1kg.jpg"],
+  ["og_007", "gcat_rashan", "Chakki Atta", "1 kg", 185, "chakki-atta-1kg.jpg"],
 
   // 2. OIL & GHEE (11)
   ["og_008", "gcat_oil_ghee", "Mezan Cooking Oil Pouch", "1Litre", 650, "mezan-cooking-oil-pouch-1litre.jpg"],
   ["og_009", "gcat_oil_ghee", "Eva Cooking Oil", "1l", 670, "eva-cooking-oil-1l.jpg"],
   ["og_010", "gcat_oil_ghee", "Eva Sunflower Oil", "1L", 675, "eva-sunflower-oil-1l.jpg"],
   ["og_011", "gcat_oil_ghee", "Eva Sunflower Oil Pillow Pouch", "1L", 675, "eva-sunflower-oil-pillow-pouch-1l.jpg"],
-  ["og_012", "gcat_oil_ghee", "Tullo Banaspati Pouch", "1kg", 578, "tullo-banaspati-pouch-1kg.jpg"],
+  ["og_012", "gcat_oil_ghee", "Tullo Banaspati Pouch", "1kg", 615, "tullo-banaspati-pouch-1kg.jpg"],
   ["og_013", "gcat_oil_ghee", "Tullo Cooking Oil Pouch", "1L", 615, "tullo-cooking-oil-pouch-1l.jpg"],
   ["og_014", "gcat_oil_ghee", "Eva Cooking Oil Bottle", "5l", 3425, "eva-cooking-oil-bottle-5l.jpg"],
   ["og_015", "gcat_oil_ghee", "Dalda Banaspati Ghee Pouch", "1 kg", 665, "dalda-banaspati-ghee-pouch-1kg.jpg"],
@@ -90,12 +90,12 @@ const RAW_100_ITEMS: SeedTuple[] = [
   ["og_018", "gcat_oil_ghee", "Eva Cooking Oil Bottle", "3l", 2050, "eva-cooking-oil-bottle-3l.jpg"],
 
   // 3. SPICES (20)
-  ["og_019", "gcat_spices", "National Iodized Salt", "800g", 75, "national-iodized-salt-800g.jpg"],
-  ["og_020", "gcat_spices", "National Chilli Powder", "100g", 200, "national-chilli-powder-100g.jpg"],
-  ["og_021", "gcat_spices", "National Turmeric Powder", "50g", 140, "national-turmeric-powder-50g.jpg"],
-  ["og_022", "gcat_spices", "National Garam Masala Powder", "50g", 320, "national-garam-masala-powder-50g.jpg"],
+  ["og_019", "gcat_spices", "National Iodized Salt", "800g", 70, "national-iodized-salt-800g.jpg"],
+  ["og_020", "gcat_spices", "National Chilli Powder", "100g", 210, "national-chilli-powder-100g.jpg"],
+  ["og_021", "gcat_spices", "National Turmeric Powder", "50g", 150, "national-turmeric-powder-50g.jpg"],
+  ["og_022", "gcat_spices", "National Garam Masala Powder", "50g", 325, "national-garam-masala-powder-50g.jpg"],
   ["og_023", "gcat_spices", "Coriander Powder", "100g", 120, "coriander-powder-100g.jpg"],
-  ["og_024", "gcat_spices", "National Biryani Masala", "39g", 160, "national-biryani-masala-39g.jpg"],
+  ["og_024", "gcat_spices", "National Biryani Masala", "39g", 165, "national-biryani-masala-39g.jpg"],
   ["og_025", "gcat_spices", "Shan Chicken Biryani Masala", "55g", 165, "shan-chicken-biryani-masala-55g.jpg"],
   ["og_026", "gcat_spices", "National Chicken Tikka Masala", "40g", 165, "national-chicken-tikka-masala-40g.jpg"],
   ["og_027", "gcat_spices", "National Masala Quorma", "50g", 165, "national-masala-quorma-50g.jpg"],
@@ -103,9 +103,9 @@ const RAW_100_ITEMS: SeedTuple[] = [
   ["og_029", "gcat_spices", "National Haleem Masala", "43g", 165, "national-haleem-masala-43g.jpg"],
   ["og_030", "gcat_spices", "Shan Special Chaat Masala", "50g", 105, "shan-special-chaat-masala-50g.jpg"],
   ["og_031", "gcat_spices", "National Pulao Masala", "70g", 165, "national-pulao-masala-70g.jpg"],
-  ["og_032", "gcat_spices", "Shan Khalis Haldee Powder", "50g", 140, "shan-khalis-haldee-powder-50g.jpg"],
-  ["og_033", "gcat_spices", "Shan Taaza Dhania Powder", "90g", 175, "shan-taaza-dhania-powder-90g.jpg"],
-  ["og_034", "gcat_spices", "National Black Pepper Powder", "25g", 170, "national-black-pepper-powder-25g.jpg"],
+  ["og_032", "gcat_spices", "Shan Khalis Haldee Powder", "50g", 150, "shan-khalis-haldee-powder-50g.jpg"],
+  ["og_033", "gcat_spices", "Shan Taaza Dhania Powder", "90g", 180, "shan-taaza-dhania-powder-90g.jpg"],
+  ["og_034", "gcat_spices", "National Black Pepper Powder", "25g", 175, "national-black-pepper-powder-25g.jpg"],
   ["og_035", "gcat_spices", "National Chaat Masala", "45g", 120, "national-chaat-masala-45g.jpg"],
   ["og_036", "gcat_spices", "Shan Tez Lal Mirch Powder", "50g", 110, "shan-tez-lal-mirch-powder-50g.jpg"],
   ["og_037", "gcat_spices", "National Chilli Powder", "50g", 105, "national-chilli-powder-50g.jpg"],
@@ -126,10 +126,10 @@ const RAW_100_ITEMS: SeedTuple[] = [
   // 5. DAIRY (12)
   ["og_049", "gcat_dairy", "Nestle Milkpak Tetra Pack", "250ml", 95, "nestle-milkpak-tetra-pack-250ml.jpg"],
   ["og_050", "gcat_dairy", "Olper Milk", "250ml", 110, "olper-milk-250ml.jpg"],
-  ["og_051", "gcat_dairy", "Nestle Milkpak Cream", "200ml", 310, "nestle-milkpak-cream-200ml.jpg"],
+  ["og_051", "gcat_dairy", "Nestle Milkpak Cream", "200ml", 260, "nestle-milkpak-cream-200ml.jpg"],
   ["og_052", "gcat_dairy", "Everyday Milk Powder Pouch", "1200g (1.2kg)", 2600, "everyday-milk-powder-pouch-1200g.jpg"],
-  ["og_053", "gcat_dairy", "NESTLE EVERYDAY Tea Whitener Powder Pouch", "230g", 480, "nestle-everyday-tea-whitener-230g.jpg"],
-  ["og_054", "gcat_dairy", "NESTLE EVERYDAY Tea Whitener Powder Pouch", "350g", 775, "nestle-everyday-tea-whitener-350g.jpg"],
+  ["og_053", "gcat_dairy", "NESTLE EVERYDAY Tea Whitener Powder Pouch", "230g", 550, "nestle-everyday-tea-whitener-230g.jpg"],
+  ["og_054", "gcat_dairy", "NESTLE EVERYDAY Tea Whitener Powder Pouch", "350g", 820, "nestle-everyday-tea-whitener-350g.jpg"],
   ["og_055", "gcat_dairy", "Nestle Everyday Karak Powder Chai 3in1", "20g", 80, "nestle-everyday-karak-chai-3in1-20g.jpg"],
   ["og_056", "gcat_dairy", "Nestle Nido 1+ Box", "375gm", 1320, "nestle-nido-1-plus-box-375gm.jpg"],
   ["og_057", "gcat_dairy", "Nestle Lactogen 1 (0+ Months)", "200gm", 780, "nestle-lactogen-1-200gm.jpg"],
@@ -138,9 +138,9 @@ const RAW_100_ITEMS: SeedTuple[] = [
   ["og_060", "gcat_dairy", "NESTLE LACTOGROW 3 Growing-up Formula Powder Milk", "400g", 1540, "nestle-lactogrow-3-400g.jpg"],
 
   // 6. TEA & COFFEE (10)
-  ["og_061", "gcat_tea_coffee", "Tapal Danedar Black Tea", "170g", 430, "tapal-danedar-black-tea-170g.jpg"],
+  ["og_061", "gcat_tea_coffee", "Tapal Danedar Black Tea", "170g", 435, "tapal-danedar-black-tea-170g.jpg"],
   ["og_062", "gcat_tea_coffee", "Tapal Danedar Tea Pouch", "350g", 805, "tapal-danedar-tea-pouch-350g.jpg"],
-  ["og_063", "gcat_tea_coffee", "Tapal Danedar Tea Pouch", "430g", 1005, "tapal-danedar-tea-pouch-430g.jpg"],
+  ["og_063", "gcat_tea_coffee", "Tapal Danedar Tea Pouch", "430g", 1025, "tapal-danedar-tea-pouch-430g.jpg"],
   ["og_064", "gcat_tea_coffee", "Lipton Yellow Label", "85g", 220, "lipton-yellow-label-85g.jpg"],
   ["og_065", "gcat_tea_coffee", "Lipton Yellow Label Tea", "170g", 460, "lipton-yellow-label-tea-170g.jpg"],
   ["og_066", "gcat_tea_coffee", "Lipton Yellow Label", "430g", 1150, "lipton-yellow-label-430g.jpg"],
@@ -174,14 +174,14 @@ const RAW_100_ITEMS: SeedTuple[] = [
 
   // 9. PERSONAL CARE (5)
   ["og_090", "gcat_personal_care", "LUX VELVET TOUCH WHITE SOAP BAR TRIO", "130G", 480, "lux-velvet-touch-soap-trio-130g.jpg"],
-  ["og_091", "gcat_personal_care", "LIFEBUOY MILD CARE SOAP BAR TRIO", "125G", 380, "lifebuoy-mild-care-soap-trio-125g.jpg"],
-  ["og_092", "gcat_personal_care", "Dettol Soap Skincare Pack of 3", "90g", 370, "dettol-soap-skincare-pack-of-3-90g.jpg"],
-  ["og_093", "gcat_personal_care", "SUNSILK SHAMPOO", "185ML", 545, "sunsilk-shampoo-185ml.jpg"],
+  ["og_091", "gcat_personal_care", "LIFEBUOY MILD CARE SOAP BAR TRIO", "125G", 415, "lifebuoy-mild-care-soap-trio-125g.jpg"],
+  ["og_092", "gcat_personal_care", "Dettol Soap Skincare Pack of 3", "90g", 420, "dettol-soap-skincare-pack-of-3-90g.jpg"],
+  ["og_093", "gcat_personal_care", "SUNSILK SHAMPOO", "185ML", 490, "sunsilk-shampoo-185ml.jpg"],
   ["og_094", "gcat_personal_care", "Colgate Toothpaste Regular", "100g", 225, "colgate-toothpaste-regular-100g.jpg"],
 
   // 10. CLEANING & LAUNDRY (3)
-  ["og_095", "gcat_cleaning_laundry", "SURF EXCEL WASHING POWDER", "500G", 310, "surf-excel-washing-powder-500g.jpg"],
-  ["og_096", "gcat_cleaning_laundry", "VIM LEMON AND SALT DISHWASHING BAR", "230G", 90, "vim-lemon-salt-dishwashing-bar-230g.jpg"],
+  ["og_095", "gcat_cleaning_laundry", "SURF EXCEL WASHING POWDER", "500G", 340, "surf-excel-washing-powder-500g.jpg"],
+  ["og_096", "gcat_cleaning_laundry", "VIM LEMON AND SALT DISHWASHING BAR", "230G", 95, "vim-lemon-salt-dishwashing-bar-230g.jpg"],
   ["og_097", "gcat_cleaning_laundry", "Harpic Toilet Cleaner Promo", "225ml", 200, "harpic-toilet-cleaner-225ml.jpg"],
 
   // 11. MOTHER & BABY (2)
@@ -205,14 +205,14 @@ const RAW_200_ITEMS: SeedTuple[] = [
   ["og_102", "gcat_spices", "National Garam Masala", "25g", 170, "national-garam-masala-25g.jpg"],
   ["og_103", "gcat_spices", "Shan Zafrani Garam Masala Powder", "50g", 330, "shan-zafrani-garam-masala-powder-50g.jpg"],
   ["og_104", "gcat_spices", "Knorr Chicken Cube Pack of 6", "1 pack", 430, "knorr-chicken-cube-pack-of-6-1-pack.jpg"],
-  ["og_105", "gcat_spices", "Shan Teekhi Kali Mirch Powder", "50g", 365, "shan-teekhi-kali-mirch-powder-50g.jpg"],
+  ["og_105", "gcat_spices", "Shan Teekhi Kali Mirch Powder", "50g", 340, "shan-teekhi-kali-mirch-powder-50g.jpg"],
   ["og_106", "gcat_spices", "Shan Khushbudar Lehsan Powder", "50g", 145, "shan-khushbudar-lehsan-powder-50g.jpg"],
   ["og_107", "gcat_spices", "Shan Tez Lal Mirch Powder", "180g", 380, "shan-tez-lal-mirch-powder-180g.jpg"],
   ["og_108", "gcat_spices", "Shan Tez Lal Mirch Powder", "90g", 200, "shan-tez-lal-mirch-powder-90g.jpg"],
   ["og_109", "gcat_spices", "Large Cardamom (Bari Elaichi)", "50g", 660, "large-cardamom-bari-elaichi-50g.jpg"],
   ["og_110", "gcat_spices", "National Quick Haleem Masala", "300g", 350, "national-quick-haleem-masala-300g.jpg"],
   ["og_111", "gcat_spices", "Shan Taaza Dhania Powder", "200g", 340, "shan-taaza-dhania-powder-200g.jpg"],
-  ["og_112", "gcat_spices", "National Turmeric Powder", "100g", 295, "national-turmeric-powder-100g.jpg"],
+  ["og_112", "gcat_spices", "National Turmeric Powder", "100g", 290, "national-turmeric-powder-100g.jpg"],
   ["og_113", "gcat_spices", "National Achar Gosht Masala", "50g", 165, "national-achar-gosht-masala-50g.jpg"],
   ["og_114", "gcat_spices", "National Ginger Powder", "50g", 200, "national-ginger-powder-50g.jpg"],
   ["og_115", "gcat_spices", "National Seeds Cumin", "50g", 350, "national-seeds-cumin-50g.jpg"],
@@ -237,7 +237,7 @@ const RAW_200_ITEMS: SeedTuple[] = [
   ["og_134", "gcat_spices", "National Masala Malai Boti", "50g", 165, "national-masala-malai-boti-50g.jpg"],
   ["og_135", "gcat_spices", "White Cumin Seeds (Zeera White)", "125g", 275, "white-cumin-seeds-zeera-white-125g.jpg"],
   ["og_136", "gcat_spices", "Sonf", "100g", 90, "sonf-100g.jpg"],
-  ["og_137", "gcat_spices", "Cloves (Long)", "25g", 160, "cloves-long-25g.jpg"],
+  ["og_137", "gcat_spices", "Cloves (Laung)", "25g", 160, "cloves-long-25g.jpg"],
   ["og_138", "gcat_spices", "National Spice Chili Powder", "200g", 440, "national-spice-chili-powder-200g.jpg"],
   ["og_139", "gcat_spices", "Whole Coriander (Dhaniya Sabut)", "100g", 90, "whole-coriander-dhaniya-sabut-100g.jpg"],
   ["og_140", "gcat_spices", "Turmeric Powder (Haldi Powder)", "250g", 275, "turmeric-powder-haldi-powder-250g.jpg"],
@@ -257,13 +257,13 @@ const RAW_200_ITEMS: SeedTuple[] = [
   ["og_154", "gcat_spices", "Shangrila Soya Sauce", "275ml", 160, "shangrila-soya-sauce-275ml.jpg"],
   ["og_155", "gcat_spices", "National White Vinegar Bottle", "800ml", 220, "national-white-vinegar-bottle-800ml.jpg"],
   // PERSONAL CARE (32)
-  ["og_156", "gcat_personal_care", "Palmolive Refreshing Glow Naturals Bar Soap Saver Pack", "3 Pieces x 98g", 364, "palmolive-refreshing-glow-naturals-bar-soap-saver-pack-3-pieces-x-98g.jpg"],
-  ["og_157", "gcat_personal_care", "Palmolive Naturals Hydrating Glow Bar Soap", "98g", 128, "palmolive-naturals-hydrating-glow-bar-soap-98g.jpg"],
+  ["og_156", "gcat_personal_care", "Palmolive Refreshing Glow Naturals Bar Soap Saver Pack", "3 Pieces x 98g", 400, "palmolive-refreshing-glow-naturals-bar-soap-saver-pack-3-pieces-x-98g.jpg"],
+  ["og_157", "gcat_personal_care", "Palmolive Naturals Hydrating Glow Bar Soap", "98g", 140, "palmolive-naturals-hydrating-glow-bar-soap-98g.jpg"],
   ["og_158", "gcat_personal_care", "Palmolive Naturals Flawless Glow Bar Soap", "125g", 170, "palmolive-naturals-flawless-glow-bar-soap-125g.jpg"],
   ["og_159", "gcat_personal_care", "Palmolive Saver Pack", "3 Pieces x 130g", 485, "palmolive-saver-pack-3-pieces-x-130g.jpg"],
   ["og_160", "gcat_personal_care", "Lux Lotus Purple Soap Bar", "128g", 175, "lux-lotus-purple-soap-bar-128g.jpg"],
   ["og_161", "gcat_personal_care", "Lux Velvet Touch White Soap Bar", "49g", 75, "lux-velvet-touch-white-soap-bar-49g.jpg"],
-  ["og_162", "gcat_personal_care", "Palmolive Naturals Moisturizing Glow Bar Soap", "98g", 128, "palmolive-naturals-moisturizing-glow-bar-soap-98g.jpg"],
+  ["og_162", "gcat_personal_care", "Palmolive Naturals Moisturizing Glow Bar Soap", "98g", 140, "palmolive-naturals-moisturizing-glow-bar-soap-98g.jpg"],
   ["og_163", "gcat_personal_care", "Palmolive Naturals Hydrating Glow Bar Soap", "130g", 160, "palmolive-naturals-hydrating-glow-bar-soap-130g.jpg"],
   ["og_164", "gcat_personal_care", "Capri Soap Purple Bundle", "120g", 420, "capri-soap-purple-bundle-120g.jpg"],
   ["og_165", "gcat_personal_care", "Capri Glow Jasmine & Aloe Vera Pink Soap (Saving Pack)", "5 x 100g", 470, "capri-glow-jasmine-and-aloe-vera-pink-soap-saving-pack-5-x-100g.jpg"],
@@ -394,22 +394,76 @@ const RAW_200_ITEMS: SeedTuple[] = [
   ["og_283", "gcat_feminine_care", "Hair Removal Cream (Sensitive Skin) EU Naturals", "75g Tube", 320, "hair-removal-cream-sensitive-skin-eu-naturals-75g-tube.jpg"],
   ["og_284", "gcat_feminine_care", "Hair Removal Cream (Normal Skin) EU Naturals", "75g Tube", 320, "hair-removal-cream-normal-skin-eu-naturals-75g-tube.jpg"],
   ["og_285", "gcat_feminine_care", "Butterfly Long Ultra Big Saver Sanitary Pads XXL", "16 Pcs", 450, "butterfly-long-ultra-big-saver-sanitary-pads-xxl-16-pcs.jpg"],
-  // MEDICINE & PHARMACY (15)
+  // MEDICINE & PHARMACY (11) — Flagyl removed 27 Nov 2026 (antibiotic; list stays strictly OTC)
   ["og_286", "gcat_medicine", "Panadol 500mg", "1 strip (10 tablets)", 40, "panadol-500mg-1-strip-10-tablets.jpg"],
   ["og_287", "gcat_medicine", "Panadol Extra", "1 strip (10 tablets)", 80, "panadol-extra-1-strip-10-tablets.jpg"],
   ["og_288", "gcat_medicine", "Panadol CF Cold + Flu", "1 strip (10 tablets)", 180, "panadol-cf-cold-flu-1-strip-10-tablets.jpg"],
   ["og_289", "gcat_medicine", "Disprin 300mg", "1 strip (10 tablets)", 30, "disprin-300mg-1-strip-10-tablets.jpg"],
   ["og_290", "gcat_medicine", "Brufen 400mg", "1 strip (10 tablets)", 50, "brufen-400mg-1-strip-10-tablets.jpg"],
   ["og_291", "gcat_medicine", "Calpol 500mg", "1 strip (10 tablets)", 35, "calpol-500mg-1-strip-10-tablets.jpg"],
-  ["og_292", "gcat_medicine", "Flagyl 400mg", "1 strip (10 tablets)", 60, "flagyl-400mg-1-strip-10-tablets.jpg"],
   ["og_295", "gcat_medicine", "Risek 20mg", "1 strip (7 capsules)", 240, "risek-20mg-1-strip-7-capsules.jpg"],
-  ["og_296", "gcat_medicine", "Strepsils Lozenges Original", "1 pack", 200, "strepsils-lozenges-original-1-pack.jpg"],
+  ["og_296", "gcat_medicine", "Strepsils Lozenges Original", "1 pack (24 lozenges)", 700, "strepsils-lozenges-original-1-pack.jpg"],
   ["og_298", "gcat_medicine", "Peditral ORS Orange", "1 sachet", 35, "peditral-ors-orange-1-sachet.jpg"],
   ["og_299", "gcat_medicine", "Dettol Antiseptic Liquid", "100ml", 560, "dettol-antiseptic-liquid-100ml.jpg"],
   ["og_300", "gcat_medicine", "Polyfax Skin Ointment", "20g tube", 270, "polyfax-skin-ointment-20g-tube.jpg"],
 ];
 
-export const OWNER_GROCERY_PRODUCTS: GroceryProduct[] = [...RAW_100_ITEMS, ...RAW_200_ITEMS].map(
+/**
+ * 39 MISSING SPICES (og_301 - og_339), added 2026-11-27 (Agent C fix program).
+ * Closes the P1 gap in the 27 Nov grocery audit (45 missing spices; 39 added,
+ * 6 skipped — see fix-C-catalog.md for the skip reasons).
+ * Prices: VERIFIED online market price + 10%, rounded to nearest Rs 5.
+ * Sources: dsmonline.pk (primary), 24mycart/Daraz/GrocerApp/Naheed/ARY/Carrefour
+ * (secondary, noted per item in the fix report). Size corrections vs the
+ * 25 Nov source list are noted in the fix report (e.g. Shan Tikka Masala is
+ * 50g at DSM, not 45g; Shan Ginger Garlic Paste verified size is 750g).
+ * Photos: real branded product photos, Dadu Food logo bottom-right (22%),
+ * JPEG <200KB, in public/images/grocery/ — NEVER from dailymartdadu.com.
+ */
+const RAW_SPICES_2026_11_27: SeedTuple[] = [
+  // SPICES — missing Shan / National / Shangrila / Knorr items (39)
+  ["og_301", "gcat_spices", "National Kasuri Methi Powder", "25g", 85, "national-kasuri-methi-powder-25g.jpg"],
+  ["og_302", "gcat_spices", "Shan Haldee Powder", "100g", 280, "shan-haldee-powder-100g.jpg"],
+  ["og_303", "gcat_spices", "Shan Zaiqaydar Adrak Powder", "50g", 260, "shan-zaiqaydar-adrak-powder-50g.jpg"],
+  ["og_304", "gcat_spices", "Shan Qasuri Methi Leaves", "25g", 85, "shan-qasuri-methi-leaves-25g.jpg"],
+  ["og_305", "gcat_spices", "Cloves (Laung)", "50g", 295, "cloves-laung-50g.jpg"],
+  ["og_306", "gcat_spices", "Whole Coconut (Nariyal)", "200g", 595, "whole-coconut-nariyal-200g.jpg"],
+  ["og_307", "gcat_spices", "Shangrila Seasonings Trio Pack", "120ml", 260, "shangrila-seasonings-trio-pack-120ml.jpg"],
+  ["og_308", "gcat_spices", "Shangrila Seasonings Trio Pack", "275ml", 505, "shangrila-seasonings-trio-pack-275ml.jpg"],
+  ["og_309", "gcat_spices", "Shan Ginger Garlic Paste Bottle", "750g", 1045, "shan-ginger-garlic-paste-750g.jpg"],
+  ["og_310", "gcat_spices", "Shangrila B.B.Q Sauce Pouch", "400g", 315, "shangrila-bbq-sauce-pouch-400g.jpg"],
+  ["og_311", "gcat_spices", "Shangrila Buffalo Sauce", "60ml", 265, "shangrila-buffalo-sauce-60ml.jpg"],
+  ["og_312", "gcat_spices", "Shangrila Chilli Sauce", "275ml", 180, "shangrila-chilli-sauce-275ml.jpg"],
+  ["og_313", "gcat_spices", "National Chinese Sauce Trio Pack", "3 x 300ml", 475, "national-chinese-sauce-trio-pack-3-x-300ml.jpg"],
+  ["og_314", "gcat_spices", "Shan Ginger Paste Bottle", "310g", 625, "shan-ginger-paste-bottle-310g.jpg"],
+  ["og_315", "gcat_spices", "National Soya Sauce Bottle", "300ml", 195, "national-soya-sauce-bottle-300ml.jpg"],
+  ["og_316", "gcat_spices", "National Chinese Chilli Sauce Bottle", "300ml", 200, "national-chinese-chilli-sauce-bottle-300ml.jpg"],
+  ["og_317", "gcat_spices", "Shangrila Steak Sauce", "300ml", 535, "shangrila-steak-sauce-300ml.jpg"],
+  ["og_318", "gcat_spices", "National Synthetic Vinegar", "300ml", 120, "national-synthetic-vinegar-300ml.jpg"],
+  ["og_319", "gcat_spices", "Shangrila Seasonings Trio Pack", "700ml", 845, "shangrila-seasonings-trio-pack-700ml.jpg"],
+  ["og_320", "gcat_spices", "Shangrila BBQ Sauce Hickory", "360g", 525, "shangrila-bbq-sauce-hickory-360g.jpg"],
+  ["og_321", "gcat_spices", "Shangrila Dark Soy Sauce", "60ml", 260, "shangrila-dark-soy-sauce-60ml.jpg"],
+  ["og_322", "gcat_spices", "Shangrila Ketchup Pouch", "800g", 450, "shangrila-ketchup-pouch-800g.jpg"],
+  ["og_323", "gcat_spices", "Shangrila Tomato Ketchup Pouch", "400g", 250, "shangrila-tomato-ketchup-pouch-400g.jpg"],
+  ["og_324", "gcat_spices", "Shangrila Garlic Chili Sauce Pouch", "800g", 450, "shangrila-garlic-chili-sauce-pouch-800g.jpg"],
+  ["og_325", "gcat_spices", "Shangrila Tomato Ketchup Mini Pack", "210g", 140, "shangrila-tomato-ketchup-mini-pack-210g.jpg"],
+  ["og_326", "gcat_spices", "Shangrila Garlic Chili Sauce Pouch", "400g", 250, "shangrila-garlic-chili-sauce-pouch-400g.jpg"],
+  ["og_327", "gcat_spices", "Knorr Chicken Noodles", "50g", 55, "knorr-chicken-noodles-50g.jpg"],
+  ["og_328", "gcat_spices", "Shan Chicken Masala", "50g", 165, "shan-chicken-masala-50g.jpg"],
+  ["og_329", "gcat_spices", "Shan Chicken Tikka Masala", "50g", 165, "shan-chicken-tikka-masala-50g.jpg"],
+  ["og_330", "gcat_spices", "National Mixed Pickle", "320g", 320, "national-mixed-pickle-320g.jpg"],
+  ["og_331", "gcat_spices", "National Mixed Pickle Jar", "370g", 350, "national-mixed-pickle-jar-370g.jpg"],
+  ["og_332", "gcat_spices", "Star Anise (Badian Phool)", "50g", 280, "star-anise-badian-phool-50g.jpg"],
+  ["og_333", "gcat_spices", "Kaala Zeera Black Zeera", "50g", 260, "kaala-zeera-black-zeera-50g.jpg"],
+  ["og_334", "gcat_spices", "Shan Beef Biryani Masala", "55g", 165, "shan-beef-biryani-masala-55g.jpg"],
+  ["og_335", "gcat_spices", "Shan Green Chutney", "315g", 320, "shan-green-chutney-315g.jpg"],
+  ["og_336", "gcat_spices", "Shan Tikka Boti Masala", "50g", 165, "shan-tikka-boti-masala-50g.jpg"],
+  ["og_337", "gcat_spices", "Shan Chicken Broast Masala", "125g", 165, "shan-chicken-broast-masala-125g.jpg"],
+  ["og_338", "gcat_spices", "Shan Chapli Kabab Masala", "100g", 165, "shan-chapli-kabab-masala-100g.jpg"],
+  ["og_339", "gcat_spices", "Shan Chicken White Karahi Masala", "40g", 165, "shan-chicken-white-karahi-masala-40g.jpg"],
+];
+
+export const OWNER_GROCERY_PRODUCTS: GroceryProduct[] = [...RAW_100_ITEMS, ...RAW_200_ITEMS, ...RAW_SPICES_2026_11_27].map(
   ([id, categoryId, name, unit, price, filename]) => ({
     id,
     categoryId,
