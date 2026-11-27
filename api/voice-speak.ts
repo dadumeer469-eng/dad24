@@ -4,8 +4,10 @@
 // NOTE: the import MUST carry the .js extension — Vercel compiles api/*.ts
 // to ESM, and Node ESM cannot resolve extension-less imports (1b752cb).
 import { handleVoiceSpeak } from "../server/neuralTts.js";
+import { withCors } from "./_cors.js";
 
 export default async function handler(req: any, res: any) {
+  if (withCors(req, res)) return;
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   const ip =
     (req.headers?.["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||
