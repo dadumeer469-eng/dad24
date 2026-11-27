@@ -98,6 +98,14 @@ export const DADU_FOOD_FAQS: FaqItem[] = [
     question: "Dadu Food kab se shuru ho raha hai?",
     answer: "Dadu Food ki grand opening Tuesday, 15 December 2026 ko ho rahi hai. Us din se Dadu city mein khana, grocery aur dawaai ki home delivery shuru ho jayegi. Opening se pehle aap dadufood.store par restaurants aur grocery items dekh sakte hain.",
   },
+  {
+    question: "Can I order pizza in Dadu on Dadu Food?",
+    answer: "Yes. Dadu Food delivers pizza in Dadu from Dadu Fast Food & Kitchen and Tasty Bites Dadu — freshly baked pizzas, along with zinger burgers, crispy broast, creamy pasta and loaded lasagna. Order pizza online in Dadu on dadufood.store and get it delivered hot in 20 to 35 minutes for Rs 50. Pay by Cash on Delivery or Easypaisa.",
+  },
+  {
+    question: "What food can I order in Dadu on Dadu Food?",
+    answer: "On Dadu Food you can order chicken biryani, zinger burgers, chicken shawarma, chicken karahi, BBQ, seekh kababs, pizza, creamy pasta, lasagna, grilled sandwiches and crispy broast from Dadu Fast Food & Kitchen, S M Bilal Hotel and Tasty Bites Dadu. All food is delivered hot across Dadu city in 20 to 35 minutes for Rs 50.",
+  },
 ];
 
 export type InfoPageSlug =
@@ -348,9 +356,18 @@ export function syncPageSeo(params: {
       description = params.adminSeoOverride.siteDescription;
     }
 
-    // NOTE: no FAQPage node here — FAQ rich results were retired (May 2026)
-    // and there is no visible FAQ section on the site, so schema must not
-    // describe content that does not exist on the page.
+    // Homepage: the 17 FAQs are rendered VISIBLY on the page (App.tsx FAQ
+    // section + the prerendered noscript in index.html), so the FAQPage
+    // node describes real on-page content. Keep in sync with
+    // scripts/prerender-routes.mjs (same 17 questions, verbatim).
+    graphNodes.push({
+      "@type": "FAQPage",
+      mainEntity: DADU_FOOD_FAQS.map((f) => ({
+        "@type": "Question",
+        name: f.question,
+        acceptedAnswer: { "@type": "Answer", text: f.answer },
+      })),
+    });
 
     graphNodes.push({
       "@type": "WebPage",
@@ -359,7 +376,7 @@ export function syncPageSeo(params: {
       description,
       speakable: {
         "@type": "SpeakableSpecification",
-        cssSelector: [".speakable-summary"],
+        cssSelector: [".speakable-summary", ".faq-answer"],
       },
     });
   }
