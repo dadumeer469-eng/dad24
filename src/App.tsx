@@ -60,7 +60,21 @@ import {
   AnimatedCounter,
   OffersCarousel,
   ScrollReveal,
+  AppLoadingState,
+  MenuSkeleton,
+  ShimmerImage,
 } from "./components/HomeMotion";
+import {
+  heroContainer,
+  heroImage,
+  heroTile,
+  heroWord,
+  motionTransition,
+  springGentle,
+  staggerContainer,
+  usePrefersReducedMotion,
+  viewTransition,
+} from "./utils/motion";
 import VoiceOrderModal, { type VoiceOrder, type VoiceOrderResult } from "./components/VoiceOrderModal";
 import { primeAudio } from "./utils/primeAudio";
 import OrderTracker from "./components/OrderTracker";
@@ -268,6 +282,9 @@ function mergeOwnerFirst<T extends { id: string }>(owner: T[], live: T[]): T[] {
 
 export default function App() {
   useMemoryMonitor("App");
+  // Reduced motion: every hero / view / loading animation below collapses
+  // to its instant final state when the OS asks for reduced motion.
+  const prefersReducedMotion = usePrefersReducedMotion();
   const [showSplash, setShowSplash] = useState(() => {
     return typeof window !== "undefined" && !sessionStorage.getItem("dadu_splash_seen");
   });
@@ -4752,8 +4769,9 @@ export default function App() {
         }}
       />
 
+      <AnimatePresence>
       {toastNotification && (
-        <div
+        <motion.div
           onClick={() => setToastNotification(null)}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === "Escape" || e.key === " ") {
@@ -4765,7 +4783,11 @@ export default function App() {
           tabIndex={0}
           aria-label="Dismiss notification"
           aria-live="polite"
-          className="fixed left-4 right-4 bottom-24 sm:left-auto sm:right-6 sm:bottom-6 sm:w-[380px] sm:max-w-[calc(100vw-3rem)] z-50 p-4 bg-zinc-900 border-2 border-[#D70F64]/40 text-zinc-100 rounded-2xl shadow-2xl flex items-start gap-3 micro-toast-in cursor-pointer"
+          initial={{ opacity: 0, x: 24, y: 10, scale: 0.97 }}
+          animate={{ opacity: 1, x: 0, y: 0, scale: 1 }}
+          exit={{ opacity: 0, x: 24, scale: 0.97 }}
+          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          className="fixed left-4 right-4 bottom-24 sm:left-auto sm:right-6 sm:bottom-6 sm:w-[380px] sm:max-w-[calc(100vw-3rem)] z-50 p-4 bg-zinc-900 border-2 border-[#D70F64]/40 text-zinc-100 rounded-2xl shadow-2xl flex items-start gap-3 cursor-pointer"
         >
           <div className="bg-[#D70F64] text-white p-2.5 rounded-xl shrink-0">
             <MessageSquare className="w-5 h-5" />
@@ -4786,8 +4808,9 @@ export default function App() {
           >
             <X className="w-4 h-4" />
           </button>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       {isExitConfirmationOpen && (
         <div
@@ -5126,8 +5149,8 @@ export default function App() {
     return (
       <Suspense
         fallback={
-          <div className="min-h-screen flex items-center justify-center bg-[#f7f4ee] text-[#5e554a] font-bold tracking-widest text-sm uppercase">
-            Loading Rider Panel...
+          <div className="min-h-screen flex items-center justify-center bg-[#f7f4ee]">
+            <AppLoadingState label="Loading Rider Panel..." />
           </div>
         }
       >
@@ -5149,7 +5172,7 @@ export default function App() {
     const selectedFoodCategory = foodCategories.find(c => c.name === selectedRestaurant);
 
     return (
-      <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#F9F9FB] dark:bg-[#0B0B0F]"><div className="w-10 h-10 border-4 border-[#D70F64] border-t-transparent rounded-full animate-spin" /></div>}>
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#f7f4ee] dark:bg-[#0B0B0F]"><AppLoadingState label="Loading…" /></div>}>
         <FoodpandaRestaurantPage
           restaurantName={selectedRestaurant}
           dishes={restaurantDishes}
@@ -5266,13 +5289,17 @@ export default function App() {
                 <motion.div
                   key={i}
                   initial={{ scale: 0.55, opacity: 0.6 }}
-                  animate={{ scale: 2.1, opacity: 0 }}
-                  transition={{
-                    duration: 1.7,
-                    repeat: Infinity,
-                    delay: i * 0.55,
-                    ease: "easeOut",
-                  }}
+                  animate={prefersReducedMotion ? { scale: 0.55, opacity: 0 } : { scale: 2.1, opacity: 0 }}
+                  transition={
+                    prefersReducedMotion
+                      ? { duration: 0 }
+                      : {
+                          duration: 1.7,
+                          repeat: Infinity,
+                          delay: i * 0.55,
+                          ease: "easeOut",
+                        }
+                  }
                   className="absolute w-[300px] h-[300px] md:w-[380px] md:h-[380px] rounded-full border-2 border-white/70"
                 />
               ))}
@@ -5299,8 +5326,8 @@ export default function App() {
               >
                 <div className="absolute -inset-3 bg-white/40 blur-2xl rounded-full scale-110 pointer-events-none" />
                 <motion.div
-                  animate={{ y: [0, -6, 0] }}
-                  transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+                  animate={prefersReducedMotion ? { y: 0 } : { y: [0, -6, 0] }}
+                  transition={prefersReducedMotion ? { duration: 0 } : { duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
                   className="relative w-36 h-36 md:w-44 md:h-44 rounded-full overflow-hidden bg-white shadow-[0_20px_60px_rgba(0,0,0,0.35),inset_0_2px_0_rgba(255,255,255,0.9)] border-4 border-white/90 p-1.5"
                 >
                   <img
@@ -5310,8 +5337,8 @@ export default function App() {
                   />
                   {/* Shine sweep across the logo */}
                   <motion.div
-                    animate={{ x: ["-120%", "120%"] }}
-                    transition={{ duration: 1.6, repeat: Infinity, repeatDelay: 1.4, ease: "easeInOut" }}
+                    animate={prefersReducedMotion ? { x: "0%" } : { x: ["-120%", "120%"] }}
+                    transition={prefersReducedMotion ? { duration: 0 } : { duration: 1.6, repeat: Infinity, repeatDelay: 1.4, ease: "easeInOut" }}
                     className="absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-white/60 to-transparent pointer-events-none"
                   />
                 </motion.div>
@@ -5598,15 +5625,15 @@ export default function App() {
           </div>
         ) : (
           <div className="flex-1">
-          <Suspense fallback={<div className="p-10 text-center text-sm text-[#5A5A6B] dark:text-[#A3A3B5]">Loading…</div>}>
+          <Suspense fallback={<AppLoadingState label="Loading…" />}>
             <AnimatePresence mode="wait">
               {(activeRoute === "restaurants" || activeRoute === "hotels") ? (
                 <motion.div
                   key="directory-view"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  initial={{ opacity: 0, y: 14, scale: 0.995 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -12, scale: 0.995 }}
+                  transition={motionTransition(prefersReducedMotion, viewTransition)}
                 >
                   <DirectoryView
                     kind={activeRoute === "hotels" ? "hotels" : "restaurants"}
@@ -5624,10 +5651,10 @@ export default function App() {
               ) : activeModule === "food" ? (
                 <motion.div
                   key="food-module-view"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  initial={{ opacity: 0, y: 14, scale: 0.995 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -12, scale: 0.995 }}
+                  transition={motionTransition(prefersReducedMotion, viewTransition)}
                 >
               <>
                 {/* Dadu Food hero banner — Foodpanda-style, richer: headline + rider + 4 service tiles */}
@@ -5637,58 +5664,66 @@ export default function App() {
                     <motion.div
                       aria-hidden="true"
                       className="pointer-events-none absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/25 to-transparent skew-x-[-18deg]"
-                      animate={{ x: ["-160%", "520%"] }}
-                      transition={{ duration: 2.4, repeat: Infinity, repeatDelay: 4.5, ease: "easeInOut" }}
+                      animate={prefersReducedMotion ? { x: "0%" } : { x: ["-160%", "520%"] }}
+                      transition={prefersReducedMotion ? { duration: 0 } : { duration: 2.4, repeat: Infinity, repeatDelay: 4.5, ease: "easeInOut" }}
                     />
                     {/* Headline + rider row */}
                     <div className="relative min-h-[185px] sm:min-h-[220px]">
-                      <img
+                      <motion.img
                         src="/images/home/rider-scooter.jpg"
                         alt="Dadu Food rider delivering fast on a pink scooter"
-                        className="absolute right-0 top-0 h-full w-[56%] sm:w-[48%] lg:w-[38%] object-contain animate-rider-bob"
+                        className="absolute right-0 top-0 h-full w-[56%] sm:w-[48%] lg:w-[38%] object-contain animate-rider-bob will-change-transform"
                         loading="eager"
                         decoding="async"
+                        variants={heroImage}
+                        initial={prefersReducedMotion ? false : "hidden"}
+                        animate="show"
                       />
                       <div className="relative z-10 px-4 sm:px-6 pt-5 sm:pt-7 pb-4 max-w-[62%] sm:max-w-[58%]">
                         <motion.h1
                           aria-label="Dadu Food — Fast Delivery"
                           className="text-[27px] sm:text-4xl font-medium leading-[1.05] text-white tracking-tight"
-                          initial="hidden"
-                          animate="visible"
-                          variants={{
-                            hidden: {},
-                            visible: { transition: { staggerChildren: 0.09, delayChildren: 0.1 } },
-                          }}
+                          initial={prefersReducedMotion ? false : "hidden"}
+                          animate="show"
+                          variants={heroContainer}
                         >
                           {["Dadu", "Food", "—", "Fast", "Delivery"].map((word) => (
                             <motion.span
                               key={word}
-                              className="inline-block mr-[0.28em]"
-                              variants={{
-                                hidden: { opacity: 0, y: 18, scale: 0.94 },
-                                visible: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 320, damping: 24 } },
-                              }}
+                              className="inline-block mr-[0.28em] will-change-transform"
+                              variants={heroWord}
                             >
                               {word}
                             </motion.span>
                           ))}
                         </motion.h1>
-                        <p className="mt-3 flex items-center gap-1.5 text-[12px] sm:text-sm font-medium text-white/95">
+                        <motion.p
+                          className="mt-3 flex items-center gap-1.5 text-[12px] sm:text-sm font-medium text-white/95"
+                          initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={motionTransition(prefersReducedMotion, { ...springGentle, delay: 0.45 })}
+                        >
                           <Clock className="w-4 h-4 shrink-0" />
                           {deliveryTimeTextSetting || "25–35 min"} • COD &amp; Easypaisa
-                        </p>
+                        </motion.p>
                       </div>
                     </div>
-                    <div className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 p-2.5 sm:p-3 pt-1">
-                    <button
+                    <motion.div
+                      className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 p-2.5 sm:p-3 pt-1"
+                      variants={staggerContainer}
+                      initial={prefersReducedMotion ? false : "hidden"}
+                      animate="show"
+                    >
+                    <motion.button
                       type="button"
+                      variants={heroTile}
                       onClick={() => {
                         setActiveModule("food");
                         setQuickFilter("all");
                         setActiveCategory("All");
                         document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth" });
                       }}
-                      className="min-h-[124px] text-left p-4 rounded-2xl bg-white dark:bg-[#14141A] border border-white dark:border-[#272733] hover:border-[#D70F64]/50 shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-[color,background-color,border-color,transform,opacity] duration-180 cursor-pointer active:scale-[0.97] active:brightness-110 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "60ms" }}
+                      className="min-h-[124px] text-left p-4 rounded-2xl bg-white dark:bg-[#14141A] border border-white dark:border-[#272733] hover:border-[#D70F64]/50 shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-[color,background-color,border-color,transform,opacity] duration-180 cursor-pointer active:scale-[0.97] active:brightness-110 flex items-center justify-between gap-2 will-change-transform"
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
@@ -5703,19 +5738,20 @@ export default function App() {
                           <ArrowRight className="w-4 h-4" />
                         </span>
                       </div>
-                      <img
+                      <ShimmerImage
                         src="/images/home/burger-3d.jpg"
                         alt="Crispy burger"
-                        className="w-[68px] h-[68px] sm:w-[96px] sm:h-[96px] rounded-2xl object-contain shrink-0" style={{ animationDelay: "0s" }}
+                        className="w-[68px] h-[68px] sm:w-[96px] sm:h-[96px] rounded-2xl shrink-0"
+                        imgClassName="object-contain"
                         loading="lazy"
-                        decoding="async"
                       />
-                    </button>
+                    </motion.button>
 
-                    <button
+                    <motion.button
                       type="button"
+                      variants={heroTile}
                       onClick={handleGoToGroceryHome}
-                      className="min-h-[124px] text-left p-4 rounded-2xl bg-white dark:bg-[#14141A] border border-white dark:border-[#272733] hover:border-[#D70F64]/50 shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-[color,background-color,border-color,transform,opacity] duration-180 cursor-pointer active:scale-[0.97] active:brightness-110 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "120ms" }}
+                      className="min-h-[124px] text-left p-4 rounded-2xl bg-white dark:bg-[#14141A] border border-white dark:border-[#272733] hover:border-[#D70F64]/50 shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-[color,background-color,border-color,transform,opacity] duration-180 cursor-pointer active:scale-[0.97] active:brightness-110 flex items-center justify-between gap-2 will-change-transform"
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
@@ -5730,23 +5766,24 @@ export default function App() {
                           <ArrowRight className="w-4 h-4" />
                         </span>
                       </div>
-                      <img
+                      <ShimmerImage
                         src="/images/home/grocery-cart-3d.jpg"
                         alt="Grocery cart full of fresh groceries"
-                        className="w-[68px] h-[68px] sm:w-[96px] sm:h-[96px] rounded-2xl object-contain shrink-0" style={{ animationDelay: "0.5s" }}
+                        className="w-[68px] h-[68px] sm:w-[96px] sm:h-[96px] rounded-2xl shrink-0"
+                        imgClassName="object-contain"
                         loading="lazy"
-                        decoding="async"
                       />
-                    </button>
+                    </motion.button>
 
-                    <button
+                    <motion.button
                       type="button"
+                      variants={heroTile}
                       onClick={() => {
                         setActiveModule("food");
                         setQuickFilter("under_300");
                         document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth" });
                       }}
-                      className="min-h-[124px] text-left p-4 rounded-2xl bg-white dark:bg-[#14141A] border border-white dark:border-[#272733] hover:border-[#D70F64]/50 shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-[color,background-color,border-color,transform,opacity] duration-180 cursor-pointer active:scale-[0.97] active:brightness-110 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "180ms" }}
+                      className="min-h-[124px] text-left p-4 rounded-2xl bg-white dark:bg-[#14141A] border border-white dark:border-[#272733] hover:border-[#D70F64]/50 shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-[color,background-color,border-color,transform,opacity] duration-180 cursor-pointer active:scale-[0.97] active:brightness-110 flex items-center justify-between gap-2 will-change-transform"
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
@@ -5761,20 +5798,21 @@ export default function App() {
                           <ArrowRight className="w-4 h-4" />
                         </span>
                       </div>
-                      <img
+                      <ShimmerImage
                         src="/images/home/price-tag-3d.jpg"
                         alt="Discount price tag"
-                        className="w-[68px] h-[68px] sm:w-[96px] sm:h-[96px] rounded-2xl object-contain shrink-0" style={{ animationDelay: "1s" }}
+                        className="w-[68px] h-[68px] sm:w-[96px] sm:h-[96px] rounded-2xl shrink-0"
+                        imgClassName="object-contain"
                         loading="lazy"
-                        decoding="async"
                       />
-                    </button>
+                    </motion.button>
 
-                    <a
+                    <motion.a
                       href={`https://wa.me/${deliverySettings?.whatsappNumber || "923277004471"}?text=Assalam-o-Alaikum%20Dadu%20Food!%20Mera%20WhatsApp%20order%20list%20ye%20hai:`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="min-h-[124px] text-left p-4 rounded-2xl bg-white dark:bg-[#14141A] border border-white dark:border-[#272733] hover:border-[#25D366]/60 shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-[color,background-color,border-color,transform,opacity] duration-180 cursor-pointer active:scale-[0.97] active:brightness-110 flex items-center justify-between gap-2 animate-fade-up" style={{ animationDelay: "240ms" }}
+                      variants={heroTile}
+                      className="min-h-[124px] text-left p-4 rounded-2xl bg-white dark:bg-[#14141A] border border-white dark:border-[#272733] hover:border-[#25D366]/60 shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-[color,background-color,border-color,transform,opacity] duration-180 cursor-pointer active:scale-[0.97] active:brightness-110 flex items-center justify-between gap-2 will-change-transform"
                     >
                       <div className="min-w-0 flex flex-col items-start self-stretch justify-between py-0.5">
                         <div>
@@ -5789,15 +5827,15 @@ export default function App() {
                           <ArrowRight className="w-4 h-4" />
                         </span>
                       </div>
-                      <img
+                      <ShimmerImage
                         src="/images/home/whatsapp-logo.jpg"
                         alt="WhatsApp"
-                        className="w-[68px] h-[68px] sm:w-[96px] sm:h-[96px] rounded-2xl object-contain shrink-0" style={{ animationDelay: "1.5s" }}
+                        className="w-[68px] h-[68px] sm:w-[96px] sm:h-[96px] rounded-2xl shrink-0"
+                        imgClassName="object-contain"
                         loading="lazy"
-                        decoding="async"
                       />
-                    </a>
-                    </div>
+                    </motion.a>
+                    </motion.div>
                   </div>
                 </section>
 
@@ -6102,12 +6140,12 @@ export default function App() {
                         key={deal.id}
                         className="bg-white dark:bg-[#14141A] border border-[#e8e2d6] dark:border-[#272733] rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.05)] flex gap-3 p-3"
                       >
-                        <img
+                        <ShimmerImage
                           src={items[0].dish.imageUrl || "/images/dishes/pizza.jpg"}
                           alt={deal.title}
-                          className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover shrink-0"
+                          className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl shrink-0"
+                          imgClassName="object-cover"
                           loading="lazy"
-                          decoding="async"
                         />
                         <div className="min-w-0 flex-1 flex flex-col">
                           <div className="flex items-center gap-2">
@@ -6652,22 +6690,7 @@ export default function App() {
                     ) : (
                       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
                         {isLoadingDishes
-                        ? Array.from({ length: 8 }).map((_, idx) => (
-                            <div
-                              key={idx}
-                              className="bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-2xl overflow-hidden flex flex-col h-full"
-                            >
-                              <div className="h-28 sm:h-44 skeleton-box shrink-0" />
-                              <div className="p-3 sm:p-4 flex-1 flex flex-col gap-3">
-                                <div className="h-3 w-1/3 skeleton-box rounded-full" />
-                                <div className="h-4 w-3/4 skeleton-box rounded-full" />
-                                <div className="mt-auto flex justify-between items-center pt-2">
-                                  <div className="h-4 w-1/4 skeleton-box rounded-full" />
-                                  <div className="h-10 w-10 skeleton-box rounded-xl" />
-                                </div>
-                              </div>
-                            </div>
-                          ))
+                        ? <MenuSkeleton count={8} />
                         : visibleFoodDishes.map((dish, idx) => {
                             const dishRestaurantName =
                               dish.restaurantName || "Dadu Fast Food & Kitchen";
@@ -6871,10 +6894,10 @@ export default function App() {
         ) : (
           <motion.div
             key="grocery-module-view"
-            initial={{ opacity: 0, y: 14, scale: 0.995 }}
+            initial={{ opacity: 0, y: 16, scale: 0.995 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -14, scale: 0.995 }}
-            transition={{ duration: 0.24, ease: [0.25, 0.1, 0.25, 1.0] }}
+            exit={{ opacity: 0, y: -12, scale: 0.995 }}
+            transition={motionTransition(prefersReducedMotion, viewTransition)}
           >
             {activeRoute === "grocery" && (
               <section className="max-w-7xl mx-auto px-3.5 sm:px-4 pt-3.5">
@@ -6956,8 +6979,8 @@ export default function App() {
         /* TAB 2: Secure Administrative Console Overlay */
         <Suspense
           fallback={
-            <div className="min-h-screen flex items-center justify-center bg-[#09090b] text-zinc-400 font-bold tracking-widest text-sm uppercase">
-              Loading Admin Panel...
+            <div className="min-h-screen flex items-center justify-center bg-[#09090b]">
+              <AppLoadingState label="Loading Admin Panel..." />
             </div>
           }
         >

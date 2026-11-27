@@ -22,6 +22,19 @@
   --color-zinc-900: #14141A;
   --color-zinc-850: #1B1B23;
   --color-zinc-800: #252530;
+
+  /* Premium layered shadows — warm-ink, soft and deep (top-tier food-app
+     feel). Every shadow-* utility in the app resolves to these tokens, so
+     cards, modals and the sticky header all gain depth with no TSX change.
+     Warm rgba(31,27,22) ink keeps shadows inside the warm-paper identity;
+     pink is never used as a shadow tint except on brand surfaces. */
+  --shadow-2xs: 0 1px 1px rgba(31, 27, 22, 0.05);
+  --shadow-xs: 0 1px 2px rgba(31, 27, 22, 0.05), 0 1px 4px rgba(31, 27, 22, 0.04);
+  --shadow-sm: 0 1px 2px rgba(31, 27, 22, 0.05), 0 3px 10px rgba(31, 27, 22, 0.05);
+  --shadow-md: 0 2px 4px rgba(31, 27, 22, 0.05), 0 8px 22px rgba(31, 27, 22, 0.08);
+  --shadow-lg: 0 4px 8px rgba(31, 27, 22, 0.05), 0 16px 36px rgba(31, 27, 22, 0.09);
+  --shadow-xl: 0 8px 16px rgba(31, 27, 22, 0.06), 0 26px 52px rgba(31, 27, 22, 0.11);
+  --shadow-2xl: 0 12px 24px rgba(31, 27, 22, 0.08), 0 36px 72px rgba(31, 27, 22, 0.13);
 }
 
 :root {
@@ -52,8 +65,8 @@
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
+  --border: oklch(0.893 0.012 75);
+  --input: oklch(0.893 0.012 75);
   --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
@@ -101,6 +114,15 @@
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
+  /* Dark-mode shadow tokens: warm ink is invisible on near-black, so the
+     layered shadows switch to pure black with a touch more spread. */
+  --shadow-2xs: 0 1px 1px rgba(0, 0, 0, 0.35);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4), 0 1px 4px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45), 0 3px 10px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.45), 0 8px 22px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.5), 0 16px 36px rgba(0, 0, 0, 0.45);
+  --shadow-xl: 0 8px 16px rgba(0, 0, 0, 0.5), 0 26px 52px rgba(0, 0, 0, 0.5);
+  --shadow-2xl: 0 12px 24px rgba(0, 0, 0, 0.55), 0 36px 72px rgba(0, 0, 0, 0.55);
   --ring: oklch(0.556 0 0);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
@@ -133,6 +155,29 @@
 @layer base {
   h1, h2, h3, h4 {
     font-family: var(--font-display);
+  }
+  /* Premium type hierarchy (base-layer defaults — any Tailwind font-weight /
+     tracking utility on the element still wins). Tight tracked display type
+     for the headline, slightly tighter section titles, tabular figures so
+     prices and totals line up in lists and the cart. */
+  h1 {
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    line-height: 1.08;
+  }
+  h2 {
+    font-weight: 800;
+    letter-spacing: -0.018em;
+    line-height: 1.15;
+  }
+  h3 {
+    font-weight: 700;
+    letter-spacing: -0.012em;
+    line-height: 1.25;
+  }
+  h4 {
+    font-weight: 700;
+    letter-spacing: -0.008em;
   }
   * {
     @apply border-border outline-ring/50;
@@ -490,10 +535,42 @@
 /* Solid pink primary button (brand #E21B70, subtle top highlight) */
 .btn-pink {
   background-color: #E21B70;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 4px 14px rgba(226, 27, 112, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), filter 0.18s ease;
 }
 .btn-pink:hover {
   background-color: #D70F64;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06), 0 8px 22px rgba(226, 27, 112, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  transform: translateY(-1px);
+}
+.btn-pink:active {
+  background-color: #B80C54;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(226, 27, 112, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transform: translateY(0) scale(0.97);
+  filter: brightness(1.05);
+}
+.btn-pink:focus-visible {
+  outline: 2px solid #E21B70;
+  outline-offset: 2px;
+}
+
+/* Sticky header depth — layered warm shadow so the frosted / solid header
+   lifts off the page while scrolling. Scoped to top-0 sticky elements only
+   (the app header, mobile pink header, category bar); the bottom cart bar
+   (sticky bottom-0) and the admin sidebar card (top-20) are untouched. */
+[class*="sticky"][class*="top-0"] {
+  box-shadow: 0 1px 2px rgba(31, 27, 22, 0.06), 0 10px 28px rgba(31, 27, 22, 0.09);
+}
+.dark [class*="sticky"][class*="top-0"] {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 28px rgba(0, 0, 0, 0.45);
+}
+
+/* Solid-pink pill chips / badges (offers, categories, ratings): a soft
+   brand-coloured lift + top sheen so they read as premium, never flat.
+   Pink stays solid #E21B70 — no gradient on the fill itself. */
+[class*="bg-[#E21B70]"][class*="rounded-full"],
+[class*="bg-[#D70F64]"][class*="rounded-full"] {
+  box-shadow: 0 2px 8px rgba(226, 27, 112, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
 /* Premium 3D + Soft Glass (branding: frosted-glass surfaces, deep 3D lift) */
@@ -501,8 +578,8 @@
   background: rgba(255, 255, 255, 0.74);
   -webkit-backdrop-filter: blur(16px) saturate(1.5);
   backdrop-filter: blur(16px) saturate(1.5);
-  border: 1px solid rgba(255, 255, 255, 0.65);
-  box-shadow: 0 10px 30px rgba(215, 15, 100, 0.10), 0 2px 8px rgba(20, 20, 26, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(232, 226, 214, 0.85);
+  box-shadow: 0 1px 2px rgba(31, 27, 22, 0.05), 0 10px 30px rgba(31, 27, 22, 0.08), 0 2px 8px rgba(31, 27, 22, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 .glass-pink {
   background: rgba(226, 27, 112, 0.82);
@@ -512,7 +589,7 @@
   box-shadow: 0 10px 28px rgba(215, 15, 100, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 .glass-lift {
-  box-shadow: 0 14px 34px rgba(215, 15, 100, 0.14), 0 4px 12px rgba(20, 20, 26, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 -1px 0 rgba(215, 15, 100, 0.08);
+  box-shadow: 0 1px 2px rgba(31, 27, 22, 0.05), 0 14px 34px rgba(31, 27, 22, 0.10), 0 4px 12px rgba(31, 27, 22, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 -1px 0 rgba(226, 27, 112, 0.06);
 }
 
 /* ============================================================================
@@ -824,6 +901,10 @@ html {
 
 body {
   background-color: var(--df-canvas);
+  /* Whisper-warm paper: a barely-there vertical wash from cream to the
+     #f7f4ee canvas. Warm tones only — no pink, no gloss, no banding. */
+  background-image: linear-gradient(180deg, #fbf8f1 0%, #f7f4ee 220px, #f7f4ee 100%);
+  background-attachment: fixed;
   color: var(--df-ink);
   font-family: var(--font-sans);
   max-width: 100vw;
@@ -841,6 +922,7 @@ body {
 
 body.dark {
   background-color: #0B0B0F;
+  background-image: none;
   color: #F5F5F8;
 }
 
