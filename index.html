@@ -172,6 +172,27 @@
             try {
               navigator.serviceWorker.register('/sw.js').then((reg) => {
                 console.log('ServiceWorker registered successfully:', reg.scope);
+                // AUTO-UPDATE: whenever a new version is deployed, the phone
+                // must pick it up by itself — the user should never have to
+                // clear cache or close/reopen the app to see the latest
+                // design. Check for a new service worker whenever the app
+                // becomes visible again and every 5 minutes while open.
+                const checkForUpdate = () => {
+                  try { reg.update().catch(() => {}); } catch (e) {}
+                };
+                document.addEventListener('visibilitychange', () => {
+                  if (!document.hidden) checkForUpdate();
+                });
+                setInterval(checkForUpdate, 5 * 60 * 1000);
+                // When the new service worker takes control, reload once so
+                // the fresh version (new bundle, new images) shows at once.
+                let refreshing = false;
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                  if (!refreshing) {
+                    refreshing = true;
+                    window.location.reload();
+                  }
+                });
               }).catch((err) => {
                 console.warn('ServiceWorker registration failed:', err);
               });
