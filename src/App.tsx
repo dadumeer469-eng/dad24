@@ -5454,7 +5454,8 @@ export default function App() {
                 area: currentUser.savedLocation.area,
                 street: currentUser.savedLocation.street || "",
               }
-            : manualAddress || undefined
+            : manualAddress ||
+              (globalCoords ? { area: "GPS Live Location · Dadu", street: "" } : undefined)
         }
       />
 
