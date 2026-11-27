@@ -60,8 +60,38 @@ function calculateHaversineDistance(lat1: number, lon1: number, lat2: number, lo
 }
 
 const OSM_TILE_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+// CartoDB light tiles (fast global CDN) — fallback when OSM tiles fail.
+const CARTO_TILE_URL =
+  "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
 const OSM_ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+
+// Tile layer that falls back to the CartoDB CDN when OpenStreetMap tiles
+// fail (user 28 Nov 04:20 — "kahi kahi map show nhi ho rahe"). After 3
+// failed tiles it swaps the source so the map shows instead of staying
+// grey on a slow/flaky mobile connection.
+function ResilientTileLayer() {
+  const [url, setUrl] = useState(OSM_TILE_URL);
+  const errorCount = useRef(0);
+  return (
+    <TileLayer
+      url={url}
+      attribution={
+        url === OSM_TILE_URL
+          ? OSM_ATTRIBUTION
+          : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+      }
+      eventHandlers={{
+        tileerror: () => {
+          errorCount.current += 1;
+          if (errorCount.current >= 3 && url === OSM_TILE_URL) {
+            setUrl(CARTO_TILE_URL);
+          }
+        },
+      }}
+    />
+  );
+}
 
 function DeliveryRouteLayer({
   origin,
@@ -118,19 +148,25 @@ function DeliveryRouteLayer({
       fitBothMarkers();
     };
 
-    // Free OSRM routing (no key). Falls back to a straight line on any failure.
+    // Free OSRM routing (no key) — the Foodpanda-style STREET route.
+    // Falls back to a straight line only if BOTH attempts fail. The fetch
+    // has an 8s timeout and ONE retry (user 28 Nov 04:20 — the rider route
+    // showed a straight line instead of the street route, because a single
+    // failed OSRM call on a flaky mobile connection fell straight back to
+    // the line). The retry makes the street route appear far more often.
     const url =
       `https://router.project-osrm.org/route/v1/driving/${origin.lng},${origin.lat};` +
       `${destination.lng},${destination.lat}?overview=full&geometries=geojson`;
-    fetch(url)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
+    const fetchRoute = async (attempt: number): Promise<void> => {
+      try {
+        const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+        if (!res.ok) throw new Error(`OSRM ${res.status}`);
+        const data = await res.json();
         if (cancelled) return;
         const route = data?.routes?.[0];
         const coords = route?.geometry?.coordinates;
         if (!route || !Array.isArray(coords) || coords.length === 0) {
-          drawFallbackLine();
-          return;
+          throw new Error("OSRM no route");
         }
         // OSRM returns [lng, lat] pairs; Leaflet wants [lat, lng].
         setRouteCoords(
@@ -140,10 +176,19 @@ function DeliveryRouteLayer({
         const mins = Math.max(3, Math.round((route.duration || 0) / 60));
         onRouteMetrics(km, mins);
         fitBothMarkers();
-      })
-      .catch(() => {
-        if (!cancelled) drawFallbackLine();
-      });
+      } catch {
+        if (cancelled) return;
+        if (attempt === 0) {
+          // One retry after a short pause (flaky mobile data often works
+          // on the second try) before giving up to the straight line.
+          await new Promise((r) => setTimeout(r, 1500));
+          if (!cancelled) await fetchRoute(1);
+        } else {
+          drawFallbackLine();
+        }
+      }
+    };
+    fetchRoute(0);
 
     return () => {
       cancelled = true;
@@ -211,7 +256,7 @@ function TrackerMapCanvas({
       zoomControl={false}
       style={{ width: "100%", height: "100%" }}
     >
-      <TileLayer url={OSM_TILE_URL} attribution={OSM_ATTRIBUTION} />
+      <ResilientTileLayer />
       <DeliveryRouteLayer
         origin={riderPos}
         destination={destPos}
