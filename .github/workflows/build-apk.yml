@@ -46,6 +46,12 @@ jobs:
       - name: Add Android platform
         run: npx cap add android
 
+      - name: Generate app icon + splash screen (professional branding)
+        # Reads assets/icon.png, assets/icon-background.png, assets/splash.png
+        # (the real Dadu Food logo) and writes all Android launcher icons
+        # + splash drawables into android/app/src/main/res/.
+        run: npx @capacitor/assets generate --android
+
       - name: Sync web code into Android project
         run: npx cap sync android
 
