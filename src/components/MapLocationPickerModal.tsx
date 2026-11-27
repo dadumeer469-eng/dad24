@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { motion } from "motion/react";
+import { springSmooth } from "../utils/motion";
 import L from "leaflet";
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-leaflet";
 import { MapPin, Navigation, Search, Check, X, Compass, Loader2 } from "lucide-react";
@@ -435,8 +437,11 @@ export default function MapLocationPickerModal({
       aria-label={title}
       onClick={onClose}
     >
-      <div
-        className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[92vh] animate-scale-up"
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 16 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={springSmooth}
+        className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -559,7 +564,7 @@ export default function MapLocationPickerModal({
             </button>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

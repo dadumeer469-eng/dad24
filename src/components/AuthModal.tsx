@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
+import { motion } from "motion/react";
+import { springSmooth } from "../utils/motion";
 import { X, Phone, ArrowRight, UserCog, Key, ShieldCheck, RefreshCw, ArrowLeft, Loader2 } from "lucide-react";
 import {
   RecaptchaVerifier,
@@ -286,7 +288,12 @@ export default function AuthModal({
         className="absolute inset-0 bg-black/75 backdrop-blur-sm animate-fade-in"
         onClick={onClose}
       />
-      <div className="relative w-full sm:max-w-sm bg-white dark:bg-[#14141A] rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl border border-[#E6E6EE] dark:border-[#272733] animate-sheet-up sm:animate-scale-up">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 16 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={springSmooth}
+        className="relative w-full sm:max-w-sm bg-white dark:bg-[#14141A] rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl border border-[#E6E6EE] dark:border-[#272733]"
+      >
         <button
           type="button"
           onClick={() => {
@@ -532,7 +539,7 @@ export default function AuthModal({
           {/* Invisible Firebase reCAPTCHA container */}
           <div id="dadu-recaptcha-container" ref={recaptchaContainerRef} />
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

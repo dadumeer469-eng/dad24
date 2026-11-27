@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { motion } from "motion/react";
+import { springSmooth } from "../utils/motion";
 import { MapPin, Navigation, Edit3, CheckCircle2, Map } from "lucide-react";
 
 interface LocationPermissionModalProps {
@@ -46,7 +48,12 @@ export default function LocationPermissionModal({
       aria-modal="true"
       aria-labelledby="location-prompt-heading"
     >
-      <div className="bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-t-3xl sm:rounded-3xl p-6 max-w-sm w-full shadow-2xl relative animate-sheet-up sm:animate-scale-up space-y-5">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 16 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={springSmooth}
+        className="bg-white dark:bg-[#14141A] border border-[#E6E6EE] dark:border-[#272733] rounded-t-3xl sm:rounded-3xl p-6 max-w-sm w-full shadow-2xl relative space-y-5"
+      >
         <div className="w-10 h-1 rounded-full bg-zinc-300 dark:bg-zinc-700 mx-auto sm:hidden" />
 
         <div className="w-16 h-16 bg-[#FFF0F5] dark:bg-[#2A101B] rounded-2xl flex items-center justify-center mx-auto border border-[#E21B70]/20">
@@ -144,7 +151,7 @@ export default function LocationPermissionModal({
             </button>
           )}
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { motion } from "motion/react";
+import { springSmooth } from "../utils/motion";
 import { X, User, MapPin, CreditCard, Bell, Globe, Plus, Trash2, Check, Save } from "lucide-react";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "../firebase";
@@ -161,7 +163,12 @@ export const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[120] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 16 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={springSmooth}
+        className="w-full max-w-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
           <div>
@@ -464,7 +471,7 @@ export const CustomerSettingsModal: React.FC<CustomerSettingsModalProps> = ({
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };

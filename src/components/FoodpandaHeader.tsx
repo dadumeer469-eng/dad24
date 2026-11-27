@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
+import { motion } from "motion/react";
+import { springSnappy } from "../utils/motion";
 import { UserProfile, AppNotification, Order } from "../types";
 import { Search, ShoppingCart, User, LogOut, Bell, ShieldAlert, BadgeCheck, History, Heart, RotateCcw, Sun, Moon, X, Settings, MapPin, ChevronDown, Mic, Lock, Coins, UtensilsCrossed } from "lucide-react";
 import { formatOrderId } from "../utils/catalogNormalizer";
@@ -165,29 +167,50 @@ export default function FoodpandaHeader({
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Food / Groceries segmented switch (Foodpanda-style, with grocery basket badge)
-  const moduleSwitch = (
+  // Food / Groceries segmented switch (Foodpanda-style, with grocery basket badge).
+  // The pink pill is a shared-layout element (layoutId) so it SLIDES between
+  // Food Delivery and Groceries instead of snapping. pillId is distinct per
+  // instance (mobile + desktop headers both mount it) so the two never fight.
+  const renderModuleSwitch = (pillId: string) => (
     <div className="bg-white rounded-full p-1 flex shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
       <button
         type="button"
         onClick={() => switchModule("food")}
         aria-pressed={activeModule === "food"}
-        className={`flex-1 min-h-[40px] rounded-full text-[13px] sm:text-sm font-medium flex items-center justify-center gap-1.5 transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer ${activeModule === "food" ? "bg-[#E21B70] text-white" : "text-[#5e554a]"}`}
+        className={`relative flex-1 min-h-[40px] rounded-full text-[13px] sm:text-sm font-medium flex items-center justify-center gap-1.5 transition-[color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer ${activeModule === "food" ? "text-white" : "text-[#5e554a]"}`}
       >
-        <UtensilsCrossed className="w-4 h-4 shrink-0 stroke-[1.5]" /> Food Delivery
+        {activeModule === "food" && (
+          <motion.span
+            layoutId={pillId}
+            className="absolute inset-0 rounded-full bg-[#E21B70]"
+            transition={springSnappy}
+          />
+        )}
+        <span className="relative z-10 flex items-center justify-center gap-1.5">
+          <UtensilsCrossed className="w-4 h-4 shrink-0 stroke-[1.5]" /> Food Delivery
+        </span>
       </button>
       <button
         type="button"
         onClick={() => switchModule("grocery")}
         aria-pressed={activeModule === "grocery"}
-        className={`flex-1 min-h-[40px] rounded-full text-[13px] sm:text-sm font-medium flex items-center justify-center gap-1.5 transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer ${activeModule === "grocery" ? "bg-[#E21B70] text-white" : "text-[#5e554a]"}`}
+        className={`relative flex-1 min-h-[40px] rounded-full text-[13px] sm:text-sm font-medium flex items-center justify-center gap-1.5 transition-[color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer ${activeModule === "grocery" ? "text-white" : "text-[#5e554a]"}`}
       >
-        <ShoppingCart className="w-4 h-4 shrink-0 stroke-[1.5]" /> Groceries
-        {groceryCartCount > 0 && (
-          <span className={`text-[10px] font-semibold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center tabular-nums ${activeModule === "grocery" ? "bg-white text-[#D70F64]" : "bg-[#D70F64] text-white"}`}>
-            {groceryCartCount}
-          </span>
+        {activeModule === "grocery" && (
+          <motion.span
+            layoutId={pillId}
+            className="absolute inset-0 rounded-full bg-[#E21B70]"
+            transition={springSnappy}
+          />
         )}
+        <span className="relative z-10 flex items-center justify-center gap-1.5">
+          <ShoppingCart className="w-4 h-4 shrink-0 stroke-[1.5]" /> Groceries
+          {groceryCartCount > 0 && (
+            <span className={`text-[10px] font-semibold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center tabular-nums ${activeModule === "grocery" ? "bg-white text-[#D70F64]" : "bg-[#D70F64] text-white"}`}>
+              {groceryCartCount}
+            </span>
+          )}
+        </span>
       </button>
     </div>
   );
@@ -793,13 +816,13 @@ export default function FoodpandaHeader({
           )}
         </div>
         {/* Food / Groceries segmented switch */}
-        <div className="mt-2.5">{moduleSwitch}</div>
+        <div className="mt-2.5">{renderModuleSwitch("module-pill-mobile")}</div>
       </div>
 
       {/* Desktop Food / Groceries segmented switch */}
       <div className="hidden sm:block bg-[#E21B70] px-4 pb-3">
         <div className="max-w-7xl mx-auto">
-          <div className="mx-auto max-w-lg">{moduleSwitch}</div>
+          <div className="mx-auto max-w-lg">{renderModuleSwitch("module-pill-desktop")}</div>
         </div>
       </div>
 

@@ -1,4 +1,6 @@
 import React, { useRef, useEffect, useState } from "react";
+import { motion } from "motion/react";
+import { springSmooth } from "../utils/motion";
 import { X, Printer, Send, Download, Copy, Check, Share2, Receipt } from "lucide-react";
 import { formatOrderId } from "../utils/catalogNormalizer";
 
@@ -240,7 +242,12 @@ For help or inquiries, contact us on WhatsApp.`;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col my-auto max-h-[92vh] animate-in fade-in zoom-in-95 duration-200">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 16 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={springSmooth}
+        className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col my-auto max-h-[92vh]"
+      >
         {/* Header */}
         <div className="bg-gradient-to-r from-[#E21B70] to-[#C2145E] text-white px-5 py-4 flex items-center justify-between shrink-0 shadow-md">
           <div className="flex items-center gap-2">
@@ -316,7 +323,7 @@ For help or inquiries, contact us on WhatsApp.`;
             Open WhatsApp Chat
           </button>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

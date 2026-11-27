@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { motion } from "motion/react";
+import { springSmooth } from "../utils/motion";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
@@ -579,7 +581,12 @@ export default function CartDrawer({
       {/* Tap space to slide out drawer */}
       <div className="flex-1" onClick={onClose}></div>
 
-      <div className="w-full max-w-md bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 h-full flex flex-col shadow-2xl border-l border-zinc-200 dark:border-zinc-800 animate-slide-in">
+      <motion.div
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        transition={springSmooth}
+        className="w-full max-w-md bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 h-full flex flex-col shadow-2xl border-l border-zinc-200 dark:border-zinc-800"
+      >
         
         {/* Banner with close */}
         <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 flex items-center justify-between shadow-xs">
@@ -1670,7 +1677,7 @@ export default function CartDrawer({
           </div>
         )}
 
-      </div>
+      </motion.div>
 
       {/* USER VOUCHERS MODAL */}
       <UserVouchersModal

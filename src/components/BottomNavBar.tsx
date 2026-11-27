@@ -1,4 +1,6 @@
 import React from "react";
+import { motion } from "motion/react";
+import { springSnappy } from "../utils/motion";
 import { Utensils, Store, Search, ShoppingBag, User, ChevronRight } from "lucide-react";
 
 interface BottomNavBarProps {
@@ -146,10 +148,14 @@ export default function BottomNavBar({
             aria-current={activeModule === "food" ? "page" : undefined}
             className="min-h-[48px] flex flex-col items-center justify-center gap-1 text-center relative select-none cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110"
           >
-            <span
-              aria-hidden="true"
-              className={`absolute top-0 left-1/2 -translate-x-1/2 w-10 h-[3px] rounded-b-full bg-[#D70F64] transition-[opacity,transform] duration-300 ${activeModule === "food" ? "opacity-100 scale-x-100" : "opacity-0 scale-x-50"}`}
-            />
+            {activeModule === "food" && (
+              <motion.span
+                layoutId="nav-indicator"
+                aria-hidden="true"
+                className="absolute top-0 left-0 right-0 mx-auto w-10 h-[3px] rounded-b-full bg-[#D70F64]"
+                transition={springSnappy}
+              />
+            )}
             <Utensils
               className={`w-5 h-5 stroke-[1.5] transition-[color,background-color,border-color,transform,opacity] duration-300 ${
                 activeModule === "food"
@@ -176,10 +182,14 @@ export default function BottomNavBar({
             aria-current={activeModule === "grocery" ? "page" : undefined}
             className="min-h-[48px] flex flex-col items-center justify-center gap-1 text-center relative select-none cursor-pointer transition-transform duration-180 active:scale-[0.97] active:brightness-110"
           >
-            <span
-              aria-hidden="true"
-              className={`absolute top-0 left-1/2 -translate-x-1/2 w-10 h-[3px] rounded-b-full bg-[#D70F64] transition-[opacity,transform] duration-300 ${activeModule === "grocery" ? "opacity-100 scale-x-100" : "opacity-0 scale-x-50"}`}
-            />
+            {activeModule === "grocery" && (
+              <motion.span
+                layoutId="nav-indicator"
+                aria-hidden="true"
+                className="absolute top-0 left-0 right-0 mx-auto w-10 h-[3px] rounded-b-full bg-[#D70F64]"
+                transition={springSnappy}
+              />
+            )}
             <Store
               className={`w-5 h-5 stroke-[1.5] transition-[color,background-color,border-color,transform,opacity] duration-300 ${
                 activeModule === "grocery"
