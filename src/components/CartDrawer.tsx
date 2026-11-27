@@ -43,6 +43,7 @@ interface CartDrawerProps {
   currentUser: UserProfile | null;
   onOpenAuth: () => void;
   deliveryFee: number; // Stored inside Firestore settings!
+  isFirstOrderFreeDelivery?: boolean; // New user's first order ships FREE (food/grocery/medicine)
   onPlaceOrder: (details: {
     name: string;
     phone: string;
@@ -79,6 +80,7 @@ export default function CartDrawer({
   currentUser,
   onOpenAuth,
   deliveryFee,
+  isFirstOrderFreeDelivery,
   onPlaceOrder,
   onAddDrink,
   popularDishes = [],
@@ -287,8 +289,13 @@ export default function CartDrawer({
   const easypaisaNumber = systemSettings?.easypaisaNumber || "03277004471";
   const isFreeFoodDelivery = hasFood && totalFoodItemsPrice >= freeDeliveryAbove;
   const isDoubleFee = hasFood && doubleFeeBelow > 0 && totalFoodItemsPrice < doubleFeeBelow;
+  // First-order FREE delivery (user decision 27 Nov 2026): a signed-in user
+  // with zero previous orders pays no delivery fee on their first order.
+  const isFirstOrderFree = isFirstOrderFreeDelivery === true && !!currentUser;
   const standardFee = deliveryFee > 0 ? deliveryFee : 50;
   const baseDeliveryFee = !hasFood
+    ? 0
+    : isFirstOrderFree
     ? 0
     : isFreeFoodDelivery
     ? 0
@@ -300,7 +307,7 @@ export default function CartDrawer({
     !hasFood || effectiveSpeed === "standard"
       ? 0
       : priorityFee;
-  const finalDeliveryFee = Math.max(0, baseDeliveryFee + speedFeeAdjustment);
+  const finalDeliveryFee = isFirstOrderFree ? 0 : Math.max(0, baseDeliveryFee + speedFeeAdjustment);
 
   // Base total before any discounts (items + delivery + optional rider tip)
   const baseOrderTotal = totalFoodItemsPrice + finalDeliveryFee + riderTip;
@@ -1602,7 +1609,11 @@ export default function CartDrawer({
                 <span className="text-zinc-900 dark:text-zinc-100 font-extrabold">
                   {finalDeliveryFee === 0 ? (
                     <span className="text-emerald-600 dark:text-emerald-400 font-black">
-                      {isFreeFoodDelivery ? `FREE (Order ≥ Rs. ${freeDeliveryAbove.toLocaleString()})` : "FREE (Home Service Booking)"}
+                      {isFirstOrderFree
+                        ? "FREE delivery — first order"
+                        : isFreeFoodDelivery
+                          ? `FREE (Order ≥ Rs. ${freeDeliveryAbove.toLocaleString()})`
+                          : "FREE (Home Service Booking)"}
                     </span>
                   ) : (
                     <span className="font-mono">Rs. {finalDeliveryFee}</span>

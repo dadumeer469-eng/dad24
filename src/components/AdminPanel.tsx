@@ -629,6 +629,9 @@ export default function AdminPanel({
   const [messageOnArrivalEnabledInput, setMessageOnArrivalEnabledInput] = useState(
     deliverySettings?.messageOnArrivalEnabled !== false,
   );
+  const [firstOrderFreeDeliveryInput, setFirstOrderFreeDeliveryInput] = useState(
+    deliverySettings?.firstOrderFreeDelivery !== false,
+  );
 
   // Maintenance Mode States
   const [isMaintenanceMode, setIsMaintenanceMode] = useState(
@@ -757,6 +760,7 @@ export default function AdminPanel({
       setCutleryEnabledInput(deliverySettings.cutleryEnabled !== false);
       setLeaveAtDoorEnabledInput(deliverySettings.leaveAtDoorEnabled !== false);
       setMessageOnArrivalEnabledInput(deliverySettings.messageOnArrivalEnabled !== false);
+      setFirstOrderFreeDeliveryInput(deliverySettings.firstOrderFreeDelivery !== false);
 
       // Initialize loyalty parameters
       setLoyaltyEnabled(deliverySettings.loyaltyEnabled !== false);
@@ -2249,6 +2253,7 @@ export default function AdminPanel({
         cutleryEnabled: cutleryEnabledInput,
         leaveAtDoorEnabled: leaveAtDoorEnabledInput,
         messageOnArrivalEnabled: messageOnArrivalEnabledInput,
+        firstOrderFreeDelivery: firstOrderFreeDeliveryInput,
         // Keep legacy for safety
         restaurantStatus: deliverySettings?.restaurantStatus || {
           isTemporarilyUnavailable: false,
@@ -6839,6 +6844,7 @@ export default function AdminPanel({
                           { label: "Cutlery option dikhao", value: cutleryEnabledInput, set: setCutleryEnabledInput },
                           { label: "Leave at door dikhao", value: leaveAtDoorEnabledInput, set: setLeaveAtDoorEnabledInput },
                           { label: "Message on arrival dikhao", value: messageOnArrivalEnabledInput, set: setMessageOnArrivalEnabledInput },
+                          { label: "First order FREE delivery", value: firstOrderFreeDeliveryInput, set: setFirstOrderFreeDeliveryInput },
                         ]).map((t) => (
                           <label key={t.label} className="flex items-center gap-2 glass-dark border border-white/10 rounded-xl px-3 py-2.5 cursor-pointer text-xs font-bold text-white/80">
                             <input type="checkbox" checked={t.value} onChange={(e) => t.set(e.target.checked)} className="accent-[#E21B70] w-4 h-4" />

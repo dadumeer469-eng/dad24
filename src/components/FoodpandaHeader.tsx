@@ -566,7 +566,7 @@ export default function FoodpandaHeader({
                     <div className="mt-2 w-full bg-[#E21B70] rounded-xl p-2 text-white flex items-center justify-between text-[10px] font-sans">
                       <span className="font-medium flex items-center gap-1"><Coins className="w-3 h-3 shrink-0" /> Coin Benefit Wallet:</span>
                       <span className="font-semibold bg-white text-[#D70F64] px-1.5 py-0.5 rounded-md text-[9px]">
-                        Rs. {user.loyaltyCoins ?? (user.ordersCount || 0) * 15}
+                        Rs. {user.loyaltyCoins ?? 0}
                       </span>
                     </div>
                   </div>

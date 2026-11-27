@@ -43,6 +43,7 @@ interface GroceryCartDrawerProps {
   currentUser: UserProfile | null;
   onOpenAuth: () => void;
   deliveryConfig: GroceryDeliveryConfig;
+  isFirstOrderFreeDelivery?: boolean; // New user's first order ships FREE (food/grocery/medicine)
   onPlaceGroceryOrder: (details: {
     name: string;
     phone: string;
@@ -79,6 +80,7 @@ export default function GroceryCartDrawer({
   currentUser,
   onOpenAuth,
   deliveryConfig,
+  isFirstOrderFreeDelivery,
   onPlaceGroceryOrder,
   userCoords,
   systemSettings,
@@ -304,7 +306,12 @@ export default function GroceryCartDrawer({
     : (deliveryConfig?.baseDeliveryFee || 0) > 0 ? deliveryConfig.baseDeliveryFee : 50;
   const isDoubleFee = doubleFeeBelow > 0 && totalGroceryPrice < doubleFeeBelow;
   const deliveryFeeRate = isDoubleFee ? baseDeliveryFee * 2 : baseDeliveryFee;
+  // First-order FREE delivery (user decision 27 Nov 2026): a signed-in user
+  // with zero previous orders pays no delivery fee on their first order.
+  const isFirstOrderFree = isFirstOrderFreeDelivery === true && !!currentUser;
   const deliveryBaseFee = !deliveryRequired
+    ? 0
+    : isFirstOrderFree
     ? 0
     : isFreeDelivery
     ? 0
@@ -320,7 +327,7 @@ export default function GroceryCartDrawer({
   ].filter((o) => o.enabled);
   const effectiveSpeed = speedOptions.some((o) => o.id === deliverySpeed) ? deliverySpeed : "standard";
   const speedFeeAdjustment = effectiveSpeed === "priority" ? priorityFee : 0;
-  const finalDeliveryFee = Math.max(0, deliveryBaseFee + speedFeeAdjustment);
+  const finalDeliveryFee = isFirstOrderFree ? 0 : Math.max(0, deliveryBaseFee + speedFeeAdjustment);
   const showDeliveryPreferences =
     systemSettings?.leaveAtDoorEnabled !== false ||
     systemSettings?.messageOnArrivalEnabled !== false ||
@@ -1485,9 +1492,11 @@ export default function GroceryCartDrawer({
                   {/* M19: "FREE" only when nothing is actually charged. With
                       Priority selected the fee is Rs. 30 even on a free-
                       delivery order, so show the real fee instead. */}
-                  {isFreeDelivery && finalDeliveryFee === 0 ? (
+                  {finalDeliveryFee === 0 && (isFirstOrderFree || isFreeDelivery) ? (
                     <span className="text-emerald-600 dark:text-emerald-400 font-black">
-                      FREE (Order ≥ Rs. {freeThreshold.toLocaleString()})
+                      {isFirstOrderFree
+                        ? "FREE delivery — first order"
+                        : `FREE (Order ≥ Rs. ${freeThreshold.toLocaleString()})`}
                     </span>
                   ) : (
                     <span className="font-mono">Rs. {finalDeliveryFee}</span>
