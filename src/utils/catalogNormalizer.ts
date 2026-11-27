@@ -263,6 +263,7 @@ const DISH_IMAGE_MAP = {
   shawarma: "/images/dishes/shawarma.jpg",
   fries: "/images/dishes/fries.jpg",
   salad: "/images/dishes/salad.jpg",
+  sabzi: "/images/dishes/sabzi.jpg",
   steak: "/images/dishes/steak.jpg",
   chai: "/images/dishes/chai.jpg",
   greenTea: "/images/dishes/green-tea.jpg",
@@ -290,15 +291,15 @@ function pickFallbackPhotoByName(name: string): string {
   if (name.includes("steak") || name.includes("ribeye") || name.includes("tenderloin")) return DISH_IMAGE_MAP.steak;
   if (name.includes("green tea") || name.includes("kehwa") || name.includes("kahwa")) return DISH_IMAGE_MAP.greenTea;
   if (name.includes("chai") || name.includes("tea")) return DISH_IMAGE_MAP.chai;
-  if (name.includes("coffee")) return DISH_IMAGE_MAP.chai;
+  if (name.includes("coffee") || name.includes("cold brew")) return DISH_IMAGE_MAP.chai;
   if (name.includes("paratha")) return DISH_IMAGE_MAP.paratha;
   if (name.includes("naan") || name.includes("roti") || name.includes("chapati")) return DISH_IMAGE_MAP.naan;
   if (name.includes("biryani") || name.includes("pulao")) return DISH_IMAGE_MAP.biryani;
   if (name.includes("seekh")) return DISH_IMAGE_MAP.seekhKabab;
-  if (name.includes("karahi") || name.includes("handi") || name.includes("nihari") || name.includes("desi")) return DISH_IMAGE_MAP.karahi;
+  if (name.includes("karahi") || name.includes("handi") || name.includes("nihari") || name.includes("desi") || name.includes("keema") || name.includes("qeema") || name.includes("qorma") || name.includes("korma")) return DISH_IMAGE_MAP.karahi;
   if (name.includes("tikka") || name.includes("kabab") || name.includes("bbq") || name.includes("malai boti")) return DISH_IMAGE_MAP.bbq;
-  if (name.includes("lasagna")) return DISH_IMAGE_MAP.lasagna;
-  if (name.includes("pasta") || name.includes("alfredo") || name.includes("chowmein")) return DISH_IMAGE_MAP.pasta;
+  if (name.includes("lasagna") || name.includes("lazania") || name.includes("lazina")) return DISH_IMAGE_MAP.lasagna;
+  if (name.includes("pasta") || name.includes("alfredo") || name.includes("chowmein") || name.includes("fettuccine")) return DISH_IMAGE_MAP.pasta;
   if (name.includes("sandwich")) return DISH_IMAGE_MAP.sandwich;
   if (name.includes("shawarma")) return DISH_IMAGE_MAP.shawarma;
   if (name.includes("roll") || name.includes("wrap")) return DISH_IMAGE_MAP.roll;
@@ -308,9 +309,10 @@ function pickFallbackPhotoByName(name: string): string {
   if (name.includes("samosa") || name.includes("pakora")) return DISH_IMAGE_MAP.fries;
   if (name.includes("fries")) return DISH_IMAGE_MAP.fries;
   if (name.includes("raita") || name.includes("dahi")) return DISH_IMAGE_MAP.salad;
+  if (name.includes("sabzi")) return DISH_IMAGE_MAP.sabzi;
   if (name.includes("salad")) return DISH_IMAGE_MAP.salad;
   if (name.includes("cheesecake") || name.includes("cake") || name.includes("dessert") || name.includes("brownie") || name.includes("kheer") || name.includes("gulab jamun") || name.includes("ice cream") || name.includes("halwa") || name.includes("sweet")) return DISH_IMAGE_MAP.cheesecake;
-  if (name.includes("shake") || name.includes("lassi")) return DISH_IMAGE_MAP.shake;
+  if (name.includes("shake") || name.includes("lassi") || name.includes("mojito") || name.includes("mocktail") || name.includes("beverage")) return DISH_IMAGE_MAP.shake;
   return DISH_IMAGE_MAP.pizza;
 }
 
@@ -318,9 +320,12 @@ export function resolveAccurateDishImage(dish: Partial<Dish>): string {
   const name = `${dish.name || ""} ${dish.category || ""}`.toLowerCase();
   const img = (dish.imageUrl || "").trim();
 
-  // Blanket rule: never serve an Unsplash photo — the allow-list below
-  // cannot cover every Unsplash URL. Fall back to a local dish photo.
-  if (img.includes("unsplash.com")) {
+  // Round 2 blanket rule: never serve an external hotlink as a dish photo.
+  // Google thumbnails, blog/Pinterest images, YouTube stills and data: URIs
+  // are low-res or wrong-dish risks, and Unsplash URLs were the same problem
+  // in Round 1. Only our own local photos are trusted — everything else
+  // falls back to a local dish photo chosen by name.
+  if (!img.startsWith("/")) {
     return pickFallbackPhotoByName(name);
   }
 
