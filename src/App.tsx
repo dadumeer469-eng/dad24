@@ -93,6 +93,7 @@ import {
   syncPageSeo,
   slugifyShop,
   DADU_FOOD_BUSINESS,
+  DADU_FOOD_FAQS,
   InfoPageSlug,
 } from "./utils/seoManager";
 
@@ -6339,7 +6340,7 @@ export default function App() {
                   </div>
                 </section>
 
-                {/* Delivery areas in Dadu — homepage copy (SEO: real delivery areas, no FAQ section) */}
+                {/* Delivery areas in Dadu — homepage copy (SEO: real delivery areas) */}
                 <section className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-6">
                   <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-4 border border-[#e8e2d6] dark:border-[#272733] shadow-xs">
                     <h2 className="text-sm sm:text-base font-semibold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
@@ -6359,6 +6360,35 @@ export default function App() {
                         >
                           {area}
                         </span>
+                      ))}
+                    </div>
+                  </div>
+                </section>
+
+                {/* Frequently asked questions — visible FAQ (AEO: the same 17
+                    Q&As as the FAQPage schema in seoManager.ts; answers carry
+                    .faq-answer for the SpeakableSpecification selector) */}
+                <section className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-6">
+                  <div className="bg-white dark:bg-[#14141A] p-4 sm:p-5 rounded-2xl sm:rounded-3xl space-y-3 border border-[#e8e2d6] dark:border-[#272733] shadow-xs">
+                    <h2 className="text-sm sm:text-base font-semibold tracking-tight text-[#111118] dark:text-[#F5F5F8]">
+                      Frequently Asked Questions — Dadu Food
+                    </h2>
+                    <p className="speakable-summary text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed">
+                      Everything Dadu asks about ordering food, groceries and medicines online — delivery fee, payment, hours and areas, answered in one place.
+                    </p>
+                    <div className="space-y-2">
+                      {DADU_FOOD_FAQS.map((faq) => (
+                        <details
+                          key={faq.question}
+                          className="rounded-xl border border-[#e8e2d6] dark:border-[#272733] bg-[#fdfbf7] dark:bg-[#1B1B22] px-3.5 py-2.5"
+                        >
+                          <summary className="cursor-pointer text-xs sm:text-sm font-bold text-[#111118] dark:text-[#F5F5F8] leading-snug min-h-[44px] flex items-center">
+                            {faq.question}
+                          </summary>
+                          <p className="faq-answer text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed pt-1 pb-1">
+                            {faq.answer}
+                          </p>
+                        </details>
                       ))}
                     </div>
                   </div>
@@ -6574,6 +6604,27 @@ export default function App() {
             </p>
             <p className="tabular-nums">Delivery: Rs. 50 · 2x below Rs. 500 · Free Rs. 1,000+</p>
           </div>
+        </div>
+        {/* Popular in Dadu — crawlable links to shops, grocery & pharmacy */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-6 text-xs font-semibold">
+          <span className="font-semibold text-[11px] tracking-wide text-[#111118] dark:text-[#F5F5F8]">
+            Popular in Dadu:
+          </span>
+          <a href="/grocery" onClick={(e) => { e.preventDefault(); handleGoToGroceryHome(); }} className="hover:text-[#D70F64] dark:hover:text-[#FF4D94] cursor-pointer">
+            Grocery Delivery in Dadu
+          </a>
+          <a href="/pharmacy" onClick={(e) => { e.preventDefault(); handleGoToPharmacyHome(); }} className="hover:text-[#D70F64] dark:hover:text-[#FF4D94] cursor-pointer">
+            Medicine Delivery in Dadu
+          </a>
+          <a href="/shop/dadu-fast-food-kitchen" onClick={(e) => { e.preventDefault(); handleRestaurantClick("Dadu Fast Food & Kitchen"); }} className="hover:text-[#D70F64] dark:hover:text-[#FF4D94] cursor-pointer">
+            Dadu Fast Food &amp; Kitchen
+          </a>
+          <a href="/shop/s-m-bilal-hotel" onClick={(e) => { e.preventDefault(); handleRestaurantClick("S M Bilal Hotel"); }} className="hover:text-[#D70F64] dark:hover:text-[#FF4D94] cursor-pointer">
+            S M Bilal Hotel
+          </a>
+          <a href="/shop/tasty-bites-dadu" onClick={(e) => { e.preventDefault(); handleRestaurantClick("Tasty Bites Dadu"); }} className="hover:text-[#D70F64] dark:hover:text-[#FF4D94] cursor-pointer">
+            Tasty Bites Dadu
+          </a>
         </div>
         <div className="pt-4 border-t border-[#E6E6EE] dark:border-[#272733] flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
           <p className="font-bold text-[#111118] dark:text-[#F5F5F8]">
