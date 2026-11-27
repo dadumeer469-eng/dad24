@@ -14,7 +14,9 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/build-apk.yml'
+      - 'scripts/add-android-permissions.py'
       - 'assets/**'
+      - 'src/components/AppIntro.tsx'
 
 # The release-attach step needs write access to the repo's releases.
 # Without this, GITHUB_TOKEN gets HTTP 403 "Resource not accessible by
@@ -71,6 +73,14 @@ jobs:
 
       - name: Add Android platform
         run: npx cap add android
+
+      - name: Add ALL app permissions (location, camera, mic, storage, notifications)
+        # The generated manifest only has INTERNET. A food delivery app
+        # needs GPS (delivery + rider tracking), camera + gallery
+        # (Easypaisa receipt photo), microphone (Munchi voice agent) and
+        # notifications (order updates). This injects every permission
+        # (user 28 Nov 02:47: "sari permission dalo").
+        run: python3 scripts/add-android-permissions.py
 
       - name: Generate app icon + splash screen (professional branding)
         # Reads assets/icon.png, assets/icon-background.png, assets/splash.png
