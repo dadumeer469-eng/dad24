@@ -90,6 +90,84 @@ function breadcrumbNode(crumbName, canonical) {
 }
 
 // ---------------------------------------------------------------------------
+// The 17 homepage FAQs — VERBATIM copy of DADU_FOOD_FAQS in
+// src/utils/seoManager.ts (same questions + answers, same order). They are
+// rendered visibly on the homepage (App.tsx FAQ section + the noscript in
+// index.html), so the FAQPage node in buildJsonLd describes real on-page
+// content. If any FAQ changes in seoManager.ts, change it here too.
+// ---------------------------------------------------------------------------
+export const FAQS = [
+  {
+    question: "What is Dadu Food?",
+    answer: "Dadu Food is an online food delivery service for Dadu city, Sindh, Pakistan. You can order food from local restaurants, groceries, and medicines through one website, dadufood.store, and get them delivered to your home in 20 to 35 minutes.",
+  },
+  {
+    question: "Where does Dadu Food deliver?",
+    answer: "Dadu Food delivers across Dadu city, Sindh, including Shahani Paro, Moro Road, Station Road, College Road, and nearby areas. Enter your address or share your live location on dadufood.store, and the app will confirm whether delivery is available to you.",
+  },
+  {
+    question: "What are Dadu Food's opening hours?",
+    answer: "Dadu Food delivers food from 12:00 PM to 11:00 PM every day, seven days a week. Grocery and medicine orders can be placed from the morning. Orders placed outside food hours will be accepted once the restaurants open at 12:00 PM.",
+  },
+  {
+    question: "How much is the delivery fee on Dadu Food?",
+    answer: "The delivery fee on Dadu Food is a flat Rs 50 per order for food and groceries, anywhere in Dadu city. Medicine-only orders have a separate, lower delivery fee of Rs 30. There are no hidden charges — the fee is shown clearly at checkout before you confirm your order.",
+  },
+  {
+    question: "How can I pay for my Dadu Food order?",
+    answer: "You can pay in two ways on Dadu Food: Cash on Delivery (COD) — pay the rider in cash when your order arrives — or Easypaisa. Dadu Food does not accept JazzCash or card payments. Choose your payment method at checkout before placing the order.",
+  },
+  {
+    question: "How do I order food on Dadu Food?",
+    answer: "Open dadufood.store, allow location access, browse restaurants and menus, add dishes to your cart, and check out. Enter your name, phone number, and delivery address, choose Cash on Delivery or Easypaisa, and confirm. Your food will arrive in 20 to 35 minutes.",
+  },
+  {
+    question: "Which restaurants are on Dadu Food?",
+    answer: "Dadu Food lists local Dadu restaurants including Dadu Fast Food & Kitchen, S M Bilal Hotel, and Tasty Bites Dadu, with more restaurants being added before the grand opening. Each restaurant's full menu, prices, and delivery time are shown on dadufood.store.",
+  },
+  {
+    question: "Can I order groceries on Dadu Food?",
+    answer: "Yes. Dadu Food delivers groceries across Dadu city, with 297 grocery items in 13 categories including atta, rice, cooking oil, tea, milk, spices, snacks, personal care, cleaning products, and household items. Grocery orders can be placed from the morning.",
+  },
+  {
+    question: "Can I order medicines on Dadu Food?",
+    answer: "Yes. Dadu Food has a Medicine & Pharmacy category, so you can order medicines and health products for home delivery in Dadu city. Browse the pharmacy section on dadufood.store, add medicines to your cart, and pay by Cash on Delivery or Easypaisa.",
+  },
+  {
+    question: "How long does Dadu Food delivery take?",
+    answer: "Dadu Food delivers most orders in 20 to 35 minutes from the time you confirm your order. Delivery time depends on the restaurant's preparation time and your distance from it. You can track your order live on the website after placing it.",
+  },
+  {
+    question: "Is there a minimum order on Dadu Food?",
+    answer: "Dadu Food has no published minimum order amount, so you can order even a single dish or a single grocery item. The flat Rs 50 delivery fee applies to food and grocery orders, and Rs 30 to medicine-only orders. The total, including the delivery fee, is shown before checkout.",
+  },
+  {
+    question: "How can I track my Dadu Food order?",
+    answer: "After placing your order on dadufood.store, you can track it live on the website. The order status shows when the restaurant accepts it, when the rider picks it up, and when it is on its way to you. You can also contact Dadu Food on WhatsApp at 03277004471.",
+  },
+  {
+    question: "How do I contact Dadu Food?",
+    answer: "You can contact Dadu Food by phone or WhatsApp on 03277004471. You can also order directly through the website, dadufood.store. For help with an order, a missing item, or a payment issue, message or call the same number during delivery hours.",
+  },
+  {
+    question: "Dadu Food se khana kaise order karein?",
+    answer: "Dadu Food se khana order karna bohat asaan hai. dadufood.store kholein, apni location allow karein, restaurant aur khana pasand karein, cart mein add karein aur checkout par apna naam, number aur address likhein. Cash on Delivery ya Easypaisa se payment karein — khana 20 se 35 minute mein ghar pahunchega.",
+  },
+  {
+    question: "Dadu Food kab se shuru ho raha hai?",
+    answer: "Dadu Food ki grand opening Tuesday, 15 December 2026 ko ho rahi hai. Us din se Dadu city mein khana, grocery aur dawaai ki home delivery shuru ho jayegi. Opening se pehle aap dadufood.store par restaurants aur grocery items dekh sakte hain.",
+  },
+  {
+    question: "Can I order pizza in Dadu on Dadu Food?",
+    answer: "Yes. Dadu Food delivers pizza in Dadu from Dadu Fast Food & Kitchen and Tasty Bites Dadu — freshly baked pizzas, along with zinger burgers, crispy broast, creamy pasta and loaded lasagna. Order pizza online in Dadu on dadufood.store and get it delivered hot in 20 to 35 minutes for Rs 50. Pay by Cash on Delivery or Easypaisa.",
+  },
+  {
+    question: "What food can I order in Dadu on Dadu Food?",
+    answer: "On Dadu Food you can order chicken biryani, zinger burgers, chicken shawarma, chicken karahi, BBQ, seekh kababs, pizza, creamy pasta, lasagna, grilled sandwiches and crispy broast from Dadu Fast Food & Kitchen, S M Bilal Hotel and Tasty Bites Dadu. All food is delivered hot across Dadu city in 20 to 35 minutes for Rs 50.",
+  },
+];
+
+// ---------------------------------------------------------------------------
 // Route table — exactly the 15 sitemap URLs. /admin is NOT prerendered.
 // Each route: path (URL), title, description, canonical, breadcrumb name
 // (null = home, no breadcrumb node), jsonLd kind, noscript content.
@@ -448,8 +526,8 @@ export const ROUTES = [
 // ---------------------------------------------------------------------------
 // JSON-LD builder. Mirrors syncPageSeo() in seoManager.ts:
 //  - LocalBusiness/FoodEstablishment node on EVERY route.
-//  - Home only: WebPage node (no FAQPage — FAQ rich results retired May 2026
-//    and there is no visible FAQ section).
+//  - Home only: FAQPage (the 17 FAQs, also rendered visibly on the
+//    homepage) + WebPage node.
 //  - Shop pages only: Restaurant node with a price-free Menu (real dish
 //    kinds, no aggregateRating — no real ratings).
 //  - Non-home routes: BreadcrumbList (Home > current page).
@@ -461,6 +539,16 @@ export function buildJsonLd(route) {
   const graph = [localBusinessNode()];
 
   if (route.jsonLd === "home") {
+    // FAQPage — the same 17 FAQs rendered visibly on the homepage
+    // (App.tsx FAQ section + the noscript in index.html).
+    graph.push({
+      "@type": "FAQPage",
+      mainEntity: FAQS.map((f) => ({
+        "@type": "Question",
+        name: f.question,
+        acceptedAnswer: { "@type": "Answer", text: f.answer },
+      })),
+    });
     graph.push({
       "@type": "WebPage",
       name: route.title,
@@ -468,7 +556,7 @@ export function buildJsonLd(route) {
       description: route.description,
       speakable: {
         "@type": "SpeakableSpecification",
-        cssSelector: [".speakable-summary"],
+        cssSelector: [".speakable-summary", ".faq-answer"],
       },
     });
   }

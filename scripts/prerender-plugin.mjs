@@ -28,7 +28,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { ROUTES, OG_IMAGE, buildJsonLd } from "./prerender-routes.mjs";
+import { ROUTES, OG_IMAGE, ORIGIN, buildJsonLd } from "./prerender-routes.mjs";
 
 const PLUGIN_NAME = "dadufood-prerender";
 
@@ -103,6 +103,10 @@ function buildNoscript(route) {
         `\n          <h2 style="font-size: 16px; font-weight: 800; color: #E21B70; margin: 0 0 8px 0;">${escapeHtmlText(s.h2)}</h2>\n          <p style="font-size: 14px; color: #e4e4e7; line-height: 1.6; margin: 0 0 16px 0;">${escapeHtmlText(s.p)}</p>`
     )
     .join("");
+  // Real internal links in every prerendered page, so a no-JS crawler can
+  // discover all 15 routes from any page (the React app navigates via
+  // onClick + replaceState, which crawlers do not follow).
+  const linksHtml = `\n          <p style="font-size: 14px; color: #e4e4e7; line-height: 1.6; margin: 0 0 16px 0;">Browse Dadu Food: <a href="${ORIGIN}/restaurants" style="color: #FF4D94;">Restaurants in Dadu</a> &middot; <a href="${ORIGIN}/shop/dadu-fast-food-kitchen" style="color: #FF4D94;">Dadu Fast Food &amp; Kitchen</a> &middot; <a href="${ORIGIN}/shop/s-m-bilal-hotel" style="color: #FF4D94;">S M Bilal Hotel</a> &middot; <a href="${ORIGIN}/shop/tasty-bites-dadu" style="color: #FF4D94;">Tasty Bites Dadu</a> &middot; <a href="${ORIGIN}/grocery" style="color: #FF4D94;">Grocery Delivery in Dadu</a> &middot; <a href="${ORIGIN}/pharmacy" style="color: #FF4D94;">Medicine Delivery in Dadu</a> &middot; <a href="${ORIGIN}/hotels" style="color: #FF4D94;">Hotels in Dadu</a> &middot; <a href="${ORIGIN}/about" style="color: #FF4D94;">About Dadu Food</a> &middot; <a href="${ORIGIN}/contact" style="color: #FF4D94;">Contact</a> &middot; <a href="${ORIGIN}/partner-with-us" style="color: #FF4D94;">Partner With Us</a> &middot; <a href="${ORIGIN}/become-a-rider" style="color: #FF4D94;">Become a Rider</a></p>`;
   return `<noscript>
       <div style="font-family: system-ui, -apple-system, sans-serif; background-color: #0B0B0F; color: #ffffff; min-height: 100vh; padding: 40px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box;">
         <div style="background-color: #14141A; border: 1px solid #272732; padding: 32px; border-radius: 24px; max-width: 640px; width: 100%; box-sizing: border-box; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); margin: 0 auto; text-align: left;">
@@ -110,7 +114,7 @@ function buildNoscript(route) {
             <div style="background-color: #E21B70; color: white; display: inline-block; padding: 12px 24px; border-radius: 16px; font-weight: 900; font-size: 24px; margin-bottom: 24px; letter-spacing: -0.5px;">DADU FOOD</div>
           </div>
           <h1 style="font-size: 24px; font-weight: 800; margin-bottom: 12px; color: #ffffff; text-align: center;">${escapeHtmlText(h1)}</h1>
-          <p style="font-size: 14px; color: #a1a1aa; line-height: 1.6; margin-bottom: 24px; text-align: center;">Please enable JavaScript to order online. You can also order directly on WhatsApp at 03277004471.</p>${sectionsHtml}
+          <p style="font-size: 14px; color: #a1a1aa; line-height: 1.6; margin-bottom: 24px; text-align: center;">Please enable JavaScript to order online. You can also order directly on WhatsApp at 03277004471.</p>${sectionsHtml}${linksHtml}
 
           <p style="font-size: 14px; color: #e4e4e7; line-height: 1.6; margin: 0 0 8px 0;">Website: <a href="${escapeAttr(route.canonical)}" style="color: #FF4D94;">${escapeHtmlText(route.canonical)}</a> &middot; Phone / WhatsApp: 03277004471 &middot; Email: support@dadufood.pk</p>
           <p style="font-size: 11px; color: #71717a; margin: 16px 0 0 0; text-align: center;">© 2026 DADU FOOD Delivery Services. All Rights Reserved.</p>
