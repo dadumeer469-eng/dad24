@@ -214,7 +214,7 @@ export function recategorizeDish(dish: Dish): string {
   if (/\b(chai|doodh\s+patti|green\s+tea|kehwa|kahwa|karak\s+tea|black\s+tea|masala\s+tea|iced\s+tea|tea)\b/i.test(nameOnly)) {
     return "Tea & Chai";
   }
-  if (/\b(biryani|karahi|handi|nihari|pulao|haleem|qorma|korma|daal|dal|palak|saag|paye|sindhi|mutton|makhni|naan|roti|chapati)\b/i.test(nameOnly) && baseCat !== "BBQ & Grill") {
+  if (/\b(biryani|karahi|handi|nihari|pulao|haleem|qorma|korma|daal|dal|palak|saag|paye|sindhi|mutton|makhni|naan|roti|chapati|keema|qeema)\b/i.test(nameOnly) && baseCat !== "BBQ & Grill") {
     return "Desi Food";
   }
   if (/\bparatha\b/i.test(nameOnly) && !/\broll\b/i.test(nameOnly)) {
@@ -229,11 +229,11 @@ export function recategorizeDish(dish: Dish): string {
   if (/\b(burger|zinger)\b/i.test(nameOnly)) {
     return "Burgers";
   }
-  if (/\bpizza\b/i.test(nameOnly)) {
-    return "Pizza";
-  }
   if (/\bfries\b/i.test(nameOnly)) {
     return "Fries";
+  }
+  if (/\bpizza\b/i.test(nameOnly)) {
+    return "Pizza";
   }
 
   return baseCat;
@@ -297,8 +297,9 @@ function pickFallbackPhotoByName(name: string): string {
   if (name.includes("biryani") || name.includes("pulao")) return DISH_IMAGE_MAP.biryani;
   if (name.includes("seekh")) return DISH_IMAGE_MAP.seekhKabab;
   if (name.includes("karahi") || name.includes("handi") || name.includes("nihari") || name.includes("desi") || name.includes("keema") || name.includes("qeema") || name.includes("qorma") || name.includes("korma")) return DISH_IMAGE_MAP.karahi;
-  if (name.includes("tikka") || name.includes("kabab") || name.includes("bbq") || name.includes("malai boti")) return DISH_IMAGE_MAP.bbq;
+  if (name.includes("pizza") && !name.includes("burger") && !name.includes("fries")) return DISH_IMAGE_MAP.pizza;
   if (name.includes("lasagna") || name.includes("lazania") || name.includes("lazina")) return DISH_IMAGE_MAP.lasagna;
+  if (name.includes("tikka") || name.includes("kabab") || name.includes("bbq") || name.includes("malai boti")) return DISH_IMAGE_MAP.bbq;
   if (name.includes("pasta") || name.includes("alfredo") || name.includes("chowmein") || name.includes("fettuccine")) return DISH_IMAGE_MAP.pasta;
   if (name.includes("sandwich")) return DISH_IMAGE_MAP.sandwich;
   if (name.includes("shawarma")) return DISH_IMAGE_MAP.shawarma;
@@ -760,7 +761,7 @@ export function getShopProfile(
 
   // Parse configured delivery fee honestly
   const configuredBaseFee =
-    systemSettings?.deliveryFee && systemSettings.deliveryFee > 0 ? systemSettings.deliveryFee : 50;
+    systemSettings?.deliveryFee && systemSettings.deliveryFee > 0 ? systemSettings.deliveryFee : 70;
   let deliveryFee = configuredBaseFee;
   if (specific?.deliveryCharge) {
     const parsed = parseInt(String(specific.deliveryCharge).replace(/[^0-9]/g, ""), 10);
@@ -824,7 +825,7 @@ export function calculateDeliveryFee(
 ): { fee: number; isFree: boolean; isDoubledBelow500: boolean; freeThreshold: number } {
   const configuredFree = Number(freeThresholdInput || 0);
   const freeThreshold = configuredFree >= 500 ? configuredFree : 1000;
-  const baseFee = Number(baseFeeInput || 0) > 0 ? Number(baseFeeInput) : 50;
+  const baseFee = Number(baseFeeInput || 0) > 0 ? Number(baseFeeInput) : 70;
 
   if (itemsSubtotal >= freeThreshold) {
     return { fee: 0, isFree: true, isDoubledBelow500: false, freeThreshold };
