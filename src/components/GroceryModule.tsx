@@ -308,7 +308,7 @@ export default function GroceryModule({
           </button>
         </div>
 
-        <div className="p-2 sm:p-3 flex-1 flex flex-col justify-between gap-2">
+        <div className="p-1.5 sm:p-3 flex-1 flex flex-col justify-between gap-2">
           <div>
             <h4
               title={p.name}
@@ -372,7 +372,7 @@ export default function GroceryModule({
           ) : (
             <div className="flex items-center justify-between gap-1">
               <div className="flex items-baseline gap-1 min-w-0 overflow-hidden">
-                <span className="text-xs sm:text-sm font-semibold text-[#D70F64] dark:text-[#FF4D94] whitespace-nowrap">
+                <span className="text-[11px] sm:text-sm font-semibold text-[#D70F64] dark:text-[#FF4D94] whitespace-nowrap">
                   {`Rs. ${displayPrice}`}
                 </span>
                 {hasDiscount && (
@@ -392,7 +392,7 @@ export default function GroceryModule({
                   whileTap={reduceMotion ? undefined : { scale: 0.88 }}
                   onClick={() => onAddToCart(p)}
                   aria-label={`Add ${p.name} to cart`}
-                  className="w-11 h-11 rounded-full btn-pink text-white flex items-center justify-center cursor-pointer active:brightness-110 shrink-0 shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70] relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-[opacity,transform] after:duration-180 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
+                  className="w-9 h-9 sm:w-11 sm:h-11 rounded-full btn-pink text-white flex items-center justify-center cursor-pointer active:brightness-110 shrink-0 shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70] relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-[opacity,transform] after:duration-180 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
                 >
                   <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </motion.button>
