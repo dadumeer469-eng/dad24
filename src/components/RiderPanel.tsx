@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import OrderReceiptModal from "./OrderReceiptModal";
 import { 
-  collection, query, where, onSnapshot, doc, updateDoc, Timestamp, addDoc, serverTimestamp
+  collection, query, where, onSnapshot, doc, updateDoc, Timestamp, addDoc, serverTimestamp, runTransaction
 } from "firebase/firestore";
 import { db, handleFirestoreError } from "../firebase";
 import { Order, UserProfile } from "../types";
@@ -485,6 +485,10 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
   }, [sortedDates, selectedHistoryDate, historyGroupedByDate]);
 
   // Rider Action: Accept Order (Cap to 3 orders)
+  // M10: the accept runs inside a transaction that first reads the order
+  // and only accepts when its status is still "confirmed" — two riders
+  // tapping Accept on the same order at the same time can no longer both
+  // claim it (the second transaction sees "accepted" and fails).
   const handleAcceptOrder = async (orderId: string) => {
     if (riderActiveOrders.length >= 3) {
       alert("⚠️ LIMIT REACHED!\n\nYou can only accept up to 3 active orders at the same time to ensure fast deliveries.");
@@ -493,12 +497,21 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
     setLoadingActionId(orderId);
     try {
       const orderRef = doc(db, "orders", orderId);
-      await updateDoc(orderRef, {
-        status: "accepted",
-        riderId: currentUser.uid,
-        riderName: currentUser.name,
-        riderPhone: currentUser.phone,
-        acceptedAt: Timestamp.now()
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(orderRef);
+        if (!snap.exists()) {
+          throw new Error("Order not found — it may have been cancelled.");
+        }
+        if (snap.data().status !== "confirmed") {
+          throw new Error("Order is no longer available — another rider already accepted it or its status changed.");
+        }
+        tx.update(orderRef, {
+          status: "accepted",
+          riderId: currentUser.uid,
+          riderName: currentUser.name,
+          riderPhone: currentUser.phone,
+          acceptedAt: Timestamp.now()
+        });
       });
     } catch (err) {
       alert("Acceptance failed: " + handleFirestoreError(err));
