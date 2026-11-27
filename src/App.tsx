@@ -1,5 +1,4 @@
 import LocationPermissionModal from "./components/LocationPermissionModal";
-import MapLocationPickerModal from "./components/MapLocationPickerModal";
 import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
 import { DashboardMenuItemCard } from "./components/DashboardMenuItemCard";
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from "firebase/auth";
@@ -20,6 +19,7 @@ import {
   arrayUnion,
   arrayRemove,
   writeBatch,
+  runTransaction,
 } from "firebase/firestore";
 import { auth, db, handleFirestoreError, cleanObject } from "./firebase";
 import {
@@ -43,6 +43,7 @@ import {
   calculateVoucherDiscount,
 } from "./types";
 import { INITIAL_MENU_ITEMS, DEFAULT_FOOD_CATEGORIES, getDefaultRestaurantImage } from "./data";
+import { DEALS, dealSavings, dealDiscountPct, type Deal } from "./data/deals";
 import {
   readFreshCatalogEntry,
   readCatalogForPaint,
@@ -60,7 +61,6 @@ import {
   OffersCarousel,
   ScrollReveal,
 } from "./components/HomeMotion";
-import CartDrawer from "./components/CartDrawer";
 import VoiceOrderModal, { type VoiceOrder, type VoiceOrderResult } from "./components/VoiceOrderModal";
 import { primeAudio } from "./utils/primeAudio";
 import OrderTracker from "./components/OrderTracker";
@@ -69,14 +69,21 @@ import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/
 // Staff-only panels load on demand so the first paint stays fast for customers
 const AdminPanel = React.lazy(() => import("./components/AdminPanel"));
 const RiderPanel = React.lazy(() => import("./components/RiderPanel"));
+// Map components load on demand (Leaflet ~148 KB): they only render after
+// a user action, and each returns null while closed, so lazy-loading is
+// safe — the map chunk downloads on first open, not on first paint.
+const MapLocationPickerModal = React.lazy(() => import("./components/MapLocationPickerModal"));
+const CartDrawer = React.lazy(() => import("./components/CartDrawer"));
+const GroceryCartDrawer = React.lazy(() => import("./components/GroceryCartDrawer"));
 import FoodDetailModal from "./components/FoodDetailModal";
 import GroceryModule from "./components/GroceryModule";
 import DirectoryView, { DIRECTORY_RESTAURANTS } from "./components/DirectoryView";
-import GroceryCartDrawer from "./components/GroceryCartDrawer";
 import OrderSuccessAnimation from "./components/OrderSuccessAnimation";
 import OrderHistoryDrawer from "./components/OrderHistoryDrawer";
 import OrderChat from "./components/OrderChat";
 import BottomNavBar from "./components/BottomNavBar";
+import ScrollProgress from "./components/ScrollProgress";
+import BackToTop from "./components/BackToTop";
 import MobileAccountDrawer from "./components/MobileAccountDrawer";
 import { LazyImage } from "./components/LazyImage";
 import DaduLogoLoader from "./components/DaduLogoLoader";
@@ -202,7 +209,7 @@ function BannerLiveChatButton({
     <button
       type="button"
       onClick={onClick}
-      className="btn-pink text-white min-h-[36px] px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider text-center transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer flex items-center gap-1.5 relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-[opacity,transform] after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
+      className="btn-pink text-white min-h-[44px] px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider text-center transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 cursor-pointer flex items-center gap-1.5 relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-[opacity,transform] after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100"
     >
       <span>Live Chat</span>
       {unreadCount > 0 && (
@@ -304,7 +311,7 @@ export default function App() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [deliverySettings, setDeliverySettings] = useState<SystemSettings>(() => 
     getCachedData<SystemSettings>("dadu_cached_delivery_settings", {
-      deliveryFee: 50,
+      deliveryFee: 70,
       restaurantStatus: {
         isTemporarilyUnavailable: false,
         openingTime: "12:00",
@@ -312,6 +319,49 @@ export default function App() {
       },
     })
   );
+
+  // --- Delivery fee configuration (settings/delivery_config) ---
+  // Fee structure decided 27 Nov 2026: food Rs 70, grocery Rs 100, medicine
+  // Rs 30, site tax Rs 12 per order, night surcharge +Rs 30 from 9 PM.
+  // Each value is admin-editable in delivery_config (AdminPanel Store
+  // Controls); the reads below fall back to these defaults while the
+  // Firestore field is absent. The fields are declared on SystemSettings
+  // (src/types.ts), so they are read directly from deliverySettings.
+  const foodDeliveryFee =
+    typeof deliverySettings.foodDeliveryFee === "number" ? deliverySettings.foodDeliveryFee : 70;
+  const groceryDeliveryFee =
+    typeof deliverySettings.groceryDeliveryFee === "number" ? deliverySettings.groceryDeliveryFee : 100;
+  const medicineDeliveryFee =
+    typeof deliverySettings.medicineDeliveryFee === "number" ? deliverySettings.medicineDeliveryFee : 30;
+  const siteTaxAmount =
+    typeof deliverySettings.siteTax === "number" && deliverySettings.siteTax >= 0 ? deliverySettings.siteTax : 12;
+  const nightSurchargeAmount =
+    typeof deliverySettings.nightSurchargeAmount === "number" && deliverySettings.nightSurchargeAmount >= 0
+      ? deliverySettings.nightSurchargeAmount
+      : 30;
+  const nightSurchargeStartHour =
+    typeof deliverySettings.nightSurchargeStartHour === "number" ? deliverySettings.nightSurchargeStartHour : 21;
+  // Night = local time at/after the configured start hour (default 21:00),
+  // until close at 11 PM. Uses the device's local time.
+  const isNightSurchargeTime = () => new Date().getHours() >= nightSurchargeStartHour;
+  const deliveryTimeTextSetting = (deliverySettings.deliveryTimeText || "").trim();
+  const voiceOrderEnabled = deliverySettings.voiceOrderEnabled !== false;
+  const DEFAULT_DELIVERY_AREAS = [
+    "Shahani Paro",
+    "Moro Road",
+    "Station Road",
+    "College Road",
+    "Makhdoom Bilawal Nagar",
+    "Civil Hospital Road",
+    "Degree College Road",
+    "New Bus Stand",
+    "Kacheri Road",
+    "Dadu City Center",
+  ];
+  const deliveryAreasList =
+    Array.isArray(deliverySettings.deliveryAreas) && deliverySettings.deliveryAreas.length > 0
+      ? deliverySettings.deliveryAreas
+      : DEFAULT_DELIVERY_AREAS;
 
   // First-order FREE delivery (user decision 27 Nov 2026): a signed-in user
   // with ZERO previous orders gets Rs 0 delivery on their first order —
@@ -390,7 +440,7 @@ export default function App() {
 
   // Standalone Grocery Module states. The owner catalogue is the built-in
   // default so the grocery/pharmacy grid is correct from first paint (e.g.
-  // the 12 medicines on /pharmacy) even before Firestore responds; cached /
+  // the 11 medicines on /pharmacy) even before Firestore responds; cached /
   // live items win on id conflict, so admin price/availability edits are kept.
   const initialGroceryProducts = mergeOwnerFirst(
     OWNER_GROCERY_PRODUCTS,
@@ -427,7 +477,7 @@ export default function App() {
   const [isLoadingGrocery, setIsLoadingGrocery] = useState(false);
   const [groceryDeliveryConfig, setGroceryDeliveryConfig] =
     useState<GroceryDeliveryConfig>({
-      baseDeliveryFee: 40,
+      baseDeliveryFee: 100,
       freeDeliveryAboveAmount: 1000,
       allowMixedCart: true,
     });
@@ -489,6 +539,14 @@ export default function App() {
   };
 
   const [searchQuery, setSearchQuery] = useState("");
+  // Debounced search: filtering 144 dishes + 297 grocery items on every
+  // keystroke re-renders both lists. The input stays controlled by the raw
+  // searchQuery (instant echo); only the filtering uses the debounced value.
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  useEffect(() => {
+    const t = window.setTimeout(() => setDebouncedSearchQuery(searchQuery), 250);
+    return () => window.clearTimeout(t);
+  }, [searchQuery]);
   const [quickFilter, setQuickFilter] = useState<
     "all" | "top_rated" | "under_300" | "fast_food" | "desi" | "pizza" | "chai_sweets"
   >("all");
@@ -628,6 +686,12 @@ export default function App() {
     setActiveRoute("pharmacy");
     setActiveModule("grocery");
     setSearchQuery("");
+    // Full pharmacy-home reset (mirrors GroceryModule's route-change
+    // effect): back to the Medicine & Pharmacy category with the full
+    // catalog view, so tapping the header's Pharmacy segment while
+    // already on /pharmacy restores the landing state.
+    setGroceryCategoryId("gcat_medicine");
+    setGroceryShowAllCatalog(false);
     if (typeof window !== "undefined" && window.location.pathname !== "/pharmacy") {
       window.history.pushState({ page: "pharmacy" }, "", "/pharmacy");
     }
@@ -1360,7 +1424,13 @@ export default function App() {
         } else {
           // Seed default safely with merge: true so existing statuses/pictures are never wiped
           const defaultCfg = {
-            deliveryFee: 50,
+            deliveryFee: 70,
+            foodDeliveryFee: 70,
+            groceryDeliveryFee: 100,
+            medicineDeliveryFee: 30,
+            siteTax: 12,
+            nightSurchargeAmount: 30,
+            nightSurchargeStartHour: 21,
             restaurantStatus: {
               isTemporarilyUnavailable: false,
               openingTime: "12:00",
@@ -1793,7 +1863,7 @@ export default function App() {
         } else {
           // Seed default
           setDoc(doc(db, "settings", "groceryDeliveryConfig"), {
-            baseDeliveryFee: 40,
+            baseDeliveryFee: 100,
             freeDeliveryAboveAmount: 1000,
             allowMixedCart: true,
           }).catch(console.warn);
@@ -2831,7 +2901,7 @@ export default function App() {
       const vSnap = await getDoc(vRef);
       if (vSnap.exists()) {
         const vData = vSnap.data();
-        if (!vData.isActive || vData.currentUses >= vData.maxUses) {
+        if (!vData.isActive || (vData.maxUses > 0 && vData.currentUses >= vData.maxUses)) {
           setToastNotification({ title: "Voucher Unavailable", message: "The applied voucher is no longer valid or reached its usage limit." });
           return;
         }
@@ -2869,10 +2939,23 @@ export default function App() {
       // First-order FREE delivery (user decision 27 Nov 2026): override any
       // fee the caller computed — a new user's first order ships free.
       const effectiveDeliveryFee = isFirstOrderFreeDelivery ? 0 : details.deliveryFee;
+      // Site tax: flat Rs 12 per order — always applies, even when delivery
+      // is free. Night surcharge: the cart drawer already adds it into
+      // details.deliveryFee when it applies, so it is NOT added to the
+      // total again here — only recorded on the order for the admin panel.
+      // It is waived with free delivery (subtotal >= free threshold or
+      // first order), exactly like the delivery fee itself.
+      const groceryNightSurcharge =
+        !isFirstOrderFreeDelivery &&
+        details.totalPrice < (deliverySettings?.freeDeliveryAboveAmount ?? 1000) &&
+        isNightSurchargeTime()
+          ? nightSurchargeAmount
+          : 0;
       const computedGrandTotal = Math.max(
         0,
         details.totalPrice +
           effectiveDeliveryFee +
+          siteTaxAmount +
           (details.riderTip || 0) -
           recomputedDiscount -
           (details.coinsUsed || 0),
@@ -2893,6 +2976,8 @@ export default function App() {
         items: adaptedItems,
         totalPrice: details.totalPrice,
         deliveryFee: effectiveDeliveryFee,
+        siteTax: siteTaxAmount,
+        nightSurcharge: groceryNightSurcharge,
         grandTotal: computedGrandTotal,
         paymentMethod: isEasypaisa ? "Easypaisa" : "COD",
         status: isEasypaisa ? "payment_verification_pending" : "pending",
@@ -2918,34 +3003,67 @@ export default function App() {
         cutlery: details.cutlery || undefined,
       };
 
-      await setDoc(doc(db, "orders", generatedOrderId), cleanObject(orderDoc));
-
+      // Atomic order + voucher redemption (27 Nov 2026): the voucher cap
+      // re-check, the order write and the voucher increment commit or fail
+      // together in one transaction. A voucher that hits its cap between
+      // the pre-check above and this write can no longer leave a
+      // discounted order behind without the increment, and the per-user
+      // limit is re-checked against the FRESH voucher doc, not the stale
+      // local list. Firestore requires all reads before writes, so the
+      // voucher get comes first, then the order set + voucher update.
+      const orderRef = doc(db, "orders", generatedOrderId);
       if (details.voucher) {
         const matchedVoucher = vouchers.find(
           (v) => v.code.toUpperCase() === details.voucher!.code.toUpperCase() || v.id === details.voucher!.code
         );
         const targetDocId = matchedVoucher?.id || details.voucher.code;
-        const uid = currentUser?.uid;
-
-        const voucherUpdate: any = {
-          currentUses: increment(1),
-        };
-        if (uid) {
-          voucherUpdate.usedUserIds = arrayUnion(uid);
-          voucherUpdate[`userUsageCount.${uid}`] = increment(1);
-
-          if (matchedVoucher) {
-            const limit = matchedVoucher.perUserLimit !== undefined && matchedVoucher.perUserLimit > 0 ? matchedVoucher.perUserLimit : 1;
-            const prevUses = matchedVoucher.userUsageCount?.[uid] ?? (matchedVoucher.usedUserIds?.includes(uid) ? 1 : 0);
-            if (prevUses + 1 >= limit && matchedVoucher.assignedUserIds?.includes(uid)) {
-              voucherUpdate.assignedUserIds = arrayRemove(uid);
+        try {
+          await runTransaction(db, async (transaction) => {
+            const vRef = doc(db, "vouchers", targetDocId);
+            const vSnap = await transaction.get(vRef);
+            if (!vSnap.exists()) throw new Error("Voucher not found.");
+            const vData = vSnap.data();
+            const maxUses = vData.maxUses || 0;
+            if (!vData.isActive || (maxUses > 0 && (vData.currentUses || 0) >= maxUses)) {
+              throw new Error("Voucher limit reached.");
             }
+            const uid = currentUser?.uid;
+            const voucherUpdate: any = {
+              currentUses: increment(1),
+            };
+            if (uid) {
+              const limit = vData.perUserLimit !== undefined && vData.perUserLimit > 0 ? vData.perUserLimit : 1;
+              const prevUses = vData.userUsageCount?.[uid] ?? (vData.usedUserIds?.includes(uid) ? 1 : 0);
+              if (prevUses >= limit) throw new Error("Per-user voucher limit reached.");
+              voucherUpdate.usedUserIds = arrayUnion(uid);
+              voucherUpdate[`userUsageCount.${uid}`] = increment(1);
+              if (prevUses + 1 >= limit && vData.assignedUserIds?.includes(uid)) {
+                voucherUpdate.assignedUserIds = arrayRemove(uid);
+              }
+            }
+            transaction.set(orderRef, cleanObject(orderDoc));
+            transaction.update(vRef, voucherUpdate);
+          });
+        } catch (err) {
+          // Voucher-cap failures abort the whole order (nothing was
+          // written — the transaction never committed), so the user can
+          // retry without the voucher. Any other error (e.g. a transient
+          // Firestore failure) rethrows to the handler's outer catch,
+          // which shows the generic "Order Failed" toast.
+          if (
+            err instanceof Error &&
+            (err.message === "Voucher not found." ||
+              err.message === "Voucher limit reached." ||
+              err.message === "Per-user voucher limit reached.")
+          ) {
+            console.error("Voucher redemption failed, order not placed:", err);
+            setToastNotification({ title: "Voucher Unavailable", message: "The applied voucher is no longer valid or reached its usage limit." });
+            return;
           }
+          throw err;
         }
-
-        await updateDoc(doc(db, "vouchers", targetDocId), voucherUpdate).catch((err) =>
-          console.error("Failed to update grocery voucher uses:", err)
-        );
+      } else {
+        await setDoc(orderRef, cleanObject(orderDoc));
       }
 
       // Update profile with new location & name & deduct coins if any
@@ -3098,7 +3216,9 @@ export default function App() {
       return;
     }
 
-    let parsedDeliveryFee = deliverySettings.deliveryFee || 50;
+    // Food base fee comes from delivery_config.foodDeliveryFee (default
+    // Rs 70). A per-restaurant deliveryCharge override still wins when set.
+    let parsedDeliveryFee = foodDeliveryFee;
     if (specificStatus && specificStatus.deliveryCharge) {
       const match = specificStatus.deliveryCharge.match(/\d+/);
       if (match) {
@@ -3122,17 +3242,27 @@ export default function App() {
           ? (deliverySettings?.priorityFee ?? 30)
           : 0
         : 0;
+    // Night surcharge (27 Nov 2026): +Rs 30 from 9 PM, applied LAST — after
+    // the below-Rs-500 doubling and after Priority. Free delivery (subtotal
+    // >= Rs 1,000 or first order) waives the WHOLE delivery fee INCLUDING
+    // the surcharge, so the surcharge is 0 whenever delivery is free.
+    const isDeliveryFree = isFirstOrderFreeDelivery || feeCalc.isFree;
+    const nightSurcharge =
+      !isDeliveryFree && isNightSurchargeTime() ? nightSurchargeAmount : 0;
     // First-order FREE delivery: a new user's first order ships free,
     // overriding the standard / doubled / priority fee entirely.
-    const finalFee = isFirstOrderFreeDelivery
-      ? 0
-      : Math.max(
-          0,
-          (isRiderRangeExceeded ? feeCalc.fee * 2 : feeCalc.fee) + speedFeeAdjustment,
-        );
+    const finalFee =
+      (isFirstOrderFreeDelivery
+        ? 0
+        : Math.max(
+            0,
+            (isRiderRangeExceeded ? feeCalc.fee * 2 : feeCalc.fee) + speedFeeAdjustment,
+          )) + nightSurcharge;
     const riderTip = Math.max(0, Number(details.riderTip || 0));
 
-    let finalGrandTotal = itemsTotal + finalFee + riderTip;
+    // Site tax: flat Rs 12 per order — always applies, even when delivery
+    // is free (Subtotal + Delivery Fee + Site Tax = Total).
+    let finalGrandTotal = itemsTotal + finalFee + riderTip + siteTaxAmount;
     // Recompute the voucher discount from the live voucher — never trust
     // the discount amount the client sent. If the voucher is not in the
     // local list, fall back to the drawer's live-checked amount.
@@ -3211,34 +3341,65 @@ export default function App() {
     };
 
     try {
-      // 1. Save new Order
-      await setDoc(doc(db, "orders", uniqueOrderId), cleanObject(orderModel));
-
+      // 1. Save new Order (siteTax + nightSurcharge are extra record fields
+      // beyond the Order type — spread so cleanObject keeps them).
+      // Atomic order + voucher redemption (27 Nov 2026): same pattern as
+      // the grocery handler — the voucher cap re-check (against the FRESH
+      // voucher doc, not the stale local list), the order write and the
+      // voucher increment commit or fail together in one transaction, so
+      // a voucher that hits its cap between the pre-check and this write
+      // can never leave a discounted order behind without the increment.
+      const orderRef = doc(db, "orders", uniqueOrderId);
       if (details.voucher) {
-        const matchedVoucher = vouchers.find(
-          (v) => v.code.toUpperCase() === details.voucher.code.toUpperCase() || v.id === details.voucher.code
-        );
         const targetDocId = matchedVoucher?.id || details.voucher.code;
-        const uid = currentUser?.uid;
-
-        const voucherUpdate: any = {
-          currentUses: increment(1),
-        };
-        if (uid) {
-          voucherUpdate.usedUserIds = arrayUnion(uid);
-          voucherUpdate[`userUsageCount.${uid}`] = increment(1);
-
-          if (matchedVoucher) {
-            const limit = matchedVoucher.perUserLimit !== undefined && matchedVoucher.perUserLimit > 0 ? matchedVoucher.perUserLimit : 1;
-            const prevUses = matchedVoucher.userUsageCount?.[uid] ?? (matchedVoucher.usedUserIds?.includes(uid) ? 1 : 0);
-            if (prevUses + 1 >= limit && matchedVoucher.assignedUserIds?.includes(uid)) {
-              voucherUpdate.assignedUserIds = arrayRemove(uid);
+        try {
+          await runTransaction(db, async (transaction) => {
+            const vRef = doc(db, "vouchers", targetDocId);
+            const vSnap = await transaction.get(vRef);
+            if (!vSnap.exists()) throw new Error("Voucher not found.");
+            const vData = vSnap.data();
+            const maxUses = vData.maxUses || 0;
+            if (!vData.isActive || (maxUses > 0 && (vData.currentUses || 0) >= maxUses)) {
+              throw new Error("Voucher limit reached.");
             }
+            const uid = currentUser?.uid;
+            const voucherUpdate: any = {
+              currentUses: increment(1),
+            };
+            if (uid) {
+              const limit = vData.perUserLimit !== undefined && vData.perUserLimit > 0 ? vData.perUserLimit : 1;
+              const prevUses = vData.userUsageCount?.[uid] ?? (vData.usedUserIds?.includes(uid) ? 1 : 0);
+              if (prevUses >= limit) throw new Error("Per-user voucher limit reached.");
+              voucherUpdate.usedUserIds = arrayUnion(uid);
+              voucherUpdate[`userUsageCount.${uid}`] = increment(1);
+              if (prevUses + 1 >= limit && vData.assignedUserIds?.includes(uid)) {
+                voucherUpdate.assignedUserIds = arrayRemove(uid);
+              }
+            }
+            transaction.set(orderRef, cleanObject({ ...orderModel, siteTax: siteTaxAmount, nightSurcharge }));
+            transaction.update(vRef, voucherUpdate);
+          });
+        } catch (err) {
+          // Voucher-cap failures abort the whole order (nothing was
+          // written — the transaction never committed), so the user can
+          // retry without the voucher. Any other error rethrows to the
+          // handler's outer catch (alert with the Firestore error).
+          if (
+            err instanceof Error &&
+            (err.message === "Voucher not found." ||
+              err.message === "Voucher limit reached." ||
+              err.message === "Per-user voucher limit reached.")
+          ) {
+            console.error("Voucher redemption failed, order not placed:", err);
+            setToastNotification({ title: "Voucher Unavailable", message: "The applied voucher is no longer valid or reached its usage limit." });
+            return;
           }
+          throw err;
         }
-
-        await updateDoc(doc(db, "vouchers", targetDocId), voucherUpdate).catch((err) =>
-          console.error("Failed to update food voucher uses:", err)
+      } else {
+        await setDoc(
+          orderRef,
+          cleanObject({ ...orderModel, siteTax: siteTaxAmount, nightSurcharge }),
         );
       }
 
@@ -3478,23 +3639,27 @@ export default function App() {
         const hasMedicine = groceryProds.some(
           ({ product }) => product.categoryId === "gcat_medicine",
         );
-        const medicineFee =
-          (groceryDeliveryConfig?.medicineDeliveryFee || 0) > 0
-            ? groceryDeliveryConfig.medicineDeliveryFee!
-            : 30;
-        const baseFee = hasMedicine
-          ? medicineFee
-          : (groceryDeliveryConfig?.baseDeliveryFee || 0) > 0
-            ? groceryDeliveryConfig.baseDeliveryFee!
-            : 50;
+        // Voice grocery order: medicine orders use the Rs 30 medicine fee,
+        // everything else the grocery fee (delivery_config, default Rs 100).
+        const medicineFee = medicineDeliveryFee;
+        const baseFee = hasMedicine ? medicineFee : groceryDeliveryFee;
         const freeThreshold = Number(groceryDeliveryConfig?.freeDeliveryAboveAmount || 1000);
         const doubleBelow = Number(deliverySettings?.doubleFeeBelowAmount ?? 500);
         const isFree = totalPrice >= freeThreshold;
         const isDouble = doubleBelow > 0 && totalPrice > 0 && totalPrice < doubleBelow;
+        // Night surcharge LAST, after doubling; waived with free delivery.
+        const voiceNightSurcharge =
+          !isFree && !isFirstOrderFreeDelivery && totalPrice > 0 && isNightSurchargeTime()
+            ? nightSurchargeAmount
+            : 0;
+        // Rider-range doubling, same as the drawers: x2 on the (possibly
+        // below-Rs-500 doubled) base, before the night surcharge.
+        const voiceBaseFee = isDouble ? baseFee * 2 : baseFee;
+        const rangeAdjustedVoiceFee = isRiderRangeExceeded ? voiceBaseFee * 2 : voiceBaseFee;
         const deliveryFee = isFirstOrderFreeDelivery
           ? 0
           : !isFree && totalPrice > 0
-            ? (isDouble ? baseFee * 2 : baseFee)
+            ? rangeAdjustedVoiceFee + voiceNightSurcharge
             : 0;
         await handlePlaceGroceryOrder({
           name,
@@ -3769,6 +3934,58 @@ export default function App() {
     return picks.filter((d) => (seen.has(d.id) ? false : (seen.add(d.id), true))).slice(0, 6);
   }, [finalDishes]);
 
+  // --- Meal Deals (src/data/deals.ts) ---
+  // Deals reference dishes by exact menu name; resolve them against the
+  // live catalogue here. A deal renders only when EVERY one of its dishes
+  // is in the current catalogue — otherwise the "Add Deal" button could
+  // not add the full bundle. (At first paint, before Firestore loads, the
+  // fallback catalogue may not contain the deal names, so fewer deals show.)
+  const dishByName = React.useMemo(() => {
+    const map = new Map<string, Dish>();
+    for (const d of finalDishes) {
+      const key = (d.name || "").trim().toLowerCase();
+      if (key && !map.has(key)) map.set(key, d);
+    }
+    return map;
+  }, [finalDishes]);
+
+  const availableDeals = React.useMemo(() => {
+    return DEALS.map((deal) => {
+      const resolved = deal.dishes.map((dd) => {
+        const dish = dishByName.get(dd.name.trim().toLowerCase());
+        return dish ? { dish, qty: dd.qty ?? 1 } : null;
+      });
+      if (resolved.some((r) => r === null)) return null;
+      return {
+        deal,
+        items: resolved as { dish: Dish; qty: number }[],
+      };
+    }).filter(
+      (x): x is { deal: Deal; items: { dish: Dish; qty: number }[] } => x !== null,
+    );
+  }, [dishByName]);
+
+  // Add a whole deal in one tap. The bundle discount is honoured by
+  // applying the deal's saving to the FIRST dish (its discountPrice), so
+  // the cart total equals the advertised deal price exactly — the other
+  // dishes go in at menu price. Deal 5's Shawarma goes in with qty 2.
+  const handleAddDeal = (deal: Deal) => {
+    const entry = availableDeals.find((d) => d.deal.id === deal.id);
+    if (!entry) return;
+    const savings = dealSavings(deal);
+    entry.items.forEach(({ dish, qty }, i) => {
+      const base =
+        dish.discountPrice && dish.discountPrice > 0 && dish.discountPrice < dish.price
+          ? dish.discountPrice
+          : dish.price;
+      const dealDish =
+        i === 0 && savings > 0
+          ? { ...dish, discountPrice: Math.max(1, base - savings) }
+          : dish;
+      handleAddToCart(dealDish, qty);
+    });
+  };
+
   // --- RESTAURANT AVAILABILITY CHECK ---
   const uniqueRestaurants = React.useMemo(() => {
     const list = Array.from(
@@ -3904,7 +4121,7 @@ export default function App() {
   }, [activeInfoPage, selectedRestaurant, activeRoute, finalDishes, deliverySettings, adminSeoOverride]);
 
   const filteredDishes = React.useMemo(() => {
-    const q = (searchQuery || "").trim();
+    const q = (debouncedSearchQuery || "").trim();
     const seenKeys = new Set<string>();
 
     return finalDishes.filter((dish) => {
@@ -3956,7 +4173,50 @@ export default function App() {
       seenKeys.add(dedupeKey);
       return true;
     });
-  }, [finalDishes, activeCategory, selectedRestaurant, showFavoritesOnly, favoriteDishIds, searchQuery, quickFilter, deliverySettings, orders]);
+  }, [finalDishes, activeCategory, selectedRestaurant, showFavoritesOnly, favoriteDishIds, debouncedSearchQuery, quickFilter, deliverySettings, orders]);
+
+  // Food catalogue batching (same useLazyBatchLoad pattern as GroceryModule):
+  // the catalogue used to mount all ~144 dishes at once. The closed-first /
+  // featured sort is memoised here instead of re-running inline on every
+  // render, and the per-dish favourite / cart lookups use a Set / Map.
+  const sortedFilteredDishes = React.useMemo(() => {
+    return [...filteredDishes].sort((a, b) => {
+      const dishRestaurantNameA = a.restaurantName || "Dadu Fast Food & Kitchen";
+      const aClosed = checkIsRestaurantClosed(dishRestaurantNameA) ? 1 : 0;
+
+      const dishRestaurantNameB = b.restaurantName || "Dadu Fast Food & Kitchen";
+      const bClosed = checkIsRestaurantClosed(dishRestaurantNameB) ? 1 : 0;
+
+      if (aClosed !== bClosed) {
+        return aClosed - bClosed;
+      }
+
+      if (a.isFeatured !== b.isFeatured) {
+        return (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
+      }
+      const aTime = a.id.startsWith("custom_") ? parseInt(a.id.split("_")[1]) || 0 : 0;
+      const bTime = b.id.startsWith("custom_") ? parseInt(b.id.split("_")[1]) || 0 : 0;
+      if (aTime !== bTime) {
+        return bTime - aTime;
+      }
+      return String(b.id).localeCompare(String(a.id));
+    });
+  }, [filteredDishes, checkIsRestaurantClosed]);
+
+  const favoriteDishIdSet = React.useMemo(() => new Set(favoriteDishIds), [favoriteDishIds]);
+  const cartItemByDishId = React.useMemo(() => {
+    const map = new Map<string, (typeof cartItems)[number]>();
+    for (const item of cartItems) {
+      if (!map.has(item.dishId)) map.set(item.dishId, item);
+    }
+    return map;
+  }, [cartItems]);
+
+  const {
+    visibleItems: visibleFoodDishes,
+    hasMore: foodBatchHasMore,
+    observerTargetRef: foodBatchObserverRef,
+  } = useLazyBatchLoad<Dish>(sortedFilteredDishes, 24);
 
   const cartCountTotal = cartItems.reduce(
     (acc, item) => acc + item.quantity,
@@ -3975,7 +4235,7 @@ export default function App() {
         const itemRestaurant = firstItem?.restaurantName || "Dadu Fast Food & Kitchen";
         const specificStatus = deliverySettings?.restaurantStatuses?.[itemRestaurant];
         
-        let computedDeliveryFee = deliverySettings.deliveryFee;
+        let computedDeliveryFee = foodDeliveryFee;
         if (specificStatus && specificStatus.deliveryCharge) {
            const match = specificStatus.deliveryCharge.match(/\d+/);
            if (match) {
@@ -3983,10 +4243,11 @@ export default function App() {
            }
         }
         
-        if (isRiderRangeExceeded) {
-          computedDeliveryFee *= 2;
-        }
-        
+        // Rider-range doubling is applied inside CartDrawer (via the
+        // isRiderRangeExceeded prop) so the displayed fee matches the saved
+        // order total — do NOT pre-double computedDeliveryFee here (the
+        // drawer reads the raw settings fee, so a doubled prop would be
+        // ignored for display and double-counted nowhere).
         return (
           <CartDrawer
             isOpen={isCartOpen}
@@ -3997,6 +4258,7 @@ export default function App() {
             currentUser={currentUser}
             onOpenAuth={() => setIsAuthOpen(true)}
             deliveryFee={computedDeliveryFee}
+            isRiderRangeExceeded={isRiderRangeExceeded}
             isFirstOrderFreeDelivery={isFirstOrderFreeDelivery}
             onPlaceOrder={handlePlaceOrderSubmit}
             onAddDrink={handleAddExclusiveDrink}
@@ -4015,10 +4277,15 @@ export default function App() {
 
       {(() => {
         let computedGroceryDeliveryConfig = { ...groceryDeliveryConfig };
-        if (isRiderRangeExceeded) {
-          computedGroceryDeliveryConfig.baseDeliveryFee *= 2;
-        }
-        
+        // Grocery base fee is governed by delivery_config.groceryDeliveryFee
+        // (default Rs 100) — the old groceryDeliveryConfig doc value is stale.
+        computedGroceryDeliveryConfig.baseDeliveryFee = groceryDeliveryFee;
+        // Rider-range doubling is applied inside GroceryCartDrawer (via the
+        // isRiderRangeExceeded prop) so the displayed fee — and the fee the
+        // drawer passes back for the saved order — include it. Do NOT
+        // pre-double baseDeliveryFee here: the drawer reads the raw
+        // settings fee first, so a doubled config value was ignored and
+        // the doubling was dead in both display and saved order.
         return (
           <GroceryCartDrawer
             isOpen={isGroceryCartOpen}
@@ -4029,6 +4296,7 @@ export default function App() {
             currentUser={currentUser}
             onOpenAuth={() => setIsAuthOpen(true)}
             deliveryConfig={computedGroceryDeliveryConfig}
+            isRiderRangeExceeded={isRiderRangeExceeded}
             isFirstOrderFreeDelivery={isFirstOrderFreeDelivery}
             onPlaceGroceryOrder={handlePlaceGroceryOrder}
             userCoords={globalCoords}
@@ -4941,6 +5209,32 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#f7f4ee] dark:bg-[#0B0B0F] text-[#1f1b16] dark:text-[#F5F5F8] relative pb-28 md:pb-12 flex flex-col font-sans overflow-x-clip">
+      {/* Skip link — first focusable element (a11y fix 27 Nov 2026); CSS in
+          src/index.css (.skip-link). The info-page branch main below has
+          id="main-content"; the catalog branch main keeps id=
+          "catalog-section" (a live scroll target) and is focused via the
+          onClick fallback when "main-content" is not in the DOM. */}
+      <a
+        href="#main-content"
+        className="skip-link"
+        onClick={(e) => {
+          if (!document.getElementById("main-content")) {
+            const catalog = document.getElementById("catalog-section");
+            if (catalog) {
+              e.preventDefault();
+              (catalog as HTMLElement).focus();
+              catalog.scrollIntoView();
+            }
+          }
+        }}
+      >
+        Skip to content
+      </a>
+
+      {/* Scroll progress bar + back-to-top (bottom-LEFT by design — the
+          voice-call button lives bottom-right, so they never overlap) */}
+      <ScrollProgress />
+      <BackToTop />
 
       {/* Welcome Intro Splash — Pink Ripple Opening (brand splash) */}
       <AnimatePresence mode="wait">
@@ -5084,7 +5378,11 @@ export default function App() {
       {/* Offline & Slow-Internet Smart Shield Banner */}
       <NetworkStatusBanner />
 
-      {/* Dynamic Floating Voice Assistant Button (Bottom corner) — opens the AI voice order assistant */}
+      {/* Dynamic Floating Voice Assistant Button (Bottom corner) — opens the AI voice order assistant.
+          Hidden when the admin switches voice ordering off (delivery_config.voiceOrderEnabled).
+          Raised to bottom-40 / right-5 so it clears the grocery grid's 3rd column, the
+          counters, footer-link chevrons and the free-delivery banner corner. */}
+      {voiceOrderEnabled && (
       <button
         onClick={() => {
           // Prime the phone's audio inside this tap (a real gesture) —
@@ -5092,12 +5390,13 @@ export default function App() {
           primeAudio();
           setIsVoiceOrderOpen(true);
         }}
-        className={`fixed bottom-32 right-4 z-40 bg-[#E21B70] hover:bg-[#C2145E] text-white p-2 rounded-full shadow-lg active:scale-[0.97] transition-[color,background-color,border-color,transform,opacity] duration-180 cursor-pointer flex items-center justify-center border border-white/20 ${isScrolling ? "opacity-0 pointer-events-none translate-y-3" : "opacity-100"}`}
+        className={`fixed bottom-40 right-5 z-40 bg-[#E21B70] hover:bg-[#C2145E] text-white p-2 rounded-full shadow-lg active:scale-[0.97] transition-[color,background-color,border-color,transform,opacity] duration-180 cursor-pointer flex items-center justify-center border border-white/20 min-h-[44px] min-w-[44px] ${isScrolling ? "opacity-0 pointer-events-none translate-y-3" : "opacity-100"}`}
         title="Voice Assistant — Urdu mein order karein"
         aria-label="Voice Assistant"
       >
         <Phone className="w-6 h-6 text-white" />
       </button>
+      )}
 
       {/* Voice Order Assistant (Urdu, no API key — everything local) */}
       <VoiceOrderModal
@@ -5167,6 +5466,7 @@ export default function App() {
           setActiveModule={setActiveModule}
           onResetFoodHome={handleGoToFoodHome}
           onResetGroceryHome={handleGoToGroceryHome}
+          onResetPharmacyHome={handleGoToPharmacyHome}
           isLocked={currentUser?.status === 'locked'}
           allOrders={orders}
           onReorder={handleReorder}
@@ -5194,7 +5494,7 @@ export default function App() {
 
       {!(isAdminConsoleOpen && isUserAdmin) ? (
         activeInfoPage ? (
-          <main className="flex-1 relative z-10">
+          <main id="main-content" tabIndex={-1} className="flex-1 relative z-10">
             <InfoPagesView
               page={activeInfoPage}
               onBack={() => navigateToInfoPage(null)}
@@ -5351,6 +5651,7 @@ export default function App() {
                       />
                       <div className="relative z-10 px-4 sm:px-6 pt-5 sm:pt-7 pb-4 max-w-[62%] sm:max-w-[58%]">
                         <motion.h1
+                          aria-label="Dadu Food — Fast Delivery"
                           className="text-[27px] sm:text-4xl font-medium leading-[1.05] text-white tracking-tight"
                           initial="hidden"
                           animate="visible"
@@ -5374,7 +5675,7 @@ export default function App() {
                         </motion.h1>
                         <p className="mt-3 flex items-center gap-1.5 text-[12px] sm:text-sm font-medium text-white/95">
                           <Clock className="w-4 h-4 shrink-0" />
-                          25–35 min • COD &amp; Easypaisa
+                          {deliveryTimeTextSetting || "25–35 min"} • COD &amp; Easypaisa
                         </p>
                       </div>
                     </div>
@@ -5515,7 +5816,7 @@ export default function App() {
                             Free delivery over Rs. 1,000
                           </p>
                           <p className="text-[10.5px] text-pink-100 font-medium mt-0.5">
-                            Standard Rs. {deliverySettings?.deliveryFee || 50} delivery fee · Cash on Delivery &amp; Easypaisa
+                            Standard Rs. {foodDeliveryFee} delivery fee · Cash on Delivery &amp; Easypaisa
                           </p>
                         </div>
                       </div>
@@ -5574,14 +5875,14 @@ export default function App() {
                           >
                             <div>
                               <div className="flex items-center justify-between gap-1">
-                                <span className="text-xs font-extrabold text-[#14141A] dark:text-white truncate">
+                                <span className="text-xs font-extrabold text-[#14141A] dark:text-white line-clamp-2 leading-snug">
                                   {past.items[0]?.restaurantName || "Dadu Food"}
                                 </span>
                                 <span className="text-[10px] font-mono font-bold text-[#6E6E80] shrink-0">
                                   {formatOrderId(past.id)}
                                 </span>
                               </div>
-                              <p className="text-[11px] text-[#5A5A6B] dark:text-[#A1A1B2] line-clamp-1 mt-1">
+                              <p className="text-[11px] text-[#5A5A6B] dark:text-[#A1A1B2] line-clamp-2 mt-1">
                                 {past.items.map((i) => `${i.quantity}x ${i.name}`).join(", ")}
                               </p>
                             </div>
@@ -5611,10 +5912,10 @@ export default function App() {
                     <OffersMarquee
                       items={[
                         "Free delivery over Rs. 1,000",
-                        "20–35 min delivery",
+                        `${deliveryTimeTextSetting || "20–35 min"} delivery`,
                         "Cash on Delivery & Easypaisa",
                         "297 groceries in Dadu",
-                        "152 dishes • 3 restaurants",
+                        "144 dishes • 3 restaurants",
                         "Station Road • College Road • Shahani Paro",
                         "Fresh, hot & fast — Dadu Food",
                       ]}
@@ -5775,6 +6076,79 @@ export default function App() {
                 </div>
                 <OffersCarousel dishes={popularDishesForCart} onAdd={handleAddToCart} />
               </ScrollReveal>
+
+              {/* Meal Deals — bundle deals from src/data/deals.ts (10–20% off).
+                  Only deals whose dishes all resolve to the live menu render.
+                  One tap adds the whole bundle; the saving is applied to the
+                  first dish so the cart total equals the deal price. */}
+              {availableDeals.length > 0 && (
+                <ScrollReveal className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-6">
+                  <div className="flex items-end justify-between mb-2">
+                    <div>
+                      <h2 className="text-sm sm:text-base font-extrabold tracking-tight text-[#14141A] dark:text-[#F5F5F8]">
+                        Meal Deals — Save up to 20%
+                      </h2>
+                      <p className="text-[11px] sm:text-xs font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-0.5">
+                        Bundle price applied in your cart — one tap adds the whole deal
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-[#E21B70]/10 px-2.5 py-1 text-[11px] font-black text-[#E21B70]">
+                      Save 10–20%
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {availableDeals.map(({ deal, items }) => (
+                      <article
+                        key={deal.id}
+                        className="bg-white dark:bg-[#14141A] border border-[#e8e2d6] dark:border-[#272733] rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.05)] flex gap-3 p-3"
+                      >
+                        <img
+                          src={items[0].dish.imageUrl || "/images/dishes/pizza.jpg"}
+                          alt={deal.title}
+                          className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover shrink-0"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                        <div className="min-w-0 flex-1 flex flex-col">
+                          <div className="flex items-center gap-2">
+                            <span className="rounded-full bg-[#E21B70]/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-[#E21B70]">
+                              {deal.tag}
+                            </span>
+                            <span className="rounded-full bg-[#15803D]/10 px-2 py-0.5 text-[10px] font-black text-[#15803D] dark:text-[#4ADE80]">
+                              Save Rs. {dealSavings(deal)} · {dealDiscountPct(deal)}% off
+                            </span>
+                          </div>
+                          <h3 className="text-sm font-extrabold tracking-tight text-[#14141A] dark:text-white leading-snug mt-1.5">
+                            {deal.title}
+                          </h3>
+                          <p className="text-[11px] sm:text-xs text-[#5A5A6B] dark:text-[#A3A3B5] leading-snug mt-0.5 line-clamp-2">
+                            {deal.description}
+                          </p>
+                          <p className="text-[11px] font-semibold text-[#14141A] dark:text-white mt-1 line-clamp-2">
+                            {items.map(({ dish, qty }) => `${qty > 1 ? `${qty}× ` : ""}${dish.name}`).join(" + ")}
+                          </p>
+                          <div className="mt-auto pt-2 flex items-center justify-between gap-2">
+                            <p className="text-sm font-black text-[#14141A] dark:text-white tabular-nums">
+                              Rs. {deal.dealPrice}{" "}
+                              <span className="text-[11px] font-bold text-[#5A5A6B] dark:text-[#A3A3B5] line-through">
+                                Rs. {deal.originalTotal}
+                              </span>
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => handleAddDeal(deal)}
+                              aria-label={`Add ${deal.title} deal to cart for Rs. ${deal.dealPrice}`}
+                              className="min-h-[44px] px-4 rounded-xl bg-[#D70F64] hover:bg-[#B80C54] text-white text-[11px] font-extrabold cursor-pointer transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 shrink-0"
+                            >
+                              Add Deal
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </ScrollReveal>
+              )}
 
               {/* Active Order Banner Cards (Horizontal Scroll) */}
               {(() => {
@@ -5976,7 +6350,7 @@ export default function App() {
                                 />
                                 <a
                                   href={`tel:${activeOrderForBanner.riderPhone}`}
-                                  className="bg-white hover:bg-zinc-50 text-zinc-800 border border-zinc-300 px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider text-center transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] cursor-pointer"
+                                  className="bg-white hover:bg-zinc-50 text-zinc-800 border border-zinc-300 px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider text-center transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] cursor-pointer min-h-[44px] inline-flex items-center"
                                 >
                                   Call
                                 </a>
@@ -5984,7 +6358,7 @@ export default function App() {
                                   href={`https://wa.me/${activeOrderForBanner.riderPhone.replace(/\D/g, "")}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider text-center transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] cursor-pointer shadow-2xs"
+                                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-2.5 py-1 rounded-lg text-[9.5px] font-black uppercase tracking-wider text-center transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] cursor-pointer shadow-2xs min-h-[44px] inline-flex items-center"
                                 >
                                   Chat
                                 </a>
@@ -5999,7 +6373,7 @@ export default function App() {
               })()}
 
               {/* Catalog Listing */}
-              <main id="catalog-section" className="max-w-7xl mx-auto px-3.5 sm:px-4 py-3">
+              <main id="catalog-section" tabIndex={-1} className="max-w-7xl mx-auto px-3.5 sm:px-4 py-3">
                 <div className="flex flex-col md:flex-row gap-6">
                   {/* Left Column: Menu Cards Catalog grid */}
                   <div className="flex-1 space-y-4 min-w-0">
@@ -6066,7 +6440,7 @@ export default function App() {
                               setActiveCategory("All");
                               document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth" });
                             }}
-                            className="min-h-[36px] px-2.5 text-xs font-extrabold text-[#D70F64] dark:text-[#FF4D94] hover:underline cursor-pointer shrink-0"
+                            className="min-h-[44px] px-2.5 text-xs font-extrabold text-[#D70F64] dark:text-[#FF4D94] hover:underline cursor-pointer shrink-0"
                           >
                             See All →
                           </button>
@@ -6075,7 +6449,7 @@ export default function App() {
                           <button
                             type="button"
                             onClick={() => setQuickFilter("all")}
-                            className="min-h-[36px] px-2.5 text-xs font-extrabold text-[#D70F64] dark:text-[#FF4D94] hover:underline cursor-pointer"
+                            className="min-h-[44px] px-2.5 text-xs font-extrabold text-[#D70F64] dark:text-[#FF4D94] hover:underline cursor-pointer"
                           >
                             Clear Filter ✕
                           </button>
@@ -6294,29 +6668,7 @@ export default function App() {
                               </div>
                             </div>
                           ))
-                        : [...filteredDishes]
-                            .sort((a, b) => {
-                              const dishRestaurantNameA = a.restaurantName || "Dadu Fast Food & Kitchen";
-                              const aClosed = checkIsRestaurantClosed(dishRestaurantNameA) ? 1 : 0;
-
-                              const dishRestaurantNameB = b.restaurantName || "Dadu Fast Food & Kitchen";
-                              const bClosed = checkIsRestaurantClosed(dishRestaurantNameB) ? 1 : 0;
-
-                              if (aClosed !== bClosed) {
-                                return aClosed - bClosed;
-                              }
-
-                              if (a.isFeatured !== b.isFeatured) {
-                                return (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
-                              }
-                              const aTime = a.id.startsWith("custom_") ? parseInt(a.id.split("_")[1]) || 0 : 0;
-                              const bTime = b.id.startsWith("custom_") ? parseInt(b.id.split("_")[1]) || 0 : 0;
-                              if (aTime !== bTime) {
-                                return bTime - aTime;
-                              }
-                              return String(b.id).localeCompare(String(a.id));
-                            })
-                            .map((dish, idx) => {
+                        : visibleFoodDishes.map((dish, idx) => {
                             const dishRestaurantName =
                               dish.restaurantName || "Dadu Fast Food & Kitchen";
                             const isRestaurantClosed =
@@ -6326,8 +6678,8 @@ export default function App() {
                                 dishRestaurantName
                               ]?.openingTime ||
                               deliverySettings?.restaurantStatus?.openingTime;
-                            const isFavorite = favoriteDishIds.includes(dish.id);
-                            const cartItem = cartItems.find((item) => item.dishId === dish.id);
+                            const isFavorite = favoriteDishIdSet.has(dish.id);
+                            const cartItem = cartItemByDishId.get(dish.id);
                             const quantityInCart = cartItem ? cartItem.quantity : 0;
 
                             return (
@@ -6346,6 +6698,22 @@ export default function App() {
                               />
                             );
                           })}
+                      {!isLoadingDishes && foodBatchHasMore && (
+                        <div
+                          ref={foodBatchObserverRef}
+                          className="col-span-full flex items-center justify-center gap-2 py-4"
+                          aria-hidden="true"
+                        >
+                          <span className="text-xs font-semibold text-[#5A5A6B] dark:text-[#A3A3B5]">
+                            Loading more dishes…
+                          </span>
+                        </div>
+                      )}
+                      {!isLoadingDishes && !foodBatchHasMore && filteredDishes.length > 0 && (
+                        <p className="col-span-full text-center text-[11px] font-semibold text-[#5A5A6B] dark:text-[#A3A3B5] py-2">
+                          Showing {visibleFoodDishes.length} of {filteredDishes.length} dishes
+                        </p>
+                      )}
                       </div>
                     )}
 
@@ -6399,7 +6767,7 @@ export default function App() {
                     <p className="text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed">
                       Dadu Food is Dadu city&apos;s own food delivery in Dadu Sindh. Order biryani, zinger burgers,
                       pizza, shawarma and karahi from Dadu Fast Food &amp; Kitchen, S M Bilal Hotel and Tasty Bites
-                      Dadu, and get it delivered hot to your door in 20–35 minutes. When you place an online food order Dadu residents can trust, you pay a flat Rs 50 delivery fee and choose Cash on Delivery
+                      Dadu, and get it delivered hot to your door in {deliveryTimeTextSetting || "20–35 minutes"}. When you place an online food order Dadu residents can trust, you pay a flat Rs {foodDeliveryFee} delivery fee and choose Cash on Delivery
                       or Easypaisa — no hidden charges.
                     </p>
                     <p className="text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed">
@@ -6443,18 +6811,18 @@ export default function App() {
                     </h2>
                     <p className="text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed">
                       Our food delivery in Dadu reaches every part of the city — Dadu Food home delivery brings hot
-                      meals, groceries and medicines to your door in 20–35 minutes. Dadu mein khana order karein —
+                      meals, groceries and medicines to your door in {deliveryTimeTextSetting || "20–35 minutes"}. Dadu mein khana order karein —
                       choose your meal, pay by Cash on Delivery or Easypaisa, and track it live until it arrives.
                       That is why families across the city call Dadu Food the best food delivery in Dadu.
                     </p>
                     <div className="grid grid-cols-4 gap-2 rounded-2xl bg-[#FFF0F5] dark:bg-[#2A101B] border border-[#E21B70]/15 px-2 py-3">
                       <AnimatedCounter to={297} label="Groceries" />
-                      <AnimatedCounter to={152} label="Dishes" />
+                      <AnimatedCounter to={144} label="Dishes" />
                       <AnimatedCounter to={3} label="Restaurants" />
                       <AnimatedCounter to={35} suffix=" min" label="Max delivery" />
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                      {["Shahani Paro", "Moro Road", "Station Road", "College Road", "Makhdoom Bilawal Nagar", "Civil Hospital Road", "Degree College Road", "New Bus Stand", "Kacheri Road", "Dadu City Center"].map((area) => (
+                      {deliveryAreasList.map((area) => (
                         <span
                           key={area}
                           className="rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-2.5 py-1 text-[11px] sm:text-xs font-semibold text-zinc-700 dark:text-zinc-200"
@@ -6466,7 +6834,7 @@ export default function App() {
                   </div>
                 </ScrollReveal>
 
-                {/* Frequently asked questions — visible FAQ (AEO: the same 17
+                {/* Frequently asked questions — visible FAQ (AEO: the same 27
                     Q&As as the FAQPage schema in seoManager.ts; answers carry
                     .faq-answer for the SpeakableSpecification selector) */}
                 <ScrollReveal className="max-w-7xl mx-auto px-3.5 sm:px-4 mt-6">
@@ -6517,7 +6885,7 @@ export default function App() {
                   <p className="text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed">
                     Order from Dadu Food for grocery delivery Dadu families trust — 297 grocery items in 13 categories, including
                     atta, rice, cooking oil, tea, milk, spices, snacks, personal care, cleaning products and
-                    household items. Grocery orders can be placed from the morning, delivery is a flat Rs 50 across
+                    household items. Grocery orders can be placed from the morning, delivery is a flat Rs {groceryDeliveryFee} across
                     Dadu city, and you can pay by Cash on Delivery or Easypaisa. Need medicines instead?{" "}
                     <a
                       href="/pharmacy"
@@ -6541,7 +6909,7 @@ export default function App() {
                     Medicine Delivery in Dadu
                   </h1>
                   <p className="text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed">
-                    Order from Dadu Food for medicine delivery Dadu families trust — 12 essential medicines in our Medicine &amp;
+                    Order from Dadu Food for medicine delivery Dadu families trust — 11 essential medicines in our Medicine &amp;
                     Pharmacy category, delivered to your home across Dadu city. Medicine-only orders have a lower
                     delivery fee of Rs 30, and you can pay by Cash on Delivery or Easypaisa. Medicine orders can be
                     placed from the morning. For everyday household shopping, see our{" "}
@@ -6557,6 +6925,9 @@ export default function App() {
                     </a>
                     .
                   </p>
+                  <p className="text-xs sm:text-sm font-semibold text-[#15803D] dark:text-[#4ADE80] leading-relaxed">
+                    Dawaai doctor/pharmacist ki hidayat ke mutabiq istemal karein.
+                  </p>
                 </div>
               </section>
             )}
@@ -6568,7 +6939,7 @@ export default function App() {
               cartItems={groceryCartItems}
               onUpdateCartQuantity={handleUpdateGroceryCartQuantity}
               onRemoveFromCart={handleRemoveFromGroceryCart}
-              searchQuery={searchQuery}
+              searchQuery={debouncedSearchQuery}
               initialCategoryId={activeRoute === "pharmacy" ? "gcat_medicine" : undefined}
               selectedCategoryId={groceryCategoryId}
               onSelectCategory={setGroceryCategoryId}
@@ -6701,12 +7072,12 @@ export default function App() {
                 href={`https://wa.me/${deliverySettings?.whatsappNumber || "923277004471"}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[#D70F64] dark:text-[#FF4D94] hover:underline font-bold"
+                className="text-[#D70F64] dark:text-[#FF4D94] hover:underline font-bold min-h-[24px] inline-flex items-center"
               >
                 {DADU_FOOD_BUSINESS.phoneDisplay} (Call / WhatsApp)
               </a>
             </p>
-            <p className="tabular-nums">Delivery: Rs. 50 · 2x below Rs. 500 · Free Rs. 1,000+</p>
+            <p className="tabular-nums">Delivery: Food Rs. {foodDeliveryFee} · Grocery Rs. {groceryDeliveryFee} · Medicine Rs. {medicineDeliveryFee} · 2x below Rs. 500 · Free Rs. 1,000+ · Site Tax Rs. {siteTaxAmount} per order</p>
           </div>
         </div>
         {/* Popular in Dadu — crawlable links to shops, grocery & pharmacy */}
@@ -6714,19 +7085,19 @@ export default function App() {
           <span className="font-semibold text-[11px] tracking-wide text-[#111118] dark:text-[#F5F5F8]">
             Popular in Dadu:
           </span>
-          <a href="/grocery" onClick={(e) => { e.preventDefault(); handleGoToGroceryHome(); }} className="hover:text-[#D70F64] dark:hover:text-[#FF4D94] cursor-pointer">
+          <a href="/grocery" onClick={(e) => { e.preventDefault(); handleGoToGroceryHome(); }} className="hover:text-[#D70F64] dark:hover:text-[#FF4D94] cursor-pointer min-h-[24px] inline-flex items-center">
             Grocery Delivery in Dadu
           </a>
-          <a href="/pharmacy" onClick={(e) => { e.preventDefault(); handleGoToPharmacyHome(); }} className="hover:text-[#D70F64] dark:hover:text-[#FF4D94] cursor-pointer">
+          <a href="/pharmacy" onClick={(e) => { e.preventDefault(); handleGoToPharmacyHome(); }} className="hover:text-[#D70F64] dark:hover:text-[#FF4D94] cursor-pointer min-h-[24px] inline-flex items-center">
             Medicine Delivery in Dadu
           </a>
-          <a href="/shop/dadu-fast-food-kitchen" onClick={(e) => { e.preventDefault(); handleRestaurantClick("Dadu Fast Food & Kitchen"); }} className="hover:text-[#D70F64] dark:hover:text-[#FF4D94] cursor-pointer">
+          <a href="/shop/dadu-fast-food-kitchen" onClick={(e) => { e.preventDefault(); handleRestaurantClick("Dadu Fast Food & Kitchen"); }} className="hover:text-[#D70F64] dark:hover:text-[#FF4D94] cursor-pointer min-h-[24px] inline-flex items-center">
             Dadu Fast Food &amp; Kitchen
           </a>
-          <a href="/shop/s-m-bilal-hotel" onClick={(e) => { e.preventDefault(); handleRestaurantClick("S M Bilal Hotel"); }} className="hover:text-[#D70F64] dark:hover:text-[#FF4D94] cursor-pointer">
+          <a href="/shop/s-m-bilal-hotel" onClick={(e) => { e.preventDefault(); handleRestaurantClick("S M Bilal Hotel"); }} className="hover:text-[#D70F64] dark:hover:text-[#FF4D94] cursor-pointer min-h-[24px] inline-flex items-center">
             S M Bilal Hotel
           </a>
-          <a href="/shop/tasty-bites-dadu" onClick={(e) => { e.preventDefault(); handleRestaurantClick("Tasty Bites Dadu"); }} className="hover:text-[#D70F64] dark:hover:text-[#FF4D94] cursor-pointer">
+          <a href="/shop/tasty-bites-dadu" onClick={(e) => { e.preventDefault(); handleRestaurantClick("Tasty Bites Dadu"); }} className="hover:text-[#D70F64] dark:hover:text-[#FF4D94] cursor-pointer min-h-[24px] inline-flex items-center">
             Tasty Bites Dadu
           </a>
         </div>
@@ -6861,7 +7232,10 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* PWA Install Bubble (Very Small) */}
+      {/* PWA Install Bubble — docked just above the bottom nav (or above the
+          View Cart bar when the cart has items) so it never floats over
+          product cards; 44px tall with a 44×44 dismiss target. Auto-hides
+          after 8s and while scrolling. */}
       <AnimatePresence>
         {showInstallBubble && (
           <motion.div
@@ -6869,12 +7243,12 @@ export default function App() {
             animate={{ opacity: isScrolling ? 0 : 1, scale: 1, x: 0 }}
             exit={{ opacity: 0, scale: 0.8, x: -50 }}
             style={{ pointerEvents: isScrolling ? "none" : "auto" }}
-            className={`fixed ${cartCountTotal > 0 ? 'bottom-[136px]' : 'bottom-[72px]'} left-4 z-40 md:hidden bg-zinc-900/90 backdrop-blur-md border border-zinc-800 shadow-xl rounded-full p-1.5 flex items-center gap-1 hover:bg-zinc-800 transition-[color,background-color,border-color,transform,opacity] duration-180`}
+            className={`fixed ${cartCountTotal > 0 ? 'bottom-[140px]' : 'bottom-[76px]'} left-4 z-40 md:hidden bg-zinc-900/90 backdrop-blur-md border border-zinc-800 shadow-xl rounded-full p-1.5 min-h-[44px] flex items-center gap-1 hover:bg-zinc-800 transition-[color,background-color,border-color,transform,opacity] duration-180`}
           >
             <button
               type="button"
               onClick={handleInstallClick}
-              className="flex items-center gap-1.5 cursor-pointer active:scale-[0.97]"
+              className="flex items-center gap-1.5 cursor-pointer active:scale-[0.97] min-h-[44px]"
             >
               <span className="w-5 h-5 rounded-md overflow-hidden shrink-0">
                 <img src={daduLogo} alt="Logo" className="w-full h-full object-cover" />
@@ -6885,7 +7259,7 @@ export default function App() {
               type="button"
               aria-label="Dismiss install prompt"
               onClick={() => setShowInstallBubble(false)}
-              className="w-7 h-7 min-w-[28px] min-h-[28px] rounded-full flex items-center justify-center text-zinc-400 hover:text-white hover:bg-white/10 cursor-pointer transition-[color,background-color] duration-180"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full flex items-center justify-center text-zinc-400 hover:text-white hover:bg-white/10 cursor-pointer transition-[color,background-color] duration-180"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -6906,14 +7280,16 @@ export default function App() {
             requireForOrder={locationRequiredForOrder}
           />
         )}
-        <MapLocationPickerModal
-          isOpen={isUserMapPickerOpen}
-          onClose={() => setIsUserMapPickerOpen(false)}
-          initialLat={globalCoords?.latitude ?? null}
-          initialLng={globalCoords?.longitude ?? null}
-          onSaveLocation={handleMapLocationSave}
-          title="Apni Location Map Pe Chunein"
-        />
+        <Suspense fallback={null}>
+          <MapLocationPickerModal
+            isOpen={isUserMapPickerOpen}
+            onClose={() => setIsUserMapPickerOpen(false)}
+            initialLat={globalCoords?.latitude ?? null}
+            initialLng={globalCoords?.longitude ?? null}
+            onSaveLocation={handleMapLocationSave}
+            title="Apni Location Map Pe Chunein"
+          />
+        </Suspense>
       </AnimatePresence>
     </div>
   );

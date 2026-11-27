@@ -844,6 +844,37 @@ body.dark {
   color: #F5F5F8;
 }
 
+/* Strong, consistent keyboard-focus indicator (a11y fix 27 Nov 2026).
+   The audit found the browser-default 1px grey outline barely visible on
+   the pink header, and 156 `outline-none` usages removing it entirely.
+   This is the floor: components that set their own focus-visible ring
+   (higher-specificity Tailwind utilities) still win where they exist. */
+:focus-visible {
+  outline: 2px solid #D70F64;
+  outline-offset: 2px;
+}
+
+/* Skip link (paired with the App.tsx snippet in the fix-D report):
+   off-screen until keyboard focus, then pinned top-left above everything. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 1000;
+  background: #D70F64;
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 12px 20px;
+  border-radius: 0 0 12px 0;
+}
+.skip-link:focus-visible {
+  position: fixed;
+  left: 0;
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
 /* Respect user motion preferences */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
