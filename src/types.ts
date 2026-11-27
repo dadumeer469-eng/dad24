@@ -72,6 +72,7 @@ export interface OrderItem {
   discountPrice?: number;
   quantity: number;
   type: "food" | "service";
+  imageUrl?: string; // dish photo — shown as a thumbnail in the cart (Foodpanda-style, like the grocery basket)
   serviceDuration?: string;
   restaurantName?: string;
   commission?: number;

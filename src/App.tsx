@@ -2658,6 +2658,18 @@ export default function App() {
         );
       }
 
+      // Cart thumbnail (Foodpanda-style): prefer the selected variant's own
+      // photo, else the dish photo — so the cart shows a dish image like the
+      // grocery basket does.
+      const sizeObj = options?.size
+        ? dish.sizes?.find((s) => s.name === options.size)
+        : undefined;
+      const flavorObj = options?.flavor
+        ? dish.flavors?.find((f) => f.name === options.flavor)
+        : undefined;
+      const itemImageUrl =
+        flavorObj?.imageUrl || sizeObj?.imageUrl || dish.imageUrl;
+
       return [
         ...prev,
         {
@@ -2666,6 +2678,7 @@ export default function App() {
           price: finalPrice,
           quantity: quantityToAdd,
           type: dish.type,
+          imageUrl: itemImageUrl,
           serviceDuration: dish.serviceDuration,
           restaurantName: itemRestaurant,
           commission: dish.commission || 0,
@@ -3703,6 +3716,7 @@ export default function App() {
               : dish.price,
           quantity: qty,
           type: dish.type,
+          imageUrl: dish.imageUrl,
           serviceDuration: dish.serviceDuration,
           restaurantName: dish.restaurantName || "Dadu Fast Food & Kitchen",
           commission: dish.commission || 0,
