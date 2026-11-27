@@ -18,7 +18,14 @@ const config: CapacitorConfig = {
   // assets/icon.png + assets/splash.png (the real Dadu Food logo).
   plugins: {
     SplashScreen: {
-      launchShowDuration: 2000,
+      // SHORT native splash (user 28 Nov 03:15 — "opening animation nahi hai"):
+      // the native splash is a STATIC image. It used to cover the screen
+      // for 2000ms, which hid the ENTIRE web opening animation (only 0.9s)
+      // behind it — so the user never saw any animation. Now the native
+      // splash shows for just 300ms (a brief 3D-logo flash) and hides,
+      // revealing the web splash animation (floating food, scooter,
+      // staggered letters) so it actually plays visibly.
+      launchShowDuration: 300,
       launchAutoHide: true,
       backgroundColor: '#E21B70',
       androidSplashResourceName: 'splash',
