@@ -24,6 +24,8 @@ export interface VoiceOrderResult {
   orderId?: string;
   message?: string;
   needsSignIn?: boolean;
+  // Spoken on success: unmatched items / split-order warning (M22).
+  note?: string;
 }
 
 interface VoiceOrderModalProps {
@@ -614,9 +616,12 @@ export default function VoiceOrderModal({
           if (hit) setProductFrame(hit);
         }
         // Let the agent's spoken confirmation finish, then end the call.
+        // A note (unmatched items / split order) is spoken first, with a
+        // longer wait so it is not cut off.
+        if (result.note) speak(result.note);
         setTimeout(() => {
           if (openRef.current) endCall();
-        }, 2500);
+        }, result.note ? 6000 : 2500);
       } else if (result.needsSignIn) {
         speak("آرڈر پلیس کرنے کے لیے پہلے سائن ان کریں۔ میں آپ کو سائن ان پر لے جا رہا ہوں۔", () => {
           if (openRef.current) {
@@ -625,7 +630,9 @@ export default function VoiceOrderModal({
           }
         });
       } else {
-        speak("معاف کیجیے، آرڈر پلیس نہیں ہوا۔ دوبارہ کوشش کریں۔", () => {
+        // Speak the real reason when the order handler gave one (e.g. the
+        // Easypaisa receipt error), not just the generic retry line.
+        speak(result.message || "معاف کیجیے، آرڈر پلیس نہیں ہوا۔ دوبارہ کوشش کریں۔", () => {
           if (openRef.current) setStatusBoth("idle");
         });
       }
