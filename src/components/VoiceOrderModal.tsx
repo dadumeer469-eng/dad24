@@ -403,7 +403,7 @@ export default function VoiceOrderModal({
       const voice = pickVoice();
       if (voice) u.voice = voice;
       u.lang = voice?.lang || "ur-PK";
-      u.rate = 1;
+      u.rate = 1.15;
       u.pitch = 1;
       let retried = false;
       // Real lip-sync: Chrome fires onboundary once per spoken word — each
@@ -426,7 +426,7 @@ export default function VoiceOrderModal({
           const u2 = new SpeechSynthesisUtterance(text);
           u2.voice = retryVoice;
           u2.lang = "ur-PK";
-          u2.rate = 1;
+          u2.rate = 1.15;
           u2.pitch = 1;
           u2.onboundary = (e) => {
             if (e.name === "word") munchiRef.current?.noteWord(e.charLength ?? 4);
@@ -697,23 +697,39 @@ export default function VoiceOrderModal({
     async (history: ChatMsg[], turn: number) => {
       setStatusBoth("thinking");
       try {
-        const res = await fetch("/api/voice-chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            messages: history.map((m) => ({ role: m.role, content: m.text })),
-            menuText,
-            ordersText,
-            userName: userName || undefined,
-            userPhone: userPhone || enteredPhone || undefined,
-            locationText: deliveryLocation
-              ? deliveryLocation.street
-                ? `${deliveryLocation.area}, ${deliveryLocation.street}`
-                : deliveryLocation.area
-              : undefined,
-          }),
-          signal: AbortSignal.timeout(30000),
-        });
+        // Retry once on a transient network blip (slow/flaky mobile data):
+        // a single failed request must not kill the turn with "internet ka
+        // masla hai" — only two consecutive failures say that.
+        let res: Response | null = null;
+        let lastErr: unknown = null;
+        for (let attempt = 0; attempt < 2; attempt++) {
+          if (!openRef.current || turn !== turnRef.current) return;
+          if (attempt > 0) await new Promise((r) => setTimeout(r, 1500));
+          try {
+            res = await fetch("/api/voice-chat", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                messages: history.map((m) => ({ role: m.role, content: m.text })),
+                menuText,
+                ordersText,
+                userName: userName || undefined,
+                userPhone: userPhone || enteredPhone || undefined,
+                locationText: deliveryLocation
+                  ? deliveryLocation.street
+                    ? `${deliveryLocation.area}, ${deliveryLocation.street}`
+                    : deliveryLocation.area
+                  : undefined,
+              }),
+              signal: AbortSignal.timeout(30000),
+            });
+            break;
+          } catch (e) {
+            lastErr = e;
+            res = null;
+          }
+        }
+        if (!res) throw lastErr ?? new Error("voice-chat failed");
         if (!openRef.current || turn !== turnRef.current) return;
         if (res.status === 503) {
           speakBusyAndEnd();
@@ -789,17 +805,33 @@ export default function VoiceOrderModal({
     async (blob: Blob, turn: number) => {
       setStatusBoth("thinking");
       try {
-        const fd = new FormData();
         // Name the file from the actual recording format: Safari records
         // MP4, and Groq/Whisper detects the format from the extension —
         // MP4 bytes named .webm fail transcription on every iPhone.
         const ext = blob.type.includes("mp4") ? "voice.mp4" : "voice.webm";
-        fd.append("audio", blob, ext);
-        const tRes = await fetch("/api/voice-transcribe", {
-          method: "POST",
-          body: fd,
-          signal: AbortSignal.timeout(30000),
-        });
+        // Retry once on a transient network blip (slow/flaky mobile data):
+        // a single failed upload must not kill the turn with "internet ka
+        // masla hai" — only two consecutive failures say that.
+        let tRes: Response | null = null;
+        let lastErr: unknown = null;
+        for (let attempt = 0; attempt < 2; attempt++) {
+          if (!openRef.current || turn !== turnRef.current) return;
+          if (attempt > 0) await new Promise((r) => setTimeout(r, 1500));
+          try {
+            const fd = new FormData();
+            fd.append("audio", blob, ext);
+            tRes = await fetch("/api/voice-transcribe", {
+              method: "POST",
+              body: fd,
+              signal: AbortSignal.timeout(30000),
+            });
+            break;
+          } catch (e) {
+            lastErr = e;
+            tRes = null;
+          }
+        }
+        if (!tRes) throw lastErr ?? new Error("voice-transcribe failed");
         if (!openRef.current || turn !== turnRef.current) return;
         if (tRes.status === 503) {
           speakBusyAndEnd();
