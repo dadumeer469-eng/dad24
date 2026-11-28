@@ -687,6 +687,10 @@ export default function App() {
   const [adminSeoOverride, setAdminSeoOverride] = useState<
     { siteTitle?: string; siteDescription?: string } | undefined
   >(undefined);
+  // Munchi voice pace — pre-speech pause in ms, admin-configurable from
+  // the Admin Panel (settings/voice_config → pauseMs). Default 300ms
+  // (fast reply, user 28 Nov 10:33). Passed to VoiceOrderModal.
+  const [voicePauseMs, setVoicePauseMs] = useState<number>(300);
 
   const handleLanguageChange = (lang: "en" | "ur") => {
     setLanguage(lang);
@@ -2213,6 +2217,47 @@ export default function App() {
     fetchSeoConfig();
     const handleVisibility = () => {
       if (!document.hidden) fetchSeoConfig();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [catalogRefreshTick]);
+  // 3f. Load Munchi voice config from Admin panel (settings/voice_config →
+  // pauseMs). The admin changes the pace from inside the app — no code
+  // change or rebuild needed (user 28 Nov 10:33: "bar bar app ya site
+  // changes na kro, uske under se hi setting kro"). Cache-first (1h TTL).
+  useEffect(() => {
+    let cancelled = false;
+    const fetchVoiceConfig = async () => {
+      const applyVoiceData = (data: Record<string, unknown>) => {
+        const ms = Number(data.pauseMs);
+        if (Number.isFinite(ms) && ms >= 0 && ms <= 5000) {
+          setVoicePauseMs(Math.round(ms));
+        }
+      };
+      const cached = readSettingsCache<Record<string, unknown>>("voice_config");
+      if (cached) {
+        if (!cancelled) applyVoiceData(cached);
+        return;
+      }
+      try {
+        const docSnap = await getDoc(doc(db, "settings", "voice_config"));
+        if (cancelled) return;
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          writeSettingsCache("voice_config", data);
+          applyVoiceData(data);
+        }
+      } catch (err) {
+        if (cancelled) return;
+        console.warn("Error loading voice_config:", err);
+      }
+    };
+    fetchVoiceConfig();
+    const handleVisibility = () => {
+      if (!document.hidden) fetchVoiceConfig();
     };
     document.addEventListener("visibilitychange", handleVisibility);
     return () => {
@@ -5874,6 +5919,7 @@ export default function App() {
         userName={currentUser?.name}
         userPhone={currentUser?.phone}
         userProfileText={voiceUserProfile}
+        voicePauseMs={voicePauseMs}
         deliveryLocation={
           currentUser?.savedLocation?.area
             ? {
