@@ -1,7 +1,7 @@
 // Shared Gemini voice-agent logic for Dadu Food (Munchi).
 // Switched from Groq 28 Nov 2026 on the user's word ("Gemini pe switch
 // karein") — Groq kept replying in Urdu script and the v10 fix never
-// deployed to Vercel, so Munchi did not talk properly. Gemini 2.0 Flash
+// deployed to Vercel, so Munchi did not talk properly. Gemini 3.5 Flash
 // is fast, understands Urdu/Roman Urdu well, and does audio transcription
 // too, so one provider covers chat + transcribe. Edge TTS (Asad male
 // voice) is unchanged — api/voice-speak.ts still serves it.
@@ -24,7 +24,7 @@ import {
 
 export { parseMultipart, readRawBody };
 
-const DEFAULT_MODEL = "gemini-2.0-flash";
+const DEFAULT_MODEL = "gemini-3.5-flash";
 const FETCH_TIMEOUT_MS = 20000;
 const MAX_CHAT_BODY_CHARS = 100_000;
 const MAX_AUDIO_BYTES = 4 * 1024 * 1024; // Vercel request limit is 4.5 MB
