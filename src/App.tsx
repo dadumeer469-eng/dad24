@@ -6380,7 +6380,7 @@ export default function App() {
                     Auto-play
                   </span>
                 </div>
-                <OffersCarousel dishes={popularDishesForCart} onAdd={handleAddToCart} />
+                <OffersCarousel dishes={popularDishesForCart} onAdd={handleAddToCart} cartByDishId={cartItemByDishId} onUpdateQuantity={handleUpdateCartQuantity} />
               </ScrollReveal>
 
               {/* Meal Deals — bundle deals from src/data/deals.ts (10–20% off).
