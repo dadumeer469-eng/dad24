@@ -19,11 +19,23 @@ export default async function handler(req: any, res: any) {
     req.socket?.remoteAddress ||
     "unknown";
   const useGemini = getGeminiKeys().length > 0;
-  const result = useGemini
+  let result = useGemini
     ? await handleVoiceSpeakGemini(req.body || {}, ip)
     : await handleVoiceSpeakEdge(req.body || {}, ip);
+  let contentType = useGemini ? "audio/wav" : "audio/mpeg";
+  // Fallback (28 Nov 2026): Gemini TTS was returning 502 "Speech service
+  // unavailable" (rate limit / quota), leaving Munchi silent. When Gemini
+  // fails, fall back to Edge TTS (male ur-PK-AsadNeural) so Munchi still
+  // speaks. Gemini stays the primary voice — Edge only covers its outages.
+  if (result.status !== 200 && useGemini) {
+    const edge = await handleVoiceSpeakEdge(req.body || {}, ip);
+    if (edge.status === 200 && Buffer.isBuffer(edge.body)) {
+      result = edge;
+      contentType = "audio/mpeg";
+    }
+  }
   if (result.status === 200 && Buffer.isBuffer(result.body)) {
-    res.setHeader("Content-Type", useGemini ? "audio/wav" : "audio/mpeg");
+    res.setHeader("Content-Type", contentType);
     res.setHeader("Cache-Control", "no-store");
     return res.status(200).send(result.body);
   }
