@@ -3856,9 +3856,6 @@ export default function App() {
         price: d.discountPrice && d.discountPrice < d.price ? d.discountPrice : d.price,
         type: "food" as const,
         image: d.imageUrl,
-        // Bestseller flag — Munchi only shows a product frame for the 10
-        // special dishes (4 heroes + bestsellers), see munchiProductFrames.
-        isBestseller: d.isBestseller,
       }));
     const grocery = groceryProducts
       .filter((p) => p.isAvailable)
