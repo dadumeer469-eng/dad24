@@ -536,9 +536,6 @@ export default function AdminPanel({
     | "vouchers"
     | "settings"
   >("analytics");
-  const [editingRiderPasswordId, setEditingRiderPasswordId] = useState<string | null>(null);
-  const [newPasswordInputValue, setNewPasswordInputValue] = useState<string>("");
-  const [showPasswordId, setShowPasswordId] = useState<string | null>(null);
   const [selectedRiderStatsId, setSelectedRiderStatsId] = useState<string | null>(null);
   // Easypaisa verification in flight (order id) — disables the Verify /
   // Reject buttons while a verification is running so a double-click
@@ -555,6 +552,8 @@ export default function AdminPanel({
   const [vouchersList, setVouchersList] = useState<Voucher[]>([]);
   const [inspectingVoucherUser, setInspectingVoucherUser] = useState<UserProfile | null>(null);
   const [userSearchTerm, setUserSearchTerm] = useState("");
+  const [itemSearchTerm, setItemSearchTerm] = useState("");
+  const [grocerySearchTerm, setGrocerySearchTerm] = useState("");
   const [userFilterTab, setUserFilterTab] = useState<"new" | "active" | "blocked">("new");
   const [receiptModalOrder, setReceiptModalOrder] = useState<Order | null>(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
@@ -621,7 +620,7 @@ export default function AdminPanel({
   // App version (28 Nov 2026) — settings/app_version. When a new APK launches,
   // the admin sets the new version + APK link here; every OLD app then shows
   // an update banner the user taps to install the new version.
-  const [appVersionInput, setAppVersionInput] = useState(2);
+  const [appVersionInput, setAppVersionInput] = useState(3);
   const [appApkUrlInput, setAppApkUrlInput] = useState(
     "https://github.com/dadumeer469-eng/dad24/releases/download/v1.0.0-apk/DaduFood-v1.0.0.apk",
   );
@@ -631,6 +630,9 @@ export default function AdminPanel({
   // Homepage / voice controls — App.tsx reads these exact field names.
   const [voiceOrderEnabledInput, setVoiceOrderEnabledInput] = useState(
     deliverySettings?.voiceOrderEnabled !== false,
+  );
+  const [chatAgentEnabledInput, setChatAgentEnabledInput] = useState(
+    deliverySettings?.chatAgentEnabled !== false,
   );
   // Munchi voice pace — pre-speech pause in ms, admin-configurable from
   // inside the app (settings/voice_config → pauseMs). Default 150ms (fast
@@ -797,6 +799,7 @@ export default function AdminPanel({
       setNightSurchargeAmountInput(deliverySettings.nightSurchargeAmount ?? 30);
       setNightSurchargeStartHourInput(deliverySettings.nightSurchargeStartHour ?? 21);
       setVoiceOrderEnabledInput(deliverySettings.voiceOrderEnabled !== false);
+      setChatAgentEnabledInput(deliverySettings.chatAgentEnabled !== false);
       setDeliveryTimeTextInput(deliverySettings.deliveryTimeText || "25–35 min");
       setDeliveryAreasInput((deliverySettings.deliveryAreas || DEFAULT_DELIVERY_AREAS).join("\n"));
       setUserRangeKmInput(deliverySettings.userRangeKm || 10);
@@ -1130,6 +1133,7 @@ export default function AdminPanel({
         recordCatalogChange("foodCategories", id, "delete");
       } catch (err) {
         console.error(err);
+        alert("Category delete nahi hui — dobara try karein.");
       }
     }
   };
@@ -1313,10 +1317,13 @@ export default function AdminPanel({
     title: string;
     message: string;
     onConfirm: () => void | Promise<void>;
+    confirmLabel?: string;
+    onCancel?: () => void;
   } | null>(null);
 
   // User Verification Lock System States & Helpers
   const [unlockingUser, setUnlockingUser] = useState<UserProfile | null>(null);
+  const [isUnlocking, setIsUnlocking] = useState(false);
   const [unlockArea, setUnlockArea] = useState("");
   const [unlockStreet, setUnlockStreet] = useState("");
   const [unlockLandmark, setUnlockLandmark] = useState("");
@@ -1518,7 +1525,8 @@ export default function AdminPanel({
 
   const handleUnlockSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!unlockingUser) return;
+    if (!unlockingUser || isUnlocking) return;
+    setIsUnlocking(true);
     // Owner/admin accounts must NEVER be unlocked/approved from here.
     if (unlockingUser.phone === "03277004471" || unlockingUser.role === "admin") {
       alert("Owner/admin accounts cannot be unlocked here.");
@@ -1578,6 +1586,8 @@ export default function AdminPanel({
     } catch (err) {
       console.error(err);
       alert("Failed to unlock user. Database permissions error.");
+    } finally {
+      setIsUnlocking(false);
     }
   };
 
@@ -1828,26 +1838,26 @@ export default function AdminPanel({
           return;
         }
 
-        const confirmUpgrade = window.confirm(
-          `User "${existingData.name}" already exists in the system with role: "${existingData.role}".\nDo you want to escalate this user's profile to a Rider duty?`,
-        );
-        if (confirmUpgrade) {
-          await updateDoc(doc(db, "users", existingData.uid), {
-            role: "rider",
-            vehicleNumber: "Active Rider",
-          });
-          alert(
-            `Success! "${existingData.name}" has been upgraded to Rider duty successfully.`,
-          );
-          setRiderNameInput("");
-          setRiderPhoneInput("");
-          setRiderPasswordInput("");
-          setRiderRegLoading(false);
-          return;
-        } else {
-          setRiderRegLoading(false);
-          return;
-        }
+        setConfirmDialog({
+          title: "Rider banaein",
+          message: `User "${existingData.name}" already exists in the system with role: "${existingData.role}". Do you want to escalate this user's profile to a Rider duty?`,
+          confirmLabel: "Rider banaein",
+          onCancel: () => setRiderRegLoading(false),
+          onConfirm: async () => {
+            await updateDoc(doc(db, "users", existingData.uid), {
+              role: "rider",
+              vehicleNumber: "Active Rider",
+            });
+            alert(
+              `Success! "${existingData.name}" has been upgraded to Rider duty successfully.`,
+            );
+            setRiderNameInput("");
+            setRiderPhoneInput("");
+            setRiderPasswordInput("");
+            setRiderRegLoading(false);
+          },
+        });
+        return;
       }
 
       // 2. Launch secondary Auth registration pipeline
@@ -1968,29 +1978,12 @@ export default function AdminPanel({
     });
   };
 
-  const handleSaveRiderPassword = async (riderUid: string) => {
-    const newPass = newPasswordInputValue.trim();
-    if (!newPass || newPass.length < 6) {
-      alert("Password must be at least 6 characters long!");
-      return;
-    }
-    // NOTE: a rider's login password lives in Firebase Auth and cannot be changed
-    // from the admin panel (that needs the Firebase Console / Admin SDK). Writing it
-    // to Firestore would NOT change the login and would store it in plaintext, so we
-    // deliberately do not save it here.
-    setEditingRiderPasswordId(null);
-    setNewPasswordInputValue("");
-    alert(
-      "Rider login password is managed by Firebase Auth and cannot be changed from here. Please change it in Firebase Console → Authentication → Users, or ask the rider to reset it. Nothing was saved.",
-    );
-  };
-
   const handleSettleRider = async (riderUid: string, name: string) => {
-    const isConfirmed = window.confirm(
-      `Kya aap Rider "${name}" ki active statistics aur earned commission ko settle aur clear karna chahte hain? Settle karne ke baad active counters reset ho jayenge.`
-    );
-    if (!isConfirmed) return;
-
+    setConfirmDialog({
+      title: "Settle Rider Stats",
+      message: `Kya aap Rider "${name}" ki active statistics aur earned commission ko settle aur clear karna chahte hain? Settle karne ke baad active counters reset ho jayenge.`,
+      confirmLabel: "Settle karein",
+      onConfirm: async () => {
     try {
       // 1. Update rider user profile with lastSettledAt
       await updateDoc(doc(db, "users", riderUid), {
@@ -2020,14 +2013,16 @@ export default function AdminPanel({
       console.error("Failed to settle rider stats:", err);
       alert("Error: Database permission denied or insufficient administrative credentials.");
     }
+      },
+    });
   };
 
   const handleSettleRestaurant = async (restaurantName: string) => {
-    const isConfirmed = window.confirm(
-      `Kya aap Restaurant "${restaurantName}" ki active statistics aur earned commission ko settle aur clear karna chahte hain? Settle karne ke baad active counters reset ho jayenge.`
-    );
-    if (!isConfirmed) return;
-
+    setConfirmDialog({
+      title: "Settle Restaurant Stats",
+      message: `Kya aap Restaurant "${restaurantName}" ki active statistics aur earned commission ko settle aur clear karna chahte hain? Settle karne ke baad active counters reset ho jayenge.`,
+      confirmLabel: "Settle karein",
+      onConfirm: async () => {
     try {
       await updateDoc(doc(db, "settings", "delivery_config"), {
         [`restaurantStatuses.${restaurantName}.lastSettledAt`]: new Date()
@@ -2037,6 +2032,8 @@ export default function AdminPanel({
       console.error("Failed to settle restaurant stats:", err);
       alert("Error: Database permission denied or insufficient administrative credentials.");
     }
+      },
+    });
   };
 
   // --- BUSINESS LOGIC MATH FOR ANALYTICS ---
@@ -2367,17 +2364,13 @@ export default function AdminPanel({
     }
   };
 
-  // App version (28 Nov 2026) — settings/app_version. Jab naya APK launch
-  // ho, yahan naya version + APK link set karo; purani app mein turant
-  // update banner aa jayega jise tap karke user naya version install karega.
+  // App version — settings/app_version. APK band hai (PWA only, 28 Nov 2026):
+  // yahan naya version + message set karo; purani PWA mein turant update
+  // banner aa jayega. APK link ki zaroorat nahi — khaali bhi chalega.
   const handleSaveAppVersion = async () => {
     try {
-      const version = Number(appVersionInput) || 2;
+      const version = Number(appVersionInput) || 3;
       const apkUrl = appApkUrlInput.trim();
-      if (!apkUrl) {
-        alert("APK download link zaroori hai.");
-        return;
-      }
       await setDoc(doc(db, "settings", "app_version"), {
         version,
         apkUrl,
@@ -2503,6 +2496,7 @@ export default function AdminPanel({
       const areas = deliveryAreasInput.split("\n").map((a) => a.trim()).filter(Boolean);
       await saveDeliveryConfigFields({
         voiceOrderEnabled: voiceOrderEnabledInput,
+        chatAgentEnabled: chatAgentEnabledInput,
         deliveryAreas: areas,
         deliveryTimeText: deliveryTimeTextInput.trim() || "25–35 min",
       });
@@ -3254,6 +3248,7 @@ export default function AdminPanel({
           recordCatalogChange("menu", dishId, "delete");
         } catch (err) {
           console.error(err);
+        alert("Price save nahi hui — dobara try karein.");
         }
       },
     });
@@ -4245,10 +4240,10 @@ export default function AdminPanel({
               <div className="glass-dark border border-white/10 p-6 rounded-2xl shadow-sm relative space-y-4">
                 <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#E21B70]/10 to-transparent" />
                 <h4 className="font-black text-sm text-white flex items-center gap-2 pb-2.5 border-b border-white/10 uppercase tracking-wide">
-                  📱 App Version — New APK Launch Notification
+                  📱 App Version — Update Notification (PWA)
                 </h4>
                 <p className="text-[10.5px] text-white/70 font-medium leading-relaxed">
-                  Jab naya APK version launch ho, yahan naya version number aur APK download link set karo. Purani app kholne par user ko turant update notification milega — tap karte hi naya version download/install ho jayega. Version number har nayi release par +1 karo (current app version: 2).
+                  APK band hai — ab sirf website (PWA) hai. Jab naya version launch ho, yahan naya version number set karo — purani PWA kholne par user ko turant update notification milega. Version number har nayi release par +1 karo (current app version: 3).
                 </p>
                 <div className="grid grid-cols-2 gap-3 text-xs">
                   <div>
@@ -4260,9 +4255,8 @@ export default function AdminPanel({
                     <input type="text" value={appVersionMsgInput} onChange={(e) => setAppVersionMsgInput(e.target.value)} placeholder="Naya version aa gaya!" className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs" />
                   </div>
                 </div>
-                <div>
-                  <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">APK Download Link</span>
-                  <input type="text" value={appApkUrlInput} onChange={(e) => setAppApkUrlInput(e.target.value)} placeholder="https://github.com/.../DaduFood-v1.0.0.apk" className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs" />
+                <div className="text-[10.5px] text-white/60 font-semibold bg-white/5 border border-white/10 rounded-xl px-3 py-2.5">
+                  APK download band hai — ab sirf website (PWA) use hoti hai, is liye download link ki zaroorat nahi.
                 </div>
                 <button type="button" onClick={handleSaveAppVersion} className="bg-[#E21B70] text-white font-black px-5 py-3 rounded-xl hover:scale-[1.02] active:scale-95 transition cursor-pointer text-xs uppercase w-full">
                   Save &amp; Notify Old Apps
@@ -4352,6 +4346,10 @@ export default function AdminPanel({
                 <label className="flex items-center gap-2 glass-dark border border-white/10 rounded-xl px-3 py-2.5 cursor-pointer text-xs font-bold text-white/80">
                   <input type="checkbox" checked={voiceOrderEnabledInput} onChange={(e) => setVoiceOrderEnabledInput(e.target.checked)} className="accent-[#E21B70] w-4 h-4" />
                   Voice order button dikhao (Munchi)
+                </label>
+                <label className="flex items-center gap-2 glass-dark border border-white/10 rounded-xl px-3 py-2.5 cursor-pointer text-xs font-bold text-white/80">
+                  <input type="checkbox" checked={chatAgentEnabledInput} onChange={(e) => setChatAgentEnabledInput(e.target.checked)} className="accent-[#E21B70] w-4 h-4" />
+                  Munchi chat agent dikhao (Chat karein)
                 </label>
                 <div>
                   <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">Delivery Time Text</span>
@@ -5668,6 +5666,7 @@ export default function AdminPanel({
                     <h3 className="text-sm font-black text-white tracking-wide uppercase">
                       Managing Menu
                     </h3>
+                    <p className="text-[11px] text-white/60 font-semibold mt-0.5">Menu — khane ki cheezein, price aur photo yahan se badlein</p>
                     <p className="text-[11px] text-white/70 font-medium">
                       For:{" "}
                       <span className="text-[#E21B70] font-bold">
@@ -5676,66 +5675,14 @@ export default function AdminPanel({
                     </p>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={async () => {
-                        const btn = document.getElementById("clear-menu-btn");
-                        if (btn && btn.getAttribute("data-confirm") !== "true") {
-                           btn.setAttribute("data-confirm", "true");
-                           btn.innerText = "🔥 ARE YOU SURE? CLICK AGAIN!";
-                           setTimeout(() => {
-                               if (btn) {
-                                   btn.removeAttribute("data-confirm");
-                                   btn.innerText = "🔥 CLEAR ENTIRE MENU";
-                               }
-                           }, 3000);
-                           return;
-                        }
-                        
-                        if (btn) {
-                            btn.innerText = "⏳ DELETING...";
-                        }
-                        try {
-                          const menuRef = collection(db, "menu");
-                          const snapshot = await getDocs(menuRef);
-                          const deletePromises = snapshot.docs.map(document => deleteDoc(doc(db, "menu", document.id)));
-                          await Promise.all(deletePromises);
-                          // Entire menu wiped — user pages re-fetch the whole menu once.
-                          recordCatalogFull("menu");
-                          console.log("Menu database has been completely wiped.");
-                          if (btn) {
-                              btn.innerText = "✅ CLEARED";
-                              setTimeout(() => {
-                                  if (btn) {
-                                      btn.removeAttribute("data-confirm");
-                                      btn.innerText = "🔥 CLEAR ENTIRE MENU";
-                                  }
-                              }, 2000);
-                          }
-                        } catch (err) {
-                          console.error(err);
-                          console.log("Failed to delete menu. Check permissions.");
-                          if (btn) {
-                              btn.removeAttribute("data-confirm");
-                              btn.innerText = "❌ FAILED (CHECK CONSOLE)";
-                              setTimeout(() => {
-                                 if (btn) btn.innerText = "🔥 CLEAR ENTIRE MENU";
-                              }, 2000);
-                          }
-                        }
-                    }}
-                    id="clear-menu-btn"
-                    className="bg-red-500/10 hover:bg-red-500/15 text-red-400 px-4 py-2 min-h-[40px] rounded-xl text-[10px] uppercase font-black tracking-wider transition-colors border border-red-400/30 hover:border-red-400/40 flex items-center gap-2"
-                  >
-                    🔥 CLEAR ENTIRE MENU
-                  </button>
-                  <button
-                    onClick={handleImportTastyBites}
-                    disabled={isImportingTasty}
-                    className="bg-[#E21B70] hover:bg-[#C2145E] disabled:opacity-50 text-white px-4 py-2 rounded-xl text-[10px] uppercase font-black tracking-wider transition-colors border border-[#f22a7f] flex items-center gap-2"
-                  >
-                    {isImportingTasty ? `⏳ IMPORTING (${importProgressTasty}%)` : `📥 IMPORT TASTY BITES`}
-                  </button>
+                <div className="flex flex-wrap gap-2 items-center">
+                  <input
+                    type="text"
+                    value={itemSearchTerm}
+                    onChange={(e) => setItemSearchTerm(e.target.value)}
+                    placeholder="🔍 Dish dhoondhein (naam likhein)..."
+                    className="glass-input border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none focus:border-[#E21B70] transition min-w-[220px] flex-1"
+                  />
                   <button
                     onClick={() => {
                       setActiveSubTab("restaurants");
@@ -6293,6 +6240,10 @@ export default function AdminPanel({
                       {dishes
                         .filter((dish) => {
                           if (dish.type === "service") return false;
+                          if (itemSearchTerm.trim()) {
+                            const q = itemSearchTerm.trim().toLowerCase();
+                            if (!(dish.name || "").toLowerCase().includes(q)) return false;
+                          }
                           if (!newItemRestaurantName) return true;
                           const dishRest =
                             dish.restaurantName || "Dadu Fast Food & Kitchen";
@@ -6916,6 +6867,7 @@ export default function AdminPanel({
                   <div>
                     <h4 className="font-black text-sm text-white uppercase tracking-wide">
                       Live Operational Orders Pipeline
+                      <span className="block text-[11px] text-white/60 font-semibold normal-case tracking-normal mt-0.5">Live Orders — naye orders yahan aate hain, pehle admin approve kare phir rider ko jaye</span>
                     </h4>
                     <span className="text-[10px] text-white/60 font-bold uppercase tracking-wider">
                       Monitor order transactions and assign dispatchers in
@@ -6998,7 +6950,7 @@ export default function AdminPanel({
                   </div>
 
                   <span className="text-[10px] text-white/50 font-extrabold uppercase tracking-widest hidden md:inline-block pr-2">
-                    Viewing {adminOrderFilterTab} pipeline • {orders.length} total
+                    {`Viewing ${adminOrderFilterTab} pipeline • ${orders.length} total`}
                   </span>
                 </div>
 
@@ -7086,12 +7038,32 @@ export default function AdminPanel({
 
                   {/* Filtered Sales Revenue Summary Badge */}
                   {(() => {
-                    const deliveredInFilter = orders.filter((o) => {
-                      const isDelivered = o.status === "delivered" || o.status === "completed";
-                      return isDelivered && checkOrderInDateRange(o, orderDateRange, orderCustomStartDate, orderCustomEndDate);
-                    });
+                    const inRange = orders.filter((o) => checkOrderInDateRange(o, orderDateRange, orderCustomStartDate, orderCustomEndDate));
+                    const deliveredInFilter = inRange.filter((o) => o.status === "delivered" || o.status === "completed");
+                    const cancelledInFilter = inRange.filter((o) => o.status === "cancelled");
+                    const newInFilter = inRange.filter((o) => o.status !== "delivered" && o.status !== "completed" && o.status !== "cancelled");
                     const totalSales = deliveredInFilter.reduce((acc, o) => acc + (o.grandTotal || 0), 0);
-
+                    // The badge follows the active tab — cancelled tab must not show delivered revenue.
+                    if (adminOrderFilterTab === "cancelled") {
+                      return (
+                        <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 px-3 py-1.5 rounded-xl text-red-300 text-xs font-black">
+                          <span>Cancelled:</span>
+                          <span className="bg-red-600 text-white px-2 py-0.5 rounded-md text-[10px] font-black">{cancelledInFilter.length}</span>
+                          <span className="text-red-300">|</span>
+                          <span>Cancelled value: Rs. {Math.round(cancelledInFilter.reduce((acc, o) => acc + (o.grandTotal || 0), 0)).toLocaleString()}</span>
+                        </div>
+                      );
+                    }
+                    if (adminOrderFilterTab === "new") {
+                      return (
+                        <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl text-amber-300 text-xs font-black">
+                          <span>New orders:</span>
+                          <span className="bg-amber-600 text-white px-2 py-0.5 rounded-md text-[10px] font-black">{newInFilter.length}</span>
+                          <span className="text-amber-300">|</span>
+                          <span>New value: Rs. {Math.round(newInFilter.reduce((acc, o) => acc + (o.grandTotal || 0), 0)).toLocaleString()}</span>
+                        </div>
+                      );
+                    }
                     return (
                       <div className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl text-emerald-300 text-xs font-black">
                         <div className="flex items-center gap-1">
@@ -7974,6 +7946,7 @@ export default function AdminPanel({
                 <h4 className="font-black text-sm text-white flex items-center gap-2 pb-3 border-b border-white/10 uppercase tracking-wide">
                   <User className="w-4 h-4 text-white/60" />
                   Riders Directory Registry ({ridersSubset.length} Profiles)
+                  <span className="block text-[11px] text-white/60 font-semibold normal-case tracking-normal mt-0.5">Riders — delivery wale, unki duty aur earnings</span>
                 </h4>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -8236,57 +8209,7 @@ export default function AdminPanel({
                               <Key className="w-3.5 h-3.5 text-[#E21B70] shrink-0" />
                               <div className="flex-1 min-w-0">
                                 <span className="text-[10px] text-white/60 uppercase tracking-widest block font-bold">Rider Password</span>
-                                {editingRiderPasswordId === rider.uid ? (
-                                  <div className="flex items-center gap-2 mt-1">
-                                    <input
-                                      type="text"
-                                      value={newPasswordInputValue}
-                                      onChange={(e) => setNewPasswordInputValue(e.target.value)}
-                                      placeholder="Naya Password (min 6 chars)"
-                                      className="glass-input border border-white/15 rounded-lg p-1.5 px-2.5 text-xs font-mono outline-none flex-grow text-white"
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => handleSaveRiderPassword(rider.uid)}
-                                      className="bg-emerald-500 text-white text-[10px] font-black px-2.5 py-1.5 rounded-lg uppercase shrink-0 hover:bg-emerald-600 transition"
-                                    >
-                                      Save
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => setEditingRiderPasswordId(null)}
-                                      className="bg-white/15 text-white/80 text-[10px] font-black px-2.5 py-1.5 rounded-lg uppercase shrink-0 hover:bg-white/25 transition"
-                                    >
-                                      X
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center justify-between mt-0.5">
-                                    <span className="font-mono text-xs font-black text-white truncate">
-                                      {showPasswordId === rider.uid ? (rider.password || "No Custom Password (use fallback)") : "••••••"}
-                                    </span>
-                                    <div className="flex items-center gap-2 shrink-0">
-                                      <button
-                                        type="button"
-                                        onClick={() => setShowPasswordId(showPasswordId === rider.uid ? null : rider.uid)}
-                                        className="text-[9.5px] font-black text-white/60 hover:text-white/80 uppercase"
-                                      >
-                                        {showPasswordId === rider.uid ? "Hide" : "Show"}
-                                      </button>
-                                      <span className="text-white/80 text-[10px]">|</span>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setEditingRiderPasswordId(rider.uid);
-                                          setNewPasswordInputValue(rider.password || "");
-                                        }}
-                                        className="text-[9.5px] font-black text-[#E21B70] hover:text-[#C2145E] uppercase"
-                                      >
-                                        Edit
-                                      </button>
-                                    </div>
-                                  </div>
-                                )}
+                                <span className="text-[11px] text-white/70 block mt-0.5">Firebase Auth se manage hota hai — panel se change nahi hota. Change karne ke liye Firebase Console → Authentication → Users me jayein.</span>
                               </div>
                             </div>
 
@@ -8300,21 +8223,25 @@ export default function AdminPanel({
                                   </div>
                                   <button
                                     type="button"
-                                    onClick={async () => {
-                                      const isConfirmed = window.confirm(`Kya aap Rider "${rider.name}" ko unblock karna chahte hain?`);
-                                      if (isConfirmed) {
-                                        try {
-                                          await updateDoc(doc(db, "users", rider.uid), {
-                                            status: "verified",
-                                            needsUnblockAlert: true,
-                                            unblockAlertMessage: "Aapka account admin ne unblock kar diya hai! Ab aap duty shuru kar sakte hain."
-                                          });
-                                          alert(`✅ Rider "${rider.name}" successfully unblock ho gaya hai!`);
-                                        } catch (err) {
-                                          console.error("Failed to unblock rider:", err);
-                                          alert("Error: Database permission denied.");
-                                        }
-                                      }
+                                    onClick={() => {
+                                      setConfirmDialog({
+                                        title: "Unblock Rider",
+                                        message: `Kya aap Rider "${rider.name}" ko unblock karna chahte hain?`,
+                                        confirmLabel: "Unblock karein",
+                                        onConfirm: async () => {
+                                          try {
+                                            await updateDoc(doc(db, "users", rider.uid), {
+                                              status: "verified",
+                                              needsUnblockAlert: true,
+                                              unblockAlertMessage: "Aapka account admin ne unblock kar diya hai! Ab aap duty shuru kar sakte hain."
+                                            });
+                                            alert(`✅ Rider "${rider.name}" successfully unblock ho gaya hai!`);
+                                          } catch (err) {
+                                            console.error("Failed to unblock rider:", err);
+                                            alert("Error: Database permission denied.");
+                                          }
+                                        },
+                                      });
                                     }}
                                     className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-2.5 rounded-xl transition text-[11px] uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-emerald-500/10"
                                   >
@@ -9006,6 +8933,13 @@ export default function AdminPanel({
                   <h4 className="font-black text-xs text-white uppercase tracking-widest text-orange-500 font-sans">
                     Product Stock & Catalog Directory ({groceryProducts.length})
                   </h4>
+                  <input
+                    type="text"
+                    value={grocerySearchTerm}
+                    onChange={(e) => setGrocerySearchTerm(e.target.value)}
+                    placeholder="🔍 Product dhoondhein (naam likhein)..."
+                    className="w-full glass-input border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-white outline-none focus:border-[#E21B70] transition"
+                  />
                   <div className="overflow-x-auto select-none">
                     <table className="w-full text-xs text-left text-white/70 font-medium border-collapse">
                       <thead>
@@ -9017,7 +8951,13 @@ export default function AdminPanel({
                         </tr>
                       </thead>
                       <tbody>
-                        {groceryProducts.map((p) => {
+                        {groceryProducts
+                          .filter((p) => {
+                            if (!grocerySearchTerm.trim()) return true;
+                            const q = grocerySearchTerm.trim().toLowerCase();
+                            return (p.name || "").toLowerCase().includes(q);
+                          })
+                          .map((p) => {
                           const catName =
                             groceryCategories.find((c) => c.id === p.categoryId)
                               ?.name || "Segment";
@@ -9474,7 +9414,7 @@ export default function AdminPanel({
                         {userFilterTab === "blocked" ? "Blocked Users Ledger" : "Active Users Ledger"}
                       </h3>
                       <span className="text-[10.5px] font-bold text-white/60">
-                        Showing {filteredUsers.length} of {totalInTab}
+                        {`Showing ${filteredUsers.length} of ${totalInTab}`}
                       </span>
                     </div>
 
@@ -9877,12 +9817,6 @@ export default function AdminPanel({
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleMigrateCategories}
-                      className="bg-zinc-900 hover:bg-zinc-800 text-white font-black text-[10px] uppercase tracking-widest py-3 px-5 rounded-xl transition cursor-pointer shrink-0"
-                    >
-                      Run Category Migration
-                    </button>
                     <button
                       onClick={handleSaveSeoConfig}
                       className="bg-[#E21B70] hover:bg-[#C2145E] text-white font-black text-[10px] uppercase tracking-widest py-3 px-5 rounded-xl transition cursor-pointer shrink-0"
@@ -10465,7 +10399,11 @@ export default function AdminPanel({
             <div className="flex items-center justify-end gap-2.5 pt-1">
               <button
                 type="button"
-                onClick={() => setConfirmDialog(null)}
+                onClick={() => {
+                  const cb = confirmDialog.onCancel;
+                  setConfirmDialog(null);
+                  cb?.();
+                }}
                 className="px-3.5 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] uppercase font-black text-white/70 hover:text-white/80 hover:bg-white/10 transition cursor-pointer"
               >
                 Cancel
@@ -10479,7 +10417,7 @@ export default function AdminPanel({
                 }}
                 className="px-4 py-2.5 min-h-[40px] bg-gradient-to-r from-pink-600 to-pink-700 text-white rounded-xl text-[10px] font-black hover:brightness-110 shadow-md cursor-pointer transition uppercase tracking-wide"
               >
-                Delete Permanently
+                {confirmDialog.confirmLabel || "Delete Permanently"}
               </button>
             </div>
           </div>
@@ -10691,9 +10629,10 @@ export default function AdminPanel({
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2.5 bg-[#E21B70] text-white rounded-xl text-[10.5px] font-black hover:bg-[#C2145E] shadow-md cursor-pointer transition uppercase tracking-wider flex items-center gap-1.5"
+                    disabled={isUnlocking}
+                    className="px-5 py-2.5 bg-[#E21B70] text-white rounded-xl text-[10.5px] font-black hover:bg-[#C2145E] shadow-md cursor-pointer transition uppercase tracking-wider flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-wait"
                   >
-                    {unlockingUser.status === "locked" ? "Save & Unlock ✅" : "Save Address 💾"}
+                    {isUnlocking ? "⏳ Saving..." : unlockingUser.status === "locked" ? "Save & Unlock ✅" : "Save Address 💾"}
                   </button>
                 </div>
               </form>
