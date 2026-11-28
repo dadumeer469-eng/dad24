@@ -52,6 +52,10 @@ import {
   invalidateCatalogCache,
 } from "./utils/catalogCache";
 import { applyCatalogDelta, getCatalogDelta } from "./utils/catalogDelta";
+import {
+  readSettingsCache,
+  writeSettingsCache,
+} from "./utils/settingsCache";
 
 // Import modules
 import FoodpandaHeader from "./components/FoodpandaHeader";
@@ -1476,6 +1480,13 @@ export default function App() {
     console.log("Trace: Initializing Delivery Settings collection listener...");
     let cancelled = false;
     const fetchDeliverySettings = async () => {
+      // Settings cache (1h TTL): skip the Firestore read when the cached
+      // copy is fresh — this fetch also runs on every tab-visible event.
+      const cached = readSettingsCache<SystemSettings>("delivery_config");
+      if (cached) {
+        if (!cancelled) setDeliverySettings(cached);
+        return;
+      }
       try {
         const docSnap = await getDoc(doc(db, "settings", "delivery_config"));
         if (cancelled) return;
@@ -1487,6 +1498,7 @@ export default function App() {
           const data = docSnap.data() as SystemSettings;
           setDeliverySettings(data);
           setCachedData("dadu_cached_delivery_settings", data);
+          writeSettingsCache("delivery_config", data);
         } else {
           // Seed default safely with merge: true so existing statuses/pictures are never wiped
           const defaultCfg = {
@@ -1965,11 +1977,20 @@ export default function App() {
   useEffect(() => {
     let cancelled = false;
     const fetchGroceryDeliveryConfig = async () => {
+      // Settings cache (1h TTL) — see fetchDeliverySettings.
+      const cached =
+        readSettingsCache<GroceryDeliveryConfig>("groceryDeliveryConfig");
+      if (cached) {
+        if (!cancelled) setGroceryDeliveryConfig(cached);
+        return;
+      }
       try {
         const docSnap = await getDoc(doc(db, "settings", "groceryDeliveryConfig"));
         if (cancelled) return;
         if (docSnap.exists()) {
-          setGroceryDeliveryConfig(docSnap.data() as GroceryDeliveryConfig);
+          const data = docSnap.data() as GroceryDeliveryConfig;
+          setGroceryDeliveryConfig(data);
+          writeSettingsCache("groceryDeliveryConfig", data);
         } else {
           // Seed default
           setDoc(doc(db, "settings", "groceryDeliveryConfig"), {
@@ -1998,20 +2019,31 @@ export default function App() {
   useEffect(() => {
     let cancelled = false;
     const fetchDealConfig = async () => {
+      // Settings cache (1h TTL) — see fetchDeliverySettings. The cached
+      // value is the raw doc data; the same transform below applies to it.
+      const applyDealData = (data: Record<string, unknown>) => {
+        const minutes = Number(data.timerMinutes) || 0;
+        setDealConfig({
+          isActive: data.isActive !== false,
+          timerMinutes: minutes,
+          discountPercentage: (data.discountPercentage as number) || 25,
+          selectedItemIds: (data.selectedItemIds as string[]) || [],
+          dealText: (data.dealText as string) || "",
+        });
+        setDealTimeLeft({ minutes, seconds: 0 });
+      };
+      const cached = readSettingsCache<Record<string, unknown>>("deal_config");
+      if (cached) {
+        if (!cancelled) applyDealData(cached);
+        return;
+      }
       try {
         const docSnap = await getDoc(doc(db, "settings", "deal_config"));
         if (cancelled) return;
         if (docSnap.exists()) {
           const data = docSnap.data();
-          const minutes = Number(data.timerMinutes) || 0;
-          setDealConfig({
-            isActive: data.isActive !== false,
-            timerMinutes: minutes,
-            discountPercentage: data.discountPercentage || 25,
-            selectedItemIds: data.selectedItemIds || [],
-            dealText: data.dealText || "",
-          });
-          setDealTimeLeft({ minutes, seconds: 0 });
+          writeSettingsCache("deal_config", data);
+          applyDealData(data);
         } else {
           // Seed default
           const defaultDeal = {
@@ -2098,17 +2130,27 @@ export default function App() {
   useEffect(() => {
     let cancelled = false;
     const fetchUiConfig = async () => {
+      // Settings cache (1h TTL) — see fetchDeliverySettings.
+      const applyUiData = (data: Record<string, unknown>) => {
+        if (data.heroBgUrl) {
+          setHeroBgUrl(data.heroBgUrl as string);
+        }
+        if (data.partnerShopsBgUrl !== undefined) {
+          setPartnerShopsBgUrl(data.partnerShopsBgUrl as string);
+        }
+      };
+      const cached = readSettingsCache<Record<string, unknown>>("ui_config");
+      if (cached) {
+        if (!cancelled) applyUiData(cached);
+        return;
+      }
       try {
         const docSnap = await getDoc(doc(db, "settings", "ui_config"));
         if (cancelled) return;
         if (docSnap.exists()) {
           const data = docSnap.data();
-          if (data.heroBgUrl) {
-            setHeroBgUrl(data.heroBgUrl);
-          }
-          if (data.partnerShopsBgUrl !== undefined) {
-            setPartnerShopsBgUrl(data.partnerShopsBgUrl);
-          }
+          writeSettingsCache("ui_config", data);
+          applyUiData(data);
         }
       } catch (err) {
         if (cancelled) return;
@@ -2130,24 +2172,34 @@ export default function App() {
   useEffect(() => {
     let cancelled = false;
     const fetchSeoConfig = async () => {
+      // Settings cache (1h TTL) — see fetchDeliverySettings.
+      const applySeoData = (data: Record<string, unknown>) => {
+        setAdminSeoOverride({
+          siteTitle: (data.title as string) || undefined,
+          siteDescription: (data.description as string) || undefined,
+        });
+        if (data.keywords) {
+          let keywordsMeta = document.querySelector('meta[name="keywords"]');
+          if (!keywordsMeta) {
+            keywordsMeta = document.createElement("meta");
+            keywordsMeta.setAttribute("name", "keywords");
+            document.head.appendChild(keywordsMeta);
+          }
+          keywordsMeta.setAttribute("content", data.keywords as string);
+        }
+      };
+      const cached = readSettingsCache<Record<string, unknown>>("seo_config");
+      if (cached) {
+        if (!cancelled) applySeoData(cached);
+        return;
+      }
       try {
         const docSnap = await getDoc(doc(db, "settings", "seo_config"));
         if (cancelled) return;
         if (docSnap.exists()) {
           const data = docSnap.data();
-          setAdminSeoOverride({
-            siteTitle: data.title || undefined,
-            siteDescription: data.description || undefined,
-          });
-          if (data.keywords) {
-            let keywordsMeta = document.querySelector('meta[name="keywords"]');
-            if (!keywordsMeta) {
-              keywordsMeta = document.createElement("meta");
-              keywordsMeta.setAttribute("name", "keywords");
-              document.head.appendChild(keywordsMeta);
-            }
-            keywordsMeta.setAttribute("content", data.keywords);
-          }
+          writeSettingsCache("seo_config", data);
+          applySeoData(data);
         }
       } catch (err) {
         if (cancelled) return;
