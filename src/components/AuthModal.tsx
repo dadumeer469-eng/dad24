@@ -146,13 +146,16 @@ export default function AuthModal({
         window.daduRecaptchaVerifier = null;
       }
       const code = err?.code || "";
+      // Show the real Firebase error code in the message so the exact cause
+      // is visible on the phone (no laptop/DevTools needed to diagnose).
+      const codeSuffix = code ? ` (Code: ${code})` : "";
       if (code === "auth/operation-not-allowed") {
         setError(
-          "Server is busy right now, please try again later."
+          `Phone sign-in is not enabled on the server.${codeSuffix}`
         );
       } else if (code === "auth/unauthorized-domain") {
         setError(
-          "Server is busy right now, please try again later."
+          `This website is not allowed for sign-in.${codeSuffix}`
         );
       } else if (code === "auth/too-many-requests") {
         setError("Too many OTP attempts. Please wait a few minutes and try again.");
@@ -171,7 +174,7 @@ export default function AuthModal({
       } else if (code === "auth/network-request-failed") {
         setError("Network error while sending SMS OTP. Please check your connection and try again.");
       } else {
-        setError("Server is busy right now, please try again later.");
+        setError(`Server is busy right now, please try again later.${codeSuffix}`);
       }
     } finally {
       setLoading(false);
