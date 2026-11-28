@@ -5120,8 +5120,8 @@ export default function App() {
         )}
       </AnimatePresence>
 
-  // Google sign-in completion (shared by the AuthModal callback AND the
-  // redirect-result pickup below). Creates/links the Firestore user profile.
+      {/* Google sign-in completion (shared by the AuthModal callback AND the
+          redirect-result pickup below). Creates/links the Firestore user profile. */}
 
       <AuthModal
         isOpen={isAuthOpen}
