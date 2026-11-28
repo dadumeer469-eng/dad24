@@ -134,7 +134,7 @@ export interface ChatResult {
   orderInvalid?: boolean;
 }
 
-function validateOrder(raw: unknown): ChatOrder | null {
+export function validateOrder(raw: unknown): ChatOrder | null {
   if (!raw || typeof raw !== "object") return null;
   const o = raw as Record<string, unknown>;
   if (!Array.isArray(o.items) || o.items.length === 0) return null;
