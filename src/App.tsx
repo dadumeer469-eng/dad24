@@ -1267,16 +1267,15 @@ export default function App() {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
     if (isStandalone) return;
 
-    // Show the Install button every time the site is opened in the
-    // browser and the app is NOT installed yet — exactly like before.
-    // (User 28 Nov 16:06: "pehle aise site instal ka button hota tha,
-    // browser open kro to, agar instal ho to fir show nhi hota tha" —
-    // open browser = button shows; if installed = it does not show.
-    // The standalone check below IS the "if installed, hide it" rule.
-    // Do NOT gate on beforeinstallprompt: Chrome may not fire it if the
-    // user dismissed the prompt before, and the click already falls back
-    // to manual "Add to Home Screen" instructions when no prompt exists.)
-    setShowInstallBubble(true);
+    if (!isStandalone) {
+      // First visit only (audit 28 Nov #11): the bubble used to float over
+      // the product cards for 8s on EVERY visit. Remember it was shown so
+      // it never covers the grid again.
+      if (!localStorage.getItem("dadu_install_bubble_seen")) {
+        setShowInstallBubble(true);
+        localStorage.setItem("dadu_install_bubble_seen", "1");
+      }
+    }
 
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
