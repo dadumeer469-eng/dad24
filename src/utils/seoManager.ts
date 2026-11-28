@@ -31,6 +31,42 @@ export const DADU_FOOD_BUSINESS = {
   siteUrl: typeof window !== "undefined" ? window.location.origin : "https://www.dadufood.store",
 };
 
+// Best search keywords for Dadu Food (28 Nov 2026) — the phrases people in
+// Dadu actually type into Google when they want food, groceries or medicine
+// delivered. Set as meta name="keywords" on every page (syncPageSeo) and in
+// the prerendered HTML (scripts/prerender-routes.mjs KEYWORDS + plugin).
+// Google ignores the keywords tag for ranking, but the same phrases are
+// also in the titles, descriptions, FAQ and on-page copy — that is what
+// actually brings people from search. Keep this list in sync with the
+// prerender copy.
+export const DADU_FOOD_KEYWORDS: string[] = [
+  "food delivery Dadu",
+  "Dadu food delivery",
+  "order food online Dadu",
+  "Dadu restaurant",
+  "Dadu biryani",
+  "Dadu fast food",
+  "Dadu pizza",
+  "Dadu zinger burger",
+  "Dadu shawarma",
+  "Dadu karahi",
+  "Dadu chicken biryani",
+  "Dadu beef biryani",
+  "grocery delivery Dadu",
+  "Dadu grocery",
+  "online grocery Dadu",
+  "pharmacy Dadu",
+  "medicine delivery Dadu",
+  "Dadu medicine home delivery",
+  "Dadu Food",
+  "online food order Dadu Sindh",
+  "Dadu home delivery",
+  "Dadu food order",
+  "Dadu fast food delivery",
+  "Dadu food app",
+  "Dadu restaurant delivery",
+];
+
 export interface FaqItem {
   question: string;
   answer: string;
@@ -487,6 +523,7 @@ export function syncPageSeo(params: {
   setCanonicalUrl(canonicalUrl);
 
   setOrCreateMeta("name", "description", description);
+  setOrCreateMeta("name", "keywords", DADU_FOOD_KEYWORDS.join(", "));
   setOrCreateMeta("property", "og:type", "website");
   setOrCreateMeta("property", "og:site_name", "Dadu Food");
   setOrCreateMeta("property", "og:title", title);
