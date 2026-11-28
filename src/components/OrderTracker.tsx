@@ -5,8 +5,6 @@ import { doc, updateDoc, collection, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
 import OrderChat from "./OrderChat";
 import InAppCallButton from "./InAppCallButton";
-import IncomingCallModal from "./IncomingCallModal";
-import { listenIncomingCalls, type CallDoc } from "../utils/webrtcCall";
 const FoodDeliveryTracker = React.lazy(() => import("./FoodDeliveryTracker"));
 import { formatOrderId } from "../utils/catalogNormalizer";
 
@@ -21,9 +19,6 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
   const isService = order.orderType === "service";
   const [showLiveChat, setShowLiveChat] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  // In-app incoming call (rider -> customer). Shows the WhatsApp-style
-  // incoming-call screen when the rider calls from inside their app.
-  const [incomingCall, setIncomingCall] = useState<CallDoc | null>(null);
 
   // Listen to unread messages for this order
   useEffect(() => {
@@ -43,14 +38,6 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
     return () => unsubscribe();
   }, [order?.id, currentUser?.uid]);
 
-  // Listen for incoming in-app calls addressed to this customer.
-  useEffect(() => {
-    if (!currentUser?.uid) return;
-    const unsub = listenIncomingCalls(currentUser.uid, (call) => {
-      setIncomingCall(call);
-    });
-    return () => unsub();
-  }, [currentUser?.uid]);
 
   const statusLower = (order.status || "").toLowerCase().trim();
 
@@ -347,14 +334,7 @@ export default function OrderTracker({ order, onClose, currentUser, deliverySett
 
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-5 sm:p-6 shadow-xs relative overflow-hidden text-zinc-100">
-      {incomingCall && (
-        <IncomingCallModal
-          call={incomingCall}
-          myId={currentUser?.uid || "guest"}
-          onClose={() => setIncomingCall(null)}
-        />
-      )}
-      
+
       {/* Background Decorative Neon Light */}
       <div className={`absolute top-0 right-0 w-44 h-44 rounded-full blur-3xl pointer-events-none -mt-10 -mr-10 ${
         isService ? "bg-amber-500/5" : "bg-[#E21B70]/5"
