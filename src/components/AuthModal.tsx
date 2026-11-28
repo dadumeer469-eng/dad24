@@ -7,7 +7,7 @@ import {
   signInWithPhoneNumber,
   ConfirmationResult,
   GoogleAuthProvider,
-  signInWithPopup,
+  signInWithRedirect,
 } from "firebase/auth";
 import { auth } from "../firebase";
 import daduLogo from "../assets/images/dadu_food_logo_new_1782333467889.jpg";
@@ -224,27 +224,22 @@ export default function AuthModal({
     try {
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: "select_account" });
-      const result = await signInWithPopup(auth, provider);
-      const gUser = result.user;
-      if (onGoogleAuthSuccess) {
-        await onGoogleAuthSuccess({
-          uid: gUser.uid,
-          displayName: gUser.displayName,
-          email: gUser.email,
-          photoURL: gUser.photoURL,
-        });
-      } else {
-        await onAuthSuccess(gUser.email || gUser.uid, false, undefined, gUser.uid);
-      }
+      // Redirect (not popup): popups never open on the owner's phone and in
+      // the test browser, so Google sign-in always failed before the popup.
+      // Redirect takes the user to Google's sign-in page and back; App.tsx
+      // picks the result up with getRedirectResult on load.
+      await signInWithRedirect(auth, provider);
+      // The page navigates away from here; nothing more runs in this handler.
     } catch (err: any) {
       const code = err?.code || "";
+      const codeSuffix = code ? ` (Code: ${code})` : "";
       if (code === "auth/operation-not-allowed") {
         setError(
-          "Server is busy right now, please try again later."
+          `Google Sign-In is not enabled. Please contact support.${codeSuffix}`
         );
       } else if (code === "auth/unauthorized-domain") {
         setError(
-          "Server is busy right now, please try again later."
+          `This website is not allowed to use Google Sign-In.${codeSuffix}`
         );
       } else if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
         setError("Google Sign-In popup was closed before completing sign-in. Tap Continue with Google to try again.");
@@ -255,7 +250,7 @@ export default function AuthModal({
       } else if (code === "resource-exhausted" || /quota/i.test(err?.message || "")) {
         setError("Dadu Food's daily limit is reached. Please try again after 1:00 PM tomorrow.");
       } else {
-        setError("Server is busy right now, please try again later.");
+        setError(`Server is busy right now, please try again later.${codeSuffix}`);
       }
     } finally {
       setGoogleLoading(false);
