@@ -688,9 +688,9 @@ export default function App() {
     { siteTitle?: string; siteDescription?: string } | undefined
   >(undefined);
   // Munchi voice pace — pre-speech pause in ms, admin-configurable from
-  // the Admin Panel (settings/voice_config → pauseMs). Default 300ms
-  // (fast reply, user 28 Nov 10:33). Passed to VoiceOrderModal.
-  const [voicePauseMs, setVoicePauseMs] = useState<number>(300);
+  // the Admin Panel (settings/voice_config → pauseMs). Default 150ms
+  // (fast reply, user 28 Nov 11:02). Passed to VoiceOrderModal.
+  const [voicePauseMs, setVoicePauseMs] = useState<number>(150);
 
   const handleLanguageChange = (lang: "en" | "ur") => {
     setLanguage(lang);
