@@ -58,6 +58,7 @@ import FoodpandaHeader from "./components/FoodpandaHeader";
 import AppUpdateBanner from "./components/AppUpdateBanner";
 import { checkForAppUpdate, type AppVersionInfo } from "./utils/appVersion";
 import { Capacitor } from "@capacitor/core";
+import { App as CapacitorApp } from "@capacitor/app";
 import { saveUserOrders, saveUserProfile } from "./utils/localUserData";
 import FoodpandaHero from "./components/FoodpandaHero";
 import {
@@ -2503,6 +2504,52 @@ export default function App() {
     // Root / Default Home
     return "home";
   };
+
+  // Native Android back button (Capacitor APK) — the hardware back button
+  // used to close the whole app even with a product/cart/modal open, because
+  // the WebView had no history entry to go back to. Route it through the
+  // same history/popstate system as the browser back button: if there is
+  // history, go back (the popstate handler closes the topmost modal/drawer
+  // first); at the very root, show the exit confirmation instead of closing
+  // straight away. The confirmation's "Exit App" button calls
+  // CapacitorApp.exitApp() to actually close the app. (User 28 Nov:
+  // "back button dabao app band ho jati hai" — fixed.)
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    let listener: { remove: () => Promise<void> } | null = null;
+    CapacitorApp.addListener("backButton", () => {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        // No history to go back to (fresh load) — show the exit
+        // confirmation and push a trap state, so the next back press
+        // closes the confirmation instead of killing the app.
+        setIsExitConfirmationOpen(true);
+        window.history.pushState({ page: "exit_confirm" }, "");
+        lastPushedScreenRef.current = "exit_confirm";
+      }
+    }).then((handle) => {
+      listener = handle;
+    });
+    return () => {
+      if (listener) void listener.remove();
+    };
+  }, []);
+
+  // Disable pinch-zoom (two-finger zoom) — iOS Safari ignores the viewport
+  // meta in some cases, so block the gesture event directly. (User 28 Nov:
+  // "site me 2 finger zoom hoti hai" — fixed.)
+  useEffect(() => {
+    const prevent = (e: Event) => e.preventDefault();
+    document.addEventListener("gesturestart", prevent);
+    document.addEventListener("gesturechange", prevent);
+    document.addEventListener("gestureend", prevent);
+    return () => {
+      document.removeEventListener("gesturestart", prevent);
+      document.removeEventListener("gesturechange", prevent);
+      document.removeEventListener("gestureend", prevent);
+    };
+  }, []);
 
   // Mobile Back Button Navigation Controller (PWA back button handler with custom Exit Confirmation interceptor)
   useEffect(() => {
@@ -5008,6 +5055,15 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => {
+                    // In the native APK, actually close the app (window.close
+                    // does nothing there). On the website, a normal tab cannot
+                    // be force-closed, so fall through to the goodbye screen.
+                    isExitingRef.current = true;
+                    setIsExitConfirmationOpen(false);
+                    if (Capacitor.isNativePlatform()) {
+                      void CapacitorApp.exitApp();
+                      return;
+                    }
                     // A website cannot force-close a normal browser tab
                     // (window.close only works for script-opened windows /
                     // installed PWAs), and history.back() has nowhere to go
@@ -5015,8 +5071,6 @@ export default function App() {
                     // to do nothing. Try to close first; if the tab is
                     // still open shortly after, show the goodbye screen so
                     // the store is clearly exited.
-                    isExitingRef.current = true;
-                    setIsExitConfirmationOpen(false);
                     try {
                       window.close();
                     } catch {
