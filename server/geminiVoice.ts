@@ -184,11 +184,15 @@ export async function handleVoiceChat(
   }
   const messages = (b.messages as { role?: unknown; content?: unknown }[])
     .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
-    .slice(-12)
+    .slice(-8)
     .map((m) => ({ role: m.role as string, content: (m.content as string).slice(0, 2000) }));
   const systemPrompt = buildSystemPrompt({
     activeOrderText: typeof b.activeOrderText === "string" ? b.activeOrderText.slice(0, 1500) : undefined,
-    menuText: (b.menuText as string).slice(0, 40000),
+    // Menu trimmed 40000 -> 25000 chars (28 Nov 2026 speed fix): the full
+    // menu (~630 items, ~30k chars) was sent on EVERY message. Food dishes
+    // come first in menuText, so they all survive the cut; the long tail of
+    // niche grocery items is dropped. Saves ~4k tokens per request.
+    menuText: (b.menuText as string).slice(0, 25000),
     ordersText: typeof b.ordersText === "string" ? b.ordersText.slice(0, 8000) : "",
     userName: typeof b.userName === "string" ? b.userName.slice(0, 100) : undefined,
     userPhone: typeof b.userPhone === "string" ? b.userPhone.slice(0, 30) : undefined,
