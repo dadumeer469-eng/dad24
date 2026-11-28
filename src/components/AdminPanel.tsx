@@ -632,6 +632,12 @@ export default function AdminPanel({
   const [voiceOrderEnabledInput, setVoiceOrderEnabledInput] = useState(
     deliverySettings?.voiceOrderEnabled !== false,
   );
+  // Munchi voice pace — pre-speech pause in ms, admin-configurable from
+  // inside the app (settings/voice_config → pauseMs). Default 300ms (fast
+  // reply, user 28 Nov 10:33: "bar bar app ya site changes na kro, uske
+  // under se hi setting kro"). Loaded from Firestore below.
+  const [voicePauseMsInput, setVoicePauseMsInput] = useState<number>(300);
+  const [voicePauseSaved, setVoicePauseSaved] = useState(false);
   const [deliveryTimeTextInput, setDeliveryTimeTextInput] = useState(
     deliverySettings?.deliveryTimeText || "25–35 min",
   );
@@ -876,6 +882,26 @@ export default function AdminPanel({
       }
     }
   }, [deliverySettings, selectedScheduleRestaurant]);
+
+  // Munchi voice pace — load the saved pause from settings/voice_config
+  // (admin-configurable, no code change needed). Default 300ms.
+  useEffect(() => {
+    let cancelled = false;
+    getDoc(doc(db, "settings", "voice_config"))
+      .then((snap) => {
+        if (cancelled || !snap.exists()) return;
+        const ms = Number(snap.data()?.pauseMs);
+        if (Number.isFinite(ms) && ms >= 0 && ms <= 5000) {
+          setVoicePauseMsInput(Math.round(ms));
+        }
+      })
+      .catch(() => {
+        /* Firestore unavailable — keep the 300ms default */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Live Deal of the Hour settings subscription
   useEffect(() => {
@@ -2485,6 +2511,23 @@ export default function AdminPanel({
     } catch (err) {
       console.error(err);
       alert("Permission denied or Firestore configuration missing while saving homepage settings.");
+    }
+  };
+
+  // Munchi voice pace — save the pre-speech pause to settings/voice_config.
+  // App.tsx reads it (cache-first) and passes it to VoiceOrderModal, so the
+  // pace changes without any code change or rebuild. Press "Refresh All
+  // Users" after saving to push it to every open phone at once.
+  const handleSaveVoicePace = async () => {
+    try {
+      const ms = Math.min(5000, Math.max(0, Math.round(Number(voicePauseMsInput) || 300)));
+      setVoicePauseMsInput(ms);
+      await setDoc(doc(db, "settings", "voice_config"), { pauseMs: ms }, { merge: true });
+      setVoicePauseSaved(true);
+      window.setTimeout(() => setVoicePauseSaved(false), 2500);
+    } catch (err) {
+      console.error(err);
+      alert("Permission denied or Firestore configuration missing while saving voice pace.");
     }
   };
 
@@ -4321,6 +4364,40 @@ export default function AdminPanel({
                 </div>
                 <button type="button" onClick={handleSaveHomepageSettings} className="bg-[#E21B70] text-white font-black px-5 py-3 rounded-xl hover:scale-[1.02] active:scale-95 transition cursor-pointer text-xs uppercase w-full">
                   Save Homepage Settings
+                </button>
+              </div>
+              {/* Munchi Voice Pace — pre-speech pause, set from inside the app */}
+              <div className="glass-dark border border-white/10 p-6 rounded-2xl shadow-sm relative space-y-4">
+                <div className="absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#E21B70]/10 to-transparent" />
+                <h4 className="font-black text-sm text-white flex items-center gap-2 pb-2.5 border-b border-white/10 uppercase tracking-wide">
+                  <Smartphone className="w-4 h-4 text-[#E21B70]" />
+                  Munchi Voice Pace
+                </h4>
+                <p className="text-[10.5px] text-white/70 font-medium leading-relaxed">
+                  Munchi ke jawab se pehle ka pause (milliseconds). Kam pause = tez jawab, zyada pause = aaram se jawab. Saved in settings/voice_config; user panel reads it — koi code change ya rebuild nahi chahiye. Save ke baad "Refresh All Users" dabayen to har phone par turant lag jaye.
+                </p>
+                <div className="flex gap-2">
+                  {[
+                    { label: "Tez · 300ms", ms: 300 },
+                    { label: "Balanced · 700ms", ms: 700 },
+                    { label: "Slow · 1200ms", ms: 1200 },
+                  ].map((p) => (
+                    <button
+                      key={p.ms}
+                      type="button"
+                      onClick={() => setVoicePauseMsInput(p.ms)}
+                      className={`flex-1 px-2 py-2.5 rounded-xl text-[11px] font-black cursor-pointer transition border ${voicePauseMsInput === p.ms ? "bg-white text-[#E21B70] border-white" : "glass-dark border-white/10 text-white/80 hover:border-[#E21B70]"}`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+                <div>
+                  <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">Pause (ms) — 0 se 5000</span>
+                  <input type="number" min={0} max={5000} step={50} value={voicePauseMsInput} onChange={(e) => setVoicePauseMsInput(Number(e.target.value))} className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs" />
+                </div>
+                <button type="button" onClick={handleSaveVoicePace} className="bg-[#E21B70] text-white font-black px-5 py-3 rounded-xl hover:scale-[1.02] active:scale-95 transition cursor-pointer text-xs uppercase w-full">
+                  {voicePauseSaved ? "Saved ✓" : "Save Voice Pace"}
                 </button>
               </div>
 <div className="glass-dark border border-white/10 p-6 rounded-2xl shadow-sm relative space-y-6">

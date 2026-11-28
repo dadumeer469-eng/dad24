@@ -52,6 +52,10 @@ interface VoiceOrderModalProps {
   userPhone?: string;
   userProfileText?: string;
   deliveryLocation?: { area: string; street: string };
+  // Pre-speech pause in ms — admin-configurable from the Admin Panel
+  // (settings/voice_config → pauseMs). App.tsx loads it (cache-first)
+  // and passes it here; default 300ms (fast reply, user 28 Nov 10:33).
+  voicePauseMs?: number;
 }
 
 type Status = "idle" | "calling" | "listening" | "thinking" | "speaking" | "done" | "error";
@@ -113,6 +117,7 @@ export default function VoiceOrderModal({
   userPhone,
   userProfileText,
   deliveryLocation,
+  voicePauseMs = 300,
 }: VoiceOrderModalProps) {
   const [status, setStatus] = useState<Status>("idle");
   // Call-screen language choice (user 28 Nov 09:02): the customer picks
@@ -883,11 +888,11 @@ export default function VoiceOrderModal({
         }
         // The agent answered — he walks in and starts talking.
         revealAgent();
-        // A natural human-like pause before answering (user 28 Nov 09:07:
-        // "itna bhi tez na ho or itna slow bhi na ho" — not rushed, not
-        // slow). 700ms is a normal conversational beat — long enough to
-        // feel human, short enough to never feel delayed. It also lets the
-        // agent's walk-in animation play.
+        // A short pause before answering — admin-configurable from the
+        // Admin Panel (settings/voice_config → pauseMs; this prop comes
+        // from App.tsx). Default 300ms for a fast reply (user 28 Nov
+        // 10:33: "Pause kam karo (tez jawab)"). It still lets the agent's
+        // walk-in animation play.
         window.setTimeout(() => {
           if (!openRef.current || turn !== turnRef.current) return;
           if (data?.order) {
@@ -897,7 +902,7 @@ export default function VoiceOrderModal({
               if (openRef.current && statusRef.current !== "done") startListeningRef.current();
             });
           }
-        }, 700);
+        }, voicePauseMs);
       } catch {
         if (!openRef.current || turn !== turnRef.current) return;
         speak(NETWORK_PROBLEM, () => {
