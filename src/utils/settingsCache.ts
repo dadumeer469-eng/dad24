@@ -46,6 +46,7 @@ const SETTINGS_CACHE_KEYS = [
   "deal_config",
   "ui_config",
   "seo_config",
+  "voice_config",
 ] as const;
 
 /** Drop all settings cache entries (admin "Refresh All Users" signal). */
