@@ -66,6 +66,35 @@ function geminiStatusOf(err: unknown): number | null {
   return m ? Number(m[1]) : null;
 }
 
+// Gemini sometimes wraps its JSON in markdown fences or double-encodes it
+// ({"reply": "{\"reply\": ...}"}) — extract the real object robustly.
+function extractGeminiJson(raw: string): { reply?: unknown; order?: unknown } | null {
+  let text = raw.trim();
+  const fence = /^```(?:json)?\s*([\s\S]*?)\s*```$/.exec(text);
+  if (fence) text = fence[1].trim();
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start === -1 || end === -1 || end <= start) return null;
+  try {
+    return JSON.parse(text.slice(start, end + 1)) as { reply?: unknown; order?: unknown };
+  } catch {
+    return null;
+  }
+}
+
+// Extra instruction appended to the shared system prompt for Gemini only.
+// User 28 Nov 08:32: "Sindhi rakho gemini ke model ki voice" — Munchi must
+// speak SINDHI now (was Roman Urdu). "High level fast" + "ek ek chiz ka
+// pata ziada time na lagaye order lane me" — replies must be VERY short and
+// the order flow must not linger on any item. Gemini 3.5-flash was also seen
+// (28 Nov live test) double-encoding its JSON, so the single-object rule stays.
+const GEMINI_REPLY_RULES =
+  "\n\nVERY IMPORTANT — READ CAREFULLY:\n" +
+  "1. Reply ONLY in Sindhi language (سنڌي). Write it in Sindhi (Arabic) script. NEVER use Urdu or English. Your whole reply must be in Sindhi.\n" +
+  "2. Keep every reply VERY short — ONE short sentence only, maximum 15 words. Be FAST. Never explain, never repeat the order back in full.\n" +
+  "3. Take the order FAST: ask only what is missing (item, quantity) — one quick question at a time. Do NOT suggest extras, do NOT linger on any single item, do NOT read back the full order. Confirm briefly and place the order quickly.\n" +
+  "4. Your ENTIRE output must be ONE single JSON object: {\"reply\": \"...\", \"order\": ...}. Do NOT wrap that object inside another JSON string, do NOT put it in a code block, do NOT add any text before or after it.";
+
 async function callGeminiChat(
   apiKey: string,
   model: string,
@@ -85,18 +114,21 @@ async function callGeminiChat(
     model,
     contents,
     config: {
-      systemInstruction: systemPrompt,
+      systemInstruction: systemPrompt + GEMINI_REPLY_RULES,
       temperature: 0.7,
-      maxOutputTokens: 600,
+      maxOutputTokens: 200,
       responseMimeType: "application/json",
     },
   });
   const raw = (resp.text || "").trim();
-  let parsed: { reply?: unknown; order?: unknown } | null = null;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    parsed = null;
+  let parsed = extractGeminiJson(raw);
+  // Double-encoded reply: {"reply": "{\"reply\": \"...\"}"} — unwrap it.
+  let depth = 0;
+  while (parsed && typeof parsed.reply === "string" && parsed.reply.trim().startsWith("{") && depth < 2) {
+    const inner = extractGeminiJson(parsed.reply);
+    if (!inner) break;
+    parsed = inner;
+    depth++;
   }
   if (!parsed || typeof parsed.reply !== "string" || !parsed.reply.trim()) {
     return { reply: raw || "Maaf kijiye, samajh nahi aaya — dobara bolein.", order: null };
@@ -175,7 +207,7 @@ export async function transcribeWithGemini(
           parts: [
             { inlineData: { mimeType, data: audio.toString("base64") } },
             {
-              text: "Transcribe this audio exactly as spoken, word for word. The speaker is speaking Urdu (possibly Roman Urdu / Urdu written in Latin letters, or Urdu script) or English. Reply with ONLY the transcription text, nothing else.",
+              text: "Transcribe this audio exactly as spoken, word for word. The speaker is speaking Sindhi (most likely), Urdu (possibly Roman Urdu / Urdu written in Latin letters, or Urdu script) or English. Reply with ONLY the transcription text, nothing else.",
             },
           ],
         },
