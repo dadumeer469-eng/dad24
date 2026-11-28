@@ -10,31 +10,19 @@ export interface ProductFrame {
   hero: boolean;
 }
 
-// The four most-ordered dishes, each with its own holding frame.
+// Munchi's product frames — ONLY these dishes get a frame, matched to
+// the narration (user 28 Nov 11:31: "sare frame remove kro, new bs 5-7
+// bnao naration ke hisab se"). The old hero images + the bestseller
+// fallback are GONE — every other dish gets NO frame, Munchi just shows
+// normally. Each image is a fresh Munchi-holding-the-dish shot (v2 set).
+// NOTE: 4 frames are live now; 2 more (Beef Biryani, Biryani Single Plate)
+// get their v2 images next, bringing the set to 6.
 const HERO_FRAMES: Record<string, string> = {
-  "crispy zinger burger": "/images/munchi-burger.jpg",
-  "chicken biryani": "/images/munchi-biryani.jpg",
-  "chicken shawarma": "/images/munchi-shawarma.jpg",
-  "chicken karahi": "/images/munchi-karahi.jpg",
+  "crispy zinger burger": "/images/munchi-v2-burger.jpg",
+  "chicken biryani": "/images/munchi-v2-biryani.jpg",
+  "chicken shawarma": "/images/munchi-v2-shawarma.jpg",
+  "chicken karahi": "/images/munchi-v2-karahi.jpg",
 };
-
-// Munchi shows a product frame for ONLY 10 special dishes (user 28 Nov
-// 11:14: "Munchi ke jo frame hai wo bs kuch khas rakho ziyada nhi, 10
-// frame naration ke hisab se"). The 4 heroes above + the bestsellers
-// (isBestseller, set in the Admin Panel) fill the remaining 6 slots, in
-// menu order. Every other dish gets NO frame — Munchi just shows normally.
-// This stops the frame changing on every dish mentioned in the narration.
-const SPECIAL_FRAME_LIMIT = 10;
-
-function specialFrames(items: LocalMenuItem[]): LocalMenuItem[] {
-  const heroes = items.filter((i) => HERO_FRAMES[norm(i.name)]);
-  const seen = new Set(heroes.map((i) => norm(i.name)));
-  const bestsellers = items.filter(
-    (i) => i.type === "food" && i.isBestseller && !seen.has(norm(i.name)),
-  );
-  const picked = [...heroes, ...bestsellers].slice(0, SPECIAL_FRAME_LIMIT);
-  return picked;
-}
 
 // Urdu-script words -> Latin, so "زنگر برگر" and "پیزا" match the menu
 // just like Roman Urdu does (Whisper returns Urdu script for Urdu speech).
@@ -106,16 +94,15 @@ function toLatinWords(text: string): string[] {
 // (1 word), and "pizza" picks a pizza instead of whatever matched first.
 // Full-name match wins outright. Returns null when nothing recognisable
 // is named — the caller keeps the previous frame in that case.
-// NOTE: only the 10 special dishes (4 heroes + bestsellers) can ever
-// produce a frame — see specialFrames above. Any other dish returns null,
-// so Munchi shows no product frame for it.
+// NOTE: only the dishes in HERO_FRAMES can ever produce a frame.
+// Any other dish returns null, so Munchi shows no product frame for it.
 export function findProductInText(text: string, items: LocalMenuItem[]): ProductFrame | null {
   if (!text) return null;
   const words = toLatinWords(text);
   if (words.length === 0) return null;
   const t = ` ${words.join(" ")} `;
-  // Only the 10 special dishes are frame-eligible.
-  const special = specialFrames(items);
+  // Only the 6 hero dishes are frame-eligible.
+  const special = items.filter((i) => HERO_FRAMES[norm(i.name)]);
   // Hero shortcut: a bare hero word ("burger" alone) means the house burger.
   if (words.length === 1) {
     const solo = words[0];

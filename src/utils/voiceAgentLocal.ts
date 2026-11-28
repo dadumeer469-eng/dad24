@@ -10,9 +10,6 @@ export interface LocalMenuItem {
   // Catalogue photo (dish imageUrl / grocery imageUrl). Used for Munchi's
   // product frame; may be absent for items without a photo.
   image?: string;
-  // Bestseller flag (food dishes). Munchi only shows a product frame for
-  // the 10 special dishes (4 heroes + bestsellers) — see munchiProductFrames.
-  isBestseller?: boolean;
 }
 
 export interface LocalOrderItem {
