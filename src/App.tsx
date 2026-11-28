@@ -93,6 +93,8 @@ import {
 } from "./utils/motion";
 import VoiceOrderModal, { type VoiceOrder, type VoiceOrderResult } from "./components/VoiceOrderModal";
 import ChatAgentModal from "./components/ChatAgentModal";
+import IncomingCallModal from "./components/IncomingCallModal";
+import { listenIncomingCalls, type CallDoc } from "./utils/webrtcCall";
 import { primeAudio } from "./utils/primeAudio";
 import OrderTracker from "./components/OrderTracker";
 import AuthModal from "./components/AuthModal";
@@ -824,6 +826,12 @@ export default function App() {
   // PWA Install State
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallBubble, setShowInstallBubble] = useState(false);
+  // Global incoming in-app call (customer, any screen). The rider calls the
+  // customer from the Rider Panel; this listener catches it wherever the
+  // customer is in the app (home, menu, cart, tracking) — previously the
+  // listener only lived in OrderTracker, so food-order customers on the
+  // FoodDeliveryTracker screen never got the call at all.
+  const [incomingCall, setIncomingCall] = useState<CallDoc | null>(null);
   // Floating buttons (WhatsApp FAB + Install pill) hide while the user is
   // actively scrolling — otherwise they cover content mid-scroll — and
   // reappear shortly after scrolling stops.
@@ -1295,6 +1303,17 @@ export default function App() {
     const t = window.setTimeout(() => setShowInstallBubble(false), 8000);
     return () => window.clearTimeout(t);
   }, [showInstallBubble]);
+
+  // Global incoming-call listener (customer). Riders are excluded: when
+  // role === "rider" the app renders RiderPanel instead, which has its own
+  // listener + modal — listening here too would double-fire.
+  useEffect(() => {
+    if (!currentUser?.uid || currentUser.role === "rider") return;
+    const unsub = listenIncomingCalls(currentUser.uid, (call) => {
+      setIncomingCall(call);
+    });
+    return () => unsub();
+  }, [currentUser?.uid, currentUser?.role]);
 
   const handleInstallClick = async () => {
     if (deferredPrompt) {
@@ -6049,6 +6068,17 @@ export default function App() {
               (globalCoords ? { area: "GPS Live Location · Dadu", street: "" } : undefined)
         }
       />
+
+      {/* Global incoming in-app call (rider -> customer). Shows on ANY screen
+          while the app is open. If the app is closed / in background, the
+          call cannot ring yet — that needs push notifications (FCM), not built. */}
+      {incomingCall && currentUser?.role !== "rider" && (
+        <IncomingCallModal
+          call={incomingCall}
+          myId={currentUser?.uid || "guest"}
+          onClose={() => setIncomingCall(null)}
+        />
+      )}
 
       {/* Chat Agent — Munchi as text chat (user 28 Nov 13:39). Same brain
           (/api/voice-chat), same menu, same order flow as the voice agent;
