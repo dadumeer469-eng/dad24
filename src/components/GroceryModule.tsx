@@ -5,13 +5,14 @@ import { GroceryCategory, GroceryProduct, GroceryOrderItem } from "../types";
 import { Check, Package, Plus, Minus, ChevronDown, ChevronRight } from "lucide-react";
 import { LazyImage } from "./LazyImage";
 import useLazyBatchLoad from "../hooks/useLazyBatchLoad";
+import GroceryProductDetailModal from "./GroceryProductDetailModal";
 import { GROCERY_CATEGORY_VISUALS } from "../data/ownerGroceryCatalog";
 
 interface GroceryModuleProps {
   categories: GroceryCategory[];
   products: GroceryProduct[];
   isLoading?: boolean;
-  onAddToCart: (product: GroceryProduct) => void;
+  onAddToCart: (product: GroceryProduct, quantity?: number) => void;
   cartItems: GroceryOrderItem[];
   onUpdateCartQuantity: (productId: string, quantity: number) => void;
   onRemoveFromCart: (productId: string) => void;
@@ -125,6 +126,10 @@ export default function GroceryModule({
   // display concern (e.g. "Show all N items" while searching), not a
   // navigation sub-view, so the back-button controller does not need it.
   const [showAllInCategory, setShowAllInCategory] = useState<boolean>(Boolean(initialCategoryId));
+  // Product detail modal — opens when a product card is tapped (user 28 Nov:
+  // "detail ho, product kisi pe bhi click kre to"). Shows the photo gallery
+  // (2–3 pics), name, pack, price and Add to Cart.
+  const [selectedProduct, setSelectedProduct] = useState<GroceryProduct | null>(null);
   // Reduced motion: micro-interactions become instant state changes.
   const reduceMotion = useReducedMotion();
 
@@ -241,7 +246,8 @@ export default function GroceryModule({
         animate={{ opacity: 1, y: 0 }}
         whileHover={reduceMotion ? undefined : { y: -2 }}
         transition={springSnappy}
-        className="bg-white dark:bg-[#1B1B24] rounded-2xl overflow-hidden shadow-[0_1px_4px_rgba(0,0,0,0.07)] hover:shadow-md transition-shadow duration-180 flex flex-col relative group border border-[#f0f0f0] dark:border-[#2A2A35]"
+        onClick={() => setSelectedProduct(p)}
+        className="bg-white dark:bg-[#1B1B24] rounded-2xl overflow-hidden shadow-[0_1px_4px_rgba(0,0,0,0.07)] hover:shadow-md transition-shadow duration-180 flex flex-col relative group border border-[#f0f0f0] dark:border-[#2A2A35] cursor-pointer"
       >
         {/* Photo — light backdrop, product fills it; white + button (Foodpanda-style)
             overlaps the bottom-right corner. No badges on the photo — clean. */}
@@ -261,7 +267,7 @@ export default function GroceryModule({
               <motion.button
                 type="button"
                 whileTap={reduceMotion ? undefined : { scale: 0.88 }}
-                onClick={() => onUpdateCartQuantity(p.id, qty - 1)}
+                onClick={(e) => { e.stopPropagation(); onUpdateCartQuantity(p.id, qty - 1); }}
                 aria-label="Decrease quantity"
                 className="w-8 h-8 rounded-full flex items-center justify-center text-[#E21B70] hover:bg-[#FDE7F0] dark:hover:bg-[#2A121D] cursor-pointer"
               >
@@ -279,7 +285,7 @@ export default function GroceryModule({
               <motion.button
                 type="button"
                 whileTap={reduceMotion ? undefined : { scale: 0.88 }}
-                onClick={() => onUpdateCartQuantity(p.id, qty + 1)}
+                onClick={(e) => { e.stopPropagation(); onUpdateCartQuantity(p.id, qty + 1); }}
                 aria-label="Increase quantity"
                 className="w-8 h-8 rounded-full flex items-center justify-center text-[#E21B70] hover:bg-[#FDE7F0] dark:hover:bg-[#2A121D] cursor-pointer"
               >
@@ -290,7 +296,7 @@ export default function GroceryModule({
             <motion.button
               type="button"
               whileTap={reduceMotion ? undefined : { scale: 0.88 }}
-              onClick={() => onAddToCart(p)}
+              onClick={(e) => { e.stopPropagation(); onAddToCart(p); }}
               aria-label={`Add ${p.name} to cart`}
               className="absolute bottom-2 right-2 z-10 w-10 h-10 rounded-full bg-white dark:bg-[#14141A] text-[#14141A] dark:text-white flex items-center justify-center cursor-pointer shadow-lg border border-black/5 active:scale-95"
             >
@@ -417,6 +423,49 @@ export default function GroceryModule({
               </button>
             </div>
           </div>
+        )}
+
+        {/* Ronin Accessories — its OWN separate option (user 28 Nov: "unki
+            option bilkul alag ho"). A full-width banner card that jumps
+            straight to the Ronin products, instead of hiding Ronin as just
+            another small category chip. Hidden on /pharmacy. */}
+        {!isPharmacy && activeCategories.some((c) => c.id === "gcat_ronin") && (
+          <button
+            type="button"
+            onClick={() => {
+              onSelectCategory("gcat_ronin");
+              setShowAllInCategory(true);
+              onSetShowAllCatalog(false);
+              document.getElementById("grocery-products")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+            className="w-full relative overflow-hidden rounded-[28px] shadow-[0_12px_28px_rgba(0,0,0,0.10)] min-h-[120px] sm:min-h-[140px] text-left cursor-pointer group"
+          >
+            <img
+              src="/images/grocery/ronin-r-29-handsfree.jpg"
+              alt="Ronin Accessories — chargers, cables and handsfree"
+              className="absolute inset-0 w-full h-full object-cover object-center group-active:scale-[1.02] transition-transform duration-300"
+              loading="lazy"
+              decoding="async"
+            />
+            <div
+              className="absolute inset-0 bg-gradient-to-r from-[#1A0A12]/95 via-[#1A0A12]/70 to-transparent"
+              aria-hidden="true"
+            />
+            <div className="relative z-10 p-5 sm:p-6 max-w-[70%]">
+              <span className="inline-block text-[11px] font-bold uppercase tracking-wider text-white bg-[#E21B70] px-2.5 py-1 rounded-full">
+                🎧 New
+              </span>
+              <h3 className="text-xl sm:text-2xl font-extrabold text-white leading-tight mt-2">
+                Ronin Accessories
+              </h3>
+              <p className="text-xs sm:text-sm text-white/90 font-medium mt-1">
+                Chargers · Cables · Handsfree · Power Bank — 20 products
+              </p>
+              <span className="mt-2.5 inline-flex items-center gap-1.5 bg-white text-[#14141A] font-semibold text-xs sm:text-sm px-4 py-2 min-h-[40px] rounded-full shadow-md">
+                Shop Ronin <ChevronRight className="w-4 h-4" />
+              </span>
+            </div>
+          </button>
         )}
 
         {/* Category Tiles (design: photo tiles row, light pink) */}
@@ -599,6 +648,16 @@ export default function GroceryModule({
             )}
         </div>
       </div>
+      {/* Product detail modal — tap any product card to see its photos,
+          name, pack, price and Add to Cart. */}
+      <GroceryProductDetailModal
+        product={selectedProduct}
+        categoryName={selectedProduct ? categoryNameMap[selectedProduct.categoryId] : undefined}
+        initialQuantity={selectedProduct ? getProductQuantityInCart(selectedProduct.id) : 0}
+        onClose={() => setSelectedProduct(null)}
+        onAddToCart={onAddToCart}
+        onUpdateCartQuantity={onUpdateCartQuantity}
+      />
     </div>
   );
 }
