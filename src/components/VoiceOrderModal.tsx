@@ -61,7 +61,21 @@ interface ChatMsg {
   text: string;
 }
 
-const GREETING = "Assalam-o-Alaikum! Kya haal hain? Main Munchi hoon — aaj kya khilaya jaye aap ko?";
+const GREETING_UR = "Assalam-o-Alaikum! Kya haal hain? Main Munchi hoon — aaj kya khilaya jaye aap ko?";
+// Roman Sindhi greeting (Sindhi in Latin letters — Gemini TTS cannot speak
+// Sindhi Arabic script, it rejects it; Roman Sindhi synthesises fine).
+// "Kiyan haal aahin?" = how are you? "Main Munchi aahiyan" = I am Munchi.
+const GREETING_SD = "Assalam-o-Alaikum! Kiyan haal aahin? Main Munchi aahiyan — aaj tawhan khe cha khaarayo?";
+const GREETING = GREETING_UR;
+const MUNCHI_LANG_KEY = "dadu_munchi_lang";
+type CallLanguage = "ur" | "sd";
+function readSavedLanguage(): CallLanguage {
+  try {
+    return localStorage.getItem(MUNCHI_LANG_KEY) === "sd" ? "sd" : "ur";
+  } catch {
+    return "ur";
+  }
+}
 const UNCLEAR_SPEECH = "Maaf kijiye, phir se bolein.";
 const MIC_DENIED = "Microphone ki ijazat dein — browser ki address bar mein mic icon par tap karein.";
 const NO_VOICE_INPUT = "Aap ka phone voice input support nahi karta. Chrome istemal karein.";
@@ -101,6 +115,20 @@ export default function VoiceOrderModal({
   deliveryLocation,
 }: VoiceOrderModalProps) {
   const [status, setStatus] = useState<Status>("idle");
+  // Call-screen language choice (user 28 Nov 09:02): the customer picks
+  // Sindhi or Urdu on the call screen; saved on the phone so the next
+  // call opens in the same language. Urdu is the default.
+  const [callLanguage, setCallLanguageState] = useState<CallLanguage>(() => readSavedLanguage());
+  const callLanguageRef = useRef<CallLanguage>(callLanguage);
+  const setCallLanguage = useCallback((lang: CallLanguage) => {
+    callLanguageRef.current = lang;
+    setCallLanguageState(lang);
+    try {
+      localStorage.setItem(MUNCHI_LANG_KEY, lang);
+    } catch {
+      /* ignore */
+    }
+  }, []);
   const [placedOrder, setPlacedOrder] = useState<VoiceOrder | null>(null);
   // The product being talked about, shown in Munchi's hand.
   const [productFrame, setProductFrame] = useState<ProductFrame | null>(null);
@@ -566,14 +594,18 @@ export default function VoiceOrderModal({
         // Frame-by-frame lip-sync: this reply's text + the audio's real
         // duration build the word-by-word viseme schedule, armed the
         // moment playback actually starts (the 'playing' event), so the
-        // mouth never runs ahead of the voice. If the duration is ever
-        // unknown, the analyser / word-pulse fallback keeps moving it.
+        // mouth never runs ahead of the voice. If the duration is not
+        // known yet at 'playing' (blob metadata can lag), wait for
+        // 'loadedmetadata' instead of arming with a wrong duration — a
+        // schedule built from a bad duration is what made the mouth run
+        // out of sync with the narration.
         const armViseme = () => {
           if (audio.duration && isFinite(audio.duration)) {
             munchiRef.current?.noteSpeechStart(text, audio.duration);
           }
         };
         audio.addEventListener("playing", armViseme, { once: true });
+        audio.addEventListener("loadedmetadata", armViseme, { once: true });
         // Route the audio through an analyser when the context runs; if
         // the browser keeps it suspended, play plainly and let the
         // word-paced fallback pulse (noteSpeechStart) move the jaw.
@@ -779,6 +811,8 @@ export default function VoiceOrderModal({
                 messages: history.map((m) => ({ role: m.role, content: m.text })),
                 menuText,
                 ordersText,
+                // Call-screen language choice — the reply rules follow it.
+                language: callLanguageRef.current,
                 userName: userName || undefined,
                 userPhone: userPhone || enteredPhone || undefined,
                 userProfileText: profileText,
@@ -826,14 +860,16 @@ export default function VoiceOrderModal({
         // The agent's reply named a dish — frame that one in Munchi's hand.
         const hit = findProductInText(say, menuItems);
         if (hit) setProductFrame(hit);
-        // Location missing and the agent just asked for it with the exact
-        // ask line — open the browser's location popup (the native dialog
-        // appears on top of the call). Fires at most once per call, so a
-        // denied prompt is never re-shown on every turn.
+        // Location missing and the agent just asked for it — open the
+        // browser's location popup (the native dialog appears on top of
+        // the call). Matches Roman Urdu ("location on kar dein"), Roman
+        // Sindhi ("location on kayo") and Urdu script. Fires at most once
+        // per call, so a denied prompt is never re-shown on every turn.
         if (
           !deliveryLocation &&
           !locationPromptFiredRef.current &&
-          say.includes("مہربانی کر کے اپنی لوکیشن آن کر دیں")
+          (/location\s+on\s+(kar|kayo|karein|kare|karo|karain)/i.test(say) ||
+            say.includes("لوکیشن آن"))
         ) {
           locationPromptFiredRef.current = true;
           onRequestLocation();
@@ -1133,14 +1169,16 @@ export default function VoiceOrderModal({
     } catch {
       /* noop */
     }
-    // Fixed Urdu greeting (no API call) — then listen hands-free.
-    // Ring for 2 seconds first, then the agent picks up and speaks first.
+    // Fixed greeting in the chosen language (no API call) — then listen
+    // hands-free. Ring for 2 seconds first, then the agent picks up and
+    // speaks first.
+    const greeting = callLanguageRef.current === "sd" ? GREETING_SD : GREETING_UR;
     const t = setTimeout(() => {
-      messagesRef.current = [{ role: "assistant" as const, text: GREETING }];
+      messagesRef.current = [{ role: "assistant" as const, text: greeting }];
       // The agent answered — he walks in with a big smile and greets the user.
       revealAgent();
       munchiRef.current?.setMood("happy");
-      speak(GREETING, () => {
+      speak(greeting, () => {
         if (openRef.current) startListening();
       });
     }, 2000);
@@ -1195,7 +1233,7 @@ export default function VoiceOrderModal({
   return (
     <div
       ref={dialogRef}
-      className="fixed inset-0 z-[70] flex flex-col overflow-hidden text-white"
+      className="animate-call-modal-in fixed inset-0 z-[70] flex flex-col overflow-hidden text-white"
       role="dialog"
       aria-modal="true"
       aria-label="Dadu Food voice call"
@@ -1222,6 +1260,38 @@ export default function VoiceOrderModal({
             aria-label="Close call"
           >
             <X className="h-5 w-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Language choice (user 28 Nov 09:02): Sindhi or Urdu — the customer
+          taps whichever they want; the choice is saved on the phone. Sindhi
+          is Roman Sindhi (Latin letters) so the voice can actually speak it. */}
+      <div className="relative z-10 flex justify-center px-5 pt-3">
+        <div className="flex w-full max-w-[420px] gap-2" role="group" aria-label="Choose language">
+          <button
+            type="button"
+            onClick={() => setCallLanguage("ur")}
+            aria-pressed={callLanguage === "ur"}
+            className={`flex-1 rounded-full py-2.5 text-[16px] font-bold transition-all active:scale-95 ${
+              callLanguage === "ur"
+                ? "bg-white text-[#E21B70] shadow-[0_6px_18px_rgba(0,0,0,0.3)]"
+                : "bg-white/20 text-white/90"
+            }`}
+          >
+            اردو · Urdu
+          </button>
+          <button
+            type="button"
+            onClick={() => setCallLanguage("sd")}
+            aria-pressed={callLanguage === "sd"}
+            className={`flex-1 rounded-full py-2.5 text-[16px] font-bold transition-all active:scale-95 ${
+              callLanguage === "sd"
+                ? "bg-white text-[#E21B70] shadow-[0_6px_18px_rgba(0,0,0,0.3)]"
+                : "bg-white/20 text-white/90"
+            }`}
+          >
+            سنڌي · Sindhi
           </button>
         </div>
       </div>
