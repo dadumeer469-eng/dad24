@@ -77,6 +77,7 @@ import {
   heroWord,
   motionTransition,
   springGentle,
+  springSnappy,
   staggerContainer,
   usePrefersReducedMotion,
   viewTransition,
@@ -586,6 +587,14 @@ export default function App() {
     const t = window.setTimeout(() => setDebouncedSearchQuery(searchQuery), 250);
     return () => window.clearTimeout(t);
   }, [searchQuery]);
+  // Food search used to look broken (audit 28 Nov #5): the results render
+  // at #catalog-section, ~1200px below the fold, and nothing scrolled
+  // there — the user typed and saw nothing change. Jump to the results
+  // when a food search starts (grocery results already filter in place).
+  useEffect(() => {
+    if (!debouncedSearchQuery.trim() || activeModule !== "food") return;
+    document.getElementById("catalog-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [debouncedSearchQuery, activeModule]);
   const [quickFilter, setQuickFilter] = useState<
     "all" | "top_rated" | "under_300" | "fast_food" | "desi" | "pizza" | "chai_sweets"
   >("all");
@@ -774,6 +783,14 @@ export default function App() {
     /** Auto-dismiss delay in ms; defaults to 3000. */
     durationMs?: number;
   } | null>(null);
+  // Styled in-app confirm for the mixed food/grocery basket (audit 28 Nov
+  // #8) — replaces the raw window.confirm("DISALLOW MIXED BASKET!").
+  const [mixedCartConfirm, setMixedCartConfirm] = useState<null | {
+    title: string;
+    message: string;
+    confirmLabel: string;
+    onConfirm: () => void;
+  }>(null);
 
   // Every bottom alert auto-dismisses after a few seconds and is tap-to-dismiss,
   // so no alert ever lingers over the cart / submit button.
@@ -1103,7 +1120,13 @@ export default function App() {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
     
     if (!isStandalone) {
-      setShowInstallBubble(true);
+      // First visit only (audit 28 Nov #11): the bubble used to float over
+      // the product cards for 8s on EVERY visit. Remember it was shown so
+      // it never covers the grid again.
+      if (!localStorage.getItem("dadu_install_bubble_seen")) {
+        setShowInstallBubble(true);
+        localStorage.setItem("dadu_install_bubble_seen", "1");
+      }
     }
 
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -2716,6 +2739,9 @@ export default function App() {
       addOns?: { name: string; price: number }[];
       specialInstructions?: string;
     },
+    // Set by the mixed-cart confirm modal so the re-run after clearing the
+    // other basket does not ask again (audit 28 Nov #8).
+    skipMixedCartCheck: boolean = false,
   ) => {
     if (currentUser?.status === 'locked') {
       setIsVerificationModalOpen(true);
@@ -2723,15 +2749,20 @@ export default function App() {
     }
 
     // Check if mixed cart is allowed
-    if (!groceryDeliveryConfig?.allowMixedCart && groceryCartItems.length > 0) {
-      const clearGrocery = window.confirm(
-        "DISALLOW MIXED BASKET!\n\nYour basket currently contains Grocery products. Dadu Food requires separate delivery runs for hot kitchen meals and retail groceries.\n\nWould you like to auto-clear your Grocery Basket to start your Food order?",
-      );
-      if (clearGrocery) {
-        setGroceryCartItems([]);
-      } else {
-        return;
-      }
+    if (!skipMixedCartCheck && !groceryDeliveryConfig?.allowMixedCart && groceryCartItems.length > 0) {
+      // Styled in-app confirm (audit 28 Nov #8) — the raw system popup
+      // ("DISALLOW MIXED BASKET!") looked like a developer error in the APK.
+      setMixedCartConfirm({
+        title: "Grocery basket clear karein?",
+        message:
+          "Aapki basket mein grocery items hain. Food aur grocery ki alag delivery hoti hai. Grocery basket clear karke food order karein?",
+        confirmLabel: "Clear karke food order karein",
+        onConfirm: () => {
+          setGroceryCartItems([]);
+          handleAddToCart(dish, quantityToAdd, options, true);
+        },
+      });
+      return;
     }
 
     // Limit cart constraint: Max 2 different restaurants per order
@@ -2776,18 +2807,26 @@ export default function App() {
       !currentRestaurants.includes(itemRestaurant) &&
       currentRestaurants.length >= 2
     ) {
-      alert(
-        "You can only order from a maximum of 2 restaurants in a single order.",
-      );
+      // Friendly in-app toast instead of the raw system alert (audit 28 Nov #8).
+      setToastNotification({
+        title: "Sirf 2 restaurants",
+        message: "Ek order mein zyada se zyada 2 restaurants se order kar sakte hain.",
+      });
       return;
     }
 
     setCartItems((prev) => {
       const existing = prev.find((item) => item.dishId === cartItemId);
       if (existing) {
+        // Dropping to 0 (or below) REMOVES the item — otherwise a ghost
+        // 0-quantity row stays in the cart (audit 28 Nov #6).
+        const newQty = existing.quantity + quantityToAdd;
+        if (newQty <= 0) {
+          return prev.filter((item) => item.dishId !== cartItemId);
+        }
         return prev.map((item) =>
           item.dishId === cartItemId
-            ? { ...item, quantity: item.quantity + quantityToAdd }
+            ? { ...item, quantity: newQty }
             : item,
         );
       }
@@ -2835,6 +2874,7 @@ export default function App() {
         ...prev,
         {
           dishId: cartItemId,
+          baseDishId: dish.id,
           name: variantName,
           price: finalPrice,
           quantity: quantityToAdd,
@@ -2869,22 +2909,27 @@ export default function App() {
     handleAddToCart(dishObj);
   };
 
-  const handleAddToGroceryCart = (product: GroceryProduct, quantity = 1) => {
+  const handleAddToGroceryCart = (product: GroceryProduct, quantity = 1, skipMixedCartCheck: boolean = false) => {
     if (currentUser?.status === 'locked') {
       setIsVerificationModalOpen(true);
       return;
     }
 
     // Check if mixed cart is allowed
-    if (!groceryDeliveryConfig?.allowMixedCart && cartItems.length > 0) {
-      const clearFood = window.confirm(
-        "DISALLOW MIXED BASKET!\n\nYour basket currently contains Food items. Dadu Food requires separate delivery runs for hot kitchen meals and retail groceries.\n\nWould you like to auto-clear your Food Cart to start your Grocery purchase?",
-      );
-      if (clearFood) {
-        setCartItems([]);
-      } else {
-        return;
-      }
+    if (!skipMixedCartCheck && !groceryDeliveryConfig?.allowMixedCart && cartItems.length > 0) {
+      // Styled in-app confirm (audit 28 Nov #8) — the raw system popup
+      // ("DISALLOW MIXED BASKET!") looked like a developer error in the APK.
+      setMixedCartConfirm({
+        title: "Food cart clear karein?",
+        message:
+          "Aapke cart mein food items hain. Food aur grocery ki alag delivery hoti hai. Food cart clear karke grocery khareedein?",
+        confirmLabel: "Clear karke grocery khareedein",
+        onConfirm: () => {
+          setCartItems([]);
+          handleAddToGroceryCart(product, quantity, true);
+        },
+      });
+      return;
     }
 
     setGroceryCartItems((prev) => {
@@ -2941,18 +2986,21 @@ export default function App() {
     );
   };
 
-  const handleReorder = (order: Order) => {
+  const handleReorder = (order: Order, skipMixedCartCheck: boolean = false) => {
     if (order.orderType === "grocery") {
       // It's a grocery order
-      if (cartItems.length > 0 && !groceryDeliveryConfig?.allowMixedCart) {
-        const clearFood = window.confirm(
-          "DISALLOW MIXED BASKET!\n\nYour basket currently contains Food items. Dadu Food requires separate delivery runs for hot kitchen meals and retail groceries.\n\nWould you like to auto-clear your Food Cart to start your Grocery purchase?",
-        );
-        if (clearFood) {
-          setCartItems([]);
-        } else {
-          return;
-        }
+      if (!skipMixedCartCheck && cartItems.length > 0 && !groceryDeliveryConfig?.allowMixedCart) {
+        setMixedCartConfirm({
+          title: "Food cart clear karein?",
+          message:
+            "Aapke cart mein food items hain. Food aur grocery ki alag delivery hoti hai. Food cart clear karke grocery order dobara karein?",
+          confirmLabel: "Clear karke grocery order karein",
+          onConfirm: () => {
+            setCartItems([]);
+            handleReorder(order, true);
+          },
+        });
+        return;
       }
 
       // Add each item in order.items to groceryCartItems
@@ -2997,17 +3045,21 @@ export default function App() {
     } else {
       // It's a food or service order
       if (
+        !skipMixedCartCheck &&
         groceryCartItems.length > 0 &&
         !groceryDeliveryConfig?.allowMixedCart
       ) {
-        const clearGrocery = window.confirm(
-          "DISALLOW MIXED BASKET!\n\nYour basket currently contains Grocery products. Dadu Food requires separate delivery runs for hot kitchen meals and retail groceries.\n\nWould you like to auto-clear your Grocery Basket to start your Food order?",
-        );
-        if (clearGrocery) {
-          setGroceryCartItems([]);
-        } else {
-          return;
-        }
+        setMixedCartConfirm({
+          title: "Grocery basket clear karein?",
+          message:
+            "Aapki basket mein grocery items hain. Food aur grocery ki alag delivery hoti hai. Grocery basket clear karke food order dobara karein?",
+          confirmLabel: "Clear karke food order karein",
+          onConfirm: () => {
+            setGroceryCartItems([]);
+            handleReorder(order, true);
+          },
+        });
+        return;
       }
 
       setCartItems((prev) => {
@@ -3308,14 +3360,46 @@ export default function App() {
   };
 
   const handleUpdateCartQuantity = (dishId: string, qty: number) => {
-    if (qty <= 0) {
-      handleRemoveCartItem(dishId);
+    // Exact match first (plain items and cart-drawer rows carry the real id).
+    const exact = cartItems.find((item) => item.dishId === dishId);
+    if (exact) {
+      if (qty <= 0) {
+        handleRemoveCartItem(dishId);
+        return;
+      }
+      setCartItems((prev) =>
+        prev.map((item) =>
+          item.dishId === dishId ? { ...item, quantity: qty } : item,
+        ),
+      );
       return;
     }
+    // Base-id fallback (audit 28 Nov #4): a card stepper shows the SUMMED
+    // quantity across a dish's variants (e.g. Small + Large pizza), so a
+    // tap on +/- adjusts the biggest variant by the difference. Reaching
+    // 0 drops every variant of that dish.
+    const variants = cartItems.filter(
+      (item) => (item.baseDishId || item.dishId) === dishId,
+    );
+    if (variants.length === 0) return;
+    const currentSum = variants.reduce((s, v) => s + v.quantity, 0);
+    if (qty <= 0) {
+      setCartItems((prev) =>
+        prev.filter((item) => (item.baseDishId || item.dishId) !== dishId),
+      );
+      return;
+    }
+    const delta = qty - currentSum;
+    if (delta === 0) return;
+    const target = [...variants].sort((a, b) => b.quantity - a.quantity)[0];
     setCartItems((prev) =>
-      prev.map((item) =>
-        item.dishId === dishId ? { ...item, quantity: qty } : item,
-      ),
+      prev
+        .map((item) =>
+          item.dishId === target.dishId
+            ? { ...item, quantity: item.quantity + delta }
+            : item,
+        )
+        .filter((item) => item.quantity > 0),
     );
   };
 
@@ -4209,6 +4293,12 @@ export default function App() {
           : dish;
       handleAddToCart(dealDish, qty);
     });
+    // Feedback (audit 28 Nov #2): the button used to stay "Add Deal" with
+    // no toast, so a second tap silently added the whole bundle again.
+    setToastNotification({
+      title: "Deal added",
+      message: `${deal.title} — Rs. ${deal.dealPrice} (save Rs. ${savings})`,
+    });
   };
 
   // --- RESTAURANT AVAILABILITY CHECK ---
@@ -4429,10 +4519,24 @@ export default function App() {
   }, [filteredDishes, checkIsRestaurantClosed]);
 
   const favoriteDishIdSet = React.useMemo(() => new Set(favoriteDishIds), [favoriteDishIds]);
+  // Keyed by the BASE dish id (baseDishId, falling back to dishId) and
+  // summing quantities across variants: a dish added WITH a size/flavour
+  // carries a composite dishId ("dishId-size-flavour"), so a plain
+  // dish.id lookup missed it and the card showed "+ Add" for a dish
+  // already in the cart (audit 28 Nov #4). The stored item keeps the
+  // summed quantity; its dishId is the first variant's (used only for
+  // display — updates go through handleUpdateCartQuantity's base-id
+  // fallback).
   const cartItemByDishId = React.useMemo(() => {
     const map = new Map<string, (typeof cartItems)[number]>();
     for (const item of cartItems) {
-      if (!map.has(item.dishId)) map.set(item.dishId, item);
+      const baseId = item.baseDishId || item.dishId;
+      const prev = map.get(baseId);
+      if (prev) {
+        map.set(baseId, { ...prev, quantity: prev.quantity + item.quantity });
+      } else {
+        map.set(baseId, item);
+      }
     }
     return map;
   }, [cartItems]);
@@ -4447,6 +4551,20 @@ export default function App() {
     (acc, item) => acc + item.quantity,
     0,
   );
+  // WhatsApp List card (audit 28 Nov #7): it used to send only a greeting,
+  // so the user had to type the whole list by hand. Now the message carries
+  // the actual cart (food + grocery, name × qty) when the cart is non-empty.
+  const whatsappOrderText = React.useMemo(() => {
+    const lines = ["Assalam-o-Alaikum Dadu Food! Mera WhatsApp order list ye hai:"];
+    for (const item of cartItems) {
+      if (item.quantity > 0) lines.push(`- ${item.name} x${item.quantity} — Rs. ${item.price * item.quantity}`);
+    }
+    for (const item of groceryCartItems) {
+      if (item.quantity > 0) lines.push(`- ${item.name} x${item.quantity} — Rs. ${item.price * item.quantity}`);
+    }
+    if (lines.length === 1) return lines[0];
+    return lines.join("\n");
+  }, [cartItems, groceryCartItems]);
   const cartPriceTotal = cartItems.reduce(
     (acc, item) => acc + item.price * item.quantity,
     0,
@@ -5676,7 +5794,10 @@ export default function App() {
           primeAudio();
           setIsVoiceOrderOpen(true);
         }}
-        className={`fixed bottom-40 right-5 z-40 bg-[#E21B70] hover:bg-[#C2145E] text-white p-2 rounded-full shadow-lg active:scale-[0.97] transition-[color,background-color,border-color,transform,opacity] duration-180 cursor-pointer flex items-center justify-center border border-white/20 min-h-[44px] min-w-[44px] ${isScrolling ? "opacity-0 pointer-events-none translate-y-3" : "opacity-100"}`}
+        // Moved to the LEFT side (audit 28 Nov #1): on the right it sat on
+        // top of product cards' "+" buttons and ate the tap. The "+" buttons
+        // live on the right of every card, so the FAB belongs on the left.
+        className={`fixed bottom-40 left-5 z-40 bg-[#E21B70] hover:bg-[#C2145E] text-white p-2 rounded-full shadow-lg active:scale-[0.97] transition-[color,background-color,border-color,transform,opacity] duration-180 cursor-pointer flex items-center justify-center border border-white/20 min-h-[44px] min-w-[44px] ${isScrolling ? "opacity-0 pointer-events-none translate-y-3" : "opacity-100"}`}
         title="Voice Assistant — Urdu mein order karein"
         aria-label="Voice Assistant"
       >
@@ -6028,7 +6149,7 @@ export default function App() {
                             Dadu<br />Mart
                           </span>
                           <span className="block text-[11px] font-medium text-[#6E6E80] dark:text-[#A1A1B2] mt-1 leading-snug">
-                            297 groceries
+                            335 groceries
                           </span>
                         </div>
                         <span className="mt-2 inline-flex w-7 h-7 rounded-full bg-[#D70F64] text-white items-center justify-center shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
@@ -6077,7 +6198,7 @@ export default function App() {
                     </motion.button>
 
                     <motion.a
-                      href={`https://wa.me/${deliverySettings?.whatsappNumber || "923277004471"}?text=Assalam-o-Alaikum%20Dadu%20Food!%20Mera%20WhatsApp%20order%20list%20ye%20hai:`}
+                      href={`https://wa.me/${deliverySettings?.whatsappNumber || "923277004471"}?text=${encodeURIComponent(whatsappOrderText)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       variants={heroTile}
@@ -6220,7 +6341,7 @@ export default function App() {
                         "Free delivery over Rs. 1,000",
                         `${deliveryTimeTextSetting || "20–35 min"} delivery`,
                         "Cash on Delivery & Easypaisa",
-                        "297 groceries in Dadu",
+                        "335 groceries in Dadu",
                         "144 dishes • 3 restaurants",
                         "Station Road • College Road • Shahani Paro",
                         "Fresh, hot & fast — Dadu Food",
@@ -6380,7 +6501,7 @@ export default function App() {
                     Auto-play
                   </span>
                 </div>
-                <OffersCarousel dishes={popularDishesForCart} onAdd={handleAddToCart} cartByDishId={cartItemByDishId} onUpdateQuantity={handleUpdateCartQuantity} />
+                <OffersCarousel dishes={popularDishesForCart} onAdd={handleAddToCart} cartByDishId={cartItemByDishId} onUpdateQuantity={handleUpdateCartQuantity} onSelectDetail={setActiveDetailDish} />
               </ScrollReveal>
 
               {/* Meal Deals — bundle deals from src/data/deals.ts (10–20% off).
@@ -6403,7 +6524,18 @@ export default function App() {
                     </span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {availableDeals.map(({ deal, items }) => (
+                    {availableDeals.map(({ deal, items }) => {
+                      // "In Cart" state (audit 28 Nov #2): every deal dish
+                      // present in the cart at >= the deal quantity (variant
+                      // aware via baseDishId) means the deal is already added
+                      // — the button becomes "In Cart ✓" so a second tap
+                      // cannot silently add the whole bundle again.
+                      const dealInCart = items.every(({ dish, qty }) =>
+                        cartItems
+                          .filter((item) => (item.baseDishId || item.dishId) === dish.id)
+                          .reduce((s, item) => s + item.quantity, 0) >= qty
+                      );
+                      return (
                       <article
                         key={deal.id}
                         className="bg-white dark:bg-[#14141A] border border-[#e8e2d6] dark:border-[#272733] rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.05)] flex gap-3 p-3"
@@ -6443,15 +6575,21 @@ export default function App() {
                             <button
                               type="button"
                               onClick={() => handleAddDeal(deal)}
-                              aria-label={`Add ${deal.title} deal to cart for Rs. ${deal.dealPrice}`}
-                              className="min-h-[44px] px-4 rounded-xl bg-[#D70F64] hover:bg-[#B80C54] text-white text-[11px] font-extrabold cursor-pointer transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 shrink-0"
+                              disabled={dealInCart}
+                              aria-label={dealInCart ? `${deal.title} deal is already in your cart` : `Add ${deal.title} deal to cart for Rs. ${deal.dealPrice}`}
+                              className={`min-h-[44px] px-4 rounded-xl text-white text-[11px] font-extrabold transition-[color,background-color,border-color,transform,opacity] duration-180 active:scale-[0.97] active:brightness-110 shrink-0 ${
+                                dealInCart
+                                  ? "bg-[#15803D] cursor-default opacity-90"
+                                  : "bg-[#D70F64] hover:bg-[#B80C54] cursor-pointer"
+                              }`}
                             >
-                              Add Deal
+                              {dealInCart ? "In Cart ✓" : "Add Deal"}
                             </button>
                           </div>
                         </div>
                       </article>
-                    ))}
+                      );
+                    })}
                   </div>
                 </ScrollReveal>
               )}
@@ -7062,7 +7200,7 @@ export default function App() {
                       or Easypaisa — no hidden charges.
                     </p>
                     <p className="text-xs sm:text-sm text-[#5A5A6B] dark:text-[#A3A3B5] leading-relaxed">
-                      It is not just food. Our grocery delivery Dadu service brings 297 everyday grocery items in
+                      It is not just food. Our grocery delivery Dadu service brings 335 everyday grocery items in
                       13 categories — atta, rice, cooking oil, tea, milk, spices and more — to your home from the
                       morning, and our medicine delivery Dadu service delivers essential medicines with a lower Rs 30
                       medicine-only delivery fee. We deliver across Dadu city, including Shahani Paro, Moro Road,
@@ -7107,7 +7245,7 @@ export default function App() {
                       That is why families across the city call Dadu Food the best food delivery in Dadu.
                     </p>
                     <div className="grid grid-cols-4 gap-2 rounded-2xl bg-[#FFF0F5] dark:bg-[#2A101B] border border-[#E21B70]/15 px-2 py-3">
-                      <AnimatedCounter to={297} label="Groceries" />
+                      <AnimatedCounter to={335} label="Groceries" />
                       <AnimatedCounter to={144} label="Dishes" />
                       <AnimatedCounter to={3} label="Restaurants" />
                       <AnimatedCounter to={35} suffix=" min" label="Max delivery" />
@@ -7522,6 +7660,56 @@ export default function App() {
             >
               <X className="w-3.5 h-3.5" />
             </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* Mixed food/grocery basket confirm — styled in-app modal (audit 28
+          Nov #8). Replaces the raw system window.confirm("DISALLOW MIXED
+          BASKET!"). */}
+      <AnimatePresence>
+        {mixedCartConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-[2px] p-4"
+            onClick={() => setMixedCartConfirm(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 24, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 24, scale: 0.97 }}
+              transition={springSnappy}
+              className="w-full max-w-sm rounded-3xl bg-white dark:bg-[#1B1B23] p-5 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-base font-extrabold text-[#14141A] dark:text-white">
+                {mixedCartConfirm.title}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-[#5A5A6B] dark:text-[#A3A3B5]">
+                {mixedCartConfirm.message}
+              </p>
+              <div className="mt-5 flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const action = mixedCartConfirm.onConfirm;
+                    setMixedCartConfirm(null);
+                    action();
+                  }}
+                  className="min-h-[48px] w-full rounded-2xl bg-[#D70F64] text-sm font-extrabold text-white cursor-pointer active:scale-[0.98]"
+                >
+                  {mixedCartConfirm.confirmLabel}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMixedCartConfirm(null)}
+                  className="min-h-[48px] w-full rounded-2xl bg-[#F1F1F4] dark:bg-[#2A2A35] text-sm font-bold text-[#14141A] dark:text-white cursor-pointer active:scale-[0.98]"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

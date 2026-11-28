@@ -67,6 +67,11 @@ export interface UserProfile {
 
 export interface OrderItem {
   dishId: string;
+  // Plain dish id (without the "-size-flavour-…" variant suffix baked into
+  // dishId). Lets cards find a dish that is in the cart only as a variant
+  // (e.g. a Large pizza) so the stepper shows instead of "+ Add" (audit
+  // 28 Nov #4).
+  baseDishId?: string;
   name: string;
   price: number;
   discountPrice?: number;
