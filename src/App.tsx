@@ -53,6 +53,7 @@ import {
 } from "./utils/catalogCache";
 import { applyCatalogDelta, getCatalogDelta } from "./utils/catalogDelta";
 import {
+  clearSettingsCache,
   readSettingsCache,
   writeSettingsCache,
 } from "./utils/settingsCache";
@@ -2240,6 +2241,9 @@ export default function App() {
           // of serving the still-fresh cache (otherwise the admin's price /
           // product edits would not reach users until the TTL expired).
           invalidateCatalogCache();
+          // Same for the 1h settings cache — an admin edit pushed with
+          // Refresh must reach users at once, not after the TTL.
+          clearSettingsCache();
           setCatalogRefreshTick((t) => t + 1);
           setToastNotification({
             title: "Updated!",
