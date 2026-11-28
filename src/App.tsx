@@ -1267,16 +1267,20 @@ export default function App() {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
     if (isStandalone) return;
 
-    // Show the Install bubble whenever the browser says the app is
-    // installable (beforeinstallprompt fires) and it is not installed yet.
-    // (User 28 Nov 16:02: "jaise pehle tha waise hi ho" — the old
-    // first-visit-only localStorage flag hid the bubble forever after one
-    // visit, so the install option vanished. Now it returns whenever the
-    // browser offers install.)
+    // Show the Install button every time the site is opened in the
+    // browser and the app is NOT installed yet — exactly like before.
+    // (User 28 Nov 16:06: "pehle aise site instal ka button hota tha,
+    // browser open kro to, agar instal ho to fir show nhi hota tha" —
+    // open browser = button shows; if installed = it does not show.
+    // The standalone check below IS the "if installed, hide it" rule.
+    // Do NOT gate on beforeinstallprompt: Chrome may not fire it if the
+    // user dismissed the prompt before, and the click already falls back
+    // to manual "Add to Home Screen" instructions when no prompt exists.)
+    setShowInstallBubble(true);
+
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      setShowInstallBubble(true);
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
