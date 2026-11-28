@@ -10,18 +10,18 @@ export interface ProductFrame {
   hero: boolean;
 }
 
-// Munchi's product frames — ONLY these dishes get a frame, matched to
+// Munchi's product frames — ONLY these 6 dishes get a frame, matched to
 // the narration (user 28 Nov 11:31: "sare frame remove kro, new bs 5-7
 // bnao naration ke hisab se"). The old hero images + the bestseller
 // fallback are GONE — every other dish gets NO frame, Munchi just shows
 // normally. Each image is a fresh Munchi-holding-the-dish shot (v2 set).
-// NOTE: 4 frames are live now; 2 more (Beef Biryani, Biryani Single Plate)
-// get their v2 images next, bringing the set to 6.
 const HERO_FRAMES: Record<string, string> = {
   "crispy zinger burger": "/images/munchi-v2-burger.jpg",
   "chicken biryani": "/images/munchi-v2-biryani.jpg",
   "chicken shawarma": "/images/munchi-v2-shawarma.jpg",
   "chicken karahi": "/images/munchi-v2-karahi.jpg",
+  "beef biryani special double boti": "/images/munchi-v2-beef-biryani.jpg",
+  "chicken biryani single plate (with raita & salad)": "/images/munchi-v2-biryani-plate.jpg",
 };
 
 // Urdu-script words -> Latin, so "زنگر برگر" and "پیزا" match the menu
