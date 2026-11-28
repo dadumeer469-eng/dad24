@@ -26,6 +26,12 @@ export const OG_IMAGE = "https://www.dadufood.store/og-image.jpg";
 export const PHONE_INTL = "+923277004471";
 export const PHONE_DISPLAY = "03277004471";
 
+// Best search keywords for Dadu Food (28 Nov 2026) — copied VERBATIM from
+// src/utils/seoManager.ts DADU_FOOD_KEYWORDS. Set as meta name="keywords" on
+// every prerendered route (plugin renderRoute). Keep in sync with seoManager.
+export const KEYWORDS =
+  "food delivery Dadu, Dadu food delivery, order food online Dadu, Dadu restaurant, Dadu biryani, Dadu fast food, Dadu pizza, Dadu zinger burger, Dadu shawarma, Dadu karahi, Dadu chicken biryani, Dadu beef biryani, grocery delivery Dadu, Dadu grocery, online grocery Dadu, pharmacy Dadu, medicine delivery Dadu, Dadu medicine home delivery, Dadu Food, online food order Dadu Sindh, Dadu home delivery, Dadu food order, Dadu fast food delivery, Dadu food app, Dadu restaurant delivery";
+
 // ---------------------------------------------------------------------------
 // Shared LocalBusiness / FoodEstablishment node (copied from seoManager.ts:
 // DADU_FOOD_BUSINESS + the graph node built in syncPageSeo). Present on

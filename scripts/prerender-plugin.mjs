@@ -28,7 +28,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { ROUTES, OG_IMAGE, ORIGIN, buildJsonLd } from "./prerender-routes.mjs";
+import { ROUTES, OG_IMAGE, ORIGIN, KEYWORDS, buildJsonLd } from "./prerender-routes.mjs";
 
 const PLUGIN_NAME = "dadufood-prerender";
 
@@ -132,6 +132,7 @@ function renderRoute(baseHtml, route) {
 
   html = html.replace(/<title>[^<]*<\/title>/i, () => `<title>${escapeHtmlText(route.title)}</title>`);
   html = setMetaContent(html, "name", "description", route.description);
+  html = setMetaContent(html, "name", "keywords", KEYWORDS);
   html = setMetaContent(html, "property", "og:type", "website");
   html = setMetaContent(html, "property", "og:site_name", "Dadu Food");
   html = setMetaContent(html, "property", "og:title", route.title);
