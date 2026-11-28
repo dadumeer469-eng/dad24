@@ -291,6 +291,11 @@ export default function CartDrawer({
   // - Otherwise: Standard delivery fee
   const freeDeliveryAbove = Number(systemSettings?.freeDeliveryAboveAmount ?? 1000);
   const doubleFeeBelow = Number(systemSettings?.doubleFeeBelowAmount ?? 500);
+  // Ordering toggle (28 Nov 2026) — admin can pause ordering from the admin
+  // panel. OFF = customers browse the menu but the Place Order button is
+  // disabled; the App also blocks the order server-side in
+  // handlePlaceOrderSubmit. Default ON.
+  const orderingEnabled = systemSettings?.orderingEnabled !== false;
   const priorityFee = Number(systemSettings?.priorityFee ?? 30);
   const tipOptions = (Array.isArray(systemSettings?.tipOptions) && systemSettings.tipOptions.length > 0
     ? systemSettings.tipOptions
@@ -674,7 +679,12 @@ export default function CartDrawer({
       console.error(err);
       // Previously the order just silently failed (spinner stopped, no
       // message) — surface it so the user can retry instead of wondering.
-      setCheckoutError("Order place nahi ho saka. Please dobara try karein.");
+      // Prefer a descriptive error (e.g. ordering paused) when one is given.
+      setCheckoutError(
+        err instanceof Error && err.message
+          ? err.message
+          : "Order place nahi ho saka. Please dobara try karein.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -1815,6 +1825,12 @@ export default function CartDrawer({
                 <span>{checkoutError}</span>
               </div>
             )}
+            {!orderingEnabled && (
+              <div className="p-3 bg-amber-500/15 border border-amber-500/30 rounded-xl text-xs text-amber-600 dark:text-amber-300 font-bold flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                <span>Ordering abhi band hai — aap poora menu dekh sakte hain. Order jald hi dobara shuru ho jayega.</span>
+              </div>
+            )}
             {wizardStep === 1 && (
               <div className="space-y-2.5">
                 <div className="flex justify-between text-xs text-zinc-500 dark:text-zinc-400 font-semibold">
@@ -1861,7 +1877,7 @@ export default function CartDrawer({
                 </button>
                 <button
                   onClick={handleSubmitOrder}
-                  disabled={submitting}
+                  disabled={submitting || !orderingEnabled}
                   aria-busy={submitting}
                   className="flex-1 min-h-[48px] btn-pink relative overflow-hidden after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.45)_0%,rgba(255,255,255,0)_65%)] after:opacity-0 after:scale-50 after:transition-all after:duration-300 after:pointer-events-none active:after:opacity-100 active:after:scale-125 active:after:duration-100 text-white py-3.5 rounded-2xl font-black uppercase text-xs tracking-wider shadow-md transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-75 active:scale-[0.97] active:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E21B70]"
                 >
@@ -1869,6 +1885,11 @@ export default function CartDrawer({
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
                       Placing Order...
+                    </>
+                  ) : !orderingEnabled ? (
+                    <>
+                      <ShieldCheck className="w-4 h-4" />
+                      Ordering Band Hai
                     </>
                   ) : paymentMethod === "Easypaisa" ? (
                     <>

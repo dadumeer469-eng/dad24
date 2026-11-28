@@ -634,6 +634,12 @@ export default function AdminPanel({
   const [chatAgentEnabledInput, setChatAgentEnabledInput] = useState(
     deliverySettings?.chatAgentEnabled !== false,
   );
+  // Ordering toggle (28 Nov 2026) — OFF = customers can browse the whole
+  // menu/site but CANNOT place any order; ON = ordering works normally.
+  // App.tsx reads delivery_config.orderingEnabled (default true).
+  const [orderingEnabledInput, setOrderingEnabledInput] = useState(
+    deliverySettings?.orderingEnabled !== false,
+  );
   // Munchi voice pace — pre-speech pause in ms, admin-configurable from
   // inside the app (settings/voice_config → pauseMs). Default 150ms (fast
   // reply, user 28 Nov 11:02: "answer sunke jaldi jawab de na"). Loaded from Firestore below.
@@ -800,6 +806,7 @@ export default function AdminPanel({
       setNightSurchargeStartHourInput(deliverySettings.nightSurchargeStartHour ?? 21);
       setVoiceOrderEnabledInput(deliverySettings.voiceOrderEnabled !== false);
       setChatAgentEnabledInput(deliverySettings.chatAgentEnabled !== false);
+      setOrderingEnabledInput(deliverySettings.orderingEnabled !== false);
       setDeliveryTimeTextInput(deliverySettings.deliveryTimeText || "25–35 min");
       setDeliveryAreasInput((deliverySettings.deliveryAreas || DEFAULT_DELIVERY_AREAS).join("\n"));
       setUserRangeKmInput(deliverySettings.userRangeKm || 10);
@@ -2497,6 +2504,7 @@ export default function AdminPanel({
       await saveDeliveryConfigFields({
         voiceOrderEnabled: voiceOrderEnabledInput,
         chatAgentEnabled: chatAgentEnabledInput,
+        orderingEnabled: orderingEnabledInput,
         deliveryAreas: areas,
         deliveryTimeText: deliveryTimeTextInput.trim() || "25–35 min",
       });
@@ -4351,6 +4359,13 @@ export default function AdminPanel({
                   <input type="checkbox" checked={chatAgentEnabledInput} onChange={(e) => setChatAgentEnabledInput(e.target.checked)} className="accent-[#E21B70] w-4 h-4" />
                   Munchi chat agent dikhao (Chat karein)
                 </label>
+                <label className="flex items-center gap-2 glass-dark border border-white/10 rounded-xl px-3 py-2.5 cursor-pointer text-xs font-bold text-white/80">
+                  <input type="checkbox" checked={orderingEnabledInput} onChange={(e) => setOrderingEnabledInput(e.target.checked)} className="accent-[#E21B70] w-4 h-4" />
+                  Ordering ON rakho (customer order kar sakein)
+                </label>
+                <p className="text-[10.5px] text-white/60 font-semibold leading-relaxed">
+                  Ordering band karne par customer poora menu aur site dekh sakte hain, lekin order nahi kar sakte — cart ka Place Order button aur Munchi (voice/chat) se order dono band ho jayenge. Dubara ON karne par ordering turant wapas shuru ho jayegi. Save karne ke baad “Refresh All Users” dabayen taake har khule hue phone par foran lagoo ho.
+                </p>
                 <div>
                   <span className="block text-[10px] font-bold text-white/60 uppercase tracking-widest mb-1.5">Delivery Time Text</span>
                   <input type="text" value={deliveryTimeTextInput} onChange={(e) => setDeliveryTimeTextInput(e.target.value)} placeholder="25–35 min" className="w-full p-3 glass-input border border-white/10 rounded-xl outline-none text-white font-extrabold focus:border-[#E21B70] transition text-xs" />
