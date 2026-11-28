@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { animate, motion, useInView } from "motion/react";
-import { Plus, Zap } from "lucide-react";
+import { Minus, Plus, Zap } from "lucide-react";
 import {
   Carousel,
   CarouselContent,
@@ -165,9 +165,16 @@ export function ShimmerImage({
 export function OffersCarousel({
   dishes,
   onAdd,
+  cartByDishId,
+  onUpdateQuantity,
 }: {
   dishes: Dish[];
   onAdd: (dish: Dish) => void;
+  // dishId -> cart item (for the quantity stepper). Without this the card
+  // could never show the quantity after tapping "+ Add" (user 28 Nov:
+  // "ispe dabta hu lakin quantity nhi dikhata" — fixed).
+  cartByDishId?: Map<string, { quantity: number }>;
+  onUpdateQuantity?: (dishId: string, qty: number) => void;
 }) {
   const [api, setApi] = useState<CarouselApi>();
   const [paused, setPaused] = useState(false);
@@ -242,15 +249,48 @@ export function OffersCarousel({
                           </span>
                         )}
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => onAdd(dish)}
-                        aria-label={`Add ${dish.name} to cart`}
-                        className="inline-flex items-center gap-1 rounded-full bg-[#E21B70] px-3 py-1.5 min-h-[44px] min-w-[44px] text-xs font-black text-white shadow-sm cursor-pointer active:scale-95 transition"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        Add
-                      </button>
+                      {(() => {
+                        const qty = cartByDishId?.get(dish.id)?.quantity ?? 0;
+                        return qty > 0 && onUpdateQuantity ? (
+                          <span className="inline-flex items-center rounded-full bg-[#E21B70] shadow-sm">
+                            <button
+                              type="button"
+                              onClick={() => onUpdateQuantity(dish.id, qty - 1)}
+                              aria-label="Decrease quantity"
+                              className="flex h-[44px] w-9 items-center justify-center text-white cursor-pointer active:scale-95 transition"
+                            >
+                              <Minus className="w-4 h-4" strokeWidth={2.5} />
+                            </button>
+                            <motion.span
+                              key={qty}
+                              initial={{ scale: 1.35 }}
+                              animate={{ scale: 1 }}
+                              transition={springSmooth}
+                              className="min-w-[20px] text-center text-sm font-black text-white"
+                            >
+                              {qty}
+                            </motion.span>
+                            <button
+                              type="button"
+                              onClick={() => onUpdateQuantity(dish.id, qty + 1)}
+                              aria-label="Increase quantity"
+                              className="flex h-[44px] w-9 items-center justify-center text-white cursor-pointer active:scale-95 transition"
+                            >
+                              <Plus className="w-4 h-4" strokeWidth={2.5} />
+                            </button>
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => onAdd(dish)}
+                            aria-label={`Add ${dish.name} to cart`}
+                            className="inline-flex items-center gap-1 rounded-full bg-[#E21B70] px-3 py-1.5 min-h-[44px] min-w-[44px] text-xs font-black text-white shadow-sm cursor-pointer active:scale-95 transition"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            Add
+                          </button>
+                        );
+                      })()}
                     </div>
                   </div>
                 </motion.div>

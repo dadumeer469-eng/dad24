@@ -100,7 +100,7 @@ export const DashboardMenuItemCard = React.memo(function DashboardMenuItemCard({
           imgClassName="object-cover group-hover:scale-105 transition-transform duration-300"
         />
 
-        {dish.isAvailable && !isRestaurantClosed && quantityInCart > 0 ? (
+        {dish.isAvailable && quantityInCart > 0 ? (
           <motion.div
             initial={reduceMotion ? false : { scale: 0.92, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
