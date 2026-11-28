@@ -1002,7 +1002,7 @@ export default function GroceryCartDrawer({
                         doubleClickZoom={false}
                         touchZoom={false}
                         keyboard={false}
-                        style={{ width: "100%", height: "100%", zIndex: 0 }}
+                        style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0 }}
                       >
                         <TileLayer url={OSM_TILE_URL} attribution={OSM_ATTRIBUTION} />
                         <Marker position={[userCoords.latitude, userCoords.longitude]} icon={CART_PIN_ICON} />

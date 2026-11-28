@@ -254,7 +254,11 @@ function TrackerMapCanvas({
       center={[(riderPos.lat + destPos.lat) / 2, (riderPos.lng + destPos.lng) / 2]}
       zoom={14}
       zoomControl={false}
-      style={{ width: "100%", height: "100%" }}
+      // Absolute fill (NOT height:100%): the parent is a flex item whose
+      // height changes when the sheet collapses/expands, and a child's
+      // height:100% does NOT resolve against it — the map went blank
+      // (same root cause as the location-picker blank map, 28 Nov).
+      style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
     >
       <ResilientTileLayer />
       <DeliveryRouteLayer

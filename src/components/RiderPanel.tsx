@@ -18,8 +18,20 @@ import IncomingCallModal from "./IncomingCallModal";
 import { useRiderLocationTracker } from "../lib/riderLocationTracker";
 import { formatOrderId } from "../utils/catalogNormalizer";
 import L from "leaflet";
-import { MapContainer, TileLayer, Marker } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import GoogleMapsProvider from "./GoogleMapsProvider";
+
+// Re-measure the map after mount: the rider panel can render while its
+// section is still hidden/collapsing, and Leaflet then locks at 0 size
+// (blank map). Same fix as the cart map previews.
+function RiderMapInvalidate() {
+  const map = useMap();
+  useEffect(() => {
+    const t = window.setTimeout(() => map.invalidateSize(), 350);
+    return () => window.clearTimeout(t);
+  }, [map]);
+  return null;
+}
 
 // Pink doorstep pin (Leaflet divIcon with inline HTML/SVG = lucide MapPin look).
 const RIDER_DEST_ICON = L.divIcon({
@@ -1204,7 +1216,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                               ]}
                               zoom={16}
                               zoomControl={false}
-                              style={{ width: "100%", height: "100%" }}
+                              style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
                             >
                               <TileLayer
                                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -1217,6 +1229,7 @@ export default function RiderPanel({ currentUser, onLogout, deliverySettings }: 
                                 ]}
                                 icon={RIDER_DEST_ICON}
                               />
+                              <RiderMapInvalidate />
                             </MapContainer>
                           </GoogleMapsProvider>
                            <div className="absolute bottom-2.5 right-2.5 bg-zinc-950/90 border border-zinc-850 py-1 px-2.5 rounded-lg text-[8px] sm:text-[9px] font-black tracking-wider text-emerald-400 shadow flex items-center gap-1.5 pointer-events-none backdrop-blur-md">
