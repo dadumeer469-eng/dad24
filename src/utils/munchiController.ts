@@ -76,6 +76,11 @@ export class MunchiController {
   // the mouth can move at 60fps without re-rendering anything.
   mouth = { open: 0, target: 0 };
 
+  // Timestamp (performance.now()) of the last driveMouth() call — the
+  // character loop uses it to know the analyser is live and its true
+  // volume should drive the jaw (narration match), not the viseme schedule.
+  lastDriveAt = 0;
+
   // Frame-by-frame viseme schedule for the neural voice: the reply text
   // is known before its TTS audio plays, so the mouth follows the actual
   // words (see munchiFramePlayer.ts). Set by noteSpeechStart(text,
@@ -128,12 +133,17 @@ export class MunchiController {
       this.speechSchedule = buildVisemeSchedule(text, durationSec);
     }
     // If no word boundary arrives within 700ms, this voice never fires
-    // onboundary — fall back to a word-paced pulse.
+    // onboundary — fall back to a word-paced pulse. It used to jump the
+    // jaw to a RANDOM level every 280ms, which read as shaking while
+    // talking; now it is a smooth sine swell (gentle open/close), so the
+    // mouth moves calmly even without a sync signal.
     this.watchdogTimer = window.setTimeout(() => {
       if (this.boundarySeen) return;
+      const startedAt = performance.now();
       this.fallbackTimer = window.setInterval(() => {
-        this.mouth.target = 0.4 + Math.random() * 0.4;
-      }, 280);
+        const t = (performance.now() - startedAt) / 1000;
+        this.mouth.target = 0.45 + Math.sin(t * Math.PI * 2 * 1.8) * 0.22;
+      }, 90);
     }, 700);
   }
 
@@ -150,6 +160,7 @@ export class MunchiController {
   driveMouth(level: number) {
     this.boundarySeen = true;
     this.stopFallback();
+    this.lastDriveAt = performance.now();
     this.mouth.target = Math.max(0, Math.min(0.95, level));
   }
 
