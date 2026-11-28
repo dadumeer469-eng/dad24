@@ -880,62 +880,72 @@ export default function App() {
         let docId = `g_${gUser.uid}`;
         let existingData: any = null;
 
-        if (googleEmail) {
-          const q = query(collection(db, "users"), where("email", "==", googleEmail));
-          const snap = await getDocs(q);
-          if (!snap.empty) {
-            docId = snap.docs[0].id;
-            existingData = snap.docs[0].data();
+        // Sync the Firestore profile. A transient Firestore failure must NOT
+        // stop the login itself (that is what made Google sign-in silently
+        // drop the user after the redirect). The local login below always runs.
+        try {
+          if (googleEmail) {
+            const q = query(collection(db, "users"), where("email", "==", googleEmail));
+            const snap = await getDocs(q);
+            if (!snap.empty) {
+              docId = snap.docs[0].id;
+              existingData = snap.docs[0].data();
+            }
           }
-        }
 
-        if (!existingData) {
-          const directSnap = await getDoc(doc(db, "users", docId));
-          if (directSnap.exists()) {
-            existingData = directSnap.data();
+          if (!existingData) {
+            const directSnap = await getDoc(doc(db, "users", docId));
+            if (directSnap.exists()) {
+              existingData = directSnap.data();
+            }
           }
-        }
 
-        if (existingData && (existingData.status === "blocked" || existingData.isBlacklisted)) {
-          throw new Error("This account has been restricted. Contact support at 03277004471.");
-        }
+          if (existingData && (existingData.status === "blocked" || existingData.isBlacklisted)) {
+            throw new Error("This account has been restricted. Contact support at 03277004471.");
+          }
 
-        const profileRef = doc(db, "users", docId);
-        if (existingData) {
-          await setDoc(
-            profileRef,
-            {
+          const profileRef = doc(db, "users", docId);
+          if (existingData) {
+            await setDoc(
+              profileRef,
+              {
+                firebaseUid: gUser.uid,
+                email: googleEmail || existingData.email || "",
+                name: existingData.name || gUser.displayName || "Dadu Customer",
+                status: existingData.status === "locked" ? "locked" : "verified",
+              },
+              { merge: true }
+            ).catch(() => {});
+          } else {
+            const newProfile: any = {
+              uid: docId,
               firebaseUid: gUser.uid,
-              email: googleEmail || existingData.email || "",
-              name: existingData.name || gUser.displayName || "Dadu Customer",
-              status: existingData.status === "locked" ? "locked" : "verified",
-            },
-            { merge: true }
-          ).catch(() => {});
-        } else {
-          const newProfile: any = {
-            uid: docId,
-            firebaseUid: gUser.uid,
-            name: gUser.displayName || "Dadu Customer",
-            email: googleEmail,
-            phone: "",
-            address: manualAddress ? `${manualAddress.area}, ${manualAddress.street}` : "",
-            role: "buyer",
-            status: "verified",
-            ordersCount: 0,
-            totalOrders: 0,
-            isBlacklisted: false,
-            createdAt: new Date(),
-          };
-          if (globalCoords) {
-            newProfile.savedLocation = {
-              lat: globalCoords.latitude,
-              lng: globalCoords.longitude,
-              area: manualAddress?.area || "",
-              street: manualAddress?.street || "",
+              name: gUser.displayName || "Dadu Customer",
+              email: googleEmail,
+              phone: "",
+              address: manualAddress ? `${manualAddress.area}, ${manualAddress.street}` : "",
+              role: "buyer",
+              status: "verified",
+              ordersCount: 0,
+              totalOrders: 0,
+              isBlacklisted: false,
+              createdAt: new Date(),
             };
+            if (globalCoords) {
+              newProfile.savedLocation = {
+                lat: globalCoords.latitude,
+                lng: globalCoords.longitude,
+                area: manualAddress?.area || "",
+                street: manualAddress?.street || "",
+              };
+            }
+            await setDoc(profileRef, newProfile).catch(() => {});
           }
-          await setDoc(profileRef, newProfile);
+        } catch (e: any) {
+          // A blocked account must still be blocked; anything else is a
+          // transient sync failure — log in locally anyway.
+          if (e?.message && /restricted/.test(e.message)) throw e;
+          console.warn("[google-login] profile sync failed, continuing with local login:", e?.code || e);
         }
 
         localStorage.setItem("dadu_user_phone", docId);
@@ -964,10 +974,37 @@ export default function App() {
           photoURL: u.photoURL,
         });
       })
-      .catch(() => {});
+      .catch((e) => {
+        console.warn("[google-redirect] getRedirectResult failed:", e?.code || e);
+      });
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  // Fallback: Firebase persists the redirect session even when
+  // getRedirectResult returns null. When a GOOGLE user is signed in to
+  // Firebase but the app has no saved phone/doc yet, complete the same
+  // Google profile setup. Phone sign-ins are excluded (their docId is the
+  // phone number, not g_<uid>).
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (fbUser) => {
+      if (!fbUser) return;
+      const isGoogle = (fbUser.providerData || []).some(
+        (pr: any) => pr?.providerId === "google.com"
+      );
+      if (!isGoogle) return;
+      if (typeof window !== "undefined" && localStorage.getItem("dadu_user_phone")) return;
+      handleGoogleUser({
+        uid: fbUser.uid,
+        displayName: fbUser.displayName,
+        email: fbUser.email,
+        photoURL: fbUser.photoURL,
+      }).catch((e) => {
+        console.warn("[google-redirect] onAuthStateChanged pickup failed:", e?.code || e);
+      });
+    });
+    return () => unsub();
   }, []);
 
   const [gmpQuotaExceeded, setGmpQuotaExceeded] = useState(false);
