@@ -28,6 +28,10 @@ import {
   OWNER_CATALOG_SYNCED_AT,
 } from "./data/ownerGroceryCatalog";
 import {
+  LOCAL_DISHES,
+  LOCAL_DISHES_SYNCED_AT,
+} from "./data/localDishes";
+import {
   Dish,
   Order,
   UserProfile,
@@ -43,7 +47,7 @@ import {
   Voucher,
   calculateVoucherDiscount,
 } from "./types";
-import { INITIAL_MENU_ITEMS, DEFAULT_FOOD_CATEGORIES, getDefaultRestaurantImage } from "./data";
+import { DEFAULT_FOOD_CATEGORIES, getDefaultRestaurantImage } from "./data";
 import { DEALS, dealSavings, dealDiscountPct, type Deal } from "./data/deals";
 import {
   readFreshCatalogEntry,
@@ -349,8 +353,8 @@ export default function App() {
     }
   };
 
-  const initialDishes = readCatalogForPaint<Dish[]>("menu", "dadu_cached_dishes", INITIAL_MENU_ITEMS);
-  const [dishes, setDishes] = useState<Dish[]>(() => initialDishes && initialDishes.length > 0 ? initialDishes : INITIAL_MENU_ITEMS);
+  const initialDishes = readCatalogForPaint<Dish[]>("menu", "dadu_cached_dishes", LOCAL_DISHES);
+  const [dishes, setDishes] = useState<Dish[]>(() => initialDishes && initialDishes.length > 0 ? initialDishes : LOCAL_DISHES);
   const [isLoadingDishes, setIsLoadingDishes] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -1399,6 +1403,46 @@ export default function App() {
         }
         // mode "full" — fall through to the full fetch below.
       }
+      // No fresh cache: build from the BUNDLED local dishes (0 reads)
+      // instead of a full Firestore fetch (~145 reads). The delta (1
+      // memoized read) applies only admin changes made after the bundle
+      // was exported (LOCAL_DISHES_SYNCED_AT); a full fetch only happens
+      // when the delta says a Refresh / bulk op / >20 changes needs it.
+      // Tombstones (admin-deleted dishes) are filtered out first so a
+      // deleted dish never resurrects from the bundle.
+      {
+        const delta = await getCatalogDelta();
+        const tombstones = new Set(
+          Object.values(delta?.changes || {})
+            .filter((e) => e && e.c === "menu" && e.a === "delete")
+            .map((e) => e.id),
+        );
+        const base = LOCAL_DISHES.filter(
+          (dish) => !tombstones.has(dish.id),
+        );
+        const patched = await applyCatalogDelta<Dish>(
+          "menu",
+          base,
+          LOCAL_DISHES_SYNCED_AT,
+        );
+        if (cancelled) return;
+        if (patched.mode === "cache" || patched.mode === "patched") {
+          const list = [...(patched.mode === "patched" ? patched.list : base)].sort(
+            (a, b) => (a.position || 0) - (b.position || 0),
+          );
+          setDishes(list);
+          setCachedData("dadu_cached_dishes", list);
+          writeCatalogCache(
+            "menu",
+            list,
+            patched.mode === "patched" ? patched.readAt : Date.now(),
+          );
+          setIsLoadingDishes(false);
+          preloadImages(list.slice(0, 20).map((d) => d.imageUrl));
+          return;
+        }
+        // mode "full" — fall through to the full fetch below.
+      }
       try {
         const snapshot = await getDocs(collection(db, "menu"));
         if (cancelled) return;
@@ -1467,6 +1511,9 @@ export default function App() {
         if (cancelled) return;
         console.warn("Menu listening notice:", handleFirestoreError(err));
         setIsLoadingDishes(false);
+        // Offline/quota fallback: show the bundled dishes so the menu
+        // never goes blank when Firestore can't be read.
+        setDishes((prev) => (prev.length > 0 ? prev : LOCAL_DISHES));
       }
     };
     fetchMenu();
