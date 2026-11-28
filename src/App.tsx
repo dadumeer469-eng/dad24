@@ -396,6 +396,7 @@ export default function App() {
   const isNightSurchargeTime = () => new Date().getHours() >= nightSurchargeStartHour;
   const deliveryTimeTextSetting = (deliverySettings.deliveryTimeText || "").trim();
   const voiceOrderEnabled = deliverySettings.voiceOrderEnabled !== false;
+  const chatAgentEnabled = deliverySettings.chatAgentEnabled !== false;
   const DEFAULT_DELIVERY_AREAS = [
     "Shahani Paro",
     "Moro Road",
@@ -6242,7 +6243,7 @@ export default function App() {
                         call agent ke badle chat agent). Tap to chat with Munchi
                         in Urdu and order by text. Hidden when the admin switches
                         voice ordering off. */}
-                    {voiceOrderEnabled && (
+                    {chatAgentEnabled && (
                       <motion.button
                         type="button"
                         onClick={() => {

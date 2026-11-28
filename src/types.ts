@@ -168,6 +168,7 @@ export interface SystemSettings {
   nightSurchargeStartHour?: number; // 0–23, default 21 (9 PM)
   // Homepage / voice controls (read by App.tsx with fallbacks)
   voiceOrderEnabled?: boolean; // default true — floating voice-call button
+  chatAgentEnabled?: boolean; // default true — Munchi chat agent button
   deliveryAreas?: string[]; // the "We Deliver Across Dadu City" areas
   deliveryTimeText?: string; // e.g. "25–35 min"
   minOrderAmount?: number; // LEGACY — nothing reads this; no admin control (dead field, kept so old docs still parse)
