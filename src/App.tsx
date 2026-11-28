@@ -92,6 +92,7 @@ import {
   viewTransition,
 } from "./utils/motion";
 import VoiceOrderModal, { type VoiceOrder, type VoiceOrderResult } from "./components/VoiceOrderModal";
+import ChatAgentModal from "./components/ChatAgentModal";
 import { primeAudio } from "./utils/primeAudio";
 import OrderTracker from "./components/OrderTracker";
 import AuthModal from "./components/AuthModal";
@@ -3883,6 +3884,10 @@ export default function App() {
 
   // ===== Voice Order Assistant (Urdu, local — no API key) =====
   const [isVoiceOrderOpen, setIsVoiceOrderOpen] = useState(false);
+  // ===== Chat Agent (Munchi as text chat — user 28 Nov 13:39: call agent
+  // ke badle chat agent; the home Munchi card opens this, the floating
+  // phone button still opens the voice modal) =====
+  const [isChatAgentOpen, setIsChatAgentOpen] = useState(false);
   const [voiceFoodDetails, setVoiceFoodDetails] = useState<Parameters<
     typeof handlePlaceOrderSubmit
   >[0] | null>(null);
@@ -5978,6 +5983,32 @@ export default function App() {
         }
       />
 
+      {/* Chat Agent — Munchi as text chat (user 28 Nov 13:39). Same brain
+          (/api/voice-chat), same menu, same order flow as the voice agent;
+          opened from the home Munchi card. */}
+      <ChatAgentModal
+        isOpen={isChatAgentOpen}
+        onClose={() => setIsChatAgentOpen(false)}
+        menuItems={voiceMenuItems}
+        recentOrders={voiceRecentOrders}
+        isSignedIn={!!currentUser}
+        onOpenAuth={() => setIsAuthOpen(true)}
+        onOrderReady={handleVoiceOrderReady}
+        onRequestLocation={requestLocation}
+        userName={currentUser?.name}
+        userPhone={currentUser?.phone}
+        userProfileText={voiceUserProfile}
+        deliveryLocation={
+          currentUser?.savedLocation?.area
+            ? {
+                area: currentUser.savedLocation.area,
+                street: currentUser.savedLocation.street || "",
+              }
+            : manualAddress ||
+              (globalCoords ? { area: "GPS Live Location · Dadu", street: "" } : undefined)
+        }
+      />
+
       {/* Primary Navigation System */}
       {!(isMaintenanceActive && !isUserAdmin) && (
         <FoodpandaHeader
@@ -6207,42 +6238,42 @@ export default function App() {
                       decoding="async"
                     />
                   </motion.div>
-                    {/* MUNCHI — heavy, prominent voice agent card (user 28 Nov 03:15).
-                        Munchi is the app's voice: tap to talk in Urdu and order by
-                        voice. Hidden when the admin switches voice ordering off. */}
+                    {/* MUNCHI — heavy, prominent chat agent card (user 28 Nov 13:39:
+                        call agent ke badle chat agent). Tap to chat with Munchi
+                        in Urdu and order by text. Hidden when the admin switches
+                        voice ordering off. */}
                     {voiceOrderEnabled && (
                       <motion.button
                         type="button"
                         onClick={() => {
-                          primeAudio();
-                          setIsVoiceOrderOpen(true);
+                          setIsChatAgentOpen(true);
                         }}
                         initial={prefersReducedMotion ? false : { opacity: 0, y: 14 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4, delay: 0.15 }}
                         className="relative w-full mt-2 rounded-2xl overflow-hidden text-left cursor-pointer active:scale-[0.99] shadow-[0_6px_18px_rgba(226,27,112,0.30)] border border-[#E21B70]/30 bg-gradient-to-r from-[#E21B70] via-[#D70F64] to-[#B3084C] text-white"
-                        aria-label="Munchi se baat karein — Urdu mein order karein"
+                        aria-label="Munchi se chat karein — Urdu mein order karein"
                       >
                         <div className="flex items-center gap-2.5 p-2.5 sm:p-3">
                           <span className="relative shrink-0">
                             <span className="absolute inset-0 rounded-full bg-white/40 animate-ping" aria-hidden="true" />
                             <img
                               src="/images/munchi.jpg"
-                              alt="Munchi — Dadu Food voice agent"
+                              alt="Munchi — Dadu Food chat agent"
                               className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-white shadow"
                             />
                           </span>
                           <span className="flex-1 min-w-0">
                             <span className="block text-[15px] sm:text-base font-black leading-tight">
-                              Munchi se baat karein 🎙️
+                              Munchi se chat karein
                             </span>
                             <span className="block text-[11px] sm:text-xs font-medium text-white/90 leading-tight truncate">
-                              Urdu mein bol kar order karein
+                              Urdu mein likh kar order karein
                             </span>
                           </span>
                           <span className="shrink-0 inline-flex items-center gap-1 bg-white text-[#E21B70] text-xs font-black px-3 py-2 rounded-full shadow active:scale-95 transition">
-                            <Phone className="w-3.5 h-3.5" />
-                            Call karein
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            Chat karein
                           </span>
                         </div>
                       </motion.button>
