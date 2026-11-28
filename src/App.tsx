@@ -888,6 +888,16 @@ export default function App() {
         let docId = `g_${gUser.uid}`;
         let existingData: any = null;
 
+        // SAVE THE LOGIN FIRST, before any Firestore work. The redirect
+        // pickup runs once and must not be lost if the profile sync hangs
+        // or fails — localStorage is what makes the login stick across
+        // reloads, and the profile effect reads it on mount.
+        try {
+          localStorage.setItem("dadu_user_phone", docId);
+        } catch {
+          // storage unavailable — continue; the in-memory login below still runs
+        }
+
         // Sync the Firestore profile. A transient Firestore failure must NOT
         // stop the login itself (that is what made Google sign-in silently
         // drop the user after the redirect). The local login below always runs.
@@ -956,8 +966,32 @@ export default function App() {
           console.warn("[google-login] profile sync failed, continuing with local login:", e?.code || e);
         }
 
-        localStorage.setItem("dadu_user_phone", docId);
+        // Save the final docId (it may have changed if an existing profile
+        // was found by email) and log the user in DIRECTLY in state.
+        // Do not rely on the synthetic storage event alone to update the
+        // header — set the profile here so the login shows immediately.
+        try {
+          localStorage.setItem("dadu_user_phone", docId);
+        } catch {
+          // ignore
+        }
         window.dispatchEvent(new StorageEvent("storage", { key: "dadu_user_phone" }));
+        const directProfile: UserProfile = {
+          name: (existingData?.name as string) || gUser.displayName || "Dadu Customer",
+          phone: (existingData?.phone as string) || "",
+          email: googleEmail || (existingData?.email as string) || "",
+          address: (existingData?.address as string) || "",
+          role: (existingData?.role as UserProfile["role"]) || "buyer",
+          ordersCount: (existingData?.ordersCount as number) || (existingData?.totalOrders as number) || 0,
+          ...(existingData || {}),
+          uid: docId,
+        } as UserProfile;
+        setCurrentUser(directProfile);
+        try {
+          setCachedData("dadu_cached_user", directProfile);
+        } catch {
+          // ignore
+        }
         setIsAuthOpen(false);
         setToastNotification({
           title: "Signed in with Google",
@@ -1013,6 +1047,47 @@ export default function App() {
       });
     });
     return () => unsub();
+  }, []);
+
+  // Second fallback: the redirect session can finish restoring AFTER the
+  // mount effects above run. Re-check the already-signed-in Firebase user
+  // a moment later (and again on window focus) and complete the Google
+  // login if it is still missing. This is what makes the login stick when
+  // getRedirectResult returns null and the auth listener fires too early.
+  useEffect(() => {
+    let stopped = false;
+    const tryPickup = () => {
+      if (stopped) return;
+      try {
+        const fbUser: any = (auth as any)?.currentUser;
+        if (!fbUser) return;
+        const isGoogle = (fbUser.providerData || []).some(
+          (pr: any) => pr?.providerId === "google.com"
+        );
+        if (!isGoogle) return;
+        if (typeof window !== "undefined" && localStorage.getItem("dadu_user_phone")) return;
+        handleGoogleUser({
+          uid: fbUser.uid,
+          displayName: fbUser.displayName,
+          email: fbUser.email,
+          photoURL: fbUser.photoURL,
+        }).catch((e) => {
+          console.warn("[google-redirect] delayed pickup failed:", e?.code || e);
+        });
+      } catch (e: any) {
+        console.warn("[google-redirect] delayed pickup failed:", e?.code || e);
+      }
+    };
+    const t1 = window.setTimeout(tryPickup, 1200);
+    const t2 = window.setTimeout(tryPickup, 3500);
+    const onFocus = () => tryPickup();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      stopped = true;
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      window.removeEventListener("focus", onFocus);
+    };
   }, []);
 
   const [gmpQuotaExceeded, setGmpQuotaExceeded] = useState(false);
