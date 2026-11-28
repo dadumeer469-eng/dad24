@@ -1,7 +1,7 @@
 import LocationPermissionModal from "./components/LocationPermissionModal";
 import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
 import { DashboardMenuItemCard } from "./components/DashboardMenuItemCard";
-import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from "firebase/auth";
+import { onAuthStateChanged, signOut, signInWithEmailAndPassword, getRedirectResult } from "firebase/auth";
 import {
   collection,
   doc,
@@ -875,6 +875,101 @@ export default function App() {
       return null;
     }
   });
+  const handleGoogleUser = async (gUser: { uid: string; displayName: string | null; email: string | null; photoURL: string | null }) => {
+        const googleEmail = (gUser.email || "").trim().toLowerCase();
+        let docId = `g_${gUser.uid}`;
+        let existingData: any = null;
+
+        if (googleEmail) {
+          const q = query(collection(db, "users"), where("email", "==", googleEmail));
+          const snap = await getDocs(q);
+          if (!snap.empty) {
+            docId = snap.docs[0].id;
+            existingData = snap.docs[0].data();
+          }
+        }
+
+        if (!existingData) {
+          const directSnap = await getDoc(doc(db, "users", docId));
+          if (directSnap.exists()) {
+            existingData = directSnap.data();
+          }
+        }
+
+        if (existingData && (existingData.status === "blocked" || existingData.isBlacklisted)) {
+          throw new Error("This account has been restricted. Contact support at 03277004471.");
+        }
+
+        const profileRef = doc(db, "users", docId);
+        if (existingData) {
+          await setDoc(
+            profileRef,
+            {
+              firebaseUid: gUser.uid,
+              email: googleEmail || existingData.email || "",
+              name: existingData.name || gUser.displayName || "Dadu Customer",
+              status: existingData.status === "locked" ? "locked" : "verified",
+            },
+            { merge: true }
+          ).catch(() => {});
+        } else {
+          const newProfile: any = {
+            uid: docId,
+            firebaseUid: gUser.uid,
+            name: gUser.displayName || "Dadu Customer",
+            email: googleEmail,
+            phone: "",
+            address: manualAddress ? `${manualAddress.area}, ${manualAddress.street}` : "",
+            role: "buyer",
+            status: "verified",
+            ordersCount: 0,
+            totalOrders: 0,
+            isBlacklisted: false,
+            createdAt: new Date(),
+          };
+          if (globalCoords) {
+            newProfile.savedLocation = {
+              lat: globalCoords.latitude,
+              lng: globalCoords.longitude,
+              area: manualAddress?.area || "",
+              street: manualAddress?.street || "",
+            };
+          }
+          await setDoc(profileRef, newProfile);
+        }
+
+        localStorage.setItem("dadu_user_phone", docId);
+        window.dispatchEvent(new StorageEvent("storage", { key: "dadu_user_phone" }));
+        setIsAuthOpen(false);
+        setToastNotification({
+          title: "Signed in with Google",
+          message: `Welcome, ${gUser.displayName || "Customer"}!`,
+        });
+  };
+
+  // Google redirect sign-in pickup: after "Continue with Google" redirects
+  // to Google and back, complete the sign-in here (same profile logic as
+  // the AuthModal callback). Runs once on mount; no-op when there is no
+  // pending redirect result.
+  useEffect(() => {
+    let cancelled = false;
+    getRedirectResult(auth)
+      .then((result) => {
+        if (cancelled || !result?.user) return;
+        const u = result.user;
+        return handleGoogleUser({
+          uid: u.uid,
+          displayName: u.displayName,
+          email: u.email,
+          photoURL: u.photoURL,
+        });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const [gmpQuotaExceeded, setGmpQuotaExceeded] = useState(false);
 
   // Free-delivery countdown: real deadline — offer ends at midnight tonight (local time).
@@ -4968,6 +5063,9 @@ export default function App() {
         )}
       </AnimatePresence>
 
+  // Google sign-in completion (shared by the AuthModal callback AND the
+  // redirect-result pickup below). Creates/links the Firestore user profile.
+
       <AuthModal
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
@@ -5120,77 +5218,7 @@ export default function App() {
           window.dispatchEvent(new StorageEvent("storage", { key: "dadu_user_phone" }));
           setIsAuthOpen(false);
         }}
-        onGoogleAuthSuccess={async (gUser) => {
-          const googleEmail = (gUser.email || "").trim().toLowerCase();
-          let docId = `g_${gUser.uid}`;
-          let existingData: any = null;
-
-          if (googleEmail) {
-            const q = query(collection(db, "users"), where("email", "==", googleEmail));
-            const snap = await getDocs(q);
-            if (!snap.empty) {
-              docId = snap.docs[0].id;
-              existingData = snap.docs[0].data();
-            }
-          }
-
-          if (!existingData) {
-            const directSnap = await getDoc(doc(db, "users", docId));
-            if (directSnap.exists()) {
-              existingData = directSnap.data();
-            }
-          }
-
-          if (existingData && (existingData.status === "blocked" || existingData.isBlacklisted)) {
-            throw new Error("This account has been restricted. Contact support at 03277004471.");
-          }
-
-          const profileRef = doc(db, "users", docId);
-          if (existingData) {
-            await setDoc(
-              profileRef,
-              {
-                firebaseUid: gUser.uid,
-                email: googleEmail || existingData.email || "",
-                name: existingData.name || gUser.displayName || "Dadu Customer",
-                status: existingData.status === "locked" ? "locked" : "verified",
-              },
-              { merge: true }
-            ).catch(() => {});
-          } else {
-            const newProfile: any = {
-              uid: docId,
-              firebaseUid: gUser.uid,
-              name: gUser.displayName || "Dadu Customer",
-              email: googleEmail,
-              phone: "",
-              address: manualAddress ? `${manualAddress.area}, ${manualAddress.street}` : "",
-              role: "buyer",
-              status: "verified",
-              ordersCount: 0,
-              totalOrders: 0,
-              isBlacklisted: false,
-              createdAt: new Date(),
-            };
-            if (globalCoords) {
-              newProfile.savedLocation = {
-                lat: globalCoords.latitude,
-                lng: globalCoords.longitude,
-                area: manualAddress?.area || "",
-                street: manualAddress?.street || "",
-              };
-            }
-            await setDoc(profileRef, newProfile);
-          }
-
-          localStorage.setItem("dadu_user_phone", docId);
-          window.dispatchEvent(new StorageEvent("storage", { key: "dadu_user_phone" }));
-          setIsAuthOpen(false);
-          setToastNotification({
-            title: "Signed in with Google",
-            message: `Welcome, ${gUser.displayName || "Customer"}!`,
-          });
-        }}
+        onGoogleAuthSuccess={handleGoogleUser}
       />
 
       <FoodDetailModal
