@@ -61,12 +61,12 @@ interface ChatMsg {
   text: string;
 }
 
-const GREETING = "السلام علیکم! کیا حال ہیں؟ میں منچی ہوں — آج کیا کھلایا جائے آپ کو؟";
-const UNCLEAR_SPEECH = "معاف کیجیے، پھر سے بولیں۔";
-const MIC_DENIED = "مائیکروفون کی اجازت دیں — براؤزر کی ایڈریس بار میں مائیک آئیکن پر ٹیپ کریں۔";
-const NO_VOICE_INPUT = "آپ کا فون وائس ان پٹ سپورٹ نہیں کرتا۔ کروم استعمال کریں۔";
-const NETWORK_PROBLEM = "انٹرنیٹ کا مسئلہ لگتا ہے — دوبارہ کوشش کریں۔";
-const LINE_BUSY = "معاف کیجیے، لائن ابھی مصروف ہے — تھوڑی دیر بعد دوبارہ کوشش کریں۔";
+const GREETING = "Assalam-o-Alaikum! Kya haal hain? Main Munchi hoon — aaj kya khilaya jaye aap ko?";
+const UNCLEAR_SPEECH = "Maaf kijiye, phir se bolein.";
+const MIC_DENIED = "Microphone ki ijazat dein — browser ki address bar mein mic icon par tap karein.";
+const NO_VOICE_INPUT = "Aap ka phone voice input support nahi karta. Chrome istemal karein.";
+const NETWORK_PROBLEM = "Internet ka masla lagta hai — dobara koshish karein.";
+const LINE_BUSY = "Maaf kijiye, line abhi masroof hai — thodi der baad dobara koshish karein.";
 const MAX_RECORD_MS = 15000;
 const SILENCE_MS = 800;
 const SILENCE_RMS = 0.02;
@@ -533,13 +533,27 @@ export default function VoiceOrderModal({
         if (!done) finish();
       }, 30000);
       try {
-        const res = await fetch(apiUrl("/api/voice-speak"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text }),
-          signal: AbortSignal.timeout(20000),
-        });
-        if (!res.ok) throw new Error(`voice-speak failed: ${res.status}`);
+        // Retry once if TTS fails (a single blip must not silence Munchi).
+        let res: Response | null = null;
+        let ttsErr: unknown = null;
+        for (let attempt = 0; attempt < 2; attempt++) {
+          if (!openRef.current || turnRef.current !== turnAtStart) return;
+          if (attempt > 0) await new Promise((r) => setTimeout(r, 1200));
+          try {
+            res = await fetch(apiUrl("/api/voice-speak"), {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ text }),
+              signal: AbortSignal.timeout(30000),
+            });
+            if (!res.ok) throw new Error(`voice-speak failed: ${res.status}`);
+            break;
+          } catch (e) {
+            ttsErr = e;
+            res = null;
+          }
+        }
+        if (!res) throw ttsErr ?? new Error("voice-speak failed");
         if (!openRef.current || turnRef.current !== turnAtStart) return;
         const blob = await res.blob();
         if (!blob || blob.size < 100) throw new Error("empty speech audio");
@@ -661,7 +675,7 @@ export default function VoiceOrderModal({
       } catch {
         // A failed order (e.g. Firestore/quota error) must never strand
         // the call screen on "done" — say so and let the user retry.
-        speak("معاف کیجیے، آرڈر پلیس نہیں ہوا۔ دوبارہ کوشش کریں۔", () => {
+        speak("Maaf kijiye, order place nahi hua. Dobara koshish karein.", () => {
           if (openRef.current) setStatusBoth("idle");
         });
         return;
@@ -696,7 +710,7 @@ export default function VoiceOrderModal({
       } else {
         // Speak the real reason when the order handler gave one (e.g. the
         // Easypaisa receipt error), not just the generic retry line.
-        speak(result.message || "معاف کیجیے، آرڈر پلیس نہیں ہوا۔ دوبارہ کوشش کریں۔", () => {
+        speak(result.message || "Maaf kijiye, order place nahi hua. Dobara koshish karein.", () => {
           if (openRef.current) setStatusBoth("idle");
         });
       }
@@ -748,12 +762,12 @@ export default function VoiceOrderModal({
     async (history: ChatMsg[], turn: number) => {
       setStatusBoth("thinking");
       try {
-        // Retry once on a transient network blip (slow/flaky mobile data):
+        // Retry twice on a transient network blip (slow/flaky mobile data):
         // a single failed request must not kill the turn with "internet ka
-        // masla hai" — only two consecutive failures say that.
+        // masla hai" — only three consecutive failures say that.
         let res: Response | null = null;
         let lastErr: unknown = null;
-        for (let attempt = 0; attempt < 2; attempt++) {
+        for (let attempt = 0; attempt < 3; attempt++) {
           if (!openRef.current || turn !== turnRef.current) return;
           if (attempt > 0) await new Promise((r) => setTimeout(r, 1500));
           try {
@@ -774,7 +788,7 @@ export default function VoiceOrderModal({
                     : deliveryLocation.area
                   : undefined,
               }),
-              signal: AbortSignal.timeout(30000),
+              signal: AbortSignal.timeout(45000),
             });
             break;
           } catch (e) {
@@ -794,7 +808,7 @@ export default function VoiceOrderModal({
         // its thank-you reply (the order was NOT placed). Ask for the
         // details again instead.
         const say = data?.orderInvalid
-          ? "معاف کیجیے، آرڈر کی تفصیل پوری نہیں ہوئی — دوبارہ بتائیں، میں نوٹ کر لوں گا۔"
+          ? "Maaf kijiye, order ki tafseel poori nahi hui — dobara batayein, main note kar loon ga."
           : typeof data?.reply === "string"
             ? data.reply.trim()
             : "";
@@ -868,7 +882,7 @@ export default function VoiceOrderModal({
         // masla hai" — only two consecutive failures say that.
         let tRes: Response | null = null;
         let lastErr: unknown = null;
-        for (let attempt = 0; attempt < 2; attempt++) {
+        for (let attempt = 0; attempt < 3; attempt++) {
           if (!openRef.current || turn !== turnRef.current) return;
           if (attempt > 0) await new Promise((r) => setTimeout(r, 1500));
           try {
@@ -877,7 +891,7 @@ export default function VoiceOrderModal({
             tRes = await fetch(apiUrl("/api/voice-transcribe"), {
               method: "POST",
               body: fd,
-              signal: AbortSignal.timeout(30000),
+              signal: AbortSignal.timeout(45000),
             });
             break;
           } catch (e) {
