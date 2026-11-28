@@ -106,20 +106,34 @@ export default function MunchiCharacter({
         preloadPose(pose);
       }
 
-      // Mouth openness: the viseme schedule (real words + real audio
-      // duration) wins when one is active; otherwise ease toward the
-      // analyser / word-pulse level and decay shut between words.
+      // Mouth openness: the analyser (true voice volume) wins when it is
+      // live — it is the actual sound, so the jaw matches the narration
+      // exactly. The viseme schedule (words + audio duration) is the
+      // fallback when no analyser is running (suspended AudioContext).
+      // Before this, the schedule always won and the analyser was ignored,
+      // so a schedule built from a wrong duration made the mouth run ahead
+      // of / behind the voice ("narration match nahi hoti").
       const schedule = controller.speechSchedule;
-      if (controller.state === "speaking" && schedule) {
+      const analyserLive = now - controller.lastDriveAt < 200;
+      if (controller.state === "speaking" && analyserLive) {
+        const m = controller.mouth;
+        m.open += (m.target - m.open) * 0.18;
+        m.target *= 0.92;
+        if (m.open < 0.01 && m.target < 0.01) {
+          m.open = 0;
+          m.target = 0;
+        }
+        open = m.open;
+      } else if (controller.state === "speaking" && schedule) {
         const elapsed = (now - schedule.startedAt) / 1000;
         const target =
           elapsed > schedule.duration + 0.5 || schedule.words.length === 0
             ? 0
             : visemeAt(schedule, elapsed).open;
-        open += (target - open) * 0.3;
+        open += (target - open) * 0.18;
       } else {
         const m = controller.mouth;
-        m.open += (m.target - m.open) * 0.3;
+        m.open += (m.target - m.open) * 0.18;
         m.target *= 0.88;
         if (m.open < 0.01 && m.target < 0.01) {
           m.open = 0;
@@ -129,6 +143,11 @@ export default function MunchiCharacter({
       }
 
       // Breathing + head tilt per state. Small angles only — no bouncing.
+      // Speaking used to bob the WHOLE character by open * 2px and swing
+      // the head at 3.1 rad/s, which read as shaking while talking
+      // ("jatke se hilta hai"). Now the bob is a whisper (open * 0.5px)
+      // and the sway is slower and gentler — the mouth does the talking,
+      // the body stays calm.
       const t = now / 1000;
       const breath = reduced ? 0 : Math.sin(t * 1.6) * 0.006;
       let tilt = 0;
@@ -142,8 +161,8 @@ export default function MunchiCharacter({
           bob = reduced ? 0 : Math.sin(t * 2.2) * 1.2;
           break;
         case "speaking":
-          tilt = reduced ? 0 : Math.sin(t * 3.1) * 0.7;
-          bob = open * 2;
+          tilt = reduced ? 0 : Math.sin(t * 2.0) * 0.35;
+          bob = open * 0.5;
           break;
         case "happy":
           tilt = 1;
