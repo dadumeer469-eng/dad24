@@ -633,10 +633,9 @@ export default function AdminPanel({
     deliverySettings?.voiceOrderEnabled !== false,
   );
   // Munchi voice pace — pre-speech pause in ms, admin-configurable from
-  // inside the app (settings/voice_config → pauseMs). Default 300ms (fast
-  // reply, user 28 Nov 10:33: "bar bar app ya site changes na kro, uske
-  // under se hi setting kro"). Loaded from Firestore below.
-  const [voicePauseMsInput, setVoicePauseMsInput] = useState<number>(300);
+  // inside the app (settings/voice_config → pauseMs). Default 150ms (fast
+  // reply, user 28 Nov 11:02: "answer sunke jaldi jawab de na"). Loaded from Firestore below.
+  const [voicePauseMsInput, setVoicePauseMsInput] = useState<number>(150);
   const [voicePauseSaved, setVoicePauseSaved] = useState(false);
   const [deliveryTimeTextInput, setDeliveryTimeTextInput] = useState(
     deliverySettings?.deliveryTimeText || "25–35 min",
@@ -4378,7 +4377,7 @@ export default function AdminPanel({
                 </p>
                 <div className="flex gap-2">
                   {[
-                    { label: "Tez · 300ms", ms: 300 },
+                    { label: "Tez · 150ms", ms: 150 },
                     { label: "Balanced · 700ms", ms: 700 },
                     { label: "Slow · 1200ms", ms: 1200 },
                   ].map((p) => (

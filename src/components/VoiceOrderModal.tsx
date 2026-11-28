@@ -54,7 +54,8 @@ interface VoiceOrderModalProps {
   deliveryLocation?: { area: string; street: string };
   // Pre-speech pause in ms — admin-configurable from the Admin Panel
   // (settings/voice_config → pauseMs). App.tsx loads it (cache-first)
-  // and passes it here; default 300ms (fast reply, user 28 Nov 10:33).
+  // and passes it here; default 150ms (fast reply, user 28 Nov 11:02
+  // "answer sunke jaldi jawab de na").
   voicePauseMs?: number;
 }
 
@@ -86,7 +87,7 @@ const NO_VOICE_INPUT = "Aap ka phone voice input support nahi karta. Chrome iste
 const NETWORK_PROBLEM = "Internet ka masla lagta hai — dobara koshish karein.";
 const LINE_BUSY = "Maaf kijiye, line abhi masroof hai — thodi der baad dobara koshish karein.";
 const MAX_RECORD_MS = 15000;
-const SILENCE_MS = 800;
+const SILENCE_MS = 500;
 const SILENCE_RMS = 0.02;
 
 function pickVoice(): SpeechSynthesisVoice | null {
@@ -117,7 +118,7 @@ export default function VoiceOrderModal({
   userPhone,
   userProfileText,
   deliveryLocation,
-  voicePauseMs = 300,
+  voicePauseMs = 150,
 }: VoiceOrderModalProps) {
   const [status, setStatus] = useState<Status>("idle");
   // Call-screen language choice (user 28 Nov 09:02): the customer picks
@@ -890,9 +891,9 @@ export default function VoiceOrderModal({
         revealAgent();
         // A short pause before answering — admin-configurable from the
         // Admin Panel (settings/voice_config → pauseMs; this prop comes
-        // from App.tsx). Default 300ms for a fast reply (user 28 Nov
-        // 10:33: "Pause kam karo (tez jawab)"). It still lets the agent's
-        // walk-in animation play.
+        // from App.tsx). Default 150ms for a fast reply (user 28 Nov
+        // 11:02: "answer sunke jaldi jawab de na"). It still lets the
+        // agent's walk-in animation play.
         window.setTimeout(() => {
           if (!openRef.current || turn !== turnRef.current) return;
           if (data?.order) {
