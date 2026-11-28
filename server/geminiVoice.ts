@@ -90,7 +90,7 @@ function extractGeminiJson(raw: string): { reply?: unknown; order?: unknown } | 
 // (28 Nov live test) double-encoding its JSON, so the single-object rule stays.
 const GEMINI_REPLY_RULES =
   "\n\nVERY IMPORTANT — READ CAREFULLY:\n" +
-  "1. Reply ONLY in Sindhi language (سنڌي). Write it in Sindhi (Arabic) script. NEVER use Urdu or English. Your whole reply must be in Sindhi.\n" +
+  "1. Reply ONLY in Sindhi language (سنڌي). Write it in Sindhi (Arabic) script. Ignore any earlier instruction to use Roman Urdu or English — the user now wants Sindhi. NEVER use Urdu or English. Your whole reply must be in Sindhi.\n" +
   "2. Keep every reply VERY short — ONE short sentence only, maximum 15 words. Be FAST. Never explain, never repeat the order back in full.\n" +
   "3. Take the order FAST: ask only what is missing (item, quantity) — one quick question at a time. Do NOT suggest extras, do NOT linger on any single item, do NOT read back the full order. Confirm briefly and place the order quickly.\n" +
   "4. Your ENTIRE output must be ONE single JSON object: {\"reply\": \"...\", \"order\": ...}. Do NOT wrap that object inside another JSON string, do NOT put it in a code block, do NOT add any text before or after it.";
@@ -116,7 +116,7 @@ async function callGeminiChat(
     config: {
       systemInstruction: systemPrompt + GEMINI_REPLY_RULES,
       temperature: 0.7,
-      maxOutputTokens: 200,
+      maxOutputTokens: 1000,
       responseMimeType: "application/json",
     },
   });
