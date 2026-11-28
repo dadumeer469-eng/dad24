@@ -287,7 +287,12 @@ function InteractiveLeafletMapView({
     <MapContainer
       center={[lat, lng]}
       zoom={15}
-      style={{ width: "100%", height: "100%" }}
+      // Absolute fill (NOT height:100%): the parent is a flex item whose
+      // height comes from min-h/flex, and a percentage height does NOT
+      // resolve against it — Leaflet measured 0px tall (blank grey map)
+      // even though the parent is 240px. inset:0 fills the relative
+      // parent exactly, whatever height flex gives it.
+      style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
     >
       <TileLayer url={OSM_TILE_URL} attribution={OSM_ATTRIBUTION} />
       <MapResizeHandler />
