@@ -499,8 +499,9 @@ export default function VoiceOrderModal({
   );
 
   // Speak a reply with the NEURAL voice: the text is synthesised to real
-  // audio by /api/voice-speak (Edge neural TTS, male Urdu voice Asad — the
-  // user picked Asad; no female voice anywhere) and played back as a file. Munchi's jaw follows the TRUE volume through
+  // audio by /api/voice-speak (Gemini 2.5 Flash TTS, voice Achird — friendly
+  // male, the user said "Voice bhi uski"; Edge TTS Asad is the fallback
+  // while no Gemini key is configured) and played back as a file. Munchi's jaw follows the TRUE volume through
   // an AnalyserNode (driveMouth), not a guess. If the endpoint fails for
   // any reason, the phone voice above takes over so the call never goes
   // silent mid-sentence.
