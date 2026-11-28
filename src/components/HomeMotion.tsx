@@ -167,6 +167,7 @@ export function OffersCarousel({
   onAdd,
   cartByDishId,
   onUpdateQuantity,
+  onSelectDetail,
 }: {
   dishes: Dish[];
   onAdd: (dish: Dish) => void;
@@ -175,6 +176,11 @@ export function OffersCarousel({
   // "ispe dabta hu lakin quantity nhi dikhata" — fixed).
   cartByDishId?: Map<string, { quantity: number }>;
   onUpdateQuantity?: (dishId: string, qty: number) => void;
+  // Dishes with sizes/flavours/add-ons must open the detail modal instead
+  // of adding a plain dish with no size (audit 28 Nov #3) — the menu
+  // cards and FoodDetailModal both force size/flavour selection, the
+  // carousel used to bypass it entirely.
+  onSelectDetail?: (dish: Dish) => void;
 }) {
   const [api, setApi] = useState<CarouselApi>();
   const [paused, setPaused] = useState(false);
@@ -251,6 +257,22 @@ export function OffersCarousel({
                       </span>
                       {(() => {
                         const qty = cartByDishId?.get(dish.id)?.quantity ?? 0;
+                        // A dish with options (size/flavour/add-ons) opens
+                        // the detail modal so the kitchen gets a size —
+                        // adding it plain would leave the order unspecified
+                        // (audit 28 Nov #3).
+                        const hasCustomization = Boolean(
+                          (dish.sizes && dish.sizes.length > 0) ||
+                          (dish.flavors && dish.flavors.length > 0) ||
+                          (dish.addOns && dish.addOns.length > 0)
+                        );
+                        const handleAdd = () => {
+                          if (hasCustomization && onSelectDetail) {
+                            onSelectDetail(dish);
+                          } else {
+                            onAdd(dish);
+                          }
+                        };
                         return qty > 0 && onUpdateQuantity ? (
                           <span className="inline-flex items-center rounded-full bg-[#E21B70] shadow-sm">
                             <button
@@ -282,7 +304,7 @@ export function OffersCarousel({
                         ) : (
                           <button
                             type="button"
-                            onClick={() => onAdd(dish)}
+                            onClick={handleAdd}
                             aria-label={`Add ${dish.name} to cart`}
                             className="inline-flex items-center gap-1 rounded-full bg-[#E21B70] px-3 py-1.5 min-h-[44px] min-w-[44px] text-xs font-black text-white shadow-sm cursor-pointer active:scale-95 transition"
                           >

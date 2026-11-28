@@ -140,12 +140,16 @@ export default function GroceryModule({
     onSetShowAllCatalog(false);
   }, [initialCategoryId]);
 
+  // On /pharmacy show ONLY the medicine category tile — the full grocery
+  // row let users switch to Rashan etc. while the header still said
+  // "Pharmacy" (audit 28 Nov #10).
   const activeCategories = useMemo(
     () =>
       categories
         .filter((c) => c.isAvailable !== false)
+        .filter((c) => !isPharmacy || c.id === "gcat_medicine")
         .sort((a, b) => (a.position ?? 99) - (b.position ?? 99)),
-    [categories]
+    [categories, isPharmacy]
   );
 
   const categoryNameMap = useMemo(() => {

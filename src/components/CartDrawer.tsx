@@ -769,7 +769,7 @@ export default function CartDrawer({
             </div>
           ) : wizardStep === 1 ? (
             <div className="space-y-3 animate-fade-in">
-              {cartItems.map((item) => (
+              {cartItems.filter((item) => item.quantity > 0).map((item) => (
                 <div key={item.dishId} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-3.5 rounded-2xl shadow-xs transition-transform duration-300 md:hover:-translate-y-0.5">
                   <div className="flex gap-3">
                     {/* Dish thumbnail — bigger, Foodpanda-style. Only renders

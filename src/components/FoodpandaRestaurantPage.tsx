@@ -396,9 +396,13 @@ export default function FoodpandaRestaurantPage({
     }
   };
 
+  // Sum across option variants too: a cart item added WITH a size/flavour
+  // carries a composite dishId ("dishId-size-flavour"), so an exact match
+  // would miss it and the card would show "+ Add" for a dish already in
+  // the cart (audit 28 Nov #4).
   const getDishQuantityInCart = (dishId: string) => {
     return cartItems
-      .filter((item) => item.dishId === dishId)
+      .filter((item) => item.dishId === dishId || item.dishId.startsWith(`${dishId}-`))
       .reduce((sum, item) => sum + item.quantity, 0);
   };
 
