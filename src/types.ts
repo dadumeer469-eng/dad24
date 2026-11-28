@@ -169,6 +169,7 @@ export interface SystemSettings {
   // Homepage / voice controls (read by App.tsx with fallbacks)
   voiceOrderEnabled?: boolean; // default true — floating voice-call button
   chatAgentEnabled?: boolean; // default true — Munchi chat agent button
+  orderingEnabled?: boolean; // default true — admin toggle: OFF = customers can browse the full menu/site but CANNOT place any order (food/grocery/medicine/service, cart checkout + voice/chat orders all blocked); ON = ordering works normally. Stored in settings/delivery_config.
   deliveryAreas?: string[]; // the "We Deliver Across Dadu City" areas
   deliveryTimeText?: string; // e.g. "25–35 min"
   minOrderAmount?: number; // LEGACY — nothing reads this; no admin control (dead field, kept so old docs still parse)

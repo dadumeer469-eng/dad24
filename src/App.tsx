@@ -3728,6 +3728,13 @@ export default function App() {
     messageUponArrival?: boolean;
     cutlery?: boolean;
   }) => {
+    // Ordering toggle (28 Nov 2026) — admin can pause ordering from the
+    // admin panel. The CartDrawer button is already disabled when off; this
+    // is the server-side safety net so no order can be created even if the
+    // UI is bypassed. The CartDrawer catch shows this message to the user.
+    if (deliverySettings?.orderingEnabled === false) {
+      throw new Error("Ordering abhi band hai — aap poora menu dekh sakte hain. Order jald hi dobara shuru ho jayega.");
+    }
     if (currentUser?.status === 'locked' || currentUser?.status === 'blocked') {
       setIsVerificationModalOpen(true);
       return;
@@ -4173,6 +4180,12 @@ export default function App() {
   // Places a voice-collected order. Resolves only after the order is placed.
   const handleVoiceOrderReady = useCallback(
     async (order: VoiceOrder): Promise<VoiceOrderResult> => {
+      // Ordering toggle (28 Nov 2026) — when the admin pauses ordering,
+      // Munchi (voice/chat) must not place orders either; the agent tells
+      // the customer ordering is paused and they can still browse the menu.
+      if (deliverySettings?.orderingEnabled === false) {
+        return { ok: false, message: "Ordering abhi band hai. Aap poora menu dekh sakte hain — order jald hi dobara shuru ho jayega." };
+      }
       if (!currentUser) {
         return { ok: false, needsSignIn: true };
       }
@@ -4363,7 +4376,7 @@ export default function App() {
         });
         voiceOrderDeferredRef.current = null;
       });
-  }, [cartItems, voiceFoodDetails, voiceFoodExpected, handlePlaceOrderSubmit]);
+  }, [cartItems, voiceFoodDetails, voiceFoodExpected, handlePlaceOrderSubmit, deliverySettings]);
 
   const handleClearNotificationsAll = async () => {
     try {
@@ -5799,12 +5812,25 @@ export default function App() {
 
   const isUserAdmin = currentUser?.role === "admin" || currentUser?.role === "staff";
   const isMaintenanceActive = deliverySettings?.isMaintenanceMode === true;
+  // Ordering toggle (28 Nov 2026) — admin can pause ordering from the admin
+  // panel. OFF = customers browse the whole menu/site but cannot place any
+  // order (cart checkout + voice/chat orders blocked); ON = normal.
+  const orderingEnabled = deliverySettings?.orderingEnabled !== false;
 
 
 
   return (
     <div className="min-h-screen bg-[#f7f4ee] dark:bg-[#0B0B0F] text-[#1f1b16] dark:text-[#F5F5F8] relative pb-28 md:pb-12 flex flex-col font-sans overflow-x-clip">
       {appUpdate && <AppUpdateBanner info={appUpdate} />}
+      {/* Ordering paused banner (28 Nov 2026) — admin toggle in
+          settings/delivery_config. Menu/site stay fully visible; only
+          ordering is blocked. Shown to everyone so customers know why the
+          Place Order button is off. */}
+      {!orderingEnabled && !isMaintenanceActive && (
+        <div className="bg-amber-500 text-white text-center px-4 py-2.5 text-xs font-extrabold leading-relaxed">
+          Ordering abhi band hai — aap poora menu dekh sakte hain. Order jald hi dobara shuru ho jayega. Shukriya!
+        </div>
+      )}
       {/* Skip link — first focusable element (a11y fix 27 Nov 2026); CSS in
           src/index.css (.skip-link). The info-page branch main below has
           id="main-content"; the catalog branch main keeps id=
