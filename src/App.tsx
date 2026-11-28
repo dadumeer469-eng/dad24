@@ -1265,20 +1265,18 @@ export default function App() {
     // it is meaningless. Only the website (browser) may show it.
     if (Capacitor.isNativePlatform()) return;
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
-    
-    if (!isStandalone) {
-      // First visit only (audit 28 Nov #11): the bubble used to float over
-      // the product cards for 8s on EVERY visit. Remember it was shown so
-      // it never covers the grid again.
-      if (!localStorage.getItem("dadu_install_bubble_seen")) {
-        setShowInstallBubble(true);
-        localStorage.setItem("dadu_install_bubble_seen", "1");
-      }
-    }
+    if (isStandalone) return;
 
+    // Show the Install bubble whenever the browser says the app is
+    // installable (beforeinstallprompt fires) and it is not installed yet.
+    // (User 28 Nov 16:02: "jaise pehle tha waise hi ho" — the old
+    // first-visit-only localStorage flag hid the bubble forever after one
+    // visit, so the install option vanished. Now it returns whenever the
+    // browser offers install.)
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
+      setShowInstallBubble(true);
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
