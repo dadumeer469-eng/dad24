@@ -83,23 +83,45 @@ function extractGeminiJson(raw: string): { reply?: unknown; order?: unknown } | 
 }
 
 // Extra instruction appended to the shared system prompt for Gemini only.
-// User 28 Nov 08:32: "Sindhi rakho gemini ke model ki voice" — Munchi must
-// speak SINDHI now (was Roman Urdu). "High level fast" + "ek ek chiz ka
-// pata ziada time na lagaye order lane me" — replies must be VERY short and
-// the order flow must not linger on any item. Gemini 3.5-flash was also seen
-// (28 Nov live test) double-encoding its JSON, so the single-object rule stays.
-const GEMINI_REPLY_RULES =
-  "\n\nVERY IMPORTANT — READ CAREFULLY:\n" +
-  "1. Reply ONLY in Sindhi language (سنڌي). Write it in Sindhi (Arabic) script. Ignore any earlier instruction to use Roman Urdu or English — the user now wants Sindhi. NEVER use Urdu or English. Your whole reply must be in Sindhi.\n" +
-  "2. Keep every reply VERY short — ONE short sentence only, maximum 15 words. Be FAST. Never explain, never repeat the order back in full.\n" +
-  "3. Take the order FAST: ask only what is missing (item, quantity) — one quick question at a time. Do NOT suggest extras, do NOT linger on any single item, do NOT read back the full order. Confirm briefly and place the order quickly.\n" +
-  "4. Your ENTIRE output must be ONE single JSON object: {\"reply\": \"...\", \"order\": ...}. Do NOT wrap that object inside another JSON string, do NOT put it in a code block, do NOT add any text before or after it.";
+// User 28 Nov 09:02: the CALL SCREEN shows TWO language options — Sindhi
+// and Urdu — and the customer picks whichever they want. Sindhi is ROMAN
+// Sindhi (Latin letters): Gemini TTS rejects Sindhi (Arabic) script with
+// HTTP 400, so the voice could not speak at all (verified 28 Nov 08:57 —
+// Urdu script and Roman Urdu both synthesise fine; Roman Sindhi also
+// synthesises fine, verified 08:59). Urdu is Roman Urdu, as before.
+// "Natural insan jaise bole, ziyada na soche, na ruke" — speak like a real
+// human: warm, relaxed, immediate, no hesitation, no thinking out loud,
+// no pauses. "High level fast" still applies — replies VERY short, order
+// flow fast. The language comes from the client's `language` field
+// ("ur" | "sd", default "ur").
+function geminiReplyRules(language: string): string {
+  const isSindhi = language === "sd";
+  const langName = isSindhi ? "Roman Sindhi (Sindhi written in Latin letters)" : "Roman Urdu (Urdu written in Latin letters)";
+  const example = isSindhi
+    ? "'Assalam-o-Alaikum, kiyan haal aahin?'"
+    : "'Assalam-o-Alaikum, kya haal hain?'";
+  const never = isSindhi
+    ? "NEVER use Sindhi (Arabic) script, Urdu script, Roman Urdu, or English."
+    : "NEVER use Sindhi, Urdu script, or English.";
+  const ignore = isSindhi
+    ? "Ignore any earlier instruction to use Roman Urdu, Urdu script, or Sindhi script — the customer chose Roman Sindhi."
+    : "Ignore any earlier instruction to use Sindhi or Urdu script — the customer chose Roman Urdu.";
+  return (
+    "\n\nVERY IMPORTANT — READ CAREFULLY:\n" +
+    `1. Reply ONLY in ${langName}, like ${example}. ${ignore} ${never} Your whole reply must be in ${langName}.\n` +
+    "2. Speak NATURALLY, like a real friendly human on the phone — warm, relaxed, conversational. Answer IMMEDIATELY. Do NOT think out loud, do NOT hesitate, do NOT pause, do NOT say 'soch raha hoon' or anything like it. Just say the reply, straight away, like a person would.\n" +
+    "3. Keep every reply VERY short — ONE short sentence only, maximum 15 words. Be FAST. Never explain, never repeat the order back in full.\n" +
+    "4. Take the order FAST: ask only what is missing (item, quantity) — one quick question at a time. Do NOT suggest extras, do NOT linger on any single item, do NOT read back the full order. Confirm briefly and place the order quickly.\n" +
+    "5. Your ENTIRE output must be ONE single JSON object: {\"reply\": \"...\", \"order\": ...}. Do NOT wrap that object inside another JSON string, do NOT put it in a code block, do NOT add any text before or after it."
+  );
+}
 
 async function callGeminiChat(
   apiKey: string,
   model: string,
   systemPrompt: string,
   messages: { role: string; content: string }[],
+  language: string,
 ): Promise<ChatResult> {
   const ai = new GoogleGenAI({ apiKey });
   // Gemini uses "model" for the assistant role (Groq/OpenAI use
@@ -114,9 +136,13 @@ async function callGeminiChat(
     model,
     contents,
     config: {
-      systemInstruction: systemPrompt + GEMINI_REPLY_RULES,
+      systemInstruction: systemPrompt + geminiReplyRules(language),
       temperature: 0.7,
       maxOutputTokens: 1000,
+      // Do not think: the user wants an immediate, natural, human-like
+      // reply with no hesitation — a one-sentence order reply needs no
+      // deliberation, and thinking tokens were eating the output budget.
+      thinkingConfig: { thinkingBudget: 0 },
       responseMimeType: "application/json",
     },
   });
@@ -170,10 +196,13 @@ export async function handleVoiceChat(
     locationText: typeof b.locationText === "string" ? b.locationText.slice(0, 200) : undefined,
   });
   const model = getGeminiModel();
+  // Call-screen language choice ("ur" | "sd", default "ur") — the customer
+  // picks Sindhi or Urdu on the call screen; the reply rules follow it.
+  const language = typeof b.language === "string" && b.language === "sd" ? "sd" : "ur";
   for (const key of keys) {
     try {
       const result = await Promise.race([
-        callGeminiChat(key, model, systemPrompt, messages),
+        callGeminiChat(key, model, systemPrompt, messages, language),
         new Promise<never>((_, reject) =>
           setTimeout(() => reject(new GeminiQuotaError("Gemini chat timed out")), FETCH_TIMEOUT_MS),
         ),
@@ -207,7 +236,7 @@ export async function transcribeWithGemini(
           parts: [
             { inlineData: { mimeType, data: audio.toString("base64") } },
             {
-              text: "Transcribe this audio exactly as spoken, word for word. The speaker is speaking Sindhi (most likely), Urdu (possibly Roman Urdu / Urdu written in Latin letters, or Urdu script) or English. Reply with ONLY the transcription text, nothing else.",
+              text: "Transcribe this audio exactly as spoken, word for word. The speaker is speaking Urdu (most likely Roman Urdu / Urdu written in Latin letters, or Urdu script) or Sindhi (most likely Roman Sindhi / Sindhi written in Latin letters), or English. Reply with ONLY the transcription text, nothing else.",
             },
           ],
         },
