@@ -115,7 +115,7 @@ const RAW_100_ITEMS: SeedTuple[] = [
   ["og_038", "gcat_spices", "Whole Garam Masala (Garam Masala Sabut)", "100g", 365, "whole-garam-masala-sabut-100g.jpg"],
 
   // 4. BAKERY (10)
-  ["og_039", "gcat_bakery", "Egg", "1 Dozen", 340, "egg-1-dozen.jpg"],
+  ["og_039", "gcat_dairy", "Egg", "1 Dozen", 340, "egg-1-dozen.jpg"],
   ["og_040", "gcat_bakery", "Dawn Fortified Bread (Regular)", "380gm", 175, "dawn-fortified-bread-regular-380gm.jpg"],
   ["og_041", "gcat_bakery", "Dawn Fortified Bread (Medium)", "600gm", 265, "dawn-fortified-bread-medium-600gm.jpg"],
   ["og_042", "gcat_bakery", "Dawn Fortified Bread (Small)", "340gm", 125, "dawn-fortified-bread-small-340gm.jpg"],
