@@ -18,6 +18,24 @@ const HERO_FRAMES: Record<string, string> = {
   "chicken karahi": "/images/munchi-karahi.jpg",
 };
 
+// Munchi shows a product frame for ONLY 10 special dishes (user 28 Nov
+// 11:14: "Munchi ke jo frame hai wo bs kuch khas rakho ziyada nhi, 10
+// frame naration ke hisab se"). The 4 heroes above + the bestsellers
+// (isBestseller, set in the Admin Panel) fill the remaining 6 slots, in
+// menu order. Every other dish gets NO frame — Munchi just shows normally.
+// This stops the frame changing on every dish mentioned in the narration.
+const SPECIAL_FRAME_LIMIT = 10;
+
+function specialFrames(items: LocalMenuItem[]): LocalMenuItem[] {
+  const heroes = items.filter((i) => HERO_FRAMES[norm(i.name)]);
+  const seen = new Set(heroes.map((i) => norm(i.name)));
+  const bestsellers = items.filter(
+    (i) => i.type === "food" && i.isBestseller && !seen.has(norm(i.name)),
+  );
+  const picked = [...heroes, ...bestsellers].slice(0, SPECIAL_FRAME_LIMIT);
+  return picked;
+}
+
 // Urdu-script words -> Latin, so "زنگر برگر" and "پیزا" match the menu
 // just like Roman Urdu does (Whisper returns Urdu script for Urdu speech).
 const URDU_WORD_MAP: Record<string, string> = {
@@ -88,33 +106,38 @@ function toLatinWords(text: string): string[] {
 // (1 word), and "pizza" picks a pizza instead of whatever matched first.
 // Full-name match wins outright. Returns null when nothing recognisable
 // is named — the caller keeps the previous frame in that case.
+// NOTE: only the 10 special dishes (4 heroes + bestsellers) can ever
+// produce a frame — see specialFrames above. Any other dish returns null,
+// so Munchi shows no product frame for it.
 export function findProductInText(text: string, items: LocalMenuItem[]): ProductFrame | null {
   if (!text) return null;
   const words = toLatinWords(text);
   if (words.length === 0) return null;
   const t = ` ${words.join(" ")} `;
+  // Only the 10 special dishes are frame-eligible.
+  const special = specialFrames(items);
   // Hero shortcut: a bare hero word ("burger" alone) means the house burger.
   if (words.length === 1) {
     const solo = words[0];
     if (solo === "burger" || solo === "zinger") {
-      const item = items.find((i) => norm(i.name) === "crispy zinger burger");
+      const item = special.find((i) => norm(i.name) === "crispy zinger burger");
       if (item) return { name: item.name, price: item.price, image: HERO_FRAMES["crispy zinger burger"], hero: true };
     }
     if (solo === "biryani") {
-      const item = items.find((i) => norm(i.name) === "chicken biryani");
+      const item = special.find((i) => norm(i.name) === "chicken biryani");
       if (item) return { name: item.name, price: item.price, image: HERO_FRAMES["chicken biryani"], hero: true };
     }
     if (solo === "shawarma") {
-      const item = items.find((i) => norm(i.name) === "chicken shawarma");
+      const item = special.find((i) => norm(i.name) === "chicken shawarma");
       if (item) return { name: item.name, price: item.price, image: HERO_FRAMES["chicken shawarma"], hero: true };
     }
     if (solo === "karahi") {
-      const item = items.find((i) => norm(i.name) === "chicken karahi");
+      const item = special.find((i) => norm(i.name) === "chicken karahi");
       if (item) return { name: item.name, price: item.price, image: HERO_FRAMES["chicken karahi"], hero: true };
     }
   }
   let best: { item: LocalMenuItem; hits: number; chars: number } | null = null;
-  for (const item of items) {
+  for (const item of special) {
     const name = norm(item.name);
     if (!name) continue;
     // Full-name match wins outright.
