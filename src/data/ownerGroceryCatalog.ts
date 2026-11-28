@@ -17,6 +17,7 @@ export const GROCERY_CATEGORY_VISUALS: Record<
   gcat_mother_baby: { emoji: "🍼", accentBg: "from-purple-500/15 to-pink-500/10", accentText: "text-purple-700 dark:text-purple-300", badge: "Baby Care" },
   gcat_feminine_care: { emoji: "🌸", accentBg: "from-rose-500/15 to-pink-500/10", accentText: "text-rose-700 dark:text-rose-300", badge: "Feminine Care" },
   gcat_medicine: { emoji: "💊", accentBg: "from-emerald-500/15 to-green-500/10", accentText: "text-emerald-700 dark:text-emerald-300", badge: "Medicine" },
+  gcat_ronin: { emoji: "🎧", accentBg: "from-violet-500/15 to-purple-500/10", accentText: "text-violet-700 dark:text-violet-300", badge: "Ronin" },
 };
 
 const CAT_IMAGES = {
@@ -34,6 +35,7 @@ const CAT_IMAGES = {
   motherBaby: "/images/grocery/bona-papa-baby-diapers-medium-50pcs.jpg",
   feminineCare: "/images/grocery/butterfly-breathables-sanitary-pads-16pcs.jpg",
   medicine: "/images/grocery/panadol-500mg-1-strip-10-tablets.jpg",
+  ronin: "/images/grocery/ronin-r-29-handsfree.jpg",
 };
 
 export const OWNER_GROCERY_CATEGORIES: GroceryCategory[] = [
@@ -50,6 +52,7 @@ export const OWNER_GROCERY_CATEGORIES: GroceryCategory[] = [
   { id: "gcat_mother_baby", name: "Mother & Baby", imageUrl: CAT_IMAGES.motherBaby, isAvailable: true, position: 11 },
   { id: "gcat_feminine_care", name: "Feminine Care", imageUrl: CAT_IMAGES.feminineCare, isAvailable: true, position: 12 },
   { id: "gcat_medicine", name: "Medicine & Pharmacy", imageUrl: CAT_IMAGES.medicine, isAvailable: true, position: 13 },
+  { id: "gcat_ronin", name: "Ronin Accessories", imageUrl: CAT_IMAGES.ronin, isAvailable: true, position: 14 },
 ];
 
 type SeedTuple = [
@@ -463,6 +466,50 @@ const RAW_SPICES_2026_11_27: SeedTuple[] = [
   ["og_339", "gcat_spices", "Shan Chicken White Karahi Masala", "40g", 165, "shan-chicken-white-karahi-masala-40g.jpg"],
 ];
 
+/**
+ * Ronin accessories — 20 everyday items a Dadu mobile shop normally stocks
+ * (user 28 Nov 11:38: "Kam product add karna, jaise charger, lead,
+ * headphone jo normally Dadu shop pe mil jaye"; 11:40: "20 product").
+ * Prices = current Google/market rate (ronin.pk + Mobile Geeks, checked
+ * 28 Nov 2026) + Rs 100, rounded to nearest Rs 5.
+ * Market rates: Xpress R-6050 1149, R-930 1399, Fury X Pro 2499,
+ * Flexin Mini R-2055 429, Flexin Mini R-2060 559, R-340 695, Core R-2040 799,
+ * R-29 799, R-9 950, R-29 Type-C 1020, R-39 Looop 1145, R-5 1355,
+ * Voltedge R-6055 985, R-615 Encore 680, Flexin Mini R-2065 629,
+ * Ace R-2035 895, Rush R-2050 999, R-007 Type-C 2095, R-49 Air Type-C 1445,
+ * R-71 Power Bank 2750.
+ * Category gcat_ronin ("Ronin Accessories") — its own separate option.
+ */
+const RAW_RONIN_2026_11_28: SeedTuple[] = [
+  // Chargers (3)
+  ["og_340", "gcat_ronin", "Ronin Xpress R-6050 Charger", "1 pc", 1250, "ronin-xpress-r-6050-charger.jpg"],
+  ["og_341", "gcat_ronin", "Ronin R-930 QC 3.0 Charger", "1 pc", 1500, "ronin-r-930-charger.jpg"],
+  ["og_342", "gcat_ronin", "Ronin Fury X Pro R-6060 Charger", "1 pc", 2600, "ronin-fury-x-pro-r-6060-charger.jpg"],
+  // Cables / Leads (4)
+  ["og_343", "gcat_ronin", "Ronin Flexin Mini R-2055 Cable", "1 pc", 530, "ronin-flexin-mini-r-2055-cable.jpg"],
+  ["og_344", "gcat_ronin", "Ronin Flexin Mini R-2060 Type-C Cable", "1 pc", 660, "ronin-flexin-mini-r-2060-cable.jpg"],
+  ["og_345", "gcat_ronin", "Ronin R-340 Type-C Cable 1m", "1 pc", 795, "ronin-r-340-type-c-cable.jpg"],
+  ["og_346", "gcat_ronin", "Ronin Core R-2040 Type-C Cable", "1 pc", 900, "ronin-core-r-2040-cable.jpg"],
+  // Handsfree / Headphones (5)
+  ["og_347", "gcat_ronin", "Ronin R-29 Handsfree", "1 pc", 900, "ronin-r-29-handsfree.jpg"],
+  ["og_348", "gcat_ronin", "Ronin R-9 Handsfree", "1 pc", 1050, "ronin-r-9-handsfree.jpg"],
+  ["og_349", "gcat_ronin", "Ronin R-29 Type-C Handsfree", "1 pc", 1120, "ronin-r-29-type-c-handsfree.jpg"],
+  ["og_350", "gcat_ronin", "Ronin R-39 Looop Handsfree", "1 pc", 1245, "ronin-r-39-looop-handsfree.jpg"],
+  ["og_351", "gcat_ronin", "Ronin R-5 Handsfree", "1 pc", 1455, "ronin-r-5-handsfree.jpg"],
+  // More chargers (2) — user: 20 products total
+  ["og_352", "gcat_ronin", "Ronin Voltedge R-6055 Charger", "1 pc", 1085, "ronin-voltedge-r-6055-charger.jpg"],
+  ["og_353", "gcat_ronin", "Ronin R-615 Encore Charger", "1 pc", 780, "ronin-r-615-encore-charger.jpg"],
+  // More cables / Leads (3)
+  ["og_354", "gcat_ronin", "Ronin Flexin Mini R-2065 Type-C to iPhone Cable", "1 pc", 730, "ronin-flexin-mini-r-2065-cable.jpg"],
+  ["og_355", "gcat_ronin", "Ronin Ace R-2035 Type-C Cable", "1 pc", 995, "ronin-ace-r-2035-cable.jpg"],
+  ["og_356", "gcat_ronin", "Ronin Rush R-2050 Type-C Cable", "1 pc", 1100, "ronin-rush-r-2050-cable.jpg"],
+  // More handsfree (2)
+  ["og_357", "gcat_ronin", "Ronin R-007 Type-C Handsfree", "1 pc", 2195, "ronin-r-007-type-c-handsfree.jpg"],
+  ["og_358", "gcat_ronin", "Ronin R-49 Air Type-C Handsfree", "1 pc", 1545, "ronin-r-49-air-type-c-handsfree.jpg"],
+  // Power bank (1) — cheapest, most common
+  ["og_359", "gcat_ronin", "Ronin R-71 10000mAh Power Bank", "1 pc", 2850, "ronin-r-71-power-bank.jpg"],
+];
+
 /** Epoch ms when this bundled catalogue was last synced from Firestore
  * (27 Nov 2026 price sync + 39 spices). Used as the `savedAt` when the
  * app builds the grocery list from the bundle instead of Firestore, so
@@ -471,7 +518,7 @@ const RAW_SPICES_2026_11_27: SeedTuple[] = [
  * whenever the bundle is re-synced from Firestore. */
 export const OWNER_CATALOG_SYNCED_AT = Date.UTC(2026, 10, 27, 12, 0, 0);
 
-export const OWNER_GROCERY_PRODUCTS: GroceryProduct[] = [...RAW_100_ITEMS, ...RAW_200_ITEMS, ...RAW_SPICES_2026_11_27].map(
+export const OWNER_GROCERY_PRODUCTS: GroceryProduct[] = [...RAW_100_ITEMS, ...RAW_200_ITEMS, ...RAW_SPICES_2026_11_27, ...RAW_RONIN_2026_11_28].map(
   ([id, categoryId, name, unit, price, filename]) => ({
     id,
     categoryId,
