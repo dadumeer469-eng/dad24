@@ -3,22 +3,14 @@ name: Build Android APK (Capacitor, bundled)
 # Builds the Dadu Food Android APK from the Capacitor project on GitHub's
 # servers (local Gradle cannot run in the dev VM — its daemon is killed).
 # The APK bundles the web code inside (dist/), so it opens offline and
-# feels like a real installed app. Trigger manually, or on pushes that
-# touch the Capacitor config / package / workflow.
+# feels like a real installed app.
+# DISABLED 28 Nov 2026 (user: "Ab app na bnake bhjo bs site pwa pe kaam kro"):
+# the auto-build on push is OFF — the site PWA is the app now. The workflow
+# is kept for MANUAL runs only (workflow_dispatch), so the APK can be built
+# again later if the user asks. Do NOT re-enable the push trigger without
+# the user's word.
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'capacitor.config.ts'
-      - 'package.json'
-      - 'package-lock.json'
-      - '.github/workflows/build-apk.yml'
-      - 'scripts/add-android-permissions.py'
-      - 'assets/**'
-      - 'src/**'
-      - 'api/**'
-      - 'public/**'
 
 # The release-attach step needs write access to the repo's releases.
 # Without this, GITHUB_TOKEN gets HTTP 403 "Resource not accessible by
