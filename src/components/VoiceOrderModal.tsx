@@ -482,7 +482,9 @@ export default function VoiceOrderModal({
       const voice = pickVoice();
       if (voice) u.voice = voice;
       u.lang = voice?.lang || "ur-PK";
-      u.rate = 1.15;
+      // Natural pace (user 28 Nov 09:07: "itna bhi tez na ho or itna slow
+      // bhi na ho") — 1.0 is normal human speed; 1.15 was rushed.
+      u.rate = 1.0;
       u.pitch = 1;
       let retried = false;
       // Real lip-sync: Chrome fires onboundary once per spoken word — each
@@ -505,7 +507,7 @@ export default function VoiceOrderModal({
           const u2 = new SpeechSynthesisUtterance(text);
           u2.voice = retryVoice;
           u2.lang = "ur-PK";
-          u2.rate = 1.15;
+          u2.rate = 1.0;
           u2.pitch = 1;
           u2.onboundary = (e) => {
             if (e.name === "word") munchiRef.current?.noteWord(e.charLength ?? 4);
@@ -881,9 +883,11 @@ export default function VoiceOrderModal({
         }
         // The agent answered — he walks in and starts talking.
         revealAgent();
-        // A short human-like pause before answering (and it lets the
-        // agent's walk-in animation play). Kept short so the reply feels
-        // instant, not delayed.
+        // A natural human-like pause before answering (user 28 Nov 09:07:
+        // "itna bhi tez na ho or itna slow bhi na ho" — not rushed, not
+        // slow). 700ms is a normal conversational beat — long enough to
+        // feel human, short enough to never feel delayed. It also lets the
+        // agent's walk-in animation play.
         window.setTimeout(() => {
           if (!openRef.current || turn !== turnRef.current) return;
           if (data?.order) {
@@ -893,7 +897,7 @@ export default function VoiceOrderModal({
               if (openRef.current && statusRef.current !== "done") startListeningRef.current();
             });
           }
-        }, 300);
+        }, 700);
       } catch {
         if (!openRef.current || turn !== turnRef.current) return;
         speak(NETWORK_PROBLEM, () => {
