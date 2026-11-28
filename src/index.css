@@ -364,28 +364,41 @@
 
 /* Voice call agent: walks in when the API connects, talks with a nod,
    breathes while listening, and waves her hand while speaking. */
+/* Call screen entrance (user 28 Nov 09:00): the whole call screen used to
+   pop in with no animation ("jatke se ata hai"). A soft fade + slight
+   rise makes it arrive smoothly. */
+@keyframes call-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.animate-call-modal-in {
+  animation: call-modal-in 0.38s cubic-bezier(0.22, 0.9, 0.3, 1) both;
+}
+/* Walk-in, softened (user 28 Nov 09:00): the old version wobbled with a
+   rotation swing at every keyframe (2deg → -1deg → 0.8deg → -0.4deg),
+   which read as a jerk. Now a single smooth slide + fade, no rotation. */
 @keyframes agent-walk-in {
   0% {
     opacity: 0;
-    transform: translate3d(70%, 26px, 0) scale(0.92) rotate(2deg);
+    transform: translate3d(24%, 18px, 0) scale(0.94);
   }
-  35% {
+  55% {
     opacity: 1;
-    transform: translate3d(38%, -6px, 0) scale(0.96) rotate(-1deg);
-  }
-  60% {
-    transform: translate3d(16%, 4px, 0) scale(0.98) rotate(0.8deg);
-  }
-  80% {
-    transform: translate3d(4%, -3px, 0) scale(1) rotate(-0.4deg);
+    transform: translate3d(6%, -2px, 0) scale(0.99);
   }
   100% {
     opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+    transform: translate3d(0, 0, 0) scale(1);
   }
 }
 .animate-agent-walk-in {
-  animation: agent-walk-in 1.4s cubic-bezier(0.22, 0.9, 0.3, 1) both;
+  animation: agent-walk-in 0.9s cubic-bezier(0.22, 0.9, 0.3, 1) both;
 }
 
 @keyframes agent-talk {
