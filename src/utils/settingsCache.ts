@@ -7,9 +7,12 @@
 // what keeps the free-tier Firestore quota (50,000 reads/day) under pressure
 // even after the catalogue itself costs ~0 reads (7-day cache + delta +
 // bundled lists). A 1-hour TTL cuts settings reads to ~6 per hour per
-// device, while admin edits still show within an hour. Checkout-critical
-// settings are re-read live at order time by the checkout path, so a stale
-// cached fee can never be charged.
+// device. Trade-off (honest): an admin edit takes up to 1 hour to reach a
+// customer who already has a fresh cached copy — including the delivery fee
+// shown at checkout, which comes from this cached state. The admin's
+// "Refresh All Users" button busts the cache immediately (clearSettingsCache
+// is called from the refresh-signal handler), so an edit he pushes with
+// Refresh reaches everyone at once.
 const SETTINGS_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 const PREFIX = "dadu_settings_cache:";
 
@@ -35,4 +38,23 @@ export function writeSettingsCache<T>(key: string, data: T): void {
   } catch {
     /* storage full/blocked — non-fatal, next load re-reads Firestore */
   }
+}
+
+const SETTINGS_CACHE_KEYS = [
+  "delivery_config",
+  "groceryDeliveryConfig",
+  "deal_config",
+  "ui_config",
+  "seo_config",
+] as const;
+
+/** Drop all settings cache entries (admin "Refresh All Users" signal). */
+export function clearSettingsCache(): void {
+  SETTINGS_CACHE_KEYS.forEach((key) => {
+    try {
+      localStorage.removeItem(PREFIX + key);
+    } catch {
+      /* ignore */
+    }
+  });
 }
